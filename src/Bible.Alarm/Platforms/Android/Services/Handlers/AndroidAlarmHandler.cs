@@ -25,20 +25,6 @@ public sealed class AndroidAlarmHandler(
             return;
         }
 
-        //local notification for android
-        if (!isAlarm)
-        {
-            if (schedule.NotificationEnabled)
-            {
-                AndroidNotificationService.RemoveLocalNotification(schedule.Id);
-                AndroidNotificationService.ShowLocalNotification(schedule.Id,
-                    string.IsNullOrEmpty(schedule.Name) ? "Bible Alarm" : schedule.Name,
-                    "Press to start listening now.");
-                Dispose();
-                return;
-            }
-        }
-
         // If "play only when I tap on notification" is enabled for alarm,
         // stop the foreground service and its sticky notification, then show regular notification
         if (isAlarm && schedule.NotificationEnabled)
@@ -54,8 +40,21 @@ public sealed class AndroidAlarmHandler(
             return;
         }
 
-        if (schedule.NotificationEnabled)
+        // When user taps notification (isAlarm=false) or manual playback request:
+        // - Always start playback immediately (user-initiated playback)
+        // - NotificationEnabled flag only applies to alarm triggers, not user-initiated playback
+        // - Remove notification if it exists (user tapped it)
+        if (!isAlarm && schedule.NotificationEnabled)
         {
+            // User-initiated playback (notification tap or manual request) - start playback
+            // Remove notification since user is starting playback
+            AndroidNotificationService.RemoveLocalNotification(schedule.Id);
+            logger.Information("User-initiated playback for schedule {ScheduleId} (NotificationEnabled=true but user requested playback)", scheduleId);
+            // Continue to playback (don't return here)
+        }
+        else if (schedule.NotificationEnabled)
+        {
+            // Remove notification if it exists (for non-user-initiated cases)
             AndroidNotificationService.RemoveLocalNotification(schedule.Id);
         }
 

@@ -85,6 +85,18 @@ public class MainActivity : MauiAppCompatActivity
         backgroundTaskHelper?.SetupBackgroundTasks();
     }
 
+    /// <summary>
+    /// Handles new intents when activity is already running (SingleTop mode).
+    /// Called when user taps notification while activity is already in foreground.
+    /// </summary>
+    protected override void OnNewIntent(Intent? intent)
+    {
+        base.OnNewIntent(intent);
+        SetIntent(intent); // Update the intent so getIntent() returns the latest one
+        Logger.Debug("MainActivity: OnNewIntent called - handling notification tap");
+        intentHandler?.HandleIncomingIntent(intent);
+    }
+
     protected override void OnStart()
     {
         MainActivityLifecycleHelper.OnStart(this, () => base.OnStart());

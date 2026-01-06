@@ -99,15 +99,6 @@ public class AlarmSetupService : Service, IDisposable
 
             switch (extra)
             {
-                case "Add":
-                    {
-                        var time = DateTimeOffset.Parse(intent.GetStringExtra("Time"));
-                        var title = intent.GetStringExtra("Title");
-                        var body = intent.GetStringExtra("Body");
-                        ScheduleNotification(ApplicationContext, int.Parse(intent.GetStringExtra("ScheduleId")), time,
-                            title, body);
-                        break;
-                    }
                 case "SetupBackgroundTasks":
                     Task.Run(async () =>
                     {

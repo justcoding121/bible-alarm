@@ -70,7 +70,8 @@ public class AndroidBootstrapHelper
 
     private static bool UpdateMediaIndexJobTask(Context context)
     {
-        using var jobBuilder = context.CreateJobBuilderUsingJobId<UpdateMediaIndexJob>(UpdateMediaIndexJob.JobId, 60);
+        // Update media index every 24 hours (1440 minutes)
+        using var jobBuilder = context.CreateJobBuilderUsingJobId<UpdateMediaIndexJob>(UpdateMediaIndexJob.JobId, 1440);
         var jobInfo = jobBuilder.Build();
 
         var jobScheduler = (JobScheduler)context.GetSystemService(Context.JobSchedulerService);
@@ -114,8 +115,8 @@ public class AndroidBootstrapHelper
             ?.SetContentType(AudioContentType.Sonification)
             ?.Build();
 
-        // Use default alarm sound
-        var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Alarm);
+        // Use default notification sound for tap-to-play notifications
+        var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Notification);
 
         channel.Description = AndroidNotificationService.ChannelDescription;
         channel.EnableLights(true);

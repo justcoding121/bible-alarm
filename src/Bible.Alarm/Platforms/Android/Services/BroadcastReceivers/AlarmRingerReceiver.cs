@@ -5,6 +5,7 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
 using Bible.Alarm.Platforms.Android.Services.Platform;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
@@ -92,6 +93,26 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
                     concreteHandler.Disposed += OnDisposed;
                 }
                 await alarmHandler.HandleAsync(int.Parse(scheduleId), isAlarm);
+
+                // Reschedule next occurrence immediately after alarm fires (for recurring alarms)
+                // This ensures no gap between alarm occurrences
+                if (isAlarm && !string.IsNullOrEmpty(scheduleId))
+                {
+                    try
+                    {
+                        var schedulerService = ServiceProviderManager.GetService<ISchedulerService>();
+                        if (schedulerService != null)
+                        {
+                            await schedulerService.RescheduleNextOccurrenceAsync(int.Parse(scheduleId));
+                            logger.Information("Rescheduled next occurrence for schedule {ScheduleId} after alarm fired", scheduleId);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Warning(ex, "Failed to reschedule next occurrence for schedule {ScheduleId} after alarm fired", scheduleId);
+                        // Don't fail the alarm handling if rescheduling fails - SchedulerJob will handle it
+                    }
+                }
             });
         }
         catch (Exception e)

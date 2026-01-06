@@ -54,20 +54,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
 
         try
         {
-            if (IsAndroidService())
-            {
-                AlarmSetupService.ScheduleNotification(AndroidApplication.Context, schedule.Id, time, title, body);
-            }
-            else
-            {
-                var intent = new Intent(AndroidApplication.Context, typeof(AlarmSetupService));
-                intent.PutExtra("Action", "Add");
-                intent.PutExtra("ScheduleId", schedule.Id.ToString());
-                intent.PutExtra("Time", time.ToString());
-                intent.PutExtra("Title", title);
-                intent.PutExtra("Body", body);
-                AndroidApplication.Context.StartService(intent);
-            }
+            AlarmSetupService.ScheduleNotification(AndroidApplication.Context, schedule.Id, time, title, body);
         }
         catch (SecurityException ex)
         {
@@ -104,6 +91,8 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
 
         var resultIntent = new Intent(AndroidApplication.Context, typeof(MainActivity));
         resultIntent.PutExtras(valuesForActivity);
+        // Set flags to bring app to foreground when notification is tapped
+        resultIntent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.SingleTop | ActivityFlags.NewTask);
 
         var stackBuilder = TaskStackBuilder.Create(AndroidApplication.Context);
         stackBuilder.AddParentStack(Class.FromType(typeof(MainActivity)));
@@ -126,8 +115,8 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
 
         if (Build.VERSION.SdkInt < BuildVersionCodes.O)
         {
-            // Use default alarm sound
-            var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Alarm);
+            // Use default notification sound
+            var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Notification);
             builder.SetSound(soundUri);
             builder.SetDefaults(0);
         }
@@ -169,6 +158,39 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
         notificationManager.Cancel(scheduleId);
     }
 
+    /// <summary>
+    /// Checks if a local notification is currently active (visible to user).
+    /// </summary>
+    public static Task<bool> IsLocalNotificationActiveAsync(int scheduleId)
+    {
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.M)
+        {
+            try
+            {
+                var notificationManager = NotificationManagerCompat.From(AndroidApplication.Context);
+                var activeNotifications = notificationManager.ActiveNotifications;
+                if (activeNotifications != null)
+                {
+                    foreach (var notification in activeNotifications)
+                    {
+                        if (notification.Id == scheduleId)
+                        {
+                            return Task.FromResult(true);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error checking if notification {ScheduleId} is active", scheduleId);
+            }
+        }
+        
+        // For older Android versions or if check fails, assume notification doesn't exist
+        // This is safe because worst case we'll show notification again (harmless)
+        return Task.FromResult(false);
+    }
+
     public Task RemoveAsync(int scheduleId)
     {
         var pIntent = FindIntent(scheduleId);
@@ -206,6 +228,4 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
     }
 
     public Task<bool> CanScheduleAsync() => Task.FromResult(true);
-
-    private static bool IsAndroidService() => true;
 }
