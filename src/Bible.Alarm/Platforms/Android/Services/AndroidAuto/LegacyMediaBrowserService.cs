@@ -2,6 +2,7 @@
 using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
+using Android.Content.PM;
 using Android.Graphics;
 using Android.Graphics.Drawables;
 using Android.OS;
@@ -39,7 +40,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// Uses the shared MediaSessionCompat from MediaSessionManager to ensure seamless playback continuity
 /// across both services.
 /// </summary>
-[Service(Exported = true)]
+[Service(Exported = true, ForegroundServiceType = ForegroundService.TypeMediaPlayback)]
 [IntentFilter(["android.media.browse.MediaBrowserService"])]
 [Register("bible.alarm.platforms.android.services.androidauto.LegacyMediaBrowserService")]
 public class LegacyMediaBrowserService : MediaBrowserServiceCompat
@@ -85,7 +86,16 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
     public override BrowserRoot? OnGetRoot(string clientPackageName, int clientUid, Bundle? rootHints)
     {
-        return clientValidator.ValidateClientAndGetRoot(clientPackageName, clientUid, rootHints);
+        var root = clientValidator.ValidateClientAndGetRoot(clientPackageName, clientUid, rootHints);
+        
+        // If root is returned (Android Auto is connecting), mark as connected
+        if (root != null)
+        {
+            logger.Information("Android Auto client validated - marking as connected");
+            ForegroundServiceCoordinator.OnAndroidAutoConnected(this);
+        }
+        
+        return root;
     }
 
 
@@ -194,6 +204,10 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         EnsureServicePersistence();
         EnsureSessionTokenIsSet();
 
+        // Mark Android Auto as connected when service is bound
+        // OnGetRoot may have already called this, but it's safe to call again (idempotent)
+        ForegroundServiceCoordinator.OnAndroidAutoConnected(this);
+
         return base.OnBind(intent);
     }
 
@@ -251,12 +265,13 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     {
         logger.Information("⚠️ LegacyMediaBrowserService.OnUnbind() called - Client disconnected");
 
-        // Note: Even though a client unbinds, the service may not be destroyed immediately
-        // because we start it as a sticky service in OnBind(). This prevents premature destruction
-        // when Android Auto temporarily disconnects and reconnects.
-        // The service will only be destroyed if StopService() is explicitly called or the system
-        // needs to reclaim resources (which is rare for sticky services).
+        // Mark Android Auto as disconnected and stop foreground service
+        ForegroundServiceCoordinator.OnAndroidAutoDisconnected();
 
+        // Return base.OnUnbind() to maintain sticky service behavior
+        // This allows the service to stay alive for quick reconnections
+        // OnDestroy() will serve as a fallback if OnUnbind wasn't called
+        // (e.g., when Android Auto emulator is closed abruptly)
         return base.OnUnbind(intent);
     }
 
@@ -264,6 +279,11 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     public override void OnDestroy()
     {
         logger.Information("✅ LegacyMediaBrowserService destroyed - Clearing local MediaSession reference");
+
+        // Fallback: If OnUnbind wasn't called (e.g., when Android Auto emulator is closed),
+        // mark Android Auto as disconnected and stop foreground service
+        // This ensures the notification is removed even if Android doesn't properly call OnUnbind
+        ForegroundServiceCoordinator.OnAndroidAutoDisconnected();
 
         // Clean up state subscriptions
         stateSubscriptionManager.Cleanup();

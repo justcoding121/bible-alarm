@@ -275,17 +275,65 @@ public class MainActivity : MauiAppCompatActivity
 
     private void HandleFragmentRestorationError(IllegalArgumentException ex)
     {
-        Logger.Warning(ex, "Fragment restoration failed due to stale state - clearing fragments and retrying");
+        Logger.Warning(ex, "Fragment restoration failed due to stale state - restarting activity for clean state");
 
+        // Create a completely fresh intent to avoid any stale state
+        // Use Handler to post the restart to ensure it happens after the current lifecycle method completes
+        // This prevents the black screen by ensuring proper activity transition
         try
         {
-            ClearAllFragments();
-            base.OnStart();
+            var handler = new Handler(Looper.MainLooper);
+            handler.Post(() =>
+            {
+                try
+                {
+                    // Create a fresh intent for the main launcher activity
+                    var intent = new Intent(this, typeof(MainActivity));
+                    intent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.NewTask | ActivityFlags.ClearTask);
+                    
+                    // Remove any potential fragment state extras
+                    intent.RemoveExtra("android:support:fragments");
+                    intent.RemoveExtra("androidx.lifecycle");
+                    
+                    // Start the new activity
+                    StartActivity(intent);
+                    
+                    // Use FinishAffinity to properly close this activity and any related activities
+                    // This ensures a clean transition without black screen
+                    FinishAffinity();
+                    
+                    Logger.Information("Activity restarted to recover from fragment restoration error");
+                }
+                catch (Exception restartEx)
+                {
+                    Logger.Error(restartEx, "Failed to restart activity in handler - app may need to be manually restarted");
+                    // Fallback: try to finish this activity to allow system to recover
+                    try
+                    {
+                        Finish();
+                    }
+                    catch
+                    {
+                        // Ignore errors during fallback
+                    }
+                }
+            });
         }
-        catch (Exception retryEx)
+        catch (Exception handlerEx)
         {
-            Logger.Error(retryEx, "Failed to recover from fragment restoration error - app may be in inconsistent state");
-            throw;
+            Logger.Error(handlerEx, "Failed to post restart handler - attempting immediate restart");
+            // Fallback: try immediate restart
+            try
+            {
+                var intent = new Intent(this, typeof(MainActivity));
+                intent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.NewTask | ActivityFlags.ClearTask);
+                StartActivity(intent);
+                Finish();
+            }
+            catch (Exception fallbackEx)
+            {
+                Logger.Error(fallbackEx, "All restart attempts failed - app may need to be manually restarted");
+            }
         }
     }
 

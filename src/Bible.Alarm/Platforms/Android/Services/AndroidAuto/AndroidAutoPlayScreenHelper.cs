@@ -57,15 +57,19 @@ public static class AndroidAutoPlayScreenHelper
 
 
     /// <summary>
-    /// Sets playback state to STOPPED with only Play action available.
-    /// Used when playback ends to show idle/ready state.
+    /// Sets playback state to PAUSED with Play and Pause actions available.
+    /// Used when metadata is available but playback hasn't started yet.
+    /// StatePaused (instead of StateStopped) indicates the media is "ready" and helps Android Auto show the split view.
     /// </summary>
     public static void SetStoppedState(MediaSessionCompat mediaSession)
     {
+        // Use StatePaused instead of StateStopped when metadata is available
+        // This indicates the media is "ready" rather than "stopped", which helps Android Auto show the split view
+        // Include both Play and Pause actions to indicate the media is ready to play
         var playbackState = CreatePlaybackState(
-            PlaybackStateCompat.StateStopped,
+            PlaybackStateCompat.StatePaused,
             position: 0,
-            actions: PlaybackStateCompat.ActionPlay);
+            actions: PlaybackStateCompat.ActionPlay | PlaybackStateCompat.ActionPause | PlaybackStateCompat.ActionPlayPause);
 
         if (playbackState != null)
         {

@@ -1,6 +1,7 @@
 #nullable enable
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
@@ -110,11 +111,17 @@ public class MediaSessionEffect(
                 mediaSessionManager.SetPlaybackStatus(action.Status, canPlayNext, canPlayPrevious);
             }
 
-            // Save metadata to Preferences when playback starts (status changes to Playing)
-            // This ensures we save as soon as user hits play and metadata is available
+            // Track playback state for foreground service coordination
             if (action.Status == PlayStatus.Playing)
             {
+                // MediaElement started playing - request foreground service ownership
+                ForegroundServiceCoordinator.OnPlaybackStarted();
                 SaveCurrentMetadataToPreferencesIfAvailable();
+            }
+            else if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
+            {
+                // MediaElement stopped playing - release foreground service ownership
+                ForegroundServiceCoordinator.OnPlaybackStopped();
             }
         }
         catch (Exception ex)
@@ -178,7 +185,7 @@ public class MediaSessionEffect(
     }
 
     [EffectMethod]
-    public Task HandleSetDefaultScheduleMetadata(SetDefaultScheduleMetadataAction action, FluxorDispatcher dispatcher)
+    public async Task HandleSetDefaultScheduleMetadata(SetDefaultScheduleMetadataAction action, FluxorDispatcher dispatcher)
     {
         try
         {
@@ -187,13 +194,13 @@ public class MediaSessionEffect(
             if (playbackState.Value.IsPreparingOrPlaying)
             {
                 logger.Debug("HandleSetDefaultScheduleMetadata: Playback is active, skipping default schedule metadata update");
-                return Task.CompletedTask;
+                return;
             }
 
             var session = GetValidatedSession("cannot update default schedule metadata");
             if (session == null)
             {
-                return Task.CompletedTask;
+                return;
             }
 
             logger.Debug("HandleSetDefaultScheduleMetadata: Updating MediaSession with default schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
@@ -209,13 +216,37 @@ public class MediaSessionEffect(
 
             // Set to stopped state (idle, ready to play)
             mediaSessionManager.UpdatePlaybackStateForStop();
+
+            // Only start Android Auto foreground service if Android Auto is actually connected
+            if (ForegroundServiceCoordinator.IsAndroidAutoConnected)
+            {
+                // Add a delay to ensure MediaElement's notification and foreground service are fully removed
+                // This ensures proper synchronization - MediaElement's notification is removed before
+                // Android Auto foreground service starts. Increased delay to ensure smooth transition.
+                await Task.Delay(300);
+
+                // Double-check that MediaElement is not active before starting Android Auto foreground
+                // This prevents race conditions where MediaElement might have started again
+                if (!ForegroundServiceCoordinator.IsAndroidAutoConnected)
+                {
+                    logger.Debug("Android Auto disconnected during delay - skipping foreground service start");
+                    return;
+                }
+
+                // Request Android Auto foreground service to keep connection alive
+                // Uses the stored service instance from ForegroundServiceCoordinator (no DI needed)
+                logger.Information("Requesting Android Auto foreground service after MediaElement disposal and metadata update");
+                ForegroundServiceCoordinator.RequestForAndroidAuto(session);
+            }
+            else
+            {
+                logger.Debug("Skipping Android Auto foreground service - Android Auto is not connected");
+            }
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error updating MediaSessionCompat with default schedule metadata");
         }
-
-        return Task.CompletedTask;
     }
 
     private MediaSessionCompat? GetValidatedSession(string warningMessage)

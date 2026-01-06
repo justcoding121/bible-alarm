@@ -10,6 +10,7 @@ using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Maui.Core;
 
 #if ANDROID
+using Bible.Alarm.Platforms.Android.Services.Media;
 #endif
 #if IOS
 using Bible.Alarm.Platforms.iOS.Helpers;
@@ -160,6 +161,13 @@ public class MediaElementManager
                 logger.Information("Disposing MediaElement instance to free up resources");
                 await mediaElementService.DisposeMediaElementAsync();
                 logger.Information("MediaElement disposed - resources freed");
+                
+#if ANDROID
+                // Notify coordinator that MediaElement is fully disposed and its notification is removed
+                // This allows Android Auto to take ownership after disposal is complete
+                Bible.Alarm.Platforms.Android.Services.Media.ForegroundServiceCoordinator.OnMediaElementDisposed();
+                logger.Debug("Notified ForegroundServiceCoordinator that MediaElement is disposed");
+#endif
             }
 
             // Verify final state
