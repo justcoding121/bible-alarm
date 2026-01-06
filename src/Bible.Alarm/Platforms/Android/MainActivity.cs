@@ -19,8 +19,8 @@ public class MainActivity : MauiAppCompatActivity
     private static ILogger? logger;
     private static ILogger Logger => logger ??= Serilog.Log.ForContext<MainActivity>();
 
-    private readonly MainActivityIntentHandler intentHandler;
-    private readonly MainActivityBackgroundTaskHelper backgroundTaskHelper;
+    private MainActivityIntentHandler? intentHandler;
+    private MainActivityBackgroundTaskHelper? backgroundTaskHelper;
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
@@ -81,8 +81,8 @@ public class MainActivity : MauiAppCompatActivity
     private void SetupActivityComponents()
     {
         Logger.Debug("MainActivity: Setting up intents and background tasks");
-        intentHandler.HandleIncomingIntent(Intent);
-        backgroundTaskHelper.SetupBackgroundTasks();
+        intentHandler?.HandleIncomingIntent(Intent);
+        backgroundTaskHelper?.SetupBackgroundTasks();
     }
 
     protected override void OnStart()

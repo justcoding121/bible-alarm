@@ -5,7 +5,9 @@ using Android.App;
 using Android.OS;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.UI.Interfaces;
+using Java.Lang;
 using Serilog;
+using Exception = System.Exception;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;
 

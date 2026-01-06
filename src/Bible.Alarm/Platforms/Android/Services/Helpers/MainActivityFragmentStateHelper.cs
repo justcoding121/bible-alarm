@@ -7,6 +7,7 @@ using Android.Content;
 using Android.OS;
 using Java.Lang;
 using Serilog;
+using Exception = System.Exception;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;
 
