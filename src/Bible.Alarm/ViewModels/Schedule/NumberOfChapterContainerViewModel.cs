@@ -119,6 +119,18 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
             await MarkBatteryOptimizationModalAsShown();
             await navigationService.PopModalAsync();
         });
+
+        DoNotDisturbExcludeCommand = new AsyncRelayCommand(async () =>
+        {
+            if (DeviceInfo.Platform == DevicePlatform.Android)
+            {
+                var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
+                if (batteryService != null)
+                {
+                    batteryService.ShowDoNotDisturbSettingsPage();
+                }
+            }
+        });
     }
 
     private void InitializeFromState()
@@ -265,11 +277,6 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
         get => notificationEnabled;
         set
         {
-            if (!value)
-            {
-                _ = ShowBatteryOptimizationExclusionPage();
-            }
-
             if (SetProperty(ref notificationEnabled, value))
             {
                 DispatchScheduleUpdate(s => s.NotificationEnabled = value);
@@ -287,35 +294,7 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
 
     public ICommand BatteryOptimizationExcludeCommand { get; private set; } = null!;
     public ICommand BatteryOptimizationDismissCommand { get; private set; } = null!;
-
-    private async Task ShowBatteryOptimizationExclusionPage()
-    {
-        if (DeviceInfo.Platform != DevicePlatform.Android)
-        {
-            return;
-        }
-
-        var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
-        if (batteryService == null)
-        {
-            return;
-        }
-
-        if (batteryService.CanShowOptimizeActivity())
-        {
-            CanOptimizeBattery = true;
-        }
-
-        if (await batteryService.ShouldShowModalAsync())
-        {
-            await navigationService.OpenBatteryOptimizationModalAsync(this);
-        }
-        else
-        {
-            // If modal was already shown, just show the settings page directly
-            batteryService.ShowOptimizationSettingsPage();
-        }
-    }
+    public ICommand DoNotDisturbExcludeCommand { get; private set; } = null!;
 
     private async Task MarkBatteryOptimizationModalAsShown()
     {

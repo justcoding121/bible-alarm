@@ -87,6 +87,7 @@
                 HorizontalOptions="Fill"
                 VerticalOptions="Fill"
                 ItemsSource="{Binding Schedules}"
+                Margin="{Binding CollectionViewBottomMargin, Converter={StaticResource doubleToBottomThicknessConverter}}"
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" 
@@ -480,5 +481,31 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
         </Grid>
+        
+        <!-- Floating Alarm Settings Button (Android only) -->
+        <Button
+            AutomationId="AlarmSettingsFloatingButton"
+            BackgroundColor="{StaticResource PrimaryColor}"
+            CornerRadius="28"
+            Command="{Binding OpenAlarmSettingsCommand}"
+            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+            FontSize="20"
+            HeightRequest="56"
+            HorizontalOptions="End"
+            IsVisible="{Binding IsFloatingButtonVisible}"
+            Margin="0,0,16,16"
+            Opacity="{Binding IsFloatingButtonVisible, Converter={StaticResource booleanToDoubleConverter}}"
+            Padding="0"
+            Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
+            VerticalOptions="End"
+            WidthRequest="56"
+            ZIndex="100">
+            <Button.Shadow>
+                <Shadow Brush="#40000000" 
+                        Offset="0,4" 
+                        Radius="8" 
+                        Opacity="0.4" />
+            </Button.Shadow>
+        </Button>
     </Grid>
 </views:BaseContentPage>

@@ -3,11 +3,11 @@ using Microsoft.Maui.Controls.Xaml;
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class BatteryOptimizationExclusionModal : BaseContentPage, IDisposable
+public partial class AlarmSettingsModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
 
-    public BatteryOptimizationExclusionModal()
+    public AlarmSettingsModal()
     {
         InitializeComponent();
     }

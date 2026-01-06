@@ -118,9 +118,20 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
     public async Task OpenBatteryOptimizationModalAsync(INavigation navigation, object bindingContext)
     {
-        var modal = serviceProvider.GetRequiredService<BatteryOptimizationExclusionModal>();
-        modal.BindingContext = bindingContext;
-        // Disable animation for instant appearance
-        await navigation.PushModalAsync(modal, animated: false);
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            try
+            {
+                var modal = serviceProvider.GetRequiredService<AlarmSettingsModal>();
+                modal.BindingContext = bindingContext;
+                // Disable animation for instant appearance
+                await navigation.PushModalAsync(modal, animated: false);
+                logger.Information("AlarmSettingsModal opened successfully");
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error opening AlarmSettingsModal");
+            }
+        });
     }
 }

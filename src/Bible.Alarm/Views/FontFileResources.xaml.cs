@@ -108,4 +108,6 @@ public sealed class GlyphNames
     public static string Music = "\uf001";
     // Font Awesome rotate-right icon (retry)
     public static string Retry = "\uf01e";
+    // Font Awesome exclamation-triangle icon (for alarm settings)
+    public static string ExclamationTriangle = "\uf071";
 }

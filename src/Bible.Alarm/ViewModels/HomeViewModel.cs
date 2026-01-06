@@ -6,9 +6,11 @@ using AutoMapper;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Models.Schedule;
+using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
@@ -144,6 +146,44 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         AddScheduleCommand = commandHandler.CreateAddScheduleCommand();
         ViewScheduleCommand = commandHandler.CreateViewScheduleCommand();
 
+        // Command to open alarm settings modal (Android only)
+        OpenAlarmSettingsCommand = new AsyncRelayCommand(async () =>
+        {
+            if (DeviceInfo.Platform != DevicePlatform.Android)
+            {
+                return;
+            }
+
+            try
+            {
+                var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
+                if (batteryService == null)
+                {
+                    logger.Warning("IBatteryOptimizationService not available");
+                    return;
+                }
+
+                // Create a temporary view model for the modal
+                var tempViewModel = new NumberOfChapterContainerViewModel(
+                    logger,
+                    navigationService,
+                    serviceProvider,
+                    state,
+                    dispatcher);
+
+                if (batteryService.CanShowOptimizeActivity())
+                {
+                    tempViewModel.CanOptimizeBattery = true;
+                }
+
+                await navigationService.OpenBatteryOptimizationModalAsync(tempViewModel);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error opening alarm settings modal from floating button");
+            }
+        });
+
         // Initialize state change handler
         stateChangeHandler = new HomeStateChangeHandler(
             logger,
@@ -229,9 +269,90 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     /// </summary>
     public void ResetScheduleState() => dispatcher.Dispatch(new ResetScheduleStateAction());
 
+    /// <summary>
+    /// Updates the floating button visibility based on scroll position.
+    /// Shows button when scrolled to bottom, hides when content is behind it.
+    /// </summary>
+    public void UpdateFloatingButtonVisibility(bool isScrolledToBottom, bool hasEnoughItems)
+    {
+        // Show button only when:
+        // 1. User has scrolled to bottom (so content won't be hidden behind it)
+        // 2. OR there aren't enough items to scroll (all items fit on screen)
+        var shouldShow = isScrolledToBottom || !hasEnoughItems;
+        
+        if (IsFloatingButtonVisible != shouldShow)
+        {
+            IsFloatingButtonVisible = shouldShow;
+            
+            // Add bottom margin when button is visible to prevent content overlap
+            CollectionViewBottomMargin = shouldShow ? 80 : 0; // 56 (button) + 24 (margin)
+        }
+    }
+
+    /// <summary>
+    /// Checks if the alarm settings modal should be shown on first app launch.
+    /// This is called once when the home page loads for the first time.
+    /// </summary>
+    public async Task CheckAndShowAlarmSettingsOnFirstLaunchAsync()
+    {
+        if (DeviceInfo.Platform != DevicePlatform.Android)
+        {
+            return;
+        }
+
+        try
+        {
+            var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
+            if (batteryService == null)
+            {
+                return;
+            }
+
+            // Check if this is the first launch and modal hasn't been shown yet
+            // Uses the same database check as ShouldShowModalAsync (saved to GeneralSettings table)
+            if (await batteryService.ShouldShowModalAsync())
+            {
+                // Create a temporary view model for the modal
+                // The modal will use this to bind commands
+                var tempViewModel = new NumberOfChapterContainerViewModel(
+                    logger,
+                    navigationService,
+                    serviceProvider,
+                    state,
+                    dispatcher);
+
+                if (batteryService.CanShowOptimizeActivity())
+                {
+                    tempViewModel.CanOptimizeBattery = true;
+                }
+
+                await navigationService.OpenBatteryOptimizationModalAsync(tempViewModel);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error checking and showing alarm settings on first launch");
+        }
+    }
+
 
     public ICommand AddScheduleCommand { get; set; }
     public ICommand ViewScheduleCommand { get; set; }
+    public ICommand OpenAlarmSettingsCommand { get; private set; } = null!;
+
+    private bool isFloatingButtonVisible = true;
+    public bool IsFloatingButtonVisible
+    {
+        get => isFloatingButtonVisible;
+        set => SetProperty(ref isFloatingButtonVisible, value);
+    }
+
+    private double collectionViewBottomMargin = 0;
+    public double CollectionViewBottomMargin
+    {
+        get => collectionViewBottomMargin;
+        set => SetProperty(ref collectionViewBottomMargin, value);
+    }
 
 
     private void OnStateChanged(object? sender, EventArgs e)

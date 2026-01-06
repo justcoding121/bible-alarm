@@ -28,6 +28,14 @@ public sealed class SchedulePlaybackService(
 
         try
         {
+            // Remove any existing alarm notifications before starting user-initiated playback
+            // This ensures no notification sounds when user clicks play from home page
+#if ANDROID
+            Platforms.Android.Services.UI.AndroidNotificationService.RemoveLocalNotification(scheduleId);
+            // Also stop any alarm foreground service that might be active
+            Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
+#endif
+            
             await playbackService.PrepareAndPlayAsync(scheduleId, false);
             // Note: ShowNotificationAsync is not called here because it triggers AlarmRingerReceiver
             // which would cause duplicate playback. Notifications are only shown when alarms actually fire.

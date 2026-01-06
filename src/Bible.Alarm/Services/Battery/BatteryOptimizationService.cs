@@ -36,6 +36,7 @@ public sealed class BatteryOptimizationService(
         try
         {
             const string Key = "AndroidBatteryOptimizationExclusionPromptShown";
+            // Check database to see if modal was already shown
             return !await generalSettingsService.GeneralSettingExistsAsync(Key, cancellationTokenSource.Token);
         }
         catch (Exception ex)
@@ -48,6 +49,8 @@ public sealed class BatteryOptimizationService(
     public void ShowOptimizationSettingsPage() => batteryOptimizationManager?.ShowBatteryOptimizationExclusionSettingsPage();
 
     public bool CanShowOptimizeActivity() => batteryOptimizationManager?.CanShowOptimizeActivity() ?? false;
+
+    public void ShowDoNotDisturbSettingsPage() => batteryOptimizationManager?.ShowDoNotDisturbSettingsPage();
 
     public void Dispose()
     {

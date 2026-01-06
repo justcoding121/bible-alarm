@@ -298,7 +298,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<MusicSelectionModal>();
         services.AddTransient<SongBookSelectionModal>();
         services.AddTransient<TrackSelectionModal>();
-        services.AddTransient<BatteryOptimizationExclusionModal>();
+        services.AddTransient<AlarmSettingsModal>();
         services.AddTransient<NumberOfChaptersModal>();
 
         // It will be created with Home as the root page

@@ -55,13 +55,30 @@ public sealed class AndroidAlarmHandler(
         // - Always start playback immediately (user-initiated playback)
         // - NotificationEnabled flag only applies to alarm triggers, not user-initiated playback
         // - Remove notification if it exists (user tapped it)
-        if (!isAlarm && schedule.NotificationEnabled)
+        // - Do NOT show any notifications or sounds for user-initiated playback
+        if (!isAlarm)
         {
-            // User-initiated playback (notification tap or manual request) - start playback
-            // Remove notification since user is starting playback
+            // User-initiated playback (notification tap or manual request) - start playback silently
+            // Remove any existing notifications since user is starting playback
             AndroidNotificationService.RemoveLocalNotification(schedule.Id);
-            logger.Information("User-initiated playback for schedule {ScheduleId} (NotificationEnabled=true but user requested playback)", scheduleId);
-            // Continue to playback (don't return here)
+            logger.Information("User-initiated playback for schedule {ScheduleId} - starting playback directly without notifications", scheduleId);
+            
+            // For user-initiated playback, directly call PrepareAndPlayAsync without going through alarm handler logic
+            // This ensures no foreground service calls or notification sounds
+            await Task.Run(async () =>
+            {
+                try
+                {
+                    await playbackService.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e, "An error happened when starting user-initiated playback.");
+                    Dispose();
+                }
+            });
+            
+            return;
         }
 
         // MediaManager removed - using MediaElement instead

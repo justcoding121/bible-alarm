@@ -6,5 +6,6 @@ public interface IBatteryOptimizationService : IDisposable
     Task<bool> ShouldShowModalAsync();
     void ShowOptimizationSettingsPage();
     bool CanShowOptimizeActivity();
+    void ShowDoNotDisturbSettingsPage();
 }
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.General.BatteryOptimizationExclusionModal"
+    x:Class="Bible.Alarm.Views.General.AlarmSettingsModal"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -34,7 +34,7 @@
                 </Border.Shadow>
                 <Grid
                     Margin="0,0,0,125"
-                    AutomationId="BatteryOptimizationModal"
+                    AutomationId="AlarmSettingsModal"
                     HorizontalOptions="Fill"
                     RowSpacing="20"
                     VerticalOptions="Center">
@@ -62,7 +62,7 @@
                         HorizontalOptions="Fill"
                         HorizontalTextAlignment="Center"
                         LineBreakMode="WordWrap"
-                        Text="Audio may not play in background on certain android devices like OnePlus due to aggressive battery optimization. This application will not drain your device battery. We recommend to exclude this app from battery optimization."
+                        Text="To ensure alarms work reliably, please configure these essential settings:&#10;&#10;1. Battery Optimization: Prevent the system from stopping alarms in the background&#10;2. Do Not Disturb: Allow alarms to play even when your device is in silent or DND mode"
                         TextColor="{DynamicResource TextPrimaryColor}"
                         VerticalOptions="Start"
                         VerticalTextAlignment="Start" />
@@ -74,7 +74,7 @@
                         HorizontalOptions="Fill"
                         HorizontalTextAlignment="Center"
                         LineBreakMode="WordWrap"
-                        Text="Click Exclude Now => Apps not optimized => All Apps => Bible Alarm => Off"
+                        Text="After clicking the buttons below, follow these steps:&#10;&#10;Battery Optimization:&#10;1. Select the option to exempt apps from battery optimization (may be labeled 'Not optimized', 'Unrestricted', or 'Don't optimize' depending on your device)&#10;2. Find 'Bible Alarm' in the list&#10;3. Select the option to disable battery optimization for this app&#10;&#10;Do Not Disturb:&#10;1. Find 'Bible Alarm' in the list&#10;2. Tap on 'Bible Alarm'&#10;3. Enable 'Allow Modes access' or toggle it to 'Allowed'"
                         TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Start"
                         VerticalTextAlignment="Start" />
@@ -86,7 +86,7 @@
                         HorizontalOptions="Fill"
                         HorizontalTextAlignment="Center"
                         LineBreakMode="WordWrap"
-                        Text="You may exclude through Android Settings => Apps => : => Special access => Optimize battery usage => Apps not optimized => All Apps => Bible Alarm => Off"
+                        Text="Manual setup: Settings → Apps → Special app access → Battery optimization → Find 'Bible Alarm' → Select the option to disable battery optimization (may be labeled 'Not optimized', 'Unrestricted', or 'Don't optimize')"
                         TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Start"
                         VerticalTextAlignment="Start" />
@@ -95,6 +95,7 @@
                     <Grid Grid.Row="4"
                           RowSpacing="12">
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -111,7 +112,7 @@
                             HorizontalOptions="Fill"
                             HeightRequest="50"
                             Padding="20,0"
-                            Text="EXCLUDE NOW"
+                            Text="OPEN BATTERY SETTINGS"
                             TextColor="White"
                             VerticalOptions="Fill">
                             <Button.Shadow>
@@ -124,6 +125,29 @@
                         
                         <Button Grid.Row="1"
                             IsVisible="{Binding CanOptimizeBattery}"
+                            BackgroundColor="{StaticResource PrimaryColor}"
+                            BorderWidth="0"
+                            BorderColor="Transparent"
+                            Command="{Binding DoNotDisturbExcludeCommand}"
+                            CornerRadius="12"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            HorizontalOptions="Fill"
+                            HeightRequest="50"
+                            Padding="20,0"
+                            Text="OPEN DND SETTINGS"
+                            TextColor="White"
+                            VerticalOptions="Fill">
+                            <Button.Shadow>
+                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                        Offset="0,4"
+                                        Opacity="0.2"
+                                        Radius="8" />
+                            </Button.Shadow>
+                        </Button>
+                        
+                        <Button Grid.Row="2"
+                            IsVisible="{Binding CanOptimizeBattery}"
                             AutomationId="BatteryOptimizationDismissButton"
                             BackgroundColor="{DynamicResource ControlBackgroundColor}"
                             BorderWidth="0"
@@ -135,7 +159,7 @@
                             HorizontalOptions="Fill"
                             HeightRequest="50"
                             Padding="20,0"
-                            Text="LATER"
+                            Text="CLOSE"
                             TextColor="{DynamicResource PrimaryTextColor}"
                             VerticalOptions="Fill">
                             <Button.Shadow>

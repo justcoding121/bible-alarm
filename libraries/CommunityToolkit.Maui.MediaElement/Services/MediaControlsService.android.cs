@@ -84,6 +84,9 @@ sealed class MediaControlsService : Service
         ArgumentNullException.ThrowIfNull(notificationBuilder);
         ArgumentNullException.ThrowIfNull(NotificationManager);
 
+        // Ensure notification channel exists and is configured as silent
+        CreateNotificationChannel(NotificationManager);
+
         var style = new MediaStyleNotificationHelper.MediaStyle(session);
         if (!OperatingSystem.IsAndroidVersionAtLeast(33))
         {
@@ -91,6 +94,13 @@ sealed class MediaControlsService : Service
         }
 
         notificationBuilder.SetStyle(style);
+
+        // For pre-O Android, explicitly ensure no sound
+        if (!OperatingSystem.IsAndroidVersionAtLeast(26))
+        {
+            notificationBuilder.SetSound(null);
+            notificationBuilder.SetDefaults(0);
+        }
 
         NotificationManagerCompat.From(Platform.AppContext)?.Notify(1, notificationBuilder.Build());
     }
@@ -165,6 +175,9 @@ sealed class MediaControlsService : Service
     {
         var channel = new NotificationChannel("1", "Now Playing", NotificationImportance.Low);
         channel.Description = "Shows currently playing Bible reading or music";
+        // Explicitly set no sound for MediaElement notifications (silent)
+        // User-initiated playback should not make notification sounds
+        channel.SetSound(null, null);
         notificationMnaManager.CreateNotificationChannel(channel);
     }
 
@@ -172,6 +185,10 @@ sealed class MediaControlsService : Service
     void StartForegroundServices()
     {
         NotificationManager ??= GetSystemService(NotificationService) as NotificationManager ?? throw new InvalidOperationException($"{nameof(NotificationManager)} cannot be null");
+        
+        // Create notification channel BEFORE creating the builder to ensure it's available
+        CreateNotificationChannel(NotificationManager);
+        
         notificationBuilder ??= new NotificationCompat.Builder(Platform.AppContext, "1");
 
         var pendingIntent = CreateActivityPendingIntent();
@@ -181,7 +198,14 @@ sealed class MediaControlsService : Service
         notificationBuilder.SetVisibility(NotificationCompat.VisibilityPublic);
         notificationBuilder.SetContentIntent(pendingIntent);
 
-        CreateNotificationChannel(NotificationManager);
+        // Explicitly disable sound for MediaElement notifications (silent)
+        // For pre-O Android, we need to set it in the builder as well
+        if (!OperatingSystem.IsAndroidVersionAtLeast(26))
+        {
+            notificationBuilder.SetSound(null);
+            notificationBuilder.SetDefaults(0); // No default sounds, lights, or vibrations
+        }
+        // For Android O+, the channel's sound setting (null) is automatically used
 
         // ForegroundService.TypeMediaPlayback requires API 29+, minimum supported is API 26
         if (OperatingSystem.IsAndroidVersionAtLeast(29))

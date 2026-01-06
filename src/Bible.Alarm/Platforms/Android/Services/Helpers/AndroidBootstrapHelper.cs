@@ -105,13 +105,17 @@ public class AndroidBootstrapHelper
         var channelName = AndroidNotificationService.ChannelName;
         var channelDescription = AndroidNotificationService.ChannelDescription;
 
-        var channel = new NotificationChannel(channelId, channelName, NotificationImportance.High)
+        // Use Max importance for alarm notifications to ensure they bypass Do Not Disturb
+        // and have highest priority
+        var channel = new NotificationChannel(channelId, channelName, NotificationImportance.Max)
         {
             Description = channelDescription
         };
 
+        // Use Alarm usage for alarm notifications to ensure they play even in silent/DND mode
+        // and have higher audio priority
         var attributes = new AudioAttributes.Builder()
-            .SetUsage(AudioUsageKind.Notification)
+            .SetUsage(AudioUsageKind.Alarm)
             ?.SetContentType(AudioContentType.Sonification)
             ?.Build();
 
@@ -123,6 +127,13 @@ public class AndroidBootstrapHelper
         channel.EnableLights(true);
         channel.EnableVibration(true);
         channel.SetSound(soundUri, attributes);
+        
+        // Allow notifications to bypass Do Not Disturb mode (Android 7.1+)
+        // This ensures alarms can play even when DND is enabled
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.NMr1)
+        {
+            channel.SetBypassDnd(true);
+        }
 
         var notificationManager =
             (NotificationManager)AndroidApplication.Context.GetSystemService(Context.NotificationService);

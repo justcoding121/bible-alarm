@@ -13,6 +13,8 @@
 	<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 	<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 	<uses-permission android:name="android.permission.REORDER_TASKS" />
+	<!-- Permission to access notification policy for Do Not Disturb bypass -->
+	<uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 	<!-- Remove deprecated permission if it exists in merged manifest -->
 	<uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" tools:node="remove" />
 	
