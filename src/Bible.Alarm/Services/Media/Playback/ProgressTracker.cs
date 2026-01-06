@@ -10,7 +10,7 @@ using Timer = System.Timers.Timer;
 namespace Bible.Alarm.Services.Media.Playback;
 
 /// <summary>
-/// Handles progress tracking and saving for Bible tracks.
+/// Handles progress tracking and saving for Bible tracks and music tracks.
 /// Separated from PlaybackService for better modularity.
 /// </summary>
 public sealed class ProgressTracker
@@ -19,6 +19,10 @@ public sealed class ProgressTracker
     private readonly IAudioPlayer audioPlayer;
     private readonly ILogger logger;
     private readonly Timer progressSaveTimer;
+    
+    // Track if we've already marked the current music track as finished
+    private int? lastMusicTrackIndex = null;
+    private bool hasMarkedCurrentMusicTrackAsFinished = false;
 
     public ProgressTracker(
         IPlaylistService playlistService,
@@ -44,19 +48,26 @@ public sealed class ProgressTracker
         }
 
         var track = playlist[currentTrackIndex];
-        if (track.PlayItem.Metadata.PlayType == PlayType.Bible)
+        
+        // Reset music track finished flag when track changes
+        if (lastMusicTrackIndex != currentTrackIndex)
         {
-            progressSaveTimer.Start();
+            hasMarkedCurrentMusicTrackAsFinished = false;
+            lastMusicTrackIndex = currentTrackIndex;
         }
-        else
-        {
-            progressSaveTimer.Stop();
-        }
+        
+        // Start timer for both Bible and Music tracks
+        // For Bible tracks: saves progress periodically
+        // For Music tracks: marks as finished on first progress update (only once due to hasMarkedCurrentMusicTrackAsFinished flag)
+        progressSaveTimer.Start();
     }
 
     public void Stop()
     {
         progressSaveTimer.Stop();
+        // Reset flags when stopping
+        hasMarkedCurrentMusicTrackAsFinished = false;
+        lastMusicTrackIndex = null;
     }
 
     private Func<Task>? saveProgressCallback;
@@ -76,6 +87,35 @@ public sealed class ProgressTracker
         }
 
         var track = playlist[currentTrackIndex];
+
+        // Handle music tracks: mark as finished on first progress update
+        if (track.PlayItem.Metadata.PlayType == PlayType.Music)
+        {
+            // Only mark as finished once per track
+            if (!hasMarkedCurrentMusicTrackAsFinished && audioPlayer.Status == PlayStatus.Playing)
+            {
+                try
+                {
+                    var currentPosition = audioPlayer.CurrentPosition;
+                    if (currentPosition.HasValue && currentPosition.Value > TimeSpan.Zero)
+                    {
+                        logger.Information(
+                            "Marking music track as finished on first progress update - ScheduleId: {ScheduleId}, TrackNumber: {TrackNumber}, Position: {Position}",
+                            track.PlayItem.Metadata.ScheduleId,
+                            track.PlayItem.Metadata.TrackNumber,
+                            currentPosition.Value);
+                        
+                        await playlistService.MarkTrackAsFinished(track.PlayItem.Metadata);
+                        hasMarkedCurrentMusicTrackAsFinished = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Error marking music track as finished on progress update");
+                }
+            }
+            return;
+        }
 
         // Only save progress for Bible tracks
         if (track.PlayItem.Metadata.PlayType != PlayType.Bible)

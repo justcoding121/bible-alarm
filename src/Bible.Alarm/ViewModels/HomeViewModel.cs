@@ -7,6 +7,7 @@ using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database.Interfaces;
+using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -82,7 +83,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         // Initialize helper classes
         scheduleDataPreparer = new ScheduleDataPreparer(mapper);
-        navigationHelper = new HomeNavigationHelper(logger, dispatcher, navigationService, state, playbackState, mapper);
+        var scheduleDisplayNameService = serviceProvider.GetService<IScheduleDisplayNameService>();
+        navigationHelper = new HomeNavigationHelper(logger, dispatcher, navigationService, state, playbackState, mapper, alarmScheduleService, scheduleDisplayNameService);
         scheduleViewModelManager = new ScheduleViewModelManager(logger, serviceProvider, navigationHelper.TrackPlayClick);
         progressAnimator = new ProgressBarAnimator();
         progressBarManager = new ProgressBarManager(progressAnimator);

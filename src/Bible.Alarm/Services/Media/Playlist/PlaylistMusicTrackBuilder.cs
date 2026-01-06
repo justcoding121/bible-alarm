@@ -66,9 +66,13 @@ public class PlaylistMusicTrackBuilder
     {
         if (next)
         {
-            return (currentTrackNumber % totalTracks);
+            // Calculate next track number (wraps around if needed)
+            // If at track 200, next is 1; if at track 9, next is 10
+            var nextTrackNumber = ((currentTrackNumber) % totalTracks) + 1;
+            return nextTrackNumber;
         }
-        return currentTrackNumber - 1;
+        // Dictionary is keyed by track number (1-based), so use track number directly
+        return currentTrackNumber;
     }
 
     private static void ValidateTrackSource(AudioSource? source, int trackIndex, string trackType)

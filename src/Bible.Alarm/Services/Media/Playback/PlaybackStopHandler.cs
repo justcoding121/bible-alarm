@@ -81,15 +81,11 @@ public sealed class PlaybackStopHandler
         {
             try
             {
-                // For music tracks, mark as finished (which advances to next track unless repeat is enabled)
-                // This matches the behavior when a track finishes naturally
-                // For Bible tracks, mark as played (which saves current position)
-                if (trackMetadataToMark.PlayType == PlayType.Music)
+                // Music tracks are handled by ProgressTracker on first progress update
+                // Only mark Bible tracks as played here (saves current position)
+                if (trackMetadataToMark.PlayType != PlayType.Music)
                 {
-                    await playlistService.MarkTrackAsFinished(trackMetadataToMark);
-                }
-                else
-                {
+                    // For Bible tracks, mark as played (which saves current position)
                     await playlistService.MarkTrackAsPlayed(trackMetadataToMark);
                 }
             }
