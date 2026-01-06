@@ -5,4 +5,6 @@ public interface IBatteryOptimizationManager : IDisposable
     void ShowBatteryOptimizationExclusionSettingsPage();
     bool CanShowOptimizeActivity();
     void ShowDoNotDisturbSettingsPage();
+    bool IsNotificationPolicyAccessGranted();
+    bool IsIgnoringBatteryOptimizations();
 }

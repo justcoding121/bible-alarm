@@ -52,6 +52,10 @@ public sealed class BatteryOptimizationService(
 
     public void ShowDoNotDisturbSettingsPage() => batteryOptimizationManager?.ShowDoNotDisturbSettingsPage();
 
+    public bool IsNotificationPolicyAccessGranted() => batteryOptimizationManager?.IsNotificationPolicyAccessGranted() ?? false;
+
+    public bool IsIgnoringBatteryOptimizations() => batteryOptimizationManager?.IsIgnoringBatteryOptimizations() ?? false;
+
     public void Dispose()
     {
         if (isDisposed)

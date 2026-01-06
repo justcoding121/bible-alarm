@@ -4,10 +4,6 @@ using Bible.Alarm.ViewModels;
 using Serilog;
 using Syncfusion.Maui.Buttons;
 using Microsoft.Maui.Controls.Xaml;
-#if ANDROID
-using AndroidX.RecyclerView.Widget;
-using Microsoft.Maui.Controls.Platform;
-#endif
 
 namespace Bible.Alarm.Views;
 
@@ -66,10 +62,8 @@ public partial class Home : BaseContentPage, IDisposable
         // Check and show alarm settings modal on first app launch
         await viewModel?.CheckAndShowAlarmSettingsOnFirstLaunchAsync();
 
-        // Setup scroll detection for floating button (Android only)
-#if ANDROID
-        SetupScrollDetection();
-#endif
+        // Update floating button visibility based on permissions
+        viewModel?.UpdateFloatingButtonVisibility();
 
 #if DEBUG
         // Log that home page is fully loaded with data
@@ -177,85 +171,6 @@ public partial class Home : BaseContentPage, IDisposable
         return IsTapOnInteractiveControl(childView, relativePoint);
     }
 
-#if ANDROID
-    private void SetupScrollDetection()
-    {
-        if (SchedulesCollectionView == null)
-        {
-            return;
-        }
-
-        // Wait for handler to be created before accessing platform view
-        SchedulesCollectionView.HandlerChanged += OnCollectionViewHandlerChanged;
-        
-        // Also check immediately if handler is already available
-        if (SchedulesCollectionView.Handler != null)
-        {
-            OnCollectionViewHandlerChanged(SchedulesCollectionView, EventArgs.Empty);
-        }
-    }
-
-    private void OnCollectionViewHandlerChanged(object? sender, EventArgs e)
-    {
-        if (SchedulesCollectionView?.Handler?.PlatformView is RecyclerView recyclerView)
-        {
-            recyclerView.ScrollChange += OnRecyclerViewScroll;
-            // Check initial scroll position
-            MainThread.BeginInvokeOnMainThread(() => CheckScrollPosition(recyclerView));
-        }
-    }
-
-    private void OnRecyclerViewScroll(object? sender, Android.Views.View.ScrollChangeEventArgs e)
-    {
-        if (sender is RecyclerView recyclerView)
-        {
-            CheckScrollPosition(recyclerView);
-        }
-    }
-
-    private void CheckScrollPosition(RecyclerView recyclerView)
-    {
-        if (recyclerView.ChildCount == 0 || viewModel?.Schedules == null)
-        {
-            // No items or no schedules - show button (no content to hide)
-            viewModel?.UpdateFloatingButtonVisibility(isScrolledToBottom: true, hasEnoughItems: false);
-            return;
-        }
-
-        var layoutManager = recyclerView.GetLayoutManager();
-        if (layoutManager == null)
-        {
-            return;
-        }
-
-        // Get the last visible item position
-        var lastVisiblePosition = -1;
-        for (int i = recyclerView.ChildCount - 1; i >= 0; i--)
-        {
-            var child = recyclerView.GetChildAt(i);
-            if (child != null)
-            {
-                var position = recyclerView.GetChildAdapterPosition(child);
-                if (position != RecyclerView.NoPosition)
-                {
-                    lastVisiblePosition = Math.Max(lastVisiblePosition, position);
-                }
-            }
-        }
-
-        var totalItemCount = recyclerView.GetAdapter()?.ItemCount ?? 0;
-        
-        // Consider scrolled to bottom if last visible item is within 1 item of the end
-        var isScrolledToBottom = lastVisiblePosition >= totalItemCount - 1;
-        
-        // Check if there are enough items to require scrolling (more than can fit on screen)
-        // Estimate: if we have more items than visible children, we likely need scrolling
-        var hasEnoughItems = totalItemCount > recyclerView.ChildCount;
-        
-        viewModel?.UpdateFloatingButtonVisibility(isScrolledToBottom, hasEnoughItems);
-    }
-#endif
-
     protected override void OnAppearing()
     {
         base.OnAppearing();
@@ -266,10 +181,8 @@ public partial class Home : BaseContentPage, IDisposable
         hasHandledFirstLoad = false;
         Loaded += OnPageLoaded;
         
-#if ANDROID
-        // Re-setup scroll detection when page appears
-        SetupScrollDetection();
-#endif
+        // Update floating button visibility based on permissions
+        viewModel?.UpdateFloatingButtonVisibility();
     }
 
     protected override bool OnBackButtonPressed() =>

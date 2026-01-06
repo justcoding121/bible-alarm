@@ -2,10 +2,8 @@
 
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
@@ -13,6 +11,8 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
+using Bible.Alarm.ViewModels;
+using Bible.Alarm.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -98,38 +98,6 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
             await navigationService.PopModalAsync();
-        });
-
-        BatteryOptimizationExcludeCommand = new AsyncRelayCommand(async () =>
-        {
-            if (DeviceInfo.Platform == DevicePlatform.Android)
-            {
-                var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
-                if (batteryService != null)
-                {
-                    await MarkBatteryOptimizationModalAsShown();
-                    await navigationService.PopModalAsync();
-                    batteryService.ShowOptimizationSettingsPage();
-                }
-            }
-        });
-
-        BatteryOptimizationDismissCommand = new AsyncRelayCommand(async () =>
-        {
-            await MarkBatteryOptimizationModalAsShown();
-            await navigationService.PopModalAsync();
-        });
-
-        DoNotDisturbExcludeCommand = new AsyncRelayCommand(async () =>
-        {
-            if (DeviceInfo.Platform == DevicePlatform.Android)
-            {
-                var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
-                if (batteryService != null)
-                {
-                    batteryService.ShowDoNotDisturbSettingsPage();
-                }
-            }
         });
     }
 
@@ -280,30 +248,6 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
             if (SetProperty(ref notificationEnabled, value))
             {
                 DispatchScheduleUpdate(s => s.NotificationEnabled = value);
-            }
-        }
-    }
-
-    private bool canOptimizeBattery;
-
-    public bool CanOptimizeBattery
-    {
-        get => canOptimizeBattery;
-        set => SetProperty(ref canOptimizeBattery, value);
-    }
-
-    public ICommand BatteryOptimizationExcludeCommand { get; private set; } = null!;
-    public ICommand BatteryOptimizationDismissCommand { get; private set; } = null!;
-    public ICommand DoNotDisturbExcludeCommand { get; private set; } = null!;
-
-    private async Task MarkBatteryOptimizationModalAsShown()
-    {
-        if (DeviceInfo.Platform == DevicePlatform.Android)
-        {
-            var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
-            if (batteryService != null)
-            {
-                await batteryService.MarkModalAsShownAsync();
             }
         }
     }

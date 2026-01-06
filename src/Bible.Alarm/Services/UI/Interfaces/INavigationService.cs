@@ -1,5 +1,7 @@
 #nullable enable
 
+using Bible.Alarm.Views;
+
 namespace Bible.Alarm.Services.UI.Interfaces;
 
 public interface INavigationService : IDisposable
@@ -24,6 +26,11 @@ public interface INavigationService : IDisposable
     /// </summary>
     void PopAllModalsAndPages();
     void ClearCache();
+
+    /// <summary>
+    /// Gets the current Home page from the navigation stack, if available.
+    /// </summary>
+    Home? GetCurrentHomePage();
 
     /// <summary>
     /// Sets Home page visibility based on playback state.

@@ -10,7 +10,7 @@ using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.ViewModels.Schedule;
+using Bible.Alarm.ViewModels.General;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
@@ -163,20 +163,20 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                     return;
                 }
 
-                // Create a temporary view model for the modal
-                var tempViewModel = new NumberOfChapterContainerViewModel(
+                // Create a view model for the battery optimization modal
+                var batteryViewModel = new BatteryOptimizationViewModel(
                     logger,
                     navigationService,
-                    serviceProvider,
-                    state,
-                    dispatcher);
+                    serviceProvider);
 
                 if (batteryService.CanShowOptimizeActivity())
                 {
-                    tempViewModel.CanOptimizeBattery = true;
+                    batteryViewModel.CanOptimizeBattery = true;
                 }
 
-                await navigationService.OpenBatteryOptimizationModalAsync(tempViewModel);
+                // Start permission check timer when opening battery optimization modal
+                batteryViewModel.StartPermissionCheckTimer();
+                await navigationService.OpenBatteryOptimizationModalAsync(batteryViewModel);
             }
             catch (Exception ex)
             {
@@ -270,22 +270,42 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
     public void ResetScheduleState() => dispatcher.Dispatch(new ResetScheduleStateAction());
 
     /// <summary>
-    /// Updates the floating button visibility based on scroll position.
-    /// Shows button when scrolled to bottom, hides when content is behind it.
+    /// Updates the floating button visibility based on permission status.
+    /// Hides button if both battery optimization and DND permissions are granted.
     /// </summary>
-    public void UpdateFloatingButtonVisibility(bool isScrolledToBottom, bool hasEnoughItems)
+    public void UpdateFloatingButtonVisibility()
     {
-        // Show button only when:
-        // 1. User has scrolled to bottom (so content won't be hidden behind it)
-        // 2. OR there aren't enough items to scroll (all items fit on screen)
-        var shouldShow = isScrolledToBottom || !hasEnoughItems;
-        
-        if (IsFloatingButtonVisible != shouldShow)
+        if (DeviceInfo.Platform != DevicePlatform.Android)
         {
-            IsFloatingButtonVisible = shouldShow;
-            
-            // Add bottom margin when button is visible to prevent content overlap
-            CollectionViewBottomMargin = shouldShow ? 80 : 0; // 56 (button) + 24 (margin)
+            IsFloatingButtonVisible = false;
+            CollectionViewBottomMargin = 0;
+            return;
+        }
+
+        try
+        {
+            var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
+            if (batteryService != null)
+            {
+                var isBatteryExcluded = batteryService.IsIgnoringBatteryOptimizations();
+                var isDndGranted = batteryService.IsNotificationPolicyAccessGranted();
+                
+                // Hide button if both permissions are granted
+                var shouldShow = !(isBatteryExcluded && isDndGranted);
+                
+                if (IsFloatingButtonVisible != shouldShow)
+                {
+                    IsFloatingButtonVisible = shouldShow;
+                    CollectionViewBottomMargin = shouldShow ? 80 : 0; // 56 (button) + 24 (margin)
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error updating floating button visibility");
+            // Default to showing button if there's an error
+            IsFloatingButtonVisible = true;
+            CollectionViewBottomMargin = 80;
         }
     }
 
@@ -312,22 +332,24 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             // Uses the same database check as ShouldShowModalAsync (saved to GeneralSettings table)
             if (await batteryService.ShouldShowModalAsync())
             {
-                // Create a temporary view model for the modal
-                // The modal will use this to bind commands
-                var tempViewModel = new NumberOfChapterContainerViewModel(
+                // Create a view model for the battery optimization modal
+                var batteryViewModel = new BatteryOptimizationViewModel(
                     logger,
                     navigationService,
-                    serviceProvider,
-                    state,
-                    dispatcher);
+                    serviceProvider);
 
                 if (batteryService.CanShowOptimizeActivity())
                 {
-                    tempViewModel.CanOptimizeBattery = true;
+                    batteryViewModel.CanOptimizeBattery = true;
                 }
 
-                await navigationService.OpenBatteryOptimizationModalAsync(tempViewModel);
+                // Start permission check timer when opening battery optimization modal
+                batteryViewModel.StartPermissionCheckTimer();
+                await navigationService.OpenBatteryOptimizationModalAsync(batteryViewModel);
             }
+            
+            // Update floating button visibility after checking permissions
+            UpdateFloatingButtonVisibility();
         }
         catch (Exception ex)
         {

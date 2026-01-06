@@ -7,5 +7,7 @@ public interface IBatteryOptimizationService : IDisposable
     void ShowOptimizationSettingsPage();
     bool CanShowOptimizeActivity();
     void ShowDoNotDisturbSettingsPage();
+    bool IsNotificationPolicyAccessGranted();
+    bool IsIgnoringBatteryOptimizations();
 }
 

@@ -110,4 +110,6 @@ public sealed class GlyphNames
     public static string Retry = "\uf01e";
     // Font Awesome exclamation-triangle icon (for alarm settings)
     public static string ExclamationTriangle = "\uf071";
+    // Font Awesome checkmark icon
+    public static string Check = "\uf00c";
 }
