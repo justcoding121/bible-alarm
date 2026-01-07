@@ -5,9 +5,12 @@ using Windows.ApplicationModel.Activation;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
+using Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Maui.Controls.Xaml;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Windowing;
 using Microsoft.Windows.AppLifecycle;
 using Serilog;
 using LaunchActivatedEventArgs = Microsoft.UI.Xaml.LaunchActivatedEventArgs;
@@ -64,15 +67,14 @@ public partial class App : MauiWinUIApplication
     /// </summary>
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        base.OnLaunched(args);
-
+        // Check for existing instance BEFORE calling base.OnLaunched to prevent window flash
         // Use AppInstance to ensure only one instance of the app runs
         // This prevents opening a new instance when clicking toast notifications or alarms
         var key = "BibleAlarmInstance";
         var activatedEventArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
         var instance = AppInstance.FindOrRegisterForKey(key);
 
-        // If this is not the main instance, redirect activation and exit
+        // If this is not the main instance, redirect activation and exit WITHOUT creating window
         if (!instance.IsCurrent)
         {
             logger.Information("App already running - redirecting activation to existing instance. Arguments: {Arguments}", args.Arguments);
@@ -80,10 +82,13 @@ public partial class App : MauiWinUIApplication
             // Redirect activation to the existing instance
             instance.RedirectActivationToAsync(activatedEventArgs).AsTask().Wait();
             
-            // Exit this new instance
+            // Exit this new instance WITHOUT calling base.OnLaunched (prevents window flash)
             Environment.Exit(0);
             return;
         }
+
+        // This is the main instance - now safe to create window
+        base.OnLaunched(args);
 
         // This is the main instance - set up activation handler
         instance.Activated += OnAppInstanceActivated;
@@ -93,9 +98,16 @@ public partial class App : MauiWinUIApplication
         MauiAppHolder.CreateAndStore();
 
         // Handle activation arguments (e.g., from toast notifications)
+        // Check both args.Arguments and activatedEventArgs to handle all activation scenarios
         if (!string.IsNullOrEmpty(args.Arguments))
         {
             HandleActivation(args.Arguments);
+        }
+        else if (activatedEventArgs != null)
+        {
+            // Handle activation from AppInstance (e.g., when app is launched from notification)
+            // This handles the case where args.Arguments is empty but activation came from a notification
+            HandleAppInstanceActivation(activatedEventArgs);
         }
     }
 
@@ -110,6 +122,26 @@ public partial class App : MauiWinUIApplication
             // Ensure MauiApp is created
             MauiAppHolder.CreateAndStore();
 
+            // Bring window to foreground when activated from notification
+            BringWindowToForeground();
+
+            // Handle the activation
+            HandleAppInstanceActivation(e);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error handling app instance activation");
+        }
+    }
+
+    /// <summary>
+    /// Handles app instance activation arguments from various sources (toast notifications, protocol handlers, etc.)
+    /// This is used both for initial launch and redirected activations.
+    /// </summary>
+    private static void HandleAppInstanceActivation(AppActivationArguments e)
+    {
+        try
+        {
             // Handle different activation kinds
             if (e.Kind == ExtendedActivationKind.Protocol)
             {
@@ -124,24 +156,86 @@ public partial class App : MauiWinUIApplication
                 var toastArgs = e.Data as ToastNotificationActivatedEventArgs;
                 if (toastArgs?.Argument != null)
                 {
-                    logger.Information("Toast activation received in existing instance: {Arguments}", toastArgs.Argument);
+                    logger.Information("Toast activation received: {Arguments}", toastArgs.Argument);
                     HandleActivation(toastArgs.Argument);
                 }
             }
             else if (e.Kind == ExtendedActivationKind.Launch)
             {
-                // Handle launch activation (e.g., from toast buttons that use foreground activation)
+                // Handle launch activation (e.g., from toast notifications that use foreground activation)
                 var launchArgs = e.Data as LaunchActivatedEventArgs;
                 if (launchArgs?.Arguments != null)
                 {
-                    logger.Information("Launch activation received in existing instance: {Arguments}", launchArgs.Arguments);
+                    logger.Information("Launch activation received: {Arguments}", launchArgs.Arguments);
                     HandleActivation(launchArgs.Arguments);
                 }
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error handling app instance activation");
+            logger.Error(ex, "Error handling app instance activation arguments");
+        }
+    }
+
+    /// <summary>
+    /// Brings the main window to the foreground and activates it.
+    /// This ensures the app window is visible when activated from a notification.
+    /// </summary>
+    private static void BringWindowToForeground()
+    {
+        try
+        {
+            var window = ToastWindowManager.GetNativeWindow();
+            if (window == null)
+            {
+                logger.Debug("Window not available when trying to bring to foreground");
+                return;
+            }
+
+            // Get the DispatcherQueue for the window to ensure we run on the UI thread
+            var dispatcherQueue = window.DispatcherQueue;
+            if (dispatcherQueue == null)
+            {
+                logger.Debug("DispatcherQueue not available when trying to bring to foreground");
+                return;
+            }
+
+            // Dispatch to UI thread - AppWindow operations must be on the UI thread
+            dispatcherQueue.TryEnqueue(() =>
+            {
+                try
+                {
+                    // Get AppWindow from the window (must be on UI thread)
+                    var appWindow = window.AppWindow;
+                    if (appWindow == null)
+                    {
+                        logger.Debug("AppWindow not available when trying to bring to foreground");
+                        return;
+                    }
+
+                    // Check if window is minimized and restore it
+                    var presenter = appWindow.Presenter as OverlappedPresenter;
+                    if (presenter != null && presenter.State == OverlappedPresenterState.Minimized)
+                    {
+                        presenter.Restore();
+                        logger.Debug("Window restored from minimized state");
+                    }
+
+                    // Show the window (brings to foreground)
+                    // This ensures the window is visible when activated from a notification
+                    appWindow.Show();
+
+                    logger.Debug("Window brought to foreground from notification activation");
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "Failed to bring window to foreground on UI thread, but continuing with activation");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to bring window to foreground, but continuing with activation");
         }
     }
 

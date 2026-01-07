@@ -33,8 +33,6 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         try
         {
             var scheduleId = schedule.Id;
-            logger.Information("Scheduling notification for schedule {ScheduleId}. Title: {Title}, Body: {Body}", 
-                scheduleId, title, body);
             
             var notifier = GetToastNotifier();
             if (notifier == null)
@@ -43,8 +41,6 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                     "Scheduled notifications require the app to be installed as an MSIX package.", scheduleId);
                 return Task.CompletedTask;
             }
-            
-            logger.Information("Toast notifier created successfully for schedule {ScheduleId}", scheduleId);
 
             // Remove all existing notifications for this schedule before rescheduling
             RemoveAllNotificationsForSchedule(notifier, scheduleId);
@@ -55,8 +51,6 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             var currentDate = DateTimeOffset.Now;
             var scheduledCount = 0;
             const int maxOccurrences = 1000; // Safety limit to prevent infinite loops
-
-            logger.Information("Scheduling notifications for schedule {ScheduleId} for the next {Days} days", scheduleId, daysToSchedule);
 
             for (int i = 0; i < maxOccurrences; i++)
             {
@@ -96,8 +90,6 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                 {
                     notifier.AddToSchedule(toast);
                     scheduledCount++;
-                    logger.Information("Successfully scheduled notification for schedule {ScheduleId} at {FireDate} (ID: {UniqueId})", 
-                        scheduleId, fireDate, uniqueId);
                 }
                 catch (Exception ex)
                 {
@@ -111,13 +103,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
             if (scheduledCount > 0)
             {
-                logger.Information("Successfully scheduled {Count} notifications for schedule {ScheduleId} (next {Days} days)", scheduledCount, scheduleId, daysToSchedule);
-                
-                // Verify the scheduled notifications are actually in the system
-                var scheduledToasts = notifier.GetScheduledToastNotifications();
-                var scheduleIdPrefix = $"{scheduleId}_";
-                var verifiedCount = scheduledToasts.Count(t => t.Id == scheduleId.ToString() || t.Id.StartsWith(scheduleIdPrefix, StringComparison.Ordinal));
-                logger.Information("Verified {VerifiedCount} scheduled notifications in system for schedule {ScheduleId}", verifiedCount, scheduleId);
+                logger.Debug("Successfully scheduled {Count} notifications for schedule {ScheduleId} (next {Days} days)", scheduledCount, scheduleId, daysToSchedule);
             }
             else
             {

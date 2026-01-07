@@ -4,6 +4,10 @@ using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Database;
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using Polly;
 using Polly.Retry;
 using Serilog;
@@ -14,7 +18,8 @@ public sealed class MediaIndexService(
     ILogger logger,
     IStorageService storageService,
     IDownloadService downloadService,
-    IMediaIndexVersionService versionService)
+    IMediaIndexVersionService versionService,
+    IServiceProvider serviceProvider)
     : IMediaIndexService
 {
     private readonly Lazy<string> indexRoot = new(() => storageService.StorageRoot);
@@ -278,15 +283,81 @@ public sealed class MediaIndexService(
 
         await storageService.CopyResourceFile(IndexResourceFile, IndexRoot, IndexResourceFile);
 
-        if (await storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db")))
+        var mediaIndexDbPath = Path.Combine(IndexRoot, "mediaIndex.db");
+        if (await storageService.FileExists(mediaIndexDbPath))
         {
-            await storageService.DeleteFile(Path.Combine(IndexRoot, "mediaIndex.db"));
+            // Close MediaDbContext connections specifically to avoid affecting ScheduleDbContext
+            // This prevents "file is being used by another process" errors
+            CloseMediaDbContextConnections();
+            
+            // Delete SQLite auxiliary files (WAL mode files) first - these can be safely deleted
+            // even if the database is in use, as they'll be recreated if needed
+            var walPath = mediaIndexDbPath + "-wal";
+            var shmPath = mediaIndexDbPath + "-shm";
+            var journalPath = mediaIndexDbPath + "-journal";
+
+            if (await storageService.FileExists(walPath))
+            {
+                await storageService.DeleteFile(walPath);
+            }
+
+            if (await storageService.FileExists(shmPath))
+            {
+                await storageService.DeleteFile(shmPath);
+            }
+
+            if (await storageService.FileExists(journalPath))
+            {
+                await storageService.DeleteFile(journalPath);
+            }
+
+            // Use retry policy to handle cases where database connections haven't fully closed yet
+            await fileOperationRetryPolicy.ExecuteAsync(async () =>
+            {
+                await storageService.DeleteFile(mediaIndexDbPath);
+            });
         }
 
         ZipFile.ExtractToDirectory(tmpIndexFilePath, IndexRoot);
 
         await storageService.DeleteFile(tmpIndexFilePath);
         await versionService.SaveCurrentVersionAsync();
+    }
+
+    /// <summary>
+    /// Closes all open MediaDbContext connections to allow database file deletion.
+    /// This only affects MediaDbContext connections, not ScheduleDbContext.
+    /// </summary>
+    private void CloseMediaDbContextConnections()
+    {
+        try
+        {
+            // Create a scope to get MediaDbContext
+            using var scope = serviceProvider.CreateScope();
+            var mediaDbContext = scope.ServiceProvider.GetService<MediaDbContext>();
+            
+            if (mediaDbContext != null)
+            {
+                // Close the database connection explicitly
+                var connection = mediaDbContext.Database.GetDbConnection();
+                if (connection.State != System.Data.ConnectionState.Closed)
+                {
+                    connection.Close();
+                    logger.Debug("Closed MediaDbContext connection to allow database file deletion");
+                }
+            }
+            
+            // Note: We don't call ClearAllPools() here to avoid affecting ScheduleDbContext connections.
+            // The explicit connection.Close() above should be sufficient, and the retry policy will handle
+            // any remaining file locks. If needed, ClearAllPools() is called as a last resort in the catch block.
+        }
+        catch (Exception ex)
+        {
+            // If we can't close connections gracefully, fall back to clearing all pools as last resort
+            // This is a trade-off: we affect ScheduleDbContext, but it's better than failing to delete the file
+            logger.Warning(ex, "Failed to close MediaDbContext connections gracefully, using ClearAllPools() as last resort");
+            SqliteConnection.ClearAllPools();
+        }
     }
 
     private bool isDisposed;

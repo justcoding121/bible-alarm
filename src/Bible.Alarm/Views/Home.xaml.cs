@@ -1,7 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.ViewModels;
 using Serilog;
 using Syncfusion.Maui.Buttons;
@@ -15,7 +14,6 @@ public partial class Home : BaseContentPage, IDisposable
     private bool isDisposed;
     private bool hasHandledFirstLoad;
     private readonly HomeViewModel viewModel;
-    private readonly IVersionFinder? versionFinder;
 
     public Home(HomeViewModel vm)
     {
@@ -33,26 +31,6 @@ public partial class Home : BaseContentPage, IDisposable
 
         BindingContext = vm;
         viewModel = vm;
-
-        // Get services for version display (only in DEBUG mode)
-#if DEBUG
-        try
-        {
-            versionFinder = ServiceProviderManager.GetService<IVersionFinder>();
-            
-            // Set version label text if version finder is available
-            if (versionFinder != null)
-            {
-                var version = versionFinder.GetVersionName();
-                VersionLabel.Text = version;
-                VersionLabel.IsVisible = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Debug(ex, "Failed to get version finder for version display");
-        }
-#endif
 
         // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
