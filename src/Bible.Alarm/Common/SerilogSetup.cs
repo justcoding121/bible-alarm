@@ -1,6 +1,8 @@
+using System.Runtime.InteropServices;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
+using Serilog.Sinks.File;
 
 namespace Bible.Alarm.Common;
 
@@ -14,7 +16,6 @@ public class SerilogSetup
     {
         CurrentDevice.RuntimePlatform = device;
 
-#if DEBUG
         if (isLoggingEnabled)
         {
             lock (@lock)
@@ -26,19 +27,20 @@ public class SerilogSetup
                 }
             }
         }
-#else
-        // In release mode, use null logger (no logging)
-        lock (@lock)
+        else
         {
-            if (!initialized)
+            // If logging is disabled, use null logger (no output)
+            lock (@lock)
             {
-                Log.Logger = new LoggerConfiguration()
-                    .MinimumLevel.Fatal() // Only fatal errors
-                    .CreateLogger();
-                initialized = true;
+                if (!initialized)
+                {
+                    Log.Logger = new LoggerConfiguration()
+                        .MinimumLevel.Fatal() // Only fatal errors, but no sinks so nothing is logged
+                        .CreateLogger();
+                    initialized = true;
+                }
             }
         }
-#endif
     }
 
     private static void SetupSerilog(IVersionFinder versionFinder, string[] tags)
@@ -46,13 +48,88 @@ public class SerilogSetup
         var versionName = GetVersionName(versionFinder);
 
         var loggerConfig = new LoggerConfiguration()
-            .MinimumLevel.Debug()
             .Enrich.WithProperty("Application", AppConstants.AppSettings.ApplicationName)
             .Enrich.WithProperty("Version", versionName)
             .Enrich.WithProperty("Platform", CurrentDevice.RuntimePlatform);
 
 #if DEBUG
+        // DEBUG mode: Write to both console and file with all levels
+        loggerConfig.MinimumLevel.Debug(); // All levels in DEBUG mode
         loggerConfig.Enrich.WithProperty("Environment", AppConstants.Logging.DebugEnvironment);
+
+        // Configure console sink for standard output (where available)
+        // This works on platforms that support console output
+        loggerConfig.WriteTo.Console(
+            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);
+
+        // Configure debug sink for Visual Studio Output window
+        // Serilog's Debug sink writes to the Visual Studio Output window
+        // Works on Windows, Android, and iOS when debugging in Visual Studio
+        // Make sure to select "Debug" in the Output window's "Show output from:" dropdown
+        loggerConfig.WriteTo.Debug(
+            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);
+
+        // Configure file logging (DEBUG mode)
+        var logDirectory = GetLogDirectory();
+        if (!string.IsNullOrEmpty(logDirectory))
+        {
+            try
+            {
+                // Ensure log directory exists
+                Directory.CreateDirectory(logDirectory);
+                
+                // Delete today's log file on each app start in DEBUG mode (clean slate for debugging)
+                DeleteTodaysLogFile(logDirectory);
+                
+                var logFilePath = Path.Combine(logDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
+                
+                // Write to file with rolling (daily rotation, keep last 7 days)
+                // All levels (Debug and above) will be written
+                loggerConfig.WriteTo.File(
+                    path: logFilePath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 7,
+                    outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug, // All levels in DEBUG mode
+                    shared: true); // Allow multiple processes to write to the same log file
+            }
+            catch (Exception ex)
+            {
+                // In debug mode, we can use Debug output as fallback
+                System.Diagnostics.Debug.WriteLine($"Failed to configure file logging: {ex.Message}");
+            }
+        }
+#else
+        // RELEASE mode: File logging only, all levels (Debug and above), no console
+        loggerConfig.MinimumLevel.Debug(); // All levels in RELEASE mode
+
+        // Configure file logging (RELEASE mode only)
+        var logDirectory = GetLogDirectory();
+        if (!string.IsNullOrEmpty(logDirectory))
+        {
+            try
+            {
+                // Ensure log directory exists
+                Directory.CreateDirectory(logDirectory);
+                
+                var logFilePath = Path.Combine(logDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
+                
+                // Write to file with rolling (daily rotation, keep last 7 days)
+                // All levels (Debug and above) will be written
+                loggerConfig.WriteTo.File(
+                    path: logFilePath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 7,
+                    outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug, // All levels in RELEASE mode
+                    shared: true); // Allow multiple processes to write to the same log file
+            }
+            catch (Exception ex)
+            {
+                // In release mode, we can't use logger yet, so use Debug output as fallback
+                System.Diagnostics.Debug.WriteLine($"Failed to configure file logging: {ex.Message}");
+            }
+        }
 #endif
 
         // Add custom tags if provided
@@ -64,16 +141,49 @@ public class SerilogSetup
             }
         }
 
-        // Configure debug sink for Visual Studio Output window
-        // Serilog's Debug sink writes to the Visual Studio Output window
-        // Works on Windows, Android, and iOS when debugging in Visual Studio
-        // Make sure to select "Debug" in the Output window's "Show output from:" dropdown
-#if DEBUG
-        loggerConfig.WriteTo.Debug(
-            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);
-#endif
-
         Log.Logger = loggerConfig.CreateLogger();
+    }
+
+    private static string GetLogDirectory()
+    {
+        try
+        {
+            // Use platform-specific cache directory that OS can clear when needed
+            string cacheBasePath;
+            
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Windows: Use cache subfolder in LocalApplicationData
+                // This location can be cleared by disk cleanup tools
+                var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                cacheBasePath = Path.Combine(localAppData, "Bible.Alarm", "Cache");
+            }
+            else if (CurrentDevice.RuntimePlatform == "Android")
+            {
+                // Android: LocalApplicationData maps to the app's cache directory
+                // This is automatically cleared by the OS when storage is low or app is uninstalled
+                cacheBasePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || CurrentDevice.RuntimePlatform == "iOS")
+            {
+                // iOS: Use Caches directory which OS can clear when storage is low
+                // Path: ~/Library/Caches
+                var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                cacheBasePath = Path.Combine(documentsPath, "..", "Library", "Caches");
+            }
+            else
+            {
+                // Fallback for other platforms
+                cacheBasePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            }
+            
+            return Path.Combine(cacheBasePath, AppConstants.FilePaths.LogsDirectoryName);
+        }
+        catch
+        {
+            // Fallback to current directory if platform-specific path fails
+            return Path.Combine(Directory.GetCurrentDirectory(), AppConstants.FilePaths.LogsDirectoryName);
+        }
     }
 
     private static string GetVersionName(IVersionFinder versionFinder)
@@ -84,8 +194,44 @@ public class SerilogSetup
         }
         catch (Exception ex)
         {
+#if DEBUG
             Log.Logger.Debug(ex, "Failed to get version name from version finder, using fallback");
+#endif
             return "AssemblyVersionNotFound";
         }
     }
+
+#if DEBUG
+    /// <summary>
+    /// Deletes today's log file on app startup in DEBUG mode.
+    /// This provides a clean slate for debugging each install.
+    /// </summary>
+    private static void DeleteTodaysLogFile(string logDirectory)
+    {
+        try
+        {
+            if (!Directory.Exists(logDirectory))
+            {
+                return;
+            }
+
+            // Get today's date in the format used by Serilog rolling file (YYYYMMDD)
+            // Serilog creates files like "bible-alarm-20260106.txt" with RollingInterval.Day
+            var today = DateTime.Now.ToString("yyyyMMdd");
+            var logFileName = $"{AppConstants.FilePaths.LogFileNamePattern}{today}.txt";
+            var logFilePath = Path.Combine(logDirectory, logFileName);
+
+            if (File.Exists(logFilePath))
+            {
+                File.Delete(logFilePath);
+                System.Diagnostics.Debug.WriteLine($"Deleted today's log file: {logFilePath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Don't throw - log file deletion is not critical
+            System.Diagnostics.Debug.WriteLine($"Failed to delete today's log file: {ex.Message}");
+        }
+    }
+#endif
 }

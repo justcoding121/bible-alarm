@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Serilog;
+using Windows.ApplicationModel;
 
 namespace Bible.Alarm.Platforms.Windows.Services.Platform;
 
@@ -16,7 +17,18 @@ public sealed class WindowsVersionFinder : IVersionFinder
     {
         try
         {
-            // For WinUI 3 desktop apps, we can get version from the assembly
+            // For WinUI 3 desktop apps, get version from Package.Current (from Package.appxmanifest)
+            // This works correctly for both sideloaded apps and Store-published apps.
+            // Package.Current reads from the installed package's manifest, which matches
+            // the version specified in Package.appxmanifest and distributed through the Store.
+            var package = Package.Current;
+            if (package != null)
+            {
+                var packageVersion = package.Id.Version;
+                return $"Windows {packageVersion.Major}.{packageVersion.Minor}.{packageVersion.Build}.{packageVersion.Revision}";
+            }
+
+            // Fallback to assembly version
             var assembly = Assembly.GetExecutingAssembly();
             var version = assembly.GetName().Version;
 

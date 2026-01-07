@@ -2,6 +2,7 @@ using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.Handlers;
 using Microsoft.UI.Xaml;
+using Windows.Media;
 
 namespace CommunityToolkit.Maui.Core.Handlers;
 
@@ -38,6 +39,15 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
 
         // UI mode - we have a MediaPlayerElement
         return new(mediaPlatform);
+    }
+
+    /// <summary>
+    /// Gets the System Media Transport Controls for Windows.
+    /// Returns null if MediaManager is not initialized.
+    /// </summary>
+    public SystemMediaTransportControls? GetSystemMediaTransportControls()
+    {
+        return MediaManager?.GetSystemMediaTransportControls();
     }
 
     /// <inheritdoc/>

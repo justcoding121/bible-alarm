@@ -49,6 +49,8 @@ sealed class Metadata
                 mediaElement.Pause();
             }
         }
+        // Note: Next/Previous button handling is now done by WindowsSmtcService in the app
+        // which dispatches messages to trigger Fluxor actions for navigation
     }
 
     /// <summary>
@@ -66,8 +68,9 @@ sealed class Metadata
             systemMediaControls.DisplayUpdater.Thumbnail = RandomAccessStreamReference.CreateFromUri(new Uri(mp.MetadataArtworkUrl ?? string.Empty));
         }
         systemMediaControls.DisplayUpdater.Type = MediaPlaybackType.Music;
-        systemMediaControls.DisplayUpdater.MusicProperties.Artist = mp.MetadataTitle;
-        systemMediaControls.DisplayUpdater.MusicProperties.Title = mp.MetadataArtist;
+        // Fix: Title and Artist were swapped - correct mapping
+        systemMediaControls.DisplayUpdater.MusicProperties.Title = mp.MetadataTitle ?? string.Empty;
+        systemMediaControls.DisplayUpdater.MusicProperties.Artist = mp.MetadataArtist ?? string.Empty;
         systemMediaControls.DisplayUpdater.Update();
     }
 }

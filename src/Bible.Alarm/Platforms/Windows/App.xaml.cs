@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using Windows.ApplicationModel.Activation;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Messenger;
@@ -65,6 +66,28 @@ public partial class App : MauiWinUIApplication
     {
         base.OnLaunched(args);
 
+        // Use AppInstance to ensure only one instance of the app runs
+        // This prevents opening a new instance when clicking toast notifications or alarms
+        var key = "BibleAlarmInstance";
+        var activatedEventArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
+        var instance = AppInstance.FindOrRegisterForKey(key);
+
+        // If this is not the main instance, redirect activation and exit
+        if (!instance.IsCurrent)
+        {
+            logger.Information("App already running - redirecting activation to existing instance. Arguments: {Arguments}", args.Arguments);
+            
+            // Redirect activation to the existing instance
+            instance.RedirectActivationToAsync(activatedEventArgs).AsTask().Wait();
+            
+            // Exit this new instance
+            Environment.Exit(0);
+            return;
+        }
+
+        // This is the main instance - set up activation handler
+        instance.Activated += OnAppInstanceActivated;
+
         // Ensure MauiApp is created
         // Foreground launch - bootstrap will run on background Task
         MauiAppHolder.CreateAndStore();
@@ -74,13 +97,11 @@ public partial class App : MauiWinUIApplication
         {
             HandleActivation(args.Arguments);
         }
-
-        // Also subscribe to AppInstance activation events for protocol handlers, etc.
-        AppInstance.GetCurrent().Activated += OnAppInstanceActivated;
     }
 
     /// <summary>
     /// Handles app instance activation (protocol handlers, toast notifications, etc.)
+    /// This is called when activation is redirected to an existing instance.
     /// </summary>
     private void OnAppInstanceActivated(object? sender, AppActivationArguments e)
     {
@@ -103,7 +124,18 @@ public partial class App : MauiWinUIApplication
                 var toastArgs = e.Data as ToastNotificationActivatedEventArgs;
                 if (toastArgs?.Argument != null)
                 {
+                    logger.Information("Toast activation received in existing instance: {Arguments}", toastArgs.Argument);
                     HandleActivation(toastArgs.Argument);
+                }
+            }
+            else if (e.Kind == ExtendedActivationKind.Launch)
+            {
+                // Handle launch activation (e.g., from toast buttons that use foreground activation)
+                var launchArgs = e.Data as LaunchActivatedEventArgs;
+                if (launchArgs?.Arguments != null)
+                {
+                    logger.Information("Launch activation received in existing instance: {Arguments}", launchArgs.Arguments);
+                    HandleActivation(launchArgs.Arguments);
                 }
             }
         }

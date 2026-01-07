@@ -99,13 +99,17 @@ public sealed class PlaybackOperationHandler
 
         var newPosition = currentPosition.Value.Add(TimeSpan.FromSeconds(15));
 
-        // Clamp to duration - seeking to duration will trigger MediaEnded
-        // which will advance to next track, which is the desired behavior
-        if (newPosition >= duration)
+        // Clamp to just before duration to avoid triggering MediaEnded
+        // Seeking to exactly duration triggers MediaEnded which advances to next track
+        // For seek buttons, we want to seek within the track, not skip to next
+        var maxSeekPosition = duration.Subtract(TimeSpan.FromMilliseconds(100));
+        if (newPosition >= maxSeekPosition)
         {
-            newPosition = duration;
+            newPosition = maxSeekPosition;
         }
 
+        logger.Information("Seeking forward: {CurrentPosition} -> {NewPosition} (duration: {Duration})", 
+            currentPosition.Value, newPosition, duration);
         await audioPlayer.SeekToAsync(newPosition);
     }
 
@@ -130,6 +134,8 @@ public sealed class PlaybackOperationHandler
             newPosition = TimeSpan.Zero;
         }
 
+        logger.Information("Seeking backward: {CurrentPosition} -> {NewPosition}", 
+            currentPosition.Value, newPosition);
         await audioPlayer.SeekToAsync(newPosition);
     }
 

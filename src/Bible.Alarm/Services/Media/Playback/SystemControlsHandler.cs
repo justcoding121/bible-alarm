@@ -92,5 +92,41 @@ public sealed class SystemControlsHandler
             });
         });
     }
+
+    /// <summary>
+    /// Handles Fast Forward button press message from system media controls (notification/lockscreen).
+    /// Calls the provided action on UI thread with a delay to let system controls finish processing.
+    /// </summary>
+    public void HandleSeekForwardButton(Func<Task> seekForwardAsync)
+    {
+        logger.Debug("Fast Forward button pressed from system controls - calling SeekForwardAsync");
+        Task.Run(async () =>
+        {
+            // Delay to let system controls finish
+            await Task.Delay(150);
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await seekForwardAsync();
+            });
+        });
+    }
+
+    /// <summary>
+    /// Handles Rewind button press message from system media controls (notification/lockscreen).
+    /// Calls the provided action on UI thread with a delay to let system controls finish processing.
+    /// </summary>
+    public void HandleSeekBackwardButton(Func<Task> seekBackwardAsync)
+    {
+        logger.Debug("Rewind button pressed from system controls - calling SeekBackwardAsync");
+        Task.Run(async () =>
+        {
+            // Delay to let system controls finish
+            await Task.Delay(150);
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await seekBackwardAsync();
+            });
+        });
+    }
 }
 

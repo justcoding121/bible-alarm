@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.Numerics;
 using Windows.Media;
+using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.Storage;
+using Windows.Storage.Streams;
 using Windows.System.Display;
 using CommunityToolkit.Maui.Core.Primitives;
 using CommunityToolkit.Maui.Extensions;
@@ -26,6 +28,15 @@ partial class MediaManager : IDisposable
     /// Gets the underlying MediaPlayer, whether from Player (UI mode) or headlessMediaPlayer (headless mode).
     /// </summary>
     WindowsMediaElement? GetMediaPlayer() => Player?.MediaPlayer ?? headlessMediaPlayer;
+
+    /// <summary>
+    /// Gets the System Media Transport Controls for Windows.
+    /// Returns null if MediaPlayer is not initialized.
+    /// </summary>
+    public SystemMediaTransportControls? GetSystemMediaTransportControls()
+    {
+        return systemMediaControls;
+    }
 
     // States that allow changing position
     readonly IReadOnlyList<MediaElementState> allowUpdatePositionStates =
@@ -69,8 +80,17 @@ partial class MediaManager : IDisposable
         headlessMediaPlayer = mediaElement; // Store the MediaPlayer directly for headless mode
 
         // Set up system media transport controls for headless mode
-        mediaElement.SystemMediaTransportControls.IsEnabled = false;
+        // Enable SMTC to show native Windows media controls (taskbar, lock screen, volume flyout)
         systemMediaControls = mediaElement.SystemMediaTransportControls;
+        systemMediaControls.IsEnabled = true;
+        systemMediaControls.IsPlayEnabled = true;
+        systemMediaControls.IsPauseEnabled = true;
+        systemMediaControls.IsNextEnabled = true;
+        systemMediaControls.IsPreviousEnabled = true;
+        // Enable fast forward and rewind (seek) controls
+        systemMediaControls.IsFastForwardEnabled = true;
+        systemMediaControls.IsRewindEnabled = true;
+        systemMediaControls.PlaybackStatus = MediaPlaybackStatus.Stopped;
 
         // Set up event handlers for headless mode
         mediaElement.PlaybackSession.NaturalVideoSizeChanged += OnNaturalVideoSizeChanged;
@@ -333,14 +353,19 @@ partial class MediaManager : IDisposable
             if (!string.IsNullOrWhiteSpace(uri))
             {
                 var source = WinMediaSource.CreateFromUri(new Uri(uri));
+                var playbackItem = new MediaPlaybackItem(source);
+                
+                // Set metadata on MediaPlaybackItem for SMTC integration
+                await SetPlaybackItemMetadata(playbackItem);
+                
                 if (Player is not null)
                 {
                     Player.AutoPlay = MediaElement.ShouldAutoPlay;
-                    Player.Source = source;
+                    Player.Source = playbackItem;
                 }
                 else
                 {
-                    mediaPlayer.Source = source;
+                    mediaPlayer.Source = playbackItem;
                     if (MediaElement.ShouldAutoPlay)
                     {
                         mediaPlayer.Play();
@@ -355,14 +380,19 @@ partial class MediaManager : IDisposable
             {
                 StorageFile storageFile = await StorageFile.GetFileFromPathAsync(filename);
                 var source = WinMediaSource.CreateFromStorageFile(storageFile);
+                var playbackItem = new MediaPlaybackItem(source);
+                
+                // Set metadata on MediaPlaybackItem for SMTC integration
+                await SetPlaybackItemMetadata(playbackItem);
+                
                 if (Player is not null)
                 {
                     Player.AutoPlay = MediaElement.ShouldAutoPlay;
-                    Player.Source = source;
+                    Player.Source = playbackItem;
                 }
                 else
                 {
-                    mediaPlayer.Source = source;
+                    mediaPlayer.Source = playbackItem;
                     if (MediaElement.ShouldAutoPlay)
                     {
                         mediaPlayer.Play();
@@ -466,6 +496,59 @@ partial class MediaManager : IDisposable
     static bool IsZero<TValue>(TValue numericValue) where TValue : INumber<TValue>
     {
         return TValue.IsZero(numericValue);
+    }
+
+    /// <summary>
+    /// Sets metadata on MediaPlaybackItem for SMTC integration.
+    /// This ensures Windows shows proper metadata in taskbar, lock screen, and volume flyout.
+    /// </summary>
+    async ValueTask SetPlaybackItemMetadata(MediaPlaybackItem playbackItem)
+    {
+        try
+        {
+            var displayProps = playbackItem.GetDisplayProperties();
+            displayProps.Type = MediaPlaybackType.Music; // Important for media-style display
+            
+            // Set metadata from MediaElement properties
+            if (!string.IsNullOrWhiteSpace(MediaElement.MetadataTitle))
+            {
+                displayProps.MusicProperties.Title = MediaElement.MetadataTitle;
+            }
+            
+            if (!string.IsNullOrWhiteSpace(MediaElement.MetadataArtist))
+            {
+                displayProps.MusicProperties.Artist = MediaElement.MetadataArtist;
+            }
+            
+            // Set artwork if available
+            if (!string.IsNullOrWhiteSpace(MediaElement.MetadataArtworkUrl))
+            {
+                try
+                {
+                    if (Uri.TryCreate(MediaElement.MetadataArtworkUrl, UriKind.Absolute, out var artworkUri))
+                    {
+                        // For HTTP/HTTPS URIs
+                        displayProps.Thumbnail = RandomAccessStreamReference.CreateFromUri(artworkUri);
+                    }
+                    else if (System.IO.File.Exists(MediaElement.MetadataArtworkUrl))
+                    {
+                        // For local file paths
+                        var storageFile = await StorageFile.GetFileFromPathAsync(MediaElement.MetadataArtworkUrl);
+                        displayProps.Thumbnail = RandomAccessStreamReference.CreateFromFile(storageFile);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger?.LogWarning(ex, "Failed to set artwork thumbnail for MediaPlaybackItem");
+                }
+            }
+            
+            playbackItem.ApplyDisplayProperties(displayProps);
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "Failed to set metadata on MediaPlaybackItem");
+        }
     }
 
     async ValueTask UpdateMetadata()
@@ -613,6 +696,21 @@ partial class MediaManager : IDisposable
         };
 
         MediaElement?.CurrentStateChanged(newState);
+        
+        // Update SMTC playback status to sync with actual playback state
+        if (systemMediaControls is not null)
+        {
+            var smtcStatus = sender.PlaybackState switch
+            {
+                MediaPlaybackState.Playing => MediaPlaybackStatus.Playing,
+                MediaPlaybackState.Paused => MediaPlaybackStatus.Paused,
+                MediaPlaybackState.Buffering => MediaPlaybackStatus.Changing,
+                MediaPlaybackState.Opening => MediaPlaybackStatus.Changing,
+                _ => MediaPlaybackStatus.Stopped,
+            };
+            systemMediaControls.PlaybackStatus = smtcStatus;
+        }
+        
         if (sender.PlaybackState == MediaPlaybackState.Playing && IsZero(sender.PlaybackRate))
         {
             Dispatcher.Dispatch(() =>

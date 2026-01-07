@@ -219,12 +219,19 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IStorageService, IOsStorageService>();
         services.AddSingleton<IIosAlarmHandler, IOsAlarmHandler>();
 #elif WINDOWS
-        services.AddSingleton<INotificationService, WindowsNotificationService>();
+        // Register WindowsNotificationService as both interface and concrete type
+        // (concrete type needed for WindowsMediaToastEffect which uses ShowMediaToast method)
+        services.AddSingleton<WindowsNotificationService>();
+        services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<WindowsNotificationService>());
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
         services.AddSingleton<IWindowsAlarmHandler, WindowsAlarmHandler>();
         // Register Windows media toast effect for rich playback notifications
         services.AddSingleton<Platforms.Windows.Effects.WindowsMediaToastEffect>();
+        // Register Windows SMTC service for handling system media transport controls
+        services.AddSingleton<Platforms.Windows.Services.Media.WindowsSmtcService>();
+        // Register Windows SMTC effect for initializing and updating SMTC
+        services.AddSingleton<Platforms.Windows.Effects.WindowsSmtcEffect>();
 #endif
 
         // Register database contexts

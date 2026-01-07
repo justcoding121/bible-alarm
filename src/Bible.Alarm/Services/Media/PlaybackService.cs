@@ -273,6 +273,24 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         systemControlsHandler.HandlePauseButton(() => PauseAsync());
     }
 
+    /// <summary>
+    /// Handles Fast Forward button press message from system media controls (notification/lockscreen).
+    /// Calls SeekForwardAsync() on UI thread with a delay to let system controls finish processing.
+    /// </summary>
+    public void Receive(SeekForwardButtonPressedMessage message)
+    {
+        systemControlsHandler.HandleSeekForwardButton(() => SeekForwardAsync());
+    }
+
+    /// <summary>
+    /// Handles Rewind button press message from system media controls (notification/lockscreen).
+    /// Calls SeekBackwardAsync() on UI thread with a delay to let system controls finish processing.
+    /// </summary>
+    public void Receive(SeekBackwardButtonPressedMessage message)
+    {
+        systemControlsHandler.HandleSeekBackwardButton(() => SeekBackwardAsync());
+    }
+
     public async Task SeekForwardAsync()
     {
         await operationHandler.SeekForwardAsync(stateManager.IsPreparingOrPlaying(audioPlayer));

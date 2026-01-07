@@ -6,6 +6,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
 using Fluxor;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Platforms.Windows.Effects;
 
@@ -30,6 +31,8 @@ public class WindowsMediaToastEffect(
             if (currentState.Status != PlayStatus.Playing && currentState.Status != PlayStatus.Paused)
             {
                 logger.Debug("Skipping media toast - playback not active (Status: {Status})", currentState.Status);
+                // Dismiss toast if playback is not active
+                notificationService.DismissMediaToast();
                 return Task.CompletedTask;
             }
 
@@ -40,28 +43,66 @@ public class WindowsMediaToastEffect(
                 return Task.CompletedTask;
             }
 
-            logger.Information(
-                "Showing media toast: Title={Title}, Artist={Artist}, Album={Album}, ArtworkUrl={ArtworkUrl}",
-                action.Title,
-                action.Artist,
-                action.Album,
-                action.ArtworkUrl);
+            logger.Debug("Showing media toast: Title={Title}, Artist={Artist}, ArtworkUrl={ArtworkUrl}",
+                action.Title, action.Artist, action.ArtworkUrl);
 
-            // Show rich toast notification with metadata
-            // Include navigation controls and play/pause based on playback state
-            var isPlaying = currentState.Status == PlayStatus.Playing;
+            // Show toast notification with artwork, title, and subtitle (NO controls)
+            // Clicking the toast will activate the existing app instance
             notificationService.ShowMediaToast(
                 title: action.Title ?? "Now Playing",
                 subtitle: action.Artist,
                 body: action.Album,
                 artworkUrl: action.ArtworkUrl,
-                canPlayNext: currentState.CanPlayNext,
-                canPlayPrevious: true, // Previous is always available (can restart current track)
-                isPlaying: isPlaying);
+                canPlayNext: false, // Not used - no buttons
+                canPlayPrevious: false, // Not used - no buttons
+                isPlaying: false); // Not used - no buttons
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error showing media toast notification");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    [EffectMethod]
+    public Task HandlePlaybackStopped(PlaybackStoppedAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            logger.Debug("Playback stopped - dismissing media toast");
+            notificationService.DismissMediaToast();
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error dismissing media toast on playback stop");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    [EffectMethod]
+    public Task HandlePlaybackStatusChanged(PlaybackStatusChangedAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var currentState = playbackState.Value;
+            
+            // If playback is stopped/ended, dismiss the toast
+            if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
+            {
+                logger.Debug("Playback status changed to {Status} - dismissing media toast", action.Status);
+                notificationService.DismissMediaToast();
+                return Task.CompletedTask;
+            }
+
+            // Update toast when track changes (metadata will trigger HandlePlaybackMetadataChanged)
+            // We don't need to update here since metadata change will handle it
+            // This method is mainly for dismissing when playback stops
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error updating media toast on status change");
         }
 
         return Task.CompletedTask;

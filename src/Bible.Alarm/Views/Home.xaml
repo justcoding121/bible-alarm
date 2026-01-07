@@ -507,5 +507,17 @@
                         Opacity="0.4" />
             </Button.Shadow>
         </Button>
+        
+        <!-- Version Label (Debug Mode Only) -->
+        <Label
+            x:Name="VersionLabel"
+            HorizontalOptions="Center"
+            VerticalOptions="End"
+            Margin="0,0,0,8"
+            FontSize="10"
+            TextColor="{DynamicResource TextSecondaryColor}"
+            Opacity="0.6"
+            IsVisible="False"
+            ZIndex="1" />
     </Grid>
 </views:BaseContentPage>

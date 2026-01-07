@@ -89,6 +89,13 @@ public class HomeStateChangeHandler
             if (!schedulesCountChanged && !scheduleIdsChanged && !schedulePropertiesChanged && lastProcessedScheduleIds != null)
             {
                 logger.Debug("OnStateChanged: Skipping processing - Schedules collection unchanged. Count: {Count}", stateValue.Schedules.Count);
+                
+                // Even if skipping processing, ensure progress bar is hidden if we have schedules
+                if (stateValue.Schedules.Count > 0 && getIsBusy())
+                {
+                    setIsBusy(false);
+                    await fadeOutProgressBarAsync();
+                }
                 return;
             }
 

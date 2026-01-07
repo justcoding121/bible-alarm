@@ -63,6 +63,20 @@ public class PauseButtonPressedMessage
 }
 
 /// <summary>
+/// Message sent when the Fast Forward button is pressed in system media controls.
+/// </summary>
+public class SeekForwardButtonPressedMessage
+{
+}
+
+/// <summary>
+/// Message sent when the Rewind button is pressed in system media controls.
+/// </summary>
+public class SeekBackwardButtonPressedMessage
+{
+}
+
+/// <summary>
 /// Message sent to MediaElementService to destroy the MediaElement after MediaSession release.
 /// MediaElement will be recreated automatically by GetMediaElementAsync() when needed for the next playlist.
 /// This ensures a fresh ExoPlayer instance is created for each new playback session.

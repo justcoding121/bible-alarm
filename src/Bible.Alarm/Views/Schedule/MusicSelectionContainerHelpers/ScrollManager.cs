@@ -1,6 +1,7 @@
 #nullable enable
 
 using Microsoft.Maui.Controls;
+using Serilog;
 
 namespace Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
 
@@ -125,9 +126,7 @@ public class ScrollManager
         }
         catch (Exception ex)
         {
-#if DEBUG
-            Serilog.Log.Debug(ex, "[{ContainerName}] Error scrolling", container.GetType().Name);
-#endif
+            Log.Warning(ex, "[{ContainerName}] Error scrolling", container.GetType().Name);
         }
     }
 }

@@ -46,6 +46,24 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
             if (servicesVerified)
             {
                 Log.Logger.Information("Services already verified, skipping database operations");
+                // Even if services are verified, we still need to ensure schedules are loaded
+                // This handles the case where background bootstrap completed but schedules weren't loaded yet
+                if (!initializeUi)
+                {
+                    // Background service - schedules should already be loaded
+                    return;
+                }
+                // Foreground UI - ensure schedules are loaded even if services were verified by background
+                try
+                {
+                    Log.Logger.Information("[BOOTSTRAP] Services verified but ensuring schedules are loaded for UI");
+                    await scheduleBootstrapService.InitializeAsync();
+                }
+                catch (Exception ex)
+                {
+                    Log.Logger.Error(ex, "[BOOTSTRAP] Error loading schedules after services verified");
+                }
+                return;
             }
             else
             {

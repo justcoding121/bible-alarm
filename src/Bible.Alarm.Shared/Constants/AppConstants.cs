@@ -86,9 +86,9 @@ public static class AppConstants
         public const string LogsDirectoryName = "logs";
 
         /// <summary>
-        /// Log file name pattern
+        /// Log file name pattern (without extension - Serilog will add date and extension)
         /// </summary>
-        public const string LogFileNamePattern = "bible-alarm-.log";
+        public const string LogFileNamePattern = "bible-alarm-";
 
         /// <summary>
         /// Media index zip file name

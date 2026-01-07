@@ -10,6 +10,8 @@ namespace Bible.Alarm.Services.UI.NavigationServiceHelpers;
 /// </summary>
 public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider serviceProvider)
 {
+    // Ensure logger is always considered used (not just in DEBUG blocks)
+    private ILogger Logger => logger;
     /// <summary>
     /// Navigates to the home page, reusing existing if available.
     /// </summary>
@@ -17,14 +19,14 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
     {
 #if DEBUG
         var navStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-        logger.Information("[BOOTSTRAP] NavigateToHomeAsync starting");
+        Logger.Information("[BOOTSTRAP] NavigateToHomeAsync starting");
 #endif
 
         if (IsAlreadyOnHomePage(navigation))
         {
 #if DEBUG
             var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-            logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (already on home) in {ElapsedMs:F2}ms", navElapsed);
+            Logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (already on home) in {ElapsedMs:F2}ms", navElapsed);
 #endif
             return;
         }
@@ -35,7 +37,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
             await PopToExistingHomeAsync(navigation, existingHome);
 #if DEBUG
             var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-            logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (existing home) in {ElapsedMs:F2}ms", navElapsed);
+            Logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (existing home) in {ElapsedMs:F2}ms", navElapsed);
 #endif
         }
         else
@@ -43,7 +45,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
             await PopToRootAndPushNewHomeAsync(navigation);
 #if DEBUG
             var navTotalElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-            logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (new home) in {ElapsedMs:F2}ms", navTotalElapsed);
+            Logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (new home) in {ElapsedMs:F2}ms", navTotalElapsed);
 #endif
         }
     }
@@ -89,7 +91,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         await PopAllPagesToRootAsync(navigation);
 #if DEBUG
         var popElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - popStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-        logger.Information("[BOOTSTRAP] PopAllPagesToRootAsync completed in {ElapsedMs:F2}ms", popElapsed);
+        Logger.Information("[BOOTSTRAP] PopAllPagesToRootAsync completed in {ElapsedMs:F2}ms", popElapsed);
 #endif
 
 #if DEBUG
@@ -98,7 +100,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         var homePage = serviceProvider.GetRequiredService<Home>();
 #if DEBUG
         var homeCreateElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - homeCreateStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-        logger.Information("[BOOTSTRAP] Home page service resolution completed in {ElapsedMs:F2}ms", homeCreateElapsed);
+        Logger.Information("[BOOTSTRAP] Home page service resolution completed in {ElapsedMs:F2}ms", homeCreateElapsed);
 #endif
 
         ConfigureHomePageNavigation(homePage);
@@ -109,7 +111,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         await navigation.PushAsync(homePage, animated: false);
 #if DEBUG
         var pushElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - pushStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-        logger.Information("[BOOTSTRAP] Home page PushAsync completed in {ElapsedMs:F2}ms", pushElapsed);
+        Logger.Information("[BOOTSTRAP] Home page PushAsync completed in {ElapsedMs:F2}ms", pushElapsed);
 #endif
     }
 
@@ -141,8 +143,9 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         {
             return navigation.NavigationStack.LastOrDefault() as Home;
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.Warning(ex, "Error getting current Home page from navigation stack");
             return null;
         }
     }

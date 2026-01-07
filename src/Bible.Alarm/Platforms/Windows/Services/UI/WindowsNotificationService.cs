@@ -2,6 +2,8 @@
 
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using Windows.ApplicationModel;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
@@ -31,12 +33,18 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         try
         {
             var scheduleId = schedule.Id;
+            logger.Information("Scheduling notification for schedule {ScheduleId}. Title: {Title}, Body: {Body}", 
+                scheduleId, title, body);
+            
             var notifier = GetToastNotifier();
             if (notifier == null)
             {
-                logger.Error("Failed to create toast notifier for schedule {ScheduleId}. App may not be properly registered for notifications.", scheduleId);
+                logger.Error("Failed to create toast notifier for schedule {ScheduleId}. App may not be properly registered for notifications. " +
+                    "Scheduled notifications require the app to be installed as an MSIX package.", scheduleId);
                 return Task.CompletedTask;
             }
+            
+            logger.Information("Toast notifier created successfully for schedule {ScheduleId}", scheduleId);
 
             // Remove all existing notifications for this schedule before rescheduling
             RemoveAllNotificationsForSchedule(notifier, scheduleId);
@@ -67,18 +75,34 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                     continue;
                 }
 
-                // Create unique ID for this occurrence: "{scheduleId}_{ticks}"
-                var uniqueId = $"{scheduleId}_{fireDate.Ticks}";
+                // Create unique ID for this occurrence: Windows has a 16-character limit for notification IDs
+                // Use format: "{scheduleId}_{hash}" where hash is a short representation of the date/time
+                // ScheduleId can be up to 4 digits (9999), so we have ~12 chars for the hash
+                var dateHash = GetShortDateHash(fireDate);
+                var uniqueId = $"{scheduleId}_{dateHash}";
+                
+                // Ensure ID doesn't exceed 16 characters (Windows limit)
+                if (uniqueId.Length > 16)
+                {
+                    // If scheduleId is too long, truncate the hash
+                    var maxHashLength = 16 - scheduleId.ToString().Length - 1; // -1 for underscore
+                    dateHash = dateHash.Substring(0, Math.Min(maxHashLength, dateHash.Length));
+                    uniqueId = $"{scheduleId}_{dateHash}";
+                }
+                
                 var toast = CreateScheduledToast(uniqueId, scheduleId, title, body, fireDate);
                 
                 try
                 {
                     notifier.AddToSchedule(toast);
                     scheduledCount++;
+                    logger.Information("Successfully scheduled notification for schedule {ScheduleId} at {FireDate} (ID: {UniqueId})", 
+                        scheduleId, fireDate, uniqueId);
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "Failed to schedule notification for schedule {ScheduleId} at {FireDate}", scheduleId, fireDate);
+                    logger.Warning(ex, "Failed to schedule notification for schedule {ScheduleId} at {FireDate}. Error: {ErrorMessage}", 
+                        scheduleId, fireDate, ex.Message);
                     // Continue with next occurrence
                 }
 
@@ -88,10 +112,21 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             if (scheduledCount > 0)
             {
                 logger.Information("Successfully scheduled {Count} notifications for schedule {ScheduleId} (next {Days} days)", scheduledCount, scheduleId, daysToSchedule);
+                
+                // Verify the scheduled notifications are actually in the system
+                var scheduledToasts = notifier.GetScheduledToastNotifications();
+                var scheduleIdPrefix = $"{scheduleId}_";
+                var verifiedCount = scheduledToasts.Count(t => t.Id == scheduleId.ToString() || t.Id.StartsWith(scheduleIdPrefix, StringComparison.Ordinal));
+                logger.Information("Verified {VerifiedCount} scheduled notifications in system for schedule {ScheduleId}", verifiedCount, scheduleId);
             }
             else
             {
                 logger.Warning("No notifications were scheduled for schedule {ScheduleId}. Check alarm schedule configuration.", scheduleId);
+                
+                // Log additional diagnostic information
+                var scheduledToasts = notifier.GetScheduledToastNotifications();
+                logger.Warning("Total scheduled toasts in system: {TotalCount}. Next fire date was: {NextFireDate}", 
+                    scheduledToasts.Count, schedule.NextFireDate(DateTimeOffset.Now));
             }
         }
         catch (Exception ex)
@@ -149,8 +184,43 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
     public Task<bool> CanScheduleAsync() => Task.FromResult(WindowsBootstrapHelper.IsBackgroundTaskEnabled);
 
     /// <summary>
+    /// Dismisses the media playback toast notification and removes it from the screen.
+    /// </summary>
+    public void DismissMediaToast()
+    {
+        try
+        {
+            var notifier = GetToastNotifier();
+            if (notifier == null)
+            {
+                logger.Debug("Cannot dismiss media toast - toast notifier unavailable");
+                return;
+            }
+
+            // Remove toast from history using tag and group
+            // This removes it from both the action center and dismisses it from the screen if still visible
+            try
+            {
+                ToastNotificationManager.History.Remove("MediaPlayback", "MediaPlayback");
+                logger.Debug("Media toast dismissed and removed from screen");
+            }
+            catch (Exception ex)
+            {
+                // Toast might not exist in history (e.g., already dismissed or never shown)
+                // This is normal and not an error
+                logger.Debug(ex, "Toast not found in history (may already be dismissed)");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error dismissing media toast notification");
+        }
+    }
+
+    /// <summary>
     /// Shows a rich toast notification with media metadata (artwork, title, subtitle, album).
     /// Uses ToastGeneric template which supports images, multiple text elements, and action buttons.
+    /// Windows automatically replaces any existing toast with the same Tag and Group, so no need to dismiss first.
     /// </summary>
     public void ShowMediaToast(string? title, string? subtitle, string? body, string? artworkUrl, bool canPlayNext = false, bool canPlayPrevious = false, bool isPlaying = false)
     {
@@ -166,16 +236,18 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             var toastXml = CreateMediaToastXml(title, subtitle, body, artworkUrl, canPlayNext, canPlayPrevious, isPlaying);
             var toast = new ToastNotification(toastXml);
             
-            // Use a unique tag so we can replace previous toasts
+            // Use the same Tag and Group - Windows will automatically replace any existing toast with these values
+            // This allows seamless updates when track changes or play/pause state changes
             toast.Tag = "MediaPlayback";
             toast.Group = "MediaPlayback";
             
-            // Suppress sound for media playback toasts (optional - remove if you want sound)
+            // Sound is suppressed via silent audio element in the toast XML
             toast.SuppressPopup = false;
             
+            // Show the toast - Windows will automatically replace any existing toast with the same tag/group
             notifier.Show(toast);
-            logger.Debug("Media toast shown: Title={Title}, Subtitle={Subtitle}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}, IsPlaying={IsPlaying}", 
-                title, subtitle, canPlayNext, canPlayPrevious, isPlaying);
+            logger.Debug("Media toast shown/updated: Title={Title}, Subtitle={Subtitle}, ArtworkUrl={ArtworkUrl}. Clicking toast will activate existing app instance.", 
+                title, subtitle, artworkUrl);
         }
         catch (Exception ex)
         {
@@ -185,47 +257,46 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
     private static XmlDocument CreateMediaToastXml(string? title, string? subtitle, string? body, string? artworkUrl, bool canPlayNext, bool canPlayPrevious, bool isPlaying)
     {
-        // Use ToastGeneric template which supports images and rich content
-        var toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastGeneric);
+        // Create compact ToastGeneric XML with two-column layout
+        // Column 1: Artwork, Column 2: Title, Subtitle
+        var toastXml = new XmlDocument();
         
-        var visual = toastXml.SelectSingleNode("/toast/visual");
-        if (visual == null)
-        {
-            return toastXml;
-        }
-
-        // Add binding element
+        // Create toast element
+        var toastElement = toastXml.CreateElement("toast");
+        // Set toast to appear on bottom right (UWP style)
+        toastElement.SetAttribute("placement", "bottomRight");
+        toastElement.SetAttribute("scenario", "reminder"); // Makes it more compact
+        toastElement.SetAttribute("useButtonStyle", "false"); // Don't use button style
+        toastXml.AppendChild(toastElement);
+        
+        // Create visual element
+        var visual = toastXml.CreateElement("visual");
+        toastElement.AppendChild(visual);
+        
+        // Suppress app name by setting displayName attribute to empty string
+        // Note: App icon may still appear, but this hides the app name text
+        var displayNameAttribute = toastXml.CreateAttribute("displayName");
+        displayNameAttribute.Value = ""; // Empty string to hide app name
+        visual.Attributes.SetNamedItem(displayNameAttribute);
+        
+        // Create binding element with ToastGeneric template
         var binding = toastXml.CreateElement("binding");
         binding.SetAttribute("template", "ToastGeneric");
+        // Try to suppress app branding by using hint-overlay (makes toast more compact)
+        binding.SetAttribute("hint-overlay", "0"); // 0 = no overlay, makes it more compact
         visual.AppendChild(binding);
 
-        // Add title text
-        if (!string.IsNullOrWhiteSpace(title))
-        {
-            var titleElement = toastXml.CreateElement("text");
-            titleElement.SetAttribute("hint-style", "title");
-            titleElement.AppendChild(toastXml.CreateTextNode(title));
-            binding.AppendChild(titleElement);
-        }
+        // Create adaptive group for two-column layout (artwork left, text right)
+        // IMPORTANT: The first text element in the binding (even if in a group) should be the title
+        // to prevent Windows from adding "New Notification"
+        var group = toastXml.CreateElement("group");
+        binding.AppendChild(group);
 
-        // Add subtitle text
-        if (!string.IsNullOrWhiteSpace(subtitle))
-        {
-            var subtitleElement = toastXml.CreateElement("text");
-            subtitleElement.SetAttribute("hint-style", "subtitle");
-            subtitleElement.AppendChild(toastXml.CreateTextNode(subtitle));
-            binding.AppendChild(subtitleElement);
-        }
+        // Column 1: Artwork image (left side)
+        var column1 = toastXml.CreateElement("subgroup");
+        column1.SetAttribute("hint-weight", "1"); // Smaller column for image
+        group.AppendChild(column1);
 
-        // Add body text (album)
-        if (!string.IsNullOrWhiteSpace(body))
-        {
-            var bodyElement = toastXml.CreateElement("text");
-            bodyElement.AppendChild(toastXml.CreateTextNode(body));
-            binding.AppendChild(bodyElement);
-        }
-
-        // Add hero image (artwork) if available
         if (!string.IsNullOrWhiteSpace(artworkUrl))
         {
             try
@@ -244,23 +315,20 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                     // For local files, convert to file:// URI
                     if (System.IO.File.Exists(artworkUrl))
                     {
-                        // Use absolute path with file:// scheme
                         var absolutePath = System.IO.Path.GetFullPath(artworkUrl);
-                        // Windows toast requires file:/// (three slashes) for local files
                         imageUri = new Uri(absolutePath).ToString();
                     }
                     else
                     {
-                        // If file doesn't exist, try to construct URI anyway
                         var absolutePath = System.IO.Path.GetFullPath(artworkUrl);
                         imageUri = new Uri(absolutePath).ToString();
                     }
                 }
 
                 var imageElement = toastXml.CreateElement("image");
-                imageElement.SetAttribute("placement", "hero");
                 imageElement.SetAttribute("src", imageUri);
-                binding.AppendChild(imageElement);
+                imageElement.SetAttribute("hint-crop", "none");
+                column1.AppendChild(imageElement);
             }
             catch (Exception ex)
             {
@@ -268,59 +336,51 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             }
         }
 
-        // Get toast node for adding actions and duration
-        var toastNode = toastXml.SelectSingleNode("/toast");
-        
-        // Add action buttons for media controls
-        if (toastNode != null)
+        // Column 2: Title and Subtitle (right side)
+        var column2 = toastXml.CreateElement("subgroup");
+        column2.SetAttribute("hint-weight", "2"); // Larger column for text
+        group.AppendChild(column2);
+
+        // Add title in the group (next to artwork) with larger text style
+        // Title uses "body" style which is larger than subtitle's "caption" style
+        if (!string.IsNullOrWhiteSpace(title))
         {
-            var actions = toastXml.CreateElement("actions");
-            toastNode.AppendChild(actions);
-
-            // Previous button
-            if (canPlayPrevious)
-            {
-                var previousAction = toastXml.CreateElement("action");
-                previousAction.SetAttribute("content", "Previous");
-                previousAction.SetAttribute("arguments", "action=previous");
-                previousAction.SetAttribute("activationType", "foreground");
-                actions.AppendChild(previousAction);
-            }
-
-            // Play/Pause button (show appropriate button based on current state)
-            if (isPlaying)
-            {
-                var pauseAction = toastXml.CreateElement("action");
-                pauseAction.SetAttribute("content", "Pause");
-                pauseAction.SetAttribute("arguments", "action=pause");
-                pauseAction.SetAttribute("activationType", "foreground");
-                actions.AppendChild(pauseAction);
-            }
-            else
-            {
-                var playAction = toastXml.CreateElement("action");
-                playAction.SetAttribute("content", "Play");
-                playAction.SetAttribute("arguments", "action=play");
-                playAction.SetAttribute("activationType", "foreground");
-                actions.AppendChild(playAction);
-            }
-
-            // Next button
-            if (canPlayNext)
-            {
-                var nextAction = toastXml.CreateElement("action");
-                nextAction.SetAttribute("content", "Next");
-                nextAction.SetAttribute("arguments", "action=next");
-                nextAction.SetAttribute("activationType", "foreground");
-                actions.AppendChild(nextAction);
-            }
+            var titleElement = toastXml.CreateElement("text");
+            titleElement.SetAttribute("hint-style", "body"); // Use body style for larger text (about 2x subtitle size)
+            titleElement.SetAttribute("hint-wrap", "true");
+            titleElement.AppendChild(toastXml.CreateTextNode(title));
+            column2.AppendChild(titleElement);
         }
 
-        // Set toast duration to long (optional - can be removed if you want short duration)
+        // Add subtitle with caption style (smaller than title)
+        if (!string.IsNullOrWhiteSpace(subtitle))
+        {
+            var subtitleElement = toastXml.CreateElement("text");
+            subtitleElement.SetAttribute("hint-style", "caption"); // Caption is smaller than body
+            subtitleElement.SetAttribute("hint-wrap", "true");
+            subtitleElement.AppendChild(toastXml.CreateTextNode(subtitle));
+            column2.AppendChild(subtitleElement);
+        }
+
+        // No action buttons - toast is display-only
+        // Removed next/prev and play/pause buttons as requested
+
+        // Set launch attribute so clicking toast activates the existing app instance
+        var launchAttribute = toastXml.CreateAttribute("launch");
+        launchAttribute.Value = "MediaPlayback"; // Identifier for media playback activation
+        toastElement.Attributes.SetNamedItem(launchAttribute);
+
+        // Add silent audio to suppress sound for media playback toasts
+        var audioNode = toastXml.CreateElement("audio");
+        audioNode.SetAttribute("silent", "true"); // No sound for media playback toasts
+        toastElement.AppendChild(audioNode);
+
+        // Set toast duration to short for compact appearance
+        var toastNode = toastXml.SelectSingleNode("/toast");
         if (toastNode?.Attributes != null)
         {
             var durationAttribute = toastXml.CreateAttribute("duration");
-            durationAttribute.Value = "long";
+            durationAttribute.Value = "short";
             toastNode.Attributes.SetNamedItem(durationAttribute);
         }
 
@@ -338,30 +398,44 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
     private static XmlDocument CreateToastXml(string title, string body, int scheduleId)
     {
-        var toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastText02);
+        // Create ToastGeneric XML manually for more control over content
+        var toastXml = new XmlDocument();
+        
+        // Create toast element
+        var toastElement = toastXml.CreateElement("toast");
+        toastXml.AppendChild(toastElement);
+        
+        // Create visual element
+        var visual = toastXml.CreateElement("visual");
+        toastElement.AppendChild(visual);
+        
+        // Suppress app name by setting displayName attribute on visual element
+        var displayNameAttribute = toastXml.CreateAttribute("displayName");
+        displayNameAttribute.Value = ""; // Empty string to hide app name
+        visual.Attributes.SetNamedItem(displayNameAttribute);
+        
+        // Create binding element with ToastGeneric template
+        var binding = toastXml.CreateElement("binding");
+        binding.SetAttribute("template", "ToastGeneric");
+        visual.AppendChild(binding);
 
-        var textElements = toastXml.GetElementsByTagName("text");
-        if (textElements.Length > 0)
+        // Only add body text if it's not empty (no title, no app name)
+        if (!string.IsNullOrWhiteSpace(body))
         {
-            textElements[0].AppendChild(toastXml.CreateTextNode(title));
+            var bodyElement = toastXml.CreateElement("text");
+            bodyElement.AppendChild(toastXml.CreateTextNode(body));
+            binding.AppendChild(bodyElement);
         }
 
-        if (textElements.Length > 1)
-        {
-            textElements[1].AppendChild(toastXml.CreateTextNode(body));
-        }
+        // Set launch attribute for activation
+        var launchAttribute = toastXml.CreateAttribute("launch");
+        launchAttribute.Value = scheduleId.ToString();
+        toastElement.Attributes.SetNamedItem(launchAttribute);
 
-        var toastNode = toastXml.SelectSingleNode("/toast");
-        if (toastNode?.Attributes != null)
-        {
-            var launchAttribute = toastXml.CreateAttribute("launch");
-            launchAttribute.Value = scheduleId.ToString();
-            toastNode.Attributes.SetNamedItem(launchAttribute);
-        }
-
+        // Add audio
         var audioNode = toastXml.CreateElement("audio");
         audioNode.SetAttribute("src", "ms-winsoundevent:Notification.Default");
-        toastNode?.AppendChild(audioNode);
+        toastElement.AppendChild(audioNode);
 
         return toastXml;
     }
@@ -369,7 +443,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
     private static bool IsNotificationScheduled(ToastNotifier notifier, int scheduleId)
     {
         // Check if any notification exists for this schedule
-        // Notification IDs are in format: "{scheduleId}_{ticks}"
+        // Notification IDs are in format: "{scheduleId}_{hash}" (max 16 characters total)
         var scheduledToasts = notifier.GetScheduledToastNotifications();
         var scheduleIdPrefix = $"{scheduleId}_";
         foreach (var toast in scheduledToasts)
@@ -385,7 +459,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
     /// <summary>
     /// Removes all scheduled notifications for a given schedule ID.
-    /// Supports both old format (just scheduleId) and new format ({scheduleId}_{ticks}).
+    /// Supports both old format (just scheduleId) and new format ({scheduleId}_{hash}).
     /// </summary>
     private static int RemoveAllNotificationsForSchedule(ToastNotifier notifier, int scheduleId)
     {
@@ -542,6 +616,49 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             Log.Error(ex, "Exception while trying to create toast notifier with AUMID");
         }
         return null;
+    }
+
+    /// <summary>
+    /// Generates a short hash (11 characters) from a DateTimeOffset for use in notification IDs.
+    /// Windows notification IDs have a 16-character limit, so we need a compact representation.
+    /// Format: ScheduleId (up to 4 digits) + "_" (1 char) + DateHash (11 chars) = 16 chars max
+    /// Uses MD5 hash of the date/time to ensure uniqueness while staying within the character limit.
+    /// </summary>
+    private static string GetShortDateHash(DateTimeOffset dateTime)
+    {
+        // Create an MD5 hash of the date/time string to ensure uniqueness
+        var dateStr = dateTime.ToString("yyyyMMddHHmmss");
+        var bytes = Encoding.UTF8.GetBytes(dateStr);
+        var hashBytes = MD5.HashData(bytes);
+        
+        // Convert hash to base36 (0-9, a-z) for a compact 11-character representation
+        const string base36Chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+        var hash = new StringBuilder();
+        
+        // Use first 6 bytes of hash (48 bits) to generate 11 base36 characters
+        // 36^11 is much larger than 2^48, so we have good distribution
+        ulong value = 0;
+        for (int i = 0; i < 6 && i < hashBytes.Length; i++)
+        {
+            value = (value << 8) | hashBytes[i];
+        }
+        
+        // Convert to base36
+        if (value == 0)
+        {
+            hash.Append('0');
+        }
+        else
+        {
+            while (value > 0 && hash.Length < 11)
+            {
+                hash.Insert(0, base36Chars[(int)(value % 36)]);
+                value /= 36;
+            }
+        }
+        
+        // Pad to exactly 11 characters for consistency
+        return hash.ToString().PadLeft(11, '0').Substring(0, 11);
     }
 
     private static ToastNotifier? TryCreateNotifierWithAumid(string aumid)

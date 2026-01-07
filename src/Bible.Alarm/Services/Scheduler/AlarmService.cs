@@ -60,8 +60,10 @@ public sealed class AlarmService(
 
     private async Task ScheduleNotification(AlarmSchedule schedule)
     {
+        // Use schedule name if available, otherwise use empty string (not "Bible Alarm")
+        var title = string.IsNullOrWhiteSpace(schedule.Name) ? string.Empty : schedule.Name;
         await notificationService.ScheduleNotificationAsync(schedule,
-            string.IsNullOrEmpty(schedule.Name) ? "Bible Alarm" : schedule.Name,
+            title,
             "Press to start listening now.");
     }
 

@@ -137,9 +137,7 @@ public sealed class TrackStateManager(IMapper mapper)
             catch (Exception ex)
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
-#if DEBUG
                 Log.Error(ex, "Error initializing TrackStateManager");
-#endif
             }
         });
     }
