@@ -15,7 +15,7 @@ using Timer = System.Timers.Timer;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>, IRecipient<PlayButtonPressedMessage>, IRecipient<PauseButtonPressedMessage>, IDisposable
+public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>, IRecipient<PlayButtonPressedMessage>, IRecipient<PauseButtonPressedMessage>, IRecipient<SeekForwardButtonPressedMessage>, IRecipient<SeekBackwardButtonPressedMessage>, IDisposable
 {
     private readonly ILogger logger;
     private readonly IAudioPlayer audioPlayer;
@@ -80,11 +80,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         progressTracker.SetSaveProgressCallback(() => progressTracker.SaveProgressAsync(
             stateManager.Playlist, stateManager.CurrentTrackIndex));
 
-        // Register for Next/Previous/Play/Pause button press messages from system controls
+        // Register for Next/Previous/Play/Pause/Seek button press messages from system controls
         WeakReferenceMessenger.Default.Register<NextButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Register<PreviousButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Register<PlayButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Register<PauseButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Register<SeekForwardButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Register<SeekBackwardButtonPressedMessage>(this);
 
         this.audioPlayer.MediaEnded += OnMediaEnded;
         this.audioPlayer.MediaFailed += OnMediaFailed;
@@ -519,6 +521,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         WeakReferenceMessenger.Default.Unregister<PreviousButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PlayButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PauseButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<SeekForwardButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<SeekBackwardButtonPressedMessage>(this);
 
         // All injected services (_audioPlayer, _preparePlaybackService, _playlistService, 
         // _fallbackAlarmSoundService, _dispatcher, _notificationService) are singletons, 

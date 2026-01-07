@@ -158,11 +158,10 @@ internal static class ForegroundNotificationHelper
         }
 
         // Attach MediaSession for Android Auto integration
-        var sessionToken = mediaSession?.SessionToken;
-        if (sessionToken != null)
+        if (mediaSession?.SessionToken is { } sessionToken)
         {
             var mediaStyle = new MediaStyle()
-                .SetMediaSession(sessionToken!)
+                .SetMediaSession(sessionToken)
                 .SetShowActionsInCompactView(0); // Show first action (play) in compact view
             
             builder.SetStyle(mediaStyle);

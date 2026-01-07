@@ -23,15 +23,15 @@ public static class NotificationPermissionHelper
     /// </summary>
     public static bool IsNotificationPermissionGranted()
     {
-        var sdkInt = Build.VERSION.SdkInt;
-        logger.Debug("Checking notification permission - Android SDK: {SdkInt}, Tiramisu: {Tiramisu}", sdkInt, BuildVersionCodes.Tiramisu);
-        
-        if (sdkInt < BuildVersionCodes.Tiramisu) // API 33
+        if (!OperatingSystem.IsAndroidVersionAtLeast(33))
         {
             // Permission not required on Android 12 and below
-            logger.Debug("Android version < 33 (Tiramisu) - notification permission not required");
+            logger.Debug("Android version < 33 - notification permission not required");
             return true;
         }
+
+        var sdkInt = Build.VERSION.SdkInt;
+        logger.Debug("Checking notification permission - Android SDK: {SdkInt}, Tiramisu: {Tiramisu}", sdkInt, BuildVersionCodes.Tiramisu);
 
         var context = AndroidApplication.Context;
         var result = ContextCompat.CheckSelfPermission(context, Manifest.Permission.PostNotifications);
@@ -46,15 +46,15 @@ public static class NotificationPermissionHelper
     /// </summary>
     public static async Task<bool> RequestNotificationPermissionIfNeededAsync()
     {
-        var sdkInt = Build.VERSION.SdkInt;
-        logger.Debug("RequestNotificationPermissionIfNeededAsync - Android SDK: {SdkInt}", sdkInt);
-        
-        if (sdkInt < BuildVersionCodes.Tiramisu) // API 33
+        if (!OperatingSystem.IsAndroidVersionAtLeast(33))
         {
             // Permission not required on Android 12 and below
-            logger.Debug("Android version < 33 (Tiramisu) - notification permission not required");
+            logger.Debug("RequestNotificationPermissionIfNeededAsync - Android version < 33 - notification permission not required");
             return true;
         }
+
+        var sdkInt = Build.VERSION.SdkInt;
+        logger.Debug("RequestNotificationPermissionIfNeededAsync - Android SDK: {SdkInt}", sdkInt);
 
         // Check if already granted
         if (IsNotificationPermissionGranted())
@@ -78,9 +78,12 @@ public static class NotificationPermissionHelper
         // Request permission using ActivityCompat on main thread
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            logger.Debug("Calling ActivityCompat.RequestPermissions for POST_NOTIFICATIONS");
-            ActivityCompat.RequestPermissions(activity, new[] { Manifest.Permission.PostNotifications }, 0);
-            logger.Debug("ActivityCompat.RequestPermissions called - permission dialog should appear");
+            if (OperatingSystem.IsAndroidVersionAtLeast(33))
+            {
+                logger.Debug("Calling ActivityCompat.RequestPermissions for POST_NOTIFICATIONS");
+                ActivityCompat.RequestPermissions(activity, new[] { Manifest.Permission.PostNotifications }, 0);
+                logger.Debug("ActivityCompat.RequestPermissions called - permission dialog should appear");
+            }
         });
 
         // Wait a bit for the permission dialog to appear and user to respond

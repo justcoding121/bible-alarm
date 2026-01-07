@@ -4,11 +4,13 @@ using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using Application = Android.App.Application;
@@ -67,88 +69,71 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
 
     public override void OnPlay()
     {
-        logger.Information("MediaSessionCallback.OnPlay() called");
+        logger.Information("MediaSessionCallback.OnPlay() called - sending PlayButtonPressedMessage");
 
-        ExecuteAsyncOperation(HandlePlayAsync);
+        // Send weak message instead of direct call
+        ExecuteAsyncOperation(async () =>
+        {
+            WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
+            await Task.CompletedTask;
+        });
+
         base.OnPlay();
-    }
-
-    private async Task HandlePlayAsync()
-    {
-        var playbackStateValue = PlaybackState.Value;
-
-        // If playback is stopped, get scheduleId from metadata or use first schedule
-        if (playbackStateValue.Status == PlayStatus.Stopped)
-        {
-            var scheduleId = GetScheduleIdForPlay();
-            if (!scheduleId.HasValue)
-            {
-                logger.Warning("OnPlay: No valid scheduleId found");
-                return;
-            }
-
-            await playbackService.PrepareAndPlayAsync(scheduleId.Value, isAlarm: false);
-        }
-        else
-        {
-            // If already playing/paused, just resume
-            await playbackService.PlayAsync();
-        }
-    }
-
-    private int? GetScheduleIdForPlay()
-    {
-        // Try to get scheduleId from MediaSession metadata
-        var scheduleId = GetScheduleIdFromMetadata();
-        if (scheduleId.HasValue)
-        {
-            // Validate scheduleId exists in state
-            if (DefaultScheduleService.ValidateScheduleIdExists(scheduleId.Value))
-            {
-                return scheduleId;
-            }
-
-            logger.Warning("OnPlay: ScheduleId {ScheduleId} not found in state, using first schedule", scheduleId);
-        }
-
-        // Get first schedule from state
-        return DefaultScheduleService.GetFirstScheduleId();
-    }
-
-    private int? GetScheduleIdFromMetadata()
-    {
-        var mediaSessionManager = ServiceProviderManager.GetService<MediaSessionManager>();
-        var mediaSession = mediaSessionManager?.GetOrCreate();
-        var mediaId = mediaSession?.Controller?.Metadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
-
-        if (!string.IsNullOrEmpty(mediaId) && int.TryParse(mediaId, out int parsedScheduleId))
-        {
-            logger.Debug("OnPlay: Got scheduleId {ScheduleId} from MediaSession metadata", parsedScheduleId);
-            return parsedScheduleId;
-        }
-
-        return null;
     }
 
     public override void OnPause()
     {
-        logger.Information("MediaSessionCallback.OnPause() called");
-        ExecuteAsyncOperation(async () => await playbackService.PauseAsync());
+        logger.Information("MediaSessionCallback.OnPause() called - sending PauseButtonPressedMessage");
+        ExecuteAsyncOperation(async () =>
+        {
+            WeakReferenceMessenger.Default.Send(new PauseButtonPressedMessage());
+            await Task.CompletedTask;
+        });
         base.OnPause();
     }
 
     public override void OnSkipToNext()
     {
-        logger.Information("MediaSessionCallback.OnSkipToNext() called");
-        ExecuteAsyncOperation(async () => await playbackService.PlayNextAsync());
+        logger.Information("MediaSessionCallback.OnSkipToNext() called - sending NextButtonPressedMessage");
+        ExecuteAsyncOperation(async () =>
+        {
+            WeakReferenceMessenger.Default.Send(new NextButtonPressedMessage());
+            await Task.CompletedTask;
+        });
         base.OnSkipToNext();
     }
 
     public override void OnSkipToPrevious()
     {
-        logger.Information("MediaSessionCallback.OnSkipToPrevious() called");
-        ExecuteAsyncOperation(async () => await playbackService.PlayPreviousAsync());
+        logger.Information("MediaSessionCallback.OnSkipToPrevious() called - sending PreviousButtonPressedMessage");
+        ExecuteAsyncOperation(async () =>
+        {
+            WeakReferenceMessenger.Default.Send(new PreviousButtonPressedMessage());
+            await Task.CompletedTask;
+        });
         base.OnSkipToPrevious();
+    }
+
+    public override void OnFastForward()
+    {
+        logger.Information("MediaSessionCallback.OnFastForward() called - sending SeekForwardButtonPressedMessage");
+        ExecuteAsyncOperation(async () =>
+        {
+            WeakReferenceMessenger.Default.Send(new SeekForwardButtonPressedMessage());
+            await Task.CompletedTask;
+        });
+        base.OnFastForward();
+    }
+
+    public override void OnRewind()
+    {
+        logger.Information("MediaSessionCallback.OnRewind() called - sending SeekBackwardButtonPressedMessage");
+        ExecuteAsyncOperation(async () =>
+        {
+            WeakReferenceMessenger.Default.Send(new SeekBackwardButtonPressedMessage());
+            await Task.CompletedTask;
+        });
+        base.OnRewind();
     }
 
     private void ExecuteAsyncOperation(Func<Task> asyncOperation)
