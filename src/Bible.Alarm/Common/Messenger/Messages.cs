@@ -35,14 +35,16 @@ public class PlaybackPreparationProgressMessage
 }
 
 /// <summary>
-/// Message sent when the Next button is pressed in Android system media controls.
+/// Message sent when the Next button is pressed in system media controls.
+/// Used by Android (MediaSession), iOS (MPRemoteCommandCenter), and Windows (SMTC).
 /// </summary>
 public class NextButtonPressedMessage
 {
 }
 
 /// <summary>
-/// Message sent when the Previous button is pressed in Android system media controls.
+/// Message sent when the Previous button is pressed in system media controls.
+/// Used by Android (MediaSession), iOS (MPRemoteCommandCenter), and Windows (SMTC).
 /// </summary>
 public class PreviousButtonPressedMessage
 {

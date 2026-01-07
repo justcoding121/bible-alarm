@@ -9,6 +9,8 @@ using Bible.Alarm.Common;
 
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Effects;
+#elif IOS
+using Bible.Alarm.Platforms.iOS.Effects;
 #endif
 
 namespace Bible.Alarm.Services.Bootstrap;
@@ -81,6 +83,21 @@ public class FluxorBootstrapService : IFluxorBootstrapService
         catch (Exception ex)
         {
             Log.Logger.Warning(ex, "Failed to register MediaSessionEffect message handlers (bootstrap)");
+        }
+#elif IOS
+        // iOS Now Playing and CarPlay use MPNowPlayingInfoCenter and MPRemoteCommandCenter.
+        // Register the iOSMediaSessionEffect message handlers to ensure playback position updates
+        // flow to the Now Playing display (Lock Screen, Control Center, CarPlay, AirPods).
+        // (Metadata/status/navigation are handled via Fluxor effects, but position comes from MVVM messages.)
+        try
+        {
+            var mediaSessionEffect = ServiceProviderManager.GetService<iOSMediaSessionEffect>();
+            mediaSessionEffect?.RegisterMessageHandlers();
+            Log.Logger.Debug("iOSMediaSessionEffect message handlers registered (bootstrap)");
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Failed to register iOSMediaSessionEffect message handlers (bootstrap)");
         }
 #endif
 

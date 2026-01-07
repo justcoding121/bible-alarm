@@ -164,7 +164,8 @@ internal static class ForegroundNotificationHelper
                 .SetMediaSession(sessionToken)
                 .SetShowActionsInCompactView(0); // Show first action (play) in compact view
             
-            builder.SetStyle(mediaStyle);
+            // MediaStyle fluent API always returns non-null, but compiler doesn't know this
+            builder.SetStyle(mediaStyle!);
         }
 
         // Add artwork or app icon

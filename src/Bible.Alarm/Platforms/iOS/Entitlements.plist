@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+    PRODUCTION ENTITLEMENTS
+    
+    This file is used for Release/App Store builds.
+    
+    CARPLAY NOTE:
+    The com.apple.developer.carplay-audio entitlement is NOT included here because
+    it requires approval from Apple's MFi Program (https://mfi.apple.com/).
+    
+    Once you receive MFi approval for CarPlay Audio:
+    1. Uncomment the carplay-audio key below
+    2. Update your provisioning profile in Apple Developer Portal
+    3. Rebuild and submit to App Store
+    
+    Until then, CarPlay code is dormant - the CarPlaySceneDelegate will never be called.
+    However, Now Playing (Lock Screen, Control Center, AirPods) will work immediately.
+    -->
+    
+    <!-- Uncomment after MFi approval:
+    <key>com.apple.developer.carplay-audio</key>
+    <true/>
+    -->
+</dict>
+</plist>

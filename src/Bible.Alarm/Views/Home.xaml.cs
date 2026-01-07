@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.ViewModels;
 using Serilog;
@@ -17,28 +16,14 @@ public partial class Home : BaseContentPage, IDisposable
 
     public Home(HomeViewModel vm)
     {
-#if DEBUG
-        var constructorStartTime = DateTime.UtcNow;
-        Log.Information("[PERF] Home page: Constructor started at {StartTime}", constructorStartTime);
+        ArgumentNullException.ThrowIfNull(vm);
 
-        var initComponentStartTime = DateTime.UtcNow;
-#endif
         InitializeComponent();
-#if DEBUG
-        var initComponentElapsed = (DateTime.UtcNow - initComponentStartTime).TotalMilliseconds;
-        Log.Information("[PERF] Home page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
-#endif
-
         BindingContext = vm;
         viewModel = vm;
 
         // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
-
-#if DEBUG
-        var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
-        Log.Information("[PERF] Home page: Constructor completed in {ElapsedMs}ms", constructorElapsed);
-#endif
     }
 
     private async void OnPageLoaded(object? sender, EventArgs e)

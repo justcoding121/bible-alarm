@@ -15,6 +15,10 @@ public sealed class MessageHandlingService(
     IState<PlaybackState> playbackState) : IRecipient<ShowToastMessage>, IRecipient<InitializedMessage>, IMessageHandlingService
 {
     private bool isDisposed;
+    private readonly IState<PlaybackState> playbackState = playbackState;
+
+    // IState is injected but we access .Value safely with try-catch
+    // This prevents deadlock if Fluxor store isn't initialized when App constructor runs
 
     public void RegisterMessageHandlers()
     {
@@ -48,7 +52,17 @@ public sealed class MessageHandlingService(
             try
             {
                 // Check if playback is active before navigating
-                var isPlaybackActive = playbackState.Value.IsPreparingOrPlaying;
+                // Use try-catch in case Fluxor store isn't initialized yet (prevents deadlock)
+                bool isPlaybackActive = false;
+                try
+                {
+                    isPlaybackActive = this.playbackState.Value.IsPreparingOrPlaying;
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "Failed to access PlaybackState (Fluxor may not be initialized yet), assuming playback is not active");
+                    isPlaybackActive = false;
+                }
 
                 // Navigate to the initialized home page (this creates a new Home instance)
                 await navigationService.NavigateToHomeAsync();
@@ -109,4 +123,3 @@ public sealed class MessageHandlingService(
         WeakReferenceMessenger.Default.Unregister<ShowToastMessage>(this);
     }
 }
-

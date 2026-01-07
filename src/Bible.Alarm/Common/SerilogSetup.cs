@@ -85,13 +85,15 @@ public class SerilogSetup
                 
                 // Write to file with rolling (daily rotation, keep last 7 days)
                 // All levels (Debug and above) will be written
+                // flushToDiskInterval: TimeSpan.Zero forces immediate flushing (no buffering)
                 loggerConfig.WriteTo.File(
                     path: logFilePath,
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: 7,
                     outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
                     restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug, // All levels in DEBUG mode
-                    shared: true); // Allow multiple processes to write to the same log file
+                    shared: true, // Allow multiple processes to write to the same log file
+                    flushToDiskInterval: TimeSpan.Zero); // Force immediate flush to disk (no buffering)
             }
             catch (Exception ex)
             {
@@ -116,13 +118,15 @@ public class SerilogSetup
                 
                 // Write to file with rolling (daily rotation, keep last 7 days)
                 // All levels (Debug and above) will be written
+                // flushToDiskInterval: TimeSpan.Zero forces immediate flushing (no buffering)
                 loggerConfig.WriteTo.File(
                     path: logFilePath,
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: 7,
                     outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
                     restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug, // All levels in RELEASE mode
-                    shared: true); // Allow multiple processes to write to the same log file
+                    shared: true, // Allow multiple processes to write to the same log file
+                    flushToDiskInterval: TimeSpan.Zero); // Force immediate flush to disk (no buffering)
             }
             catch (Exception ex)
             {

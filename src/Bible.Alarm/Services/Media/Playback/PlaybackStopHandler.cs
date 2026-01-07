@@ -114,8 +114,10 @@ public sealed class PlaybackStopHandler
             await audioPlayer.ResetAsync();
             // Dispatch playback stopped action to close modal (state was already reset above)
             dispatcher.Dispatch(new PlaybackStoppedAction());
-#if ANDROID
-            // Dispatch SetCarPlayScreenAction to refresh Android Auto with default schedule metadata
+#if ANDROID || IOS
+            // Dispatch SetCarPlayScreenAction to refresh car display with default schedule metadata
+            // Android: Updates MediaSession for Android Auto
+            // iOS: Updates MPNowPlayingInfoCenter for CarPlay and Lock Screen
             dispatcher.Dispatch(new SetCarPlayScreenAction());
             logger.Debug("SetCarPlayScreenAction dispatched after playback reset");
 #endif

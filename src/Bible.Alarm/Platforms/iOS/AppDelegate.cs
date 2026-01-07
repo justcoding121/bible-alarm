@@ -14,9 +14,11 @@ using UserNotifications;
 
 namespace Bible.Alarm.Platforms.iOS;
 
-// The UIApplicationDelegate for the application. This class is responsible for launching the 
-// User Interface of the application, as well as listening (and optionally responding) to 
-// application events from iOS.
+/// <summary>
+/// The UIApplicationDelegate for the application. This class is responsible for launching the 
+/// User Interface of the application, as well as listening (and optionally responding) to 
+/// application events from iOS.
+/// </summary>
 [Register("AppDelegate")]
 public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterDelegate
 {
@@ -24,13 +26,13 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
     public AppDelegate()
     {
-        // Initialize logging and exception handling
         LogSetup.Initialize(IOsVersionFinder.Default, [], "iOS");
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }
 
-    private void UnobserverdTaskException(object? sender, UnobservedTaskExceptionEventArgs e) => logger.Error(e.Exception, "Unobserved task exception.");
+    private void UnobserverdTaskException(object? sender, UnobservedTaskExceptionEventArgs e) => 
+        logger.Error(e.Exception, "Unobserved task exception.");
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
@@ -42,8 +44,6 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
     {
         try
         {
-            // Ensure MauiApp is created exactly once (thread-safe)
-            // Foreground launch - bootstrap will run on background Task
             return MauiAppHolder.CreateAndStore();
         }
         catch (Exception e)
@@ -55,39 +55,42 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
     public override bool FinishedLaunching(UIApplication app, NSDictionary? launchOptions)
     {
-#if DEBUG
-        // Note: SSL certificate validation for localhost is handled by HttpClient configuration
-        // This is now managed through HttpClientHandler in the HTTP client setup
-#endif
-
+        // Call base.FinishedLaunching FIRST - this creates the Application instance and window
+        bool result;
         try
         {
+            result = base.FinishedLaunching(app, launchOptions);
+        }
+        catch (Exception ex)
+        {
+            logger.Fatal(ex, "base.FinishedLaunching threw exception.");
+            throw;
+        }
+        
+        // Now that the window is created, do custom initialization
+        try
+        {
+            // Initialize bootstrap for foreground launch (after window is created)
+            MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: true);
+            
             SetupBackgroundTasks();
+            SetupNotifications();
         }
         catch (Exception e)
         {
-            logger.Fatal(e, "iOS application crashed.");
-            throw;
+            logger.Error(e, "iOS application custom initialization failed.");
+            // Don't throw - window is already created, just log the error
         }
-
-        SetupNotifications();
-
-        return base.FinishedLaunching(app, launchOptions);
+        
+        return result;
     }
 
     private void SetupBackgroundTasks()
     {
-        // BootstrapHelper is already initialized in MauiProgram.cs
-        // No need to call it again here for foreground scenarios
-
-        //once every hour
         // Note: Background fetch is now handled by BGAppRefreshTask in iOS 13+
         if (UIDevice.CurrentDevice.CheckSystemVersion(13, 0))
         {
-            // Use BGTaskScheduler for iOS 13+ to register background tasks
-            // Media index update is handled separately from scheduler
             RegisterMediaIndexUpdateBackgroundTask();
-            // Schedule the initial background task run
             ScheduleMediaIndexUpdateBackgroundTask();
         }
         else
@@ -98,11 +101,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
     private void SetupNotifications()
     {
-        // Set the notification center delegate to handle notification taps (including app launch from notification)
-        // This is the modern, non-deprecated way to handle notifications in iOS 15+
         UNUserNotificationCenter.Current.Delegate = this;
-
-        // Request notification permissions from the user
         UNUserNotificationCenter.Current.RequestAuthorization(
             UNAuthorizationOptions.Alert
             | UNAuthorizationOptions.Sound
@@ -129,15 +128,10 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
     private async Task ShowNotificationDisabledMessageAsync()
     {
-        // Ensure MauiApp is created (may already be created from FinishedLaunching)
         MauiAppHolder.CreateAndStore();
-        // Run bootstrapper after CreateAndStore for background launch
         MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-
-        // Wait for bootstrap to complete before using database services
         await MauiProgram.WaitForBootstrapAsync();
 
-        // Use GeneralSettingsService to check and set the setting
         var generalSettingsService = ServiceProviderManager.GetService<IGeneralSettingsService>();
         if (generalSettingsService != null)
         {
@@ -147,7 +141,6 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
                     "iOSNotificationDisabledMsgShown",
                     "true");
 
-                // IToastService is a singleton, so don't dispose it
                 var popupService = ServiceProviderManager.GetService<IToastService>();
                 await popupService.ShowMessage("You've disabled notifications. " +
                                          "We won't be able to alert you on scheduled time. " +
@@ -191,24 +184,17 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
     private void ResetBadgeCount()
     {
-        // In 2025, SetBadgeCount is the standard for 95%+ of the iOS market (iOS 16+)
-        // This avoids CA1422 entirely and uses the modern asynchronous pattern.
         UNUserNotificationCenter.Current.SetBadgeCount(0, error =>
         {
             if (error != null)
             {
                 logger.Error("Failed to reset badge count: {Error}", error.LocalizedDescription);
             }
-            else
-            {
-                logger.Information("Badge count reset successfully.");
-            }
         });
     }
 
     /// <summary>
     /// Called when the user taps a notification (including when app is launched from notification).
-    /// This is the modern, non-deprecated way to handle notification interactions in iOS 15+.
     /// </summary>
     public void DidReceiveNotificationResponse(UNUserNotificationCenter center, UNNotificationResponse response, Action completionHandler)
     {
@@ -232,8 +218,6 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
     /// </summary>
     public void WillPresentNotification(UNUserNotificationCenter center, UNNotification notification, Action<UNNotificationPresentationOptions> completionHandler)
     {
-        // Allow the notification to be presented even when app is in foreground
-        // Use Banner instead of deprecated Alert option
         var options = UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound | UNNotificationPresentationOptions.Badge;
         completionHandler(options);
     }
@@ -242,18 +226,11 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
     {
         try
         {
-            // reset our badge
-            // In 2025, SetBadgeCount is the standard for 95%+ of the iOS market (iOS 16+)
-            // This avoids CA1422 entirely and uses the modern asynchronous pattern.
             UNUserNotificationCenter.Current.SetBadgeCount(0, error =>
             {
                 if (error != null)
                 {
                     logger.Error("Failed to reset badge count: {Error}", error.LocalizedDescription);
-                }
-                else
-                {
-                    logger.Information("Badge count reset successfully.");
                 }
             });
         }
@@ -266,12 +243,9 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
     public override void PerformFetch(UIApplication application,
         Action<UIBackgroundFetchResult> completionHandler)
     {
-        // Use Task.Run to handle async operations without async void
-        // The base class requires void return type, so we can't use async Task
         _ = Task.Run(async () =>
         {
             var downloaded = await PerformBackgroundFetchAsync();
-            // Inform system of fetch results
             completionHandler(downloaded ? UIBackgroundFetchResult.NewData : UIBackgroundFetchResult.NoData);
         });
     }
@@ -282,17 +256,10 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
         try
         {
-            // Ensure MauiApp is created exactly once (thread-safe)
-            // This is the iOS background fetch entry point for scheduler only
-            // Media index update is handled separately via UpdateMediaIndexBackgroundTask
             MauiAppHolder.CreateAndStore();
-            // Run bootstrapper after CreateAndStore for background launch
             MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
-
-            // Wait for bootstrap to complete before using database services
             await MauiProgram.WaitForBootstrapAsync();
 
-            // ISchedulerService is a singleton, so don't dispose it
             var schedulerService = ServiceProviderManager.GetService<ISchedulerService>();
             downloaded = await schedulerService.HandleAsync();
         }
@@ -306,9 +273,6 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
     private const string MediaIndexUpdateTaskIdentifier = "com.jthomas.info.Bible.Alarm.MediaIndexUpdate";
 
-    /// <summary>
-    /// Registers the media index update background task with BGTaskScheduler for iOS 13+
-    /// </summary>
     private void RegisterMediaIndexUpdateBackgroundTask()
     {
         try
@@ -327,9 +291,6 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
     }
 
-    /// <summary>
-    /// Handles the media index update background task when triggered by the system
-    /// </summary>
     private void HandleMediaIndexUpdateBackgroundTask(BGAppRefreshTask task)
     {
         if (task == null)
@@ -357,17 +318,13 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         });
     }
 
-    /// <summary>
-    /// Schedules the next media index update background task
-    /// This should be called after the task completes to schedule the next run
-    /// </summary>
     public static void ScheduleMediaIndexUpdateBackgroundTask()
     {
         try
         {
             var request = new BGAppRefreshTaskRequest(MediaIndexUpdateTaskIdentifier)
             {
-                EarliestBeginDate = NSDate.FromTimeIntervalSinceNow(60 * 60 * 24) // Schedule for 24 hours from now
+                EarliestBeginDate = NSDate.FromTimeIntervalSinceNow(60 * 60 * 24)
             };
 
             BGTaskScheduler.Shared.Submit(request, out var error);

@@ -225,9 +225,10 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
             Log.Logger.Information("[BOOTSTRAP] Schedule initialization completed in {ElapsedMs:F2}ms", schedulesElapsed);
 #endif
 
-#if ANDROID
-            // Dispatch SetCarPlayScreenAction to fetch and set default schedule metadata for Android Auto
-            // This will trigger the effect to fetch metadata and update MediaSession
+#if ANDROID || IOS
+            // Dispatch SetCarPlayScreenAction to fetch and set default schedule metadata for car displays
+            // Android: Updates MediaSession for Android Auto
+            // iOS: Updates MPNowPlayingInfoCenter for CarPlay and Lock Screen
             dispatcher.Dispatch(new SetCarPlayScreenAction());
             Log.Logger.Debug("SetCarPlayScreenAction dispatched after bootstrap completion");
 #endif

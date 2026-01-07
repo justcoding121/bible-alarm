@@ -1,4 +1,6 @@
 #if IOS
+using Bible.Alarm.Platforms.iOS.Effects;
+using Bible.Alarm.Platforms.iOS.Services.Media;
 using Bible.Alarm.Platforms.iOS.Services.Storage;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Platforms.iOS.Services.Handlers;
@@ -218,6 +220,11 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IToastService, IOsToastService>();
         services.AddSingleton<IStorageService, IOsStorageService>();
         services.AddSingleton<IIosAlarmHandler, IOsAlarmHandler>();
+        // Register iOS Now Playing and Remote Command services for Lock Screen, Control Center, AirPods, and CarPlay
+        services.AddSingleton<iOSRemoteCommandCenterManager>();
+        services.AddSingleton<iOSNowPlayingInfoManager>();
+        // Register iOS MediaSession effect for syncing playback state with system media controls
+        services.AddSingleton<iOSMediaSessionEffect>();
 #elif WINDOWS
         // Register WindowsNotificationService as both interface and concrete type
         // (concrete type needed for WindowsMediaToastEffect which uses ShowMediaToast method)
@@ -310,7 +317,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<AlarmSettingsModal>();
         services.AddTransient<NumberOfChaptersModal>();
 
-        // It will be created with Home as the root page
+        // NavigationPage with Home as the root page
         services.AddTransient(sp =>
         {
             var homePage = sp.GetRequiredService<Home>();
@@ -322,4 +329,3 @@ public static class ServiceRegistrationHelper
         });
     }
 }
-

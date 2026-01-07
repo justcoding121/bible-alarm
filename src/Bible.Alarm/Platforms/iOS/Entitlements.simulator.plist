@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+    SIMULATOR ENTITLEMENTS
+    
+    This file is used for iOS Simulator builds only.
+    
+    Note: CarPlay entitlement can be enabled here for simulator testing once
+    the CarPlaySceneDelegate is properly configured with dual-scene support.
+    Currently disabled because registering the scene delegate prevents main
+    window creation.
+    -->
+    
+    <!-- CarPlay Audio Entitlement (allowed in Simulator without MFi approval) -->
+    <!-- Disabled until dual-scene configuration is implemented -->
+    <!-- <key>com.apple.developer.carplay-audio</key>
+    <true/> -->
+</dict>
+</plist>

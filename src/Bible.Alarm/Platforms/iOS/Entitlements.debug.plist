@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+    DEBUG ENTITLEMENTS FOR CARPLAY DEVELOPMENT
+    
+    This file contains the CarPlay Audio entitlement for development and testing purposes.
+    Use this file for Debug builds to test CarPlay functionality in:
+    - CarPlay Simulator (Xcode)
+    - Physical device with development signing
+    - Real CarPlay-enabled vehicles (with development provisioning profile)
+    
+    IMPORTANT:
+    - Do NOT include this entitlement in Release/App Store builds until you have
+      official approval from Apple's MFi Program (https://mfi.apple.com/)
+    - Without MFi approval, App Store submissions with this entitlement will be REJECTED
+    - The production Entitlements.plist should NOT contain the carplay-audio key until approved
+    
+    To use these entitlements for Debug builds, configure your .csproj:
+    <CodesignEntitlements Condition="'$(Configuration)' == 'Debug'">Platforms\iOS\Entitlements.debug.plist</CodesignEntitlements>
+    <CodesignEntitlements Condition="'$(Configuration)' == 'Release'">Platforms\iOS\Entitlements.plist</CodesignEntitlements>
+    -->
+    
+    <!-- CarPlay Audio Entitlement (requires MFi approval for App Store distribution) -->
+    <!-- Disabled for device builds - use Entitlements.simulator.plist for Simulator builds -->
+    <!-- <key>com.apple.developer.carplay-audio</key>
+    <true/> -->
+</dict>
+</plist>

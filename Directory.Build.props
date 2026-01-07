@@ -1,4 +1,10 @@
 <Project>
+  <!-- Enable Windows targeting evaluation (required even on macOS to evaluate project structure) -->
+  <!-- This allows MSBuild to evaluate the project file, but we'll only build iOS framework -->
+  <PropertyGroup>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  
   <!-- Android SDK version - applies to all builds -->
   <PropertyGroup>
     <AndroidSdkVersion Condition="'$(TargetFramework)' == 'net10.0-android'">36</AndroidSdkVersion>

@@ -41,6 +41,18 @@
 		<!-- If you encounter simulator runtime mismatch errors, ensure your Mac build host has the correct simulator runtime installed -->
 		<!-- To install: Xcode > Settings > Components, or use: xcodebuild -downloadPlatform iOS -->
 		<IosSdkVersion Condition="'$(IosSdkVersion)' == ''">latest</IosSdkVersion>
+		<!-- iOS Entitlements: Different entitlements for Simulator, Device Debug, and Release -->
+		<!-- Simulator: CarPlay enabled (no MFi approval needed) -->
+		<!-- Device Debug: CarPlay disabled (requires provisioning profile with CarPlay) -->
+		<!-- Release: CarPlay disabled (requires MFi approval) -->
+		<!-- Set property to detect simulator builds -->
+		<_IsSimulatorBuild Condition="'$(RuntimeIdentifier)' == 'iossimulator-arm64' OR '$(RuntimeIdentifier)' == 'iossimulator-x64' OR '$(RuntimeIdentifier)' == 'iossimulator-arm64-sim' OR '$(RuntimeIdentifier)' == 'iossimulator-x64-sim'">true</_IsSimulatorBuild>
+		<!-- Use simulator entitlements (with CarPlay) for simulator builds -->
+		<CodesignEntitlements Condition="'$(Configuration)' == 'Debug' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' AND '$(_IsSimulatorBuild)' == 'true'">Platforms\iOS\Entitlements.simulator.plist</CodesignEntitlements>
+		<!-- Use debug entitlements (no CarPlay) for device builds -->
+		<CodesignEntitlements Condition="'$(Configuration)' == 'Debug' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' AND '$(_IsSimulatorBuild)' != 'true'">Platforms\iOS\Entitlements.debug.plist</CodesignEntitlements>
+		<!-- Use production entitlements (no CarPlay) for Release builds -->
+		<CodesignEntitlements Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">Platforms\iOS\Entitlements.plist</CodesignEntitlements>
 
 		<!-- Windows-specific -->
 		<!-- For .NET MAUI 10, minimum supported OS version is Windows 10 version 1809 (10.0.17763.0) with WinUI 3 -->

@@ -15,22 +15,16 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
 
     public Window CreateWindow(IActivationState? activationState)
     {
-        // Get NavigationPage from service provider (registered as singleton)
         var navigationPage = serviceProvider.GetRequiredService<NavigationPage>();
 
-        // Initialize centralized navigation bar color management
         Initialize(navigationPage);
 
         var window = new Window(navigationPage);
 
 #if WINDOWS
-        // Set window size preferences
-        // Increased height to ensure media metadata (Title, SubTitle, Description) is not cut off by playback controls
         window.Width = 400;
         window.Height = 800;
 #if !DEBUG
-        // Set minimum dimensions only in release mode
-        // In debug mode, allow free resizing for testing
         window.MinimumWidth = 400;
         window.MinimumHeight = 800;
 #endif
@@ -38,17 +32,15 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
 
         navigationService.ClearCache();
 
-        logger.Information("WindowSetupService.CreateWindow: Starting VerifyServices with initializeUI=true");
         Task.Run(async () =>
         {
             try
             {
                 await CommonBootstrapHelper.VerifyServices(true);
-                logger.Information("WindowSetupService.CreateWindow: VerifyServices completed");
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "WindowSetupService.CreateWindow: Error in VerifyServices");
+                logger.Error(ex, "Error in VerifyServices");
             }
         });
 
@@ -59,7 +51,6 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
 
     /// <summary>
     /// Initializes centralized navigation bar color management.
-    /// This ensures the navigation bar updates automatically when the theme changes.
     /// </summary>
     private static void Initialize(NavigationPage navigationPage)
     {
@@ -68,15 +59,10 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
         UpdateNavigationBarColors();
     }
 
-    /// <summary>
-    /// Handles theme changes and updates navigation bar colors.
-    /// </summary>
     private static void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e) => UpdateNavigationBarColors();
 
     /// <summary>
     /// Updates NavigationPage bar colors from theme-aware resources.
-    /// NavigationPage properties don't support DynamicResource directly, so we update them programmatically.
-    /// This is called automatically on theme changes.
     /// </summary>
     public static void UpdateNavigationBarColors()
     {
@@ -87,7 +73,6 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
 
         try
         {
-            // Read from Application resources - these are updated by App.xaml.cs on theme change
             if (Application.Current?.Resources.TryGetValue("CardBackgroundColor", out var cardBgColor) == true &&
                 cardBgColor is Color cardBg)
             {
@@ -95,7 +80,6 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
             }
             else
             {
-                // Fallback if resource not found
                 var theme = ThemeColors.GetCurrentTheme();
                 mainNavPage.BarBackgroundColor = ThemeColors.CardBackground.Get(theme);
             }
@@ -107,14 +91,12 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
             }
             else
             {
-                // Fallback if resource not found
                 var theme = ThemeColors.GetCurrentTheme();
                 mainNavPage.BarTextColor = ThemeColors.PrimaryText.Get(theme);
             }
         }
         catch (Exception ex)
         {
-            // Fallback to theme colors if resource lookup fails
             logger.Warning(ex, "Error updating navigation bar colors, using fallback theme colors");
             var theme = ThemeColors.GetCurrentTheme();
             mainNavPage.BarBackgroundColor = ThemeColors.CardBackground.Get(theme);
@@ -131,7 +113,6 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
 
         isDisposed = true;
 
-        // Unsubscribe from theme changes
         if (Application.Current != null)
         {
             Application.Current.RequestedThemeChanged -= OnRequestedThemeChanged;
@@ -143,25 +124,20 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
         alarmModalService.UnsubscribeToPlaybackStateChanges();
         navigationService.PopAllModalsAndPages();
 
-        // Clear static reference to NavigationPage to prevent memory leaks
-        // The old NavigationPage will be garbage collected once all references are cleared
         mainNavPage = null;
 
         var playbackService = serviceProvider.GetService<IPlaybackService>();
 
         if (playbackService != null)
         {
-            logger.Information("MainActivity.OnDestroy - Calling player dismiss action");
+            logger.Information("TearDown - Calling player dismiss action");
 
             Task.Run(async () =>
             {
                 try
                 {
                     await playbackService.StopAsync();
-                    logger.Information("MainActivity.OnDestroy - Player dismiss action completed");
-
-                    // Dispose MauiApp after StopAsync completes
-                    logger.Information("MainActivity.OnDestroy - MauiApp disposed");
+                    logger.Information("TearDown - Player dismiss action completed");
                 }
                 catch (Exception ex)
                 {
@@ -171,4 +147,3 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
         }
     }
 }
-
