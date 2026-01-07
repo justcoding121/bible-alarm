@@ -19,6 +19,17 @@
     <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>CommunityToolkit.Maui</RootNamespace>
     <AndroidGenerateResourceDesigner>false</AndroidGenerateResourceDesigner>
+    <!-- Use CoreCLR runtime for Windows (not Mono) -->
+    <UseMonoRuntime Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</UseMonoRuntime>
+    <!-- Enable MSIX tooling for WinUI resources in the library (Release mode only) -->
+    <EnableMsixTooling Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</EnableMsixTooling>
+    <!-- Skip PRI file generation - this is a library project using EmbeddedResource, not app resources (Release mode only) -->
+    <GenerateProjectPriFile Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</GenerateProjectPriFile>
+    <!-- Ensure this library project is not treated as an app for MSIX packaging (Release mode only) -->
+    <WindowsPackageType Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">None</WindowsPackageType>
+    <GenerateAppxManifest Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</GenerateAppxManifest>
+    <!-- Fix for PRI error: Force RID-appended output path to match main app expectations (Release mode only) -->
+    <AppendRuntimeIdentifierToOutputPath Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
   <PropertyGroup>

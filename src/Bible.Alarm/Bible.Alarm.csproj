@@ -49,9 +49,24 @@
 		<WindowsTargetPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</WindowsTargetPlatformVersion>
 		<!-- Allow unsafe blocks for WinRT interop (required for CsWinRT1030) -->
 		<AllowUnsafeBlocks Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</AllowUnsafeBlocks>
-		
+
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
-		<WindowsPackageType>None</WindowsPackageType>
+		<!-- Debug mode: Use None (unpackaged) for faster debugging -->
+		<WindowsPackageType Condition="'$(Configuration)' == 'Debug'">None</WindowsPackageType>
+		<!-- Release mode: Use MSIX to enable toast notifications (requires packaged app) -->
+		<WindowsPackageType Condition="'$(Configuration)' == 'Release'">MSIX</WindowsPackageType>
+		<!-- Use CoreCLR runtime for Windows (not Mono) -->
+		<UseMonoRuntime Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</UseMonoRuntime>
+		<!-- Disable Windows App SDK auto-initialization (Release mode only) -->
+		<!-- Auto-initialization can fail in debug scenarios, so we'll handle initialization manually if needed -->
+		<!-- For packaged MSIX apps, the runtime is included in the package, so auto-initialization isn't needed -->
+		<WindowsAppSDKDeploymentManagerAutoInitialize Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</WindowsAppSDKDeploymentManagerAutoInitialize>
+		<WindowsAppSDKDeploymentManagerInitializeWithOptions Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</WindowsAppSDKDeploymentManagerInitializeWithOptions>
+		<WindowsAppSDKDeploymentManagerAutoInitializeOptions Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</WindowsAppSDKDeploymentManagerAutoInitializeOptions>
+		<!-- Use RuntimeIdentifierOverride to avoid PRI conflicts with referenced library projects (Release mode only) -->
+		<!-- RuntimeIdentifierOverride prevents the build system from aggressively propagating RID-specific asset resolution to library projects -->
+		<!-- Note: Use win-x64 format directly - RuntimeIdentifierOverride handles the conversion internally -->
+		<RuntimeIdentifierOverride Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' AND '$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</RuntimeIdentifierOverride>
 
 		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
 		
@@ -96,7 +111,17 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Bible.Alarm.Shared\Bible.Alarm.Shared.csproj" />
-		<ProjectReference Include="..\..\libraries\CommunityToolkit.Maui.MediaElement\CommunityToolkit.Maui.MediaElement.csproj" />
+		<ProjectReference Include="..\..\libraries\CommunityToolkit.Maui.MediaElement\CommunityToolkit.Maui.MediaElement.csproj">
+			<Properties>UseMonoRuntime=$(UseMonoRuntime)</Properties>
+		</ProjectReference>
+	</ItemGroup>
+	
+	<!-- Configure library project reference for MSIX packaging (Release mode only) -->
+	<!-- Do NOT pass RuntimeIdentifier to library - RuntimeIdentifierOverride only applies to main app -->
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
+		<ProjectReference Update="..\..\libraries\CommunityToolkit.Maui.MediaElement\CommunityToolkit.Maui.MediaElement.csproj">
+			<Properties>GenerateProjectPriFile=false;UseMonoRuntime=$(UseMonoRuntime)</Properties>
+		</ProjectReference>
 	</ItemGroup>
 
 
@@ -113,7 +138,7 @@
 		<!-- Dark Mode Icon (for platforms that support theme-aware icons) -->
 		<MauiIcon Include="Resources\AppIcon\appicon-dark.svg" ForegroundFile="Resources\AppIcon\appiconfg-dark.svg" Color="#E8E0FF" BaseSize="512,512" ForegroundScale="0.72" Condition="false" />
 	</ItemGroup>
-	
+
 	<!-- Splash Screen (MauiSplashScreen) - Modern SVG approach for .NET 10.0 with Light/Dark mode support -->
 	<ItemGroup>
 		<!-- Light Mode Splash (default) -->
@@ -201,6 +226,16 @@
 		<PreBuildEvent Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy Bypass -File "$(MSBuildProjectDirectory)/replace-license-key.ps1"</PreBuildEvent>
 		<!-- Post-build task: Restore license key placeholder to prevent accidental commits -->
 		<PostBuildEvent Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy Bypass -File "$(MSBuildProjectDirectory)/restore-license-key-placeholder.ps1"</PostBuildEvent>
+		<!-- MSIX packaging properties (Release mode only) -->
+		<GenerateAppInstallerFile Condition="'$(Configuration)' == 'Release'">True</GenerateAppInstallerFile>
+		<AppxPackageSigningEnabled Condition="'$(Configuration)' == 'Release'">True</AppxPackageSigningEnabled>
+		<PackageCertificateKeyFile Condition="'$(Configuration)' == 'Release'">Bible.Alarm_TemporaryKey.pfx</PackageCertificateKeyFile>
+		<AppxPackageSigningTimestampDigestAlgorithm Condition="'$(Configuration)' == 'Release'">SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+		<AppxAutoIncrementPackageRevision Condition="'$(Configuration)' == 'Release'">True</AppxAutoIncrementPackageRevision>
+		<AppxSymbolPackageEnabled Condition="'$(Configuration)' == 'Release'">True</AppxSymbolPackageEnabled>
+		<GenerateTestArtifacts Condition="'$(Configuration)' == 'Release'">True</GenerateTestArtifacts>
+		<AppInstallerUri Condition="'$(Configuration)' == 'Release'">C:\Users\YourUsername\Desktop\BibleAlarmPackage</AppInstallerUri>
+		<HoursBetweenUpdateChecks Condition="'$(Configuration)' == 'Release'">0</HoursBetweenUpdateChecks>
 	</PropertyGroup>
 
 	<!-- Platform-specific resources -->
