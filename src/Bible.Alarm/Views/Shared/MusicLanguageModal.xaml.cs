@@ -84,7 +84,8 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "Error in MusicLanguageModal.OnAppearing");
+            // OnAppearing errors are non-critical (UI initialization)
+            Serilog.Log.Warning(ex, "Error in MusicLanguageModal.OnAppearing");
             ForceHideBusyOverlay();
         }
     }

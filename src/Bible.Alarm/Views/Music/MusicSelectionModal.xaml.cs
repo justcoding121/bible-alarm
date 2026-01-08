@@ -53,7 +53,8 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "Error in MusicSelectionModal.OnAppearing");
+            // OnAppearing errors are non-critical (UI initialization)
+            Serilog.Log.Warning(ex, "Error in MusicSelectionModal.OnAppearing");
             ForceHideBusyOverlay();
         }
     }

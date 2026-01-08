@@ -81,7 +81,8 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "Error in NumberOfChaptersModal.OnAppearing");
+            // OnAppearing errors are non-critical (UI initialization)
+            Serilog.Log.Warning(ex, "Error in NumberOfChaptersModal.OnAppearing");
         }
     }
 

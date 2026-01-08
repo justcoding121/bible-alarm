@@ -82,7 +82,8 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "Error in BibleLanguageModal.OnAppearing");
+                // OnAppearing errors are non-critical (UI initialization)
+                Serilog.Log.Warning(ex, "Error in BibleLanguageModal.OnAppearing");
                 // Force hide busy overlay on error
                 ForceHideBusyOverlay();
             }

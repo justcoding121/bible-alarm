@@ -1,6 +1,7 @@
 #nullable enable
 
 using Microsoft.Maui.Controls;
+using Serilog;
 
 namespace Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
 
@@ -9,6 +10,7 @@ namespace Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
 /// </summary>
 public class AnimationManager
 {
+    private static readonly ILogger logger = Log.ForContext<AnimationManager>();
     private readonly View container;
     private readonly View collapsibleContent;
     private bool isAnimating;
@@ -54,8 +56,10 @@ public class AnimationManager
                 await AnimateCollapse((cancelled) => onAnimationComplete?.Invoke(isEnabled, cancelled));
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            // Animation failures are non-critical - fallback to direct state change
+            logger.Debug(ex, "Animation failed, falling back to direct state change. isEnabled: {IsEnabled}", isEnabled);
             SetContentStateDirectly(isEnabled);
             isAnimating = false;
         }

@@ -40,7 +40,8 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in VerifyServices");
+                // VerifyServices runs in background - failures are non-critical, app continues to work
+                logger.Warning(ex, "Error in VerifyServices background task");
             }
         });
 
@@ -141,7 +142,8 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "Error in StopAsync or disposal");
+                    // Disposal errors are non-critical (cleanup operation)
+                    logger.Warning(ex, "Error in StopAsync or disposal");
                 }
             });
         }

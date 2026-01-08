@@ -48,7 +48,8 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[CarPlay] Error during CarPlay connection");
+            // CarPlay connection failures are non-critical (CarPlay is optional)
+            logger.Warning(ex, "[CarPlay] Error during CarPlay connection");
         }
     }
 
@@ -66,7 +67,8 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[CarPlay] Error during CarPlay disconnection");
+            // CarPlay disconnection failures are non-critical (CarPlay is optional)
+            logger.Warning(ex, "[CarPlay] Error during CarPlay disconnection");
         }
     }
 

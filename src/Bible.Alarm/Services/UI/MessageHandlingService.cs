@@ -38,7 +38,8 @@ public sealed class MessageHandlingService(
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error showing toast message");
+                // Toast message failures are non-critical (UI feedback only)
+                logger.Warning(ex, "Error showing toast message");
             }
         });
     }
@@ -98,7 +99,8 @@ public sealed class MessageHandlingService(
                     }
                     catch (Exception ex)
                     {
-                        logger.Error(ex, "Error in initialization");
+                        // Background initialization task failures are non-critical
+                        logger.Warning(ex, "Error in background initialization task");
                     }
                 });
             }

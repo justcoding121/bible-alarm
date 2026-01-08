@@ -66,6 +66,7 @@ public class SerilogSetup
         // Serilog's Debug sink writes to the Visual Studio Output window
         // Works on Windows, Android, and iOS when debugging in Visual Studio
         // Make sure to select "Debug" in the Output window's "Show output from:" dropdown
+        // This also serves as a fallback if file logging fails
         loggerConfig.WriteTo.Debug(
             outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);
 
@@ -97,13 +98,23 @@ public class SerilogSetup
             }
             catch (Exception ex)
             {
-                // In debug mode, we can use Debug output as fallback
-                System.Diagnostics.Debug.WriteLine($"Failed to configure file logging: {ex.Message}");
+                // File logging failed, but Debug sink is already configured as fallback
+                // Log the error using Debug sink (which will be created when loggerConfig.CreateLogger() is called)
+                try
+                {
+                    var fallbackLogger = loggerConfig.CreateLogger();
+                    fallbackLogger.Error(ex, "Failed to configure file logging");
+                }
+                catch
+                {
+                    // If even fallback logger creation fails, silently continue
+                    // This should never happen, but prevents cascading failures
+                }
             }
         }
 #else
-        // RELEASE mode: File logging only, all levels (Debug and above), no console
-        loggerConfig.MinimumLevel.Debug(); // All levels in RELEASE mode
+        // RELEASE mode: File logging only, Error and Fatal levels only, no console
+        loggerConfig.MinimumLevel.Error(); // Only Error and Fatal in RELEASE mode
 
         // Configure file logging (RELEASE mode only)
         var logDirectory = GetLogDirectory();
@@ -117,21 +128,32 @@ public class SerilogSetup
                 var logFilePath = Path.Combine(logDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
                 
                 // Write to file with rolling (daily rotation, keep last 7 days)
-                // All levels (Debug and above) will be written
-                // flushToDiskInterval: TimeSpan.Zero forces immediate flushing (no buffering)
+                // Only Error and Fatal levels will be written
+                // flushToDiskInterval: 2 seconds buffers writes for better performance
                 loggerConfig.WriteTo.File(
                     path: logFilePath,
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: 7,
                     outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
-                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug, // All levels in RELEASE mode
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error, // Only Error and Fatal in RELEASE mode
                     shared: true, // Allow multiple processes to write to the same log file
-                    flushToDiskInterval: TimeSpan.Zero); // Force immediate flush to disk (no buffering)
+                    flushToDiskInterval: TimeSpan.FromSeconds(2)); // Buffer for 2 seconds for better performance
             }
             catch (Exception ex)
             {
-                // In release mode, we can't use logger yet, so use Debug output as fallback
-                System.Diagnostics.Debug.WriteLine($"Failed to configure file logging: {ex.Message}");
+                // File logging failed - create a minimal logger with Debug sink as fallback
+                try
+                {
+                    var fallbackLogger = loggerConfig
+                        .WriteTo.Debug(outputTemplate: AppConstants.Logging.ConsoleOutputTemplate)
+                        .CreateLogger();
+                    fallbackLogger.Error(ex, "Failed to configure file logging");
+                }
+                catch
+                {
+                    // If even fallback logger creation fails, silently continue
+                    // This should never happen, but prevents cascading failures
+                }
             }
         }
 #endif
@@ -228,13 +250,29 @@ public class SerilogSetup
             if (File.Exists(logFilePath))
             {
                 File.Delete(logFilePath);
-                System.Diagnostics.Debug.WriteLine($"Deleted today's log file: {logFilePath}");
+                // Use Serilog if available, otherwise silently continue (not critical)
+                try
+                {
+                    Log.Logger?.Debug("Deleted today's log file: {LogFilePath}", logFilePath);
+                }
+                catch
+                {
+                    // Serilog not initialized yet or failed - silently continue
+                }
             }
         }
         catch (Exception ex)
         {
             // Don't throw - log file deletion is not critical
-            System.Diagnostics.Debug.WriteLine($"Failed to delete today's log file: {ex.Message}");
+            // Use Serilog if available, otherwise silently continue
+            try
+            {
+                Log.Logger?.Warning(ex, "Failed to delete today's log file");
+            }
+            catch
+            {
+                // Serilog not initialized yet or failed - silently continue
+            }
         }
     }
 #endif

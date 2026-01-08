@@ -64,7 +64,8 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "Error in BookSelectionModal.OnAppearing");
+            // OnAppearing errors are non-critical (UI initialization)
+            Serilog.Log.Warning(ex, "Error in BookSelectionModal.OnAppearing");
             ForceHideBusyOverlay();
         }
     }

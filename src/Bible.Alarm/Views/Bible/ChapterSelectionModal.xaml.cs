@@ -63,7 +63,8 @@ public partial class ChapterSelectionModal : BaseContentPage, IDisposable
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "Error in ChapterSelectionModal.OnAppearing");
+            // OnAppearing errors are non-critical (UI initialization)
+            Serilog.Log.Warning(ex, "Error in ChapterSelectionModal.OnAppearing");
             ForceHideBusyOverlay();
         }
     }

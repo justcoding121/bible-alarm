@@ -51,7 +51,8 @@ public partial class TrackSelectionModal : BaseContentPage, IDisposable
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "Error in TrackSelectionModal.OnAppearing");
+            // OnAppearing errors are non-critical (UI initialization)
+            Serilog.Log.Warning(ex, "Error in TrackSelectionModal.OnAppearing");
             ForceHideBusyOverlay();
         }
     }
