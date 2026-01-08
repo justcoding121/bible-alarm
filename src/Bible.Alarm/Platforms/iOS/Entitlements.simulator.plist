@@ -14,8 +14,8 @@
     -->
     
     <!-- CarPlay Audio Entitlement (allowed in Simulator without MFi approval) -->
-    <!-- Disabled until dual-scene configuration is implemented -->
-    <!-- <key>com.apple.developer.carplay-audio</key>
-    <true/> -->
+    <!-- Enabled for simulator testing with dual-scene configuration -->
+    <key>com.apple.developer.carplay-audio</key>
+    <true/>
 </dict>
 </plist>

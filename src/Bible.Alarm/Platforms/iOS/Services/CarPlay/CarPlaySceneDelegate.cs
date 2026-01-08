@@ -17,12 +17,13 @@ namespace Bible.Alarm.Platforms.iOS.Services.CarPlay;
 /// NOTE: This requires the com.apple.developer.carplay-audio entitlement from Apple MFi portal.
 /// Without the entitlement, this delegate will never be called (CarPlay won't connect to the app).
 /// 
-/// IMPORTANT: The [Register] attribute is intentionally disabled because registering a CarPlay
-/// scene delegate causes iOS/MAUI to create a scene manifest with ONLY the CarPlay scene,
-/// which prevents the main app window from being created. This must remain disabled until
-/// MFi approval is obtained and proper dual-scene configuration is implemented.
+/// IMPORTANT: The [Register] attribute is now enabled for simulator testing with dual-scene
+/// configuration. The Info.plist explicitly configures both the main app scene and CarPlay
+/// scene, preventing the auto-generated manifest from overriding the main app scene.
+/// 
+/// For device builds, this remains disabled until MFi approval is obtained.
 /// </summary>
-// [Register("CarPlaySceneDelegate")] // Disabled - causes main window creation issues
+[Register("CarPlaySceneDelegate")]
 public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDelegate
 {
     private static readonly ILogger logger = Log.ForContext<CarPlaySceneDelegate>();
