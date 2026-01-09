@@ -279,8 +279,6 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnViewExistingSchedule(ApplicationState state, ViewExistingScheduleAction action)
     {
-        Log.Information("OnViewExistingSchedule: Setting PendingScheduleLoad for scheduleId={ScheduleId}", action.ScheduleId);
-        
         // Set pending schedule load - ScheduleStateManager will load from DB on background thread
         // Don't set CurrentSchedule yet - it will be set after DB load completes
         return new ApplicationState(
@@ -437,18 +435,17 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnResetScheduleState(ApplicationState state, ResetScheduleStateAction action)
     {
-        Log.Information("OnResetScheduleState: Clearing schedule state (PendingScheduleLoad was {PendingLoad})",
-            state.PendingScheduleLoad != null ? $"Id={state.PendingScheduleLoad.ScheduleId}" : "null");
-        
         // Reset all schedule-related state when navigating back to home
         // This ensures only one schedule is in state at any time
+        // NOTE: Keep overlay visible to prevent flash during navigation animation
+        // The overlay will be hidden when the schedule page is destroyed or when a new schedule page is created
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: null,
             currentMusic: null,
             currentBibleReadingSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
-            isSchedulePageOverlayVisible: false, // Reset overlay visibility when leaving schedule page
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible, // Keep current overlay state during navigation
             containerReadiness: Models.ContainerReadiness.NotReady); // Reset container readiness
     }
 }

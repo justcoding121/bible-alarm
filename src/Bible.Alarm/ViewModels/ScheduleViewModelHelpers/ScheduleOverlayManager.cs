@@ -44,11 +44,14 @@ public sealed class ScheduleOverlayManager(IDispatcher dispatcher)
     }
 
     /// <summary>
-    /// Disposes the overlay manager by hiding overlays.
+    /// Disposes the overlay manager.
+    /// Note: We intentionally do NOT hide the overlay here.
+    /// During save/delete navigation, the overlay should stay visible until the page is gone.
+    /// The overlay will be reset by the next navigation action or when viewing the home page.
     /// </summary>
     public void Dispose()
     {
-        // Hide overlay when ViewModel is disposed
-        HideSchedulePageOverlay();
+        // Do NOT hide overlay here - it causes a flash of content during navigation
+        // The overlay state will be reset by ResetScheduleStateAction when navigating to home
     }
 }

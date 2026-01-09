@@ -143,9 +143,9 @@ public static class AppConstants
         public const int FileExistsCheckRetryAttempts = 3;
 
         /// <summary>
-        /// Download timeout in seconds
+        /// Download timeout in seconds per track (includes connection and transfer time)
         /// </summary>
-        public const int DownloadTimeoutSeconds = 3;
+        public const int DownloadTimeoutSeconds = 30;
 
         /// <summary>
         /// Log file retention limit in days

@@ -17,6 +17,7 @@
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:enums="clr-namespace:Bible.Alarm.Shared.Models.Enums;assembly=Bible.Alarm.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
+    xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
     x:DataType="vm:HomeViewModel"
     Title="Bible Alarm"
     NavigationPage.HasNavigationBar="False">
@@ -112,11 +113,22 @@
                                 </SwipeItems>
                             </SwipeView.RightItems>
                             <Grid>
-                                <Border
-                                        x:Name="ScheduleItemBorder"
+                                <core:SfEffectsView
+                                        x:Name="ScheduleItemEffectsView"
                                         Margin="{OnPlatform Default='16,0,16,0',
                                                              WinUI='16,0,16,0',
                                                              iOS='16,0,16,0'}"
+                                        TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                        TouchUpEffects="None"
+                                        RippleBackground="{StaticResource PrimaryColor}"
+                                        HighlightBackground="{StaticResource PrimaryLightColor}"
+                                        RippleAnimationDuration="200"
+                                        ShouldIgnoreTouches="False">
+                                    <core:SfEffectsView.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnScheduleItemTapped" />
+                                    </core:SfEffectsView.GestureRecognizers>
+                                <Border
+                                        x:Name="ScheduleItemBorder"
                                         Padding="16,16,16,16"
                                         BackgroundColor="{DynamicResource CardBackgroundColor}"
                                         StrokeThickness="0"
@@ -132,10 +144,6 @@
                                     ColumnSpacing="{OnPlatform iOS='0'}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Center">
-                                <Grid.GestureRecognizers>
-                                    <TapGestureRecognizer 
-                                            Tapped="OnScheduleItemTapped" />
-                                </Grid.GestureRecognizers>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="auto" />
                                     <ColumnDefinition Width="*" />
@@ -476,6 +484,7 @@
                                 </Grid>
                             </Grid>
                             </Border>
+                            </core:SfEffectsView>
                             </Grid>
                         </SwipeView>
                     </DataTemplate>

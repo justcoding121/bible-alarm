@@ -58,6 +58,8 @@ public sealed class AlarmModalService(
                 catch (Exception ex)
                 {
                     logger.Error(ex, "Error showing AlarmModal");
+                    // Reset flag on error to allow retry
+                    isModalOpen = false;
                 }
             }),
             false when isModalOpen => MainThread.InvokeOnMainThreadAsync(async () =>
@@ -75,7 +77,16 @@ public sealed class AlarmModalService(
                 catch (Exception ex)
                 {
                     logger.Error(ex, "Error hiding AlarmModal");
+                    // Force reset the flag even on error - the modal may have been closed externally
+                    isModalOpen = false;
                 }
+            }),
+            // Defensive: If playback stopped but isModalOpen is false, ensure Home is visible
+            false when !isModalOpen => MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                // Ensure Home page is visible when playback stops (defensive)
+                navigationService.SetHomePageVisibility(isPlaybackActive: false);
+                return Task.CompletedTask;
             }),
             _ => Task.CompletedTask
         };

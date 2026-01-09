@@ -65,7 +65,9 @@ public class AudioPlayerMetadataHandler
                 // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
                 // AppDataDirectory is more persistent and won't be cleared by the OS
                 var artworkDir = FileSystem.AppDataDirectory;
-                var artworkPath = Path.Combine(artworkDir, "playing_track_artwork.jpg");
+                // Use timestamp for unique filename - ensures artwork updates are detected
+                var artworkPath = Path.Combine(artworkDir, $"media_element_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg");
+                CleanupOldMediaElementArtworkFiles(artworkDir);
                 File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
                 mediaElement.MetadataArtworkUrl = artworkPath;
             }
@@ -74,6 +76,36 @@ public class AudioPlayerMetadataHandler
                 mediaElement.MetadataArtworkUrl = meta.ArtworkUrl;
             }
         });
+    }
+    
+    /// <summary>
+    /// Cleans up old media element artwork files.
+    /// </summary>
+    private void CleanupOldMediaElementArtworkFiles(string artworkDir)
+    {
+        try
+        {
+            var artworkFiles = Directory.GetFiles(artworkDir, "media_element_artwork_*.jpg")
+                .Select(f => new FileInfo(f))
+                .Where(f => f.LastWriteTimeUtc < DateTime.UtcNow.AddMinutes(-1))
+                .ToList();
+            
+            foreach (var file in artworkFiles)
+            {
+                try
+                {
+                    file.Delete();
+                }
+                catch
+                {
+                    // Ignore deletion errors
+                }
+            }
+        }
+        catch
+        {
+            // Ignore cleanup errors
+        }
     }
 
     private void SendMetadataMessage(MetaData meta)
@@ -91,7 +123,13 @@ public class AudioPlayerMetadataHandler
                 // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
                 // AppDataDirectory is more persistent and won't be cleared by the OS
                 var artworkDir = FileSystem.AppDataDirectory;
-                var artworkPath = Path.Combine(artworkDir, "playing_track_artwork.jpg");
+                // Use a unique filename with timestamp to ensure iOS lock screen detects the change
+                // The iOSNowPlayingInfoManager caches by URL, so same URL = same cached artwork
+                var artworkPath = Path.Combine(artworkDir, $"playing_track_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg");
+                
+                // Clean up old artwork files to prevent accumulation
+                CleanupOldArtworkFiles(artworkDir);
+                
                 File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
                 artworkUrl = artworkPath; // Always use local file path for iOS lock screen
             }
@@ -109,6 +147,37 @@ public class AudioPlayerMetadataHandler
             Album = meta.Album,
             ArtworkUrl = artworkUrl
         });
+    }
+    
+    /// <summary>
+    /// Cleans up old artwork files to prevent accumulation.
+    /// Keeps only the most recent file or removes files older than 1 minute.
+    /// </summary>
+    private void CleanupOldArtworkFiles(string artworkDir)
+    {
+        try
+        {
+            var artworkFiles = Directory.GetFiles(artworkDir, "playing_track_artwork_*.jpg")
+                .Select(f => new FileInfo(f))
+                .Where(f => f.LastWriteTimeUtc < DateTime.UtcNow.AddMinutes(-1))
+                .ToList();
+            
+            foreach (var file in artworkFiles)
+            {
+                try
+                {
+                    file.Delete();
+                }
+                catch
+                {
+                    // Ignore deletion errors - file might be in use
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to cleanup old artwork files");
+        }
     }
 }
 
