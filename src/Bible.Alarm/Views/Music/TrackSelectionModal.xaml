@@ -172,7 +172,7 @@
             <shared:BusyOverlay x:Name="BusyOverlay"
                                 Grid.Row="0"
                                 Grid.RowSpan="3"
-                                IsVisible="{Binding IsBusy}" />
+                                IsVisible="True" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>

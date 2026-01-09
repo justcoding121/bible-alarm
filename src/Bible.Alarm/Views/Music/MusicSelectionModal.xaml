@@ -161,11 +161,11 @@
                     VerticalOptions="Fill" />
             </Border>
 
-            <!-- BUSY OVERLAY – appears only while IsBusy = true -->
+            <!-- BUSY OVERLAY – visibility controlled from code-behind to prevent binding race conditions -->
             <sharedViews:BusyOverlay x:Name="BusyOverlay"
                                      Grid.Row="0"
                                      Grid.RowSpan="3"
-                                     IsVisible="{Binding IsBusy}" />
+                                     IsVisible="True" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>

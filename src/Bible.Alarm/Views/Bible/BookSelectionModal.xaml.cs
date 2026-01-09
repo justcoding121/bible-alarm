@@ -25,15 +25,51 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        await ModalScrollHelper.HandleModalAppearingAsync(
-            () => ViewModel?.IsBusy ?? false,
-            BusyOverlay,
-            bookCollectionView,
-            getSelectedItem: () => ViewModel?.SelectedBook,
-            refreshAction: ViewModel != null 
-                ? async () => await ViewModel.RefreshFromState() 
-                : null,
-            cancellationToken: cancellationTokenSource.Token);
+        try
+        {
+            // Hide CollectionView - overlay is already visible (no binding)
+            bookCollectionView.Opacity = 0;
+            
+            // Trigger data refresh
+            if (ViewModel != null)
+            {
+                await ViewModel.RefreshFromState();
+            }
+            
+            // Wait for IsBusy to become false (data loaded)
+            await CollectionViewHelper.WaitForNotBusyAsync(
+                () => ViewModel?.IsBusy ?? false,
+                cancellationToken: cancellationTokenSource.Token);
+            
+            // Delay for CollectionView to render
+            await Task.Delay(150, cancellationTokenSource.Token);
+            
+            // Scroll to selected item
+            var selectedItem = ViewModel?.SelectedBook;
+            if (selectedItem != null)
+            {
+                await CollectionViewHelper.ScrollToWhenReadyAsync(
+                    bookCollectionView,
+                    selectedItem,
+                    animated: false,
+                    cancellationToken: cancellationTokenSource.Token);
+                
+                await Task.Delay(50, cancellationTokenSource.Token);
+            }
+            
+            // Hide overlay and reveal list together
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                BusyOverlay.IsVisible = false;
+                bookCollectionView.Opacity = 1;
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // User tapped item - reveal immediately
+            BusyOverlay.IsVisible = false;
+            bookCollectionView.Opacity = 1;
+        }
     }
 
     public void Dispose()

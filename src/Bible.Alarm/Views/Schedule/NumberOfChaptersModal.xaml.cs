@@ -74,35 +74,44 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
 
         try
         {
-            if (ViewModel?.CurrentNumberOfChapters != null && ChaptersCollectionView != null)
+            // Hide CollectionView - overlay is already visible (no binding)
+            ChaptersCollectionView.Opacity = 0;
+
+            // Small delay to ensure CollectionView is rendered
+            await Task.Delay(150, cancellationTokenSource.Token);
+
+            // Scroll to selected item if any
+            if (ViewModel?.CurrentNumberOfChapters != null)
             {
-                // Hide CollectionView to prevent visible scroll jump
-                ChaptersCollectionView.Opacity = 0;
-
-                // Small delay to ensure CollectionView is rendered
-                await Task.Delay(150, cancellationTokenSource.Token);
-
-                await CollectionViewHelper.ScrollToWhenReadyAsync(ChaptersCollectionView, ViewModel.CurrentNumberOfChapters, animated: false, cancellationToken: cancellationTokenSource.Token);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(
+                    ChaptersCollectionView, 
+                    ViewModel.CurrentNumberOfChapters, 
+                    animated: false, 
+                    cancellationToken: cancellationTokenSource.Token);
 
                 // Small delay to ensure scroll completes
                 await Task.Delay(50, cancellationTokenSource.Token);
-
-                // Reveal CollectionView (now in correct position)
-                ChaptersCollectionView.Opacity = 1;
             }
+
+            // Hide overlay and reveal list together
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                BusyOverlay.IsVisible = false;
+                ChaptersCollectionView.Opacity = 1;
+            });
         }
         catch (OperationCanceledException)
         {
             // User tapped an item - reveal immediately
-            if (ChaptersCollectionView != null)
-                ChaptersCollectionView.Opacity = 1;
+            BusyOverlay.IsVisible = false;
+            ChaptersCollectionView.Opacity = 1;
         }
         catch (Exception ex)
         {
             // OnAppearing errors are non-critical (UI initialization)
             Serilog.Log.Warning(ex, "Error in NumberOfChaptersModal.OnAppearing");
-            if (ChaptersCollectionView != null)
-                ChaptersCollectionView.Opacity = 1;
+            BusyOverlay.IsVisible = false;
+            ChaptersCollectionView.Opacity = 1;
         }
     }
 

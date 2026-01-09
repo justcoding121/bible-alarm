@@ -51,19 +51,30 @@ public sealed class SongBookSelectionDataProvider(IMediaService mediaService)
             return (vms, selected);
         });
 
-        // Minimal UI thread work - just swap the collection contents
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        // Add items in small batches with frequent yields for smooth spinner animation
+        const int batchSize = 15;
+        await MainThread.InvokeOnMainThreadAsync(() => languages.Clear());
+        await Task.Yield(); // Let spinner animate after clear
+        
+        for (int i = 0; i < languageVMs.Count; i += batchSize)
         {
-            languages.Clear();
-            foreach (var lang in languageVMs)
+            var batch = languageVMs.Skip(i).Take(batchSize).ToList();
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                languages.Add(lang);
-            }
-            if (selectedLanguage != null)
-            {
-                setCurrentLanguage(selectedLanguage);
-            }
-        });
+                foreach (var lang in batch)
+                {
+                    languages.Add(lang);
+                }
+            });
+            
+            // Yield after every batch for smooth animation
+            await Task.Yield();
+        }
+        
+        if (selectedLanguage != null)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => setCurrentLanguage(selectedLanguage));
+        }
     }
 
     public async Task PopulateSongBooks(

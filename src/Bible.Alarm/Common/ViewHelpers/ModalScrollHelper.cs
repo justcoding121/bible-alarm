@@ -52,9 +52,15 @@ public static class ModalScrollHelper
         {
             if (viewModel == null) return;
 
+            // Yield immediately to let spinner start animating
+            await Task.Yield();
+
             // 1. Hide CollectionView to prevent visible scroll jump
             //    Keep spinner visible during this phase
             HideCollectionView(collectionView);
+
+            // Another yield before starting data load
+            await Task.Yield();
 
             // 2. Refresh data if needed
             if (refreshAction != null)
@@ -131,9 +137,15 @@ public static class ModalScrollHelper
     {
         try
         {
+            // Yield immediately to let spinner start animating
+            await Task.Yield();
+
             // 1. Hide CollectionView to prevent visible scroll jump
             //    Keep spinner visible during this phase
             HideCollectionView(collectionView);
+
+            // Another yield before starting data load
+            await Task.Yield();
 
             // 2. Refresh data if needed
             if (refreshAction != null)

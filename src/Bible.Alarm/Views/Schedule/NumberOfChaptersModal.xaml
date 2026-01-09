@@ -13,6 +13,7 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
+    xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="vm:NumberOfChapterContainerViewModel"
@@ -58,7 +59,7 @@
                     FontSize="18"
                     FontAttributes="Bold"
                     HeightRequest="56"
-                    Text="Number of chapters to read"
+                    Text="Select Number of Chapters"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />
@@ -163,6 +164,12 @@
                     TextColor="{DynamicResource PrimaryTextColor}"
                     VerticalOptions="Fill" />
             </Border>
+
+            <!-- BUSY OVERLAY – visibility controlled from code-behind -->
+            <sharedViews:BusyOverlay x:Name="BusyOverlay"
+                                     Grid.Row="0"
+                                     Grid.RowSpan="3"
+                                     IsVisible="True" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>

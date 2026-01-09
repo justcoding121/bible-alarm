@@ -132,19 +132,45 @@ public partial class Schedule : BaseContentPage, IDisposable
         Log.Information("[PERF] Schedule page: Starting content load at {StartTime}", contentLoadStartTime);
 #endif
 
-        // Load content on UI thread (XAML parsing must be on UI thread)
-        await this.Dispatcher.DispatchAsync(async () =>
+        // Allow spinner animation to run before heavy XAML parsing
+        await Task.Yield();
+        
+        // Create the content view - XAML parsing must be on UI thread
+        // Break into smaller steps with yields for smoother spinner
+        ScheduleContent? scheduleContent = null;
+        
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            await Task.Delay(50);
-            // Create the content view with all heavy XAML
-            var scheduleContent = new ScheduleContent
+            scheduleContent = new ScheduleContent();
+        });
+        
+        // Yield to allow spinner to animate
+        await Task.Yield();
+        
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (scheduleContent != null)
             {
-                BindingContext = viewModel
-            };
-
-            // Add content to container
-            contentContainer.Content = scheduleContent;
-
+                scheduleContent.BindingContext = viewModel;
+            }
+        });
+        
+        // Yield again
+        await Task.Yield();
+        
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (scheduleContent != null)
+            {
+                contentContainer.Content = scheduleContent;
+            }
+        });
+        
+        // Yield before fade
+        await Task.Yield();
+        
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
             // Fade in content smoothly
             await contentContainer.FadeToAsync(1.0, 200);
         });

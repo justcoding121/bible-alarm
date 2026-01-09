@@ -47,18 +47,59 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        var songBookViewModel = ViewModel as SongBookSelectionViewModel;
-
-        await ModalScrollHelper.HandleModalAppearingAsync(
-            ViewModel,
-            BusyOverlay,
-            LanguageCollectionView,
-            // Get selected item AFTER refresh to ensure fresh reference
-            getSelectedItem: () => songBookViewModel?.Languages?.FirstOrDefault(l => l.IsSelected),
-            refreshAction: songBookViewModel != null 
-                ? async () => await songBookViewModel.RefreshFromState() 
-                : null,
-            cancellationToken: cancellationTokenSource.Token);
+        try
+        {
+            // Yield immediately to let spinner start animating
+            await Task.Yield();
+            
+            var songBookViewModel = ViewModel as SongBookSelectionViewModel;
+            
+            // Hide CollectionView - overlay is already visible (no binding)
+            LanguageCollectionView.Opacity = 0;
+            
+            // Another yield before starting data load
+            await Task.Yield();
+            
+            // Trigger data refresh
+            if (songBookViewModel != null)
+            {
+                await songBookViewModel.RefreshFromState();
+            }
+            
+            // Wait for IsBusy to become false (data loaded)
+            await CollectionViewHelper.WaitForNotBusyAsync(
+                () => ViewModel?.IsBusy ?? false,
+                cancellationToken: cancellationTokenSource.Token);
+            
+            // Delay for CollectionView to render
+            await Task.Delay(150, cancellationTokenSource.Token);
+            
+            // Scroll to selected item
+            var selectedItem = songBookViewModel?.Languages?.FirstOrDefault(l => l.IsSelected);
+            if (selectedItem != null)
+            {
+                await CollectionViewHelper.ScrollToWhenReadyAsync(
+                    LanguageCollectionView,
+                    selectedItem,
+                    animated: false,
+                    cancellationToken: cancellationTokenSource.Token);
+                
+                await Task.Delay(50, cancellationTokenSource.Token);
+            }
+            
+            // Hide overlay and reveal list together
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                BusyOverlay.IsVisible = false;
+                LanguageCollectionView.Opacity = 1;
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // User tapped item - reveal immediately
+            BusyOverlay.IsVisible = false;
+            LanguageCollectionView.Opacity = 1;
+        }
     }
 
     public void Dispose()

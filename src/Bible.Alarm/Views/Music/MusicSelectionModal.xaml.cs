@@ -25,15 +25,43 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        await ModalScrollHelper.HandleModalAppearingAsync(
-            () => ViewModel?.IsBusy ?? false,
-            BusyOverlay,
-            musicTypesCollectionView,
-            getSelectedItem: () => ViewModel?.SelectedMusicType,
-            refreshAction: ViewModel != null 
-                ? () => { ViewModel.RefreshFromState(); return Task.CompletedTask; }
-                : null,
-            cancellationToken: cancellationTokenSource.Token);
+        // MusicSelectionModal has a static list of 2 items (Melodies, Vocals)
+        // No DB loading needed, so use simplified flow without IsBusy polling
+        try
+        {
+            // Hide CollectionView while we set up
+            musicTypesCollectionView.Opacity = 0;
+            
+            // Refresh state synchronously
+            ViewModel?.RefreshFromState();
+            
+            // Small delay for UI to settle
+            await Task.Delay(100, cancellationTokenSource.Token);
+            
+            // Scroll to selected item if any
+            var selectedItem = ViewModel?.SelectedMusicType;
+            if (selectedItem != null)
+            {
+                await CollectionViewHelper.ScrollToWhenReadyAsync(
+                    musicTypesCollectionView,
+                    selectedItem,
+                    animated: false,
+                    cancellationToken: cancellationTokenSource.Token);
+            }
+            
+            // Hide overlay and reveal list together
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                BusyOverlay.IsVisible = false;
+                musicTypesCollectionView.Opacity = 1;
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // User tapped item - reveal immediately
+            BusyOverlay.IsVisible = false;
+            musicTypesCollectionView.Opacity = 1;
+        }
     }
 
     public void Dispose()

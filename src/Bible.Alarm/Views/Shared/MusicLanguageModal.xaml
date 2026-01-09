@@ -52,7 +52,7 @@
                     FontSize="18"
                     FontAttributes="Bold"
                     HeightRequest="56"
-                    Text="Languages"
+                    Text="Select Language"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />
@@ -212,7 +212,7 @@
             <sharedViews:BusyOverlay x:Name="BusyOverlay"
                                      Grid.Row="0"
                                      Grid.RowSpan="4"
-                                     IsVisible="{Binding IsBusy}" />
+                                     IsVisible="True" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>

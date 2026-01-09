@@ -22,21 +22,27 @@ public sealed class ScheduleContainerService : IScheduleContainerService
     {
         try
         {
-            var containers = await Task.Run(() => new
-            {
-                BibleSelection = serviceProvider.GetRequiredService<BibleSelectionContainerViewModel>(),
-                MusicSelection = serviceProvider.GetRequiredService<MusicSelectionContainerViewModel>(),
-                NumberOfChapter = serviceProvider.GetRequiredService<NumberOfChapterContainerViewModel>(),
-                ScheduleDetails = serviceProvider.GetRequiredService<ScheduleDetailsContainerViewModel>()
-            });
+            // Create containers on background thread with yields to allow UI to breathe
+            // This prevents the spinner from freezing during container creation
+            var bibleSelection = await Task.Run(() => 
+                serviceProvider.GetRequiredService<BibleSelectionContainerViewModel>());
+            
+            var musicSelection = await Task.Run(() => 
+                serviceProvider.GetRequiredService<MusicSelectionContainerViewModel>());
+            
+            var numberOfChapter = await Task.Run(() => 
+                serviceProvider.GetRequiredService<NumberOfChapterContainerViewModel>());
+            
+            var scheduleDetails = await Task.Run(() => 
+                serviceProvider.GetRequiredService<ScheduleDetailsContainerViewModel>());
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 onContainersReady(
-                    containers.BibleSelection,
-                    containers.MusicSelection,
-                    containers.NumberOfChapter,
-                    containers.ScheduleDetails);
+                    bibleSelection,
+                    musicSelection,
+                    numberOfChapter,
+                    scheduleDetails);
             });
         }
         catch (Exception ex)

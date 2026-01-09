@@ -133,7 +133,7 @@
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
                         Text="{x:Static fn:GlyphNames.Right}"
-                        TextColor="{DynamicResource TextSecondaryColor}"
+                        TextColor="{StaticResource PrimaryColor}"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
                 </Border>
@@ -186,7 +186,7 @@
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
                         Text="{x:Static fn:GlyphNames.Right}"
-                        TextColor="{DynamicResource TextSecondaryColor}"
+                        TextColor="{StaticResource PrimaryColor}"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
                 </Border>
@@ -239,7 +239,7 @@
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
                         Text="{x:Static fn:GlyphNames.Right}"
-                        TextColor="{DynamicResource TextSecondaryColor}"
+                        TextColor="{StaticResource PrimaryColor}"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
                 </Border>
