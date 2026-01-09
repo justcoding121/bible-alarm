@@ -74,8 +74,6 @@ public static class MauiProgram
 #endif
             .ConfigureFonts(fonts =>
             {
-                fonts.AddFont(AppConstants.AppSettings.DefaultFontFileName, AppConstants.AppSettings.DefaultFontResourceName);
-
                 // Font Awesome 7 fonts - use underscores in filenames for Android compatibility
                 // This works universally across all platforms (Android, iOS, Windows)
                 Log.Logger.Debug("Registering Font Awesome fonts");

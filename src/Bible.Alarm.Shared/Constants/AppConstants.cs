@@ -114,21 +114,6 @@ public static class AppConstants
         /// Application name for logging
         /// </summary>
         public const string ApplicationName = "Bible-Alarm";
-
-        /// <summary>
-        /// Default font family name
-        /// </summary>
-        public const string DefaultFontFamily = "OpenSans-Regular";
-
-        /// <summary>
-        /// Default font file name
-        /// </summary>
-        public const string DefaultFontFileName = "OpenSans-Regular.ttf";
-
-        /// <summary>
-        /// Default font resource name
-        /// </summary>
-        public const string DefaultFontResourceName = "OpenSansRegular";
     }
 
     #endregion
