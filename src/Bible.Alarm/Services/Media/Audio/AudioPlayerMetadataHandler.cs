@@ -61,7 +61,11 @@ public class AudioPlayerMetadataHandler
 
             if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0)
             {
-                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "playing_track_artwork.jpg");
+                // Use AppDataDirectory instead of CacheDirectory for artwork
+                // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
+                // AppDataDirectory is more persistent and won't be cleared by the OS
+                var artworkDir = FileSystem.AppDataDirectory;
+                var artworkPath = Path.Combine(artworkDir, "playing_track_artwork.jpg");
                 File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
                 mediaElement.MetadataArtworkUrl = artworkPath;
             }
@@ -79,7 +83,11 @@ public class AudioPlayerMetadataHandler
         {
             try
             {
-                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "playing_track_artwork.jpg");
+                // Use AppDataDirectory instead of CacheDirectory for artwork
+                // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
+                // AppDataDirectory is more persistent and won't be cleared by the OS
+                var artworkDir = FileSystem.AppDataDirectory;
+                var artworkPath = Path.Combine(artworkDir, "playing_track_artwork.jpg");
                 File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
                 artworkUrl = artworkPath;
                 logger.Debug($"Saved playing track artwork to {artworkPath}, size: {meta.ArtworkBytes.Length} bytes");

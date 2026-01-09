@@ -58,7 +58,7 @@ public partial class Schedule : BaseContentPage, IDisposable
 
     private async void OnPageAppearing()
     {
-        // Only handle once per page instance
+        // Only handle once per OnAppearing call
         if (hasHandledFirstLoad)
         {
             return;
@@ -190,33 +190,39 @@ public partial class Schedule : BaseContentPage, IDisposable
     {
         base.OnAppearing();
 
-        // If content is already loaded, we're coming back from a modal - don't show overlay
-        if (isContentLoaded)
+        // Check if returning from a modal - if content is already loaded, we're returning from a modal
+        // In this case, skip full reinitialization to avoid showing the spinner unnecessarily
+        if (contentContainer?.Content != null && isContentLoaded)
         {
+            // Just returning from a modal - sync overlay state and return
+            SyncOverlayWithState();
             return;
         }
 
-        // Reset flags when page appears again (e.g., navigating back to it)
+        // Full initialization for new page navigation (not returning from modal)
         hasHandledFirstLoad = false;
         isContentLoaded = false;
-
-        // Reset ViewModel's content loaded flag as well
         viewModel?.ResetContentLoaded();
 
-        // Force overlay visible immediately when page appears (before content loads)
-        // This ensures the busy indicator is visible even if ViewModel state hasn't synced yet
+        // Reinitialize containers (critical on physical devices where page may be cached)
+        viewModel?.OnPageReappearing();
+
+        // Force overlay visible immediately
         if (scheduleBusyOverlay != null)
         {
             scheduleBusyOverlay.IsVisible = true;
         }
 
-        // Sync with state (but won't hide if content not loaded due to our fix in SyncOverlayWithState)
         SyncOverlayWithState();
-
-        // Load content asynchronously after page appears
         OnPageAppearing();
     }
 
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        // Disposal happens in Dispose() when page is popped from navigation stack
+    }
 
     protected override bool OnBackButtonPressed()
     {
@@ -228,18 +234,16 @@ public partial class Schedule : BaseContentPage, IDisposable
     {
         if (!isDisposed)
         {
-            // Unsubscribe from property changes
             if (viewModel != null)
             {
                 viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             }
 
-            // ViewModel was injected via constructor, so dispose it
             if (viewModel is IDisposable disposable)
             {
                 disposable.Dispose();
             }
-            // Clear BindingContext to break reference and allow garbage collection
+            
             BindingContext = null;
             isDisposed = true;
         }

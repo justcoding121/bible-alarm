@@ -42,8 +42,12 @@ public partial class Home : BaseContentPage, IDisposable
         // Wait a bit to ensure the page is fully rendered and visible
         await Task.Delay(100);
 
-        // Hide Schedule page overlay after Home page is fully rendered and visible
-        viewModel.HideSchedulePageOverlay();
+        // NOTE: Don't call HideSchedulePageOverlay() here!
+        // This was causing a race condition: if user navigates to schedule page while this delay runs,
+        // the overlay would be hidden prematurely. The overlay is now properly managed by:
+        // - ResetScheduleStateAction (when Cancel is clicked)
+        // - BackAction (when navigating back)
+        // - ScheduleViewModel's OnContentLoaded (when containers are ready)
 
         // Check and show alarm settings modal on first app launch
         await viewModel.CheckAndShowAlarmSettingsOnFirstLaunchAsync();

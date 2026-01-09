@@ -97,10 +97,7 @@ public static class ApplicationReducer
                 }
             }
         }
-        else
-        {
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - ShouldSave=false, only updating CurrentSchedule, not Schedules collection");
-        }
+        // else: ShouldSave=false means only update CurrentSchedule, not Schedules collection
 
         var updatedCurrentSchedule = ScheduleStateSyncHelper.UpdateCurrentScheduleIfMatches(state, action.Schedule);
         var updatedCurrentBibleReadingSchedule = ScheduleStateSyncHelper.SyncBibleReadingScheduleIfNeeded(action, updatedCurrentSchedule);
@@ -263,11 +260,10 @@ public static class ApplicationReducer
             syncedCurrentMusic = ScheduleStateSyncHelper.CreateMusicFromCurrent(clonedCurrentSchedule);
         }
 
-        // For new schedules (SelectedSchedule is null or Id <= 0), set overlay to visible by default
-        // For existing schedules (Id > 0), preserve the current overlay state
-        var overlayVisible = action.SelectedSchedule == null || action.SelectedSchedule.Id <= 0
-            ? true 
-            : state.IsSchedulePageOverlayVisible;
+        // Always set overlay to visible when navigating to schedule page
+        // This ensures the overlay is shown even if it was left visible from a previous visit
+        // The overlay will be hidden once containers signal ready
+        var overlayVisible = true;
 
         return new ApplicationState(
             schedules: state.Schedules,
@@ -291,7 +287,7 @@ public static class ApplicationReducer
             currentMusic: null,
             currentBibleReadingSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
-            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
+            isSchedulePageOverlayVisible: false, // Reset overlay visibility when leaving schedule page
             containerReadiness: Models.ContainerReadiness.NotReady);
     }
 
@@ -305,12 +301,9 @@ public static class ApplicationReducer
         if (state.CurrentSchedule != null && state.CurrentSchedule.Id <= 0)
         {
             // For new schedules, sync CurrentMusic from CurrentSchedule to ensure consistency
-            // This prevents stale CurrentMusic from overriding the new schedule's default (Melodies)
             if (ScheduleStateSyncHelper.HasValidMusicProperties(state.CurrentSchedule))
             {
                 finalCurrentMusic = ScheduleStateSyncHelper.CreateMusicFromCurrent(state.CurrentSchedule);
-                Log.Debug("ApplicationReducer: OnMusicSelection - New schedule detected, syncing CurrentMusic from CurrentSchedule. MusicType: {MusicType}",
-                    finalCurrentMusic.MusicType);
             }
         }
 
@@ -384,12 +377,6 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnChapterSelected(ApplicationState state, ChapterSelectedAction action)
     {
-        Serilog.Log.Debug("ApplicationReducer: OnChapterSelected - Updating CurrentBibleReadingSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
-            action.CurrentBibleReadingSchedule?.LanguageCode ?? "null",
-            action.CurrentBibleReadingSchedule?.PublicationCode ?? "null",
-            action.CurrentBibleReadingSchedule?.BookNumber ?? 0,
-            action.CurrentBibleReadingSchedule?.ChapterNumber ?? 0);
-
         return StateFactory.CreateUpdatedState(
             state,
             state.CurrentSchedule,
@@ -412,6 +399,12 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnSetSchedulePageOverlay(ApplicationState state, SetSchedulePageOverlayAction action)
     {
+        // When showing overlay, reset container readiness to ensure fresh state
+        // When hiding overlay, preserve container readiness (it may have been set to ready)
+        var containerReadiness = action.IsVisible 
+            ? Models.ContainerReadiness.NotReady 
+            : state.ContainerReadiness;
+        
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,
@@ -419,7 +412,7 @@ public static class ApplicationReducer
             currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: action.IsVisible,
-            containerReadiness: state.ContainerReadiness); // Preserve container readiness
+            containerReadiness: containerReadiness);
     }
 
     [ReducerMethod]
@@ -433,7 +426,7 @@ public static class ApplicationReducer
             currentMusic: null,
             currentBibleReadingSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
-            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
+            isSchedulePageOverlayVisible: false, // Reset overlay visibility when leaving schedule page
             containerReadiness: Models.ContainerReadiness.NotReady); // Reset container readiness
     }
 }

@@ -37,13 +37,17 @@ public class CommandHandler
     {
         return new AsyncRelayCommand(async () =>
         {
+            // Reset all schedule-related state first to ensure clean state
+            dispatcher.Dispatch(new ResetScheduleStateAction());
+            
+            // Reset container readiness to ensure containers signal ready on new page
+            dispatcher.Dispatch(new ResetContainerReadinessAction());
+            
             // Show overlay BEFORE navigation so it's visible immediately when page appears
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
             
-            // Reset state
-            dispatcher.Dispatch(new ResetScheduleStateAction());
-            
             // Navigate immediately - the page will show with busy indicator
+            // A fresh Schedule page and ViewModel will be created (both registered as Transient)
             // Containers will be assigned asynchronously once ready (handled by ScheduleViewModel)
             await navigationService.NavigateToScheduleAsync();
             

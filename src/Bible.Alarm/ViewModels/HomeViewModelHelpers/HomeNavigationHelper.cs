@@ -112,11 +112,18 @@ public class HomeNavigationHelper
             sourceScheduleStateItem = GetSourceScheduleStateItem(scheduleListItem.Schedule.Id, scheduleViewModels);
         }
 
+        // Reset container readiness first to ensure containers signal ready on new page
+        // ViewScheduleAction will also reset it, but doing it explicitly ensures clean state
+        dispatcher.Dispatch(new ResetContainerReadinessAction());
+        
         // Dispatch action to set CurrentSchedule BEFORE navigation
         // This prevents ScheduleStateManager from creating a sample schedule
+        // ViewScheduleAction will reset container readiness to NotReady
         dispatcher.Dispatch(new ViewScheduleAction(sourceScheduleStateItem));
 
         // Navigate AFTER dispatching action so CurrentSchedule is already set when page initializes
+        // A fresh Schedule page and ViewModel will be created (both registered as Transient)
+        // Fresh container ViewModels will be created and assigned
         await navigationService.NavigateToScheduleAsync();
     }
 

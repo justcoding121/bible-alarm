@@ -137,7 +137,10 @@ public sealed class DefaultScheduleService(
         {
             try
             {
-                var artworkPath = Path.Combine(FileSystem.CacheDirectory, "default_schedule_artwork.jpg");
+                // Use AppDataDirectory instead of CacheDirectory for artwork
+                // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
+                // AppDataDirectory is more persistent and won't be cleared by the OS
+                var artworkPath = Path.Combine(FileSystem.AppDataDirectory, "default_schedule_artwork.jpg");
                 await File.WriteAllBytesAsync(artworkPath, metadata.ArtworkBytes);
                 artworkUrl = artworkPath;
                 logger.Debug("Saved default schedule artwork to {ArtworkPath}, size: {Size} bytes", artworkPath, metadata.ArtworkBytes.Length);

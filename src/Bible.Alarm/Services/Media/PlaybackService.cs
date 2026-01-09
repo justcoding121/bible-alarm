@@ -7,8 +7,10 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Media.Playback;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Mvvm.Messaging;
+using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 using Timer = System.Timers.Timer;
@@ -40,6 +42,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly TrackPlaybackHandler trackPlaybackHandler;
     private readonly SystemControlsHandler systemControlsHandler;
     private readonly TrackMarker trackMarker;
+    private readonly IState<PlaybackState> playbackState;
 
     public PlaybackService(
         ILogger logger,
@@ -49,7 +52,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         IFallbackAlarmSoundService fallbackAlarmSoundService,
         IDispatcher dispatcher,
         INotificationService notificationService,
-        IDisplayMetadataService displayMetadataService
+        IDisplayMetadataService displayMetadataService,
+        IState<PlaybackState> playbackState
         )
     {
         this.logger = logger;
@@ -60,6 +64,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         this.displayMetadataService = displayMetadataService;
         this.fallbackAlarmSoundService = fallbackAlarmSoundService;
         this.notificationService = notificationService;
+        this.playbackState = playbackState;
 
         // Initialize helper classes
         stateManager = new PlaybackStateManager(logger);
@@ -263,7 +268,25 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     /// </summary>
     public void Receive(PlayButtonPressedMessage message)
     {
-        systemControlsHandler.HandlePlayButton(() => PlayAsync());
+        systemControlsHandler.HandlePlayButton(async () =>
+        {
+            // If there's no active playback, check if we should start the default schedule
+            if (!stateManager.IsPreparingOrPlaying(audioPlayer) && 
+                (stateManager.Playlist == null || stateManager.Playlist.Count == 0 || !stateManager.CurrentScheduleId.HasValue))
+            {
+                // Get default schedule ID from state
+                var defaultScheduleId = playbackState.Value.DefaultScheduleId;
+                if (defaultScheduleId.HasValue && defaultScheduleId.Value > 0)
+                {
+                    logger.Information("Play button pressed with no active playback - starting default schedule {ScheduleId}", defaultScheduleId.Value);
+                    await PrepareAndPlayAsync(defaultScheduleId.Value, isAlarm: false);
+                    return;
+                }
+            }
+            
+            // Otherwise, resume/play current playback
+            await PlayAsync();
+        });
     }
 
     /// <summary>

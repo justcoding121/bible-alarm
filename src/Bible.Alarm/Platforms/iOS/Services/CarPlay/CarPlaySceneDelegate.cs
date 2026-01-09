@@ -65,6 +65,10 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             logger.Information("[CarPlay] Disconnected from CarPlay interface controller");
             IsCarPlayConnected = false;
             interfaceController = null;
+            
+            // Note: Now Playing info will be cleared automatically when SetCarPlayScreenAction
+            // is dispatched next (e.g., when playback stops), as iOSMediaSessionEffect checks
+            // IsCarPlayConnected and clears if CarPlay is not connected.
         }
         catch (Exception ex)
         {

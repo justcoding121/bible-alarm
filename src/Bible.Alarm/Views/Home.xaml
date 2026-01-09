@@ -219,7 +219,8 @@
                                                FontAttributes="Bold"
                                                Text="{Binding TimeText}"
                                                VerticalOptions="Center"
-                                               TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}" />
+                                               TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
+                                               LineBreakMode="NoWrap" />
                                         <Label Grid.Column="1"
                                                Margin="0"
                                                Padding="0"

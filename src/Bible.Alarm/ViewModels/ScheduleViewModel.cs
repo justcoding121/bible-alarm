@@ -51,6 +51,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     
     // Track if we're in the middle of a save operation to prevent OnContentLoaded from hiding overlay
     private bool isSaving;
+    
+    // Timeout task to hide overlay if containers don't signal ready
+    private CancellationTokenSource? overlayTimeoutCancellation;
 
 
     public ScheduleViewModel(
@@ -152,20 +155,94 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         _ = InitializeContainerViewModelsAsync();
     }
 
+    private bool isInitializingContainers;
+    private bool hasInitializedContainersOnce;
+
+    /// <summary>
+    /// Called when the page reappears (e.g., navigating back to it or on device where page is reused).
+    /// Re-initializes containers to ensure fresh state on each visit.
+    /// This is critical on physical devices where page instances may be cached/reused.
+    /// </summary>
+    public void OnPageReappearing()
+    {
+        // Skip if this is the first time (constructor already started initialization)
+        // Only reinitialize on subsequent visits
+        if (!hasInitializedContainersOnce)
+        {
+            return;
+        }
+        
+        _ = InitializeContainerViewModelsAsync();
+    }
+
     /// <summary>
     /// Initializes container view models asynchronously off the UI thread.
     /// This prevents blocking the UI thread during page load.
     /// Containers are created in Task.Run, then assigned on the UI thread.
+    /// Always creates fresh container instances - disposes any existing containers first.
+    /// Since containers are registered as Transient, GetRequiredService will create fresh instances.
     /// </summary>
     private async Task InitializeContainerViewModelsAsync()
     {
-        await containerManager.InitializeContainerViewModelsAsync((bible, music, chapters, details) =>
+        // Prevent concurrent initialization
+        if (isInitializingContainers)
         {
-            propertyManager.BibleSelectionContainerViewModel = bible;
-            propertyManager.MusicSelectionContainerViewModel = music;
-            propertyManager.NumberOfChapterContainerViewModel = chapters;
-            propertyManager.ScheduleDetailsContainerViewModel = details;
-        });
+            return;
+        }
+        
+        isInitializingContainers = true;
+        
+        try
+        {
+            // Dispose any existing containers first to ensure clean state
+            // This is important when page/ViewModel is reused on device
+            DisposeContainers();
+            
+            await containerManager.InitializeContainerViewModelsAsync((bible, music, chapters, details) =>
+            {
+                propertyManager.BibleSelectionContainerViewModel = bible;
+                propertyManager.MusicSelectionContainerViewModel = music;
+                propertyManager.NumberOfChapterContainerViewModel = chapters;
+                propertyManager.ScheduleDetailsContainerViewModel = details;
+            });
+            
+            hasInitializedContainersOnce = true;
+        }
+        finally
+        {
+            isInitializingContainers = false;
+        }
+    }
+    
+    /// <summary>
+    /// Disposes all container ViewModels and clears references.
+    /// Called when initializing new containers or when disposing the ViewModel.
+    /// </summary>
+    private void DisposeContainers()
+    {
+        if (propertyManager.BibleSelectionContainerViewModel is IDisposable bibleDisposable)
+        {
+            bibleDisposable.Dispose();
+        }
+        propertyManager.BibleSelectionContainerViewModel = null;
+        
+        if (propertyManager.MusicSelectionContainerViewModel is IDisposable musicDisposable)
+        {
+            musicDisposable.Dispose();
+        }
+        propertyManager.MusicSelectionContainerViewModel = null;
+        
+        if (propertyManager.NumberOfChapterContainerViewModel is IDisposable chaptersDisposable)
+        {
+            chaptersDisposable.Dispose();
+        }
+        propertyManager.NumberOfChapterContainerViewModel = null;
+        
+        if (propertyManager.ScheduleDetailsContainerViewModel is IDisposable detailsDisposable)
+        {
+            detailsDisposable.Dispose();
+        }
+        propertyManager.ScheduleDetailsContainerViewModel = null;
     }
 
 
@@ -197,41 +274,20 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             propertyManager.NotifySchedulePropertiesChanged();
         });
 
-        // Check if we should hide overlay: both containers ready AND content loaded
-        // Also call OnContentLoaded when containers become ready (handles case where containers become ready after content loads)
-        // Don't hide overlay if we're in the middle of a save operation
-        if (stateValue.ContainerReadiness.AllReady && isContentLoaded)
+        // Handle overlay visibility based on container readiness and content load state
+        if (stateValue.IsSchedulePageOverlayVisible && !isSaving)
         {
-            if (stateValue.IsSchedulePageOverlayVisible)
+            if (stateValue.ContainerReadiness.AllReady && isContentLoaded)
             {
-                if (isSaving)
-                {
-                    logger.Debug("ScheduleViewModel: All containers ready and content loaded, but save in progress - keeping overlay visible");
-                }
-                else
-                {
-                    logger.Debug("ScheduleViewModel: All containers ready and content loaded, hiding overlay");
-                    dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
-                }
+                // Both containers ready and content loaded - hide overlay
+                CancelOverlayTimeout();
+                dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
             }
-            else
+            else if (isContentLoaded && !stateValue.ContainerReadiness.AllReady)
             {
-                // Containers became ready after overlay was already hidden - this is fine
-                logger.Debug("ScheduleViewModel: All containers ready, but overlay already hidden");
+                // Content loaded but containers not ready - start timeout to prevent infinite spinner
+                StartOverlayTimeout();
             }
-        }
-        else if (stateValue.ContainerReadiness.AllReady && !isContentLoaded)
-        {
-            logger.Debug("ScheduleViewModel: All containers ready, waiting for content to load before hiding overlay");
-        }
-        else if (!stateValue.ContainerReadiness.AllReady && isContentLoaded)
-        {
-            // Content is loaded but containers aren't ready yet - log for debugging
-            logger.Debug("ScheduleViewModel: Content loaded but containers not ready yet. BibleSelection={Bible}, MusicSelection={Music}, NumberOfChapter={Number}, ScheduleDetails={Schedule}",
-                stateValue.ContainerReadiness.BibleSelection,
-                stateValue.ContainerReadiness.MusicSelection,
-                stateValue.ContainerReadiness.NumberOfChapter,
-                stateValue.ContainerReadiness.ScheduleDetails);
         }
     }
 
@@ -349,8 +405,8 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     /// </summary>
     public void ResetContentLoaded()
     {
-        logger.Debug("ScheduleViewModel: Resetting isContentLoaded flag");
         isContentLoaded = false;
+        CancelOverlayTimeout();
     }
 
     /// <summary>
@@ -361,30 +417,72 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     {
         isContentLoaded = true;
         
-        var stateValue = state.Value;
-        var allReady = stateValue.ContainerReadiness.AllReady;
-        var overlayVisible = stateValue.IsSchedulePageOverlayVisible;
-        
-        logger.Debug("ScheduleViewModel: OnContentLoaded called - AllReady={AllReady}, OverlayVisible={OverlayVisible}, isContentLoaded={IsContentLoaded}, isSaving={IsSaving}", 
-            allReady, overlayVisible, isContentLoaded, isSaving);
-        
         // Don't hide overlay if we're in the middle of a save operation
         if (isSaving)
         {
-            logger.Debug("ScheduleViewModel: OnContentLoaded - Save in progress, keeping overlay visible");
             return;
         }
         
+        var stateValue = state.Value;
+        
         // Check if we should hide overlay: both containers ready AND content loaded
-        if (allReady && overlayVisible)
+        if (stateValue.ContainerReadiness.AllReady && stateValue.IsSchedulePageOverlayVisible)
         {
-            logger.Debug("ScheduleViewModel: Content loaded and all containers ready, hiding overlay");
+            CancelOverlayTimeout();
             dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
         }
-        else
+        else if (stateValue.IsSchedulePageOverlayVisible)
         {
-            logger.Debug("ScheduleViewModel: OnContentLoaded - Condition not met. AllReady={AllReady}, OverlayVisible={OverlayVisible}", 
-                allReady, overlayVisible);
+            // Start timeout to hide overlay if containers don't signal ready within 5 seconds
+            StartOverlayTimeout();
+        }
+    }
+    
+    /// <summary>
+    /// Starts a timeout task that will hide the overlay after 5 seconds if containers haven't signaled ready.
+    /// This prevents the spinner from spinning forever if a container fails to signal ready.
+    /// </summary>
+    private void StartOverlayTimeout()
+    {
+        // Cancel any existing timeout
+        CancelOverlayTimeout();
+        
+        overlayTimeoutCancellation = new CancellationTokenSource();
+        var token = overlayTimeoutCancellation.Token;
+        
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(5000, token); // Wait 5 seconds
+                
+                if (!token.IsCancellationRequested)
+                {
+                    var stateValue = state.Value;
+                    if (stateValue.IsSchedulePageOverlayVisible && !stateValue.ContainerReadiness.AllReady)
+                    {
+                        logger.Warning("ScheduleViewModel: Overlay timeout - containers didn't signal ready within 5 seconds, hiding overlay anyway");
+                        dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Timeout was cancelled, which is expected if containers signaled ready
+            }
+        }, token);
+    }
+    
+    /// <summary>
+    /// Cancels the overlay timeout task.
+    /// </summary>
+    private void CancelOverlayTimeout()
+    {
+        if (overlayTimeoutCancellation != null)
+        {
+            overlayTimeoutCancellation.Cancel();
+            overlayTimeoutCancellation.Dispose();
+            overlayTimeoutCancellation = null;
         }
     }
     
@@ -394,15 +492,13 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     public void SetIsSaving(bool saving)
     {
         isSaving = saving;
-        logger.Debug("ScheduleViewModel: SetIsSaving={IsSaving}", saving);
     }
-
 
     public void Dispose()
     {
         state.StateChanged -= OnStateChanged;
-
-        // Hide overlay when ViewModel is disposed
+        CancelOverlayTimeout();
+        DisposeContainers();
         overlayManager.Dispose();
     }
 }

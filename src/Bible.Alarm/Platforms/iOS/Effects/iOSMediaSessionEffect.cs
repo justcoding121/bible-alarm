@@ -55,6 +55,8 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
 
     /// <summary>
     /// Handles playback status changes (playing, paused, stopped, etc.).
+    /// Following iOS standard practice, we always keep the Now Playing info populated
+    /// so users can control playback from the lock screen.
     /// </summary>
     [EffectMethod]
     public Task HandlePlaybackStatusChanged(PlaybackStatusChangedAction action, FluxorDispatcher dispatcher)
@@ -70,22 +72,27 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
                 currentState.CurrentScheduleId,
                 currentState.CanPlayNext);
 
-            // Update Now Playing playback status
+            // Update Now Playing playback status (rate = 0 for stopped/paused, 1 for playing)
             nowPlayingManager.UpdatePlaybackStatus(action.Status);
 
-            // Update remote command availability
+            // Update remote command availability based on current state
+            var hasActiveSchedule = currentState.CurrentScheduleId.HasValue;
             var isPlaying = action.Status == PlayStatus.Playing;
-            remoteCommandManager.UpdateCommandAvailability(
-                currentState.CanPlayNext,
-                currentState.CanPlayPrevious,
-                isPlaying);
-
-            // If playback stopped/ended, clear Now Playing after a delay to allow for track transitions
-            if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
+            
+            if (hasActiveSchedule)
             {
-                // Don't clear immediately - allow for auto-advance between tracks
-                // The next track will update the metadata
-                logger.Debug("[iOS MediaSession] Playback stopped/ended - metadata will be updated by next action");
+                // Active schedule - update command availability based on navigation state
+                remoteCommandManager.UpdateCommandAvailability(
+                    currentState.CanPlayNext,
+                    currentState.CanPlayPrevious,
+                    isPlaying);
+            }
+            else if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
+            {
+                // No active schedule and stopped - keep play command enabled for default schedule
+                // SetDefaultScheduleMetadataAction will be dispatched and will set up the metadata
+                // Commands should remain registered so play button works from lock screen
+                logger.Debug("[iOS MediaSession] Playback stopped/ended - keeping commands registered for default schedule");
             }
         }
         catch (Exception ex)
@@ -111,6 +118,9 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
                 logger.Information(
                     "[iOS MediaSession] Metadata changed: Title={Title}, Artist={Artist}, Album={Album}",
                     action.Title, action.Artist, action.Album);
+
+                // Ensure commands are registered when metadata is set (playback is starting)
+                remoteCommandManager.RegisterCommands();
 
                 nowPlayingManager.UpdateMetadata(
                     action.Title,
@@ -176,7 +186,9 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
     }
 
     /// <summary>
-    /// Handles setting default schedule metadata (for CarPlay/Now Playing when not actively playing).
+    /// Handles setting default schedule metadata for lock screen/CarPlay Now Playing display.
+    /// This follows iOS standard practice where audio apps always populate the Now Playing info
+    /// with relevant content, allowing users to start playback directly from lock screen controls.
     /// </summary>
     [EffectMethod]
     public Task HandleSetDefaultScheduleMetadata(SetDefaultScheduleMetadataAction action, FluxorDispatcher dispatcher)
@@ -190,34 +202,51 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
                 return Task.CompletedTask;
             }
 
-            logger.Debug(
-                "[iOS MediaSession] Setting default schedule metadata: Title={Title}, Artist={Artist}",
-                action.Title, action.Artist);
-
+            // Always set default metadata - this is standard iOS practice for audio apps
+            // The Now Playing controls are always present on lock screen, so we should
+            // populate them with meaningful content that allows users to start playback
+            logger.Information(
+                "[iOS MediaSession] Setting default schedule metadata for lock screen: Title={Title}, Artist={Artist}, ScheduleId={ScheduleId}",
+                action.Title, action.Artist, action.ScheduleId);
+            
             nowPlayingManager.SetDefaultMetadata(
                 action.Title,
                 action.Artist,
                 action.Album,
                 action.ArtworkUrl);
+            
+            // Register commands so play button works from lock screen
+            // This allows users to start the default schedule from lock screen controls
+            remoteCommandManager.RegisterCommands();
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "[iOS MediaSession] Error setting default schedule metadata");
+            logger.Error(ex, "[iOS MediaSession] Error handling default schedule metadata");
         }
 
         return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Handles playback stopped action - clears Now Playing info.
+    /// Handles playback stopped action - updates Now Playing to show stopped state.
+    /// Following iOS standard practice, we keep the Now Playing info populated with default
+    /// schedule metadata so users can restart playback from lock screen controls.
+    /// The SetCarPlayScreenAction (dispatched by PlaybackStopHandler) will set the default metadata.
     /// </summary>
     [EffectMethod]
     public Task HandlePlaybackStopped(PlaybackStoppedAction action, FluxorDispatcher dispatcher)
     {
         try
         {
-            logger.Debug("[iOS MediaSession] Playback stopped - clearing Now Playing info");
-            nowPlayingManager.ClearNowPlayingInfo();
+            logger.Information("[iOS MediaSession] Playback stopped - updating playback status to stopped");
+            
+            // Update playback status to stopped (rate = 0) but keep metadata
+            // This shows the paused/stopped state on lock screen while keeping content visible
+            nowPlayingManager.UpdatePlaybackStatus(PlayStatus.Stopped);
+            
+            // Keep commands registered so play button works from lock screen
+            // The play button will start the default schedule (handled by PlaybackService)
+            // Commands are already registered, no need to re-register
         }
         catch (Exception ex)
         {

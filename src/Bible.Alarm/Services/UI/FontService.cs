@@ -183,10 +183,10 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
     private static (double MaxTime, double MaxMeridian, double MaxBellIcon) GetAlarmMaxSizes(bool isPhone, bool isAndroid)
     {
         double maxAlarmTimeSize = isPhone
-            ? (isAndroid ? 30.0 : 40.0)
+            ? (isAndroid ? 30.0 : 28.0)
             : (isAndroid ? 38.0 : 50.0);
         double maxAlarmMeridianSize = isPhone
-            ? (isAndroid ? 16.0 : 22.0)
+            ? (isAndroid ? 16.0 : 18.0)
             : (isAndroid ? 21.0 : 28.0);
         double maxAlarmBellIconSize = isPhone ? 100.0 : 130.0;
 
