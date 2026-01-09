@@ -28,7 +28,11 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
         try
         {
             // Hide CollectionView - overlay is already visible (no binding)
-            bookCollectionView.Opacity = 0;
+            // Skip on Windows to avoid access violation crash
+            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            {
+                bookCollectionView.Opacity = 0;
+            }
             
             // Trigger data refresh
             if (ViewModel != null)
@@ -61,14 +65,21 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 BusyOverlay.IsVisible = false;
-                bookCollectionView.Opacity = 1;
+                // Only set Opacity on non-Windows (we didn't hide it there)
+                if (DeviceInfo.Platform != DevicePlatform.WinUI)
+                {
+                    bookCollectionView.Opacity = 1;
+                }
             });
         }
         catch (OperationCanceledException)
         {
             // User tapped item - reveal immediately
             BusyOverlay.IsVisible = false;
-            bookCollectionView.Opacity = 1;
+            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            {
+                bookCollectionView.Opacity = 1;
+            }
         }
     }
 

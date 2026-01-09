@@ -30,7 +30,11 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
         try
         {
             // Hide CollectionView while we set up
-            musicTypesCollectionView.Opacity = 0;
+            // Skip on Windows to avoid access violation crash
+            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            {
+                musicTypesCollectionView.Opacity = 0;
+            }
             
             // Refresh state synchronously
             ViewModel?.RefreshFromState();
@@ -53,14 +57,21 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 BusyOverlay.IsVisible = false;
-                musicTypesCollectionView.Opacity = 1;
+                // Only set Opacity on non-Windows (we didn't hide it there)
+                if (DeviceInfo.Platform != DevicePlatform.WinUI)
+                {
+                    musicTypesCollectionView.Opacity = 1;
+                }
             });
         }
         catch (OperationCanceledException)
         {
             // User tapped item - reveal immediately
             BusyOverlay.IsVisible = false;
-            musicTypesCollectionView.Opacity = 1;
+            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            {
+                musicTypesCollectionView.Opacity = 1;
+            }
         }
     }
 

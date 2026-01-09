@@ -75,7 +75,11 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
         try
         {
             // Hide CollectionView - overlay is already visible (no binding)
-            ChaptersCollectionView.Opacity = 0;
+            // Skip on Windows to avoid access violation crash
+            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            {
+                ChaptersCollectionView.Opacity = 0;
+            }
 
             // Small delay to ensure CollectionView is rendered
             await Task.Delay(150, cancellationTokenSource.Token);
@@ -97,21 +101,31 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 BusyOverlay.IsVisible = false;
-                ChaptersCollectionView.Opacity = 1;
+                // Only set Opacity on non-Windows (we didn't hide it there)
+                if (DeviceInfo.Platform != DevicePlatform.WinUI)
+                {
+                    ChaptersCollectionView.Opacity = 1;
+                }
             });
         }
         catch (OperationCanceledException)
         {
             // User tapped an item - reveal immediately
             BusyOverlay.IsVisible = false;
-            ChaptersCollectionView.Opacity = 1;
+            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            {
+                ChaptersCollectionView.Opacity = 1;
+            }
         }
         catch (Exception ex)
         {
             // OnAppearing errors are non-critical (UI initialization)
             Serilog.Log.Warning(ex, "Error in NumberOfChaptersModal.OnAppearing");
             BusyOverlay.IsVisible = false;
-            ChaptersCollectionView.Opacity = 1;
+            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            {
+                ChaptersCollectionView.Opacity = 1;
+            }
         }
     }
 

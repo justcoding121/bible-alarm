@@ -103,7 +103,8 @@ public static class ModalScrollHelper
                     busyOverlay.IsVisible = false;
                     busyOverlay.InputTransparent = true;
                 }
-                if (collectionView != null)
+                // Only set Opacity on non-Windows (we didn't hide it there)
+                if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
                 {
                     collectionView.Opacity = 1;
                 }
@@ -187,7 +188,8 @@ public static class ModalScrollHelper
                     busyOverlay.IsVisible = false;
                     busyOverlay.InputTransparent = true;
                 }
-                if (collectionView != null)
+                // Only set Opacity on non-Windows (we didn't hide it there)
+                if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
                 {
                     collectionView.Opacity = 1;
                 }
@@ -226,10 +228,15 @@ public static class ModalScrollHelper
     /// <summary>
     /// Hides the CollectionView by setting opacity to 0.
     /// This allows layout and scrolling to happen invisibly.
+    /// Note: Skipped on Windows to avoid access violation when CollectionView handler isn't ready.
     /// </summary>
     private static void HideCollectionView(MauiCollectionView? collectionView)
     {
         if (collectionView == null) return;
+
+        // Skip hiding on Windows - causes access violation crash when CollectionView handler isn't ready
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+            return;
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -240,10 +247,15 @@ public static class ModalScrollHelper
     /// <summary>
     /// Reveals the CollectionView by setting opacity to 1.
     /// Called after scrolling is complete so the list appears in the correct position.
+    /// Note: Skipped on Windows since we don't hide it there.
     /// </summary>
     private static void RevealCollectionView(MauiCollectionView? collectionView)
     {
         if (collectionView == null) return;
+
+        // Skip revealing on Windows - we didn't hide it there
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+            return;
 
         MainThread.BeginInvokeOnMainThread(() =>
         {

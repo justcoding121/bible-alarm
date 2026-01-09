@@ -55,7 +55,11 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
             var songBookViewModel = ViewModel as SongBookSelectionViewModel;
             
             // Hide CollectionView - overlay is already visible (no binding)
-            LanguageCollectionView.Opacity = 0;
+            // Skip on Windows to avoid access violation crash
+            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            {
+                LanguageCollectionView.Opacity = 0;
+            }
             
             // Another yield before starting data load
             await Task.Yield();
@@ -91,14 +95,21 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 BusyOverlay.IsVisible = false;
-                LanguageCollectionView.Opacity = 1;
+                // Only set Opacity on non-Windows (we didn't hide it there)
+                if (DeviceInfo.Platform != DevicePlatform.WinUI)
+                {
+                    LanguageCollectionView.Opacity = 1;
+                }
             });
         }
         catch (OperationCanceledException)
         {
             // User tapped item - reveal immediately
             BusyOverlay.IsVisible = false;
-            LanguageCollectionView.Opacity = 1;
+            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            {
+                LanguageCollectionView.Opacity = 1;
+            }
         }
     }
 
