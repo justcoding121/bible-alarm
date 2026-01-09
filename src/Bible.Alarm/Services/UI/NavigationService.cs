@@ -1,15 +1,20 @@
 #nullable enable
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Services.UI.NavigationServiceHelpers;
+using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Views;
 using Bible.Alarm.Views.Schedule;
+using Fluxor;
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Services.UI;
 
 public sealed class NavigationService(
     IServiceProvider serviceProvider,
-    ILogger logger)
+    ILogger logger,
+    IDispatcher dispatcher)
     : INavigationService, IDisposable
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
@@ -19,6 +24,9 @@ public sealed class NavigationService(
     private readonly HomeNavigationHandler homeHandler = new(logger, serviceProvider);
     private readonly ModalNavigationHandler modalHandler = new(logger, serviceProvider);
     private readonly NavigationStackManager stackManager = new();
+    
+    // Navigation lock to prevent concurrent page navigation operations (push/pop race conditions)
+    private readonly SemaphoreSlim navigationLock = new(1, 1);
 
     private bool isDisposed;
 
@@ -31,8 +39,17 @@ public sealed class NavigationService(
 
     public async Task NavigateToHomeAsync()
     {
-        var navigation = GetNavigation();
-        await homeHandler.NavigateToHomeAsync(navigation);
+        // Use lock to prevent race conditions with concurrent navigation (e.g., Cancel then Add quickly)
+        await navigationLock.WaitAsync();
+        try
+        {
+            var navigation = GetNavigation();
+            await homeHandler.NavigateToHomeAsync(navigation);
+        }
+        finally
+        {
+            navigationLock.Release();
+        }
     }
 
     /// <summary>
@@ -63,38 +80,52 @@ public sealed class NavigationService(
 
     public async Task NavigateToScheduleAsync()
     {
-#if DEBUG
-        var startTime = DateTime.UtcNow;
-        logger.Information("[PERF] NavigateToScheduleAsync: Starting navigation at {StartTime}", startTime);
+        // Use lock to prevent race conditions with concurrent navigation (e.g., Cancel then Add quickly)
+        await navigationLock.WaitAsync();
+        try
+        {
+            var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
+            var navigation = GetNavigation();
 
-        var pageStartTime = DateTime.UtcNow;
-#endif
-        var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
-#if DEBUG
-        var pageElapsed = (DateTime.UtcNow - pageStartTime).TotalMilliseconds;
-        logger.Information("[PERF] NavigateToScheduleAsync: Page service resolution took {ElapsedMs}ms", pageElapsed);
+            // Set navigation bar setting
+            NavigationPage.SetHasNavigationBar(page, false);
 
-        var navStartTime = DateTime.UtcNow;
-#endif
-        var navigation = GetNavigation();
-#if DEBUG
-        var navElapsed = (DateTime.UtcNow - navStartTime).TotalMilliseconds;
-        logger.Information("[PERF] NavigateToScheduleAsync: GetNavigationAsync took {ElapsedMs}ms", navElapsed);
-#endif
+            // Push the page without animation for instant navigation
+            await navigation.PushAsync(page, animated: false);
+        }
+        finally
+        {
+            navigationLock.Release();
+        }
+    }
 
-        // Set navigation bar setting
-        NavigationPage.SetHasNavigationBar(page, false);
+    public async Task NavigateToScheduleAsync(int scheduleId, bool isEnabled)
+    {
+        // Use lock to prevent race conditions with concurrent navigation
+        await navigationLock.WaitAsync();
+        try
+        {
+            // Set navigation context BEFORE creating page - ScheduleStateManager will read this
+            // This is simpler than Fluxor state which can be cleared by ResetScheduleStateAction
+            ScheduleNavigationContext.ScheduleIdToLoad = scheduleId;
+            ScheduleNavigationContext.IsEnabledToLoad = isEnabled;
+            
+            // Reset container readiness
+            dispatcher.Dispatch(new ResetContainerReadinessAction());
+            
+            var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
+            var navigation = GetNavigation();
 
-        // Push the page without animation for instant navigation
-#if DEBUG
-        var pushStartTime = DateTime.UtcNow;
-#endif
-        await navigation.PushAsync(page, animated: false);
-#if DEBUG
-        var pushElapsed = (DateTime.UtcNow - pushStartTime).TotalMilliseconds;
-        var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-        logger.Information("[PERF] NavigateToScheduleAsync: PushAsync took {ElapsedMs}ms, Total navigation took {TotalMs}ms", pushElapsed, totalElapsed);
-#endif
+            // Set navigation bar setting
+            NavigationPage.SetHasNavigationBar(page, false);
+
+            // Push the page without animation for instant navigation
+            await navigation.PushAsync(page, animated: false);
+        }
+        finally
+        {
+            navigationLock.Release();
+        }
     }
 
     public async Task OpenMusicSelectionModalAsync(object bindingContext)
@@ -204,6 +235,16 @@ public sealed class NavigationService(
         {
             // Ignore errors during cancellation/disposal
             logger?.Warning(ex, "Error during cancellation token source disposal");
+        }
+
+        // Dispose navigation lock
+        try
+        {
+            navigationLock?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            logger?.Warning(ex, "Error during navigation lock disposal");
         }
 
         // Clear the navigation cache

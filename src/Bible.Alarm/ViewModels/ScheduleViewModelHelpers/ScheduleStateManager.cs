@@ -38,7 +38,10 @@ public sealed class ScheduleStateManager
 
     /// <summary>
     /// Called when ScheduleViewModel is created.
-    /// Checks if CurrentSchedule is already set (View flow) or needs to be created (Add flow).
+    /// Handles three flows:
+    /// 1. PendingScheduleLoad set: View existing schedule - load from DB on background thread
+    /// 2. CurrentSchedule set: View flow with pre-loaded data
+    /// 3. Neither set: Add flow - create sample schedule
     /// </summary>
     public void InitializeStateHandling(IState<ApplicationState> state, Action setBusy, Action setOverlayVisible)
     {
@@ -48,9 +51,22 @@ public sealed class ScheduleStateManager
         dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = true });
         setOverlayVisible();
 
+        // Check navigation context first - this is set by NavigateToScheduleAsync(scheduleId, isEnabled)
+        var scheduleIdToLoad = Services.UI.ScheduleNavigationContext.ScheduleIdToLoad;
+        var isEnabledToLoad = Services.UI.ScheduleNavigationContext.IsEnabledToLoad;
+        
+        // Clear context immediately after reading to prevent stale data
+        Services.UI.ScheduleNavigationContext.Clear();
+        
         var currentSchedule = state.Value.CurrentSchedule;
         
-        if (currentSchedule != null)
+        if (scheduleIdToLoad.HasValue)
+        {
+            // View existing schedule flow: Load from DB on background thread
+            logger.Debug("ScheduleStateManager: Loading schedule {ScheduleId} from database", scheduleIdToLoad.Value);
+            LoadExistingScheduleAsync(scheduleIdToLoad.Value, isEnabledToLoad);
+        }
+        else if (currentSchedule != null)
         {
             // View flow: CurrentSchedule already set by HomeNavigationHelper
             // Containers will initialize from state and signal ready
@@ -62,6 +78,42 @@ public sealed class ScheduleStateManager
             logger.Debug("ScheduleStateManager: No CurrentSchedule, creating sample schedule for Add flow");
             InitializeNewScheduleAsync();
         }
+    }
+
+    /// <summary>
+    /// Loads an existing schedule from DB on background thread and dispatches ViewScheduleAction.
+    /// </summary>
+    private void LoadExistingScheduleAsync(int scheduleId, bool isEnabled)
+    {
+        if (isInitializing) return;
+        isInitializing = true;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                var scheduleStateItem = await scheduleInitializationService.LoadExistingScheduleAsync(scheduleId, isEnabled);
+                
+                if (scheduleStateItem == null)
+                {
+                    logger.Error("ScheduleStateManager: Failed to load schedule {ScheduleId} from database", scheduleId);
+                    isInitializing = false;
+                    return;
+                }
+                
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    logger.Debug("ScheduleStateManager: Dispatching ViewScheduleAction for loaded schedule {ScheduleId}", scheduleId);
+                    dispatcher.Dispatch(new ViewScheduleAction(scheduleStateItem));
+                    isInitializing = false;
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error loading existing schedule {ScheduleId}", scheduleId);
+                isInitializing = false;
+            }
+        });
     }
 
     /// <summary>

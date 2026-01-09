@@ -70,14 +70,31 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
 
     private async Task PopToExistingHomeAsync(INavigation navigation, Home existingHome)
     {
-        // Home exists in stack - pop all pages until we reach Home (root)
-        while (navigation.NavigationStack.Count > 1 && navigation.NavigationStack.LastOrDefault() != existingHome)
+        // Capture the pages to pop BEFORE starting - this prevents race conditions
+        // where a new page is pushed while we're popping and we accidentally pop the new page too
+        var pagesToPop = new List<Page>();
+        for (int i = navigation.NavigationStack.Count - 1; i >= 0; i--)
         {
-            var page = navigation.NavigationStack.LastOrDefault();
-            await navigation.PopAsync(animated: true);
-            if (page != existingHome && page is IDisposable disposable)
+            var page = navigation.NavigationStack[i];
+            if (page == existingHome)
             {
-                disposable.Dispose();
+                break; // Stop when we reach Home
+            }
+            pagesToPop.Add(page);
+        }
+        
+        // Pop only the pages that were on the stack when navigation started
+        foreach (var page in pagesToPop)
+        {
+            // Verify the page is still on top of the stack before popping
+            // This handles the edge case where another navigation already happened
+            if (navigation.NavigationStack.LastOrDefault() == page)
+            {
+                await navigation.PopAsync(animated: true);
+                if (page is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
             }
         }
     }
@@ -117,13 +134,26 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
 
     private async Task PopAllPagesToRootAsync(INavigation navigation)
     {
-        while (navigation.NavigationStack.Count > 1)
+        // Capture the pages to pop BEFORE starting - this prevents race conditions
+        // where a new page is pushed while we're popping and we accidentally pop the new page too
+        var pagesToPop = new List<Page>();
+        for (int i = navigation.NavigationStack.Count - 1; i >= 1; i--) // Skip index 0 (root)
         {
-            var page = navigation.NavigationStack.LastOrDefault();
-            await navigation.PopAsync(animated: true);
-            if (page is IDisposable disposable)
+            pagesToPop.Add(navigation.NavigationStack[i]);
+        }
+        
+        // Pop only the pages that were on the stack when navigation started
+        foreach (var page in pagesToPop)
+        {
+            // Verify the page is still on top of the stack before popping
+            // This handles the edge case where another navigation already happened
+            if (navigation.NavigationStack.LastOrDefault() == page)
             {
-                disposable.Dispose();
+                await navigation.PopAsync(animated: true);
+                if (page is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
             }
         }
     }

@@ -8,6 +8,11 @@ public interface INavigationService : IDisposable
 {
     Task NavigateToHomeAsync();
     Task NavigateToScheduleAsync();
+    
+    /// <summary>
+    /// Navigates to an existing schedule by ID. The schedule will be loaded from DB inside the navigation lock.
+    /// </summary>
+    Task NavigateToScheduleAsync(int scheduleId, bool isEnabled);
     Task OpenMusicSelectionModalAsync(object bindingContext);
     Task OpenSongBookSelectionModalAsync(object bindingContext);
     Task OpenTrackSelectionModalAsync(object bindingContext);

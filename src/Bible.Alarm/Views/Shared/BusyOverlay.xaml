@@ -20,28 +20,17 @@
           ZIndex="999"
           HorizontalOptions="Fill"
           VerticalOptions="Fill">
-        <Grid VerticalOptions="Center" 
-              HorizontalOptions="Center"
-              IsVisible="True"
-              Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}}">
-            <Frame BackgroundColor="{DynamicResource CardBackgroundColor}"
-                   CornerRadius="16"
-                   Padding="20"
-                   HasShadow="True"
-                   IsVisible="True">
-                <core:SfBusyIndicator
-                    x:Name="busyIndicator"
-                    IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsVisible}"
-                    IsVisible="True"
-                    Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}}"
-                    AnimationType="DoubleCircle"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"
-                    HeightRequest="60"
-                    WidthRequest="60"
-                    IndicatorColor="{StaticResource PrimaryColor}" />
-            </Frame>
-        </Grid>
+        <core:SfBusyIndicator
+            x:Name="busyIndicator"
+            IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsVisible}"
+            IsVisible="True"
+            Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}}"
+            AnimationType="DoubleCircle"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            HeightRequest="60"
+            WidthRequest="60"
+            IndicatorColor="{StaticResource PrimaryColor}" />
     </Grid>
 </ContentView>
 

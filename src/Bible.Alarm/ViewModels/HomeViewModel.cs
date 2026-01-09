@@ -85,8 +85,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         // Initialize helper classes
         scheduleDataPreparer = new ScheduleDataPreparer(mapper);
-        var scheduleDisplayNameService = serviceProvider.GetService<IScheduleDisplayNameService>();
-        navigationHelper = new HomeNavigationHelper(logger, dispatcher, navigationService, state, playbackState, mapper, alarmScheduleService, scheduleDisplayNameService);
+        navigationHelper = new HomeNavigationHelper(logger, dispatcher, navigationService, playbackState);
         scheduleViewModelManager = new ScheduleViewModelManager(logger, serviceProvider, navigationHelper.TrackPlayClick);
         progressAnimator = new ProgressBarAnimator();
         progressBarManager = new ProgressBarManager(progressAnimator);
@@ -140,8 +139,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         commandHandler = new CommandHandler(
             dispatcher,
             navigationService,
-            (x) => x.Schedule?.Id > 0 ? navigationHelper.ShouldSkipNavigation(x.Schedule.Id, scheduleViewModelManager.ScheduleViewModels) : false,
-            async (x) => await navigationHelper.ShowOverlayAndNavigateAsync(x, scheduleViewModelManager.ScheduleViewModels));
+            (x) => x.Schedule?.Id > 0 && navigationHelper.ShouldSkipNavigation(x.Schedule.Id),
+            async (x) => await navigationHelper.ShowOverlayAndNavigateAsync(x));
 
         AddScheduleCommand = commandHandler.CreateAddScheduleCommand();
         ViewScheduleCommand = commandHandler.CreateViewScheduleCommand();

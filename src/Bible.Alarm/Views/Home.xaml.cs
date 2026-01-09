@@ -123,7 +123,12 @@ public partial class Home : BaseContentPage, IDisposable
     {
         if (view is Button or SfButton or Switch)
         {
-            return view.Bounds.Contains(tapPosition);
+            // Only check bounds if they're valid (layout has been calculated)
+            var bounds = view.Bounds;
+            if (bounds.Width > 0 && bounds.Height > 0)
+            {
+                return bounds.Contains(tapPosition);
+            }
         }
         return false;
     }
@@ -149,6 +154,13 @@ public partial class Home : BaseContentPage, IDisposable
     private bool IsTapOnChild(View childView, Point tapPosition)
     {
         var childBounds = childView.Bounds;
+        
+        // Skip if bounds aren't valid (layout not yet calculated)
+        if (childBounds.Width <= 0 || childBounds.Height <= 0)
+        {
+            return false;
+        }
+        
         if (!childBounds.Contains(tapPosition))
         {
             return false;

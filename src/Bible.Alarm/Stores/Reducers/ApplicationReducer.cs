@@ -272,7 +272,26 @@ public static class ApplicationReducer
             currentBibleReadingSchedule: currentBibleReadingSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: overlayVisible,
-            containerReadiness: Models.ContainerReadiness.NotReady); // Reset for new schedule load
+            containerReadiness: Models.ContainerReadiness.NotReady,
+            pendingScheduleLoad: null); // Clear pending load now that schedule is loaded
+    }
+
+    [ReducerMethod]
+    public static ApplicationState OnViewExistingSchedule(ApplicationState state, ViewExistingScheduleAction action)
+    {
+        Log.Information("OnViewExistingSchedule: Setting PendingScheduleLoad for scheduleId={ScheduleId}", action.ScheduleId);
+        
+        // Set pending schedule load - ScheduleStateManager will load from DB on background thread
+        // Don't set CurrentSchedule yet - it will be set after DB load completes
+        return new ApplicationState(
+            schedules: state.Schedules,
+            currentSchedule: null, // Will be set after DB load
+            currentMusic: null,
+            currentBibleReadingSchedule: null,
+            isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
+            isSchedulePageOverlayVisible: true, // Show overlay while loading
+            containerReadiness: Models.ContainerReadiness.NotReady,
+            pendingScheduleLoad: new PendingScheduleLoad(action.ScheduleId, action.IsEnabled));
     }
 
     [ReducerMethod]
@@ -418,6 +437,9 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnResetScheduleState(ApplicationState state, ResetScheduleStateAction action)
     {
+        Log.Information("OnResetScheduleState: Clearing schedule state (PendingScheduleLoad was {PendingLoad})",
+            state.PendingScheduleLoad != null ? $"Id={state.PendingScheduleLoad.ScheduleId}" : "null");
+        
         // Reset all schedule-related state when navigating back to home
         // This ensures only one schedule is in state at any time
         return new ApplicationState(

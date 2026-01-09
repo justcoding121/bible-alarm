@@ -4,6 +4,7 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 
@@ -16,19 +17,22 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
     private readonly IMelodyMusicService melodyMusicService;
     private readonly IMapper mapper;
     private readonly IScheduleDisplayNameService scheduleDisplayNameService;
+    private readonly IAlarmScheduleService? alarmScheduleService;
 
     public ScheduleInitializationService(
         ILogger logger,
         IBibleTranslationService? bibleTranslationService,
         IMelodyMusicService melodyMusicService,
         IMapper mapper,
-        IScheduleDisplayNameService scheduleDisplayNameService)
+        IScheduleDisplayNameService scheduleDisplayNameService,
+        IAlarmScheduleService? alarmScheduleService = null)
     {
         this.logger = logger;
         this.bibleTranslationService = bibleTranslationService;
         this.melodyMusicService = melodyMusicService;
         this.mapper = mapper;
         this.scheduleDisplayNameService = scheduleDisplayNameService;
+        this.alarmScheduleService = alarmScheduleService;
     }
 
     public async Task<ScheduleStateItem> InitializeNewScheduleAsync()
@@ -57,6 +61,48 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
             scheduleStateItem.BibleReadingBookName ?? "null");
 
         return scheduleStateItem;
+    }
+
+    public async Task<ScheduleStateItem?> LoadExistingScheduleAsync(int scheduleId, bool isEnabled)
+    {
+        if (alarmScheduleService == null)
+        {
+            logger.Warning("LoadExistingScheduleAsync: AlarmScheduleService not available");
+            return null;
+        }
+
+        try
+        {
+            logger.Debug("LoadExistingScheduleAsync: Loading schedule {ScheduleId} from database", scheduleId);
+            
+            // Load schedule from database with all includes
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+                scheduleId,
+                includeMusic: true,
+                includeBibleReading: true,
+                CancellationToken.None);
+
+            if (schedule == null)
+            {
+                logger.Warning("LoadExistingScheduleAsync: Schedule {ScheduleId} not found in database", scheduleId);
+                return null;
+            }
+
+            // Map to ScheduleStateItem
+            var scheduleStateItem = mapper.Map<ScheduleStateItem>(schedule);
+            scheduleStateItem.IsEnabled = isEnabled;
+
+            // Populate display names
+            await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, schedule);
+
+            logger.Debug("LoadExistingScheduleAsync: Loaded schedule {ScheduleId} with display names", scheduleId);
+            return scheduleStateItem;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "LoadExistingScheduleAsync: Error loading schedule {ScheduleId}", scheduleId);
+            return null;
+        }
     }
 
     public async Task CompleteScheduleLoadAsync()

@@ -254,9 +254,9 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         if (scheduleCount <= 1)
         {
             logger.Warning("Cannot delete schedule {ScheduleId} - it is the last schedule", scheduleId);
-            await toastService.ShowMessage("Cannot delete last schedule");
-            // Hide overlay on validation failure
+            // Hide overlay BEFORE showing toast (toast is awaited and blocks until dismissed)
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+            await toastService.ShowMessage("Cannot delete last schedule");
             return false;
         }
 
