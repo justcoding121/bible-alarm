@@ -1,5 +1,6 @@
 #if IOS
 using Bible.Alarm.Platforms.iOS.Effects;
+using Bible.Alarm.Platforms.iOS.Services.Bootstrap;
 using Bible.Alarm.Platforms.iOS.Services.Media;
 using Bible.Alarm.Platforms.iOS.Services.Storage;
 using Bible.Alarm.Platforms.iOS.Services.UI;
@@ -14,6 +15,7 @@ using Bible.Alarm.Platforms.Android.Effects;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Audio;
 using Bible.Alarm.Platforms.Android.Services.Battery;
+using Bible.Alarm.Platforms.Android.Services.Bootstrap;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Platforms.Android.Services.Platform;
@@ -21,6 +23,10 @@ using Bible.Alarm.Platforms.Android.Services.Storage;
 using Bible.Alarm.Platforms.Android.Services.UI;
 using Bible.Alarm.Services.Battery;
 using Bible.Alarm.Services.Battery.Interfaces;
+#endif
+
+#if WINDOWS
+using Bible.Alarm.Platforms.Windows.Services.Bootstrap;
 #endif
 
 using Bible.Alarm.Common.Interfaces.Media;
@@ -180,6 +186,15 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IResourceBootstrapService, ResourceBootstrapService>();
         services.AddSingleton<IScheduleBootstrapService, ScheduleBootstrapService>();
         services.AddSingleton<IBootstrapOrchestrator, BootstrapOrchestrator>();
+
+        // Register platform-specific bootstrap service (notification channels, background jobs)
+#if ANDROID
+        services.AddSingleton<IPlatformBootstrapService, AndroidPlatformBootstrapService>();
+#elif IOS
+        services.AddSingleton<IPlatformBootstrapService, iOSPlatformBootstrapService>();
+#elif WINDOWS
+        services.AddSingleton<IPlatformBootstrapService, WindowsPlatformBootstrapService>();
+#endif
 
         // Register platform-specific version finder
 #if ANDROID
