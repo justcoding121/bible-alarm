@@ -24,39 +24,44 @@ public sealed class SongBookSelectionDataProvider(IMediaService mediaService)
         Action<LanguageListViewItemModel?> setCurrentLanguage,
         string? searchTerm = null)
     {
-        // Run database operations off UI thread
-        var languagesFromDb = await Task.Run(async () =>
-            await mediaService.GetVocalMusicLanguages());
-        var languageVMs = new ObservableCollection<LanguageListViewItemModel>();
-
-        // Trim the search term before using it
-        var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
-
-        foreach (var language in languagesFromDb.Select(x => x.Value)
-                     .Where(x => trimmedSearchTerm == null
-                                 || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
-                     .OrderBy(x => x.Name))
+        // Do ALL processing on background thread to avoid blocking spinner animation
+        var (languageVMs, selectedLanguage) = await Task.Run(async () =>
         {
-            var languageVm = new LanguageListViewItemModel(language);
+            var languagesFromDb = await mediaService.GetVocalMusicLanguages();
+            var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
+            
+            var vms = new List<LanguageListViewItemModel>();
+            LanguageListViewItemModel? selected = null;
 
-            languageVMs.Add(languageVm);
-
-            if (current == null || languageVm.Code != current.LanguageCode)
+            foreach (var language in languagesFromDb.Values
+                         .Where(x => trimmedSearchTerm == null
+                                     || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
+                         .OrderBy(x => x.Name))
             {
-                continue;
+                var languageVm = new LanguageListViewItemModel(language);
+                vms.Add(languageVm);
+
+                if (current != null && languageVm.Code == current.LanguageCode)
+                {
+                    languageVm.IsSelected = true;
+                    selected = languageVm;
+                }
             }
 
-            languageVm.IsSelected = true;
-            setCurrentLanguage(languageVm);
-        }
+            return (vms, selected);
+        });
 
-        // Assign collection on main thread to ensure UI updates
+        // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             languages.Clear();
             foreach (var lang in languageVMs)
             {
                 languages.Add(lang);
+            }
+            if (selectedLanguage != null)
+            {
+                setCurrentLanguage(selectedLanguage);
             }
         });
     }
@@ -67,39 +72,66 @@ public sealed class SongBookSelectionDataProvider(IMediaService mediaService)
         ObservableCollection<PublicationListViewItemModel> songBooks,
         Action<PublicationListViewItemModel?> setSelectedSongBook)
     {
-        songBookVMsMapping.Clear();
-
-        // Run database operations off UI thread
-        var songBooksFromDb = await Task.Run(async () =>
-            await mediaService.GetVocalMusicReleases(languageCode));
-        var songBookVMs = new ObservableCollection<PublicationListViewItemModel>();
-
-        foreach (var release in songBooksFromDb.Select(x => x.Value))
+        // Do ALL processing on background thread to avoid blocking spinner animation
+        var (songBookVMs, newMapping, selectedSongBook) = await Task.Run(async () =>
         {
-            var songBookListViewItemModel = new PublicationListViewItemModel(release);
+            var songBooksFromDb = await mediaService.GetVocalMusicReleases(languageCode);
+            var vms = new List<PublicationListViewItemModel>();
+            var mapping = new Dictionary<string, PublicationListViewItemModel>();
+            PublicationListViewItemModel? selected = null;
 
-            songBookVMs.Add(songBookListViewItemModel);
-            songBookVMsMapping.Add(songBookListViewItemModel.Code, songBookListViewItemModel);
-
-            if (current == null
-                || current.MusicType != MusicType.Vocals
-                || current.LanguageCode != languageCode
-                || current.PublicationCode != release.Code)
+            foreach (var release in songBooksFromDb.Values)
             {
-                continue;
+                // Skip duplicates - if code already exists, use the existing one
+                if (mapping.TryGetValue(release.Code, out var existingVm))
+                {
+                    // Still check if this duplicate matches the current publication code
+                    if (current != null &&
+                        current.MusicType == MusicType.Vocals &&
+                        current.LanguageCode == languageCode &&
+                        current.PublicationCode == release.Code)
+                    {
+                        existingVm.IsSelected = true;
+                        selected = existingVm;
+                    }
+                    continue;
+                }
+
+                var songBookListViewItemModel = new PublicationListViewItemModel(release);
+                vms.Add(songBookListViewItemModel);
+                mapping[songBookListViewItemModel.Code] = songBookListViewItemModel;
+
+                if (current != null &&
+                    current.MusicType == MusicType.Vocals &&
+                    current.LanguageCode == languageCode &&
+                    current.PublicationCode == release.Code)
+                {
+                    songBookListViewItemModel.IsSelected = true;
+                    selected = songBookListViewItemModel;
+                }
             }
 
-            songBookListViewItemModel.IsSelected = true;
-            setSelectedSongBook(songBookListViewItemModel);
+            return (vms, mapping, selected);
+        });
+
+        // Update mapping
+        songBookVMsMapping.Clear();
+        foreach (var kvp in newMapping)
+        {
+            songBookVMsMapping[kvp.Key] = kvp.Value;
         }
 
-        // Assign collection on main thread to ensure UI updates
+        // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             songBooks.Clear();
             foreach (var songBook in songBookVMs)
             {
                 songBooks.Add(songBook);
+            }
+            if (selectedSongBook != null)
+            {
+                setSelectedSongBook(selectedSongBook);
             }
         });
     }

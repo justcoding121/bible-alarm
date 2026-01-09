@@ -186,7 +186,11 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         {
             if (languageCodeToPublications.ContainsKey(languageCode))
             {
-                languageCodeToPublications[languageCode].Add(publicationCode);
+                // Only add if not already present (prevent duplicates)
+                if (!languageCodeToPublications[languageCode].Contains(publicationCode))
+                {
+                    languageCodeToPublications[languageCode].Add(publicationCode);
+                }
             }
             else
             {

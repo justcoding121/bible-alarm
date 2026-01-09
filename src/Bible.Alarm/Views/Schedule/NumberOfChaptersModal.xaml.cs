@@ -53,6 +53,9 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
 
     private async void OnChapterItemTapped(object? sender, TappedEventArgs e)
     {
+        // Cancel any ongoing scroll operation to prevent race conditions
+        try { cancellationTokenSource.Cancel(); } catch { }
+
         if (sender is Grid grid && grid.BindingContext is NumberOfChaptersListViewItemModel chapterItem)
         {
             if (ViewModel != null && ViewModel.SelectNumberOfChaptersCommand is IAsyncRelayCommand<NumberOfChaptersListViewItemModel> asyncCommand)
@@ -73,16 +76,33 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
         {
             if (ViewModel?.CurrentNumberOfChapters != null && ChaptersCollectionView != null)
             {
+                // Hide CollectionView to prevent visible scroll jump
+                ChaptersCollectionView.Opacity = 0;
+
                 // Small delay to ensure CollectionView is rendered
-                await Task.Delay(200, cancellationTokenSource.Token);
+                await Task.Delay(150, cancellationTokenSource.Token);
 
                 await CollectionViewHelper.ScrollToWhenReadyAsync(ChaptersCollectionView, ViewModel.CurrentNumberOfChapters, animated: false, cancellationToken: cancellationTokenSource.Token);
+
+                // Small delay to ensure scroll completes
+                await Task.Delay(50, cancellationTokenSource.Token);
+
+                // Reveal CollectionView (now in correct position)
+                ChaptersCollectionView.Opacity = 1;
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // User tapped an item - reveal immediately
+            if (ChaptersCollectionView != null)
+                ChaptersCollectionView.Opacity = 1;
         }
         catch (Exception ex)
         {
             // OnAppearing errors are non-critical (UI initialization)
             Serilog.Log.Warning(ex, "Error in NumberOfChaptersModal.OnAppearing");
+            if (ChaptersCollectionView != null)
+                ChaptersCollectionView.Opacity = 1;
         }
     }
 
@@ -90,21 +110,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
     {
         if (!isDisposed)
         {
-            // Cancel and dispose cancellation token source
-            try
-            {
-                cancellationTokenSource?.Cancel();
-                cancellationTokenSource?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                // Ignore errors during cancellation/disposal
-                Log.Logger.Warning(ex, "Error during cancellation token source disposal");
-            }
-
-            // This modal uses parent page view model, so do NOT dispose it
-            // Clear BindingContext to break reference and allow garbage collection
-            BindingContext = null;
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
             isDisposed = true;
         }
     }

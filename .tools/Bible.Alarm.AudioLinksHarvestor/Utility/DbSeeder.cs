@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
@@ -121,8 +122,23 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             return;
         }
 
+        // Load existing translation codes for this language upfront (one query)
+        var existingCodesList = await db.BibleTranslations
+            .Where(t => t.Language.Code == languageKey)
+            .Select(t => t.Code)
+            .ToListAsync();
+        var existingCodes = new HashSet<string>(existingCodesList);
+
         foreach (var translation in translations)
         {
+            // Skip if already exists (in-memory check, fast)
+            if (existingCodes.Contains(translation.Value.Code))
+            {
+                logger.Information("Skipping translation {TranslationName} ({TranslationCode}) for language {LanguageCode} - already exists",
+                    translation.Value.Name, translation.Value.Code, languageKey);
+                continue;
+            }
+
             logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}",
                 translation.Value.Name, translation.Value.Code, languageKey);
 
@@ -222,8 +238,21 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             return;
         }
 
+        // Load existing melody codes upfront (one query)
+        var existingCodesList = await db.MelodyMusic
+            .Select(m => m.Code)
+            .ToListAsync();
+        var existingCodes = new HashSet<string>(existingCodesList);
+
         foreach (var melodyMusicRelease in melodyMusicReleases)
         {
+            // Skip if already exists (in-memory check, fast)
+            if (existingCodes.Contains(melodyMusicRelease.Value.Code))
+            {
+                logger.Information("Skipping melody {MelodyCode} - already exists", melodyMusicRelease.Key);
+                continue;
+            }
+
             logger.Information("Seeding melody code {MelodyCode} music to database.", melodyMusicRelease.Key);
 
             var tracks = await GetSafely(() => mediaReader.GetMelodyMusicTracks(melodyMusicRelease.Key));
@@ -303,8 +332,23 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             return;
         }
 
+        // Load existing vocal music codes for this language upfront (one query)
+        var existingCodesList = await db.VocalMusic
+            .Where(v => v.Language.Code == languageCode)
+            .Select(v => v.Code)
+            .ToListAsync();
+        var existingCodes = new HashSet<string>(existingCodesList);
+
         foreach (var vocalMusicRelease in vocalMusicReleases)
         {
+            // Skip if already exists (in-memory check, fast)
+            if (existingCodes.Contains(vocalMusicRelease.Value.Code))
+            {
+                logger.Information("Skipping song book {SongBookName} ({SongBookCode}) for language {LanguageCode} - already exists",
+                    vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, languageCode);
+                continue;
+            }
+
             logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}",
                 vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, languageCode);
 

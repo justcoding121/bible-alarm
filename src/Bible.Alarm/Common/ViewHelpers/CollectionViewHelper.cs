@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections;
 using System.Runtime.InteropServices;
 using Polly;
 using Serilog;
@@ -22,6 +23,7 @@ public static class CollectionViewHelper
     /// On Windows, this waits for the visual tree to be fully loaded before scrolling.
     /// Uses production-ready scrolling logic: for last items, finds parent ScrollView and scrolls to content height.
     /// Falls back to CollectionView.ScrollTo for other cases with platform-specific optimizations.
+    /// For large lists (100+ items), uses index-based scrolling for better reliability with virtualized CollectionViews.
     /// </summary>
     public static async Task ScrollToWhenReadyAsync(MauiCollectionView collectionView, object item, ScrollToPosition position = ScrollToPosition.Center, bool animated = false, CancellationToken cancellationToken = default)
     {
@@ -48,6 +50,17 @@ public static class CollectionViewHelper
                 return;
             }
 
+            // For large lists, add extra delay to allow virtualization to settle
+            var itemsSource = collectionView.ItemsSource;
+            var itemCount = GetItemCount(itemsSource);
+            
+            if (itemCount > 100)
+            {
+                // Extra delay for large lists - virtualization needs more time
+                var extraDelay = Math.Min((itemCount / 100) * 50, 300); // 50ms per 100 items, max 300ms
+                await Task.Delay(extraDelay, cancellationToken);
+            }
+
             // Determine the best scroll position based on item location in the list
             var finalPosition = CollectionViewScrollPositionHelper.DetermineOptimalScrollPosition(collectionView, item, position);
 
@@ -61,6 +74,19 @@ public static class CollectionViewHelper
         {
             // Ignore errors - scrolling is not critical
         }
+    }
+    
+    private static int GetItemCount(object? itemsSource)
+    {
+        if (itemsSource == null) return 0;
+        
+        if (itemsSource is ICollection collection)
+            return collection.Count;
+        
+        if (itemsSource is IEnumerable enumerable)
+            return enumerable.Cast<object>().Count();
+        
+        return 0;
     }
 
     private static async Task<bool> CanSafelyScrollAsync(MauiCollectionView collectionView, CancellationToken cancellationToken)

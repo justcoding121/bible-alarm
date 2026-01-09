@@ -42,48 +42,45 @@ public sealed class BibleSelectionDataProvider
         string? searchTerm,
         ObservableCollection<LanguageListViewItemModel>? languages)
     {
-        // Run database operations off UI thread
-        var languagesData = await Task.Run(async () =>
-            await mediaService.GetBibleLanguages());
+        if (languages == null) return;
 
-        var languageVMs = new ObservableCollection<LanguageListViewItemModel>();
+        // Capture current language code before Task.Run to avoid state access issues
+        var currentLanguageCode = state.Value.CurrentSchedule?.BibleReadingLanguageCode;
 
-        // Trim the search term before using it
-        var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
-
-        foreach (var language in languagesData.Select(x => x.Value)
-                     .Where(x => trimmedSearchTerm == null
-                                 || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
-                     .OrderBy(x => x.Name))
+        // Do ALL processing on background thread to avoid blocking spinner animation
+        var languageVMs = await Task.Run(async () =>
         {
-            var languageVm = new LanguageListViewItemModel(language);
+            var languagesData = await mediaService.GetBibleLanguages();
+            var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
-            languageVMs.Add(languageVm);
+            var vms = new List<LanguageListViewItemModel>();
 
-            // Use CurrentSchedule as the source of truth for language code
-            var stateValue = state.Value;
-            var currentLanguageCode = stateValue.CurrentSchedule?.BibleReadingLanguageCode;
-
-            if (string.IsNullOrEmpty(currentLanguageCode) || languageVm.Code != currentLanguageCode)
+            foreach (var language in languagesData.Values
+                         .Where(x => trimmedSearchTerm == null
+                                     || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
+                         .OrderBy(x => x.Name))
             {
-                continue;
+                var languageVm = new LanguageListViewItemModel(language);
+                vms.Add(languageVm);
+
+                if (!string.IsNullOrEmpty(currentLanguageCode) && languageVm.Code == currentLanguageCode)
+                {
+                    languageVm.IsSelected = true;
+                }
             }
 
-            languageVm.IsSelected = true;
-        }
+            return vms;
+        });
 
-        // Assign collection on main thread to ensure UI updates
-        if (languages != null)
+        // Minimal UI thread work - just swap the collection contents
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            languages.Clear();
+            foreach (var lang in languageVMs)
             {
-                languages.Clear();
-                foreach (var lang in languageVMs)
-                {
-                    languages.Add(lang);
-                }
-            });
-        }
+                languages.Add(lang);
+            }
+        });
     }
 
     public async Task PopulateTranslationsAsync(
@@ -91,114 +88,118 @@ public sealed class BibleSelectionDataProvider
         ObservableCollection<PublicationListViewItemModel>? translations,
         bool languageChanged)
     {
-        translationVMsMapping.Clear();
+        if (translations == null) return;
 
-        // Run database operations off UI thread
-        var translationsData = await Task.Run(async () =>
-            await mediaService.GetBibleTranslations(languageCode));
-        var translationVMs = new ObservableCollection<PublicationListViewItemModel>();
-
-        // Use CurrentSchedule as the source of truth for publication code
+        // Capture state values before Task.Run to avoid state access issues
         var stateValue = state.Value;
         var currentPublicationCode = stateValue.CurrentSchedule?.BibleReadingPublicationCode;
+        var currentLanguageName = stateValue.CurrentSchedule?.BibleReadingLanguageName;
 
-        PublicationListViewItemModel? defaultTranslation = null;
-
-        foreach (var translation in translationsData.Select(x => x.Value))
+        // Do ALL processing on background thread to avoid blocking spinner animation
+        var (translationVMs, newMapping, defaultTranslation) = await Task.Run(async () =>
         {
-            // Skip duplicates - if code already exists, use the existing one
-            if (translationVMsMapping.TryGetValue(translation.Code, out var existingVm))
+            var translationsData = await mediaService.GetBibleTranslations(languageCode);
+            var vms = new List<PublicationListViewItemModel>();
+            var mapping = new Dictionary<string, PublicationListViewItemModel>();
+            PublicationListViewItemModel? lastTranslation = null;
+
+            foreach (var translation in translationsData.Values)
             {
-                // Still check if this duplicate matches the current publication code
-                if (!string.IsNullOrEmpty(currentPublicationCode)
-                    && currentPublicationCode == translation.Code)
+                // Skip duplicates - if code already exists, use the existing one
+                if (mapping.TryGetValue(translation.Code, out var existingVm))
                 {
-                    existingVm.IsSelected = true;
+                    if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == translation.Code)
+                    {
+                        existingVm.IsSelected = true;
+                    }
+                    continue;
                 }
-                continue;
+
+                var translationVm = new PublicationListViewItemModel(translation);
+                vms.Add(translationVm);
+                mapping[translationVm.Code] = translationVm;
+
+                // Store the last translation as default
+                lastTranslation = translationVm;
+
+                // Check if this translation matches the current publication code
+                if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == translation.Code)
+                {
+                    translationVm.IsSelected = true;
+                }
             }
 
-            var translationVm = new PublicationListViewItemModel(translation);
+            return (vms, mapping, lastTranslation);
+        });
 
-            translationVMs.Add(translationVm);
-            translationVMsMapping[translationVm.Code] = translationVm;
-
-            // Store the last translation (reverse order) as default
-            defaultTranslation = translationVm;
-
-            // Check if this translation matches the current publication code from CurrentSchedule
-            if (!string.IsNullOrEmpty(currentPublicationCode)
-                && currentPublicationCode == translation.Code)
-            {
-                translationVm.IsSelected = true;
-            }
+        // Update mapping
+        translationVMsMapping.Clear();
+        foreach (var kvp in newMapping)
+        {
+            translationVMsMapping[kvp.Key] = kvp.Value;
         }
 
-        // If language changed and no translation matches current publication code, select the last one (reverse order)
-        // Only dispatch action if the state doesn't already match what we're about to set
+        // Handle language change default selection
         if (languageChanged && defaultTranslation != null)
         {
             defaultTranslation.IsSelected = true;
 
-            // Check if state already matches what we're about to dispatch to avoid duplicate dispatches
-            var currentState = state.Value;
-            var currentSchedule = currentState?.CurrentSchedule;
+            // Check if state already matches what we're about to dispatch
+            var currentSchedule = state.Value.CurrentSchedule;
             var alreadyMatches = currentSchedule != null &&
                                 currentSchedule.BibleReadingLanguageCode == languageCode &&
                                 currentSchedule.BibleReadingPublicationCode == defaultTranslation.Code &&
                                 currentSchedule.BibleReadingBookNumber == 1 &&
                                 currentSchedule.BibleReadingChapterNumber == 1;
 
-            // Only dispatch if state doesn't already match (prevents duplicate dispatches from RefreshFromState)
             if (!alreadyMatches)
             {
-                // Dispatch action to update state with the default translation
-                // Get the first book and chapter for the default translation
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        var books = await mediaService.GetBibleBooks(languageCode, defaultTranslation.Code);
-                        if (books != null && books.Count > 0)
-                        {
-                            var firstBook = books.Values.First();
-                            var chapters = await mediaService.GetBibleChapters(languageCode, defaultTranslation.Code, firstBook.Number);
-                            if (chapters != null && chapters.Count > 0)
-                            {
-                                var firstChapter = chapters.Values.First();
-                                var bibleReadingItem = new BibleReadingStateItem
-                                {
-                                    LanguageCode = languageCode,
-                                    PublicationCode = defaultTranslation.Code,
-                                    BookNumber = firstBook.Number,
-                                    ChapterNumber = firstChapter.Number,
-                                    LanguageName = stateValue.CurrentSchedule?.BibleReadingLanguageName,
-                                    PublicationName = defaultTranslation.Name,
-                                    BookName = firstBook.Name
-                                };
-                                dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning(ex, "BibleSelectionDataProvider: Error dispatching default translation selection");
-                    }
-                });
+                // Fire and forget the dispatch (already on background thread)
+                _ = DispatchDefaultTranslationAsync(languageCode, defaultTranslation, currentLanguageName);
             }
         }
 
-        // Assign collection on main thread to ensure UI updates before IsBusy is set to false
-        if (translations != null)
+        // Minimal UI thread work - just swap the collection contents
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            translations.Clear();
+            foreach (var trans in translationVMs)
             {
-                translations.Clear();
-                foreach (var trans in translationVMs)
-                {
-                    translations.Add(trans);
-                }
-            });
+                translations.Add(trans);
+            }
+        });
+    }
+
+    private async Task DispatchDefaultTranslationAsync(
+        string languageCode,
+        PublicationListViewItemModel defaultTranslation,
+        string? languageName)
+    {
+        try
+        {
+            var books = await mediaService.GetBibleBooks(languageCode, defaultTranslation.Code);
+            if (books == null || books.Count == 0) return;
+
+            var firstBook = books.Values.First();
+            var chapters = await mediaService.GetBibleChapters(languageCode, defaultTranslation.Code, firstBook.Number);
+            if (chapters == null || chapters.Count == 0) return;
+
+            var firstChapter = chapters.Values.First();
+            var bibleReadingItem = new BibleReadingStateItem
+            {
+                LanguageCode = languageCode,
+                PublicationCode = defaultTranslation.Code,
+                BookNumber = firstBook.Number,
+                ChapterNumber = firstChapter.Number,
+                LanguageName = languageName,
+                PublicationName = defaultTranslation.Name,
+                BookName = firstBook.Name
+            };
+            dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "BibleSelectionDataProvider: Error dispatching default translation selection");
         }
     }
 

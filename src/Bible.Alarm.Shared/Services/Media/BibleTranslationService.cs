@@ -52,10 +52,25 @@ public sealed class BibleTranslationService(IServiceScopeFactory scopeFactory, I
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.BibleTranslations
+            var translationsList = await dbContext.BibleTranslations
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode)
-                .ToDictionaryAsync(x => x.Code, x => x, cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            // Handle potential duplicates gracefully - use first occurrence
+            var result = new Dictionary<string, BibleTranslation>();
+            foreach (var translation in translationsList)
+            {
+                if (!result.ContainsKey(translation.Code))
+                {
+                    result[translation.Code] = translation;
+                }
+                else
+                {
+                    logger.Warning("Duplicate BibleTranslation entry found. LanguageCode={LanguageCode}, Code={Code}", languageCode, translation.Code);
+                }
+            }
+            return result;
         }
         catch (Exception ex)
         {

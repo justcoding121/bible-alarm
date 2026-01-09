@@ -50,9 +50,24 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.MelodyMusic
+            var melodyList = await dbContext.MelodyMusic
                 .AsNoTracking()
-                .ToDictionaryAsync(x => x.Code, x => x, cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            // Handle potential duplicates gracefully - use first occurrence
+            var result = new Dictionary<string, MelodyMusic>();
+            foreach (var melody in melodyList)
+            {
+                if (!result.ContainsKey(melody.Code))
+                {
+                    result[melody.Code] = melody;
+                }
+                else
+                {
+                    logger.Warning("Duplicate MelodyMusic entry found. Code={Code}", melody.Code);
+                }
+            }
+            return result;
         }
         catch (Exception ex)
         {

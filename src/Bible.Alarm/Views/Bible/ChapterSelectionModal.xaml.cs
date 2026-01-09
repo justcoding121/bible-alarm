@@ -4,7 +4,6 @@ using Bible.Alarm.ViewModels.Bible;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Xaml;
-using Serilog;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -19,77 +18,38 @@ public partial class ChapterSelectionModal : BaseContentPage, IDisposable
     public ChapterSelectionModal()
     {
         InitializeComponent();
-
         Appearing += OnAppearing;
-    }
-
-    // Force busy overlay to hide when needed
-    private void ForceHideBusyOverlay()
-    {
-        if (BusyOverlay != null)
-        {
-            BusyOverlay.IsVisible = false;
-            BusyOverlay.InputTransparent = true;
-        }
     }
 
     private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 
-        try
-        {
-            if (ViewModel != null)
-            {
-                // Refresh from state when modal appears to ensure chapters are populated
-                await ViewModel.RefreshFromState();
-
-                // Force hide busy overlay since binding might not work
-                ForceHideBusyOverlay();
-
-                // Wait for IsBusy to become false (data loaded) using Polly retry policy
-                // This ensures the CollectionView is ready and SelectedChapter is set before scrolling
-                await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
-
-                // Small additional delay to ensure CollectionView is rendered
-                await Task.Delay(200, cancellationTokenSource.Token);
-
-                // Scroll to selected chapter - matching the pattern used in ChapterSelection.xaml.cs
-                if (ViewModel.SelectedChapter != null && chapterCollectionView != null)
-                {
-                    await CollectionViewHelper.ScrollToWhenReadyAsync(chapterCollectionView, ViewModel.SelectedChapter, animated: false, cancellationToken: cancellationTokenSource.Token);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // OnAppearing errors are non-critical (UI initialization)
-            Serilog.Log.Warning(ex, "Error in ChapterSelectionModal.OnAppearing");
-            ForceHideBusyOverlay();
-        }
+        await ModalScrollHelper.HandleModalAppearingAsync(
+            () => ViewModel?.IsBusy ?? false,
+            BusyOverlay,
+            chapterCollectionView,
+            getSelectedItem: () => ViewModel?.SelectedChapter,
+            refreshAction: ViewModel != null 
+                ? async () => await ViewModel.RefreshFromState() 
+                : null,
+            cancellationToken: cancellationTokenSource.Token);
     }
 
     public void Dispose()
     {
         if (!isDisposed)
         {
-            try
-            {
-                cancellationTokenSource?.Cancel();
-                cancellationTokenSource?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.Warning(ex, "Error during cancellation token source disposal");
-            }
-
-            BindingContext = null;
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
             isDisposed = true;
         }
     }
 
     private async void OnChapterItemTapped(object? sender, TappedEventArgs e)
     {
+        // Cancel any ongoing scroll operation to prevent race conditions
+        try { cancellationTokenSource.Cancel(); } catch { }
+
         if (sender is Grid grid && grid.BindingContext is BibleChapterListViewItemModel chapterItem)
         {
             if (ViewModel != null && ViewModel.SetChapterCommand is IAsyncRelayCommand<BibleChapterListViewItemModel> asyncCommand)

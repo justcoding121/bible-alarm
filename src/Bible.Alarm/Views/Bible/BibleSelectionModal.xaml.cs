@@ -5,7 +5,6 @@ using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Xaml;
-using Serilog;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -20,83 +19,38 @@ public partial class BibleSelectionModal : BaseContentPage, IDisposable
     public BibleSelectionModal()
     {
         InitializeComponent();
-
         Appearing += OnAppearing;
-    }
-
-    // Force busy overlay to hide when needed
-    private void ForceHideBusyOverlay()
-    {
-        if (BusyOverlay != null)
-        {
-            // Ensure this runs on the main thread
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                BusyOverlay.IsVisible = false;
-                // Also ensure InputTransparent is set to allow taps through
-                BusyOverlay.InputTransparent = true;
-                Serilog.Log.Debug("BibleSelectionModal: ForceHideBusyOverlay - Set IsVisible=false, InputTransparent=true");
-            });
-        }
     }
 
     private async void OnAppearing(object? sender, EventArgs e)
     {
         Appearing -= OnAppearing;
 
-        try
-        {
-            if (ViewModel != null)
-            {
-                // Refresh from state when modal appears to ensure translations are populated
-                await ViewModel.RefreshFromState();
-
-                // Force hide busy overlay since binding might not work
-                ForceHideBusyOverlay();
-
-                // Wait for IsBusy to become false (data loaded) using Polly retry policy
-                // This ensures the CollectionView is ready and SelectedTranslation is set before scrolling
-                await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
-
-                // Small additional delay to ensure CollectionView is rendered
-                await Task.Delay(200, cancellationTokenSource.Token);
-
-                if (ViewModel.SelectedTranslation != null && translationsCollectionView != null)
-                {
-                    await CollectionViewHelper.ScrollToWhenReadyAsync(translationsCollectionView, ViewModel.SelectedTranslation, animated: false, cancellationToken: cancellationTokenSource.Token);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // OnAppearing errors are non-critical (UI initialization)
-            Serilog.Log.Warning(ex, "Error in BibleSelectionModal.OnAppearing");
-            // Force hide busy overlay on error
-            ForceHideBusyOverlay();
-        }
+        await ModalScrollHelper.HandleModalAppearingAsync(
+            () => ViewModel?.IsBusy ?? false,
+            BusyOverlay,
+            translationsCollectionView,
+            getSelectedItem: () => ViewModel?.SelectedTranslation,
+            refreshAction: ViewModel != null 
+                ? async () => await ViewModel.RefreshFromState() 
+                : null,
+            cancellationToken: cancellationTokenSource.Token);
     }
 
     public void Dispose()
     {
         if (!isDisposed)
         {
-            try
-            {
-                cancellationTokenSource?.Cancel();
-                cancellationTokenSource?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.Warning(ex, "Error during cancellation token source disposal");
-            }
-
-            BindingContext = null;
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
             isDisposed = true;
         }
     }
 
     private async void OnTranslationItemTapped(object? sender, TappedEventArgs e)
     {
+        // Cancel any ongoing scroll operation to prevent race conditions
+        try { cancellationTokenSource.Cancel(); } catch { }
+
         if (sender is Grid grid && grid.BindingContext is PublicationListViewItemModel publicationItem)
         {
             if (ViewModel != null && ViewModel.BookSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)

@@ -51,10 +51,25 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.VocalMusic
+            var vocalMusicList = await dbContext.VocalMusic
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode)
-                .ToDictionaryAsync(x => x.Code, x => x, cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            // Handle potential duplicates gracefully - use first occurrence
+            var result = new Dictionary<string, VocalMusic>();
+            foreach (var vm in vocalMusicList)
+            {
+                if (!result.ContainsKey(vm.Code))
+                {
+                    result[vm.Code] = vm;
+                }
+                else
+                {
+                    logger.Warning("Duplicate VocalMusic entry found. LanguageCode={LanguageCode}, Code={Code}", languageCode, vm.Code);
+                }
+            }
+            return result;
         }
         catch (Exception ex)
         {

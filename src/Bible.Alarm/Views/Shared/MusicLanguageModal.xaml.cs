@@ -6,7 +6,6 @@ using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Xaml;
-using Serilog;
 
 namespace Bible.Alarm.Views.Shared;
 
@@ -21,22 +20,14 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
     public MusicLanguageModal()
     {
         InitializeComponent();
-
-        // SelectionChanged handler removed - using SelectionMode="None" with TapGestureRecognizer instead
         Appearing += OnAppearing;
-    }
-
-    // Force busy overlay to hide when needed
-    private void ForceHideBusyOverlay()
-    {
-        if (BusyOverlay != null)
-        {
-            BusyOverlay.IsVisible = false;
-        }
     }
 
     private async void OnLanguageItemTapped(object? sender, TappedEventArgs e)
     {
+        // Cancel any ongoing scroll operation to prevent race conditions
+        try { cancellationTokenSource.Cancel(); } catch { }
+
         if (sender is Grid grid && grid.BindingContext is LanguageListViewItemModel languageItem)
         {
             if (ViewModel is SongBookSelectionViewModel songBookViewModel)
@@ -56,59 +47,25 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        try
-        {
-            if (ViewModel != null)
-            {
-                // If ViewModel is SongBookSelectionViewModel, refresh from state to ensure languages are populated
-                if (ViewModel is SongBookSelectionViewModel songBookViewModel)
-                {
-                    await songBookViewModel.RefreshFromState();
-                }
+        var songBookViewModel = ViewModel as SongBookSelectionViewModel;
 
-                // Force hide busy overlay since binding might not work
-                ForceHideBusyOverlay();
-
-                // Wait for IsBusy to become false (data loaded) using Polly retry policy
-                // This ensures the CollectionView is ready and SelectedItem is set before scrolling
-                await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
-
-                // Small additional delay to ensure CollectionView is rendered
-                await Task.Delay(200, cancellationTokenSource.Token);
-
-                if (ViewModel.SelectedItem != null && LanguageCollectionView != null)
-                {
-                    await CollectionViewHelper.ScrollToWhenReadyAsync(LanguageCollectionView, ViewModel.SelectedItem, animated: false, cancellationToken: cancellationTokenSource.Token);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // OnAppearing errors are non-critical (UI initialization)
-            Serilog.Log.Warning(ex, "Error in MusicLanguageModal.OnAppearing");
-            ForceHideBusyOverlay();
-        }
+        await ModalScrollHelper.HandleModalAppearingAsync(
+            ViewModel,
+            BusyOverlay,
+            LanguageCollectionView,
+            // Get selected item AFTER refresh to ensure fresh reference
+            getSelectedItem: () => songBookViewModel?.Languages?.FirstOrDefault(l => l.IsSelected),
+            refreshAction: songBookViewModel != null 
+                ? async () => await songBookViewModel.RefreshFromState() 
+                : null,
+            cancellationToken: cancellationTokenSource.Token);
     }
 
     public void Dispose()
     {
         if (!isDisposed)
         {
-            // Cancel and dispose cancellation token source
-            try
-            {
-                cancellationTokenSource?.Cancel();
-                cancellationTokenSource?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                // Ignore errors during cancellation/disposal
-                Log.Logger.Warning(ex, "Error during cancellation token source disposal");
-            }
-
-            // This modal uses parent page view model, so do NOT dispose it
-            // Clear BindingContext to break reference and allow garbage collection
-            BindingContext = null;
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
             isDisposed = true;
         }
     }

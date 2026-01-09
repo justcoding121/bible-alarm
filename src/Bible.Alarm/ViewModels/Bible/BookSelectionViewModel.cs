@@ -323,43 +323,44 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
 
     private async Task PopulateBooks(string languageCode, string publicationCode)
     {
+        // Do ALL processing on background thread to avoid blocking spinner animation
+        var (bookViewModelList, newMapping, selectedBook) = await Task.Run(async () =>
+        {
+            var booksFromDb = await mediaService.GetBibleBooks(languageCode, publicationCode);
+            
+            if (booksFromDb == null)
+            {
+                return (new List<BibleBookListViewItemModel>(), new Dictionary<int, BibleBookListViewItemModel>(), (BibleBookListViewItemModel?)null);
+            }
+
+            var vms = new List<BibleBookListViewItemModel>();
+            var mapping = new Dictionary<int, BibleBookListViewItemModel>();
+            BibleBookListViewItemModel? selected = null;
+
+            foreach (var book in booksFromDb.Values)
+            {
+                var bookVm = new BibleBookListViewItemModel(book);
+                vms.Add(bookVm);
+                mapping[bookVm.Number] = bookVm;
+
+                if (current != null && current.BookNumber == book.Number)
+                {
+                    selected = bookVm;
+                    selected.IsSelected = true;
+                }
+            }
+
+            return (vms, mapping, selected);
+        });
+
+        // Update mapping
         bookVMsMapping.Clear();
-
-        // Run database operations off UI thread
-        var books = await Task.Run(async () =>
-            await mediaService.GetBibleBooks(languageCode, publicationCode));
-
-        if (books == null)
+        foreach (var kvp in newMapping)
         {
-            return;
+            bookVMsMapping[kvp.Key] = kvp.Value;
         }
 
-        // Build the list of book view models
-        var bookViewModelList = new List<BibleBookListViewItemModel>();
-        BibleBookListViewItemModel? selectedBook = null;
-
-        foreach (var book in books.Select(x => x.Value))
-        {
-            var bookVm = new BibleBookListViewItemModel(book);
-
-            bookViewModelList.Add(bookVm);
-            bookVMsMapping.Add(bookVm.Number, bookVm);
-
-            if (current is null)
-            {
-                continue;
-            }
-
-            if (current.BookNumber != book.Number)
-            {
-                continue;
-            }
-
-            selectedBook = bookVm;
-            selectedBook.IsSelected = true;
-        }
-
-        // Assign the complete collection on main thread
+        // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             Books.Clear();

@@ -4,7 +4,6 @@ using Bible.Alarm.ViewModels.Music;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Xaml;
-using Serilog;
 
 namespace Bible.Alarm.Views.Music;
 
@@ -19,7 +18,6 @@ public partial class TrackSelectionModal : BaseContentPage, IDisposable
     public TrackSelectionModal()
     {
         InitializeComponent();
-
         Appearing += OnAppearing;
     }
 
@@ -27,66 +25,31 @@ public partial class TrackSelectionModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        try
-        {
-            if (ViewModel != null)
-            {
-                // Refresh from state when modal appears to ensure tracks are populated
-                await ViewModel.RefreshFromState();
-
-                // Force hide busy overlay since binding might not work
-                ForceHideBusyOverlay();
-
-                // Wait for IsBusy to become false (data loaded)
-                await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
-
-                // Small additional delay to ensure CollectionView is rendered
-                await Task.Delay(200, cancellationTokenSource.Token);
-
-                if (ViewModel.SelectedTrack != null && trackCollectionView != null)
-                {
-                    await CollectionViewHelper.ScrollToWhenReadyAsync(trackCollectionView, ViewModel.SelectedTrack, animated: false, cancellationToken: cancellationTokenSource.Token);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // OnAppearing errors are non-critical (UI initialization)
-            Serilog.Log.Warning(ex, "Error in TrackSelectionModal.OnAppearing");
-            ForceHideBusyOverlay();
-        }
-    }
-
-    private void ForceHideBusyOverlay()
-    {
-        if (BusyOverlay != null)
-        {
-            BusyOverlay.IsVisible = false;
-            BusyOverlay.InputTransparent = true; // Ensure input is allowed through
-        }
+        await ModalScrollHelper.HandleModalAppearingAsync(
+            () => ViewModel?.IsBusy ?? false,
+            BusyOverlay,
+            trackCollectionView,
+            getSelectedItem: () => ViewModel?.SelectedTrack,
+            refreshAction: ViewModel != null 
+                ? async () => await ViewModel.RefreshFromState() 
+                : null,
+            cancellationToken: cancellationTokenSource.Token);
     }
 
     public void Dispose()
     {
         if (!isDisposed)
         {
-            try
-            {
-                cancellationTokenSource?.Cancel();
-                cancellationTokenSource?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.Warning(ex, "Error during cancellation token source disposal");
-            }
-
-            BindingContext = null;
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
             isDisposed = true;
         }
     }
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
+        // Cancel any ongoing scroll operation to prevent race conditions
+        try { cancellationTokenSource.Cancel(); } catch { }
+
         if (sender is Grid grid && grid.BindingContext is MusicTrackListViewItemModel trackItem)
         {
             if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<MusicTrackListViewItemModel> asyncCommand)

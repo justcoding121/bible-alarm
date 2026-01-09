@@ -247,29 +247,26 @@ public sealed class MusicStateChangeHandler
         // Map DTO to entity
         var newMusic = mapper.Map<AlarmMusic>(newMusicItem);
 
+        // Determine what changed to trigger cascading notifications (compare BEFORE updating)
+        var musicTypeChanged = stateHolder.Music?.MusicType != newMusic.MusicType;
+        var languageCodeChanged = stateHolder.Music?.LanguageCode != newMusic.LanguageCode;
+        var publicationCodeChanged = stateHolder.Music?.PublicationCode != newMusic.PublicationCode;
+        var trackNumberChanged = stateHolder.Music?.TrackNumber != newMusic.TrackNumber;
+
         MainThread.BeginInvokeOnMainThread(() =>
         {
             stateHolder.Music = newMusic;
             stateHolder.LastMusic = newMusic;
             stateHolder.MusicUpdated = true;
 
-            // Determine what changed to trigger cascading notifications
-            var musicTypeChanged = stateHolder.Music?.MusicType != newMusic.MusicType;
-            var languageCodeChanged = stateHolder.Music?.LanguageCode != newMusic.LanguageCode;
-            var publicationCodeChanged = stateHolder.Music?.PublicationCode != newMusic.PublicationCode;
-            var trackNumberChanged = stateHolder.Music?.TrackNumber != newMusic.TrackNumber;
-
             // Trigger cascading property change notifications
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                propertyNotifier.NotifyPropertiesChanged(
-                    musicTypeChanged,
-                    languageCodeChanged,
-                    publicationCodeChanged,
-                    trackNumberChanged,
-                    false,
-                    newMusic.MusicType);
-            });
+            propertyNotifier.NotifyPropertiesChanged(
+                musicTypeChanged,
+                languageCodeChanged,
+                publicationCodeChanged,
+                trackNumberChanged,
+                false,
+                newMusic.MusicType);
         });
     }
 }

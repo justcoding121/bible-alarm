@@ -20,35 +20,29 @@ public sealed class ChapterSelectionDataProvider(IMediaService mediaService)
         ObservableCollection<BibleChapterListViewItemModel> chapters,
         Action<BibleChapterListViewItemModel?> setSelectedChapter)
     {
-        // Run database operations off UI thread
-        var chaptersFromDb = await Task.Run(async () =>
-            await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber));
-
-        // Build the list of chapter view models
-        var chapterViewModelList = new List<BibleChapterListViewItemModel>();
-        BibleChapterListViewItemModel? selectedChapter = null;
-
-        foreach (var chapter in chaptersFromDb.Select(x => x.Value))
+        // Do ALL processing on background thread to avoid blocking spinner animation
+        var (chapterViewModelList, selectedChapter) = await Task.Run(async () =>
         {
-            var chapterVm = new BibleChapterListViewItemModel(chapter);
+            var chaptersFromDb = await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
+            var vms = new List<BibleChapterListViewItemModel>();
+            BibleChapterListViewItemModel? selected = null;
 
-            chapterViewModelList.Add(chapterVm);
-
-            if (current is null)
+            foreach (var chapter in chaptersFromDb.Values)
             {
-                continue;
+                var chapterVm = new BibleChapterListViewItemModel(chapter);
+                vms.Add(chapterVm);
+
+                if (current != null && current.ChapterNumber == chapter.Number)
+                {
+                    selected = chapterVm;
+                    selected.IsSelected = true;
+                }
             }
 
-            if (current.ChapterNumber != chapter.Number)
-            {
-                continue;
-            }
+            return (vms, selected);
+        });
 
-            selectedChapter = chapterVm;
-            selectedChapter.IsSelected = true;
-        }
-
-        // Assign the complete collection on main thread
+        // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             chapters.Clear();

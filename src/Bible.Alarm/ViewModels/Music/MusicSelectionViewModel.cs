@@ -170,6 +170,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         // Use CurrentSchedule as the source of truth
         if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
         {
+            IsBusy = false;
             return;
         }
 
@@ -187,6 +188,9 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
         // Update selected music type immediately
         SetSelectedMusicType();
+        
+        // MusicTypes is a static list (no DB loading), so set IsBusy = false immediately
+        IsBusy = false;
     }
 
     // Start as true to show busy indicator immediately
