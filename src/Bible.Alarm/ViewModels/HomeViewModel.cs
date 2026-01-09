@@ -101,13 +101,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         {
             OnPropertyChanged(nameof(IsProgressBarHidden));
         };
-        progressAnimator.ProgressChanged += () =>
-        {
-            OnPropertyChanged(nameof(AnimatedProgressStart));
-            OnPropertyChanged(nameof(AnimatedProgressEnd));
-            OnPropertyChanged(nameof(AnimatedProgress));
-            OnPropertyChanged(nameof(AnimatedProgressRangeWidth));
-        };
+        // Note: Animation is now handled natively in AnimatedProgressBar control
+        // No need for ProgressAnimator property change notifications
 
         // Setup property manager events
         propertyManager.SchedulesChanged += () =>

@@ -116,10 +116,19 @@ public class PlaylistBibleTrackBuilder
             IsLastTrack = remainingChapters == 1
         };
 
-        if (ShouldSetFinishedDuration(markedSeekTrack, schedule, bibleReadingSchedule, trackMetadata))
+        var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, bibleReadingSchedule, trackMetadata);
+        logger.Debug("[PlaylistBuild] ShouldSetFinishedDuration: {ShouldSet}, markedSeekTrack: {MarkedSeekTrack}, AlwaysPlayFromStart: {AlwaysPlayFromStart}, ScheduleFinishedDuration: {ScheduleFinishedDuration}, BookMatch: {BookMatch}",
+            shouldSet,
+            markedSeekTrack,
+            schedule.AlwaysPlayFromStart,
+            bibleReadingSchedule.FinishedDuration,
+            bibleReadingSchedule.BookNumber == trackMetadata.BookNumber);
+            
+        if (shouldSet)
         {
             trackMetadata.FinishedDuration = bibleReadingSchedule.FinishedDuration;
             markedSeekTrack = true;
+            logger.Debug("[PlaylistBuild] Set track FinishedDuration to {Duration}", trackMetadata.FinishedDuration);
         }
 
         return trackMetadata;

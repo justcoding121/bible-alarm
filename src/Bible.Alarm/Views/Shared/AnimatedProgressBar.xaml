@@ -2,14 +2,9 @@
 
 <ContentView
     x:Class="Bible.Alarm.Views.Shared.AnimatedProgressBar"
-    x:DataType="vm:HomeViewModel"
+    x:Name="ProgressBarView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
-    xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters">
-    <ContentView.Resources>
-        <converters:ProgressPositionConverter x:Key="progressPositionConverter" />
-    </ContentView.Resources>
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
     <Grid
         Margin="16,0,16,8"
         HeightRequest="6"
@@ -21,18 +16,16 @@
             CornerRadius="1"
             HorizontalOptions="Fill"
             VerticalOptions="Center" />
-        <!-- Animated range segment - moves from left to right -->
+        <!-- Animated range segment - uses native MAUI animation for smooth movement -->
         <BoxView
+            x:Name="AnimatedSegment"
             BackgroundColor="{StaticResource PrimaryColor}"
             HeightRequest="2"
             CornerRadius="1"
             VerticalOptions="Center"
             HorizontalOptions="Start"
-            WidthRequest="120">
-            <BoxView.TranslationX>
-                <Binding Path="AnimatedProgressStart" Converter="{StaticResource progressPositionConverter}" />
-            </BoxView.TranslationX>
-        </BoxView>
+            WidthRequest="120"
+            TranslationX="0" />
     </Grid>
 </ContentView>
 

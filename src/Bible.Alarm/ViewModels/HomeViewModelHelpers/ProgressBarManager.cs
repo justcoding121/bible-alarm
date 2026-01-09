@@ -1,23 +1,22 @@
 #nullable enable
 
-using Bible.Alarm.ViewModels.HomeViewModelHelpers;
 using Microsoft.Maui.Essentials;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 
 /// <summary>
-/// Manages progress bar visibility, opacity, and animation for HomeViewModel.
+/// Manages progress bar visibility and opacity for HomeViewModel.
+/// Animation is now handled natively by the AnimatedProgressBar control.
 /// </summary>
-public class ProgressBarManager
+public class ProgressBarManager : IDisposable
 {
-    private readonly ProgressBarAnimator progressAnimator;
     private bool shouldShowProgressBar = true;
     private double progressBarOpacity = 1.0;
 
     public ProgressBarManager(ProgressBarAnimator progressAnimator)
     {
-        this.progressAnimator = progressAnimator;
-        progressAnimator.ProgressChanged += OnProgressChanged;
+        // ProgressBarAnimator is kept for backwards compatibility but animation
+        // is now handled natively in AnimatedProgressBar.xaml.cs
     }
 
     public event Action<double>? ProgressBarOpacityChanged;
@@ -28,7 +27,7 @@ public class ProgressBarManager
         get => progressBarOpacity;
         set
         {
-            if (progressBarOpacity != value)
+            if (Math.Abs(progressBarOpacity - value) > 0.001)
             {
                 progressBarOpacity = value;
                 ProgressBarOpacityChanged?.Invoke(value);
@@ -38,38 +37,40 @@ public class ProgressBarManager
     }
 
     public bool IsProgressBarHidden => progressBarOpacity == 0;
-    public double AnimatedProgressStart => progressAnimator.AnimatedProgressStart;
-    public double AnimatedProgressEnd => progressAnimator.AnimatedProgressEnd;
-    public double AnimatedProgress => progressAnimator.AnimatedProgress;
-    public double AnimatedProgressRangeWidth => progressAnimator.AnimatedProgressRangeWidth;
+    
+    // These properties are kept for backwards compatibility but no longer used
+    // Animation is now handled natively in AnimatedProgressBar control
+    public double AnimatedProgressStart => 0.0;
+    public double AnimatedProgressEnd => 0.3;
+    public double AnimatedProgress => 0.3;
+    public double AnimatedProgressRangeWidth => 0.3;
 
     public void UpdateVisibility(bool isBusy, int? schedulesCount)
     {
         var shouldShow = shouldShowProgressBar && (isBusy || (schedulesCount == null || schedulesCount == 0));
         ProgressBarOpacity = shouldShow ? 1.0 : 0.0;
-
-        if (shouldShow)
-        {
-            progressAnimator.Start();
-        }
-        else
-        {
-            progressAnimator.Stop();
-        }
     }
 
     public async Task FadeOutAsync()
     {
+        // Prevent showing progress bar again
         shouldShowProgressBar = false;
+
+        // If already hidden, don't re-animate (would cause a flash)
+        if (progressBarOpacity == 0)
+        {
+            return;
+        }
 
         const int fadeSteps = 10;
         const int fadeDurationMs = 200;
         const double stepDelay = fadeDurationMs / (double)fadeSteps;
-        const double opacityStep = 1.0 / fadeSteps;
-
+        
+        // Fade from current opacity to 0 (not from 1.0)
+        var startOpacity = progressBarOpacity;
         for (int i = fadeSteps; i >= 0; i--)
         {
-            ProgressBarOpacity = i * opacityStep;
+            ProgressBarOpacity = startOpacity * i / fadeSteps;
             await Task.Delay((int)stepDelay);
         }
 
@@ -81,15 +82,9 @@ public class ProgressBarManager
         shouldShowProgressBar = true;
     }
 
-    private void OnProgressChanged()
-    {
-        ProgressBarOpacityChanged?.Invoke(progressBarOpacity);
-    }
-
     public void Dispose()
     {
-        progressAnimator.ProgressChanged -= OnProgressChanged;
-        progressAnimator.Dispose();
+        // No resources to dispose - animation is handled by the view
     }
 }
 

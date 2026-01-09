@@ -97,40 +97,32 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
 #endif
 
                         // Send InitializedMessage early (after database/Fluxor are ready) to show UI with loading state
-                        // This improves perceived performance - user sees the home page while schedules are being populated
+                        // Use fire-and-forget to not block bootstrap - Home page creation runs in parallel with schedule loading
+                        // This ensures the progress bar animation gets UI thread time to run smoothly
                         if (shouldSendEarlyNav)
                         {
 #if DEBUG
-                            var earlyNavStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-                            Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage early (before schedule population)");
+                            Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage early (fire-and-forget, before schedule population)");
 #endif
-                            try
+                            MainThread.BeginInvokeOnMainThread(() =>
                             {
-                                MainThread.BeginInvokeOnMainThread(() =>
+                                try
                                 {
-                                    try
-                                    {
-                                        WeakReferenceMessenger.Default.Send(new InitializedMessage());
+                                    WeakReferenceMessenger.Default.Send(new InitializedMessage());
 #if DEBUG
-                                        var earlyNavElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - earlyNavStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                                        Log.Logger.Information("[BOOTSTRAP] Early InitializedMessage sent - Navigation triggered in {ElapsedMs:F2}ms", earlyNavElapsed);
+                                    Log.Logger.Information("[BOOTSTRAP] Early InitializedMessage sent - Navigation triggered");
 #endif
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Log.Logger.Error(ex, "Error sending early InitializedMessage");
-                                    }
-                                });
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Logger.Error(ex, "Error invoking MainThread for early InitializedMessage");
-                            }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Logger.Error(ex, "Error sending early InitializedMessage");
+                                }
+                            });
                         }
 
-                        // After database and Fluxor store are initialized, load schedules into state
-                        // This ensures schedules are available for both Android Auto services and main UI
-                        // UI is already showing (via early InitializedMessage), so user sees loading state
+                        // Load schedules in parallel with Home page creation
+                        // HomeViewModel will read state.Value on construction - if schedules are already loaded, it shows them immediately
+                        // If schedules aren't loaded yet, HomeViewModel shows progress bar and updates when InitializeAction arrives
                         await scheduleBootstrapService.InitializeAsync();
 
                         // Initialize platform-specific services (notification channels, background jobs)

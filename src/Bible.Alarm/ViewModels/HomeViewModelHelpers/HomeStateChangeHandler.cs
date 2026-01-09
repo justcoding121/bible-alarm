@@ -93,8 +93,10 @@ public class HomeStateChangeHandler
                 // Even if skipping processing, ensure progress bar is hidden if we have schedules
                 if (stateValue.Schedules.Count > 0 && getIsBusy())
                 {
-                    setIsBusy(false);
+                    // Fade out first, then set IsBusy to false
+                    // This ensures smooth animation before UpdateVisibility snaps opacity to 0
                     await fadeOutProgressBarAsync();
+                    setIsBusy(false);
                 }
                 return;
             }
@@ -138,9 +140,6 @@ public class HomeStateChangeHandler
             logger.Debug("OnStateChanged: Prepared {AddCount} to add, {RemoveCount} to remove, {NewCount} total. HasSchedulesNow: {HasSchedules}",
                 schedulesToAdd.Count, schedulesToRemove.Count, newSchedules?.Count ?? 0, hasSchedulesNow);
 
-            // Yield once to allow UI to process any pending updates
-            await Task.Yield();
-
             var isInitialLoad = getSchedules() == null || getSchedules()!.Count == 0;
 
             if (isInitialLoad && hasSchedulesNow && newSchedules != null)
@@ -165,8 +164,9 @@ public class HomeStateChangeHandler
 
                 if (schedulesToRemove.Count > 0)
                 {
-                    setIsBusy(false);
+                    // Fade out first, then set IsBusy to false
                     await fadeOutProgressBarAsync();
+                    setIsBusy(false);
                 }
             }
             else
@@ -180,16 +180,19 @@ public class HomeStateChangeHandler
                 if (schedulesToAdd.Count > 0 && previousScheduleCount < currentScheduleCount)
                 {
                     logger.Debug("OnStateChanged: Delete rollback detected - hiding progress bar");
-                    setIsBusy(false);
+                    // Fade out first, then set IsBusy to false
                     await fadeOutProgressBarAsync();
+                    setIsBusy(false);
                 }
             }
 
             // Only set IsBusy to false if we actually have schedules now
             if (hasSchedulesNow && getIsBusy())
             {
-                setIsBusy(false);
+                // Fade out first, then set IsBusy to false
+                // This ensures smooth animation before UpdateVisibility snaps opacity to 0
                 await fadeOutProgressBarAsync();
+                setIsBusy(false);
             }
 
             // Update last processed state
