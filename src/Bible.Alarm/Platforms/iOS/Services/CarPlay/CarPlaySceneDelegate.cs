@@ -8,20 +8,12 @@ namespace Bible.Alarm.Platforms.iOS.Services.CarPlay;
 
 /// <summary>
 /// CarPlay Scene Delegate for Bible Alarm.
-/// Handles CarPlay connection/disconnection and manages the Now Playing template.
+/// Handles CarPlay connection/disconnection and manages the schedule list template.
 /// 
-/// For audio apps, CarPlay primarily uses MPNowPlayingInfoCenter and MPRemoteCommandCenter
-/// (already implemented in iOSMediaSessionEffect). This delegate provides the CarPlay-specific
-/// UI template when the user opens the app in CarPlay.
+/// Shows a list of schedules that users can tap to start playback, similar to Android Auto.
 /// 
 /// NOTE: This requires the com.apple.developer.carplay-audio entitlement from Apple MFi portal.
 /// Without the entitlement, this delegate will never be called (CarPlay won't connect to the app).
-/// 
-/// IMPORTANT: The [Register] attribute is now enabled for simulator testing with dual-scene
-/// configuration. The Info.plist explicitly configures both the main app scene and CarPlay
-/// scene, preventing the auto-generated manifest from overriding the main app scene.
-/// 
-/// For device builds, this remains disabled until MFi approval is obtained.
 /// </summary>
 [Register("CarPlaySceneDelegate")]
 public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDelegate
@@ -29,11 +21,18 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     private static readonly ILogger logger = Log.ForContext<CarPlaySceneDelegate>();
 
     private CPInterfaceController? interfaceController;
+    private CPListTemplate? scheduleListTemplate;
 
     /// <summary>
     /// Static flag indicating if CarPlay is currently connected.
     /// </summary>
     public static bool IsCarPlayConnected { get; private set; }
+
+    /// <summary>
+    /// Static reference to the current delegate instance.
+    /// Used by effects to refresh the schedule list when schedules change.
+    /// </summary>
+    public static CarPlaySceneDelegate? Current { get; private set; }
 
     /// <summary>
     /// Called when CarPlay connects to the app.
@@ -46,10 +45,13 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             logger.Information("[CarPlay] Connected to CarPlay interface controller");
             interfaceController = controller;
             IsCarPlayConnected = true;
+            Current = this;
+
+            // Create and set the schedule list template
+            SetRootTemplate();
         }
         catch (Exception ex)
         {
-            // CarPlay connection failures are non-critical (CarPlay is optional)
             logger.Warning(ex, "[CarPlay] Error during CarPlay connection");
         }
     }
@@ -64,21 +66,18 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         {
             logger.Information("[CarPlay] Disconnected from CarPlay interface controller");
             IsCarPlayConnected = false;
+            Current = null;
             interfaceController = null;
-            
-            // Note: Now Playing info will be cleared automatically when SetCarPlayScreenAction
-            // is dispatched next (e.g., when playback stops), as iOSMediaSessionEffect checks
-            // IsCarPlayConnected and clears if CarPlay is not connected.
+            scheduleListTemplate = null;
         }
         catch (Exception ex)
         {
-            // CarPlay disconnection failures are non-critical (CarPlay is optional)
             logger.Warning(ex, "[CarPlay] Error during CarPlay disconnection");
         }
     }
 
     /// <summary>
-    /// Called when the CarPlay scene is about to connect to a session.
+    /// Called when the CarPlay scene is about to connect to a session with a window.
     /// </summary>
     [Export("templateApplicationScene:didConnectInterfaceController:toWindow:")]
     public void DidConnect(CPTemplateApplicationScene scene, CPInterfaceController controller, CPWindow window)
@@ -87,10 +86,153 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     }
 
     /// <summary>
-    /// Updates the Now Playing template buttons dynamically.
+    /// Sets the root template with the schedule list.
     /// </summary>
-    public void UpdateNowPlayingButtons()
+    private void SetRootTemplate()
     {
-        logger.Debug("[CarPlay] Now Playing buttons are managed automatically by CarPlay");
+        if (interfaceController == null)
+        {
+            logger.Warning("[CarPlay] Cannot set root template - interface controller is null");
+            return;
+        }
+
+        try
+        {
+            scheduleListTemplate = CreateScheduleListTemplate();
+            
+            interfaceController.SetRootTemplate(scheduleListTemplate, animated: true, completion: (success, error) =>
+            {
+                if (success)
+                {
+                    logger.Information("[CarPlay] Successfully set schedule list as root template");
+                }
+                else
+                {
+                    logger.Warning("[CarPlay] Failed to set root template: {Error}", error?.LocalizedDescription ?? "Unknown error");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "[CarPlay] Error setting root template");
+        }
+    }
+
+    /// <summary>
+    /// Creates the schedule list template with all available schedules.
+    /// </summary>
+    private CPListTemplate CreateScheduleListTemplate()
+    {
+        var schedules = CarPlayScheduleHelper.LoadScheduleStateItemsFromState();
+        
+        if (schedules.Count == 0)
+        {
+            logger.Warning("[CarPlay] No schedules available - showing empty state");
+            return CreateEmptyStateTemplate();
+        }
+
+        var listItems = new List<ICPListTemplateItem>();
+
+        foreach (var schedule in schedules)
+        {
+            var title = CarPlayScheduleHelper.BuildScheduleTitle(schedule);
+            var subtitle = CarPlayScheduleHelper.BuildScheduleSubtitle(schedule);
+            var scheduleId = schedule.Id;
+
+            var listItem = new CPListItem(title, subtitle);
+            
+            // Set the handler for when user taps the item
+            listItem.Handler = (item, completion) =>
+            {
+                logger.Information("[CarPlay] User tapped schedule: {Title} (ID: {ScheduleId})", title, scheduleId);
+                CarPlayPlaybackHandler.HandleScheduleItemClicked(scheduleId);
+                
+                // Complete the handler - this dismisses any loading indicator
+                completion();
+            };
+
+            listItems.Add(listItem);
+        }
+
+        // Create a section with all schedules
+        var section = new CPListSection(listItems.ToArray(), "Schedules", null);
+        
+        // Create the list template with title and sections array
+        var sections = new CPListSection[] { section };
+        var template = new CPListTemplate("Bible Alarm", sections);
+        
+        logger.Information("[CarPlay] Created schedule list template with {Count} schedules", schedules.Count);
+        
+        return template;
+    }
+
+    /// <summary>
+    /// Creates an empty state template when no schedules are available.
+    /// </summary>
+    private CPListTemplate CreateEmptyStateTemplate()
+    {
+        var emptyItem = new CPListItem("No Schedules", "Create schedules in the app to see them here");
+        emptyItem.Handler = (item, completion) =>
+        {
+            // Do nothing on tap - just complete the handler
+            completion();
+        };
+
+        var items = new ICPListTemplateItem[] { emptyItem };
+        var section = new CPListSection(items, null, null);
+        var sections = new CPListSection[] { section };
+        return new CPListTemplate("Bible Alarm", sections);
+    }
+
+    /// <summary>
+    /// Refreshes the schedule list template.
+    /// Call this when schedules are added, removed, or modified.
+    /// </summary>
+    public void RefreshScheduleList()
+    {
+        if (!IsCarPlayConnected || interfaceController == null)
+        {
+            return;
+        }
+
+        try
+        {
+            logger.Debug("[CarPlay] Refreshing schedule list");
+            
+            var newTemplate = CreateScheduleListTemplate();
+            
+            // Update the sections on the existing template if possible
+            if (scheduleListTemplate != null)
+            {
+                var schedules = CarPlayScheduleHelper.LoadScheduleStateItemsFromState();
+                var listItems = new List<ICPListTemplateItem>();
+
+                foreach (var schedule in schedules)
+                {
+                    var title = CarPlayScheduleHelper.BuildScheduleTitle(schedule);
+                    var subtitle = CarPlayScheduleHelper.BuildScheduleSubtitle(schedule);
+                    var scheduleId = schedule.Id;
+
+                    var listItem = new CPListItem(title, subtitle);
+                    listItem.Handler = (item, completion) =>
+                    {
+                        CarPlayPlaybackHandler.HandleScheduleItemClicked(scheduleId);
+                        completion();
+                    };
+
+                    listItems.Add(listItem);
+                }
+
+                var section = new CPListSection(listItems.ToArray(), "Schedules", null);
+                var sections = new CPListSection[] { section };
+                scheduleListTemplate.UpdateSections(sections);
+                
+                logger.Debug("[CarPlay] Updated schedule list with {Count} schedules", schedules.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "[CarPlay] Error refreshing schedule list");
+        }
     }
 }
