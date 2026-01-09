@@ -197,8 +197,6 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 
         try
         {
-            logger.Debug("[CarPlay] Refreshing schedule list");
-            
             var newTemplate = CreateScheduleListTemplate();
             
             // Update the sections on the existing template if possible
@@ -226,8 +224,6 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
                 var section = new CPListSection(listItems.ToArray(), "Schedules", null);
                 var sections = new CPListSection[] { section };
                 scheduleListTemplate.UpdateSections(sections);
-                
-                logger.Debug("[CarPlay] Updated schedule list with {Count} schedules", schedules.Count);
             }
         }
         catch (Exception ex)

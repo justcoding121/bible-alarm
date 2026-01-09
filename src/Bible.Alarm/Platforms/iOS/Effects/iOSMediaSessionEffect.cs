@@ -92,7 +92,6 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
                 // No active schedule and stopped - keep play command enabled for default schedule
                 // SetDefaultScheduleMetadataAction will be dispatched and will set up the metadata
                 // Commands should remain registered so play button works from lock screen
-                logger.Debug("[iOS MediaSession] Playback stopped/ended - keeping commands registered for default schedule");
             }
         }
         catch (Exception ex)
@@ -146,7 +145,6 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
     {
         try
         {
-            logger.Debug("[iOS MediaSession] Duration changed: {Duration}", action.Duration);
             nowPlayingManager.UpdateDuration(action.Duration);
         }
         catch (Exception ex)
@@ -167,10 +165,6 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
         {
             var currentState = playbackState.Value;
             var isPlaying = currentState.Status == PlayStatus.Playing;
-
-            logger.Debug(
-                "[iOS MediaSession] Navigation changed: CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
-                action.CanPlayNext, action.CanPlayPrevious);
 
             remoteCommandManager.UpdateCommandAvailability(
                 action.CanPlayNext,
@@ -198,7 +192,6 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
             // Only update if playback is not active
             if (playbackState.Value.IsPreparingOrPlaying)
             {
-                logger.Debug("[iOS MediaSession] Playback is active, skipping default schedule metadata update");
                 return Task.CompletedTask;
             }
 

@@ -23,8 +23,6 @@ public static class CarPlayScheduleHelper
     {
         try
         {
-            logger.Debug("[CarPlay] Loading schedules from state");
-
             // Get state from service provider - schedules are already loaded during bootstrap
             var state = ServiceProviderManager.GetService<IState<ApplicationState>>();
 

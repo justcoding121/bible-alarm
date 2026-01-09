@@ -79,7 +79,11 @@ public class AudioPlayerMetadataHandler
     private void SendMetadataMessage(MetaData meta)
     {
         string? artworkUrl = meta.ArtworkUrl;
-        if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0 && string.IsNullOrEmpty(artworkUrl))
+        
+        // ALWAYS save artwork bytes to a local file if available
+        // This ensures iOSNowPlayingInfoManager can load artwork synchronously from a file path
+        // rather than trying to load from HTTP URLs which would require async loading
+        if (meta.ArtworkBytes != null && meta.ArtworkBytes.Length > 0)
         {
             try
             {
@@ -89,12 +93,12 @@ public class AudioPlayerMetadataHandler
                 var artworkDir = FileSystem.AppDataDirectory;
                 var artworkPath = Path.Combine(artworkDir, "playing_track_artwork.jpg");
                 File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
-                artworkUrl = artworkPath;
-                logger.Debug($"Saved playing track artwork to {artworkPath}, size: {meta.ArtworkBytes.Length} bytes");
+                artworkUrl = artworkPath; // Always use local file path for iOS lock screen
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Failed to save playing track artwork to file");
+                // Fall back to URL if file save failed
             }
         }
 
@@ -105,15 +109,6 @@ public class AudioPlayerMetadataHandler
             Album = meta.Album,
             ArtworkUrl = artworkUrl
         });
-
-        if (!string.IsNullOrEmpty(artworkUrl))
-        {
-            logger.Debug($"Dispatched metadata with ArtworkUrl: {artworkUrl}");
-        }
-        else
-        {
-            logger.Debug("Dispatched metadata without ArtworkUrl");
-        }
     }
 }
 

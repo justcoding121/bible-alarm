@@ -41,50 +41,41 @@ public sealed class iOSNowPlayingInfoManager
             currentAlbum = album;
             currentDuration = duration.TotalSeconds;
 
-            // Preserve previous artwork reference before potentially changing
+            // Preserve previous artwork reference - NEVER clear artwork
             var previousArtwork = currentArtwork;
             var oldArtworkUrl = currentArtworkUrl;
             
-            // Check if we have cached artwork and the URL matches
-            MPMediaItemArtwork? artworkToUse = null;
-            if (currentArtwork != null && !string.IsNullOrEmpty(artworkUrl) && artworkUrl == oldArtworkUrl)
+            // Always start with previous artwork as fallback (never show empty lock screen)
+            MPMediaItemArtwork? artworkToUse = previousArtwork;
+            
+            // Try to load new artwork if URL is provided
+            if (!string.IsNullOrEmpty(artworkUrl))
             {
-                // Same URL, reuse cached artwork
-                artworkToUse = currentArtwork;
-                logger.Debug("[iOS NowPlaying] Reusing cached artwork for same URL");
-            }
-            else if (!string.IsNullOrEmpty(artworkUrl) && artworkUrl != oldArtworkUrl)
-            {
-                // URL changed, try to load new artwork
-                currentArtworkUrl = artworkUrl;
-                var newArtwork = LoadArtworkSync(artworkUrl);
-                if (newArtwork != null)
+                if (artworkUrl == oldArtworkUrl && currentArtwork != null)
                 {
-                    artworkToUse = newArtwork;
-                    currentArtwork = newArtwork;
-                    logger.Debug("[iOS NowPlaying] Loaded new artwork synchronously from {Url}", artworkUrl);
+                    // Same URL, reuse cached artwork
+                    artworkToUse = currentArtwork;
                 }
-                else
+                else if (artworkUrl != oldArtworkUrl)
                 {
-                    // Failed to load new artwork - keep previous artwork (never show empty)
-                    artworkToUse = previousArtwork;
-                    logger.Warning("[iOS NowPlaying] Failed to load artwork from {Url}, keeping previous artwork", artworkUrl);
-                    
-                    // Try async loading as fallback
-                    LoadArtworkAsyncAndUpdate(artworkUrl);
+                    // URL changed, try to load new artwork
+                    currentArtworkUrl = artworkUrl;
+                    var newArtwork = LoadArtworkSync(artworkUrl);
+                    if (newArtwork != null)
+                    {
+                        artworkToUse = newArtwork;
+                        currentArtwork = newArtwork;
+                    }
+                    else
+                    {
+                        // Failed to load new artwork - keep previous artwork (never show empty)
+                        LoadArtworkAsyncAndUpdate(artworkUrl);
+                    }
                 }
-            }
-            else if (string.IsNullOrEmpty(artworkUrl) && currentArtwork != null)
-            {
-                // No new artwork URL provided, keep current artwork
-                artworkToUse = currentArtwork;
             }
 
             var nowPlayingInfo = CreateNowPlayingInfoWithArtwork(title, artist, album, duration, artworkToUse);
             MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
-
-            logger.Information("[iOS NowPlaying] Metadata updated: Title={Title}, HasArtwork={HasArtwork}", 
-                title, nowPlayingInfo.Artwork != null);
         }
         catch (Exception ex)
         {
@@ -109,7 +100,6 @@ public sealed class iOSNowPlayingInfoManager
                             currentInfo.Artwork = asyncArtwork;
                             currentArtwork = asyncArtwork;
                             MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = currentInfo;
-                            logger.Debug("[iOS NowPlaying] Async artwork loaded and applied");
                         }
                     });
                 }
@@ -166,7 +156,6 @@ public sealed class iOSNowPlayingInfoManager
                 // If currentTitle is null, we've likely cleared the info and shouldn't recreate it
                 if (string.IsNullOrEmpty(currentTitle))
                 {
-                    logger.Debug("[iOS NowPlaying] Skipping UpdatePlaybackPosition - no cached metadata, likely cleared");
                     return;
                 }
                 
@@ -195,10 +184,16 @@ public sealed class iOSNowPlayingInfoManager
                 }
             }
 
-            // Update position and rate (preserve existing artwork and other metadata)
+            // Update position and rate
             nowPlayingInfo.ElapsedPlaybackTime = currentPosition.TotalSeconds;
             nowPlayingInfo.PlaybackDuration = duration.TotalSeconds;
             nowPlayingInfo.PlaybackRate = status == PlayStatus.Playing ? 1.0 : 0.0;
+            
+            // Re-apply cached artwork - getting NowPlaying returns a copy that may lose the artwork
+            if (currentArtwork != null)
+            {
+                nowPlayingInfo.Artwork = currentArtwork;
+            }
 
             MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
         }
@@ -225,6 +220,13 @@ public sealed class iOSNowPlayingInfoManager
             }
 
             nowPlayingInfo.PlaybackRate = status == PlayStatus.Playing ? 1.0 : 0.0;
+            
+            // Re-apply cached artwork - getting NowPlaying returns a copy that may lose the artwork
+            if (currentArtwork != null)
+            {
+                nowPlayingInfo.Artwork = currentArtwork;
+            }
+            
             MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
         }
         catch (Exception ex)
@@ -249,6 +251,13 @@ public sealed class iOSNowPlayingInfoManager
             }
 
             nowPlayingInfo.PlaybackDuration = duration.TotalSeconds;
+            
+            // Re-apply cached artwork - getting NowPlaying returns a copy that may lose the artwork
+            if (currentArtwork != null)
+            {
+                nowPlayingInfo.Artwork = currentArtwork;
+            }
+            
             MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
         }
         catch (Exception ex)
@@ -320,7 +329,6 @@ public sealed class iOSNowPlayingInfoManager
                     {
                         // Failed to load, keep previous
                         artworkToUse = previousArtwork;
-                        logger.Warning("[iOS NowPlaying] Failed to load default artwork from {Url}, keeping previous", artworkUrl);
                         LoadArtworkAsyncAndUpdate(artworkUrl);
                     }
                 }
@@ -334,9 +342,6 @@ public sealed class iOSNowPlayingInfoManager
             var nowPlayingInfo = CreateNowPlayingInfoWithArtwork(title, artist, album, TimeSpan.Zero, artworkToUse);
             nowPlayingInfo.PlaybackRate = 0.0;
             MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
-            
-            logger.Information("[iOS NowPlaying] Default metadata set: Title={Title}, HasArtwork={HasArtwork}", 
-                title, nowPlayingInfo.Artwork != null);
         }
         catch (Exception ex)
         {
@@ -381,7 +386,6 @@ public sealed class iOSNowPlayingInfoManager
 
             if (string.IsNullOrEmpty(filePath))
             {
-                logger.Warning("[iOS NowPlaying] Could not determine file path from URL: {Url}", artworkUrl);
                 return null;
             }
 
@@ -402,8 +406,8 @@ public sealed class iOSNowPlayingInfoManager
                 return null;
             }
 
-            var artworkSize = new CoreGraphics.CGSize(Math.Max(600, image.Size.Width), Math.Max(600, image.Size.Height));
-            return new MPMediaItemArtwork(artworkSize, _ => image);
+            // Use actual image size - iOS handles scaling automatically
+            return new MPMediaItemArtwork(image.Size, _ => image);
         }
         catch (Exception ex)
         {

@@ -1,14 +1,11 @@
 #nullable enable
 
-using AutoMapper;
 using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
@@ -23,20 +20,17 @@ namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelper
 public class MusicEnabledHandler
 {
     private readonly ILogger logger;
-    private readonly IMapper mapper;
     private readonly IDispatcher dispatcher;
     private readonly IServiceProvider serviceProvider;
     private readonly IState<ApplicationState> state;
 
     public MusicEnabledHandler(
         ILogger logger,
-        IMapper mapper,
         IDispatcher dispatcher,
         IServiceProvider serviceProvider,
         IState<ApplicationState> state)
     {
         this.logger = logger;
-        this.mapper = mapper;
         this.dispatcher = dispatcher;
         this.serviceProvider = serviceProvider;
         this.state = state;
@@ -75,7 +69,7 @@ public class MusicEnabledHandler
         // Set optimistic update value immediately
         setPendingMusicEnabled(value);
 
-        // Trigger PropertyChanged immediately to update UI (must be on UI thread for MAUI)
+        // Trigger PropertyChanged immediately to update UI
         MainThread.BeginInvokeOnMainThread(() =>
         {
             onPropertyChanged();
@@ -92,9 +86,18 @@ public class MusicEnabledHandler
         _ = Task.Run(() =>
         {
             var clonedSchedule = currentSchedule.DeepClone();
-            var scheduleStateItem = mapper.Map<ScheduleStateItem>(clonedSchedule);
-            scheduleStateItem.MusicEnabled = value;
-            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
+            // DeepClone already returns ScheduleStateItem, no need to map again
+            clonedSchedule.MusicEnabled = value;
+            
+            // If enabling music and MusicType is not set, set default to Melodies immediately
+            // This ensures MusicTypeDisplayText shows "Orchestral Melodies" right away
+            // before the async DB query for the default track completes
+            if (value && !clonedSchedule.MusicType.HasValue)
+            {
+                clonedSchedule.MusicType = MusicType.Melodies;
+            }
+            
+            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, false, false, shouldSave: false));
         });
 
         // If enabling music, only reset to default music if:
@@ -145,20 +148,19 @@ public class MusicEnabledHandler
 
                             // Update state with default music properties (reset to default)
                             // IMPORTANT: Preserve MusicEnabled from the latest state (should already be true from first dispatch)
-                            // Run DeepClone and mapping on background thread to avoid blocking UI
+                            // DeepClone already returns ScheduleStateItem, no need to map again
                             var clonedSchedule = latestSchedule.DeepClone();
-                            var scheduleStateItem = mapper.Map<ScheduleStateItem>(clonedSchedule);
                             // MusicEnabled should already be true from the first dispatch, but ensure it's set
-                            scheduleStateItem.MusicEnabled = true;
-                            scheduleStateItem.MusicType = MusicType.Melodies;
-                            scheduleStateItem.MusicPublicationCode = DefaultPublicationCode;
-                            scheduleStateItem.MusicLanguageCode = null;
-                            scheduleStateItem.MusicTrackNumber = randomTrack.Number;
-                            scheduleStateItem.MusicRepeat = false;
-                            scheduleStateItem.MusicTrackName = $"Melody Number(s) {randomTrack.Title}";
+                            clonedSchedule.MusicEnabled = true;
+                            clonedSchedule.MusicType = MusicType.Melodies;
+                            clonedSchedule.MusicPublicationCode = DefaultPublicationCode;
+                            clonedSchedule.MusicLanguageCode = null;
+                            clonedSchedule.MusicTrackNumber = randomTrack.Number;
+                            clonedSchedule.MusicRepeat = false;
+                            clonedSchedule.MusicTrackName = $"Melody Number(s) {randomTrack.Title}";
 
                             // Update state with music properties (MusicEnabled should already be true from first dispatch)
-                            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
+                            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, false, false, shouldSave: false));
                         }
                     }
                     catch (Exception ex)

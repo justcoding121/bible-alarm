@@ -220,6 +220,7 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             Log.Debug("[MusicSelectionContainer] OnViewModelPropertyChanged: MusicEnabled property changed. Calling handler.");
 #endif
         }
+        
         propertyChangeHandler?.OnViewModelPropertyChanged(sender, e, viewModel);
     }
 

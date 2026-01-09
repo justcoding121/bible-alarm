@@ -83,7 +83,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider, toastService);
         displayTextProvider = new MusicDisplayTextProvider(state);
         propertyNotifier = new MusicPropertyNotifier(propertyName => OnPropertyChanged(propertyName), displayTextProvider);
-        musicEnabledHandler = new MusicEnabledHandler(logger, mapper, dispatcher, serviceProvider, state);
+        musicEnabledHandler = new MusicEnabledHandler(logger, dispatcher, serviceProvider, state);
         stateTracker = new MusicStateTracker();
         stateInitializer = new MusicStateInitializer(state, dispatcher, displayTextProvider, propertyNotifier);
         stateChangeHandler = new MusicStateChangeHandler(state, dispatcher, mapper, stateTracker, propertyNotifier, displayTextProvider);

@@ -143,16 +143,6 @@ public sealed class MusicStateChangeHandler
                         stateTracker.InitializeFromSchedule(currentSchedule);
                     }
 
-                    // Notify MusicTypeDisplayText on main thread with delay to ensure content is visible first
-                    // This is critical for iOS - bindings are evaluated when content becomes visible
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        // Wait a bit to ensure CollapsibleContent is visible before notifying
-                        onPropertyChanged("MusicTypeDisplayText");
-                        onPropertyChanged("IsMusicLanguageVisible");
-                        onPropertyChanged("IsSongBookVisible");
-                    });
-
                     // Check if MusicTrackName is already in state (from bootstrap or from DB load in setter)
                     if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
                     {
@@ -171,7 +161,6 @@ public sealed class MusicStateChangeHandler
                     else
                     {
                         // Track name not in state yet - wait for MusicEnabled setter to load it from DB
-                        // Just notify property change to trigger UI update
                         MainThread.BeginInvokeOnMainThread(() =>
                         {
                             onPropertyChanged("TrackDisplayText");
