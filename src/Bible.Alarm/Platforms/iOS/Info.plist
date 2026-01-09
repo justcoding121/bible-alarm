@@ -49,36 +49,5 @@
 	<array>
 		<string>com.jthomas.info.Bible.Alarm.MediaIndexUpdate</string>
 	</array>
-	
-	<!-- Scene Configuration for dual-scene support (Main App + CarPlay) -->
-	<!-- This enables both the main app window and CarPlay scene to coexist -->
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<true/>
-		<key>UISceneConfigurations</key>
-		<dict>
-			<!-- Main App Scene Configuration -->
-			<key>UIWindowSceneSessionRoleApplication</key>
-			<array>
-				<dict>
-					<key>UISceneConfigurationName</key>
-					<string>Default Configuration</string>
-					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
-				</dict>
-			</array>
-			<!-- CarPlay Scene Configuration -->
-			<key>UIWindowSceneSessionRoleCPTemplateApplication</key>
-			<array>
-				<dict>
-					<key>UISceneConfigurationName</key>
-					<string>CarPlay Scene</string>
-					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
-				</dict>
-			</array>
-		</dict>
-	</dict>
 </dict>
 </plist>

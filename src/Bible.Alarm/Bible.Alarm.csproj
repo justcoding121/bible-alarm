@@ -267,4 +267,12 @@
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-windows'))">
 		<Content Include="Platforms\Windows\Assets\**" />
 	</ItemGroup>
+
+	<!-- CarPlay Support Notes:
+	     The CarPlay C# code (CarPlaySceneDelegate.cs, SceneDelegate.cs) is always compiled but NOT activated.
+	     Once Apple approves CarPlay entitlement:
+	     1. Add UIApplicationSceneManifest to Info.plist with both main app and CarPlay scenes
+	     2. Add [Preserve] attribute to SceneDelegate and CarPlaySceneDelegate classes to prevent linker removal
+	     3. Test on simulator using I/O > External Displays > CarPlay
+	-->
 </Project>

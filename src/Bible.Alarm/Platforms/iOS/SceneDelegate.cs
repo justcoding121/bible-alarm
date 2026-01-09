@@ -1,6 +1,7 @@
 #nullable enable
 
 using Foundation;
+using Microsoft.Maui.Platform;
 using Serilog;
 using UIKit;
 
@@ -8,27 +9,21 @@ namespace Bible.Alarm.Platforms.iOS;
 
 /// <summary>
 /// Scene Delegate for the main app window.
-/// This handles the main app scene lifecycle when using iOS 13+ scene-based architecture.
-/// MAUI will still create the window through App.CreateWindow, but this delegate
-/// manages the scene lifecycle events.
+/// Inherits from MauiUISceneDelegate to properly integrate with MAUI's window creation.
+/// This is required when using iOS 13+ scene-based architecture with CarPlay support.
 /// </summary>
 [Register("SceneDelegate")]
-public class SceneDelegate : UIResponder, IUIWindowSceneDelegate
+public class SceneDelegate : MauiUISceneDelegate
 {
     private static readonly ILogger logger = Log.ForContext<SceneDelegate>();
-    private UIWindow? window;
 
-    [Export("scene:willConnectToSession:options:")]
-    public void WillConnect(UIScene scene, UISceneSession session, UISceneConnectionOptions connectionOptions)
+    public override void WillConnect(UIScene scene, UISceneSession session, UISceneConnectionOptions connectionOptions)
     {
         try
         {
-            if (scene is UIWindowScene windowScene)
-            {
-                // MAUI creates the window through App.CreateWindow, so we don't create it here
-                // This delegate just manages the scene lifecycle
-                logger.Debug("[SceneDelegate] Scene will connect to session: {SessionRole}", session.Role);
-            }
+            logger.Debug("[SceneDelegate] Scene will connect to session: {SessionRole}", session.Role);
+            // Call base to let MAUI create the window properly
+            base.WillConnect(scene, session, connectionOptions);
         }
         catch (Exception ex)
         {
@@ -36,12 +31,12 @@ public class SceneDelegate : UIResponder, IUIWindowSceneDelegate
         }
     }
 
-    [Export("sceneDidDisconnect:")]
-    public void DidDisconnect(UIScene scene)
+    public override void DidDisconnect(UIScene scene)
     {
         try
         {
             logger.Debug("[SceneDelegate] Scene did disconnect");
+            base.DidDisconnect(scene);
         }
         catch (Exception ex)
         {
@@ -75,12 +70,12 @@ public class SceneDelegate : UIResponder, IUIWindowSceneDelegate
         }
     }
 
-    [Export("sceneWillEnterForeground:")]
-    public void WillEnterForeground(UIScene scene)
+    public override void WillEnterForeground(UIScene scene)
     {
         try
         {
             logger.Debug("[SceneDelegate] Scene will enter foreground");
+            base.WillEnterForeground(scene);
         }
         catch (Exception ex)
         {
@@ -88,22 +83,16 @@ public class SceneDelegate : UIResponder, IUIWindowSceneDelegate
         }
     }
 
-    [Export("sceneDidEnterBackground:")]
-    public void DidEnterBackground(UIScene scene)
+    public override void DidEnterBackground(UIScene scene)
     {
         try
         {
             logger.Debug("[SceneDelegate] Scene did enter background");
+            base.DidEnterBackground(scene);
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "[SceneDelegate] Error in DidEnterBackground");
         }
-    }
-
-    public UIWindow? Window
-    {
-        get => window;
-        set => window = value;
     }
 }
