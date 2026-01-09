@@ -4,6 +4,7 @@ using BackgroundTasks;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.iOS.Services.BackgroundTasks;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -226,6 +227,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
     {
         try
         {
+            // Reset badge count
             UNUserNotificationCenter.Current.SetBadgeCount(0, error =>
             {
                 if (error != null)
@@ -233,11 +235,53 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
                     logger.Error("Failed to reset badge count: {Error}", error.LocalizedDescription);
                 }
             });
+            
+            // Extract schedule ID from notification and start playback
+            if (userInfo != null && userInfo.TryGetValue(new NSString("ScheduleId"), out var scheduleIdValue))
+            {
+                var scheduleIdString = scheduleIdValue?.ToString();
+                if (!string.IsNullOrEmpty(scheduleIdString) && int.TryParse(scheduleIdString, out var scheduleId) && scheduleId > 0)
+                {
+                    logger.Information("Notification tapped for schedule {ScheduleId}, starting playback", scheduleId);
+                    StartPlaybackFromNotification(scheduleId);
+                }
+            }
         }
         catch (Exception e)
         {
             logger.Error(e, "Error handling iOS notification.");
         }
+    }
+    
+    /// <summary>
+    /// Starts playback when user taps on a notification.
+    /// Unlike Android, iOS doesn't support auto-playback from background - user must tap notification.
+    /// </summary>
+    private static void StartPlaybackFromNotification(int scheduleId)
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                // Ensure bootstrap is complete before accessing services
+                await MauiProgram.WaitForBootstrapAsync();
+                
+                var playbackService = ServiceProviderManager.GetService<ISchedulePlaybackService>();
+                if (playbackService != null)
+                {
+                    await playbackService.PlayScheduleAsync(scheduleId);
+                    logger.Information("Started playback for schedule {ScheduleId} from notification tap", scheduleId);
+                }
+                else
+                {
+                    logger.Warning("ISchedulePlaybackService not available for notification playback");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error starting playback from notification for schedule {ScheduleId}", scheduleId);
+            }
+        });
     }
 
     public override void PerformFetch(UIApplication application,
