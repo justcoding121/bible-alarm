@@ -10,7 +10,7 @@ namespace Bible.Alarm.Views.Schedule;
 [XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class BibleSelectionContainer : ContentView
 {
-    private BibleSelectionContainerViewModel? viewModel;
+    private BiblePublicationSelectionContainerViewModel? viewModel;
     private ScrollManager? scrollManager;
 
     public BibleSelectionContainer()
@@ -18,7 +18,7 @@ public partial class BibleSelectionContainer : ContentView
         InitializeComponent();
     }
 
-    public BibleSelectionContainer(BibleSelectionContainerViewModel viewModel) : this()
+    public BibleSelectionContainer(BiblePublicationSelectionContainerViewModel viewModel) : this()
     {
         BindingContext = viewModel;
     }
@@ -44,7 +44,7 @@ public partial class BibleSelectionContainer : ContentView
         }
 
         // Subscribe to new view model
-        viewModel = BindingContext as BibleSelectionContainerViewModel;
+        viewModel = BindingContext as BiblePublicationSelectionContainerViewModel;
         
         if (viewModel != null)
         {
@@ -57,7 +57,7 @@ public partial class BibleSelectionContainer : ContentView
         if (viewModel == null) return;
 
         // Scroll when ViewModel signals it (after section/track selection)
-        if (e.PropertyName == nameof(BibleSelectionContainerViewModel.ShouldScrollToContainer) && viewModel.ShouldScrollToContainer)
+        if (e.PropertyName == nameof(BiblePublicationSelectionContainerViewModel.ShouldScrollToContainer) && viewModel.ShouldScrollToContainer)
         {
 #if DEBUG
             Log.Debug("[BibleSelectionContainer] ShouldScrollToContainer property changed, scrolling to container");

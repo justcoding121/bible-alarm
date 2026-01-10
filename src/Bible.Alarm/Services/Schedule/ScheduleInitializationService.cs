@@ -57,7 +57,7 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
         await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, sampleSchedule);
         logger.Debug("InitializeNewScheduleAsync: Display names populated. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}",
             scheduleStateItem.BiblePublicationLanguageName ?? "null",
-            scheduleStateItem.BiblePublicationPublicationName ?? "null",
+            scheduleStateItem.BiblePublicationName ?? "null",
             scheduleStateItem.BiblePublicationSectionName ?? "null");
 
         return scheduleStateItem;

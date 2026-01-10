@@ -26,7 +26,7 @@ public sealed class ScheduleContainerManager
     /// Initializes container view models asynchronously.
     /// </summary>
     public async Task InitializeContainerViewModelsAsync(
-        Action<BibleSelectionContainerViewModel?, MusicSelectionContainerViewModel?, NumberOfTrackContainerViewModel?, ScheduleDetailsContainerViewModel?> setContainers)
+        Action<BiblePublicationSelectionContainerViewModel?, MusicSelectionContainerViewModel?, NumberOfTrackContainerViewModel?, ScheduleDetailsContainerViewModel?> setContainers)
     {
         await scheduleContainerService.InitializeContainersAsync(serviceProvider, setContainers);
     }

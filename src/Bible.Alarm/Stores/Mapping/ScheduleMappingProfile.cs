@@ -17,7 +17,7 @@ public class ScheduleMappingProfile : Profile
         CreateMap<AlarmSchedule, ScheduleStateItem>()
             .ForMember(dest => dest.BiblePublicationScheduleId, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (int?)src.BiblePublicationSchedule.Id : null))
             .ForMember(dest => dest.BiblePublicationLanguageCode, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.LanguageCode : null))
-            .ForMember(dest => dest.BiblePublicationPublicationCode, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.PublicationCode : null))
+            .ForMember(dest => dest.BiblePublicationCode, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.PublicationCode : null))
             .ForMember(dest => dest.BiblePublicationSectionNumber, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.SectionNumber : null))
             .ForMember(dest => dest.BiblePublicationTrackNumber, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (int?)src.BiblePublicationSchedule.TrackNumber : null))
             .ForMember(dest => dest.BiblePublicationFinishedDuration, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (TimeSpan?)src.BiblePublicationSchedule.FinishedDuration : null))
@@ -37,7 +37,7 @@ public class ScheduleMappingProfile : Profile
             {
                 Id = src.BiblePublicationScheduleId.Value,
                 LanguageCode = src.BiblePublicationLanguageCode ?? string.Empty,
-                PublicationCode = src.BiblePublicationPublicationCode ?? string.Empty,
+                PublicationCode = src.BiblePublicationCode ?? string.Empty,
                 SectionNumber = src.BiblePublicationSectionNumber,
                 TrackNumber = src.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = src.BiblePublicationFinishedDuration ?? TimeSpan.Zero,

@@ -14,7 +14,7 @@
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
-    x:DataType="bible:BibleSelectionViewModel"
+    x:DataType="bible:BiblePublicationSelectionViewModel"
     Title="Select Translation"
     BackgroundColor="{DynamicResource BackgroundColor}">
     <ContentPage.Resources>

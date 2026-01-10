@@ -15,7 +15,7 @@ namespace Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 /// <summary>
 /// Handles data population for bible selection (languages and translations).
 /// </summary>
-public sealed class BibleSelectionDataProvider
+public sealed class BiblePublicationSelectionDataProvider
 {
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
@@ -23,7 +23,7 @@ public sealed class BibleSelectionDataProvider
 
     public readonly Dictionary<string, PublicationListViewItemModel> translationVMsMapping = [];
 
-    public BibleSelectionDataProvider(
+    public BiblePublicationSelectionDataProvider(
         IMediaService mediaService,
         IState<ApplicationState> state,
         IDispatcher dispatcher)
@@ -50,7 +50,7 @@ public sealed class BibleSelectionDataProvider
         // Do ALL processing on background thread to avoid blocking spinner animation
         var languageVMs = await Task.Run(async () =>
         {
-            var languagesData = await mediaService.GetBibleLanguages();
+            var languagesData = await mediaService.GetBiblePublicationLanguages();
             var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
             var vms = new List<LanguageListViewItemModel>();
@@ -102,7 +102,7 @@ public sealed class BibleSelectionDataProvider
 
         // Capture state values before Task.Run to avoid state access issues
         var stateValue = state.Value;
-        var currentPublicationCode = stateValue.CurrentSchedule?.BiblePublicationPublicationCode;
+        var currentPublicationCode = stateValue.CurrentSchedule?.BiblePublicationCode;
         var currentLanguageName = stateValue.CurrentSchedule?.BiblePublicationLanguageName;
 
         // Do ALL processing on background thread to avoid blocking spinner animation
@@ -158,7 +158,7 @@ public sealed class BibleSelectionDataProvider
             var currentSchedule = state.Value.CurrentSchedule;
             var alreadyMatches = currentSchedule != null &&
                                 currentSchedule.BiblePublicationLanguageCode == languageCode &&
-                                currentSchedule.BiblePublicationPublicationCode == defaultTranslation.Code &&
+                                currentSchedule.BiblePublicationCode == defaultTranslation.Code &&
                                 currentSchedule.BiblePublicationSectionNumber == 1 &&
                                 currentSchedule.BiblePublicationTrackNumber == 1;
 

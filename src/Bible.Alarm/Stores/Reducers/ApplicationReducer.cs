@@ -127,8 +127,8 @@ public static class ApplicationReducer
             action.Schedule!.Id, action.Schedule.Name,
             action.Schedule.BiblePublicationLanguageCode ?? "null",
             action.Schedule.BiblePublicationLanguageName ?? "null",
-            action.Schedule.BiblePublicationPublicationCode ?? "null",
-            action.Schedule.BiblePublicationPublicationName ?? "null");
+            action.Schedule.BiblePublicationCode ?? "null",
+            action.Schedule.BiblePublicationName ?? "null");
     }
 
     // REMOVED: UpdateScheduleInCollection - This method was mutating existing state objects.
@@ -240,12 +240,12 @@ public static class ApplicationReducer
             {
                 Id = action.SelectedSchedule.BiblePublicationScheduleId ?? 0,
                 LanguageCode = action.SelectedSchedule.BiblePublicationLanguageCode ?? string.Empty,
-                PublicationCode = action.SelectedSchedule.BiblePublicationPublicationCode ?? string.Empty,
+                PublicationCode = action.SelectedSchedule.BiblePublicationCode ?? string.Empty,
                 SectionNumber = action.SelectedSchedule.BiblePublicationSectionNumber,
                 TrackNumber = action.SelectedSchedule.BiblePublicationTrackNumber ?? 1,
                 FinishedDuration = action.SelectedSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = action.SelectedSchedule.Id,
-                TranslationName = action.SelectedSchedule.BiblePublicationPublicationName ?? string.Empty
+                TranslationName = action.SelectedSchedule.BiblePublicationName ?? string.Empty
             };
         }
 

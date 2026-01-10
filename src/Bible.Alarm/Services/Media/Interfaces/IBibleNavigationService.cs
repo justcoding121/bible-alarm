@@ -2,7 +2,7 @@ using Bible.Alarm.Models.Schedule;
 
 namespace Bible.Alarm.Services.Media.Interfaces;
 
-public interface IBibleNavigationService
+public interface IBiblePublicationNavigationService
 {
     Task<bool> MoveToPreviousSectionAsync(BiblePublicationSchedule schedule);
     Task<bool> MoveToNextSectionAsync(BiblePublicationSchedule schedule);

@@ -21,24 +21,24 @@ using Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed class BiblePublicationSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly IState<ApplicationState> state;
     private readonly IMapper mapper;
     private readonly IServiceProvider serviceProvider;
 
     // Services
-    private readonly BibleSelectionCommandHandler commandHandler;
-    private readonly BibleSelectionStateHandler stateHandler;
-    private readonly BibleSelectionDataProvider dataProvider;
-    private readonly BibleSelectionPropertyManager propertyManager;
+    private readonly BiblePublicationSelectionCommandHandler commandHandler;
+    private readonly BiblePublicationSelectionStateHandler stateHandler;
+    private readonly BiblePublicationSelectionDataProvider dataProvider;
+    private readonly BiblePublicationSelectionPropertyManager propertyManager;
 
     public ICommand BackCommand { get; set; }
     public ICommand SectionSelectionCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
 
-    public BibleSelectionViewModel(
+    public BiblePublicationSelectionViewModel(
         IMediaService mediaService,
         IServiceScopeFactory scopeFactory,
         IState<ApplicationState> state,
@@ -52,10 +52,10 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         this.serviceProvider = serviceProvider;
 
         // Initialize services
-        dataProvider = new BibleSelectionDataProvider(mediaService, state, dispatcher);
-        stateHandler = new BibleSelectionStateHandler(mediaService, state, mapper, dataProvider);
-        commandHandler = new BibleSelectionCommandHandler(mediaService, state, dispatcher, navigationService, mapper);
-        propertyManager = new BibleSelectionPropertyManager(state, dataProvider, stateHandler);
+        dataProvider = new BiblePublicationSelectionDataProvider(mediaService, state, dispatcher);
+        stateHandler = new BiblePublicationSelectionStateHandler(mediaService, state, mapper, dataProvider);
+        commandHandler = new BiblePublicationSelectionCommandHandler(mediaService, state, dispatcher, navigationService, mapper);
+        propertyManager = new BiblePublicationSelectionPropertyManager(state, dataProvider, stateHandler);
 
         // Initialize current from state if available (map DTO to entity)
         // Use CurrentSchedule as the source of truth, with CurrentBiblePublicationSchedule as fallback
@@ -74,7 +74,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
             initialCurrent = new BiblePublicationSchedule
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationPublicationCode ?? string.Empty,
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
                 SectionNumber = currentSchedule.BiblePublicationSectionNumber ?? 1,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };

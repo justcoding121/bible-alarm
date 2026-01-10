@@ -10,14 +10,14 @@ using Microsoft.Maui.Controls.Xaml;
 namespace Bible.Alarm.Views.Shared;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class BibleLanguageModal : BaseContentPage, IDisposable
+public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public IListViewModel? ViewModel => BindingContext as IListViewModel;
 
-    public BibleLanguageModal()
+    public BiblePublicationLanguageModal()
     {
         InitializeComponent();
         Appearing += OnAppearing;
@@ -27,7 +27,7 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        var bibleViewModel = ViewModel as BibleSelectionViewModel;
+        var bibleViewModel = ViewModel as BiblePublicationSelectionViewModel;
         
         // Clear search term to show all languages when modal opens
         if (bibleViewModel != null)
@@ -54,7 +54,7 @@ public partial class BibleLanguageModal : BaseContentPage, IDisposable
 
         if (sender is Grid grid && grid.BindingContext is LanguageListViewItemModel languageItem)
         {
-            if (ViewModel is BibleSelectionViewModel bibleSelectionViewModel)
+            if (ViewModel is BiblePublicationSelectionViewModel bibleSelectionViewModel)
             {
                 if (bibleSelectionViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
                 {

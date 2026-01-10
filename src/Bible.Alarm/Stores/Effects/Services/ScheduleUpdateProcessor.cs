@@ -137,7 +137,7 @@ public sealed class ScheduleUpdateProcessor
             actionSchedule.MusicTrackNumber?.ToString() ?? "null");
 
         scheduleStateItem.BiblePublicationLanguageName = actionSchedule.BiblePublicationLanguageName;
-        scheduleStateItem.BiblePublicationPublicationName = actionSchedule.BiblePublicationPublicationName;
+        scheduleStateItem.BiblePublicationName = actionSchedule.BiblePublicationName;
         scheduleStateItem.BiblePublicationSectionName = actionSchedule.BiblePublicationSectionName;
         scheduleStateItem.MusicLanguageName = actionSchedule.MusicLanguageName;
         scheduleStateItem.MusicPublicationName = actionSchedule.MusicPublicationName;

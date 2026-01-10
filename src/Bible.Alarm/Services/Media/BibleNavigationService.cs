@@ -4,10 +4,10 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class BibleNavigationService(
+public sealed class BiblePublicationNavigationService(
     ILogger logger,
     IServiceScopeFactory scopeFactory)
-    : IBibleNavigationService
+    : IBiblePublicationNavigationService
 {
 
     public async Task<bool> MoveToPreviousSectionAsync(BiblePublicationSchedule schedule)

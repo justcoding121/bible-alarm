@@ -13,12 +13,12 @@ namespace Bible.Alarm.Views.Bible;
 public partial class BiblePublicationSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
-    private readonly BibleSelectionViewModel viewModel;
+    private readonly BiblePublicationSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public BibleSelectionViewModel? ViewModel => BindingContext as BibleSelectionViewModel;
+    public BiblePublicationSelectionViewModel? ViewModel => BindingContext as BiblePublicationSelectionViewModel;
 
-    public BiblePublicationSelection(BibleSelectionViewModel viewModel)
+    public BiblePublicationSelection(BiblePublicationSelectionViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;

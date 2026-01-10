@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.Shared.BibleLanguageModal"
+    x:Class="Bible.Alarm.Views.Shared.BiblePublicationLanguageModal"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -13,7 +13,7 @@
     xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
-    x:DataType="bible:BibleSelectionViewModel"
+    x:DataType="bible:BiblePublicationSelectionViewModel"
     Padding="0,0,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />

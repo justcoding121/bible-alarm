@@ -112,9 +112,9 @@ public sealed class MediaBrowser(ILogger logger)
     private static string BuildScheduleDescription(ScheduleStateItem scheduleItem)
     {
         var description = $"Schedule ID: {scheduleItem.Id}";
-        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationPublicationCode))
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationCode))
         {
-            description += $", {scheduleItem.BiblePublicationPublicationCode}";
+            description += $", {scheduleItem.BiblePublicationCode}";
         }
         return description;
     }

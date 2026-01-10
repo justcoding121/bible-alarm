@@ -65,7 +65,7 @@ public class StateChangeHandler
 
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
-        var newPublicationCode = currentSchedule.BiblePublicationPublicationCode;
+        var newPublicationCode = currentSchedule.BiblePublicationCode;
 
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {

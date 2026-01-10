@@ -432,7 +432,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
                 cachedSchedule.CurrentPlayItem != freshSchedule.CurrentPlayItem ||
                 cachedSchedule.BiblePublicationScheduleId != freshSchedule.BiblePublicationScheduleId ||
                 cachedSchedule.BiblePublicationLanguageCode != freshSchedule.BiblePublicationLanguageCode ||
-                cachedSchedule.BiblePublicationPublicationCode != freshSchedule.BiblePublicationPublicationCode ||
+                cachedSchedule.BiblePublicationCode != freshSchedule.BiblePublicationCode ||
                 cachedSchedule.BiblePublicationSectionNumber != freshSchedule.BiblePublicationSectionNumber ||
                 cachedSchedule.BiblePublicationTrackNumber != freshSchedule.BiblePublicationTrackNumber ||
                 cachedSchedule.MusicId != freshSchedule.MusicId ||

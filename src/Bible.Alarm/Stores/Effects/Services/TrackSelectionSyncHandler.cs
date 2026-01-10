@@ -150,12 +150,12 @@ public sealed class TrackSelectionSyncHandler
     {
         updatedSchedule.BiblePublicationScheduleId = currentSchedule.BiblePublicationScheduleId;
         updatedSchedule.BiblePublicationLanguageCode = currentSchedule.BiblePublicationLanguageCode;
-        updatedSchedule.BiblePublicationPublicationCode = currentSchedule.BiblePublicationPublicationCode;
+        updatedSchedule.BiblePublicationCode = currentSchedule.BiblePublicationCode;
         updatedSchedule.BiblePublicationSectionNumber = currentSchedule.BiblePublicationSectionNumber;
         updatedSchedule.BiblePublicationTrackNumber = currentSchedule.BiblePublicationTrackNumber;
         updatedSchedule.BiblePublicationFinishedDuration = currentSchedule.BiblePublicationFinishedDuration;
         updatedSchedule.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;
-        updatedSchedule.BiblePublicationPublicationName = currentSchedule.BiblePublicationPublicationName;
+        updatedSchedule.BiblePublicationName = currentSchedule.BiblePublicationName;
         updatedSchedule.BiblePublicationSectionName = currentSchedule.BiblePublicationSectionName;
     }
 

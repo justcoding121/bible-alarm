@@ -64,7 +64,7 @@ public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaSe
         meta.Title = $"{section.Name} {trackMetadata.TrackNumber}";
 
         // Description: Language name
-        var languages = await mediaService.GetBibleLanguages();
+        var languages = await mediaService.GetBiblePublicationLanguages();
         if (languages.TryGetValue(trackMetadata.LanguageCode, out var language))
         {
             meta.Album = language.Name;

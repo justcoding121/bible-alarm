@@ -14,12 +14,12 @@ namespace Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 /// <summary>
 /// Handles state changes and initialization for bible selection.
 /// </summary>
-public sealed class BibleSelectionStateHandler
+public sealed class BiblePublicationSelectionStateHandler
 {
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
     private readonly IMapper mapper;
-    private readonly BibleSelectionDataProvider dataProvider;
+    private readonly BiblePublicationSelectionDataProvider dataProvider;
 
     // Track last language code to detect changes
     private string? lastLanguageCode;
@@ -27,11 +27,11 @@ public sealed class BibleSelectionStateHandler
     private BiblePublicationSchedule? lastCurrent;
     private bool initComplete;
 
-    public BibleSelectionStateHandler(
+    public BiblePublicationSelectionStateHandler(
         IMediaService mediaService,
         IState<ApplicationState> state,
         IMapper mapper,
-        BibleSelectionDataProvider dataProvider)
+        BiblePublicationSelectionDataProvider dataProvider)
     {
         this.mediaService = mediaService;
         this.state = state;
@@ -86,7 +86,7 @@ public sealed class BibleSelectionStateHandler
                 current = new BiblePublicationSchedule
                 {
                     LanguageCode = newLanguageCode,
-                    PublicationCode = stateValue.CurrentSchedule.BiblePublicationPublicationCode,
+                    PublicationCode = stateValue.CurrentSchedule.BiblePublicationCode,
                     SectionNumber = stateValue.CurrentSchedule.BiblePublicationSectionNumber ?? 1,
                     TrackNumber = stateValue.CurrentSchedule.BiblePublicationTrackNumber ?? 1
                 };
@@ -218,7 +218,7 @@ public sealed class BibleSelectionStateHandler
             current = new BiblePublicationSchedule
             {
                 LanguageCode = newLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationPublicationCode,
+                PublicationCode = currentSchedule.BiblePublicationCode,
                 SectionNumber = currentSchedule.BiblePublicationSectionNumber ?? 1,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
@@ -317,7 +317,7 @@ public sealed class BibleSelectionStateHandler
             current = new BiblePublicationSchedule
             {
                 LanguageCode = newLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationPublicationCode,
+                PublicationCode = currentSchedule.BiblePublicationCode,
                 SectionNumber = currentSchedule.BiblePublicationSectionNumber ?? 1,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };

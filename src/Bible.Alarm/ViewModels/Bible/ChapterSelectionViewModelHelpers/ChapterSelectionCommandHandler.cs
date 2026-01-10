@@ -30,7 +30,7 @@ public sealed class TrackSelectionCommandHandler(
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null ||
             string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode) ||
-            string.IsNullOrEmpty(currentSchedule.BiblePublicationPublicationCode) ||
+            string.IsNullOrEmpty(currentSchedule.BiblePublicationCode) ||
             !currentSchedule.BiblePublicationSectionNumber.HasValue)
         {
             logger.Warning("TrackSelectionViewModel: SetTrackCommand - CurrentSchedule is null or missing required properties");
@@ -41,12 +41,12 @@ public sealed class TrackSelectionCommandHandler(
         var trackSelectedItem = new BiblePublicationStateItem
         {
             LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-            PublicationCode = currentSchedule.BiblePublicationPublicationCode,
+            PublicationCode = currentSchedule.BiblePublicationCode,
             SectionNumber = currentSchedule.BiblePublicationSectionNumber.Value,
             TrackNumber = track.Number,
             // Store display names from current state
             LanguageName = currentSchedule.BiblePublicationLanguageName,
-            PublicationName = currentSchedule.BiblePublicationPublicationName,
+            PublicationName = currentSchedule.BiblePublicationName,
             SectionName = currentSchedule.BiblePublicationSectionName
         };
 

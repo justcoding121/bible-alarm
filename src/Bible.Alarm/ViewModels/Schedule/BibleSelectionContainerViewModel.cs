@@ -27,7 +27,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
-public sealed class BibleSelectionContainerViewModel : ObservableObject, IDisposable
+public sealed class BiblePublicationSelectionContainerViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
@@ -35,10 +35,10 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     private readonly IMapper mapper;
 
     // Helper classes for modular functionality
-    private readonly BibleCommandInitializer commandInitializer;
-    private readonly BibleDisplayTextProvider displayTextProvider;
-    private readonly BiblePropertyChangeDetector propertyChangeDetector;
-    private readonly BiblePropertyNotifier propertyNotifier;
+    private readonly BiblePublicationCommandInitializer commandInitializer;
+    private readonly BiblePublicationDisplayTextProvider displayTextProvider;
+    private readonly BiblePublicationPropertyChangeDetector propertyChangeDetector;
+    private readonly BiblePublicationPropertyNotifier propertyNotifier;
 
     private int scheduleId;
     private bool isNewSchedule;
@@ -61,7 +61,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     private int? lastProcessedTrackNumber;
     private bool shouldScrollToContainer;
 
-    public BibleSelectionContainerViewModel(
+    public BiblePublicationSelectionContainerViewModel(
         ILogger logger,
         INavigationService navigationService,
         IScheduleSelectionService scheduleSelectionService,
@@ -76,10 +76,10 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         this.mapper = mapper;
 
         // Initialize helper classes
-        commandInitializer = new BibleCommandInitializer(logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider);
-        displayTextProvider = new BibleDisplayTextProvider(state, logger);
-        propertyChangeDetector = new BiblePropertyChangeDetector(displayTextProvider);
-        propertyNotifier = new BiblePropertyNotifier(propertyName => OnPropertyChanged(propertyName));
+        commandInitializer = new BiblePublicationCommandInitializer(logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider);
+        displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger);
+        propertyChangeDetector = new BiblePublicationPropertyChangeDetector(displayTextProvider);
+        propertyNotifier = new BiblePublicationPropertyNotifier(propertyName => OnPropertyChanged(propertyName));
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();
@@ -98,7 +98,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             var currentBiblePublication = state.Value.CurrentBiblePublicationSchedule;
             propertyChangeDetector.Initialize(
                 currentSchedule.BiblePublicationLanguageCode,
-                currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationPublicationCode,
+                currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode,
                 currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber,
                 currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber);
 
@@ -106,8 +106,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             lastProcessedScheduleId = currentSchedule.Id;
             lastProcessedLanguageCode = currentSchedule.BiblePublicationLanguageCode;
             lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
-            lastProcessedPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationPublicationCode;
-            lastProcessedPublicationName = currentSchedule.BiblePublicationPublicationName;
+            lastProcessedPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode;
+            lastProcessedPublicationName = currentSchedule.BiblePublicationName;
             lastProcessedSectionNumber = currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber;
             lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
             lastProcessedTrackNumber = currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber;
@@ -124,7 +124,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     {
         // Check if already signaled or already marked ready in state
         // This check must happen first to prevent any duplicate work
-        if (hasSignaledReady || state.Value.ContainerReadiness.BibleSelection) return;
+        if (hasSignaledReady || state.Value.ContainerReadiness.BiblePublicationSelection) return;
         
         // Check if action is already queued to prevent duplicate queued actions
         // This prevents multiple rapid calls from queuing multiple actions
@@ -137,7 +137,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         
         // Double-check state immediately after setting flags (before queuing)
         // This catches the case where state changed between the initial check and flag setting
-        if (state.Value.ContainerReadiness.BibleSelection)
+        if (state.Value.ContainerReadiness.BiblePublicationSelection)
         {
             // State already shows ready, reset flags and return
             isReadyActionQueued = false;
@@ -152,13 +152,13 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             isReadyActionQueued = false; // Reset flag when action executes
             
             // Final check before dispatching - if state already shows we're ready, another action already handled it
-            if (state.Value.ContainerReadiness.BibleSelection)
+            if (state.Value.ContainerReadiness.BiblePublicationSelection)
             {
                 // Ensure flag is set to prevent future attempts
                 hasSignaledReady = true;
                 return;
             }
-            dispatcher.Dispatch(new ContainerReadyAction("BibleSelection"));
+            dispatcher.Dispatch(new ContainerReadyAction("BiblePublicationSelection"));
         });
     }
 
@@ -188,7 +188,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
         // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
         // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
-        if (hasSignaledReady && !stateValue.ContainerReadiness.BibleSelection && currentSchedule != null)
+        if (hasSignaledReady && !stateValue.ContainerReadiness.BiblePublicationSelection && currentSchedule != null)
         {
             hasSignaledReady = false;
             isReadyActionQueued = false; // Reset queued flag as well
@@ -215,8 +215,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             currentSchedule.Id == lastProcessedScheduleId &&
             currentSchedule.BiblePublicationLanguageCode == lastProcessedLanguageCode &&
             currentSchedule.BiblePublicationLanguageName == lastProcessedLanguageName &&
-            (currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationPublicationCode) == lastProcessedPublicationCode &&
-            currentSchedule.BiblePublicationPublicationName == lastProcessedPublicationName &&
+            (currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode) == lastProcessedPublicationCode &&
+            currentSchedule.BiblePublicationName == lastProcessedPublicationName &&
             (currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber) == lastProcessedSectionNumber &&
             currentSchedule.BiblePublicationSectionName == lastProcessedSectionName &&
             (currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber) == lastProcessedTrackNumber)
@@ -258,8 +258,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             lastProcessedScheduleId = currentSchedule.Id;
             lastProcessedLanguageCode = currentSchedule.BiblePublicationLanguageCode;
             lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
-            lastProcessedPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationPublicationCode;
-            lastProcessedPublicationName = currentSchedule.BiblePublicationPublicationName;
+            lastProcessedPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode;
+            lastProcessedPublicationName = currentSchedule.BiblePublicationName;
             lastProcessedSectionNumber = currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber;
             lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
             lastProcessedTrackNumber = currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber;
@@ -324,7 +324,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         }
     }
 
-    private void ResetProgressIfNeeded(ScheduleStateItem? currentSchedule, BiblePropertyChangeDetector.PropertyChangeInfo changeInfo)
+    private void ResetProgressIfNeeded(ScheduleStateItem? currentSchedule, BiblePublicationPropertyChangeDetector.PropertyChangeInfo changeInfo)
     {
         if (changeInfo.CascadeChangeOccurred && currentSchedule != null)
         {

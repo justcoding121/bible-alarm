@@ -147,7 +147,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IBiblePublicationTrackService, BiblePublicationTrackService>();
         services.AddSingleton<IMelodyMusicService, MelodyMusicService>();
         services.AddSingleton<IVocalMusicService, VocalMusicService>();
-        services.AddSingleton<IBibleNavigationService, BibleNavigationService>();
+        services.AddSingleton<IBiblePublicationNavigationService, BiblePublicationNavigationService>();
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IScheduleItemStateService, ScheduleItemStateService>();
@@ -287,11 +287,11 @@ public static class ServiceRegistrationHelper
         services.AddTransient<MusicSelectionViewModel>();
         services.AddTransient<SongPublicationSelectionViewModel>();
         services.AddTransient<TrackSelectionViewModel>();
-        services.AddTransient<BibleSelectionViewModel>();
+        services.AddTransient<BiblePublicationSelectionViewModel>();
         services.AddTransient<SectionSelectionViewModel>();
         services.AddTransient<TrackSelectionViewModel>();
         services.AddTransient<AlarmViewModel>();
-        services.AddTransient<BibleSelectionContainerViewModel>();
+        services.AddTransient<BiblePublicationSelectionContainerViewModel>();
         services.AddTransient<MusicSelectionContainerViewModel>();
         services.AddTransient<NumberOfTrackContainerViewModel>();
         services.AddTransient<ScheduleDetailsContainerViewModel>();
@@ -320,10 +320,10 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BiblePublicationSelection>();
         services.AddTransient<SectionSelection>();
         services.AddTransient<TrackSelection>();
-        services.AddTransient<BibleLanguageModal>();
+        services.AddTransient<BiblePublicationLanguageModal>();
         services.AddTransient<MusicLanguageModal>();
         services.AddTransient<AlarmModal>();
-        services.AddTransient<BibleSelectionModal>();
+        services.AddTransient<BiblePublicationSelectionModal>();
         services.AddTransient<SectionSelectionModal>();
         services.AddTransient<TrackSelectionModal>();
         services.AddTransient<MusicSelectionModal>();

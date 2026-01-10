@@ -35,9 +35,9 @@ public static class DisplayNamePreservationHelper
                 actionSchedule.BiblePublicationLanguageName ?? "null");
         }
 
-        if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationPublicationName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationPublicationName))
+        if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationName))
         {
-            actionSchedule.BiblePublicationPublicationName = existingScheduleItem.BiblePublicationPublicationName;
+            actionSchedule.BiblePublicationName = existingScheduleItem.BiblePublicationName;
         }
 
         if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationSectionName))

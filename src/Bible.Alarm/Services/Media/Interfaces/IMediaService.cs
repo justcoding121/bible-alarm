@@ -6,7 +6,7 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IMediaService : IDisposable
 {
-    Task<Dictionary<string, Language>> GetBibleLanguages();
+    Task<Dictionary<string, Language>> GetBiblePublicationLanguages();
     Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode);
     Task<SortedDictionary<int, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode);
     Task<BiblePublicationSection> GetBiblePublicationSection(string languageCode, string versionCode, int sectionNumber);

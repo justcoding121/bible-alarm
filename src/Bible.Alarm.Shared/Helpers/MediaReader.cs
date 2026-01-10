@@ -11,7 +11,7 @@ namespace Bible.Alarm.Shared.Helpers;
 
 public class MediaReader(string indexRoot)
 {
-    public async Task<Dictionary<string, Language>> GetBibleLanguages()
+    public async Task<Dictionary<string, Language>> GetBiblePublicationLanguages()
     {
         var root = indexRoot;
         var languageIndex = Path.Combine(root, "Audio", "Bible", "languages.json");
@@ -22,8 +22,8 @@ public class MediaReader(string indexRoot)
     public async Task<Dictionary<string, Publication>> GetBiblePublications(string languageCode)
     {
         var root = indexRoot;
-        var bibleIndex = Path.Combine(root, "Audio", "Bible", languageCode, "publications.json");
-        var biblePublications = await File.ReadAllTextAsync(bibleIndex);
+        var biblePublicationIndex = Path.Combine(root, "Audio", "Bible", languageCode, "publications.json");
+        var biblePublications = await File.ReadAllTextAsync(biblePublicationIndex);
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(biblePublications)!
             .ToDictionary(x => x.Code, x => x);
     }

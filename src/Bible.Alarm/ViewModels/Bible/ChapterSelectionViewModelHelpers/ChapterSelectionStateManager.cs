@@ -47,7 +47,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
 
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
-        var newPublicationCode = currentSchedule.BiblePublicationPublicationCode;
+        var newPublicationCode = currentSchedule.BiblePublicationCode;
         var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
 
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
@@ -104,7 +104,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
 
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
-        var newPublicationCode = currentSchedule.BiblePublicationPublicationCode;
+        var newPublicationCode = currentSchedule.BiblePublicationCode;
         var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
 
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
@@ -176,7 +176,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
 
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
-        var newPublicationCode = currentSchedule.BiblePublicationPublicationCode;
+        var newPublicationCode = currentSchedule.BiblePublicationCode;
         var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
 
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)

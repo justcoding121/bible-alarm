@@ -152,15 +152,15 @@ public sealed class ScheduleSaveService : IScheduleSaveService
 
         // Preserve all display names from CurrentSchedule state
         scheduleStateItem.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;
-        scheduleStateItem.BiblePublicationPublicationName = currentSchedule.BiblePublicationPublicationName;
+        scheduleStateItem.BiblePublicationName = currentSchedule.BiblePublicationName;
         scheduleStateItem.BiblePublicationSectionName = currentSchedule.BiblePublicationSectionName;
         scheduleStateItem.MusicLanguageName = currentSchedule.MusicLanguageName;
         scheduleStateItem.MusicPublicationName = currentSchedule.MusicPublicationName;
         scheduleStateItem.MusicTrackName = currentSchedule.MusicTrackName;
 
-        logger.Information("PrepareScheduleStateItem: Preserved display names from CurrentSchedule state. BiblePublicationLanguageName={LanguageName}, BiblePublicationPublicationName={PublicationName}, MusicTrackName={MusicTrackName}",
+        logger.Information("PrepareScheduleStateItem: Preserved display names from CurrentSchedule state. BiblePublicationLanguageName={LanguageName}, BiblePublicationName={PublicationName}, MusicTrackName={MusicTrackName}",
             scheduleStateItem.BiblePublicationLanguageName ?? "null",
-            scheduleStateItem.BiblePublicationPublicationName ?? "null",
+            scheduleStateItem.BiblePublicationName ?? "null",
             scheduleStateItem.MusicTrackName ?? "null");
 
         // If music was updated, always use music properties from CurrentSchedule state

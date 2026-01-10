@@ -134,7 +134,7 @@ public sealed class TrackSelectionSyncHandler
     {
         updatedSchedule.BiblePublicationScheduleId = actionBiblePublicationSchedule.Id > 0 ? actionBiblePublicationSchedule.Id : currentSchedule.BiblePublicationScheduleId;
         updatedSchedule.BiblePublicationLanguageCode = actionBiblePublicationSchedule.LanguageCode;
-        updatedSchedule.BiblePublicationPublicationCode = actionBiblePublicationSchedule.PublicationCode;
+        updatedSchedule.BiblePublicationCode = actionBiblePublicationSchedule.PublicationCode;
         updatedSchedule.BiblePublicationSectionNumber = actionBiblePublicationSchedule.SectionNumber;
         updatedSchedule.BiblePublicationTrackNumber = actionBiblePublicationSchedule.TrackNumber;
         updatedSchedule.BiblePublicationFinishedDuration = actionBiblePublicationSchedule.FinishedDuration;
@@ -158,12 +158,12 @@ public sealed class TrackSelectionSyncHandler
         // IMPORTANT: Use display names from the action (populated from list items when user tapped).
         // Do NOT query the database - display names are already available from the selection.
         updatedSchedule.BiblePublicationLanguageName = actionBiblePublicationSchedule.LanguageName;
-        updatedSchedule.BiblePublicationPublicationName = actionBiblePublicationSchedule.PublicationName;
+        updatedSchedule.BiblePublicationName = actionBiblePublicationSchedule.PublicationName;
         updatedSchedule.BiblePublicationSectionName = actionBiblePublicationSchedule.SectionName;
 
         Log.Debug("ScheduleEffects: HandleTrackSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}",
             updatedSchedule.BiblePublicationLanguageName ?? "null",
-            updatedSchedule.BiblePublicationPublicationName ?? "null",
+            updatedSchedule.BiblePublicationName ?? "null",
             updatedSchedule.BiblePublicationSectionName ?? "null");
     }
 
@@ -173,8 +173,8 @@ public sealed class TrackSelectionSyncHandler
             updatedSchedule.Id,
             updatedSchedule.BiblePublicationLanguageCode,
             updatedSchedule.BiblePublicationLanguageName ?? "null",
-            updatedSchedule.BiblePublicationPublicationCode,
-            updatedSchedule.BiblePublicationPublicationName ?? "null",
+            updatedSchedule.BiblePublicationCode,
+            updatedSchedule.BiblePublicationName ?? "null",
             updatedSchedule.BiblePublicationSectionNumber,
             updatedSchedule.BiblePublicationSectionName ?? "null",
             updatedSchedule.BiblePublicationTrackNumber);

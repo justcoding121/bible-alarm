@@ -82,12 +82,12 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
 
                 if (translation != null && !string.IsNullOrWhiteSpace(translation.Name))
                 {
-                    scheduleStateItem.BiblePublicationPublicationName = translation.Name;
+                    scheduleStateItem.BiblePublicationName = translation.Name;
                 }
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating BiblePublicationPublicationName");
+                logger.Warning(ex, "Error populating BiblePublicationName");
             }
         }
 

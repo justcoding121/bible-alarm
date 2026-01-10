@@ -373,7 +373,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     public bool IsExistingSchedule => propertyManager.IsExistingSchedule;
 
     // Container ViewModels - exposed for XAML binding
-    public BibleSelectionContainerViewModel? BibleSelectionContainerViewModel => propertyManager.BibleSelectionContainerViewModel;
+    public BiblePublicationSelectionContainerViewModel? BibleSelectionContainerViewModel => propertyManager.BibleSelectionContainerViewModel;
     public MusicSelectionContainerViewModel? MusicSelectionContainerViewModel => propertyManager.MusicSelectionContainerViewModel;
     public NumberOfTrackContainerViewModel? NumberOfTrackContainerViewModel => propertyManager.NumberOfTrackContainerViewModel;
     public ScheduleDetailsContainerViewModel? ScheduleDetailsContainerViewModel => propertyManager.ScheduleDetailsContainerViewModel;

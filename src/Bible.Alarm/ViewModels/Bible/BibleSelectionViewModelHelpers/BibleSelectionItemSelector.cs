@@ -13,12 +13,12 @@ namespace Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 /// <summary>
 /// Handles complex selection logic for sections, tracks, and translations.
 /// </summary>
-public sealed class BibleSelectionItemSelector
+public sealed class BiblePublicationSelectionItemSelector
 {
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
 
-    public BibleSelectionItemSelector(
+    public BiblePublicationSelectionItemSelector(
         IMediaService mediaService,
         IState<ApplicationState> state)
     {
@@ -76,7 +76,7 @@ public sealed class BibleSelectionItemSelector
     {
         return currentSchedule != null &&
                currentSchedule.BiblePublicationLanguageCode == publication.Code &&
-               currentSchedule.BiblePublicationPublicationCode == publication.Code;
+               currentSchedule.BiblePublicationCode == publication.Code;
     }
 
     private static bool HasValidSectionAndTrack(ScheduleStateItem? schedule)
@@ -130,8 +130,8 @@ public sealed class BibleSelectionItemSelector
 
     private static bool CanPreserveCurrentTranslation(ScheduleStateItem schedule, Dictionary<string, BiblePublication> translations)
     {
-        return !string.IsNullOrEmpty(schedule.BiblePublicationPublicationCode) &&
-               translations.ContainsKey(schedule.BiblePublicationPublicationCode) &&
+        return !string.IsNullOrEmpty(schedule.BiblePublicationCode) &&
+               translations.ContainsKey(schedule.BiblePublicationCode) &&
                schedule.BiblePublicationSectionNumber.HasValue &&
                schedule.BiblePublicationTrackNumber.HasValue;
     }
@@ -142,7 +142,7 @@ public sealed class BibleSelectionItemSelector
             LanguageListViewItemModel language,
             Dictionary<string, BiblePublication> translations)
     {
-        var publicationCode = currentSchedule.BiblePublicationPublicationCode!;
+        var publicationCode = currentSchedule.BiblePublicationCode!;
         var currentSectionNumber = currentSchedule.BiblePublicationSectionNumber!.Value;
         var currentTrackNumber = currentSchedule.BiblePublicationTrackNumber!.Value;
 

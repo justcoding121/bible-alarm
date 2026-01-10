@@ -35,7 +35,7 @@ public sealed class ScheduleStateItem : IComparable
     public int? BiblePublicationScheduleId { get; set; }
 
     public string? BiblePublicationLanguageCode { get; set; }
-    public string? BiblePublicationPublicationCode { get; set; }
+    public string? BiblePublicationCode { get; set; }
 
     /// <summary>
     /// Section number for traditional Bible readings (1-66).
@@ -67,7 +67,7 @@ public sealed class ScheduleStateItem : IComparable
     /// This is populated during bootstrap from Bible translation service.
     /// Not persisted to database.
     /// </summary>
-    public string? BiblePublicationPublicationName { get; set; }
+    public string? BiblePublicationName { get; set; }
 
     /// <summary>
     /// Bible reading section name for display purposes.

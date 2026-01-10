@@ -13,11 +13,11 @@ namespace Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 /// <summary>
 /// Manages UI properties and property changes for bible selection.
 /// </summary>
-public sealed class BibleSelectionPropertyManager : ObservableObject
+public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
 {
     private readonly IState<ApplicationState> state;
-    private readonly BibleSelectionDataProvider dataProvider;
-    private readonly BibleSelectionStateHandler stateHandler;
+    private readonly BiblePublicationSelectionDataProvider dataProvider;
+    private readonly BiblePublicationSelectionStateHandler stateHandler;
 
     private ObservableCollection<PublicationListViewItemModel>? translations;
     private ObservableCollection<LanguageListViewItemModel>? languages;
@@ -27,10 +27,10 @@ public sealed class BibleSelectionPropertyManager : ObservableObject
 
     private PropertyChangedEventHandler? propertyChangedHandler;
 
-    public BibleSelectionPropertyManager(
+    public BiblePublicationSelectionPropertyManager(
         IState<ApplicationState> state,
-        BibleSelectionDataProvider dataProvider,
-        BibleSelectionStateHandler stateHandler)
+        BiblePublicationSelectionDataProvider dataProvider,
+        BiblePublicationSelectionStateHandler stateHandler)
     {
         this.state = state;
         this.dataProvider = dataProvider;
@@ -143,7 +143,7 @@ public sealed class BibleSelectionPropertyManager : ObservableObject
             return;
         }
 
-        var publicationCode = stateValue.CurrentSchedule.BiblePublicationPublicationCode;
+        var publicationCode = stateValue.CurrentSchedule.BiblePublicationCode;
         if (string.IsNullOrEmpty(publicationCode))
         {
             return;

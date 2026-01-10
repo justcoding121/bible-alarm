@@ -21,7 +21,7 @@ namespace Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 /// <summary>
 /// Handles command execution for bible selection operations.
 /// </summary>
-public sealed class BibleSelectionCommandHandler
+public sealed class BiblePublicationSelectionCommandHandler
 {
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
@@ -29,7 +29,7 @@ public sealed class BibleSelectionCommandHandler
     private readonly INavigationService navigationService;
     private readonly IMapper mapper;
 
-    public BibleSelectionCommandHandler(
+    public BiblePublicationSelectionCommandHandler(
         IMediaService mediaService,
         IState<ApplicationState> state,
         IDispatcher dispatcher,
@@ -71,7 +71,7 @@ public sealed class BibleSelectionCommandHandler
 
             // Get language from the languages collection
             LanguageListViewItemModel currentLanguage;
-            var languages = await Task.Run(async () => await mediaService.GetBibleLanguages());
+            var languages = await Task.Run(async () => await mediaService.GetBiblePublicationLanguages());
             if (languages.TryGetValue(languageCode, out var language))
             {
                 currentLanguage = new LanguageListViewItemModel(language);
@@ -87,7 +87,7 @@ public sealed class BibleSelectionCommandHandler
                 });
             }
 
-            var itemSelector = new BibleSelectionItemSelector(mediaService, state);
+            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state);
             var (sectionNumber, trackNumber, sectionName) = await itemSelector.GetSectionAndTrackForTranslationAsync(x, currentLanguage);
             
             if (sectionNumber == 0)
@@ -97,7 +97,7 @@ public sealed class BibleSelectionCommandHandler
 
             var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionNumber, trackNumber, sectionName, currentLanguage, currentSchedule);
             
-            var actionDispatcher = new BibleSelectionActionDispatcher(dispatcher);
+            var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);
             await navigationService.PopModalAsync();
         });
@@ -134,7 +134,7 @@ public sealed class BibleSelectionCommandHandler
             updateSelectedLanguage(x);
             await navigationService.PopModalAsync();
 
-            var itemSelector = new BibleSelectionItemSelector(mediaService, state);
+            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state);
             var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName) =
                 await itemSelector.GetTranslationSectionAndTrackForLanguageAsync(x);
 
@@ -152,7 +152,7 @@ public sealed class BibleSelectionCommandHandler
 
             var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(
                 x, publicationCode, sectionNumber, trackNumber, sectionName, publicationName, currentSchedule);
-            var actionDispatcher = new BibleSelectionActionDispatcher(dispatcher);
+            var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchLanguageSelectionActions(biblePublicationItem, x);
         });
     }

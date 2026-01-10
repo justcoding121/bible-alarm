@@ -18,14 +18,14 @@ public sealed class ScheduleContainerService : IScheduleContainerService
 
     public async Task InitializeContainersAsync(
         IServiceProvider serviceProvider,
-        Action<BibleSelectionContainerViewModel, MusicSelectionContainerViewModel, NumberOfTrackContainerViewModel, ScheduleDetailsContainerViewModel> onContainersReady)
+        Action<BiblePublicationSelectionContainerViewModel, MusicSelectionContainerViewModel, NumberOfTrackContainerViewModel, ScheduleDetailsContainerViewModel> onContainersReady)
     {
         try
         {
             // Create containers on background thread with yields to allow UI to breathe
             // This prevents the spinner from freezing during container creation
             var bibleSelection = await Task.Run(() => 
-                serviceProvider.GetRequiredService<BibleSelectionContainerViewModel>());
+                serviceProvider.GetRequiredService<BiblePublicationSelectionContainerViewModel>());
             
             var musicSelection = await Task.Run(() => 
                 serviceProvider.GetRequiredService<MusicSelectionContainerViewModel>());

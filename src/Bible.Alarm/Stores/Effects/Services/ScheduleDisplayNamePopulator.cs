@@ -106,7 +106,7 @@ public sealed class ScheduleDisplayNamePopulator
     }
 
     /// <summary>
-    /// Populate BiblePublicationPublicationName from BiblePublicationService if BiblePublicationSchedule exists.
+    /// Populate BiblePublicationName from BiblePublicationService if BiblePublicationSchedule exists.
     /// </summary>
     public async Task PopulatePublicationNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
@@ -130,14 +130,14 @@ public sealed class ScheduleDisplayNamePopulator
 
             if (translation != null && !string.IsNullOrWhiteSpace(translation.Name))
             {
-                scheduleStateItem.BiblePublicationPublicationName = translation.Name;
-                Log.Debug("ScheduleEffects: Set BiblePublicationPublicationName '{BiblePublicationPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                scheduleStateItem.BiblePublicationName = translation.Name;
+                Log.Debug("ScheduleEffects: Set BiblePublicationName '{BiblePublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
                     translation.Name, schedule.Id, biblePublication.PublicationCode);
             }
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "ScheduleEffects: Error populating BiblePublicationPublicationName for schedule {ScheduleId}", schedule.Id);
+            Log.Warning(ex, "ScheduleEffects: Error populating BiblePublicationName for schedule {ScheduleId}", schedule.Id);
         }
     }
 

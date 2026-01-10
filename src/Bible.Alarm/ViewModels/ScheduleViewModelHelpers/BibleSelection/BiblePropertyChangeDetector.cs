@@ -9,9 +9,9 @@ namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BibleSelection;
 /// Detects property changes in bible selection.
 /// Separated from BibleSelectionContainerViewModel for better modularity.
 /// </summary>
-public sealed class BiblePropertyChangeDetector
+public sealed class BiblePublicationPropertyChangeDetector
 {
-    private readonly BibleDisplayTextProvider displayTextProvider;
+    private readonly BiblePublicationDisplayTextProvider displayTextProvider;
 
     // Track last values to prevent unnecessary PropertyChanged notifications
     private string? lastBibleTypeDisplayText;
@@ -27,7 +27,7 @@ public sealed class BiblePropertyChangeDetector
     private int? lastSectionNumber;
     private int? lastTrackNumber;
 
-    public BiblePropertyChangeDetector(BibleDisplayTextProvider displayTextProvider)
+    public BiblePublicationPropertyChangeDetector(BiblePublicationDisplayTextProvider displayTextProvider)
     {
         this.displayTextProvider = displayTextProvider;
     }
@@ -53,7 +53,7 @@ public sealed class BiblePropertyChangeDetector
     public PropertyChangeInfo DetectPropertyChanges(ScheduleStateItem? currentSchedule, BiblePublicationStateItem? currentBiblePublication)
     {
         var currentLanguageCode = currentSchedule?.BiblePublicationLanguageCode;
-        var currentPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule?.BiblePublicationPublicationCode;
+        var currentPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule?.BiblePublicationCode;
         var currentSectionNumber = currentBiblePublication?.SectionNumber ?? currentSchedule?.BiblePublicationSectionNumber;
         var currentTrackNumber = currentBiblePublication?.TrackNumber ?? currentSchedule?.BiblePublicationTrackNumber;
 

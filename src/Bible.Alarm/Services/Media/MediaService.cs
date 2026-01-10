@@ -26,7 +26,7 @@ public sealed class MediaService(
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task<Dictionary<string, Language>> GetBibleLanguages()
+    public async Task<Dictionary<string, Language>> GetBiblePublicationLanguages()
     {
         await mediaIndexService.Verify();
         return await BiblePublicationService.GetDistinctLanguagesAsync(cancellationTokenSource.Token);

@@ -12,12 +12,12 @@ namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BibleSelection;
 /// Provides display text for bible-related properties.
 /// Separated from BibleSelectionContainerViewModel for better modularity.
 /// </summary>
-public sealed class BibleDisplayTextProvider
+public sealed class BiblePublicationDisplayTextProvider
 {
     private readonly IState<ApplicationState> state;
     private readonly ILogger logger;
 
-    public BibleDisplayTextProvider(IState<ApplicationState> state, ILogger logger)
+    public BiblePublicationDisplayTextProvider(IState<ApplicationState> state, ILogger logger)
     {
         this.state = state;
         this.logger = logger;
@@ -29,12 +29,12 @@ public sealed class BibleDisplayTextProvider
     public string GetBibleTypeDisplayText()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationPublicationCode))
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
         {
             return "Bible Reading";
         }
 
-        return PublicationTypeHelper.GetContentTypeDisplayName(currentSchedule.BiblePublicationPublicationCode);
+        return PublicationTypeHelper.GetContentTypeDisplayName(currentSchedule.BiblePublicationCode);
     }
 
     /// <summary>
@@ -44,12 +44,12 @@ public sealed class BibleDisplayTextProvider
     public bool GetIsSectionVisible()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationPublicationCode))
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
         {
             return true; // Default to visible for traditional Bible reading
         }
 
-        return PublicationTypeHelper.HasSectionStructure(currentSchedule.BiblePublicationPublicationCode);
+        return PublicationTypeHelper.HasSectionStructure(currentSchedule.BiblePublicationCode);
     }
 
     public string GetLanguageDisplayText()
@@ -73,15 +73,15 @@ public sealed class BibleDisplayTextProvider
         var currentSchedule = state.Value.CurrentSchedule;
 
         // Read from CurrentSchedule for publication name (populated during bootstrap/effects)
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationPublicationName))
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationName))
         {
-            return currentSchedule.BiblePublicationPublicationName;
+            return currentSchedule.BiblePublicationName;
         }
 
         // Fallback: use publication code from CurrentBiblePublicationSchedule or CurrentSchedule
         var biblePublication = state.Value.CurrentBiblePublicationSchedule;
         string publicationCode = biblePublication?.PublicationCode?.ToLowerInvariant()
-            ?? currentSchedule?.BiblePublicationPublicationCode?.ToLowerInvariant()
+            ?? currentSchedule?.BiblePublicationCode?.ToLowerInvariant()
             ?? string.Empty;
 
         if (string.IsNullOrEmpty(publicationCode))
@@ -111,7 +111,7 @@ public sealed class BibleDisplayTextProvider
         var currentSchedule = state.Value.CurrentSchedule;
 
         // Determine the label based on publication type
-        var label = PublicationTypeHelper.GetTrackLabel(currentSchedule?.BiblePublicationPublicationCode);
+        var label = PublicationTypeHelper.GetTrackLabel(currentSchedule?.BiblePublicationCode);
 
         // Read directly from CurrentBiblePublicationSchedule so it updates immediately when track changes
         var biblePublication = state.Value.CurrentBiblePublicationSchedule;

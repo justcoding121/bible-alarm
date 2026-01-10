@@ -9,14 +9,14 @@ using Microsoft.Maui.Controls.Xaml;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class BibleSelectionModal : BaseContentPage, IDisposable
+public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public BibleSelectionViewModel? ViewModel => BindingContext as BibleSelectionViewModel;
+    public BiblePublicationSelectionViewModel? ViewModel => BindingContext as BiblePublicationSelectionViewModel;
 
-    public BibleSelectionModal()
+    public BiblePublicationSelectionModal()
     {
         InitializeComponent();
         Appearing += OnAppearing;

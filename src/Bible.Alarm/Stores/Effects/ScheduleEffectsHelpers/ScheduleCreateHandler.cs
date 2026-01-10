@@ -92,7 +92,7 @@ public class ScheduleCreateHandler
                 if (action.Schedule != null)
                 {
                     mapped.BiblePublicationLanguageName = action.Schedule.BiblePublicationLanguageName;
-                    mapped.BiblePublicationPublicationName = action.Schedule.BiblePublicationPublicationName;
+                    mapped.BiblePublicationName = action.Schedule.BiblePublicationName;
                     mapped.BiblePublicationSectionName = action.Schedule.BiblePublicationSectionName;
                     mapped.MusicLanguageName = action.Schedule.MusicLanguageName;
                     mapped.MusicPublicationName = action.Schedule.MusicPublicationName;

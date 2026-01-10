@@ -40,7 +40,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
     public async Task OpenBibleSelectionModalAsync(INavigation navigation, object bindingContext)
     {
-        var modal = serviceProvider.GetRequiredService<BibleSelectionModal>();
+        var modal = serviceProvider.GetRequiredService<BiblePublicationSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
     }
@@ -72,7 +72,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         ContentPage modal = bindingContext switch
         {
             // Use the appropriate modal based on the ViewModel type for compiled bindings
-            BibleSelectionViewModel => serviceProvider.GetRequiredService<BibleLanguageModal>(),
+            BiblePublicationSelectionViewModel => serviceProvider.GetRequiredService<BiblePublicationLanguageModal>(),
             SongPublicationSelectionViewModel => serviceProvider.GetRequiredService<MusicLanguageModal>(),
             _ => throw new ArgumentException($"Unsupported ViewModel type: {bindingContext?.GetType().Name}",
                 nameof(bindingContext))

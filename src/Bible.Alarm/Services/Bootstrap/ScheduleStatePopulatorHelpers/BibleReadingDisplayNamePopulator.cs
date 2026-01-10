@@ -72,8 +72,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
             if (lookupData.Translations.TryGetValue(translationKey, out var translation) &&
                 !string.IsNullOrWhiteSpace(translation.Name))
             {
-                scheduleStateItem.BiblePublicationPublicationName = translation.Name;
-                Log.Logger.Debug("Set BiblePublicationPublicationName '{BiblePublicationPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                scheduleStateItem.BiblePublicationName = translation.Name;
+                Log.Logger.Debug("Set BiblePublicationName '{BiblePublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
                     translation.Name, schedule.Id, biblePublication.PublicationCode);
             }
         }

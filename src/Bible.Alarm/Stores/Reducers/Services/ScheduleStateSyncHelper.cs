@@ -21,7 +21,7 @@ public static class ScheduleStateSyncHelper
         {
             Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Updating CurrentSchedule. New LanguageName: {LanguageName}, PublicationName: {PublicationName}",
                 actionSchedule.BiblePublicationLanguageName ?? "null",
-                actionSchedule.BiblePublicationPublicationName ?? "null");
+                actionSchedule.BiblePublicationName ?? "null");
             return actionSchedule.DeepClone();
         }
 
@@ -52,7 +52,7 @@ public static class ScheduleStateSyncHelper
     {
         // Basic required properties for all content types
         if (string.IsNullOrWhiteSpace(schedule.BiblePublicationLanguageCode) ||
-            string.IsNullOrWhiteSpace(schedule.BiblePublicationPublicationCode) ||
+            string.IsNullOrWhiteSpace(schedule.BiblePublicationCode) ||
             !schedule.BiblePublicationTrackNumber.HasValue ||
             schedule.BiblePublicationTrackNumber.Value <= 0)
         {
@@ -61,7 +61,7 @@ public static class ScheduleStateSyncHelper
 
         // For traditional Bible reading (has section structure), SectionNumber is required
         // For dramas (no section structure), SectionNumber is not required (null is valid)
-        if (PublicationTypeHelper.HasSectionStructure(schedule.BiblePublicationPublicationCode))
+        if (PublicationTypeHelper.HasSectionStructure(schedule.BiblePublicationCode))
         {
             return schedule.BiblePublicationSectionNumber.HasValue &&
                    schedule.BiblePublicationSectionNumber.Value > 0;
@@ -78,7 +78,7 @@ public static class ScheduleStateSyncHelper
             throw new InvalidOperationException("BiblePublicationTrackNumber must have a value");
         }
 
-        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(updatedCurrentSchedule.BiblePublicationPublicationCode);
+        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(updatedCurrentSchedule.BiblePublicationCode);
 
         // For traditional Bible reading (has section structure), SectionNumber is required
         if (hasSectionStructure && !updatedCurrentSchedule.BiblePublicationSectionNumber.HasValue)
@@ -90,12 +90,12 @@ public static class ScheduleStateSyncHelper
         {
             Id = updatedCurrentSchedule.BiblePublicationScheduleId ?? 0,
             LanguageCode = updatedCurrentSchedule.BiblePublicationLanguageCode ?? string.Empty,
-            PublicationCode = updatedCurrentSchedule.BiblePublicationPublicationCode ?? string.Empty,
+            PublicationCode = updatedCurrentSchedule.BiblePublicationCode ?? string.Empty,
             SectionNumber = updatedCurrentSchedule.BiblePublicationSectionNumber,
             TrackNumber = updatedCurrentSchedule.BiblePublicationTrackNumber.Value,
             FinishedDuration = updatedCurrentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
             AlarmScheduleId = updatedCurrentSchedule.Id,
-            TranslationName = updatedCurrentSchedule.BiblePublicationPublicationName ?? string.Empty
+            TranslationName = updatedCurrentSchedule.BiblePublicationName ?? string.Empty
         };
     }
 

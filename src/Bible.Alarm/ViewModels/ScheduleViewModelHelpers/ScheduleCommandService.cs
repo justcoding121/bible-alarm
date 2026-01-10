@@ -123,7 +123,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
                     // Update the schedule in the Schedules collection to revert optimistic changes
                     logger.Information("CancelCommand: Reloaded schedule from database. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, SectionNumber: {SectionNumber}, TrackNumber: {TrackNumber}",
                         scheduleStateItem.BiblePublicationLanguageCode ?? "null",
-                        scheduleStateItem.BiblePublicationPublicationCode ?? "null",
+                        scheduleStateItem.BiblePublicationCode ?? "null",
                         scheduleStateItem.BiblePublicationSectionNumber ?? 0,
                         scheduleStateItem.BiblePublicationTrackNumber ?? 0);
 

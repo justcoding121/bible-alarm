@@ -62,7 +62,7 @@ public static class ScheduleCrudReducer
             LatestAlarmNotificationId = actionSchedule.LatestAlarmNotificationId,
             BiblePublicationScheduleId = actionSchedule.BiblePublicationScheduleId,
             BiblePublicationLanguageCode = actionSchedule.BiblePublicationLanguageCode,
-            BiblePublicationPublicationCode = actionSchedule.BiblePublicationPublicationCode,
+            BiblePublicationCode = actionSchedule.BiblePublicationCode,
             BiblePublicationSectionNumber = actionSchedule.BiblePublicationSectionNumber,
             BiblePublicationTrackNumber = actionSchedule.BiblePublicationTrackNumber,
             BiblePublicationFinishedDuration = actionSchedule.BiblePublicationFinishedDuration,
@@ -73,7 +73,7 @@ public static class ScheduleCrudReducer
             MusicTrackNumber = actionSchedule.MusicTrackNumber,
             MusicRepeat = actionSchedule.MusicRepeat,
             BiblePublicationLanguageName = actionSchedule.BiblePublicationLanguageName,
-            BiblePublicationPublicationName = actionSchedule.BiblePublicationPublicationName,
+            BiblePublicationName = actionSchedule.BiblePublicationName,
             MusicLanguageName = actionSchedule.MusicLanguageName,
             MusicPublicationName = actionSchedule.MusicPublicationName,
             MusicTrackName = actionSchedule.MusicTrackName

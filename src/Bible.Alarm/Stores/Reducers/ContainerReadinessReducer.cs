@@ -22,7 +22,7 @@ public static class ContainerReadinessReducer
         // Check if container is already ready to prevent duplicate processing
         bool alreadyReady = action.ContainerName switch
         {
-            "BibleSelection" => currentReadiness.BibleSelection,
+            "BiblePublicationSelection" => currentReadiness.BiblePublicationSelection,
             "MusicSelection" => currentReadiness.MusicSelection,
             "NumberOfTrack" => currentReadiness.NumberOfTrack,
             "ScheduleDetails" => currentReadiness.ScheduleDetails,
@@ -38,7 +38,7 @@ public static class ContainerReadinessReducer
         
         var updatedReadiness = action.ContainerName switch
         {
-            "BibleSelection" => currentReadiness with { BibleSelection = true },
+            "BiblePublicationSelection" => currentReadiness with { BiblePublicationSelection = true },
             "MusicSelection" => currentReadiness with { MusicSelection = true },
             "NumberOfTrack" => currentReadiness with { NumberOfTrack = true },
             "ScheduleDetails" => currentReadiness with { ScheduleDetails = true },
@@ -48,7 +48,7 @@ public static class ContainerReadinessReducer
         Logger.Debug("ContainerReadyAction: {ContainerName} ready. All ready: {AllReady} (B:{Bible}, M:{Music}, N:{Number}, S:{Schedule})",
             action.ContainerName,
             updatedReadiness.AllReady,
-            updatedReadiness.BibleSelection,
+            updatedReadiness.BiblePublicationSelection,
             updatedReadiness.MusicSelection,
             updatedReadiness.NumberOfTrack,
             updatedReadiness.ScheduleDetails);

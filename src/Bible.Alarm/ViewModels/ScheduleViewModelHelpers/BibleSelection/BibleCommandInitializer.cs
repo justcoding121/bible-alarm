@@ -21,7 +21,7 @@ namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BibleSelection;
 /// Handles initialization of commands for bible selection.
 /// Separated from BibleSelectionContainerViewModel for better modularity.
 /// </summary>
-public sealed class BibleCommandInitializer
+public sealed class BiblePublicationCommandInitializer
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
@@ -31,7 +31,7 @@ public sealed class BibleCommandInitializer
     private readonly IMapper mapper;
     private readonly IServiceProvider serviceProvider;
 
-    public BibleCommandInitializer(
+    public BiblePublicationCommandInitializer(
         ILogger logger,
         INavigationService navigationService,
         IScheduleSelectionService scheduleSelectionService,
@@ -68,7 +68,7 @@ public sealed class BibleCommandInitializer
         {
             logger.Information("BibleSelectionContainerViewModel: SelectLanguageCommand - Opening language modal");
             // Create a temporary BibleSelectionViewModel instance for the language modal
-            var bibleSelectionViewModel = serviceProvider.GetRequiredService<BibleSelectionViewModel>();
+            var bibleSelectionViewModel = serviceProvider.GetRequiredService<BiblePublicationSelectionViewModel>();
             logger.Debug("BibleSelectionContainerViewModel: SelectLanguageCommand - Created BibleSelectionViewModel, opening modal");
             await navigationService.OpenLanguageModalAsync(bibleSelectionViewModel);
             logger.Debug("BibleSelectionContainerViewModel: SelectLanguageCommand - Modal opened");
@@ -87,7 +87,7 @@ public sealed class BibleCommandInitializer
                 isNewSchedule,
                 getBiblePublication(),
                 currentSchedule?.BiblePublicationLanguageCode,
-                currentSchedule?.BiblePublicationPublicationCode,
+                currentSchedule?.BiblePublicationCode,
                 currentSchedule?.BiblePublicationSectionNumber,
                 currentSchedule?.BiblePublicationTrackNumber,
                 currentSchedule?.BiblePublicationFinishedDuration);
@@ -95,7 +95,7 @@ public sealed class BibleCommandInitializer
             setBiblePublication(loadedBiblePublication);
 
             // Create view model and open modal
-            var bibleSelectionViewModel = serviceProvider.GetRequiredService<BibleSelectionViewModel>();
+            var bibleSelectionViewModel = serviceProvider.GetRequiredService<BiblePublicationSelectionViewModel>();
             await navigationService.OpenBibleSelectionModalAsync(bibleSelectionViewModel);
 
             // Map entities to DTOs before dispatching
@@ -120,7 +120,7 @@ public sealed class BibleCommandInitializer
                 isNewSchedule,
                 getBiblePublication(),
                 currentSchedule?.BiblePublicationLanguageCode,
-                currentSchedule?.BiblePublicationPublicationCode,
+                currentSchedule?.BiblePublicationCode,
                 currentSchedule?.BiblePublicationSectionNumber,
                 currentSchedule?.BiblePublicationTrackNumber,
                 currentSchedule?.BiblePublicationFinishedDuration);
@@ -153,7 +153,7 @@ public sealed class BibleCommandInitializer
                 isNewSchedule,
                 getBiblePublication(),
                 currentSchedule?.BiblePublicationLanguageCode,
-                currentSchedule?.BiblePublicationPublicationCode,
+                currentSchedule?.BiblePublicationCode,
                 currentSchedule?.BiblePublicationSectionNumber,
                 currentSchedule?.BiblePublicationTrackNumber,
                 currentSchedule?.BiblePublicationFinishedDuration);

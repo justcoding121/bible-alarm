@@ -75,7 +75,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null ||
                 string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode) ||
-                string.IsNullOrEmpty(currentSchedule.BiblePublicationPublicationCode))
+                string.IsNullOrEmpty(currentSchedule.BiblePublicationCode))
             {
                 return;
             }
@@ -86,7 +86,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
             // Get tracks for the selected section using the latest language/publication from CurrentSchedule
             var tracks = await Task.Run(async () =>
-                await mediaService.GetBiblePublicationTracks(currentSchedule.BiblePublicationLanguageCode, currentSchedule.BiblePublicationPublicationCode, x.Number));
+                await mediaService.GetBiblePublicationTracks(currentSchedule.BiblePublicationLanguageCode, currentSchedule.BiblePublicationCode, x.Number));
 
             if (tracks == null || tracks.Count == 0)
             {
@@ -122,12 +122,12 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             var biblePublicationItem = new BiblePublicationStateItem
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationPublicationCode,
+                PublicationCode = currentSchedule.BiblePublicationCode,
                 SectionNumber = x.Number,
                 TrackNumber = trackNumber,
                 // Store display names from list items and current state
                 LanguageName = currentSchedule.BiblePublicationLanguageName,
-                PublicationName = currentSchedule.BiblePublicationPublicationName,
+                PublicationName = currentSchedule.BiblePublicationName,
                 SectionName = x.Name
             };
 
@@ -197,7 +197,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
-        var newPublicationCode = currentSchedule.BiblePublicationPublicationCode;
+        var newPublicationCode = currentSchedule.BiblePublicationCode;
 
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
