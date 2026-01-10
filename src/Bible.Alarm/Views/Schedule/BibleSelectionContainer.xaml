@@ -207,7 +207,7 @@
                      HorizontalOptions="Fill"
                      IsVisible="{Binding IsSectionVisible}" />
             <!-- Section Selection (only visible for traditional Bible reading) -->
-            <Grid x:Name="BibleSectionButton"
+            <Grid x:Name="BiblePublicationSectionButton"
                   Grid.Row="6"
                   Margin="0"
                   Padding="16,16"

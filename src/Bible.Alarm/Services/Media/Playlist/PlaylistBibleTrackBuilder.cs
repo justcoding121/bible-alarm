@@ -29,7 +29,7 @@ public class PlaylistBibleTrackBuilder
         int scheduleId,
         AlarmSchedule schedule,
         BiblePublicationSchedule biblePublicationSchedule,
-        Func<string, string, int, int, Task<KeyValuePair<BibleSection, BiblePublicationTrack>>> getNextBibleTrackAsync)
+        Func<string, string, int, int, Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>>> getNextBibleTrackAsync)
     {
         var initialTrackInfo = await GetInitialTrackInfo(biblePublicationSchedule);
         var result = new List<PlayItem>();
@@ -149,7 +149,7 @@ public class PlaylistBibleTrackBuilder
         BiblePublicationSchedule biblePublicationSchedule,
         int currentSectionNumber,
         int currentTrackNumber,
-        Func<string, string, int, int, Task<KeyValuePair<BibleSection, BibleTrack>>> getNextBibleTrackAsync)
+        Func<string, string, int, int, Task<KeyValuePair<BiblePublicationSection, BibleTrack>>> getNextBibleTrackAsync)
     {
         var next = await getNextBibleTrackAsync(
             biblePublicationSchedule.LanguageCode,

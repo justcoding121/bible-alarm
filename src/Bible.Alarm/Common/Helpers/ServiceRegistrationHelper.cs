@@ -143,7 +143,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IAlarmMusicService, AlarmMusicService>();
         services.AddSingleton<IBiblePublicationScheduleService, BiblePublicationScheduleService>();
         services.AddSingleton<IBiblePublicationService, BiblePublicationService>();
-        services.AddSingleton<IBibleSectionService, BibleSectionService>();
+        services.AddSingleton<IBiblePublicationSectionService, BiblePublicationSectionService>();
         services.AddSingleton<IBibleTrackService, BibleTrackService>();
         services.AddSingleton<IMelodyMusicService, MelodyMusicService>();
         services.AddSingleton<IVocalMusicService, VocalMusicService>();

@@ -63,7 +63,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             await navigationService.PopModalAsync();
         });
 
-        TrackSelectionCommand = new AsyncRelayCommand<BibleSectionListViewItemModel>(async x =>
+        TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async x =>
         {
             if (x == null)
             {
@@ -298,7 +298,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         }
     }
 
-    public BibleSectionListViewItemModel? SelectedSection { get; set; }
+    public BiblePublicationSectionListViewItemModel? SelectedSection { get; set; }
 
     // Start as true to show busy indicator immediately
     private bool isBusy = true;
@@ -309,9 +309,9 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         set => SetProperty(ref isBusy, value);
     }
 
-    private ObservableCollection<BibleSectionListViewItemModel> sections = [];
+    private ObservableCollection<BiblePublicationSectionListViewItemModel> sections = [];
 
-    public ObservableCollection<BibleSectionListViewItemModel> Sections
+    public ObservableCollection<BiblePublicationSectionListViewItemModel> Sections
     {
         get => sections;
         set => SetProperty(ref sections, value);
@@ -319,27 +319,27 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
     private async Task Initialize(string languageCode, string publicationCode) => await PopulateSections(languageCode, publicationCode);
 
-    private readonly Dictionary<int, BibleSectionListViewItemModel> sectionVMsMapping = [];
+    private readonly Dictionary<int, BiblePublicationSectionListViewItemModel> sectionVMsMapping = [];
 
     private async Task PopulateSections(string languageCode, string publicationCode)
     {
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (sectionViewModelList, newMapping, selectedSection) = await Task.Run(async () =>
         {
-            var sectionsFromDb = await mediaService.GetBibleSections(languageCode, publicationCode);
+            var sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
             
             if (sectionsFromDb == null)
             {
-                return (new List<BibleSectionListViewItemModel>(), new Dictionary<int, BibleSectionListViewItemModel>(), (BibleSectionListViewItemModel?)null);
+                return (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<int, BiblePublicationSectionListViewItemModel>(), (BiblePublicationSectionListViewItemModel?)null);
             }
 
-            var vms = new List<BibleSectionListViewItemModel>();
-            var mapping = new Dictionary<int, BibleSectionListViewItemModel>();
-            BibleSectionListViewItemModel? selected = null;
+            var vms = new List<BiblePublicationSectionListViewItemModel>();
+            var mapping = new Dictionary<int, BiblePublicationSectionListViewItemModel>();
+            BiblePublicationSectionListViewItemModel? selected = null;
 
             foreach (var section in sectionsFromDb.Values)
             {
-                var sectionVm = new BibleSectionListViewItemModel(section);
+                var sectionVm = new BiblePublicationSectionListViewItemModel(section);
                 vms.Add(sectionVm);
                 mapping[sectionVm.Number] = sectionVm;
 
@@ -377,7 +377,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
     }
 }
 
-public sealed class BibleSectionListViewItemModel(BibleSection section) : ObservableObject, IComparable
+public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSection section) : ObservableObject, IComparable
 {
     private bool isSelected;
 
@@ -390,5 +390,5 @@ public sealed class BibleSectionListViewItemModel(BibleSection section) : Observ
     public string Name => section.Name;
     public int Number => section.Number;
 
-    public int CompareTo(object? obj) => obj is not BibleSectionListViewItemModel other ? 1 : Number.CompareTo(other.Number);
+    public int CompareTo(object? obj) => obj is not BiblePublicationSectionListViewItemModel other ? 1 : Number.CompareTo(other.Number);
 }

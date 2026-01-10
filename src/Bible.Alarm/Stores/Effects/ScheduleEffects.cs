@@ -36,7 +36,7 @@ namespace Bible.Alarm.Stores.Effects;
 public class ScheduleEffects(
     IMapper mapper,
     IBiblePublicationService? BiblePublicationService = null,
-    IBibleSectionService? bibleSectionService = null,
+    IBiblePublicationSectionService? biblePublicationSectionService = null,
     IAlarmScheduleService? alarmScheduleService = null,
     IAlarmService? alarmService = null,
     IMediaCacheService? mediaCacheService = null,
@@ -53,7 +53,7 @@ public class ScheduleEffects(
     // Helper classes for modular functionality
     private readonly ScheduleDisplayNamePopulator displayNamePopulator = new(
         BiblePublicationService,
-        bibleSectionService,
+        biblePublicationSectionService,
         mediaService);
     private readonly ScheduleCacheManager cacheManager = new(diskCacheService);
     private readonly ScheduleUpdateProcessor updateProcessor = new(

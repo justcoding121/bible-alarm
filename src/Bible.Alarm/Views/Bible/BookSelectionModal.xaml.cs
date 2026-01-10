@@ -97,9 +97,9 @@ public partial class SectionSelectionModal : BaseContentPage, IDisposable
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
-        if (sender is Grid grid && grid.BindingContext is BibleSectionListViewItemModel sectionItem)
+        if (sender is Grid grid && grid.BindingContext is BiblePublicationSectionListViewItemModel sectionItem)
         {
-            if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BibleSectionListViewItemModel> asyncCommand)
+            if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BiblePublicationSectionListViewItemModel> asyncCommand)
             {
                 if (asyncCommand.CanExecute(sectionItem))
                 {

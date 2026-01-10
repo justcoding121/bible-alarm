@@ -84,9 +84,9 @@ public partial class SectionSelection : BaseContentPage, IDisposable
 
     private async void OnSectionItemTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is Grid grid && grid.BindingContext is BibleSectionListViewItemModel sectionItem)
+        if (sender is Grid grid && grid.BindingContext is BiblePublicationSectionListViewItemModel sectionItem)
         {
-            if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BibleSectionListViewItemModel> asyncCommand)
+            if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BiblePublicationSectionListViewItemModel> asyncCommand)
             {
                 if (asyncCommand.CanExecute(sectionItem))
                 {

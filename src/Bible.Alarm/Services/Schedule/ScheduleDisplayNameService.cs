@@ -98,10 +98,10 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         {
             try
             {
-                var bibleSectionService = serviceProvider.GetRequiredService<IBibleSectionService>();
+                var biblePublicationSectionService = serviceProvider.GetRequiredService<IBiblePublicationSectionService>();
                 if (!biblePublicationSchedule.SectionNumber.HasValue) return;
                 var sectionName = await Task.Run(async () =>
-                    await bibleSectionService.GetSectionNameAsync(
+                    await biblePublicationSectionService.GetSectionNameAsync(
                         biblePublicationSchedule.LanguageCode,
                         biblePublicationSchedule.PublicationCode,
                         biblePublicationSchedule.SectionNumber.Value));

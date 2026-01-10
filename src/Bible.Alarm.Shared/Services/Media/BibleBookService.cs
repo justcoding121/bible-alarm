@@ -14,9 +14,9 @@ using Serilog;
 namespace Bible.Alarm.Shared.Services.Media;
 
 /// <summary>
-/// Service for accessing BibleSection database operations.
+/// Service for accessing BiblePublicationSection database operations.
 /// </summary>
-public sealed class BibleSectionService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleSectionService
+public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFactory, ILogger logger) : IBiblePublicationSectionService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -29,7 +29,7 @@ public sealed class BibleSectionService(IServiceScopeFactory scopeFactory, ILogg
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.BibleSections
+            return await dbContext.BiblePublicationSections
                 .AsNoTracking()
                 .Where(x => x.BiblePublication.Code == publicationCode
                             && x.BiblePublication.Language.Code == languageCode
@@ -39,13 +39,13 @@ public sealed class BibleSectionService(IServiceScopeFactory scopeFactory, ILogg
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BibleSection name. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}",
+            logger.Error(ex, "Error getting BiblePublicationSection name. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}",
                 languageCode, publicationCode, sectionNumber);
             throw;
         }
     }
 
-    public async Task<SortedDictionary<int, BibleSection>> GetSectionsByPublicationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
+    public async Task<SortedDictionary<int, BiblePublicationSection>> GetSectionsByPublicationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -59,17 +59,17 @@ public sealed class BibleSectionService(IServiceScopeFactory scopeFactory, ILogg
                 .OrderBy(x => x.Number)
                 .ToListAsync(cancellationToken);
 
-            return new SortedDictionary<int, BibleSection>(sections.ToDictionary(x => x.Number, x => x));
+            return new SortedDictionary<int, BiblePublicationSection>(sections.ToDictionary(x => x.Number, x => x));
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BibleSections by publication. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+            logger.Error(ex, "Error getting BiblePublicationSections by publication. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }
     }
 
-    public async Task<BibleSection?> GetSectionAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default)
+    public async Task<BiblePublicationSection?> GetSectionAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -85,7 +85,7 @@ public sealed class BibleSectionService(IServiceScopeFactory scopeFactory, ILogg
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BibleSection. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}",
+            logger.Error(ex, "Error getting BiblePublicationSection. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}",
                 languageCode, publicationCode, sectionNumber);
             throw;
         }

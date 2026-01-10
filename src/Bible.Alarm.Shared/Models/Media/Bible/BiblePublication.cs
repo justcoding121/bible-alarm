@@ -21,7 +21,7 @@ public sealed class BiblePublication : TranslatedPublication
     /// Empty for Drama/Video publications.
     /// </summary>
     [Required]
-    public List<BibleSection> Sections { get; set; } = [];
+    public List<BiblePublicationSection> Sections { get; set; } = [];
 
     /// <summary>
     /// Tracks for Drama/Video publications (flat structure).

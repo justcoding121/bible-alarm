@@ -34,7 +34,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
     private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IDispatcher dispatcher;
     private readonly IBiblePublicationService? BiblePublicationService;
-    private readonly IBibleSectionService? bibleSectionService;
+    private readonly IBiblePublicationSectionService? biblePublicationSectionService;
     private readonly IMapper mapper;
     private readonly IMediaService? mediaService;
     private readonly IMelodyMusicService? melodyMusicService;
@@ -47,7 +47,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         IAlarmScheduleService alarmScheduleService,
         IDispatcher dispatcher,
         IBiblePublicationService? BiblePublicationService,
-        IBibleSectionService? bibleSectionService,
+        IBiblePublicationSectionService? biblePublicationSectionService,
         IMapper mapper,
         IMediaService? mediaService,
         IMelodyMusicService? melodyMusicService,
@@ -58,14 +58,14 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         this.alarmScheduleService = alarmScheduleService;
         this.dispatcher = dispatcher;
         this.BiblePublicationService = BiblePublicationService;
-        this.bibleSectionService = bibleSectionService;
+        this.biblePublicationSectionService = biblePublicationSectionService;
         this.mapper = mapper;
         this.mediaService = mediaService;
         this.melodyMusicService = melodyMusicService;
         this.diskCacheService = diskCacheService;
         this.statePopulator = new ScheduleStatePopulator(
             BiblePublicationService,
-            bibleSectionService,
+            biblePublicationSectionService,
             mapper,
             mediaService,
             melodyMusicService);

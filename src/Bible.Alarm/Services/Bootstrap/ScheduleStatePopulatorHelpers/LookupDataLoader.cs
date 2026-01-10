@@ -14,16 +14,16 @@ namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 internal sealed class LookupDataLoader
 {
     private readonly IBiblePublicationService? BiblePublicationService;
-    private readonly IBibleSectionService? bibleSectionService;
+    private readonly IBiblePublicationSectionService? biblePublicationSectionService;
     private readonly IMediaService? mediaService;
 
     public LookupDataLoader(
         IBiblePublicationService? BiblePublicationService,
-        IBibleSectionService? bibleSectionService,
+        IBiblePublicationSectionService? biblePublicationSectionService,
         IMediaService? mediaService)
     {
         this.BiblePublicationService = BiblePublicationService;
-        this.bibleSectionService = bibleSectionService;
+        this.biblePublicationSectionService = biblePublicationSectionService;
         this.mediaService = mediaService;
     }
 
@@ -52,8 +52,8 @@ internal sealed class LookupDataLoader
         {
             try
             {
-                var sectionName = bibleSectionService != null
-                    ? await bibleSectionService.GetSectionNameAsync(
+                var sectionName = biblePublicationSectionService != null
+                    ? await biblePublicationSectionService.GetSectionNameAsync(
                         key.LanguageCode, key.PublicationCode, key.SectionNumber)
                     : null;
                 return (Key: key, SectionName: sectionName);

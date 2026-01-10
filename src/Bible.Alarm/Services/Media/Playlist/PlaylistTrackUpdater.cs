@@ -44,7 +44,7 @@ public static class PlaylistTrackUpdater
     public static void UpdateBiblePublicationTrackForFinished(
         AlarmSchedule schedule,
         TrackMetadata trackMetadata,
-        KeyValuePair<BibleSection, BibleTrack>? nextTrack)
+        KeyValuePair<BiblePublicationSection, BibleTrack>? nextTrack)
     {
         var biblePublicationSchedule = schedule.BiblePublicationSchedule ??
             throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {schedule.Id}");

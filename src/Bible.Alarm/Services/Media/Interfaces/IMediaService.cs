@@ -8,8 +8,8 @@ public interface IMediaService : IDisposable
 {
     Task<Dictionary<string, Language>> GetBibleLanguages();
     Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode);
-    Task<SortedDictionary<int, BibleSection>> GetBibleSections(string languageCode, string versionCode);
-    Task<BibleSection> GetBibleSection(string languageCode, string versionCode, int sectionNumber);
+    Task<SortedDictionary<int, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode);
+    Task<BiblePublicationSection> GetBiblePublicationSection(string languageCode, string versionCode, int sectionNumber);
     Task<SortedDictionary<int, BiblePublicationTrack>> GetBibleTracks(string languageCode, string versionCode, int sectionNumber);
     Task<BiblePublicationTrack> GetBibleTrack(string languageCode, string versionCode, int sectionNumber, int trackNumber);
     Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases();

@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Media.Bible;
 
-[Table("BibleSection")]
+[Table("BiblePublicationSection")]
 [Index(nameof(BiblePublicationId), nameof(Number), IsUnique = true)]
-public sealed class BibleSection : IComparable
+public sealed class BiblePublicationSection : IComparable
 {
     [Key]
     public int Id { get; set; }
@@ -31,5 +31,5 @@ public sealed class BibleSection : IComparable
     [Required]
     public List<BiblePublicationTrack> Tracks { get; set; } = [];
 
-    public int CompareTo(object obj) => obj is not BibleSection other ? 1 : Number.CompareTo(other.Number);
+    public int CompareTo(object obj) => obj is not BiblePublicationSection other ? 1 : Number.CompareTo(other.Number);
 }

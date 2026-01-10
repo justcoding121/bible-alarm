@@ -12,7 +12,7 @@ using Bible.Alarm.Shared.Models.Media.Music;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-using BibleSection = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleSection;
+using BiblePublicationSection = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BiblePublicationSection;
 using BibleTrack = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleTrack;
 using DramaTrack = Bible.Alarm.AudioLinksHarvestor.Models.Drama.DramaTrack;
 using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.Video.VideoEpisode;
@@ -178,7 +178,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             logger.Information("Seeding publication {PublicationName} ({PublicationCode}) for language {LanguageCode}",
                 publication.Value.Name, publication.Value.Code, languageKey);
 
-            var sections = await GetSafely(() => mediaReader.GetBibleSections(languageKey, publication.Key));
+            var sections = await GetSafely(() => mediaReader.GetBiblePublicationSections(languageKey, publication.Key));
             if (sections == null || sections.Count == 0)
             {
                 continue;
@@ -208,12 +208,12 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         MediaReader mediaReader,
         string languageKey,
         string publicationKey,
-        SortedDictionary<int, BibleSection> sections,
+        SortedDictionary<int, BiblePublicationSection> sections,
         BiblePublication biblePublication)
     {
         foreach (var section in sections)
         {
-            var newSection = new Shared.Models.Media.Bible.BibleSection
+            var newSection = new Shared.Models.Media.Bible.BiblePublicationSection
             {
                 Name = section.Value.Name,
                 Number = section.Value.Number
@@ -234,7 +234,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
     private async Task AddTracksToSection(
         MediaDbContext db,
         SortedDictionary<int, BibleTrack> tracks,
-        Shared.Models.Media.Bible.BibleSection newSection)
+        Shared.Models.Media.Bible.BiblePublicationSection newSection)
     {
         foreach (var track in tracks)
         {

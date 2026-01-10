@@ -196,7 +196,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     }
 
 
-    private record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BibleSection, BiblePublicationTrack>? NextTrack);
+    private record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BiblePublicationSection, BiblePublicationTrack>? NextTrack);
 
     public async Task<PlayItem> NextTrack(int scheduleId)
     {
@@ -301,28 +301,28 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
-    public async Task<KeyValuePair<BibleSection, BiblePublicationTrack>> GetNextBibleTrack(string languageCode,
+    public async Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetNextBibleTrack(string languageCode,
         string publicationCode, int sectionNumber, int track)
     {
         return await trackNavigator.GetNextBibleTrack(languageCode, publicationCode, sectionNumber, track);
     }
 
-    public async Task<KeyValuePair<BibleSection, BiblePublicationTrack>> GetPreviousBibleTrack(string languageCode,
+    public async Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetPreviousBibleTrack(string languageCode,
         string publicationCode, int sectionNumber, int track)
     {
         return await trackNavigator.GetPreviousBibleTrack(languageCode, publicationCode, sectionNumber, track);
     }
 
-    public async Task<KeyValuePair<int, BibleSection>> GetPreviousBibleSection(string languageCode, string publicationCode,
+    public async Task<KeyValuePair<int, BiblePublicationSection>> GetPreviousBiblePublicationSection(string languageCode, string publicationCode,
         int sectionNumber)
     {
-        return await trackNavigator.GetPreviousBibleSection(languageCode, publicationCode, sectionNumber);
+        return await trackNavigator.GetPreviousBiblePublicationSection(languageCode, publicationCode, sectionNumber);
     }
 
-    public async Task<KeyValuePair<int, BibleSection>> GetNextBibleSection(string languageCode, string publicationCode,
+    public async Task<KeyValuePair<int, BiblePublicationSection>> GetNextBiblePublicationSection(string languageCode, string publicationCode,
         int sectionNumber)
     {
-        return await trackNavigator.GetNextBibleSection(languageCode, publicationCode, sectionNumber);
+        return await trackNavigator.GetNextBiblePublicationSection(languageCode, publicationCode, sectionNumber);
     }
 
     private async Task<PlayItem> NextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)

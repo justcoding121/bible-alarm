@@ -56,7 +56,7 @@ namespace Bible.Alarm.DbMigration.Migrations
                     b.ToTable("AudioSourceBaseUrl");
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BibleSection", b =>
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BiblePublicationSection", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -78,7 +78,7 @@ namespace Bible.Alarm.DbMigration.Migrations
                     b.HasIndex("BiblePublicationId", "Number")
                         .IsUnique();
 
-                    b.ToTable("BibleSection");
+                    b.ToTable("BiblePublicationSection");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BiblePublication", b =>
@@ -121,7 +121,7 @@ namespace Bible.Alarm.DbMigration.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("BibleSectionId")
+                    b.Property<int>("BiblePublicationSectionId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Number")
@@ -134,7 +134,7 @@ namespace Bible.Alarm.DbMigration.Migrations
 
                     b.HasIndex("SourceId");
 
-                    b.HasIndex("BibleSectionId", "Number")
+                    b.HasIndex("BiblePublicationSectionId", "Number")
                         .IsUnique();
 
                     b.ToTable("BibleTrack");
@@ -302,7 +302,7 @@ namespace Bible.Alarm.DbMigration.Migrations
                     b.Navigation("BaseUrlEntity");
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BibleSection", b =>
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BiblePublicationSection", b =>
                 {
                     b.HasOne("Bible.Alarm.Shared.Models.Media.Bible.BiblePublication", "BiblePublication")
                         .WithMany("Sections")
@@ -334,9 +334,9 @@ namespace Bible.Alarm.DbMigration.Migrations
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BiblePublicationTrack", b =>
                 {
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.Bible.BibleSection", "Section")
+                    b.HasOne("Bible.Alarm.Shared.Models.Media.Bible.BiblePublicationSection", "Section")
                         .WithMany("Tracks")
-                        .HasForeignKey("BibleSectionId")
+                        .HasForeignKey("BiblePublicationSectionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -413,7 +413,7 @@ namespace Bible.Alarm.DbMigration.Migrations
                     b.Navigation("Language");
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BibleSection", b =>
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BiblePublicationSection", b =>
                 {
                     b.Navigation("Tracks");
                 });

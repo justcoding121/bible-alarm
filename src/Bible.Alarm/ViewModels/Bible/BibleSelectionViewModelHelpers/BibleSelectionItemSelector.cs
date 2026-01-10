@@ -34,7 +34,7 @@ public sealed class BibleSelectionItemSelector
         var isSameTranslation = IsSameTranslation(currentSchedule, publication);
 
         var sections = await Task.Run(async () =>
-            await mediaService.GetBibleSections(language.Code, publication.Code));
+            await mediaService.GetBiblePublicationSections(language.Code, publication.Code));
 
         if (sections == null || sections.Count == 0)
         {
@@ -89,7 +89,7 @@ public sealed class BibleSelectionItemSelector
     private async Task<(int SectionNumber, int TrackNumber, string SectionName)> GetPreservedSectionAndTrackAsync(
         ScheduleStateItem currentSchedule,
         PublicationListViewItemModel publication,
-        IDictionary<int, BibleSection> sections)
+        IDictionary<int, BiblePublicationSection> sections)
     {
         var currentSectionNumber = currentSchedule.BiblePublicationSectionNumber!.Value;
         var currentTrackNumber = currentSchedule.BiblePublicationTrackNumber!.Value;
@@ -114,7 +114,7 @@ public sealed class BibleSelectionItemSelector
     private async Task<(int SectionNumber, int TrackNumber, string SectionName)> GetFirstSectionAndTrackAsync(
         string languageCode,
         PublicationListViewItemModel publication,
-        IDictionary<int, BibleSection> sections)
+        IDictionary<int, BiblePublicationSection> sections)
     {
         var firstSection = sections.Values.First();
         var tracks = await Task.Run(async () =>
@@ -147,7 +147,7 @@ public sealed class BibleSelectionItemSelector
         var currentTrackNumber = currentSchedule.BiblePublicationTrackNumber!.Value;
 
         var sections = await Task.Run(async () =>
-            await mediaService.GetBibleSections(language.Code, publicationCode));
+            await mediaService.GetBiblePublicationSections(language.Code, publicationCode));
 
         if (sections != null && sections.TryGetValue(currentSectionNumber, out var currentSection))
         {
@@ -187,7 +187,7 @@ public sealed class BibleSelectionItemSelector
             Dictionary<string, BiblePublication> translations)
     {
         var sections = await Task.Run(async () =>
-            await mediaService.GetBibleSections(language.Code, publicationCode));
+            await mediaService.GetBiblePublicationSections(language.Code, publicationCode));
 
         if (sections == null || sections.Count == 0)
         {

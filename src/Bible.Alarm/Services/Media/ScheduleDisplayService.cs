@@ -12,7 +12,7 @@ public sealed class ScheduleDisplayService(
     ILogger logger,
     IState<PlaybackState> playbackState,
     IAlarmScheduleService alarmScheduleService,
-    IBibleSectionService bibleSectionService)
+    IBiblePublicationSectionService biblePublicationSectionService)
     : IScheduleDisplayService, IDisposable
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
@@ -53,7 +53,7 @@ public sealed class ScheduleDisplayService(
                 return string.Empty;
             }
 
-            var sectionName = await bibleSectionService.GetSectionNameAsync(
+            var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
                 scheduleToUse.LanguageCode,
                 scheduleToUse.PublicationCode,
                 scheduleToUse.SectionNumber.Value,

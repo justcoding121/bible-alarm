@@ -76,7 +76,7 @@
                     </LinearItemsLayout>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="bible:BibleSectionListViewItemModel">
+                    <DataTemplate x:DataType="bible:BiblePublicationSectionListViewItemModel">
                         <Grid Margin="16,0">
                             <Border
                                 BackgroundColor="{DynamicResource CardBackgroundColor}"

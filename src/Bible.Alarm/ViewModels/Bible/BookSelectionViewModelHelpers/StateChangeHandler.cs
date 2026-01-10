@@ -22,7 +22,7 @@ public class StateChangeHandler
     private readonly Action<BiblePublicationSchedule> setLastCurrent;
     private readonly Func<bool> getInitComplete;
     private readonly Action<bool> setIsBusy;
-    private readonly Func<ObservableCollection<BibleSectionListViewItemModel>?> getSections;
+    private readonly Func<ObservableCollection<BiblePublicationSectionListViewItemModel>?> getSections;
     private readonly Action<string, string> initialize;
     private readonly Action setSelectedSection;
 
@@ -38,7 +38,7 @@ public class StateChangeHandler
         Action<BiblePublicationSchedule> setLastCurrent,
         Func<bool> getInitComplete,
         Action<bool> setIsBusy,
-        Func<ObservableCollection<BibleSectionListViewItemModel>?> getSections,
+        Func<ObservableCollection<BiblePublicationSectionListViewItemModel>?> getSections,
         Action<string, string> initialize,
         Action setSelectedSection)
     {

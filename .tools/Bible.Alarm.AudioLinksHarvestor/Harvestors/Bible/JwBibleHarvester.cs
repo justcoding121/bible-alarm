@@ -208,7 +208,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         var sectionsDirectory = $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageCode}/{publicationCode}";
         var sectionsIndex = $"{sectionsDirectory}/sections.json";
 
-        var sectionNumberSectionMap = new Dictionary<int, BibleSection>();
+        var sectionNumberSectionMap = new Dictionary<int, BiblePublicationSection>();
         var sectionNumberTrackMap = new Dictionary<int, Dictionary<int, BibleTrack>>();
 
         var sectionNumber = 1;
@@ -319,7 +319,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
     private static void ProcessSectionFiles(
         JsonElement sectionFiles,
         JsonElement root,
-        Dictionary<int, BibleSection> sectionNumberSectionMap,
+        Dictionary<int, BiblePublicationSection> sectionNumberSectionMap,
         Dictionary<int, Dictionary<int, BibleTrack>> sectionNumberTrackMap,
         ref int sectionNumber,
         string languageCode,
@@ -380,7 +380,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
     private static void EnsureSectionExists(
         JsonElement root,
         int sectionNumber,
-        Dictionary<int, BibleSection> sectionNumberSectionMap,
+        Dictionary<int, BiblePublicationSection> sectionNumberSectionMap,
         string languageCode,
         string? sectionName)
     {
@@ -420,7 +420,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             return;
         }
 
-        sectionNumberSectionMap[sectionNumber] = new BibleSection
+        sectionNumberSectionMap[sectionNumber] = new BiblePublicationSection
         {
             Number = sectionNumber,
             Name = sectionName
@@ -495,7 +495,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
     private static void SaveSectionsAndTracks(
         string sectionsDirectory,
         string sectionsIndex,
-        Dictionary<int, BibleSection> sectionNumberSectionMap,
+        Dictionary<int, BiblePublicationSection> sectionNumberSectionMap,
         Dictionary<int, Dictionary<int, BibleTrack>> sectionNumberTrackMap)
     {
         if (!Directory.Exists(sectionsDirectory))
@@ -504,7 +504,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
 
         File.WriteAllText(sectionsIndex, JsonSerializer.Serialize(sectionNumberSectionMap.Select(x =>
-            new BibleSection
+            new BiblePublicationSection
             {
                 Number = x.Key,
                 Name = x.Value.Name

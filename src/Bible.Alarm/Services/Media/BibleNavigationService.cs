@@ -21,7 +21,7 @@ public sealed class BibleNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var nextSection = await playlistService.GetPreviousBibleSection(
+            var nextSection = await playlistService.GetPreviousBiblePublicationSection(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
                 schedule.SectionNumber.Value);
@@ -54,7 +54,7 @@ public sealed class BibleNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var nextSection = await playlistService.GetNextBibleSection(
+            var nextSection = await playlistService.GetNextBiblePublicationSection(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
                 schedule.SectionNumber.Value);

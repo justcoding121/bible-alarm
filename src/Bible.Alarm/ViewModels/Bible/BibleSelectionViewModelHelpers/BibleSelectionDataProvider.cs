@@ -187,7 +187,7 @@ public sealed class BibleSelectionDataProvider
     {
         try
         {
-            var sections = await mediaService.GetBibleSections(languageCode, defaultTranslation.Code);
+            var sections = await mediaService.GetBiblePublicationSections(languageCode, defaultTranslation.Code);
             if (sections == null || sections.Count == 0) return;
 
             var firstSection = sections.Values.First();

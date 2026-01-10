@@ -25,14 +25,14 @@ internal sealed class ScheduleStatePopulator
 
     public ScheduleStatePopulator(
         IBiblePublicationService? BiblePublicationService,
-        IBibleSectionService? bibleSectionService,
+        IBiblePublicationSectionService? biblePublicationSectionService,
         IMapper mapper,
         IMediaService? mediaService,
         IMelodyMusicService? melodyMusicService)
     {
         this.mapper = mapper;
         keyCollector = new LookupDataCollector();
-        dataLoader = new LookupDataLoader(BiblePublicationService, bibleSectionService, mediaService);
+        dataLoader = new LookupDataLoader(BiblePublicationService, biblePublicationSectionService, mediaService);
         biblePublicationPopulator = new BiblePublicationDisplayNamePopulator();
         musicPopulator = new MusicDisplayNamePopulator();
         defaultMusicPopulator = new DefaultMusicPopulator(melodyMusicService);

@@ -18,16 +18,16 @@ namespace Bible.Alarm.Stores.Effects.Services;
 public sealed class ScheduleDisplayNamePopulator
 {
     private readonly IBiblePublicationService? BiblePublicationService;
-    private readonly IBibleSectionService? bibleSectionService;
+    private readonly IBiblePublicationSectionService? biblePublicationSectionService;
     private readonly IMediaService? mediaService;
 
     public ScheduleDisplayNamePopulator(
         IBiblePublicationService? BiblePublicationService = null,
-        IBibleSectionService? bibleSectionService = null,
+        IBiblePublicationSectionService? biblePublicationSectionService = null,
         IMediaService? mediaService = null)
     {
         this.BiblePublicationService = BiblePublicationService ?? ServiceProviderManager.GetService<IBiblePublicationService>();
-        this.bibleSectionService = bibleSectionService ?? ServiceProviderManager.GetService<IBibleSectionService>();
+        this.biblePublicationSectionService = biblePublicationSectionService ?? ServiceProviderManager.GetService<IBiblePublicationSectionService>();
         this.mediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>();
     }
 
@@ -142,11 +142,11 @@ public sealed class ScheduleDisplayNamePopulator
     }
 
     /// <summary>
-    /// Populate SectionName from BibleSectionService if BiblePublicationSchedule exists.
+    /// Populate SectionName from BiblePublicationSectionService if BiblePublicationSchedule exists.
     /// </summary>
     public async Task PopulateSectionNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BiblePublicationSchedule == null || bibleSectionService == null)
+        if (schedule.BiblePublicationSchedule == null || biblePublicationSectionService == null)
         {
             return;
         }
@@ -161,7 +161,7 @@ public sealed class ScheduleDisplayNamePopulator
                 return;
             }
 
-            var sectionName = await bibleSectionService.GetSectionNameAsync(
+            var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
                 biblePublication.LanguageCode,
                 biblePublication.PublicationCode,
                 biblePublication.SectionNumber.Value);
