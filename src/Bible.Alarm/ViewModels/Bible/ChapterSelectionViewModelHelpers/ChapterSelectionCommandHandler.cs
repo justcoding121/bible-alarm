@@ -19,7 +19,7 @@ public sealed class TrackSelectionCommandHandler(
     IDispatcher dispatcher,
     INavigationService navigationService)
 {
-    public async Task HandleSetTrackAsync(BibleTrackListViewItemModel track)
+    public async Task HandleSetTrackAsync(BiblePublicationTrackListViewItemModel track)
     {
         if (track == null)
         {

@@ -40,7 +40,7 @@ public sealed class ProgressTracker
 
     public Timer Timer => progressSaveTimer;
 
-    public void StartIfBibleTrack(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
+    public void StartIfBiblePublicationTrack(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
     {
         if (playlist == null || currentTrackIndex < 0 || currentTrackIndex >= playlist.Count)
         {

@@ -262,7 +262,7 @@
                      Margin="0"
                      HorizontalOptions="Fill" />
             <!-- Track/Part Selection -->
-            <Grid x:Name="BibleTrackButton"
+            <Grid x:Name="BiblePublicationTrackButton"
                   Grid.Row="8"
                   Margin="0"
                   Padding="16,16"

@@ -118,8 +118,8 @@ internal static class CollectionViewScrollPositionHelper
             {
                 return i;
             }
-            else if (item is BibleTrackListViewItemModel trackItem &&
-                     itemsList[i] is BibleTrackListViewItemModel listTrackItem &&
+            else if (item is BiblePublicationTrackListViewItemModel trackItem &&
+                     itemsList[i] is BiblePublicationTrackListViewItemModel listTrackItem &&
                      trackItem.Number == listTrackItem.Number)
             {
                 return i;

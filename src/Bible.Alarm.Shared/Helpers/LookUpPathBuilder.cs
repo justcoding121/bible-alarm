@@ -16,7 +16,7 @@ public static class LookUpPathBuilder
     /// <param name="sectionNumber">The Bible section number (1-66)</param>
     /// <param name="trackNumber">The track number</param>
     /// <returns>The lookup path query string</returns>
-    public static string BuildBibleTrackLookUpPath(string languageCode, string publicationCode, int sectionNumber, int trackNumber)
+    public static string BuildBiblePublicationTrackLookUpPath(string languageCode, string publicationCode, int sectionNumber, int trackNumber)
     {
         return $"?output=json&pub={publicationCode}&fileformat=MP3&langwritten={languageCode}&txtCMSLang=E&sectionnum={sectionNumber}&track={trackNumber}";
     }

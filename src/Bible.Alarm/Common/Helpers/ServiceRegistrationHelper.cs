@@ -144,7 +144,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IBiblePublicationScheduleService, BiblePublicationScheduleService>();
         services.AddSingleton<IBiblePublicationService, BiblePublicationService>();
         services.AddSingleton<IBiblePublicationSectionService, BiblePublicationSectionService>();
-        services.AddSingleton<IBibleTrackService, BibleTrackService>();
+        services.AddSingleton<IBiblePublicationTrackService, BiblePublicationTrackService>();
         services.AddSingleton<IMelodyMusicService, MelodyMusicService>();
         services.AddSingleton<IVocalMusicService, VocalMusicService>();
         services.AddSingleton<IBibleNavigationService, BibleNavigationService>();

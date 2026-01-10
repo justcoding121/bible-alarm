@@ -64,7 +64,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
             await navigationService.PopModalAsync();
         });
 
-        SetTrackCommand = new AsyncRelayCommand<BibleTrackListViewItemModel>(async x =>
+        SetTrackCommand = new AsyncRelayCommand<BiblePublicationTrackListViewItemModel>(async x =>
         {
             if (x != null)
             {
@@ -143,7 +143,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     public ICommand CloseModalCommand { get; set; }
     public ICommand SetTrackCommand { get; set; }
 
-    public BibleTrackListViewItemModel? SelectedTrack
+    public BiblePublicationTrackListViewItemModel? SelectedTrack
     {
         get => propertyManager.SelectedTrack;
         set => propertyManager.SelectedTrack = value;
@@ -155,7 +155,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         set => propertyManager.IsBusy = value;
     }
 
-    public ObservableCollection<BibleTrackListViewItemModel> Tracks
+    public ObservableCollection<BiblePublicationTrackListViewItemModel> Tracks
     {
         get => propertyManager.Tracks;
         set => propertyManager.Tracks = value;
@@ -190,11 +190,11 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     }
 }
 
-public sealed class BibleTrackListViewItemModel : ObservableObject, IComparable
+public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, IComparable
 {
     private readonly BiblePublicationTrack track;
 
-    public BibleTrackListViewItemModel(BiblePublicationTrack track)
+    public BiblePublicationTrackListViewItemModel(BiblePublicationTrack track)
     {
         this.track = track;
     }
@@ -213,5 +213,5 @@ public sealed class BibleTrackListViewItemModel : ObservableObject, IComparable
     public string Title => track.Title;
     public string Url => track.Source?.Url ?? string.Empty;
 
-    public int CompareTo(object? obj) => Number.CompareTo((obj as BibleTrackListViewItemModel)?.Number);
+    public int CompareTo(object? obj) => Number.CompareTo((obj as BiblePublicationTrackListViewItemModel)?.Number);
 }

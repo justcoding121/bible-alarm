@@ -191,7 +191,7 @@ public sealed class BibleSelectionDataProvider
             if (sections == null || sections.Count == 0) return;
 
             var firstSection = sections.Values.First();
-            var tracks = await mediaService.GetBibleTracks(languageCode, defaultTranslation.Code, firstSection.Number);
+            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, defaultTranslation.Code, firstSection.Number);
             if (tracks == null || tracks.Count == 0) return;
 
             var firstTrack = tracks.Values.First();

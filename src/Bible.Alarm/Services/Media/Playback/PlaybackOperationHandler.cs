@@ -45,7 +45,7 @@ public sealed class PlaybackOperationHandler
         if (audioPlayer.Status == PlayStatus.Paused)
         {
             await audioPlayer.ResumeAsync();
-            progressTracker.StartIfBibleTrack(playlist, currentTrackIndex);
+            progressTracker.StartIfBiblePublicationTrack(playlist, currentTrackIndex);
         }
         else if (audioPlayer.Status is PlayStatus.Stopped or PlayStatus.Ended)
         {
@@ -54,7 +54,7 @@ public sealed class PlaybackOperationHandler
         else
         {
             await audioPlayer.PlayAsync();
-            progressTracker.StartIfBibleTrack(playlist, currentTrackIndex);
+            progressTracker.StartIfBiblePublicationTrack(playlist, currentTrackIndex);
         }
     }
 

@@ -17,7 +17,7 @@ namespace Bible.Alarm.Shared.Services.Media;
 /// <summary>
 /// Service for accessing BiblePublicationTrack database operations.
 /// </summary>
-public sealed class BibleTrackService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleTrackService
+public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFactory, ILogger logger) : IBiblePublicationTrackService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));

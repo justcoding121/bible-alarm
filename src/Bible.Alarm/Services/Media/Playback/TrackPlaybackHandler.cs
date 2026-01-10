@@ -167,7 +167,7 @@ public sealed class TrackPlaybackHandler
             currentTrackIndex,
             audioPlayer.Status);
 
-        progressTracker.StartIfBibleTrack(playlistBeforePlay, currentTrackIndex);
+        progressTracker.StartIfBiblePublicationTrack(playlistBeforePlay, currentTrackIndex);
 
         // Don't clear auto-advancing flag here - let the reducer handle it when status stabilizes to Playing
         // This prevents rapid state changes from causing flicker

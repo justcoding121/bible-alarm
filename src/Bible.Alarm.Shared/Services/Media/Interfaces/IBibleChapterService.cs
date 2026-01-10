@@ -10,7 +10,7 @@ namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 /// <summary>
 /// Service for accessing BiblePublicationTrack database operations.
 /// </summary>
-public interface IBibleTrackService : IDisposable
+public interface IBiblePublicationTrackService : IDisposable
 {
     /// <summary>
     /// Gets all BiblePublicationTracks for a given section (by language code, publication code, and section number), with Source included.

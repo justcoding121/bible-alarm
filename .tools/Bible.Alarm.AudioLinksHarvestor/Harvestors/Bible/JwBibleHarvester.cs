@@ -209,7 +209,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         var sectionsIndex = $"{sectionsDirectory}/sections.json";
 
         var sectionNumberSectionMap = new Dictionary<int, BiblePublicationSection>();
-        var sectionNumberTrackMap = new Dictionary<int, Dictionary<int, BibleTrack>>();
+        var sectionNumberTrackMap = new Dictionary<int, Dictionary<int, BiblePublicationTrack>>();
 
         var sectionNumber = 1;
         var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&sectionnum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
@@ -320,7 +320,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         JsonElement sectionFiles,
         JsonElement root,
         Dictionary<int, BiblePublicationSection> sectionNumberSectionMap,
-        Dictionary<int, Dictionary<int, BibleTrack>> sectionNumberTrackMap,
+        Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionNumberTrackMap,
         ref int sectionNumber,
         string languageCode,
         string? sectionName)
@@ -431,16 +431,16 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         int sectionNumber,
         int trackNumber,
         string url,
-        Dictionary<int, Dictionary<int, BibleTrack>> sectionNumberTrackMap)
+        Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionNumberTrackMap)
     {
         if (!sectionNumberTrackMap.ContainsKey(sectionNumber))
         {
-            sectionNumberTrackMap[sectionNumber] = new Dictionary<int, BibleTrack>();
+            sectionNumberTrackMap[sectionNumber] = new Dictionary<int, BiblePublicationTrack>();
         }
 
         if (!sectionNumberTrackMap[sectionNumber].ContainsKey(trackNumber))
         {
-            sectionNumberTrackMap[sectionNumber].Add(trackNumber, new BibleTrack
+            sectionNumberTrackMap[sectionNumber].Add(trackNumber, new BiblePublicationTrack
             {
                 Number = trackNumber,
                 Url = url,
@@ -496,7 +496,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         string sectionsDirectory,
         string sectionsIndex,
         Dictionary<int, BiblePublicationSection> sectionNumberSectionMap,
-        Dictionary<int, Dictionary<int, BibleTrack>> sectionNumberTrackMap)
+        Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionNumberTrackMap)
     {
         if (!Directory.Exists(sectionsDirectory))
         {

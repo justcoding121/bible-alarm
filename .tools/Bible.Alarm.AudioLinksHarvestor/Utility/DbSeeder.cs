@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using BiblePublicationSection = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BiblePublicationSection;
-using BibleTrack = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleTrack;
+using BiblePublicationTrack = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BiblePublicationTrack;
 using DramaTrack = Bible.Alarm.AudioLinksHarvestor.Models.Drama.DramaTrack;
 using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.Video.VideoEpisode;
 using MusicTrack = Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack;
@@ -221,7 +221,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
             biblePublication.Sections.Add(newSection);
 
-            var tracks = await GetSafely(() => mediaReader.GetBibleTracks(languageKey, publicationKey, section.Key));
+            var tracks = await GetSafely(() => mediaReader.GetBiblePublicationTracks(languageKey, publicationKey, section.Key));
             if (tracks == null || tracks.Count == 0)
             {
                 continue;
@@ -233,7 +233,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
     private async Task AddTracksToSection(
         MediaDbContext db,
-        SortedDictionary<int, BibleTrack> tracks,
+        SortedDictionary<int, BiblePublicationTrack> tracks,
         Shared.Models.Media.Bible.BiblePublicationSection newSection)
     {
         foreach (var track in tracks)

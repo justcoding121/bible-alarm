@@ -86,7 +86,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
             // Get tracks for the selected section using the latest language/publication from CurrentSchedule
             var tracks = await Task.Run(async () =>
-                await mediaService.GetBibleTracks(currentSchedule.BiblePublicationLanguageCode, currentSchedule.BiblePublicationPublicationCode, x.Number));
+                await mediaService.GetBiblePublicationTracks(currentSchedule.BiblePublicationLanguageCode, currentSchedule.BiblePublicationPublicationCode, x.Number));
 
             if (tracks == null || tracks.Count == 0)
             {

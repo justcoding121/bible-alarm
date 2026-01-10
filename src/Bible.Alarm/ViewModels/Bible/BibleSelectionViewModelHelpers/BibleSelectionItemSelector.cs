@@ -97,7 +97,7 @@ public sealed class BibleSelectionItemSelector
         if (sections.TryGetValue(currentSectionNumber, out var currentSection))
         {
             var tracks = await Task.Run(async () =>
-                await mediaService.GetBibleTracks(currentSchedule.BiblePublicationLanguageCode!, publication.Code, currentSectionNumber));
+                await mediaService.GetBiblePublicationTracks(currentSchedule.BiblePublicationLanguageCode!, publication.Code, currentSectionNumber));
 
             var trackNumber = tracks != null && tracks.ContainsKey(currentTrackNumber)
                 ? currentTrackNumber
@@ -118,7 +118,7 @@ public sealed class BibleSelectionItemSelector
     {
         var firstSection = sections.Values.First();
         var tracks = await Task.Run(async () =>
-            await mediaService.GetBibleTracks(languageCode, publication.Code, firstSection.Number));
+            await mediaService.GetBiblePublicationTracks(languageCode, publication.Code, firstSection.Number));
 
         if (tracks == null || tracks.Count == 0)
         {
@@ -152,7 +152,7 @@ public sealed class BibleSelectionItemSelector
         if (sections != null && sections.TryGetValue(currentSectionNumber, out var currentSection))
         {
             var tracks = await Task.Run(async () =>
-                await mediaService.GetBibleTracks(language.Code, publicationCode, currentSectionNumber));
+                await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, currentSectionNumber));
 
             var trackNumber = tracks != null && tracks.ContainsKey(currentTrackNumber)
                 ? currentTrackNumber
@@ -196,7 +196,7 @@ public sealed class BibleSelectionItemSelector
 
         var firstSection = sections.Values.First();
         var tracks = await Task.Run(async () =>
-            await mediaService.GetBibleTracks(language.Code, publicationCode, firstSection.Number));
+            await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, firstSection.Number));
 
         if (tracks == null || tracks.Count == 0)
         {

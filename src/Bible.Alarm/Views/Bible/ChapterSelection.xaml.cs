@@ -86,9 +86,9 @@ public partial class TrackSelection : BaseContentPage, IDisposable
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is Grid grid && grid.BindingContext is BibleTrackListViewItemModel trackItem)
+        if (sender is Grid grid && grid.BindingContext is BiblePublicationTrackListViewItemModel trackItem)
         {
-            if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<BibleTrackListViewItemModel> asyncCommand)
+            if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<BiblePublicationTrackListViewItemModel> asyncCommand)
             {
                 if (asyncCommand.CanExecute(trackItem))
                 {

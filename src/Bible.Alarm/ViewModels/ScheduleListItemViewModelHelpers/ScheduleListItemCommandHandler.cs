@@ -84,7 +84,7 @@ public sealed class ScheduleListItemCommandHandler(
                 // Run database operations off UI thread
                 await Task.Run(async () =>
                 {
-                    await playlistService.MoveToPreviousBibleTrack(schedule.Id);
+                    await playlistService.MoveToPreviousBiblePublicationTrack(schedule.Id);
                 });
                 logger.Information("PreviousCommand: Successfully moved to previous track for schedule {ScheduleId}", schedule.Id);
                 // Don't refresh here - OnApplicationStateChanged will handle it when state updates
@@ -138,7 +138,7 @@ public sealed class ScheduleListItemCommandHandler(
                 // Run database operations off UI thread
                 await Task.Run(async () =>
                 {
-                    await playlistService.MoveToNextBibleTrack(schedule.Id);
+                    await playlistService.MoveToNextBiblePublicationTrack(schedule.Id);
                 });
                 logger.Information("NextCommand: Successfully moved to next track for schedule {ScheduleId}", schedule.Id);
                 // Don't refresh here - OnApplicationStateChanged will handle it when state updates

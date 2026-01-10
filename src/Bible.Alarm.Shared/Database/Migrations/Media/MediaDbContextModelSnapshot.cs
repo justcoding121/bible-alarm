@@ -134,7 +134,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.HasIndex("BiblePublicationSectionId", "Number")
                         .IsUnique();
 
-                    b.ToTable("BibleTrack");
+                    b.ToTable("BiblePublicationTrack");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BiblePublicationTrack", b =>

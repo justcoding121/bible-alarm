@@ -32,7 +32,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
             var playType = trackMetadata.PlayType;
             if (playType == PlayType.Bible)
             {
-                return await GetBibleTrackUrl(
+                return await GetBiblePublicationTrackUrl(
                     trackMetadata.LanguageCode,
                     trackMetadata.PublicationCode,
                     trackMetadata.SectionNumber,
@@ -51,7 +51,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
     }
 
-    public async Task<string?> GetBibleTrackUrl(string languageCode, string pubCode, int sectionNumber, int track,
+    public async Task<string?> GetBiblePublicationTrackUrl(string languageCode, string pubCode, int sectionNumber, int track,
         string lookUpPath)
     {
         try
@@ -121,7 +121,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Exception in GetBibleTrackUrl for language '{LanguageCode}', section {SectionNumber}, track {Track}", languageCode, sectionNumber, track);
+            logger.Error(ex, "Exception in GetBiblePublicationTrackUrl for language '{LanguageCode}', section {SectionNumber}, track {Track}", languageCode, sectionNumber, track);
             return null;
         }
     }

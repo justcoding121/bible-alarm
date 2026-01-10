@@ -37,7 +37,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         BiblePublicationService,
         melodyMusicService,
         cancellationTokenSource.Token);
-    private readonly PlaylistBibleTrackBuilder bibleTrackBuilder;
+    private readonly PlaylistBiblePublicationTrackBuilder biblePublicationTrackBuilder;
     private readonly PlaylistMusicTrackBuilder musicTrackBuilder;
 
     // Helper classes
@@ -63,7 +63,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         this.BiblePublicationService = BiblePublicationService;
         this.melodyMusicService = melodyMusicService;
         this.diskCacheService = diskCacheService;
-        bibleTrackBuilder = new PlaylistBibleTrackBuilder(logger, mediaService);
+        biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, mediaService);
         musicTrackBuilder = new PlaylistMusicTrackBuilder(logger, mediaService, melodyMusicService);
         trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);
         trackNavigator = new TrackNavigator(mediaService);
@@ -159,7 +159,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
         else
         {
-            var nextTrack = await trackNavigator.GetNextBibleTrack(
+            var nextTrack = await trackNavigator.GetNextBiblePublicationTrack(
                 trackMetadata.LanguageCode,
                 trackMetadata.PublicationCode,
                 trackMetadata.SectionNumber,
@@ -211,7 +211,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var sectionNumber = biblePublicationSchedule.SectionNumber ?? throw new InvalidOperationException($"SectionNumber is null for schedule {scheduleId}");
         var track = biblePublicationSchedule.TrackNumber;
 
-        var trackDetail = await mediaService.GetBibleTrack(biblePublicationSchedule.LanguageCode,
+        var trackDetail = await mediaService.GetBiblePublicationTrack(biblePublicationSchedule.LanguageCode,
             biblePublicationSchedule.PublicationCode, sectionNumber, track);
 
         if (trackDetail == null)
@@ -253,23 +253,23 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         var biblePublicationSchedule = schedule.BiblePublicationSchedule ??
             throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {scheduleId}");
-        var bibleTracks = await bibleTrackBuilder.BuildBibleTracks(scheduleId, schedule, biblePublicationSchedule, 
-            (lang, pub, section, track) => trackNavigator.GetNextBibleTrack(lang, pub, section, track));
-        result.AddRange(bibleTracks);
+        var biblePublicationTracks = await biblePublicationTrackBuilder.BuildBiblePublicationTracks(scheduleId, schedule, biblePublicationSchedule, 
+            (lang, pub, section, track) => trackNavigator.GetNextBiblePublicationTrack(lang, pub, section, track));
+        result.AddRange(biblePublicationTracks);
 
         return result;
     }
 
 
 
-    public async Task MoveToNextBibleTrack(int scheduleId)
+    public async Task MoveToNextBiblePublicationTrack(int scheduleId)
     {
         var schedule = await scheduleUpdater.GetScheduleWithBiblePublicationAsync(scheduleId);
         if (schedule.BiblePublicationSchedule == null || !schedule.BiblePublicationSchedule.SectionNumber.HasValue)
         {
             return;
         }
-        var next = await trackNavigator.GetNextBibleTrack(
+        var next = await trackNavigator.GetNextBiblePublicationTrack(
             schedule.BiblePublicationSchedule.LanguageCode,
             schedule.BiblePublicationSchedule.PublicationCode,
             schedule.BiblePublicationSchedule.SectionNumber.Value,
@@ -279,14 +279,14 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
-    public async Task MoveToPreviousBibleTrack(int scheduleId)
+    public async Task MoveToPreviousBiblePublicationTrack(int scheduleId)
     {
         var schedule = await scheduleUpdater.GetScheduleWithBiblePublicationAsync(scheduleId);
         if (schedule.BiblePublicationSchedule == null || !schedule.BiblePublicationSchedule.SectionNumber.HasValue)
         {
             return;
         }
-        var previous = await trackNavigator.GetPreviousBibleTrack(
+        var previous = await trackNavigator.GetPreviousBiblePublicationTrack(
             schedule.BiblePublicationSchedule.LanguageCode,
             schedule.BiblePublicationSchedule.PublicationCode,
             schedule.BiblePublicationSchedule.SectionNumber.Value,
@@ -301,16 +301,16 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
-    public async Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetNextBibleTrack(string languageCode,
+    public async Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetNextBiblePublicationTrack(string languageCode,
         string publicationCode, int sectionNumber, int track)
     {
-        return await trackNavigator.GetNextBibleTrack(languageCode, publicationCode, sectionNumber, track);
+        return await trackNavigator.GetNextBiblePublicationTrack(languageCode, publicationCode, sectionNumber, track);
     }
 
-    public async Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetPreviousBibleTrack(string languageCode,
+    public async Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(string languageCode,
         string publicationCode, int sectionNumber, int track)
     {
-        return await trackNavigator.GetPreviousBibleTrack(languageCode, publicationCode, sectionNumber, track);
+        return await trackNavigator.GetPreviousBiblePublicationTrack(languageCode, publicationCode, sectionNumber, track);
     }
 
     public async Task<KeyValuePair<int, BiblePublicationSection>> GetPreviousBiblePublicationSection(string languageCode, string publicationCode,

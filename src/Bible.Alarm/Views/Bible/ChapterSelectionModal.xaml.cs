@@ -50,9 +50,9 @@ public partial class TrackSelectionModal : BaseContentPage, IDisposable
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
-        if (sender is Grid grid && grid.BindingContext is BibleTrackListViewItemModel trackItem)
+        if (sender is Grid grid && grid.BindingContext is BiblePublicationTrackListViewItemModel trackItem)
         {
-            if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<BibleTrackListViewItemModel> asyncCommand)
+            if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<BiblePublicationTrackListViewItemModel> asyncCommand)
             {
                 if (asyncCommand.CanExecute(trackItem))
                 {

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Media.Bible;
 
-[Table("BibleTrack")]
+[Table("BiblePublicationTrack")]
 [Index(nameof(BiblePublicationSectionId), nameof(Number), IsUnique = true)]
 public sealed class BiblePublicationTrack : IComparable
 {

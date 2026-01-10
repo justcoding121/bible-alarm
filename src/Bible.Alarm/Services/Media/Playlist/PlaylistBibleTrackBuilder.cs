@@ -12,12 +12,12 @@ namespace Bible.Alarm.Services.Media.Playlist;
 /// Handles building Bible tracks for playlists.
 /// Separated from PlaylistService for better modularity.
 /// </summary>
-public class PlaylistBibleTrackBuilder
+public class PlaylistBiblePublicationTrackBuilder
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
 
-    public PlaylistBibleTrackBuilder(ILogger logger, IMediaService mediaService)
+    public PlaylistBiblePublicationTrackBuilder(ILogger logger, IMediaService mediaService)
     {
         this.logger = logger;
         this.mediaService = mediaService;
@@ -25,11 +25,11 @@ public class PlaylistBibleTrackBuilder
 
     public record TrackInfo(int SectionNumber, BiblePublicationTrack Track, string Url);
 
-    public async Task<List<PlayItem>> BuildBibleTracks(
+    public async Task<List<PlayItem>> BuildBiblePublicationTracks(
         int scheduleId,
         AlarmSchedule schedule,
         BiblePublicationSchedule biblePublicationSchedule,
-        Func<string, string, int, int, Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>>> getNextBibleTrackAsync)
+        Func<string, string, int, int, Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>>> getNextBiblePublicationTrackAsync)
     {
         var initialTrackInfo = await GetInitialTrackInfo(biblePublicationSchedule);
         var result = new List<PlayItem>();
@@ -56,7 +56,7 @@ public class PlaylistBibleTrackBuilder
             numberOfTracksToRead--;
             if (numberOfTracksToRead > 0)
             {
-                var next = await GetNextTrackInfo(biblePublicationSchedule, currentSectionNumber, currentTrack.Number, getNextBibleTrackAsync);
+                var next = await GetNextTrackInfo(biblePublicationSchedule, currentSectionNumber, currentTrack.Number, getNextBiblePublicationTrackAsync);
                 currentSectionNumber = next.SectionNumber;
                 currentTrack = next.Track;
                 currentUrl = next.Url;
@@ -70,7 +70,7 @@ public class PlaylistBibleTrackBuilder
     {
         var sectionNumber = biblePublicationSchedule.SectionNumber ?? throw new InvalidOperationException("SectionNumber is null");
         
-        var tracks = await mediaService.GetBibleTracks(
+        var tracks = await mediaService.GetBiblePublicationTracks(
             biblePublicationSchedule.LanguageCode,
             biblePublicationSchedule.PublicationCode,
             sectionNumber);
@@ -149,9 +149,9 @@ public class PlaylistBibleTrackBuilder
         BiblePublicationSchedule biblePublicationSchedule,
         int currentSectionNumber,
         int currentTrackNumber,
-        Func<string, string, int, int, Task<KeyValuePair<BiblePublicationSection, BibleTrack>>> getNextBibleTrackAsync)
+        Func<string, string, int, int, Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>>> getNextBiblePublicationTrackAsync)
     {
-        var next = await getNextBibleTrackAsync(
+        var next = await getNextBiblePublicationTrackAsync(
             biblePublicationSchedule.LanguageCode,
             biblePublicationSchedule.PublicationCode,
             currentSectionNumber,
