@@ -168,7 +168,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.ToTable("AlarmSchedules");
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Models.Schedule.BibleReadingSchedule", b =>
+            modelBuilder.Entity("Bible.Alarm.Models.Schedule.BiblePublicationSchedule", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -203,7 +203,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
                     b.HasIndex("PublicationCode", "LanguageCode");
 
-                    b.ToTable("BibleReadingSchedules");
+                    b.ToTable("BiblePublicationSchedules");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Models.Schedule.AlarmMusic", b =>
@@ -228,11 +228,11 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.Navigation("AlarmSchedule");
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Models.Schedule.BibleReadingSchedule", b =>
+            modelBuilder.Entity("Bible.Alarm.Models.Schedule.BiblePublicationSchedule", b =>
                 {
                     b.HasOne("Bible.Alarm.Models.Schedule.AlarmSchedule", "AlarmSchedule")
-                        .WithOne("BibleReadingSchedule")
-                        .HasForeignKey("Bible.Alarm.Models.Schedule.BibleReadingSchedule", "AlarmScheduleId")
+                        .WithOne("BiblePublicationSchedule")
+                        .HasForeignKey("Bible.Alarm.Models.Schedule.BiblePublicationSchedule", "AlarmScheduleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -243,7 +243,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 {
                     b.Navigation("AlarmNotifications");
 
-                    b.Navigation("BibleReadingSchedule");
+                    b.Navigation("BiblePublicationSchedule");
 
                     b.Navigation("Music");
                 });

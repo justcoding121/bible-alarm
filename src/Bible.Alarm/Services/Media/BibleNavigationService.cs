@@ -10,7 +10,7 @@ public sealed class BibleNavigationService(
     : IBibleNavigationService
 {
 
-    public async Task<bool> MoveToPreviousSectionAsync(BibleReadingSchedule schedule)
+    public async Task<bool> MoveToPreviousSectionAsync(BiblePublicationSchedule schedule)
     {
         if (schedule == null || !schedule.SectionNumber.HasValue)
         {
@@ -43,7 +43,7 @@ public sealed class BibleNavigationService(
         }
     }
 
-    public async Task<bool> MoveToNextSectionAsync(BibleReadingSchedule schedule)
+    public async Task<bool> MoveToNextSectionAsync(BiblePublicationSchedule schedule)
     {
         if (schedule == null || !schedule.SectionNumber.HasValue)
         {
@@ -76,7 +76,7 @@ public sealed class BibleNavigationService(
         }
     }
 
-    public async Task<bool> MoveToPreviousTrackAsync(BibleReadingSchedule schedule)
+    public async Task<bool> MoveToPreviousTrackAsync(BiblePublicationSchedule schedule)
     {
         if (schedule == null || !schedule.SectionNumber.HasValue)
         {
@@ -110,7 +110,7 @@ public sealed class BibleNavigationService(
         }
     }
 
-    public async Task<bool> MoveToNextTrackAsync(BibleReadingSchedule schedule)
+    public async Task<bool> MoveToNextTrackAsync(BiblePublicationSchedule schedule)
     {
         if (schedule == null || !schedule.SectionNumber.HasValue)
         {

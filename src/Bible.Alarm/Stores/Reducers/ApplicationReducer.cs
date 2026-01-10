@@ -22,7 +22,7 @@ public static class ApplicationReducer
             schedules: action.ScheduleList,
             currentSchedule: null,
             currentMusic: null,
-            currentBibleReadingSchedule: null,
+            currentBiblePublicationSchedule: null,
             isHomePageOverlayVisible: false,
             isSchedulePageOverlayVisible: false);
     }
@@ -100,7 +100,7 @@ public static class ApplicationReducer
         // else: ShouldSave=false means only update CurrentSchedule, not Schedules collection
 
         var updatedCurrentSchedule = ScheduleStateSyncHelper.UpdateCurrentScheduleIfMatches(state, action.Schedule);
-        var updatedCurrentBibleReadingSchedule = ScheduleStateSyncHelper.SyncBibleReadingScheduleIfNeeded(action, updatedCurrentSchedule);
+        var updatedCurrentBiblePublicationSchedule = ScheduleStateSyncHelper.SyncBiblePublicationScheduleIfNeeded(action, updatedCurrentSchedule);
         var updatedCurrentMusic = ScheduleStateSyncHelper.SyncMusicIfNeeded(action, updatedCurrentSchedule);
 
         // Create new state with new Schedules collection if it was updated, otherwise use existing
@@ -110,14 +110,14 @@ public static class ApplicationReducer
                 schedules: newSchedules,
                 currentSchedule: updatedCurrentSchedule,
                 currentMusic: updatedCurrentMusic,
-                currentBibleReadingSchedule: updatedCurrentBibleReadingSchedule,
+                currentBiblePublicationSchedule: updatedCurrentBiblePublicationSchedule,
                 isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
                 isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
                 containerReadiness: state.ContainerReadiness);
         }
         else
         {
-            return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule, updatedCurrentMusic, updatedCurrentBibleReadingSchedule);
+            return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule, updatedCurrentMusic, updatedCurrentBiblePublicationSchedule);
         }
     }
 
@@ -125,10 +125,10 @@ public static class ApplicationReducer
     {
         Log.Information("ApplicationReducer: OnUpdateScheduleFromViewModel - ScheduleId: {ScheduleId}, Name: {Name}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}",
             action.Schedule!.Id, action.Schedule.Name,
-            action.Schedule.BibleReadingLanguageCode ?? "null",
-            action.Schedule.BibleReadingLanguageName ?? "null",
-            action.Schedule.BibleReadingPublicationCode ?? "null",
-            action.Schedule.BibleReadingPublicationName ?? "null");
+            action.Schedule.BiblePublicationLanguageCode ?? "null",
+            action.Schedule.BiblePublicationLanguageName ?? "null",
+            action.Schedule.BiblePublicationPublicationCode ?? "null",
+            action.Schedule.BiblePublicationPublicationName ?? "null");
     }
 
     // REMOVED: UpdateScheduleInCollection - This method was mutating existing state objects.
@@ -231,21 +231,21 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnViewSchedule(ApplicationState state, ViewScheduleAction action)
     {
-        // Create CurrentBibleReadingSchedule from schedule's Bible reading properties
-        BibleReadingStateItem? currentBibleReadingSchedule = null;
+        // Create CurrentBiblePublicationSchedule from schedule's Bible reading properties
+        BiblePublicationStateItem? currentBiblePublicationSchedule = null;
         if (action.SelectedSchedule != null &&
-            ScheduleStateSyncHelper.HasValidBibleReadingProperties(action.SelectedSchedule))
+            ScheduleStateSyncHelper.HasValidBiblePublicationProperties(action.SelectedSchedule))
         {
-            currentBibleReadingSchedule = new BibleReadingStateItem
+            currentBiblePublicationSchedule = new BiblePublicationStateItem
             {
-                Id = action.SelectedSchedule.BibleReadingScheduleId ?? 0,
-                LanguageCode = action.SelectedSchedule.BibleReadingLanguageCode ?? string.Empty,
-                PublicationCode = action.SelectedSchedule.BibleReadingPublicationCode ?? string.Empty,
-                SectionNumber = action.SelectedSchedule.BibleReadingSectionNumber,
-                TrackNumber = action.SelectedSchedule.BibleReadingTrackNumber ?? 1,
-                FinishedDuration = action.SelectedSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero,
+                Id = action.SelectedSchedule.BiblePublicationScheduleId ?? 0,
+                LanguageCode = action.SelectedSchedule.BiblePublicationLanguageCode ?? string.Empty,
+                PublicationCode = action.SelectedSchedule.BiblePublicationPublicationCode ?? string.Empty,
+                SectionNumber = action.SelectedSchedule.BiblePublicationSectionNumber,
+                TrackNumber = action.SelectedSchedule.BiblePublicationTrackNumber ?? 1,
+                FinishedDuration = action.SelectedSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = action.SelectedSchedule.Id,
-                TranslationName = action.SelectedSchedule.BibleReadingPublicationName ?? string.Empty
+                TranslationName = action.SelectedSchedule.BiblePublicationPublicationName ?? string.Empty
             };
         }
 
@@ -269,7 +269,7 @@ public static class ApplicationReducer
             schedules: state.Schedules,
             currentSchedule: clonedCurrentSchedule,
             currentMusic: syncedCurrentMusic,
-            currentBibleReadingSchedule: currentBibleReadingSchedule,
+            currentBiblePublicationSchedule: currentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: overlayVisible,
             containerReadiness: Models.ContainerReadiness.NotReady,
@@ -285,7 +285,7 @@ public static class ApplicationReducer
             schedules: state.Schedules,
             currentSchedule: null, // Will be set after DB load
             currentMusic: null,
-            currentBibleReadingSchedule: null,
+            currentBiblePublicationSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: true, // Show overlay while loading
             containerReadiness: Models.ContainerReadiness.NotReady,
@@ -302,7 +302,7 @@ public static class ApplicationReducer
             schedules: state.Schedules,
             currentSchedule: null,
             currentMusic: null,
-            currentBibleReadingSchedule: null,
+            currentBiblePublicationSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: false, // Reset overlay visibility when leaving schedule page
             containerReadiness: Models.ContainerReadiness.NotReady);
@@ -328,7 +328,7 @@ public static class ApplicationReducer
             state,
             state.CurrentSchedule,
             finalCurrentMusic,
-            state.CurrentBibleReadingSchedule);
+            state.CurrentBiblePublicationSchedule);
     }
 
     [ReducerMethod]
@@ -338,7 +338,7 @@ public static class ApplicationReducer
             state,
             state.CurrentSchedule,
             action.CurrentMusic,
-            state.CurrentBibleReadingSchedule);
+            state.CurrentBiblePublicationSchedule);
     }
 
     [ReducerMethod]
@@ -348,7 +348,7 @@ public static class ApplicationReducer
             state,
             state.CurrentSchedule,
             action.CurrentMusic,
-            state.CurrentBibleReadingSchedule);
+            state.CurrentBiblePublicationSchedule);
     }
 
     [ReducerMethod]
@@ -358,7 +358,7 @@ public static class ApplicationReducer
             state,
             state.CurrentSchedule,
             action.CurrentMusic,
-            state.CurrentBibleReadingSchedule);
+            state.CurrentBiblePublicationSchedule);
     }
 
     [ReducerMethod]
@@ -368,7 +368,7 @@ public static class ApplicationReducer
             state,
             state.CurrentSchedule,
             state.CurrentMusic,
-            action.CurrentBibleReadingSchedule);
+            action.CurrentBiblePublicationSchedule);
     }
 
     [ReducerMethod]
@@ -378,7 +378,7 @@ public static class ApplicationReducer
             state,
             state.CurrentSchedule,
             state.CurrentMusic,
-            action.CurrentBibleReadingSchedule);
+            action.CurrentBiblePublicationSchedule);
     }
 
     [ReducerMethod]
@@ -388,7 +388,7 @@ public static class ApplicationReducer
             state,
             state.CurrentSchedule,
             state.CurrentMusic,
-            action.CurrentBibleReadingSchedule);
+            action.CurrentBiblePublicationSchedule);
     }
 
     [ReducerMethod]
@@ -398,7 +398,7 @@ public static class ApplicationReducer
             state,
             state.CurrentSchedule,
             state.CurrentMusic,
-            action.CurrentBibleReadingSchedule);
+            action.CurrentBiblePublicationSchedule);
     }
 
     [ReducerMethod]
@@ -408,7 +408,7 @@ public static class ApplicationReducer
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,
             currentMusic: state.CurrentMusic,
-            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: action.IsVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
@@ -426,7 +426,7 @@ public static class ApplicationReducer
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,
             currentMusic: state.CurrentMusic,
-            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: action.IsVisible,
             containerReadiness: containerReadiness);
@@ -443,7 +443,7 @@ public static class ApplicationReducer
             schedules: state.Schedules,
             currentSchedule: null,
             currentMusic: null,
-            currentBibleReadingSchedule: null,
+            currentBiblePublicationSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible, // Keep current overlay state during navigation
             containerReadiness: Models.ContainerReadiness.NotReady); // Reset container readiness

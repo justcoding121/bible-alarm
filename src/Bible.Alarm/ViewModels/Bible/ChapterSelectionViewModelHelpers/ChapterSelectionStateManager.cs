@@ -13,8 +13,8 @@ namespace Bible.Alarm.ViewModels.Bible.TrackSelectionViewModelHelpers;
 /// </summary>
 public sealed class TrackSelectionStateManager(IMapper mapper)
 {
-    private BibleReadingSchedule? current;
-    private BibleReadingSchedule? lastCurrent;
+    private BiblePublicationSchedule? current;
+    private BiblePublicationSchedule? lastCurrent;
     private bool initComplete;
 
     // Track last language, publication code, and section number to detect changes
@@ -22,13 +22,13 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
     private string? lastPublicationCode;
     private int? lastSectionNumber;
 
-    public BibleReadingSchedule? Current => current;
+    public BiblePublicationSchedule? Current => current;
     public bool InitComplete => initComplete;
     public string? LastLanguageCode => lastLanguageCode;
     public string? LastPublicationCode => lastPublicationCode;
     public int? LastSectionNumber => lastSectionNumber;
 
-    public void HandleBibleReadingInitialized(
+    public void HandleBiblePublicationInitialized(
         IState<ApplicationState> state,
         Action<bool> setBusy,
         Func<string, string, int, Task> initialize)
@@ -46,9 +46,9 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
-        var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
-        var newSectionNumber = currentSchedule.BibleReadingSectionNumber;
+        var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+        var newPublicationCode = currentSchedule.BiblePublicationPublicationCode;
+        var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
 
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
         {
@@ -60,21 +60,21 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         lastPublicationCode = newPublicationCode;
         lastSectionNumber = newSectionNumber.Value;
 
-        // Update current if we have CurrentBibleReadingSchedule
-        if (stateValue.CurrentBibleReadingSchedule != null)
+        // Update current if we have CurrentBiblePublicationSchedule
+        if (stateValue.CurrentBiblePublicationSchedule != null)
         {
-            current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+            current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
             lastCurrent = current;
         }
         else
         {
-            // Create a minimal BibleReadingSchedule from CurrentSchedule
-            current = new BibleReadingSchedule
+            // Create a minimal BiblePublicationSchedule from CurrentSchedule
+            current = new BiblePublicationSchedule
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = newSectionNumber.Value,
-                TrackNumber = currentSchedule.BibleReadingTrackNumber ?? 1
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
         }
@@ -89,7 +89,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         });
     }
 
-    public void HandleBibleReadingChanged(
+    public void HandleBiblePublicationChanged(
         IState<ApplicationState> state,
         Action<bool> setBusy,
         Func<string, string, int, Task> initialize,
@@ -103,9 +103,9 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
-        var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
-        var newSectionNumber = currentSchedule.BibleReadingSectionNumber;
+        var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+        var newPublicationCode = currentSchedule.BiblePublicationPublicationCode;
+        var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
 
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
         {
@@ -128,21 +128,21 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         lastPublicationCode = newPublicationCode;
         lastSectionNumber = newSectionNumber.Value;
 
-        // Update current if we have CurrentBibleReadingSchedule
-        if (stateValue.CurrentBibleReadingSchedule != null)
+        // Update current if we have CurrentBiblePublicationSchedule
+        if (stateValue.CurrentBiblePublicationSchedule != null)
         {
-            current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+            current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
             lastCurrent = current;
         }
         else
         {
-            // Create a minimal BibleReadingSchedule from CurrentSchedule
-            current = new BibleReadingSchedule
+            // Create a minimal BiblePublicationSchedule from CurrentSchedule
+            current = new BiblePublicationSchedule
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = newSectionNumber.Value,
-                TrackNumber = currentSchedule.BibleReadingTrackNumber ?? 1
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
         }
@@ -175,9 +175,9 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
-        var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
-        var newSectionNumber = currentSchedule.BibleReadingSectionNumber;
+        var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+        var newPublicationCode = currentSchedule.BiblePublicationPublicationCode;
+        var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
 
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
         {
@@ -190,18 +190,18 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         lastSectionNumber = newSectionNumber.Value;
 
         // Update current from CurrentSchedule
-        if (stateValue.CurrentBibleReadingSchedule != null)
+        if (stateValue.CurrentBiblePublicationSchedule != null)
         {
-            current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+            current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
         }
         else
         {
-            current = new BibleReadingSchedule
+            current = new BiblePublicationSchedule
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = newSectionNumber.Value,
-                TrackNumber = currentSchedule.BibleReadingTrackNumber ?? 1
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
         }
         lastCurrent = current;

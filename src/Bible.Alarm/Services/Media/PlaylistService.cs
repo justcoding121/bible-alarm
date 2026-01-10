@@ -191,7 +191,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
         else
         {
-            PlaylistTrackUpdater.UpdateBibleReadingTrackForFinished(schedule, trackMetadata, nextTrackInfo.NextTrack);
+            PlaylistTrackUpdater.UpdateBiblePublicationTrackForFinished(schedule, trackMetadata, nextTrackInfo.NextTrack);
         }
     }
 
@@ -207,22 +207,22 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             return await musicTrackBuilder.NextMusicUrlToPlay(schedule);
         }
 
-        var bibleReadingSchedule = schedule.BibleReadingSchedule ?? throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
-        var sectionNumber = bibleReadingSchedule.SectionNumber ?? throw new InvalidOperationException($"SectionNumber is null for schedule {scheduleId}");
-        var track = bibleReadingSchedule.TrackNumber;
+        var biblePublicationSchedule = schedule.BiblePublicationSchedule ?? throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {scheduleId}");
+        var sectionNumber = biblePublicationSchedule.SectionNumber ?? throw new InvalidOperationException($"SectionNumber is null for schedule {scheduleId}");
+        var track = biblePublicationSchedule.TrackNumber;
 
-        var trackDetail = await mediaService.GetBibleTrack(bibleReadingSchedule.LanguageCode,
-            bibleReadingSchedule.PublicationCode, sectionNumber, track);
+        var trackDetail = await mediaService.GetBibleTrack(biblePublicationSchedule.LanguageCode,
+            biblePublicationSchedule.PublicationCode, sectionNumber, track);
 
         if (trackDetail == null)
         {
             logger.Error(
-                $"Track: ${track}, section: {sectionNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
+                $"Track: ${track}, section: {sectionNumber}, language: {biblePublicationSchedule.LanguageCode}, pub code: {biblePublicationSchedule.PublicationCode} not in lookup. ");
             throw new InvalidOperationException($"Track not found: {track}, section: {sectionNumber}");
         }
 
-        var publicationCode = bibleReadingSchedule.PublicationCode;
-        var languageCode = bibleReadingSchedule.LanguageCode;
+        var publicationCode = biblePublicationSchedule.PublicationCode;
+        var languageCode = biblePublicationSchedule.LanguageCode;
         var url = trackDetail.Source?.Url ?? string.Empty;
 
         // LookUpPath is now computed from LanguageCode, PublicationCode, SectionNumber, TrackNumber
@@ -251,9 +251,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             result.Add(await musicTrackBuilder.NextMusicUrlToPlay(schedule));
         }
 
-        var bibleReadingSchedule = schedule.BibleReadingSchedule ??
-            throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
-        var bibleTracks = await bibleTrackBuilder.BuildBibleTracks(scheduleId, schedule, bibleReadingSchedule, 
+        var biblePublicationSchedule = schedule.BiblePublicationSchedule ??
+            throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {scheduleId}");
+        var bibleTracks = await bibleTrackBuilder.BuildBibleTracks(scheduleId, schedule, biblePublicationSchedule, 
             (lang, pub, section, track) => trackNavigator.GetNextBibleTrack(lang, pub, section, track));
         result.AddRange(bibleTracks);
 
@@ -264,16 +264,16 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
     public async Task MoveToNextBibleTrack(int scheduleId)
     {
-        var schedule = await scheduleUpdater.GetScheduleWithBibleReadingAsync(scheduleId);
-        if (schedule.BibleReadingSchedule == null || !schedule.BibleReadingSchedule.SectionNumber.HasValue)
+        var schedule = await scheduleUpdater.GetScheduleWithBiblePublicationAsync(scheduleId);
+        if (schedule.BiblePublicationSchedule == null || !schedule.BiblePublicationSchedule.SectionNumber.HasValue)
         {
             return;
         }
         var next = await trackNavigator.GetNextBibleTrack(
-            schedule.BibleReadingSchedule.LanguageCode,
-            schedule.BibleReadingSchedule.PublicationCode,
-            schedule.BibleReadingSchedule.SectionNumber.Value,
-            schedule.BibleReadingSchedule.TrackNumber);
+            schedule.BiblePublicationSchedule.LanguageCode,
+            schedule.BiblePublicationSchedule.PublicationCode,
+            schedule.BiblePublicationSchedule.SectionNumber.Value,
+            schedule.BiblePublicationSchedule.TrackNumber);
 
         var updatedSchedule = await scheduleUpdater.UpdateScheduleToNextTrackAsync(scheduleId, next);
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
@@ -281,16 +281,16 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
     public async Task MoveToPreviousBibleTrack(int scheduleId)
     {
-        var schedule = await scheduleUpdater.GetScheduleWithBibleReadingAsync(scheduleId);
-        if (schedule.BibleReadingSchedule == null || !schedule.BibleReadingSchedule.SectionNumber.HasValue)
+        var schedule = await scheduleUpdater.GetScheduleWithBiblePublicationAsync(scheduleId);
+        if (schedule.BiblePublicationSchedule == null || !schedule.BiblePublicationSchedule.SectionNumber.HasValue)
         {
             return;
         }
         var previous = await trackNavigator.GetPreviousBibleTrack(
-            schedule.BibleReadingSchedule.LanguageCode,
-            schedule.BibleReadingSchedule.PublicationCode,
-            schedule.BibleReadingSchedule.SectionNumber.Value,
-            schedule.BibleReadingSchedule.TrackNumber);
+            schedule.BiblePublicationSchedule.LanguageCode,
+            schedule.BiblePublicationSchedule.PublicationCode,
+            schedule.BiblePublicationSchedule.SectionNumber.Value,
+            schedule.BiblePublicationSchedule.TrackNumber);
 
         if (previous.Key == null || previous.Value == null)
         {

@@ -61,7 +61,7 @@ public sealed class DefaultScheduleService(
                 {
                     var firstSchedule = await alarmScheduleService.GetFirstScheduleOrDefaultAsync(
                         includeMusic: false,
-                        includeBibleReading: false,
+                        includeBiblePublication: false,
                         cancellationTokenSource.Token);
                     if (firstSchedule != null)
                     {

@@ -20,7 +20,7 @@ public class ScheduleDbContext : DbContext
     public DbSet<AlarmSchedule> AlarmSchedules { get; set; }
     public DbSet<AlarmNotification> AlarmNotifications { get; set; }
     public DbSet<AlarmMusic> AlarmMusic { get; set; }
-    public DbSet<BibleReadingSchedule> BibleReadingSchedules { get; set; }
+    public DbSet<BiblePublicationSchedule> BiblePublicationSchedules { get; set; }
     public DbSet<GeneralSettings> GeneralSettings { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

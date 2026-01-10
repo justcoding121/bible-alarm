@@ -6,10 +6,10 @@ using Microsoft.EntityFrameworkCore;
 namespace Bible.Alarm.Models.Schedule;
 
 [Serializable]
-[Table("BibleReadingSchedules")]
+[Table("BiblePublicationSchedules")]
 [Index(nameof(AlarmScheduleId), IsUnique = true)]
 [Index(nameof(PublicationCode), nameof(LanguageCode))]
-public class BibleReadingSchedule
+public class BiblePublicationSchedule
 {
     [Key]
     public int Id { get; set; }

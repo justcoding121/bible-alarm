@@ -52,7 +52,7 @@ public partial class InitialCreate : Migration
             });
 
         migrationBuilder.CreateTable(
-            name: "BibleReadingSchedules",
+            name: "BiblePublicationSchedules",
             columns: table => new
             {
                 Id = table.Column<int>(nullable: false)
@@ -65,9 +65,9 @@ public partial class InitialCreate : Migration
             },
             constraints: table =>
             {
-                table.PrimaryKey("PK_BibleReadingSchedules", x => x.Id);
+                table.PrimaryKey("PK_BiblePublicationSchedules", x => x.Id);
                 table.ForeignKey(
-                    name: "FK_BibleReadingSchedules_AlarmSchedules_AlarmScheduleId",
+                    name: "FK_BiblePublicationSchedules_AlarmSchedules_AlarmScheduleId",
                     column: x => x.AlarmScheduleId,
                     principalTable: "AlarmSchedules",
                     principalColumn: "Id",
@@ -81,8 +81,8 @@ public partial class InitialCreate : Migration
             unique: true);
 
         migrationBuilder.CreateIndex(
-            name: "IX_BibleReadingSchedules_AlarmScheduleId",
-            table: "BibleReadingSchedules",
+            name: "IX_BiblePublicationSchedules_AlarmScheduleId",
+            table: "BiblePublicationSchedules",
             column: "AlarmScheduleId",
             unique: true);
     }
@@ -93,7 +93,7 @@ public partial class InitialCreate : Migration
             name: "AlarmMusic");
 
         migrationBuilder.DropTable(
-            name: "BibleReadingSchedules");
+            name: "BiblePublicationSchedules");
 
         migrationBuilder.DropTable(
             name: "AlarmSchedules");

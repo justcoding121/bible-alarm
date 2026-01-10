@@ -47,7 +47,7 @@ public sealed class BibleSelectionCommandHandler
         Func<LanguageListViewItemModel?> getCurrentLanguage,
         Func<ObservableCollection<PublicationListViewItemModel>> getTranslations,
         Func<Dictionary<string, PublicationListViewItemModel>> getTranslationVMsMapping,
-        Func<BibleReadingSchedule?> getCurrent)
+        Func<BiblePublicationSchedule?> getCurrent)
     {
         return new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
@@ -63,7 +63,7 @@ public sealed class BibleSelectionCommandHandler
                 return;
             }
 
-            var languageCode = currentSchedule.BibleReadingLanguageCode;
+            var languageCode = currentSchedule.BiblePublicationLanguageCode;
             if (string.IsNullOrEmpty(languageCode))
             {
                 return;
@@ -95,10 +95,10 @@ public sealed class BibleSelectionCommandHandler
                 return;
             }
 
-            var bibleReadingItem = CreateBibleReadingItemFromSelection(x, sectionNumber, trackNumber, sectionName, currentLanguage, currentSchedule);
+            var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionNumber, trackNumber, sectionName, currentLanguage, currentSchedule);
             
             var actionDispatcher = new BibleSelectionActionDispatcher(dispatcher);
-            actionDispatcher.DispatchBibleReadingSelectionActions(bibleReadingItem);
+            actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);
             await navigationService.PopModalAsync();
         });
     }
@@ -150,14 +150,14 @@ public sealed class BibleSelectionCommandHandler
                 return;
             }
 
-            var bibleReadingItem = CreateBibleReadingItemForLanguageSelection(
+            var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(
                 x, publicationCode, sectionNumber, trackNumber, sectionName, publicationName, currentSchedule);
             var actionDispatcher = new BibleSelectionActionDispatcher(dispatcher);
-            actionDispatcher.DispatchLanguageSelectionActions(bibleReadingItem, x);
+            actionDispatcher.DispatchLanguageSelectionActions(biblePublicationItem, x);
         });
     }
 
-    private BibleReadingStateItem CreateBibleReadingItemFromSelection(
+    private BiblePublicationStateItem CreateBiblePublicationItemFromSelection(
         PublicationListViewItemModel publication,
         int sectionNumber,
         int trackNumber,
@@ -167,7 +167,7 @@ public sealed class BibleSelectionCommandHandler
     {
         // Match the pattern used in SectionSelectionViewModel and TrackSelectionCommandHandler
         // They don't set Id or AlarmScheduleId - let them default to 0
-        return new BibleReadingStateItem
+        return new BiblePublicationStateItem
         {
             PublicationCode = publication.Code,
             LanguageCode = language.Code,
@@ -179,7 +179,7 @@ public sealed class BibleSelectionCommandHandler
         };
     }
 
-    private BibleReadingStateItem CreateBibleReadingItemForLanguageSelection(
+    private BiblePublicationStateItem CreateBiblePublicationItemForLanguageSelection(
         LanguageListViewItemModel language,
         string publicationCode,
         int sectionNumber,
@@ -190,7 +190,7 @@ public sealed class BibleSelectionCommandHandler
     {
         // Match the pattern used in SectionSelectionViewModel and TrackSelectionCommandHandler
         // They don't set Id or AlarmScheduleId - let them default to 0
-        return new BibleReadingStateItem
+        return new BiblePublicationStateItem
         {
             LanguageCode = language.Code,
             PublicationCode = publicationCode,

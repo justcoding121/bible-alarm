@@ -23,14 +23,14 @@ public sealed class ScheduleMigrationService(
         try
         {
             var alarmSchedules = await alarmScheduleService.GetSchedulesAsync(
-                x => x.BibleReadingSchedule != null,
+                x => x.BiblePublicationSchedule != null,
                 false,
                 true,
                 cancellationTokenSource.Token);
 
             //bible gateway is not supported anymore due to copyright issues
             var toRemove = alarmSchedules.Where(x =>
-                BgSourceHelper.PublicationCodeToNameMappings.Any(y => y.Key == x.BibleReadingSchedule!.PublicationCode)).ToList();
+                BgSourceHelper.PublicationCodeToNameMappings.Any(y => y.Key == x.BiblePublicationSchedule!.PublicationCode)).ToList();
 
             if (toRemove.Any())
             {
@@ -40,10 +40,10 @@ public sealed class ScheduleMigrationService(
                         item.Id,
                         schedule =>
                         {
-                            if (schedule.BibleReadingSchedule != null)
+                            if (schedule.BiblePublicationSchedule != null)
                             {
-                                schedule.BibleReadingSchedule.PublicationCode = "nwt"; // NWT 2013 (not 1984)
-                                schedule.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+                                schedule.BiblePublicationSchedule.PublicationCode = "nwt"; // NWT 2013 (not 1984)
+                                schedule.BiblePublicationSchedule.FinishedDuration = TimeSpan.Zero;
                             }
                         },
                         cancellationTokenSource.Token);

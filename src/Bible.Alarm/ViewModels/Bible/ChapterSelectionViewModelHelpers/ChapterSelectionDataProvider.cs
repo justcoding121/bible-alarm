@@ -16,7 +16,7 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService)
         string languageCode,
         string publicationCode,
         int sectionNumber,
-        BibleReadingSchedule? current,
+        BiblePublicationSchedule? current,
         ObservableCollection<BibleTrackListViewItemModel> tracks,
         Action<BibleTrackListViewItemModel?> setSelectedTrack)
     {
@@ -59,7 +59,7 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService)
     }
 
     public void SetSelectedTrack(
-        BibleReadingSchedule? current,
+        BiblePublicationSchedule? current,
         ObservableCollection<BibleTrackListViewItemModel> tracks,
         BibleTrackListViewItemModel? currentSelectedTrack,
         Action<BibleTrackListViewItemModel?> setSelectedTrack)

@@ -28,13 +28,13 @@ public sealed class TrackChangeDetector(
         var scheduleBeforeUpdate = await alarmScheduleService.GetScheduleByIdAsync(
             (int)trackMetadata.ScheduleId, false, true, cancellationToken);
 
-        if (scheduleBeforeUpdate?.BibleReadingSchedule == null)
+        if (scheduleBeforeUpdate?.BiblePublicationSchedule == null)
         {
             return false;
         }
 
-        var bibleReadingSchedule = scheduleBeforeUpdate.BibleReadingSchedule;
-        return bibleReadingSchedule.SectionNumber != trackMetadata.SectionNumber ||
-               bibleReadingSchedule.TrackNumber != trackMetadata.TrackNumber;
+        var biblePublicationSchedule = scheduleBeforeUpdate.BiblePublicationSchedule;
+        return biblePublicationSchedule.SectionNumber != trackMetadata.SectionNumber ||
+               biblePublicationSchedule.TrackNumber != trackMetadata.TrackNumber;
     }
 }

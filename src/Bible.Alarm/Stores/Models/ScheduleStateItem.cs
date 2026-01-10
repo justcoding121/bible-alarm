@@ -32,20 +32,20 @@ public sealed class ScheduleStateItem : IComparable
     public string TimeText => $"{MeridianHour:D2}:{Minute:D2}";
 
     // Bible Reading Schedule properties (flattened)
-    public int? BibleReadingScheduleId { get; set; }
+    public int? BiblePublicationScheduleId { get; set; }
 
-    public string? BibleReadingLanguageCode { get; set; }
-    public string? BibleReadingPublicationCode { get; set; }
+    public string? BiblePublicationLanguageCode { get; set; }
+    public string? BiblePublicationPublicationCode { get; set; }
 
     /// <summary>
     /// Section number for traditional Bible readings (1-66).
     /// Null for drama publications which don't have sections.
     /// Use PublicationTypeHelper.HasSectionStructure() to check if this applies.
     /// </summary>
-    public int? BibleReadingSectionNumber { get; set; }
+    public int? BiblePublicationSectionNumber { get; set; }
 
-    public int? BibleReadingTrackNumber { get; set; }
-    public TimeSpan? BibleReadingFinishedDuration { get; set; }
+    public int? BiblePublicationTrackNumber { get; set; }
+    public TimeSpan? BiblePublicationFinishedDuration { get; set; }
 
     // Music properties (flattened)
     public int? MusicId { get; set; }
@@ -60,21 +60,21 @@ public sealed class ScheduleStateItem : IComparable
     /// This is populated during bootstrap from language dictionary.
     /// Not persisted to database.
     /// </summary>
-    public string? BibleReadingLanguageName { get; set; }
+    public string? BiblePublicationLanguageName { get; set; }
 
     /// <summary>
     /// Bible reading publication name for display purposes.
     /// This is populated during bootstrap from Bible translation service.
     /// Not persisted to database.
     /// </summary>
-    public string? BibleReadingPublicationName { get; set; }
+    public string? BiblePublicationPublicationName { get; set; }
 
     /// <summary>
     /// Bible reading section name for display purposes.
     /// This is populated during bootstrap from Bible section service.
     /// Not persisted to database.
     /// </summary>
-    public string? BibleReadingSectionName { get; set; }
+    public string? BiblePublicationSectionName { get; set; }
 
     /// <summary>
     /// Music language name for display purposes (for vocals only).

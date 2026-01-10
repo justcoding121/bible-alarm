@@ -122,10 +122,10 @@ public sealed class ScheduleCommandService : IScheduleCommandService
 
                     // Update the schedule in the Schedules collection to revert optimistic changes
                     logger.Information("CancelCommand: Reloaded schedule from database. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, SectionNumber: {SectionNumber}, TrackNumber: {TrackNumber}",
-                        scheduleStateItem.BibleReadingLanguageCode ?? "null",
-                        scheduleStateItem.BibleReadingPublicationCode ?? "null",
-                        scheduleStateItem.BibleReadingSectionNumber ?? 0,
-                        scheduleStateItem.BibleReadingTrackNumber ?? 0);
+                        scheduleStateItem.BiblePublicationLanguageCode ?? "null",
+                        scheduleStateItem.BiblePublicationPublicationCode ?? "null",
+                        scheduleStateItem.BiblePublicationSectionNumber ?? 0,
+                        scheduleStateItem.BiblePublicationTrackNumber ?? 0);
 
                     // Dispatch action to update the schedule in Schedules collection
                     dispatcher.Dispatch(new UpdateScheduleSuccessAction(scheduleStateItem));
@@ -156,7 +156,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         int scheduleId,
         ScheduleStateItem currentSchedule,
         bool musicUpdated,
-        bool bibleReadingUpdated,
+        bool biblePublicationUpdated,
         bool modelInitialized)
     {
         logger.Information("SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}",
@@ -221,12 +221,12 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         if (isNewSchedule)
         {
             logger.Information("DispatchSaveActionAsync: Dispatching CreateScheduleAction");
-            dispatcher.Dispatch(new CreateScheduleAction(scheduleStateItem, musicUpdated, bibleReadingUpdated));
+            dispatcher.Dispatch(new CreateScheduleAction(scheduleStateItem, musicUpdated, biblePublicationUpdated));
         }
         else
         {
             logger.Information("DispatchSaveActionAsync: Dispatching UpdateScheduleFromViewModelAction with shouldSave: true");
-            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, musicUpdated, bibleReadingUpdated, shouldSave: true));
+            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, musicUpdated, biblePublicationUpdated, shouldSave: true));
         }
 
         return true;

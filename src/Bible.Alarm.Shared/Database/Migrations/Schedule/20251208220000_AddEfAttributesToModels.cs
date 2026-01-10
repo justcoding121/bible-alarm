@@ -36,10 +36,10 @@ public partial class AddEfAttributesToModels : Migration
             table: "AlarmNotifications",
             columns: ["Sent", "Fired"]);
 
-        // Add indexes for BibleReadingSchedule
+        // Add indexes for BiblePublicationSchedule
         migrationBuilder.CreateIndex(
-            name: "IX_BibleReadingSchedules_PublicationCode_LanguageCode",
-            table: "BibleReadingSchedules",
+            name: "IX_BiblePublicationSchedules_PublicationCode_LanguageCode",
+            table: "BiblePublicationSchedules",
             columns: ["PublicationCode", "LanguageCode"]);
 
         // GeneralSettings already has index on Key from previous migration
@@ -49,8 +49,8 @@ public partial class AddEfAttributesToModels : Migration
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropIndex(
-            name: "IX_BibleReadingSchedules_PublicationCode_LanguageCode",
-            table: "BibleReadingSchedules");
+            name: "IX_BiblePublicationSchedules_PublicationCode_LanguageCode",
+            table: "BiblePublicationSchedules");
 
         migrationBuilder.DropIndex(
             name: "IX_AlarmNotifications_Sent_Fired",

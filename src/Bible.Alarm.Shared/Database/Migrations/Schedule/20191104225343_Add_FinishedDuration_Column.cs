@@ -9,7 +9,7 @@ public partial class AddFinishedDurationColumn : Migration
     {
         migrationBuilder.AddColumn<TimeSpan>(
             name: "FinishedDuration",
-            table: "BibleReadingSchedules",
+            table: "BiblePublicationSchedules",
             nullable: false,
             defaultValue: new TimeSpan(0, 0, 0, 0, 0));
 
@@ -24,7 +24,7 @@ public partial class AddFinishedDurationColumn : Migration
     {
         migrationBuilder.DropColumn(
             name: "FinishedDuration",
-            table: "BibleReadingSchedules");
+            table: "BiblePublicationSchedules");
 
         migrationBuilder.DropColumn(
             name: "AlwaysPlayFromStart",

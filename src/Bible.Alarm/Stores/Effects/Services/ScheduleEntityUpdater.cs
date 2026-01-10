@@ -29,7 +29,7 @@ public static class ScheduleEntityUpdater
             Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=false, skipping music update");
         }
 
-        UpdateBibleReadingEntity(existing, dbSchedule, action);
+        UpdateBiblePublicationEntity(existing, dbSchedule, action);
     }
 
     /// <summary>
@@ -197,30 +197,30 @@ public static class ScheduleEntityUpdater
     /// <summary>
     /// Updates Bible reading entity.
     /// </summary>
-    public static void UpdateBibleReadingEntity(AlarmSchedule existing, AlarmSchedule dbSchedule, UpdateScheduleFromViewModelAction action)
+    public static void UpdateBiblePublicationEntity(AlarmSchedule existing, AlarmSchedule dbSchedule, UpdateScheduleFromViewModelAction action)
     {
-        if (dbSchedule.BibleReadingSchedule == null)
+        if (dbSchedule.BiblePublicationSchedule == null)
         {
             return;
         }
 
-        if (existing.BibleReadingSchedule == null)
+        if (existing.BiblePublicationSchedule == null)
         {
-            existing.BibleReadingSchedule = dbSchedule.BibleReadingSchedule;
-            existing.BibleReadingSchedule.AlarmScheduleId = existing.Id;
+            existing.BiblePublicationSchedule = dbSchedule.BiblePublicationSchedule;
+            existing.BiblePublicationSchedule.AlarmScheduleId = existing.Id;
         }
         else
         {
-            UpdateExistingBibleReadingSchedule(existing.BibleReadingSchedule, dbSchedule.BibleReadingSchedule, action);
+            UpdateExistingBiblePublicationSchedule(existing.BiblePublicationSchedule, dbSchedule.BiblePublicationSchedule, action);
         }
     }
 
     /// <summary>
     /// Updates existing Bible reading schedule.
     /// </summary>
-    public static void UpdateExistingBibleReadingSchedule(
-        BibleReadingSchedule existing,
-        BibleReadingSchedule dbSchedule,
+    public static void UpdateExistingBiblePublicationSchedule(
+        BiblePublicationSchedule existing,
+        BiblePublicationSchedule dbSchedule,
         UpdateScheduleFromViewModelAction action)
     {
         existing.SectionNumber = dbSchedule.SectionNumber;
@@ -228,7 +228,7 @@ public static class ScheduleEntityUpdater
         existing.LanguageCode = dbSchedule.LanguageCode;
         existing.PublicationCode = dbSchedule.PublicationCode;
 
-        if (action.BibleReadingUpdated)
+        if (action.BiblePublicationUpdated)
         {
             existing.FinishedDuration = TimeSpan.Zero;
         }

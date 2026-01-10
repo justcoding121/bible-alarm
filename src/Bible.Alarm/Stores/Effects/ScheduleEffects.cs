@@ -246,8 +246,8 @@ public class ScheduleEffects(
     }
 
     /// <summary>
-    /// Effect: Sync CurrentBibleReadingSchedule to CurrentSchedule when TrackSelectedAction is dispatched.
-    /// This ensures that when sub-pages update CurrentBibleReadingSchedule, CurrentSchedule is also updated
+    /// Effect: Sync CurrentBiblePublicationSchedule to CurrentSchedule when TrackSelectedAction is dispatched.
+    /// This ensures that when sub-pages update CurrentBiblePublicationSchedule, CurrentSchedule is also updated
     /// so the schedule page displays the changes immediately.
     /// </summary>
     [EffectMethod]

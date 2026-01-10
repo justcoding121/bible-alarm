@@ -21,15 +21,15 @@ public sealed class BiblePublicationSelectionActionDispatcher
         this.dispatcher = dispatcher;
     }
 
-    public void DispatchBibleReadingSelectionActions(BibleReadingStateItem bibleReadingItem)
+    public void DispatchBiblePublicationSelectionActions(BiblePublicationStateItem biblePublicationItem)
     {
-        dispatcher.Dispatch(new TrackSelectedAction(bibleReadingItem));
-        dispatcher.Dispatch(new BiblePublicationSelectionAction(bibleReadingItem));
+        dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
+        dispatcher.Dispatch(new BiblePublicationSelectionAction(biblePublicationItem));
     }
 
-    public void DispatchLanguageSelectionActions(BibleReadingStateItem bibleReadingItem, LanguageListViewItemModel language)
+    public void DispatchLanguageSelectionActions(BiblePublicationStateItem biblePublicationItem, LanguageListViewItemModel language)
     {
-        dispatcher.Dispatch(new TrackSelectedAction(bibleReadingItem));
-        dispatcher.Dispatch(new BiblePublicationSelectionAction(bibleReadingItem));
+        dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
+        dispatcher.Dispatch(new BiblePublicationSelectionAction(biblePublicationItem));
     }
 }

@@ -64,7 +64,7 @@ public sealed class ScheduleListItemCommandHandler(
             }
 
             // Check if schedule has Bible reading configured
-            if (schedule.BibleReadingSchedule == null)
+            if (schedule.BiblePublicationSchedule == null)
             {
                 logger.Debug("PreviousCommand: Schedule {ScheduleId} does not have Bible reading configured", schedule.Id);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Please configure Bible reading for this schedule"));
@@ -118,7 +118,7 @@ public sealed class ScheduleListItemCommandHandler(
             }
 
             // Check if schedule has Bible reading configured
-            if (schedule.BibleReadingSchedule == null)
+            if (schedule.BiblePublicationSchedule == null)
             {
                 logger.Debug("NextCommand: Schedule {ScheduleId} does not have Bible reading configured", schedule.Id);
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Please configure Bible reading for this schedule"));

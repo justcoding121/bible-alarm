@@ -26,7 +26,7 @@ public sealed class SchedulePersistenceService(
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task<bool> SaveScheduleAsync(AlarmSchedule schedule, bool isNewSchedule, bool musicUpdated = true, bool bibleReadingUpdated = true)
+    public async Task<bool> SaveScheduleAsync(AlarmSchedule schedule, bool isNewSchedule, bool musicUpdated = true, bool biblePublicationUpdated = true)
     {
         try
         {
@@ -34,7 +34,7 @@ public sealed class SchedulePersistenceService(
 
             AlarmSchedule savedSchedule = isNewSchedule
                 ? await SaveNewScheduleAsync(schedule)
-                : await UpdateExistingScheduleAsync(schedule, musicUpdated, bibleReadingUpdated);
+                : await UpdateExistingScheduleAsync(schedule, musicUpdated, biblePublicationUpdated);
 
             logger.Information("SaveScheduleAsync: Save completed successfully. ScheduleId={ScheduleId}", savedSchedule?.Id ?? schedule?.Id);
             return true;
@@ -49,8 +49,8 @@ public sealed class SchedulePersistenceService(
 
     private void LogSaveStart(AlarmSchedule schedule, bool isNewSchedule)
     {
-        logger.Information("SaveScheduleAsync: Starting. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
-            isNewSchedule, schedule?.Id, schedule?.Name, schedule?.Music != null, schedule?.BibleReadingSchedule != null);
+        logger.Information("SaveScheduleAsync: Starting. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBiblePublication={HasBiblePublication}",
+            isNewSchedule, schedule?.Id, schedule?.Name, schedule?.Music != null, schedule?.BiblePublicationSchedule != null);
     }
 
     private async Task<AlarmSchedule> SaveNewScheduleAsync(AlarmSchedule schedule)
@@ -67,8 +67,8 @@ public sealed class SchedulePersistenceService(
             await alarmService.Create(savedSchedule);
         }
 
-        logger.Information("SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBibleReading={HasBibleReading}",
-            savedSchedule.Id, savedSchedule.Name, savedSchedule.Music != null, savedSchedule.BibleReadingSchedule != null);
+        logger.Information("SaveScheduleAsync: Reloaded schedule. ScheduleId={ScheduleId}, Name={Name}, HasMusic={HasMusic}, HasBiblePublication={HasBiblePublication}",
+            savedSchedule.Id, savedSchedule.Name, savedSchedule.Music != null, savedSchedule.BiblePublicationSchedule != null);
 
         logger.Debug("SaveScheduleAsync: Dispatching AddScheduleAction");
         dispatcher.Dispatch(new AddScheduleAction(savedSchedule));
@@ -77,11 +77,11 @@ public sealed class SchedulePersistenceService(
         return savedSchedule;
     }
 
-    private async Task<AlarmSchedule> UpdateExistingScheduleAsync(AlarmSchedule schedule, bool musicUpdated, bool bibleReadingUpdated)
+    private async Task<AlarmSchedule> UpdateExistingScheduleAsync(AlarmSchedule schedule, bool musicUpdated, bool biblePublicationUpdated)
     {
         var savedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
             schedule.Id,
-            existing => UpdateScheduleProperties(existing, schedule, musicUpdated, bibleReadingUpdated),
+            existing => UpdateScheduleProperties(existing, schedule, musicUpdated, biblePublicationUpdated),
             cancellationTokenSource.Token);
 
         await alarmService.Update(savedSchedule);
@@ -90,11 +90,11 @@ public sealed class SchedulePersistenceService(
         return savedSchedule;
     }
 
-    private static void UpdateScheduleProperties(AlarmSchedule existing, AlarmSchedule schedule, bool musicUpdated, bool bibleReadingUpdated)
+    private static void UpdateScheduleProperties(AlarmSchedule existing, AlarmSchedule schedule, bool musicUpdated, bool biblePublicationUpdated)
     {
         UpdateBasicScheduleProperties(existing, schedule);
         UpdateMusicIfChanged(existing, schedule, musicUpdated);
-        UpdateBibleReadingIfChanged(existing, schedule, bibleReadingUpdated);
+        UpdateBiblePublicationIfChanged(existing, schedule, biblePublicationUpdated);
         UpdateAdditionalScheduleProperties(existing, schedule);
     }
 
@@ -119,18 +119,18 @@ public sealed class SchedulePersistenceService(
         }
     }
 
-    private static void UpdateBibleReadingIfChanged(AlarmSchedule existing, AlarmSchedule schedule, bool bibleReadingUpdated)
+    private static void UpdateBiblePublicationIfChanged(AlarmSchedule existing, AlarmSchedule schedule, bool biblePublicationUpdated)
     {
-        if (schedule.BibleReadingSchedule != null && existing.BibleReadingSchedule != null)
+        if (schedule.BiblePublicationSchedule != null && existing.BiblePublicationSchedule != null)
         {
-            existing.BibleReadingSchedule.SectionNumber = schedule.BibleReadingSchedule.SectionNumber;
-            existing.BibleReadingSchedule.TrackNumber = schedule.BibleReadingSchedule.TrackNumber;
-            existing.BibleReadingSchedule.LanguageCode = schedule.BibleReadingSchedule.LanguageCode;
-            existing.BibleReadingSchedule.PublicationCode = schedule.BibleReadingSchedule.PublicationCode;
+            existing.BiblePublicationSchedule.SectionNumber = schedule.BiblePublicationSchedule.SectionNumber;
+            existing.BiblePublicationSchedule.TrackNumber = schedule.BiblePublicationSchedule.TrackNumber;
+            existing.BiblePublicationSchedule.LanguageCode = schedule.BiblePublicationSchedule.LanguageCode;
+            existing.BiblePublicationSchedule.PublicationCode = schedule.BiblePublicationSchedule.PublicationCode;
             // Only reset duration if bible reading was changed
-            if (bibleReadingUpdated)
+            if (biblePublicationUpdated)
             {
-                existing.BibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+                existing.BiblePublicationSchedule.FinishedDuration = TimeSpan.Zero;
             }
         }
     }
@@ -153,7 +153,7 @@ public sealed class SchedulePersistenceService(
             // Check if this is the last schedule - prevent deletion if it is
             var allSchedules = await alarmScheduleService.GetAllSchedulesAsync(
                 includeMusic: false,
-                includeBibleReading: false,
+                includeBiblePublication: false,
                 cancellationTokenSource.Token);
 
             if (allSchedules.Count <= 1)

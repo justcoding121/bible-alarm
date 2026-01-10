@@ -58,7 +58,7 @@ public static class ContainerReadinessReducer
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,
             currentMusic: state.CurrentMusic,
-            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
             containerReadiness: updatedReadiness);
@@ -74,7 +74,7 @@ public static class ContainerReadinessReducer
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,
             currentMusic: state.CurrentMusic,
-            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
             containerReadiness: ContainerReadiness.NotReady);

@@ -2,7 +2,7 @@ using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Stores.Actions.Bible;
 
-public class SectionSelectionAction(BibleReadingStateItem currentBibleReadingSchedule)
+public class SectionSelectionAction(BiblePublicationStateItem currentBiblePublicationSchedule)
 {
-    public BibleReadingStateItem CurrentBibleReadingSchedule { get; } = currentBibleReadingSchedule;
+    public BiblePublicationStateItem CurrentBiblePublicationSchedule { get; } = currentBiblePublicationSchedule;
 }

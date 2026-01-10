@@ -17,9 +17,9 @@ public class StateChangeHandler
 {
     private readonly ILogger logger;
     private readonly IMapper mapper;
-    private readonly Func<BibleReadingSchedule?> getCurrent;
-    private readonly Action<BibleReadingSchedule> setCurrent;
-    private readonly Action<BibleReadingSchedule> setLastCurrent;
+    private readonly Func<BiblePublicationSchedule?> getCurrent;
+    private readonly Action<BiblePublicationSchedule> setCurrent;
+    private readonly Action<BiblePublicationSchedule> setLastCurrent;
     private readonly Func<bool> getInitComplete;
     private readonly Action<bool> setIsBusy;
     private readonly Func<ObservableCollection<BibleSectionListViewItemModel>?> getSections;
@@ -33,9 +33,9 @@ public class StateChangeHandler
     public StateChangeHandler(
         ILogger logger,
         IMapper mapper,
-        Func<BibleReadingSchedule?> getCurrent,
-        Action<BibleReadingSchedule> setCurrent,
-        Action<BibleReadingSchedule> setLastCurrent,
+        Func<BiblePublicationSchedule?> getCurrent,
+        Action<BiblePublicationSchedule> setCurrent,
+        Action<BiblePublicationSchedule> setLastCurrent,
         Func<bool> getInitComplete,
         Action<bool> setIsBusy,
         Func<ObservableCollection<BibleSectionListViewItemModel>?> getSections,
@@ -56,7 +56,7 @@ public class StateChangeHandler
 
     public void HandleStateChanged(ApplicationState stateValue)
     {
-        // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
+        // Use CurrentSchedule as the source of truth, not CurrentBiblePublicationSchedule
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
         {
@@ -64,8 +64,8 @@ public class StateChangeHandler
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
-        var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
+        var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+        var newPublicationCode = currentSchedule.BiblePublicationPublicationCode;
 
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
@@ -87,22 +87,22 @@ public class StateChangeHandler
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
 
-        // Update current if we have CurrentBibleReadingSchedule (for other properties like SectionNumber)
-        if (stateValue.CurrentBibleReadingSchedule != null)
+        // Update current if we have CurrentBiblePublicationSchedule (for other properties like SectionNumber)
+        if (stateValue.CurrentBiblePublicationSchedule != null)
         {
-            var newCurrent = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+            var newCurrent = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
             setCurrent(newCurrent);
             setLastCurrent(newCurrent);
         }
         else
         {
-            // Create a minimal BibleReadingSchedule from CurrentSchedule
-            var newCurrent = new BibleReadingSchedule
+            // Create a minimal BiblePublicationSchedule from CurrentSchedule
+            var newCurrent = new BiblePublicationSchedule
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionNumber = currentSchedule.BibleReadingSectionNumber ?? 1,
-                TrackNumber = currentSchedule.BibleReadingTrackNumber ?? 1
+                SectionNumber = currentSchedule.BiblePublicationSectionNumber ?? 1,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
             setCurrent(newCurrent);
             setLastCurrent(newCurrent);
@@ -121,7 +121,7 @@ public class StateChangeHandler
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "SectionSelectionViewModel: OnBibleReadingChanged - Error during repopulation");
+                    logger.Error(ex, "SectionSelectionViewModel: OnBiblePublicationChanged - Error during repopulation");
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
             });

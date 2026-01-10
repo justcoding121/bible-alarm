@@ -29,12 +29,12 @@ public sealed class BibleDisplayTextProvider
     public string GetBibleTypeDisplayText()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BibleReadingPublicationCode))
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationPublicationCode))
         {
             return "Bible Reading";
         }
 
-        return PublicationTypeHelper.GetContentTypeDisplayName(currentSchedule.BibleReadingPublicationCode);
+        return PublicationTypeHelper.GetContentTypeDisplayName(currentSchedule.BiblePublicationPublicationCode);
     }
 
     /// <summary>
@@ -44,12 +44,12 @@ public sealed class BibleDisplayTextProvider
     public bool GetIsSectionVisible()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BibleReadingPublicationCode))
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationPublicationCode))
         {
             return true; // Default to visible for traditional Bible reading
         }
 
-        return PublicationTypeHelper.HasSectionStructure(currentSchedule.BibleReadingPublicationCode);
+        return PublicationTypeHelper.HasSectionStructure(currentSchedule.BiblePublicationPublicationCode);
     }
 
     public string GetLanguageDisplayText()
@@ -57,14 +57,14 @@ public sealed class BibleDisplayTextProvider
         var currentSchedule = state.Value.CurrentSchedule;
 
         // Read from CurrentSchedule for language name (populated during bootstrap/effects)
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BibleReadingLanguageName))
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageName))
         {
             logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - Returning '{LanguageName}' (LanguageCode: {LanguageCode})",
-                currentSchedule.BibleReadingLanguageName, currentSchedule.BibleReadingLanguageCode ?? "null");
-            return currentSchedule.BibleReadingLanguageName;
+                currentSchedule.BiblePublicationLanguageName, currentSchedule.BiblePublicationLanguageCode ?? "null");
+            return currentSchedule.BiblePublicationLanguageName;
         }
 
-        logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - CurrentSchedule is null or BibleReadingLanguageName is empty. Returning empty string.");
+        logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - CurrentSchedule is null or BiblePublicationLanguageName is empty. Returning empty string.");
         return string.Empty;
     }
 
@@ -73,15 +73,15 @@ public sealed class BibleDisplayTextProvider
         var currentSchedule = state.Value.CurrentSchedule;
 
         // Read from CurrentSchedule for publication name (populated during bootstrap/effects)
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BibleReadingPublicationName))
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationPublicationName))
         {
-            return currentSchedule.BibleReadingPublicationName;
+            return currentSchedule.BiblePublicationPublicationName;
         }
 
-        // Fallback: use publication code from CurrentBibleReadingSchedule or CurrentSchedule
-        var bibleReading = state.Value.CurrentBibleReadingSchedule;
-        string publicationCode = bibleReading?.PublicationCode?.ToLowerInvariant()
-            ?? currentSchedule?.BibleReadingPublicationCode?.ToLowerInvariant()
+        // Fallback: use publication code from CurrentBiblePublicationSchedule or CurrentSchedule
+        var biblePublication = state.Value.CurrentBiblePublicationSchedule;
+        string publicationCode = biblePublication?.PublicationCode?.ToLowerInvariant()
+            ?? currentSchedule?.BiblePublicationPublicationCode?.ToLowerInvariant()
             ?? string.Empty;
 
         if (string.IsNullOrEmpty(publicationCode))
@@ -98,9 +98,9 @@ public sealed class BibleDisplayTextProvider
         var currentSchedule = state.Value.CurrentSchedule;
 
         // Read from CurrentSchedule for section name (populated during bootstrap/effects)
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BibleReadingSectionName))
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationSectionName))
         {
-            return currentSchedule.BibleReadingSectionName;
+            return currentSchedule.BiblePublicationSectionName;
         }
 
         return string.Empty;
@@ -111,21 +111,21 @@ public sealed class BibleDisplayTextProvider
         var currentSchedule = state.Value.CurrentSchedule;
 
         // Determine the label based on publication type
-        var label = PublicationTypeHelper.GetTrackLabel(currentSchedule?.BibleReadingPublicationCode);
+        var label = PublicationTypeHelper.GetTrackLabel(currentSchedule?.BiblePublicationPublicationCode);
 
-        // Read directly from CurrentBibleReadingSchedule so it updates immediately when track changes
-        var bibleReading = state.Value.CurrentBibleReadingSchedule;
-        if (bibleReading != null && bibleReading.TrackNumber > 0)
+        // Read directly from CurrentBiblePublicationSchedule so it updates immediately when track changes
+        var biblePublication = state.Value.CurrentBiblePublicationSchedule;
+        if (biblePublication != null && biblePublication.TrackNumber > 0)
         {
-            return $"{label} {bibleReading.TrackNumber}";
+            return $"{label} {biblePublication.TrackNumber}";
         }
 
-        // Fallback to CurrentSchedule if CurrentBibleReadingSchedule is not set (e.g., new schedule)
+        // Fallback to CurrentSchedule if CurrentBiblePublicationSchedule is not set (e.g., new schedule)
         if (currentSchedule != null &&
-            currentSchedule.BibleReadingTrackNumber.HasValue &&
-            currentSchedule.BibleReadingTrackNumber.Value > 0)
+            currentSchedule.BiblePublicationTrackNumber.HasValue &&
+            currentSchedule.BiblePublicationTrackNumber.Value > 0)
         {
-            return $"{label} {currentSchedule.BibleReadingTrackNumber.Value}";
+            return $"{label} {currentSchedule.BiblePublicationTrackNumber.Value}";
         }
 
         return string.Empty;

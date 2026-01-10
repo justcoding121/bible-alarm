@@ -48,17 +48,17 @@ public static class ApplicationSelectors
     }
 
     /// <summary>
-    /// Selector: Get current Bible reading schedule as BibleReadingSchedule entity (for ViewModel use).
-    /// Maps BibleReadingStateItem (domain model) → BibleReadingSchedule (entity for ViewModel).
+    /// Selector: Get current Bible reading schedule as BiblePublicationSchedule entity (for ViewModel use).
+    /// Maps BiblePublicationStateItem (domain model) → BiblePublicationSchedule (entity for ViewModel).
     /// </summary>
-    public static BibleReadingSchedule? GetCurrentBibleReadingEntity(ApplicationState state, IMapper mapper)
+    public static BiblePublicationSchedule? GetCurrentBiblePublicationEntity(ApplicationState state, IMapper mapper)
     {
-        if (state.CurrentBibleReadingSchedule == null)
+        if (state.CurrentBiblePublicationSchedule == null)
         {
             return null;
         }
 
-        return mapper.Map<BibleReadingSchedule>(state.CurrentBibleReadingSchedule);
+        return mapper.Map<BiblePublicationSchedule>(state.CurrentBiblePublicationSchedule);
     }
 
     /// <summary>

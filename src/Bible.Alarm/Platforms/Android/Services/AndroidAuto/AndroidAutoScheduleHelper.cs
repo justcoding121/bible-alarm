@@ -30,7 +30,7 @@ public static class AndroidAutoScheduleHelper
 
             if (state?.Value?.Schedules != null && state.Value.Schedules.Count > 0)
             {
-                // Return ScheduleStateItem list which includes BibleReadingLanguageName
+                // Return ScheduleStateItem list which includes BiblePublicationLanguageName
                 var scheduleItems = state.Value.Schedules.ToList();
                 logger.Information("Loaded {Count} schedules from state for Android Auto", scheduleItems.Count);
                 return scheduleItems;
@@ -52,26 +52,26 @@ public static class AndroidAutoScheduleHelper
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
-        if (scheduleItem.BibleReadingScheduleId.HasValue)
+        if (scheduleItem.BiblePublicationScheduleId.HasValue)
         {
             // Build title as "SectionName TrackNumber" (e.g., "Joshua 22")
             var titleParts = new List<string>();
 
             // Add section name (populated during bootstrap) or fallback to section number
-            if (!string.IsNullOrWhiteSpace(scheduleItem.BibleReadingSectionName))
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
             {
-                titleParts.Add(scheduleItem.BibleReadingSectionName);
+                titleParts.Add(scheduleItem.BiblePublicationSectionName);
             }
-            else if (scheduleItem.BibleReadingSectionNumber.HasValue && scheduleItem.BibleReadingSectionNumber.Value > 0)
+            else if (scheduleItem.BiblePublicationSectionNumber.HasValue && scheduleItem.BiblePublicationSectionNumber.Value > 0)
             {
                 // Fallback to section number if section name is not available
-                titleParts.Add($"Section {scheduleItem.BibleReadingSectionNumber.Value}");
+                titleParts.Add($"Section {scheduleItem.BiblePublicationSectionNumber.Value}");
             }
 
             // Add track number
-            if (scheduleItem.BibleReadingTrackNumber.HasValue && scheduleItem.BibleReadingTrackNumber.Value > 0)
+            if (scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0)
             {
-                titleParts.Add(scheduleItem.BibleReadingTrackNumber.Value.ToString());
+                titleParts.Add(scheduleItem.BiblePublicationTrackNumber.Value.ToString());
             }
 
             if (titleParts.Count > 0)
@@ -101,13 +101,13 @@ public static class AndroidAutoScheduleHelper
         }
 
         // Add language if Bible reading schedule exists
-        if (scheduleItem.BibleReadingScheduleId.HasValue)
+        if (scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            // Use BibleReadingLanguageName from ScheduleStateItem (populated during bootstrap)
-            // Fallback to LanguageCode if BibleReadingLanguageName is not set
-            var languageName = !string.IsNullOrWhiteSpace(scheduleItem.BibleReadingLanguageName)
-                ? scheduleItem.BibleReadingLanguageName
-                : scheduleItem.BibleReadingLanguageCode ?? string.Empty;
+            // Use BiblePublicationLanguageName from ScheduleStateItem (populated during bootstrap)
+            // Fallback to LanguageCode if BiblePublicationLanguageName is not set
+            var languageName = !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName)
+                ? scheduleItem.BiblePublicationLanguageName
+                : scheduleItem.BiblePublicationLanguageCode ?? string.Empty;
 
             if (!string.IsNullOrWhiteSpace(languageName))
             {

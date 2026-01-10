@@ -32,18 +32,18 @@ public sealed class ScheduleDisplayNamePopulator
     }
 
     /// <summary>
-    /// Populate BibleReadingLanguageName from language dictionary if BibleReadingSchedule exists.
+    /// Populate BiblePublicationLanguageName from language dictionary if BiblePublicationSchedule exists.
     /// </summary>
     public async Task PopulateTranslationNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BibleReadingSchedule == null || BiblePublicationService == null)
+        if (schedule.BiblePublicationSchedule == null || BiblePublicationService == null)
         {
             return;
         }
 
         try
         {
-            var languageCode = schedule.BibleReadingSchedule.LanguageCode;
+            var languageCode = schedule.BiblePublicationSchedule.LanguageCode;
             if (string.IsNullOrWhiteSpace(languageCode))
             {
                 return;
@@ -52,31 +52,31 @@ public sealed class ScheduleDisplayNamePopulator
             var languagesDict = await BiblePublicationService.GetDistinctLanguagesAsync();
             if (languagesDict.TryGetValue(languageCode, out var language))
             {
-                scheduleStateItem.BibleReadingLanguageName = language.Name;
-                Log.Debug("ScheduleEffects: Set BibleReadingLanguageName '{BibleReadingLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                scheduleStateItem.BiblePublicationLanguageName = language.Name;
+                Log.Debug("ScheduleEffects: Set BiblePublicationLanguageName '{BiblePublicationLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
                     language.Name, schedule.Id, languageCode);
             }
             else
             {
-                scheduleStateItem.BibleReadingLanguageName = languageCode;
-                Log.Debug("ScheduleEffects: Language not found for LanguageCode '{LanguageCode}', using code as BibleReadingLanguageName for schedule {ScheduleId}",
+                scheduleStateItem.BiblePublicationLanguageName = languageCode;
+                Log.Debug("ScheduleEffects: Language not found for LanguageCode '{LanguageCode}', using code as BiblePublicationLanguageName for schedule {ScheduleId}",
                     languageCode, schedule.Id);
             }
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "ScheduleEffects: Error populating BibleReadingLanguageName for schedule {ScheduleId}", schedule.Id);
+            Log.Warning(ex, "ScheduleEffects: Error populating BiblePublicationLanguageName for schedule {ScheduleId}", schedule.Id);
             // Fallback to language code
-            scheduleStateItem.BibleReadingLanguageName = schedule.BibleReadingSchedule.LanguageCode;
+            scheduleStateItem.BiblePublicationLanguageName = schedule.BiblePublicationSchedule.LanguageCode;
         }
     }
 
     /// <summary>
-    /// Populate BibleReadingLanguageName from language dictionary using language code from ScheduleStateItem.
+    /// Populate BiblePublicationLanguageName from language dictionary using language code from ScheduleStateItem.
     /// </summary>
     public async Task PopulateTranslationNameAsync(ScheduleStateItem scheduleStateItem)
     {
-        if (string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode) || BiblePublicationService == null)
+        if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageCode) || BiblePublicationService == null)
         {
             return;
         }
@@ -84,93 +84,93 @@ public sealed class ScheduleDisplayNamePopulator
         try
         {
             var languagesDict = await BiblePublicationService.GetDistinctLanguagesAsync();
-            if (languagesDict.TryGetValue(scheduleStateItem.BibleReadingLanguageCode, out var language))
+            if (languagesDict.TryGetValue(scheduleStateItem.BiblePublicationLanguageCode, out var language))
             {
-                scheduleStateItem.BibleReadingLanguageName = language.Name;
-                Log.Debug("ScheduleEffects: Set BibleReadingLanguageName '{BibleReadingLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
-                    language.Name, scheduleStateItem.Id, scheduleStateItem.BibleReadingLanguageCode);
+                scheduleStateItem.BiblePublicationLanguageName = language.Name;
+                Log.Debug("ScheduleEffects: Set BiblePublicationLanguageName '{BiblePublicationLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                    language.Name, scheduleStateItem.Id, scheduleStateItem.BiblePublicationLanguageCode);
             }
             else
             {
-                scheduleStateItem.BibleReadingLanguageName = scheduleStateItem.BibleReadingLanguageCode;
-                Log.Debug("ScheduleEffects: Language not found for LanguageCode '{LanguageCode}', using code as BibleReadingLanguageName for schedule {ScheduleId}",
-                    scheduleStateItem.BibleReadingLanguageCode, scheduleStateItem.Id);
+                scheduleStateItem.BiblePublicationLanguageName = scheduleStateItem.BiblePublicationLanguageCode;
+                Log.Debug("ScheduleEffects: Language not found for LanguageCode '{LanguageCode}', using code as BiblePublicationLanguageName for schedule {ScheduleId}",
+                    scheduleStateItem.BiblePublicationLanguageCode, scheduleStateItem.Id);
             }
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "ScheduleEffects: Error populating BibleReadingLanguageName for schedule {ScheduleId}", scheduleStateItem.Id);
+            Log.Warning(ex, "ScheduleEffects: Error populating BiblePublicationLanguageName for schedule {ScheduleId}", scheduleStateItem.Id);
             // Fallback to language code
-            scheduleStateItem.BibleReadingLanguageName = scheduleStateItem.BibleReadingLanguageCode;
+            scheduleStateItem.BiblePublicationLanguageName = scheduleStateItem.BiblePublicationLanguageCode;
         }
     }
 
     /// <summary>
-    /// Populate BibleReadingPublicationName from BiblePublicationService if BibleReadingSchedule exists.
+    /// Populate BiblePublicationPublicationName from BiblePublicationService if BiblePublicationSchedule exists.
     /// </summary>
     public async Task PopulatePublicationNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BibleReadingSchedule == null || BiblePublicationService == null)
+        if (schedule.BiblePublicationSchedule == null || BiblePublicationService == null)
         {
             return;
         }
 
         try
         {
-            var bibleReading = schedule.BibleReadingSchedule;
-            if (string.IsNullOrWhiteSpace(bibleReading.LanguageCode) ||
-                string.IsNullOrWhiteSpace(bibleReading.PublicationCode))
+            var biblePublication = schedule.BiblePublicationSchedule;
+            if (string.IsNullOrWhiteSpace(biblePublication.LanguageCode) ||
+                string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
             {
                 return;
             }
 
             var translation = await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                bibleReading.LanguageCode,
-                bibleReading.PublicationCode);
+                biblePublication.LanguageCode,
+                biblePublication.PublicationCode);
 
             if (translation != null && !string.IsNullOrWhiteSpace(translation.Name))
             {
-                scheduleStateItem.BibleReadingPublicationName = translation.Name;
-                Log.Debug("ScheduleEffects: Set BibleReadingPublicationName '{BibleReadingPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                    translation.Name, schedule.Id, bibleReading.PublicationCode);
+                scheduleStateItem.BiblePublicationPublicationName = translation.Name;
+                Log.Debug("ScheduleEffects: Set BiblePublicationPublicationName '{BiblePublicationPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                    translation.Name, schedule.Id, biblePublication.PublicationCode);
             }
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "ScheduleEffects: Error populating BibleReadingPublicationName for schedule {ScheduleId}", schedule.Id);
+            Log.Warning(ex, "ScheduleEffects: Error populating BiblePublicationPublicationName for schedule {ScheduleId}", schedule.Id);
         }
     }
 
     /// <summary>
-    /// Populate SectionName from BibleSectionService if BibleReadingSchedule exists.
+    /// Populate SectionName from BibleSectionService if BiblePublicationSchedule exists.
     /// </summary>
     public async Task PopulateSectionNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BibleReadingSchedule == null || bibleSectionService == null)
+        if (schedule.BiblePublicationSchedule == null || bibleSectionService == null)
         {
             return;
         }
 
         try
         {
-            var bibleReading = schedule.BibleReadingSchedule;
-            if (!bibleReading.SectionNumber.HasValue || bibleReading.SectionNumber.Value <= 0 ||
-                string.IsNullOrWhiteSpace(bibleReading.LanguageCode) ||
-                string.IsNullOrWhiteSpace(bibleReading.PublicationCode))
+            var biblePublication = schedule.BiblePublicationSchedule;
+            if (!biblePublication.SectionNumber.HasValue || biblePublication.SectionNumber.Value <= 0 ||
+                string.IsNullOrWhiteSpace(biblePublication.LanguageCode) ||
+                string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
             {
                 return;
             }
 
             var sectionName = await bibleSectionService.GetSectionNameAsync(
-                bibleReading.LanguageCode,
-                bibleReading.PublicationCode,
-                bibleReading.SectionNumber.Value);
+                biblePublication.LanguageCode,
+                biblePublication.PublicationCode,
+                biblePublication.SectionNumber.Value);
 
             if (!string.IsNullOrWhiteSpace(sectionName))
             {
-                scheduleStateItem.BibleReadingSectionName = sectionName;
-                Log.Debug("ScheduleEffects: Set BibleReadingSectionName '{BibleReadingSectionName}' for schedule {ScheduleId} (SectionNumber: {SectionNumber})",
-                    sectionName, schedule.Id, bibleReading.SectionNumber);
+                scheduleStateItem.BiblePublicationSectionName = sectionName;
+                Log.Debug("ScheduleEffects: Set BiblePublicationSectionName '{BiblePublicationSectionName}' for schedule {ScheduleId} (SectionNumber: {SectionNumber})",
+                    sectionName, schedule.Id, biblePublication.SectionNumber);
             }
         }
         catch (Exception ex)

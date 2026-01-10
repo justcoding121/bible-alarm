@@ -49,24 +49,24 @@ public static class CarPlayScheduleHelper
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
-        if (scheduleItem.BibleReadingScheduleId.HasValue)
+        if (scheduleItem.BiblePublicationScheduleId.HasValue)
         {
             var titleParts = new List<string>();
 
             // Add section name or fallback to section number
-            if (!string.IsNullOrWhiteSpace(scheduleItem.BibleReadingSectionName))
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
             {
-                titleParts.Add(scheduleItem.BibleReadingSectionName);
+                titleParts.Add(scheduleItem.BiblePublicationSectionName);
             }
-            else if (scheduleItem.BibleReadingSectionNumber.HasValue && scheduleItem.BibleReadingSectionNumber.Value > 0)
+            else if (scheduleItem.BiblePublicationSectionNumber.HasValue && scheduleItem.BiblePublicationSectionNumber.Value > 0)
             {
-                titleParts.Add($"Section {scheduleItem.BibleReadingSectionNumber.Value}");
+                titleParts.Add($"Section {scheduleItem.BiblePublicationSectionNumber.Value}");
             }
 
             // Add track number
-            if (scheduleItem.BibleReadingTrackNumber.HasValue && scheduleItem.BibleReadingTrackNumber.Value > 0)
+            if (scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0)
             {
-                titleParts.Add(scheduleItem.BibleReadingTrackNumber.Value.ToString());
+                titleParts.Add(scheduleItem.BiblePublicationTrackNumber.Value.ToString());
             }
 
             if (titleParts.Count > 0)
@@ -96,11 +96,11 @@ public static class CarPlayScheduleHelper
         }
 
         // Add language if Bible reading schedule exists
-        if (scheduleItem.BibleReadingScheduleId.HasValue)
+        if (scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            var languageName = !string.IsNullOrWhiteSpace(scheduleItem.BibleReadingLanguageName)
-                ? scheduleItem.BibleReadingLanguageName
-                : scheduleItem.BibleReadingLanguageCode ?? string.Empty;
+            var languageName = !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName)
+                ? scheduleItem.BiblePublicationLanguageName
+                : scheduleItem.BiblePublicationLanguageCode ?? string.Empty;
 
             if (!string.IsNullOrWhiteSpace(languageName))
             {

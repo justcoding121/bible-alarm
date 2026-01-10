@@ -23,9 +23,9 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default) => await GetSchedulesAsync(null, includeMusic, includeBibleReading, cancellationToken);
+    public async Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true, bool includeBiblePublication = true, CancellationToken cancellationToken = default) => await GetSchedulesAsync(null, includeMusic, includeBiblePublication, cancellationToken);
 
-    public async Task<List<AlarmSchedule>> GetSchedulesAsync(Expression<Func<AlarmSchedule, bool>>? predicate = null, bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default)
+    public async Task<List<AlarmSchedule>> GetSchedulesAsync(Expression<Func<AlarmSchedule, bool>>? predicate = null, bool includeMusic = true, bool includeBiblePublication = true, CancellationToken cancellationToken = default)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -38,9 +38,9 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
             query = query.Include(x => x.Music);
         }
 
-        if (includeBibleReading)
+        if (includeBiblePublication)
         {
-            query = query.Include(x => x.BibleReadingSchedule);
+            query = query.Include(x => x.BiblePublicationSchedule);
         }
 
         if (predicate != null)
@@ -51,7 +51,7 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
         return await query.ToListAsync(cancellationToken);
     }
 
-    public async Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default)
+    public async Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true, bool includeBiblePublication = true, CancellationToken cancellationToken = default)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -67,15 +67,15 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
             query = query.Include(x => x.Music);
         }
 
-        if (includeBibleReading)
+        if (includeBiblePublication)
         {
-            query = query.Include(x => x.BibleReadingSchedule);
+            query = query.Include(x => x.BiblePublicationSchedule);
         }
 
         return await query.FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default)
+    public async Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true, bool includeBiblePublication = true, CancellationToken cancellationToken = default)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
@@ -88,9 +88,9 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
             query = query.Include(x => x.Music);
         }
 
-        if (includeBibleReading)
+        if (includeBiblePublication)
         {
-            query = query.Include(x => x.BibleReadingSchedule);
+            query = query.Include(x => x.BiblePublicationSchedule);
         }
 
         return await query.FirstOrDefaultAsync(cancellationToken);
@@ -129,7 +129,7 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
 
         var schedule = await dbContext.AlarmSchedules
             .Include(x => x.Music)
-            .Include(x => x.BibleReadingSchedule)
+            .Include(x => x.BiblePublicationSchedule)
             .FirstAsync(x => x.Id == scheduleId, cancellationToken);
 
         updateAction(schedule);
@@ -187,12 +187,12 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
             .FirstOrDefaultAsync(x => x.AlarmScheduleId == scheduleId, cancellationToken);
     }
 
-    public async Task<BibleReadingSchedule?> GetBibleReadingByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default)
+    public async Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        return await dbContext.BibleReadingSchedules
+        return await dbContext.BiblePublicationSchedules
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.AlarmScheduleId == scheduleId, cancellationToken);
     }

@@ -10,7 +10,7 @@ using Serilog;
 namespace Bible.Alarm.Stores.Reducers.Services;
 
 /// <summary>
-/// Handles syncing of CurrentSchedule, CurrentMusic, and CurrentBibleReadingSchedule.
+/// Handles syncing of CurrentSchedule, CurrentMusic, and CurrentBiblePublicationSchedule.
 /// Separated from ApplicationReducer for better modularity.
 /// </summary>
 public static class ScheduleStateSyncHelper
@@ -20,8 +20,8 @@ public static class ScheduleStateSyncHelper
         if (state.CurrentSchedule?.Id == actionSchedule.Id)
         {
             Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Updating CurrentSchedule. New LanguageName: {LanguageName}, PublicationName: {PublicationName}",
-                actionSchedule.BibleReadingLanguageName ?? "null",
-                actionSchedule.BibleReadingPublicationName ?? "null");
+                actionSchedule.BiblePublicationLanguageName ?? "null",
+                actionSchedule.BiblePublicationPublicationName ?? "null");
             return actionSchedule.DeepClone();
         }
 
@@ -30,72 +30,72 @@ public static class ScheduleStateSyncHelper
         return state.CurrentSchedule;
     }
 
-    public static BibleReadingStateItem? SyncBibleReadingScheduleIfNeeded(UpdateScheduleFromViewModelAction action, ScheduleStateItem? updatedCurrentSchedule)
+    public static BiblePublicationStateItem? SyncBiblePublicationScheduleIfNeeded(UpdateScheduleFromViewModelAction action, ScheduleStateItem? updatedCurrentSchedule)
     {
-        if (!action.BibleReadingUpdated || updatedCurrentSchedule == null)
+        if (!action.BiblePublicationUpdated || updatedCurrentSchedule == null)
         {
             return null;
         }
 
-        if (!HasValidBibleReadingProperties(updatedCurrentSchedule))
+        if (!HasValidBiblePublicationProperties(updatedCurrentSchedule))
         {
             return null;
         }
 
-        var bibleReadingSchedule = CreateBibleReadingScheduleFromCurrent(updatedCurrentSchedule);
-        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentBibleReadingSchedule from CurrentSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
-            bibleReadingSchedule.LanguageCode, bibleReadingSchedule.PublicationCode);
-        return bibleReadingSchedule;
+        var biblePublicationSchedule = CreateBiblePublicationScheduleFromCurrent(updatedCurrentSchedule);
+        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentBiblePublicationSchedule from CurrentSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
+            biblePublicationSchedule.LanguageCode, biblePublicationSchedule.PublicationCode);
+        return biblePublicationSchedule;
     }
 
-    public static bool HasValidBibleReadingProperties(ScheduleStateItem schedule)
+    public static bool HasValidBiblePublicationProperties(ScheduleStateItem schedule)
     {
         // Basic required properties for all content types
-        if (string.IsNullOrWhiteSpace(schedule.BibleReadingLanguageCode) ||
-            string.IsNullOrWhiteSpace(schedule.BibleReadingPublicationCode) ||
-            !schedule.BibleReadingTrackNumber.HasValue ||
-            schedule.BibleReadingTrackNumber.Value <= 0)
+        if (string.IsNullOrWhiteSpace(schedule.BiblePublicationLanguageCode) ||
+            string.IsNullOrWhiteSpace(schedule.BiblePublicationPublicationCode) ||
+            !schedule.BiblePublicationTrackNumber.HasValue ||
+            schedule.BiblePublicationTrackNumber.Value <= 0)
         {
             return false;
         }
 
         // For traditional Bible reading (has section structure), SectionNumber is required
         // For dramas (no section structure), SectionNumber is not required (null is valid)
-        if (PublicationTypeHelper.HasSectionStructure(schedule.BibleReadingPublicationCode))
+        if (PublicationTypeHelper.HasSectionStructure(schedule.BiblePublicationPublicationCode))
         {
-            return schedule.BibleReadingSectionNumber.HasValue &&
-                   schedule.BibleReadingSectionNumber.Value > 0;
+            return schedule.BiblePublicationSectionNumber.HasValue &&
+                   schedule.BiblePublicationSectionNumber.Value > 0;
         }
 
         // For dramas, SectionNumber is not required
         return true;
     }
 
-    public static BibleReadingStateItem CreateBibleReadingScheduleFromCurrent(ScheduleStateItem updatedCurrentSchedule)
+    public static BiblePublicationStateItem CreateBiblePublicationScheduleFromCurrent(ScheduleStateItem updatedCurrentSchedule)
     {
-        if (!updatedCurrentSchedule.BibleReadingTrackNumber.HasValue)
+        if (!updatedCurrentSchedule.BiblePublicationTrackNumber.HasValue)
         {
-            throw new InvalidOperationException("BibleReadingTrackNumber must have a value");
+            throw new InvalidOperationException("BiblePublicationTrackNumber must have a value");
         }
 
-        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(updatedCurrentSchedule.BibleReadingPublicationCode);
+        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(updatedCurrentSchedule.BiblePublicationPublicationCode);
 
         // For traditional Bible reading (has section structure), SectionNumber is required
-        if (hasSectionStructure && !updatedCurrentSchedule.BibleReadingSectionNumber.HasValue)
+        if (hasSectionStructure && !updatedCurrentSchedule.BiblePublicationSectionNumber.HasValue)
         {
-            throw new InvalidOperationException("BibleReadingSectionNumber must have a value for publications with section structure");
+            throw new InvalidOperationException("BiblePublicationSectionNumber must have a value for publications with section structure");
         }
 
-        return new BibleReadingStateItem
+        return new BiblePublicationStateItem
         {
-            Id = updatedCurrentSchedule.BibleReadingScheduleId ?? 0,
-            LanguageCode = updatedCurrentSchedule.BibleReadingLanguageCode ?? string.Empty,
-            PublicationCode = updatedCurrentSchedule.BibleReadingPublicationCode ?? string.Empty,
-            SectionNumber = updatedCurrentSchedule.BibleReadingSectionNumber,
-            TrackNumber = updatedCurrentSchedule.BibleReadingTrackNumber.Value,
-            FinishedDuration = updatedCurrentSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero,
+            Id = updatedCurrentSchedule.BiblePublicationScheduleId ?? 0,
+            LanguageCode = updatedCurrentSchedule.BiblePublicationLanguageCode ?? string.Empty,
+            PublicationCode = updatedCurrentSchedule.BiblePublicationPublicationCode ?? string.Empty,
+            SectionNumber = updatedCurrentSchedule.BiblePublicationSectionNumber,
+            TrackNumber = updatedCurrentSchedule.BiblePublicationTrackNumber.Value,
+            FinishedDuration = updatedCurrentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
             AlarmScheduleId = updatedCurrentSchedule.Id,
-            TranslationName = updatedCurrentSchedule.BibleReadingPublicationName ?? string.Empty
+            TranslationName = updatedCurrentSchedule.BiblePublicationPublicationName ?? string.Empty
         };
     }
 

@@ -16,7 +16,7 @@ public interface IScheduleCommandService
         int scheduleId,
         ScheduleStateItem currentSchedule,
         bool musicUpdated,
-        bool bibleReadingUpdated,
+        bool biblePublicationUpdated,
         bool modelInitialized);
 
     Task<bool> ExecuteDeleteAsync(

@@ -15,32 +15,32 @@ public class ScheduleMappingProfile : Profile
     {
         // Map AlarmSchedule to ScheduleStateItem (flatten nested entities)
         CreateMap<AlarmSchedule, ScheduleStateItem>()
-            .ForMember(dest => dest.BibleReadingScheduleId, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? (int?)src.BibleReadingSchedule.Id : null))
-            .ForMember(dest => dest.BibleReadingLanguageCode, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? src.BibleReadingSchedule.LanguageCode : null))
-            .ForMember(dest => dest.BibleReadingPublicationCode, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? src.BibleReadingSchedule.PublicationCode : null))
-            .ForMember(dest => dest.BibleReadingSectionNumber, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? src.BibleReadingSchedule.SectionNumber : null))
-            .ForMember(dest => dest.BibleReadingTrackNumber, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? (int?)src.BibleReadingSchedule.TrackNumber : null))
-            .ForMember(dest => dest.BibleReadingFinishedDuration, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? (TimeSpan?)src.BibleReadingSchedule.FinishedDuration : null))
+            .ForMember(dest => dest.BiblePublicationScheduleId, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (int?)src.BiblePublicationSchedule.Id : null))
+            .ForMember(dest => dest.BiblePublicationLanguageCode, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.LanguageCode : null))
+            .ForMember(dest => dest.BiblePublicationPublicationCode, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.PublicationCode : null))
+            .ForMember(dest => dest.BiblePublicationSectionNumber, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.SectionNumber : null))
+            .ForMember(dest => dest.BiblePublicationTrackNumber, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (int?)src.BiblePublicationSchedule.TrackNumber : null))
+            .ForMember(dest => dest.BiblePublicationFinishedDuration, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (TimeSpan?)src.BiblePublicationSchedule.FinishedDuration : null))
             .ForMember(dest => dest.MusicId, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.Id : null))
             .ForMember(dest => dest.MusicType, opt => opt.MapFrom(src => src.Music != null ? (MusicType?)src.Music.MusicType : null))
             .ForMember(dest => dest.MusicPublicationCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.PublicationCode : null))
             .ForMember(dest => dest.MusicLanguageCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.LanguageCode : null))
             .ForMember(dest => dest.MusicTrackNumber, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.TrackNumber : null))
             .ForMember(dest => dest.MusicRepeat, opt => opt.MapFrom(src => src.Music != null ? (bool?)src.Music.Repeat : null))
-            .ForMember(dest => dest.BibleReadingLanguageName, opt => opt.Ignore()) // Set manually during bootstrap
-            .ForMember(dest => dest.BibleReadingSectionName, opt => opt.Ignore()); // Set manually during bootstrap
+            .ForMember(dest => dest.BiblePublicationLanguageName, opt => opt.Ignore()) // Set manually during bootstrap
+            .ForMember(dest => dest.BiblePublicationSectionName, opt => opt.Ignore()); // Set manually during bootstrap
 
         // Map ScheduleStateItem back to AlarmSchedule (for when we need the entity)
         // Note: This creates a new AlarmSchedule but won't have EF tracking
         CreateMap<ScheduleStateItem, AlarmSchedule>()
-            .ForMember(dest => dest.BibleReadingSchedule, opt => opt.MapFrom(src => src.BibleReadingScheduleId.HasValue ? new BibleReadingSchedule
+            .ForMember(dest => dest.BiblePublicationSchedule, opt => opt.MapFrom(src => src.BiblePublicationScheduleId.HasValue ? new BiblePublicationSchedule
             {
-                Id = src.BibleReadingScheduleId.Value,
-                LanguageCode = src.BibleReadingLanguageCode ?? string.Empty,
-                PublicationCode = src.BibleReadingPublicationCode ?? string.Empty,
-                SectionNumber = src.BibleReadingSectionNumber,
-                TrackNumber = src.BibleReadingTrackNumber ?? 0,
-                FinishedDuration = src.BibleReadingFinishedDuration ?? TimeSpan.Zero,
+                Id = src.BiblePublicationScheduleId.Value,
+                LanguageCode = src.BiblePublicationLanguageCode ?? string.Empty,
+                PublicationCode = src.BiblePublicationPublicationCode ?? string.Empty,
+                SectionNumber = src.BiblePublicationSectionNumber,
+                TrackNumber = src.BiblePublicationTrackNumber ?? 0,
+                FinishedDuration = src.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = src.Id
             } : null))
             .ForMember(dest => dest.Music, opt => opt.MapFrom(src => (src.MusicId.HasValue || src.MusicType.HasValue) ? new AlarmMusic
@@ -66,12 +66,12 @@ public class ScheduleMappingProfile : Profile
         CreateMap<MusicStateItem, AlarmMusic>()
             .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore()); // Not stored in state
 
-        // Map BibleReadingSchedule to BibleReadingStateItem
-        CreateMap<BibleReadingSchedule, BibleReadingStateItem>()
+        // Map BiblePublicationSchedule to BiblePublicationStateItem
+        CreateMap<BiblePublicationSchedule, BiblePublicationStateItem>()
             .ForMember(dest => dest.TranslationName, opt => opt.Ignore()); // Set manually during bootstrap
 
-        // Map BibleReadingStateItem back to BibleReadingSchedule
-        CreateMap<BibleReadingStateItem, BibleReadingSchedule>()
+        // Map BiblePublicationStateItem back to BiblePublicationSchedule
+        CreateMap<BiblePublicationStateItem, BiblePublicationSchedule>()
             .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore()); // Not stored in state
     }
 }

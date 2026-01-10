@@ -76,7 +76,7 @@ public class ScheduleDeleteHandler
             var allSchedules = await Task.Run(async () => 
                 await alarmScheduleService.GetAllSchedulesAsync(
                     includeMusic: false,
-                    includeBibleReading: false,
+                    includeBiblePublication: false,
                     CancellationToken.None));
 
             if (allSchedules.Count <= 1)
@@ -94,7 +94,7 @@ public class ScheduleDeleteHandler
                         var scheduleFromDb = await alarmScheduleService.GetScheduleByIdAsync(
                             action.ScheduleId,
                             includeMusic: true,
-                            includeBibleReading: true,
+                            includeBiblePublication: true,
                             CancellationToken.None);
 
                         if (scheduleFromDb != null)

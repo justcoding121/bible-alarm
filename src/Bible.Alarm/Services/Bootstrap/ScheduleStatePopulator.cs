@@ -19,7 +19,7 @@ internal sealed class ScheduleStatePopulator
     private readonly IMapper mapper;
     private readonly LookupDataCollector keyCollector;
     private readonly LookupDataLoader dataLoader;
-    private readonly BibleReadingDisplayNamePopulator bibleReadingPopulator;
+    private readonly BiblePublicationDisplayNamePopulator biblePublicationPopulator;
     private readonly MusicDisplayNamePopulator musicPopulator;
     private readonly DefaultMusicPopulator defaultMusicPopulator;
 
@@ -33,7 +33,7 @@ internal sealed class ScheduleStatePopulator
         this.mapper = mapper;
         keyCollector = new LookupDataCollector();
         dataLoader = new LookupDataLoader(BiblePublicationService, bibleSectionService, mediaService);
-        bibleReadingPopulator = new BibleReadingDisplayNamePopulator();
+        biblePublicationPopulator = new BiblePublicationDisplayNamePopulator();
         musicPopulator = new MusicDisplayNamePopulator();
         defaultMusicPopulator = new DefaultMusicPopulator(melodyMusicService);
     }
@@ -54,7 +54,7 @@ internal sealed class ScheduleStatePopulator
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(schedule);
 
             // Use pre-loaded lookup data instead of making individual queries
-            bibleReadingPopulator.Populate(
+            biblePublicationPopulator.Populate(
                 schedule,
                 scheduleStateItem,
                 lookupData,

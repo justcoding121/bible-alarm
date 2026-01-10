@@ -58,8 +58,8 @@ public class ScheduleCreateHandler
             var dbSchedule = await Task.Run(() => mapper.Map<AlarmSchedule>(action.Schedule));
 
             Log.Debug("ScheduleEffects: HandleCreateSchedule - Before save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
-                dbSchedule.BibleReadingSchedule?.PublicationCode ?? "null",
-                dbSchedule.BibleReadingSchedule?.LanguageCode ?? "null");
+                dbSchedule.BiblePublicationSchedule?.PublicationCode ?? "null",
+                dbSchedule.BiblePublicationSchedule?.LanguageCode ?? "null");
 
             // Set ID to 0 for new schedule (EF Core will generate it)
             dbSchedule.Id = 0;
@@ -69,8 +69,8 @@ public class ScheduleCreateHandler
                 await alarmScheduleService.AddScheduleAsync(dbSchedule, CancellationToken.None));
 
             Log.Debug("ScheduleEffects: HandleCreateSchedule - After save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
-                savedSchedule.BibleReadingSchedule?.PublicationCode ?? "null",
-                savedSchedule.BibleReadingSchedule?.LanguageCode ?? "null");
+                savedSchedule.BiblePublicationSchedule?.PublicationCode ?? "null",
+                savedSchedule.BiblePublicationSchedule?.LanguageCode ?? "null");
 
             Log.Information("ScheduleEffects: HandleCreateSchedule - Saved to DB. ScheduleId: {ScheduleId}", savedSchedule.Id);
 
@@ -91,9 +91,9 @@ public class ScheduleCreateHandler
                 // Copy display names from action.Schedule to scheduleStateItem (which was mapped from savedSchedule, so it doesn't have display names)
                 if (action.Schedule != null)
                 {
-                    mapped.BibleReadingLanguageName = action.Schedule.BibleReadingLanguageName;
-                    mapped.BibleReadingPublicationName = action.Schedule.BibleReadingPublicationName;
-                    mapped.BibleReadingSectionName = action.Schedule.BibleReadingSectionName;
+                    mapped.BiblePublicationLanguageName = action.Schedule.BiblePublicationLanguageName;
+                    mapped.BiblePublicationPublicationName = action.Schedule.BiblePublicationPublicationName;
+                    mapped.BiblePublicationSectionName = action.Schedule.BiblePublicationSectionName;
                     mapped.MusicLanguageName = action.Schedule.MusicLanguageName;
                     mapped.MusicPublicationName = action.Schedule.MusicPublicationName;
                     mapped.MusicTrackName = action.Schedule.MusicTrackName;

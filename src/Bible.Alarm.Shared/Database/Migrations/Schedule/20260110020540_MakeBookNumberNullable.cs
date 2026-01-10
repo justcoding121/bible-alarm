@@ -12,7 +12,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
         {
             migrationBuilder.AlterColumn<int>(
                 name: "SectionNumber",
-                table: "BibleReadingSchedules",
+                table: "BiblePublicationSchedules",
                 type: "INTEGER",
                 nullable: true,
                 oldClrType: typeof(int),
@@ -24,7 +24,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
         {
             migrationBuilder.AlterColumn<int>(
                 name: "SectionNumber",
-                table: "BibleReadingSchedules",
+                table: "BiblePublicationSchedules",
                 type: "INTEGER",
                 nullable: false,
                 defaultValue: 0,

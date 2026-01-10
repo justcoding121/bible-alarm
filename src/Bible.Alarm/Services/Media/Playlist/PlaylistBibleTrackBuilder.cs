@@ -28,10 +28,10 @@ public class PlaylistBibleTrackBuilder
     public async Task<List<PlayItem>> BuildBibleTracks(
         int scheduleId,
         AlarmSchedule schedule,
-        BibleReadingSchedule bibleReadingSchedule,
+        BiblePublicationSchedule biblePublicationSchedule,
         Func<string, string, int, int, Task<KeyValuePair<BibleSection, BiblePublicationTrack>>> getNextBibleTrackAsync)
     {
-        var initialTrackInfo = await GetInitialTrackInfo(bibleReadingSchedule);
+        var initialTrackInfo = await GetInitialTrackInfo(biblePublicationSchedule);
         var result = new List<PlayItem>();
         var numberOfTracksToRead = schedule.NumberOfTracksToRead;
         var markedSeekTrack = false;
@@ -44,7 +44,7 @@ public class PlaylistBibleTrackBuilder
         {
             var trackMetadata = CreateTrackMetadata(
                 scheduleId,
-                bibleReadingSchedule,
+                biblePublicationSchedule,
                 currentSectionNumber,
                 currentTrack.Number,
                 numberOfTracksToRead,
@@ -56,7 +56,7 @@ public class PlaylistBibleTrackBuilder
             numberOfTracksToRead--;
             if (numberOfTracksToRead > 0)
             {
-                var next = await GetNextTrackInfo(bibleReadingSchedule, currentSectionNumber, currentTrack.Number, getNextBibleTrackAsync);
+                var next = await GetNextTrackInfo(biblePublicationSchedule, currentSectionNumber, currentTrack.Number, getNextBibleTrackAsync);
                 currentSectionNumber = next.SectionNumber;
                 currentTrack = next.Track;
                 currentUrl = next.Url;
@@ -66,25 +66,25 @@ public class PlaylistBibleTrackBuilder
         return result;
     }
 
-    public async Task<TrackInfo> GetInitialTrackInfo(BibleReadingSchedule bibleReadingSchedule)
+    public async Task<TrackInfo> GetInitialTrackInfo(BiblePublicationSchedule biblePublicationSchedule)
     {
-        var sectionNumber = bibleReadingSchedule.SectionNumber ?? throw new InvalidOperationException("SectionNumber is null");
+        var sectionNumber = biblePublicationSchedule.SectionNumber ?? throw new InvalidOperationException("SectionNumber is null");
         
         var tracks = await mediaService.GetBibleTracks(
-            bibleReadingSchedule.LanguageCode,
-            bibleReadingSchedule.PublicationCode,
+            biblePublicationSchedule.LanguageCode,
+            biblePublicationSchedule.PublicationCode,
             sectionNumber);
 
-        if (!tracks.TryGetValue(bibleReadingSchedule.TrackNumber, out var trackDetail))
+        if (!tracks.TryGetValue(biblePublicationSchedule.TrackNumber, out var trackDetail))
         {
             logger.Error(
-                $"Track: ${bibleReadingSchedule.TrackNumber}, section: {sectionNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup.");
-            throw new InvalidOperationException($"Track {bibleReadingSchedule.TrackNumber} not found in section {sectionNumber}");
+                $"Track: ${biblePublicationSchedule.TrackNumber}, section: {sectionNumber}, language: {biblePublicationSchedule.LanguageCode}, pub code: {biblePublicationSchedule.PublicationCode} not in lookup.");
+            throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} not found in section {sectionNumber}");
         }
 
         if (trackDetail.Source == null)
         {
-            throw new InvalidOperationException($"Track {bibleReadingSchedule.TrackNumber} Source is null in section {sectionNumber}");
+            throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} Source is null in section {sectionNumber}");
         }
 
         return new TrackInfo(
@@ -95,7 +95,7 @@ public class PlaylistBibleTrackBuilder
 
     private TrackMetadata CreateTrackMetadata(
         int scheduleId,
-        BibleReadingSchedule bibleReadingSchedule,
+        BiblePublicationSchedule biblePublicationSchedule,
         int sectionNumber,
         int trackNumber,
         int remainingTracks,
@@ -105,25 +105,25 @@ public class PlaylistBibleTrackBuilder
         var trackMetadata = new TrackMetadata
         {
             ScheduleId = scheduleId,
-            PublicationCode = bibleReadingSchedule.PublicationCode,
-            LanguageCode = bibleReadingSchedule.LanguageCode,
+            PublicationCode = biblePublicationSchedule.PublicationCode,
+            LanguageCode = biblePublicationSchedule.LanguageCode,
             // LookUpPath is now computed from LanguageCode, PublicationCode, SectionNumber, TrackNumber
             SectionNumber = sectionNumber,
             TrackNumber = trackNumber,
             IsLastTrack = remainingTracks == 1
         };
 
-        var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, bibleReadingSchedule, trackMetadata);
+        var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, biblePublicationSchedule, trackMetadata);
         logger.Debug("[PlaylistBuild] ShouldSetFinishedDuration: {ShouldSet}, markedSeekTrack: {MarkedSeekTrack}, AlwaysPlayFromStart: {AlwaysPlayFromStart}, ScheduleFinishedDuration: {ScheduleFinishedDuration}, SectionMatch: {SectionMatch}",
             shouldSet,
             markedSeekTrack,
             schedule.AlwaysPlayFromStart,
-            bibleReadingSchedule.FinishedDuration,
-            bibleReadingSchedule.SectionNumber == trackMetadata.SectionNumber);
+            biblePublicationSchedule.FinishedDuration,
+            biblePublicationSchedule.SectionNumber == trackMetadata.SectionNumber);
             
         if (shouldSet)
         {
-            trackMetadata.FinishedDuration = bibleReadingSchedule.FinishedDuration;
+            trackMetadata.FinishedDuration = biblePublicationSchedule.FinishedDuration;
             markedSeekTrack = true;
             logger.Debug("[PlaylistBuild] Set track FinishedDuration to {Duration}", trackMetadata.FinishedDuration);
         }
@@ -134,26 +134,26 @@ public class PlaylistBibleTrackBuilder
     private static bool ShouldSetFinishedDuration(
         bool markedSeekTrack,
         AlarmSchedule schedule,
-        BibleReadingSchedule bibleReadingSchedule,
+        BiblePublicationSchedule biblePublicationSchedule,
         TrackMetadata trackMetadata)
     {
         return !markedSeekTrack &&
                !schedule.AlwaysPlayFromStart &&
-               !bibleReadingSchedule.FinishedDuration.Equals(TimeSpan.Zero) &&
-               bibleReadingSchedule.LanguageCode == trackMetadata.LanguageCode &&
-               bibleReadingSchedule.PublicationCode == trackMetadata.PublicationCode &&
-               bibleReadingSchedule.SectionNumber == trackMetadata.SectionNumber;
+               !biblePublicationSchedule.FinishedDuration.Equals(TimeSpan.Zero) &&
+               biblePublicationSchedule.LanguageCode == trackMetadata.LanguageCode &&
+               biblePublicationSchedule.PublicationCode == trackMetadata.PublicationCode &&
+               biblePublicationSchedule.SectionNumber == trackMetadata.SectionNumber;
     }
 
     public async Task<TrackInfo> GetNextTrackInfo(
-        BibleReadingSchedule bibleReadingSchedule,
+        BiblePublicationSchedule biblePublicationSchedule,
         int currentSectionNumber,
         int currentTrackNumber,
         Func<string, string, int, int, Task<KeyValuePair<BibleSection, BibleTrack>>> getNextBibleTrackAsync)
     {
         var next = await getNextBibleTrackAsync(
-            bibleReadingSchedule.LanguageCode,
-            bibleReadingSchedule.PublicationCode,
+            biblePublicationSchedule.LanguageCode,
+            biblePublicationSchedule.PublicationCode,
             currentSectionNumber,
             currentTrackNumber);
 

@@ -60,20 +60,20 @@ public static class ScheduleCrudReducer
             AlwaysPlayFromStart = actionSchedule.AlwaysPlayFromStart,
             CurrentPlayItem = actionSchedule.CurrentPlayItem,
             LatestAlarmNotificationId = actionSchedule.LatestAlarmNotificationId,
-            BibleReadingScheduleId = actionSchedule.BibleReadingScheduleId,
-            BibleReadingLanguageCode = actionSchedule.BibleReadingLanguageCode,
-            BibleReadingPublicationCode = actionSchedule.BibleReadingPublicationCode,
-            BibleReadingSectionNumber = actionSchedule.BibleReadingSectionNumber,
-            BibleReadingTrackNumber = actionSchedule.BibleReadingTrackNumber,
-            BibleReadingFinishedDuration = actionSchedule.BibleReadingFinishedDuration,
+            BiblePublicationScheduleId = actionSchedule.BiblePublicationScheduleId,
+            BiblePublicationLanguageCode = actionSchedule.BiblePublicationLanguageCode,
+            BiblePublicationPublicationCode = actionSchedule.BiblePublicationPublicationCode,
+            BiblePublicationSectionNumber = actionSchedule.BiblePublicationSectionNumber,
+            BiblePublicationTrackNumber = actionSchedule.BiblePublicationTrackNumber,
+            BiblePublicationFinishedDuration = actionSchedule.BiblePublicationFinishedDuration,
             MusicId = actionSchedule.MusicId,
             MusicType = actionSchedule.MusicType,
             MusicPublicationCode = actionSchedule.MusicPublicationCode,
             MusicLanguageCode = actionSchedule.MusicLanguageCode,
             MusicTrackNumber = actionSchedule.MusicTrackNumber,
             MusicRepeat = actionSchedule.MusicRepeat,
-            BibleReadingLanguageName = actionSchedule.BibleReadingLanguageName,
-            BibleReadingPublicationName = actionSchedule.BibleReadingPublicationName,
+            BiblePublicationLanguageName = actionSchedule.BiblePublicationLanguageName,
+            BiblePublicationPublicationName = actionSchedule.BiblePublicationPublicationName,
             MusicLanguageName = actionSchedule.MusicLanguageName,
             MusicPublicationName = actionSchedule.MusicPublicationName,
             MusicTrackName = actionSchedule.MusicTrackName
@@ -235,8 +235,8 @@ public static class ScheduleCrudReducer
             return state;
         }
 
-        Log.Debug("ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, BibleReadingLanguageName: '{BibleReadingLanguageName}', BibleReadingSectionName: '{BibleReadingSectionName}', MusicEnabled: {MusicEnabled}",
-            action.Schedule.Id, action.Schedule.BibleReadingLanguageName ?? "null", action.Schedule.BibleReadingSectionName ?? "null", action.Schedule.MusicEnabled);
+        Log.Debug("ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', MusicEnabled: {MusicEnabled}",
+            action.Schedule.Id, action.Schedule.BiblePublicationLanguageName ?? "null", action.Schedule.BiblePublicationSectionName ?? "null", action.Schedule.MusicEnabled);
 
         // Create new Schedules collection to maintain immutability
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
@@ -253,8 +253,8 @@ public static class ScheduleCrudReducer
                     var sourceSchedule = action.Schedule.DeepClone();
                     updatedScheduleItem = sourceSchedule; // Use the cloned schedule directly
                     
-                    Log.Debug("ApplicationReducer: Existing item BibleReadingLanguageName: '{BibleReadingLanguageName}', BibleReadingSectionName: '{BibleReadingSectionName}', MusicEnabled: {MusicEnabled}",
-                        scheduleItem.BibleReadingLanguageName ?? "null", scheduleItem.BibleReadingSectionName ?? "null", scheduleItem.MusicEnabled);
+                    Log.Debug("ApplicationReducer: Existing item BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', MusicEnabled: {MusicEnabled}",
+                        scheduleItem.BiblePublicationLanguageName ?? "null", scheduleItem.BiblePublicationSectionName ?? "null", scheduleItem.MusicEnabled);
                     
                     Log.Debug("ApplicationReducer: Updated schedule item (new instance) - MusicEnabled: {OldMusicEnabled} -> {NewMusicEnabled}, Name: '{OldName}' -> '{NewName}'",
                         oldMusicEnabled, updatedScheduleItem.MusicEnabled, updatedScheduleItem.Name, action.Schedule.Name);
@@ -289,7 +289,7 @@ public static class ScheduleCrudReducer
             schedules: newSchedules,
             currentSchedule: updatedCurrentSchedule,
             currentMusic: state.CurrentMusic,
-            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
             containerReadiness: state.ContainerReadiness);

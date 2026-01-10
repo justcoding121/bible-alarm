@@ -287,7 +287,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
     {
         var alarmSchedules = await alarmScheduleService.GetAllSchedulesAsync(
             includeMusic: true,
-            includeBibleReading: true);
+            includeBiblePublication: true);
 
         Log.Logger.Information("Loaded {Count} schedules from database during bootstrap", alarmSchedules.Count);
         return alarmSchedules;
@@ -430,11 +430,11 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
                 cachedSchedule.NumberOfTracksToRead != freshSchedule.NumberOfTracksToRead ||
                 cachedSchedule.AlwaysPlayFromStart != freshSchedule.AlwaysPlayFromStart ||
                 cachedSchedule.CurrentPlayItem != freshSchedule.CurrentPlayItem ||
-                cachedSchedule.BibleReadingScheduleId != freshSchedule.BibleReadingScheduleId ||
-                cachedSchedule.BibleReadingLanguageCode != freshSchedule.BibleReadingLanguageCode ||
-                cachedSchedule.BibleReadingPublicationCode != freshSchedule.BibleReadingPublicationCode ||
-                cachedSchedule.BibleReadingSectionNumber != freshSchedule.BibleReadingSectionNumber ||
-                cachedSchedule.BibleReadingTrackNumber != freshSchedule.BibleReadingTrackNumber ||
+                cachedSchedule.BiblePublicationScheduleId != freshSchedule.BiblePublicationScheduleId ||
+                cachedSchedule.BiblePublicationLanguageCode != freshSchedule.BiblePublicationLanguageCode ||
+                cachedSchedule.BiblePublicationPublicationCode != freshSchedule.BiblePublicationPublicationCode ||
+                cachedSchedule.BiblePublicationSectionNumber != freshSchedule.BiblePublicationSectionNumber ||
+                cachedSchedule.BiblePublicationTrackNumber != freshSchedule.BiblePublicationTrackNumber ||
                 cachedSchedule.MusicId != freshSchedule.MusicId ||
                 cachedSchedule.MusicType != freshSchedule.MusicType ||
                 cachedSchedule.MusicPublicationCode != freshSchedule.MusicPublicationCode ||

@@ -339,7 +339,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         }
     }
 
-    public BibleReadingSchedule? BibleReadingSchedule
+    public BiblePublicationSchedule? BiblePublicationSchedule
     {
         get
         {
@@ -348,7 +348,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             {
                 return null;
             }
-            return mapper.Map<AlarmSchedule>(currentSchedule).BibleReadingSchedule;
+            return mapper.Map<AlarmSchedule>(currentSchedule).BiblePublicationSchedule;
         }
         set
         {

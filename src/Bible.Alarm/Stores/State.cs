@@ -15,7 +15,7 @@ public class ApplicationState
 
     public MusicStateItem? CurrentMusic { get; set; }
 
-    public BibleReadingStateItem? CurrentBibleReadingSchedule { get; set; }
+    public BiblePublicationStateItem? CurrentBiblePublicationSchedule { get; set; }
 
     public bool IsHomePageOverlayVisible { get; set; }
     public bool IsSchedulePageOverlayVisible { get; set; }
@@ -39,7 +39,7 @@ public class ApplicationState
         ObservableHashSet<ScheduleStateItem> schedules,
         ScheduleStateItem? currentSchedule = null,
         MusicStateItem? currentMusic = null,
-        BibleReadingStateItem? currentBibleReadingSchedule = null,
+        BiblePublicationStateItem? currentBiblePublicationSchedule = null,
         bool isHomePageOverlayVisible = false,
         bool isSchedulePageOverlayVisible = false,
         ContainerReadiness? containerReadiness = null,
@@ -48,7 +48,7 @@ public class ApplicationState
         Schedules = schedules ?? [];
         CurrentSchedule = currentSchedule;
         CurrentMusic = currentMusic;
-        CurrentBibleReadingSchedule = currentBibleReadingSchedule;
+        CurrentBiblePublicationSchedule = currentBiblePublicationSchedule;
         IsHomePageOverlayVisible = isHomePageOverlayVisible;
         IsSchedulePageOverlayVisible = isSchedulePageOverlayVisible;
         ContainerReadiness = containerReadiness ?? Models.ContainerReadiness.NotReady;

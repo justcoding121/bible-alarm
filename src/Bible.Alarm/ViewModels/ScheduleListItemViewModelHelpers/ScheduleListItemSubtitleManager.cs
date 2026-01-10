@@ -50,7 +50,7 @@ public sealed class ScheduleListItemSubtitleManager(
             var scheduleStateItem = providedScheduleStateItem ??
                 applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
 
-            if (scheduleStateItem?.BibleReadingScheduleId.HasValue == true)
+            if (scheduleStateItem?.BiblePublicationScheduleId.HasValue == true)
             {
                 UpdateLanguageFromState(scheduleStateItem, setLanguage, onPropertyChanged);
                 var subtitle = BuildSubtitleFromState(scheduleStateItem);
@@ -77,13 +77,13 @@ public sealed class ScheduleListItemSubtitleManager(
 
     private void UpdateLanguageFromState(ScheduleStateItem scheduleStateItem, Action<string> setLanguage, Action<string> onPropertyChanged)
     {
-        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageName))
+        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
         {
-            setLanguage(scheduleStateItem.BibleReadingLanguageName);
+            setLanguage(scheduleStateItem.BiblePublicationLanguageName);
         }
-        else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode))
+        else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageCode))
         {
-            setLanguage(scheduleStateItem.BibleReadingLanguageCode);
+            setLanguage(scheduleStateItem.BiblePublicationLanguageCode);
         }
         else
         {
@@ -96,18 +96,18 @@ public sealed class ScheduleListItemSubtitleManager(
     {
         var subtitleParts = new List<string>();
 
-        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingSectionName))
+        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
         {
-            subtitleParts.Add(scheduleStateItem.BibleReadingSectionName);
+            subtitleParts.Add(scheduleStateItem.BiblePublicationSectionName);
         }
-        else if (scheduleStateItem.BibleReadingSectionNumber.HasValue && scheduleStateItem.BibleReadingSectionNumber.Value > 0)
+        else if (scheduleStateItem.BiblePublicationSectionNumber.HasValue && scheduleStateItem.BiblePublicationSectionNumber.Value > 0)
         {
-            subtitleParts.Add($"Section {scheduleStateItem.BibleReadingSectionNumber.Value}");
+            subtitleParts.Add($"Section {scheduleStateItem.BiblePublicationSectionNumber.Value}");
         }
 
-        if (scheduleStateItem.BibleReadingTrackNumber.HasValue && scheduleStateItem.BibleReadingTrackNumber.Value > 0)
+        if (scheduleStateItem.BiblePublicationTrackNumber.HasValue && scheduleStateItem.BiblePublicationTrackNumber.Value > 0)
         {
-            subtitleParts.Add(scheduleStateItem.BibleReadingTrackNumber.Value.ToString());
+            subtitleParts.Add(scheduleStateItem.BiblePublicationTrackNumber.Value.ToString());
         }
 
         return subtitleParts.Count > 0 ? string.Join(" ", subtitleParts) : string.Empty;
@@ -139,13 +139,13 @@ public sealed class ScheduleListItemSubtitleManager(
             string language = string.Empty;
             if (scheduleStateItem != null)
             {
-                if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageName))
+                if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
                 {
-                    language = scheduleStateItem.BibleReadingLanguageName;
+                    language = scheduleStateItem.BiblePublicationLanguageName;
                 }
-                else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode))
+                else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageCode))
                 {
-                    language = scheduleStateItem.BibleReadingLanguageCode;
+                    language = scheduleStateItem.BiblePublicationLanguageCode;
                 }
             }
 

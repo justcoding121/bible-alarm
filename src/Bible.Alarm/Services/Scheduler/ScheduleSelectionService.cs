@@ -42,20 +42,20 @@ public sealed class ScheduleSelectionService
     }
 
     /// <summary>
-    /// Loads Bible reading for selection modal. For existing schedules, creates BibleReadingSchedule from CurrentSchedule properties
+    /// Loads Bible reading for selection modal. For existing schedules, creates BiblePublicationSchedule from CurrentSchedule properties
     /// instead of querying AlarmDB (since all data is already in CurrentSchedule from page load).
     /// Only queries media index DB for section lists, tracks, etc.
     /// </summary>
-    public BibleReadingSchedule? LoadBibleReadingForSelection(int scheduleId, bool isNewSchedule, BibleReadingSchedule? currentBibleReading,
+    public BiblePublicationSchedule? LoadBiblePublicationForSelection(int scheduleId, bool isNewSchedule, BiblePublicationSchedule? currentBiblePublication,
         string? languageCode, string? publicationCode, int? sectionNumber, int? trackNumber, TimeSpan? finishedDuration)
     {
-        // For new schedules, return currentBibleReading (which may be null)
+        // For new schedules, return currentBiblePublication (which may be null)
         if (isNewSchedule)
         {
-            return currentBibleReading;
+            return currentBiblePublication;
         }
 
-        // For existing schedules, create BibleReadingSchedule from CurrentSchedule properties
+        // For existing schedules, create BiblePublicationSchedule from CurrentSchedule properties
         // All data is already loaded from AlarmDB when the schedule page opened
         // No need to query AlarmDB again - only media index DB queries are needed for selection lists
         if (!string.IsNullOrWhiteSpace(languageCode) && 
@@ -63,7 +63,7 @@ public sealed class ScheduleSelectionService
             sectionNumber.HasValue && 
             trackNumber.HasValue)
         {
-            return new BibleReadingSchedule
+            return new BiblePublicationSchedule
             {
                 Id = 0, // Will be set when saved
                 LanguageCode = languageCode,
@@ -75,8 +75,8 @@ public sealed class ScheduleSelectionService
             };
         }
 
-        // Fallback to currentBibleReading if CurrentSchedule doesn't have required properties
-        return currentBibleReading;
+        // Fallback to currentBiblePublication if CurrentSchedule doesn't have required properties
+        return currentBiblePublication;
     }
 
     public void Dispose()

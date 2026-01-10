@@ -31,9 +31,9 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
     public async Task PopulateDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
         // Populate Bible reading display names
-        if (schedule.BibleReadingSchedule != null)
+        if (schedule.BiblePublicationSchedule != null)
         {
-            await PopulateBibleReadingDisplayNamesAsync(scheduleStateItem, schedule.BibleReadingSchedule);
+            await PopulateBiblePublicationDisplayNamesAsync(scheduleStateItem, schedule.BiblePublicationSchedule);
         }
 
         // Populate music display names
@@ -43,77 +43,77 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         }
     }
 
-    private async Task PopulateBibleReadingDisplayNamesAsync(ScheduleStateItem scheduleStateItem, BibleReadingSchedule bibleReadingSchedule)
+    private async Task PopulateBiblePublicationDisplayNamesAsync(ScheduleStateItem scheduleStateItem, BiblePublicationSchedule biblePublicationSchedule)
     {
         // Language name
-        if (!string.IsNullOrWhiteSpace(bibleReadingSchedule.LanguageCode) && BiblePublicationService != null)
+        if (!string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) && BiblePublicationService != null)
         {
             try
             {
                 var languagesDict = await Task.Run(async () =>
                     await BiblePublicationService.GetDistinctLanguagesAsync());
-                if (languagesDict.TryGetValue(bibleReadingSchedule.LanguageCode, out var language))
+                if (languagesDict.TryGetValue(biblePublicationSchedule.LanguageCode, out var language))
                 {
-                    scheduleStateItem.BibleReadingLanguageName = language.Name;
+                    scheduleStateItem.BiblePublicationLanguageName = language.Name;
                 }
                 else
                 {
-                    scheduleStateItem.BibleReadingLanguageName = bibleReadingSchedule.LanguageCode;
+                    scheduleStateItem.BiblePublicationLanguageName = biblePublicationSchedule.LanguageCode;
                 }
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating BibleReadingLanguageName");
-                scheduleStateItem.BibleReadingLanguageName = bibleReadingSchedule.LanguageCode;
+                logger.Warning(ex, "Error populating BiblePublicationLanguageName");
+                scheduleStateItem.BiblePublicationLanguageName = biblePublicationSchedule.LanguageCode;
             }
         }
 
         // Translation name
-        if (!string.IsNullOrWhiteSpace(bibleReadingSchedule.LanguageCode) &&
-            !string.IsNullOrWhiteSpace(bibleReadingSchedule.PublicationCode) &&
+        if (!string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
+            !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode) &&
             BiblePublicationService != null)
         {
             try
             {
                 var translation = await Task.Run(async () =>
                     await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                        bibleReadingSchedule.LanguageCode,
-                        bibleReadingSchedule.PublicationCode));
+                        biblePublicationSchedule.LanguageCode,
+                        biblePublicationSchedule.PublicationCode));
 
                 if (translation != null && !string.IsNullOrWhiteSpace(translation.Name))
                 {
-                    scheduleStateItem.BibleReadingPublicationName = translation.Name;
+                    scheduleStateItem.BiblePublicationPublicationName = translation.Name;
                 }
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating BibleReadingPublicationName");
+                logger.Warning(ex, "Error populating BiblePublicationPublicationName");
             }
         }
 
         // Section name
-        if (bibleReadingSchedule.SectionNumber > 0 &&
-            !string.IsNullOrWhiteSpace(bibleReadingSchedule.LanguageCode) &&
-            !string.IsNullOrWhiteSpace(bibleReadingSchedule.PublicationCode))
+        if (biblePublicationSchedule.SectionNumber > 0 &&
+            !string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
+            !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode))
         {
             try
             {
                 var bibleSectionService = serviceProvider.GetRequiredService<IBibleSectionService>();
-                if (!bibleReadingSchedule.SectionNumber.HasValue) return;
+                if (!biblePublicationSchedule.SectionNumber.HasValue) return;
                 var sectionName = await Task.Run(async () =>
                     await bibleSectionService.GetSectionNameAsync(
-                        bibleReadingSchedule.LanguageCode,
-                        bibleReadingSchedule.PublicationCode,
-                        bibleReadingSchedule.SectionNumber.Value));
+                        biblePublicationSchedule.LanguageCode,
+                        biblePublicationSchedule.PublicationCode,
+                        biblePublicationSchedule.SectionNumber.Value));
 
                 if (!string.IsNullOrWhiteSpace(sectionName))
                 {
-                    scheduleStateItem.BibleReadingSectionName = sectionName;
+                    scheduleStateItem.BiblePublicationSectionName = sectionName;
                 }
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating BibleReadingSectionName");
+                logger.Warning(ex, "Error populating BiblePublicationSectionName");
             }
         }
     }

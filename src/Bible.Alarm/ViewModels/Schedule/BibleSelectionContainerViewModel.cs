@@ -42,8 +42,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
     private int scheduleId;
     private bool isNewSchedule;
-    private bool bibleReadingUpdated;
-    private BibleReadingSchedule? bibleReadingSchedule;
+    private bool biblePublicationUpdated;
+    private BiblePublicationSchedule? biblePublicationSchedule;
     private bool hasSignaledReady;
     private bool isReadyActionQueued;
 
@@ -95,22 +95,22 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             isNewSchedule = currentSchedule.Id <= 0;
 
             // Initialize last values
-            var currentBibleReading = state.Value.CurrentBibleReadingSchedule;
+            var currentBiblePublication = state.Value.CurrentBiblePublicationSchedule;
             propertyChangeDetector.Initialize(
-                currentSchedule.BibleReadingLanguageCode,
-                currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode,
-                currentBibleReading?.SectionNumber ?? currentSchedule.BibleReadingSectionNumber,
-                currentBibleReading?.TrackNumber ?? currentSchedule.BibleReadingTrackNumber);
+                currentSchedule.BiblePublicationLanguageCode,
+                currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationPublicationCode,
+                currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber,
+                currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber);
 
             // Initialize last processed state to prevent duplicate processing
             lastProcessedScheduleId = currentSchedule.Id;
-            lastProcessedLanguageCode = currentSchedule.BibleReadingLanguageCode;
-            lastProcessedLanguageName = currentSchedule.BibleReadingLanguageName;
-            lastProcessedPublicationCode = currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode;
-            lastProcessedPublicationName = currentSchedule.BibleReadingPublicationName;
-            lastProcessedSectionNumber = currentBibleReading?.SectionNumber ?? currentSchedule.BibleReadingSectionNumber;
-            lastProcessedSectionName = currentSchedule.BibleReadingSectionName;
-            lastProcessedTrackNumber = currentBibleReading?.TrackNumber ?? currentSchedule.BibleReadingTrackNumber;
+            lastProcessedLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+            lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
+            lastProcessedPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationPublicationCode;
+            lastProcessedPublicationName = currentSchedule.BiblePublicationPublicationName;
+            lastProcessedSectionNumber = currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber;
+            lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
+            lastProcessedTrackNumber = currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber;
 
             // Batch property notifications to reduce UI thread work
             propertyNotifier.NotifyAllDisplayTextPropertiesChanged();
@@ -167,11 +167,11 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         SelectBibleTypeCommand = commandInitializer.CreateSelectBibleTypeCommand();
         SelectLanguageCommand = commandInitializer.CreateSelectLanguageCommand();
         SelectBibleCommand = commandInitializer.CreateSelectBibleCommand(
-            () => bibleReadingSchedule, b => bibleReadingSchedule = b, scheduleId, isNewSchedule, bibleReadingUpdated);
+            () => biblePublicationSchedule, b => biblePublicationSchedule = b, scheduleId, isNewSchedule, biblePublicationUpdated);
         SelectSectionCommand = commandInitializer.CreateSelectSectionCommand(
-            () => bibleReadingSchedule, b => bibleReadingSchedule = b, scheduleId, isNewSchedule, bibleReadingUpdated);
+            () => biblePublicationSchedule, b => biblePublicationSchedule = b, scheduleId, isNewSchedule, biblePublicationUpdated);
         SelectTrackCommand = commandInitializer.CreateSelectTrackCommand(
-            () => bibleReadingSchedule, b => bibleReadingSchedule = b, scheduleId, isNewSchedule, bibleReadingUpdated);
+            () => biblePublicationSchedule, b => biblePublicationSchedule = b, scheduleId, isNewSchedule, biblePublicationUpdated);
     }
 
     public void SetScheduleId(int scheduleId, bool isNewSchedule)
@@ -184,7 +184,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     {
         var stateValue = state.Value;
         var currentSchedule = stateValue.CurrentSchedule;
-        var currentBibleReading = stateValue.CurrentBibleReadingSchedule;
+        var currentBiblePublication = stateValue.CurrentBiblePublicationSchedule;
 
         // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
         // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
@@ -213,22 +213,22 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         // Also check display names (language name, publication name, section name) to ensure display text updates when they change
         if (currentSchedule != null &&
             currentSchedule.Id == lastProcessedScheduleId &&
-            currentSchedule.BibleReadingLanguageCode == lastProcessedLanguageCode &&
-            currentSchedule.BibleReadingLanguageName == lastProcessedLanguageName &&
-            (currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode) == lastProcessedPublicationCode &&
-            currentSchedule.BibleReadingPublicationName == lastProcessedPublicationName &&
-            (currentBibleReading?.SectionNumber ?? currentSchedule.BibleReadingSectionNumber) == lastProcessedSectionNumber &&
-            currentSchedule.BibleReadingSectionName == lastProcessedSectionName &&
-            (currentBibleReading?.TrackNumber ?? currentSchedule.BibleReadingTrackNumber) == lastProcessedTrackNumber)
+            currentSchedule.BiblePublicationLanguageCode == lastProcessedLanguageCode &&
+            currentSchedule.BiblePublicationLanguageName == lastProcessedLanguageName &&
+            (currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationPublicationCode) == lastProcessedPublicationCode &&
+            currentSchedule.BiblePublicationPublicationName == lastProcessedPublicationName &&
+            (currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber) == lastProcessedSectionNumber &&
+            currentSchedule.BiblePublicationSectionName == lastProcessedSectionName &&
+            (currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber) == lastProcessedTrackNumber)
         {
             return;
         }
 
-        LogStateChange(currentSchedule, currentBibleReading);
+        LogStateChange(currentSchedule, currentBiblePublication);
         HandleScheduleIdChange(currentSchedule);
-        UpdateBibleReadingUpdatedFlag(currentSchedule);
+        UpdateBiblePublicationUpdatedFlag(currentSchedule);
 
-        var changeInfo = propertyChangeDetector.DetectPropertyChanges(currentSchedule, currentBibleReading);
+        var changeInfo = propertyChangeDetector.DetectPropertyChanges(currentSchedule, currentBiblePublication);
         if (changeInfo.HasChanges)
         {
             // Reset the flag when a new cascade change is detected (before updating last values)
@@ -256,13 +256,13 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         if (currentSchedule != null)
         {
             lastProcessedScheduleId = currentSchedule.Id;
-            lastProcessedLanguageCode = currentSchedule.BibleReadingLanguageCode;
-            lastProcessedLanguageName = currentSchedule.BibleReadingLanguageName;
-            lastProcessedPublicationCode = currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode;
-            lastProcessedPublicationName = currentSchedule.BibleReadingPublicationName;
-            lastProcessedSectionNumber = currentBibleReading?.SectionNumber ?? currentSchedule.BibleReadingSectionNumber;
-            lastProcessedSectionName = currentSchedule.BibleReadingSectionName;
-            lastProcessedTrackNumber = currentBibleReading?.TrackNumber ?? currentSchedule.BibleReadingTrackNumber;
+            lastProcessedLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+            lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
+            lastProcessedPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationPublicationCode;
+            lastProcessedPublicationName = currentSchedule.BiblePublicationPublicationName;
+            lastProcessedSectionNumber = currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber;
+            lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
+            lastProcessedTrackNumber = currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber;
         }
     }
 
@@ -293,7 +293,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         return true;
     }
 
-    private void LogStateChange(ScheduleStateItem? currentSchedule, BibleReadingStateItem? currentBibleReading)
+    private void LogStateChange(ScheduleStateItem? currentSchedule, BiblePublicationStateItem? currentBiblePublication)
     {
         // Logging removed - not needed for normal operation
     }
@@ -310,16 +310,16 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         }
     }
 
-    private void UpdateBibleReadingUpdatedFlag(ScheduleStateItem? currentSchedule)
+    private void UpdateBiblePublicationUpdatedFlag(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule != null)
         {
-            var hasBibleReading = currentSchedule.BibleReadingScheduleId.HasValue;
-            if (hasBibleReading && currentSchedule.BibleReadingScheduleId.HasValue &&
-                (bibleReadingSchedule == null ||
-                bibleReadingSchedule.Id != currentSchedule.BibleReadingScheduleId.Value))
+            var hasBiblePublication = currentSchedule.BiblePublicationScheduleId.HasValue;
+            if (hasBiblePublication && currentSchedule.BiblePublicationScheduleId.HasValue &&
+                (biblePublicationSchedule == null ||
+                biblePublicationSchedule.Id != currentSchedule.BiblePublicationScheduleId.Value))
             {
-                bibleReadingUpdated = true;
+                biblePublicationUpdated = true;
             }
         }
     }
@@ -328,7 +328,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     {
         if (changeInfo.CascadeChangeOccurred && currentSchedule != null)
         {
-            var currentProgress = currentSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero;
+            var currentProgress = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero;
             // Only reset if progress is non-zero AND we haven't already reset for this cascade change
             if (currentProgress != TimeSpan.Zero && !progressResetForCurrentCascade)
             {
@@ -338,7 +338,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
                 {
                     var clonedSchedule = currentSchedule.DeepClone();
                     var scheduleStateItem = mapper.Map<ScheduleStateItem>(clonedSchedule);
-                    scheduleStateItem.BibleReadingFinishedDuration = TimeSpan.Zero;
+                    scheduleStateItem.BiblePublicationFinishedDuration = TimeSpan.Zero;
                     dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true, shouldSave: false));
                 });
             }

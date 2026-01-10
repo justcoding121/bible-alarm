@@ -119,10 +119,10 @@ public sealed class ScheduleSaveService : IScheduleSaveService
 
     private void EnsureDefaultPublicationCode(AlarmSchedule model)
     {
-        if (model.BibleReadingSchedule != null && string.IsNullOrWhiteSpace(model.BibleReadingSchedule.PublicationCode))
+        if (model.BiblePublicationSchedule != null && string.IsNullOrWhiteSpace(model.BiblePublicationSchedule.PublicationCode))
         {
-            logger.Warning("SaveAsync: BibleReadingSchedule has empty PublicationCode, defaulting to 'nwt' (2013)");
-            model.BibleReadingSchedule.PublicationCode = "nwt";
+            logger.Warning("SaveAsync: BiblePublicationSchedule has empty PublicationCode, defaulting to 'nwt' (2013)");
+            model.BiblePublicationSchedule.PublicationCode = "nwt";
         }
     }
 
@@ -151,16 +151,16 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             scheduleStateItem.MusicEnabled);
 
         // Preserve all display names from CurrentSchedule state
-        scheduleStateItem.BibleReadingLanguageName = currentSchedule.BibleReadingLanguageName;
-        scheduleStateItem.BibleReadingPublicationName = currentSchedule.BibleReadingPublicationName;
-        scheduleStateItem.BibleReadingSectionName = currentSchedule.BibleReadingSectionName;
+        scheduleStateItem.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;
+        scheduleStateItem.BiblePublicationPublicationName = currentSchedule.BiblePublicationPublicationName;
+        scheduleStateItem.BiblePublicationSectionName = currentSchedule.BiblePublicationSectionName;
         scheduleStateItem.MusicLanguageName = currentSchedule.MusicLanguageName;
         scheduleStateItem.MusicPublicationName = currentSchedule.MusicPublicationName;
         scheduleStateItem.MusicTrackName = currentSchedule.MusicTrackName;
 
-        logger.Information("PrepareScheduleStateItem: Preserved display names from CurrentSchedule state. BibleReadingLanguageName={LanguageName}, BibleReadingPublicationName={PublicationName}, MusicTrackName={MusicTrackName}",
-            scheduleStateItem.BibleReadingLanguageName ?? "null",
-            scheduleStateItem.BibleReadingPublicationName ?? "null",
+        logger.Information("PrepareScheduleStateItem: Preserved display names from CurrentSchedule state. BiblePublicationLanguageName={LanguageName}, BiblePublicationPublicationName={PublicationName}, MusicTrackName={MusicTrackName}",
+            scheduleStateItem.BiblePublicationLanguageName ?? "null",
+            scheduleStateItem.BiblePublicationPublicationName ?? "null",
             scheduleStateItem.MusicTrackName ?? "null");
 
         // If music was updated, always use music properties from CurrentSchedule state

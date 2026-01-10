@@ -14,7 +14,7 @@ public static class PublicationTypeHelper
     private static readonly HashSet<string> DramaPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
         "Dramas",
-        "DramaticBibleReadings"
+        "DramaticBiblePublications"
     };
 
     /// <summary>

@@ -58,33 +58,33 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         propertyManager = new BibleSelectionPropertyManager(state, dataProvider, stateHandler);
 
         // Initialize current from state if available (map DTO to entity)
-        // Use CurrentSchedule as the source of truth, with CurrentBibleReadingSchedule as fallback
+        // Use CurrentSchedule as the source of truth, with CurrentBiblePublicationSchedule as fallback
         var currentState = state.Value;
-        BibleReadingSchedule? initialCurrent = null;
+        BiblePublicationSchedule? initialCurrent = null;
         string? initialLanguageCode = null;
-        if (currentState.CurrentBibleReadingSchedule != null)
+        if (currentState.CurrentBiblePublicationSchedule != null)
         {
-            initialCurrent = mapper.Map<BibleReadingSchedule>(currentState.CurrentBibleReadingSchedule);
+            initialCurrent = mapper.Map<BiblePublicationSchedule>(currentState.CurrentBiblePublicationSchedule);
             initialLanguageCode = initialCurrent.LanguageCode;
         }
-        else if (currentState.CurrentSchedule != null && !string.IsNullOrEmpty(currentState.CurrentSchedule.BibleReadingLanguageCode))
+        else if (currentState.CurrentSchedule != null && !string.IsNullOrEmpty(currentState.CurrentSchedule.BiblePublicationLanguageCode))
         {
-            // Create a minimal BibleReadingSchedule from CurrentSchedule
+            // Create a minimal BiblePublicationSchedule from CurrentSchedule
             var currentSchedule = currentState.CurrentSchedule;
-            initialCurrent = new BibleReadingSchedule
+            initialCurrent = new BiblePublicationSchedule
             {
-                LanguageCode = currentSchedule.BibleReadingLanguageCode,
-                PublicationCode = currentSchedule.BibleReadingPublicationCode ?? string.Empty,
-                SectionNumber = currentSchedule.BibleReadingSectionNumber ?? 1,
-                TrackNumber = currentSchedule.BibleReadingTrackNumber ?? 1
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationPublicationCode ?? string.Empty,
+                SectionNumber = currentSchedule.BiblePublicationSectionNumber ?? 1,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
             initialLanguageCode = initialCurrent.LanguageCode;
         }
         stateHandler.InitializeCurrent(initialCurrent, initialLanguageCode);
 
         // Set up event handlers
-        state.StateChanged += OnBibleReadingInitialized;
-        state.StateChanged += OnBibleReadingChanged;
+        state.StateChanged += OnBiblePublicationInitialized;
+        state.StateChanged += OnBiblePublicationChanged;
 
         // Initialize commands
         SectionSelectionCommand = commandHandler.CreateSectionSelectionCommand(
@@ -101,17 +101,17 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
             () => dataProvider.GetTranslationVMsMapping(),
             language => propertyManager.UpdateSelectedLanguage(language));
 
-        // Always trigger initialization, even if CurrentBibleReadingSchedule is null
+        // Always trigger initialization, even if CurrentBiblePublicationSchedule is null
         // This ensures languages are populated for the language modal use case
-        OnBibleReadingInitialized(null, EventArgs.Empty);
+        OnBiblePublicationInitialized(null, EventArgs.Empty);
     }
 
-    private async void OnBibleReadingInitialized(object? o, EventArgs eventArgs)
+    private async void OnBiblePublicationInitialized(object? o, EventArgs eventArgs)
     {
-        await stateHandler.HandleBibleReadingInitializedAsync(
+        await stateHandler.HandleBiblePublicationInitializedAsync(
             busy => propertyManager.IsBusy = busy,
             propertyManager.Languages,
-            state.Value.CurrentSchedule?.BibleReadingLanguageCode,
+            state.Value.CurrentSchedule?.BiblePublicationLanguageCode,
             () => propertyManager.UpdateCurrentLanguageFromLanguages());
 
         // Set up property changed handler for language search
@@ -126,14 +126,14 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
     public async Task RefreshFromState()
     {
         // Always ensure languages are populated and IsBusy is set to false
-        await stateHandler.HandleBibleReadingInitializedAsync(
+        await stateHandler.HandleBiblePublicationInitializedAsync(
             busy => propertyManager.IsBusy = busy,
             propertyManager.Languages,
-            state.Value.CurrentSchedule?.BibleReadingLanguageCode,
+            state.Value.CurrentSchedule?.BiblePublicationLanguageCode,
             () => propertyManager.UpdateCurrentLanguageFromLanguages());
 
         // Only populate translations if we have a current language (for full Bible selection, not language modal)
-        if (!string.IsNullOrEmpty(state.Value.CurrentSchedule?.BibleReadingLanguageCode))
+        if (!string.IsNullOrEmpty(state.Value.CurrentSchedule?.BiblePublicationLanguageCode))
         {
             await stateHandler.RefreshFromStateAsync(
                 busy => propertyManager.IsBusy = busy,
@@ -141,9 +141,9 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         }
     }
 
-    private async void OnBibleReadingChanged(object? sender, EventArgs e)
+    private async void OnBiblePublicationChanged(object? sender, EventArgs e)
     {
-        await stateHandler.HandleBibleReadingChangedAsync(
+        await stateHandler.HandleBiblePublicationChangedAsync(
             busy => propertyManager.IsBusy = busy,
             () => propertyManager.SetSelectedTranslation(),
             propertyManager.Translations);
@@ -163,8 +163,8 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
 
     public void Dispose()
     {
-        state.StateChanged -= OnBibleReadingInitialized;
-        state.StateChanged -= OnBibleReadingChanged;
+        state.StateChanged -= OnBiblePublicationInitialized;
+        state.StateChanged -= OnBiblePublicationChanged;
 
         // Clean up property manager
         propertyManager.Cleanup();

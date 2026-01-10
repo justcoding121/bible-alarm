@@ -54,7 +54,7 @@ public sealed class BibleSelectionItemSelector
     {
         var currentSchedule = state.Value.CurrentSchedule;
         var isSameLanguage = currentSchedule != null &&
-                           currentSchedule.BibleReadingLanguageCode == language.Code;
+                           currentSchedule.BiblePublicationLanguageCode == language.Code;
 
         var translations = await Task.Run(async () =>
             await mediaService.GetBiblePublications(language.Code));
@@ -75,15 +75,15 @@ public sealed class BibleSelectionItemSelector
     private static bool IsSameTranslation(ScheduleStateItem? currentSchedule, PublicationListViewItemModel publication)
     {
         return currentSchedule != null &&
-               currentSchedule.BibleReadingLanguageCode == publication.Code &&
-               currentSchedule.BibleReadingPublicationCode == publication.Code;
+               currentSchedule.BiblePublicationLanguageCode == publication.Code &&
+               currentSchedule.BiblePublicationPublicationCode == publication.Code;
     }
 
     private static bool HasValidSectionAndTrack(ScheduleStateItem? schedule)
     {
         return schedule != null &&
-               schedule.BibleReadingSectionNumber.HasValue &&
-               schedule.BibleReadingTrackNumber.HasValue;
+               schedule.BiblePublicationSectionNumber.HasValue &&
+               schedule.BiblePublicationTrackNumber.HasValue;
     }
 
     private async Task<(int SectionNumber, int TrackNumber, string SectionName)> GetPreservedSectionAndTrackAsync(
@@ -91,13 +91,13 @@ public sealed class BibleSelectionItemSelector
         PublicationListViewItemModel publication,
         IDictionary<int, BibleSection> sections)
     {
-        var currentSectionNumber = currentSchedule.BibleReadingSectionNumber!.Value;
-        var currentTrackNumber = currentSchedule.BibleReadingTrackNumber!.Value;
+        var currentSectionNumber = currentSchedule.BiblePublicationSectionNumber!.Value;
+        var currentTrackNumber = currentSchedule.BiblePublicationTrackNumber!.Value;
 
         if (sections.TryGetValue(currentSectionNumber, out var currentSection))
         {
             var tracks = await Task.Run(async () =>
-                await mediaService.GetBibleTracks(currentSchedule.BibleReadingLanguageCode!, publication.Code, currentSectionNumber));
+                await mediaService.GetBibleTracks(currentSchedule.BiblePublicationLanguageCode!, publication.Code, currentSectionNumber));
 
             var trackNumber = tracks != null && tracks.ContainsKey(currentTrackNumber)
                 ? currentTrackNumber
@@ -107,7 +107,7 @@ public sealed class BibleSelectionItemSelector
         }
 
         // Use the language code from the schedule directly
-        var languageCode = currentSchedule.BibleReadingLanguageCode ?? "en";
+        var languageCode = currentSchedule.BiblePublicationLanguageCode ?? "en";
         return await GetFirstSectionAndTrackAsync(languageCode, publication, sections);
     }
 
@@ -130,10 +130,10 @@ public sealed class BibleSelectionItemSelector
 
     private static bool CanPreserveCurrentTranslation(ScheduleStateItem schedule, Dictionary<string, BiblePublication> translations)
     {
-        return !string.IsNullOrEmpty(schedule.BibleReadingPublicationCode) &&
-               translations.ContainsKey(schedule.BibleReadingPublicationCode) &&
-               schedule.BibleReadingSectionNumber.HasValue &&
-               schedule.BibleReadingTrackNumber.HasValue;
+        return !string.IsNullOrEmpty(schedule.BiblePublicationPublicationCode) &&
+               translations.ContainsKey(schedule.BiblePublicationPublicationCode) &&
+               schedule.BiblePublicationSectionNumber.HasValue &&
+               schedule.BiblePublicationTrackNumber.HasValue;
     }
 
     private async Task<(string PublicationCode, int SectionNumber, int TrackNumber, string SectionName, string PublicationName)>
@@ -142,9 +142,9 @@ public sealed class BibleSelectionItemSelector
             LanguageListViewItemModel language,
             Dictionary<string, BiblePublication> translations)
     {
-        var publicationCode = currentSchedule.BibleReadingPublicationCode!;
-        var currentSectionNumber = currentSchedule.BibleReadingSectionNumber!.Value;
-        var currentTrackNumber = currentSchedule.BibleReadingTrackNumber!.Value;
+        var publicationCode = currentSchedule.BiblePublicationPublicationCode!;
+        var currentSectionNumber = currentSchedule.BiblePublicationSectionNumber!.Value;
+        var currentTrackNumber = currentSchedule.BiblePublicationTrackNumber!.Value;
 
         var sections = await Task.Run(async () =>
             await mediaService.GetBibleSections(language.Code, publicationCode));

@@ -75,22 +75,22 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
             }
         });
 
-        state.StateChanged += OnBibleReadingInitialized;
-        state.StateChanged += OnBibleReadingChanged;
+        state.StateChanged += OnBiblePublicationInitialized;
+        state.StateChanged += OnBiblePublicationChanged;
     }
 
-    private void OnBibleReadingChanged(object? sender, EventArgs e)
+    private void OnBiblePublicationChanged(object? sender, EventArgs e)
     {
-        stateManager.HandleBibleReadingChanged(
+        stateManager.HandleBiblePublicationChanged(
             state,
             busy => propertyManager.IsBusy = busy,
             async (lang, pub, section) => await Initialize(lang, pub, section),
             SetSelectedTrack);
     }
 
-    private void OnBibleReadingInitialized(object? o, EventArgs eventArgs)
+    private void OnBiblePublicationInitialized(object? o, EventArgs eventArgs)
     {
-        stateManager.HandleBibleReadingInitialized(
+        stateManager.HandleBiblePublicationInitialized(
             state,
             busy => propertyManager.IsBusy = busy,
             async (lang, pub, section) => await Initialize(lang, pub, section));
@@ -110,9 +110,9 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
-        var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
-        var newSectionNumber = currentSchedule.BibleReadingSectionNumber;
+        var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+        var newPublicationCode = currentSchedule.BiblePublicationPublicationCode;
+        var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
 
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
         {
@@ -183,8 +183,8 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        state.StateChanged -= OnBibleReadingInitialized;
-        state.StateChanged -= OnBibleReadingChanged;
+        state.StateChanged -= OnBiblePublicationInitialized;
+        state.StateChanged -= OnBiblePublicationChanged;
         @lock.Dispose();
         GC.SuppressFinalize(this);
     }

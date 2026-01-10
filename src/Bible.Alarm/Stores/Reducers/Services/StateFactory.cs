@@ -18,13 +18,13 @@ public static class StateFactory
         ApplicationState state,
         ScheduleStateItem? updatedCurrentSchedule,
         MusicStateItem? updatedCurrentMusic,
-        BibleReadingStateItem? updatedCurrentBibleReadingSchedule)
+        BiblePublicationStateItem? updatedCurrentBiblePublicationSchedule)
     {
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: updatedCurrentSchedule,
             currentMusic: updatedCurrentMusic,
-            currentBibleReadingSchedule: updatedCurrentBibleReadingSchedule,
+            currentBiblePublicationSchedule: updatedCurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
             containerReadiness: state.ContainerReadiness);
@@ -39,7 +39,7 @@ public static class StateFactory
             schedules: newSchedules,
             currentSchedule: updatedCurrentSchedule ?? state.CurrentSchedule,
             currentMusic: state.CurrentMusic,
-            currentBibleReadingSchedule: state.CurrentBibleReadingSchedule,
+            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
             containerReadiness: state.ContainerReadiness);

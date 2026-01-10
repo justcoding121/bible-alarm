@@ -35,12 +35,12 @@ public static class SchedulePropertyCopier
         target.LatestAlarmNotificationId = source.LatestAlarmNotificationId;
 
         // Bible Reading Schedule properties
-        target.BibleReadingScheduleId = source.BibleReadingScheduleId;
-        target.BibleReadingLanguageCode = source.BibleReadingLanguageCode;
-        target.BibleReadingPublicationCode = source.BibleReadingPublicationCode;
-        target.BibleReadingSectionNumber = source.BibleReadingSectionNumber;
-        target.BibleReadingTrackNumber = source.BibleReadingTrackNumber;
-        target.BibleReadingFinishedDuration = source.BibleReadingFinishedDuration;
+        target.BiblePublicationScheduleId = source.BiblePublicationScheduleId;
+        target.BiblePublicationLanguageCode = source.BiblePublicationLanguageCode;
+        target.BiblePublicationPublicationCode = source.BiblePublicationPublicationCode;
+        target.BiblePublicationSectionNumber = source.BiblePublicationSectionNumber;
+        target.BiblePublicationTrackNumber = source.BiblePublicationTrackNumber;
+        target.BiblePublicationFinishedDuration = source.BiblePublicationFinishedDuration;
 
         // Music properties
         target.MusicId = source.MusicId;
@@ -51,9 +51,9 @@ public static class SchedulePropertyCopier
         target.MusicRepeat = source.MusicRepeat;
 
         // Display name properties
-        target.BibleReadingLanguageName = source.BibleReadingLanguageName;
-        target.BibleReadingPublicationName = source.BibleReadingPublicationName;
-        target.BibleReadingSectionName = source.BibleReadingSectionName;
+        target.BiblePublicationLanguageName = source.BiblePublicationLanguageName;
+        target.BiblePublicationPublicationName = source.BiblePublicationPublicationName;
+        target.BiblePublicationSectionName = source.BiblePublicationSectionName;
         target.MusicLanguageName = source.MusicLanguageName;
         target.MusicPublicationName = source.MusicPublicationName;
         target.MusicTrackName = source.MusicTrackName;

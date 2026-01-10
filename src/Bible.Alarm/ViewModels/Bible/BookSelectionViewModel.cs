@@ -22,7 +22,7 @@ namespace Bible.Alarm.ViewModels.Bible;
 
 public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 {
-    private BibleReadingSchedule? current;
+    private BiblePublicationSchedule? current;
 
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -30,7 +30,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
     private bool initComplete;
-    private BibleReadingSchedule? lastCurrent;
+    private BiblePublicationSchedule? lastCurrent;
     private string? lastLanguageCode;
     private string? lastPublicationCode;
 
@@ -49,9 +49,9 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         this.dispatcher = dispatcher;
         this.mapper = mapper;
 
-        // Don't initialize here - let OnBibleReadingInitialized handle it
+        // Don't initialize here - let OnBiblePublicationInitialized handle it
         // This ensures we always get the latest state when the modal opens
-        // But we need to initialize tracking variables to null so OnBibleReadingInitialized can detect changes
+        // But we need to initialize tracking variables to null so OnBiblePublicationInitialized can detect changes
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
@@ -74,19 +74,19 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             // This ensures we use the latest state, not stale data from 'current' field
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null ||
-                string.IsNullOrEmpty(currentSchedule.BibleReadingLanguageCode) ||
-                string.IsNullOrEmpty(currentSchedule.BibleReadingPublicationCode))
+                string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode) ||
+                string.IsNullOrEmpty(currentSchedule.BiblePublicationPublicationCode))
             {
                 return;
             }
 
             // Check if the selected section is the same as the current section
-            var currentSectionNumber = currentSchedule.BibleReadingSectionNumber;
+            var currentSectionNumber = currentSchedule.BiblePublicationSectionNumber;
             var isSameSection = currentSectionNumber.HasValue && currentSectionNumber.Value == x.Number;
 
             // Get tracks for the selected section using the latest language/publication from CurrentSchedule
             var tracks = await Task.Run(async () =>
-                await mediaService.GetBibleTracks(currentSchedule.BibleReadingLanguageCode, currentSchedule.BibleReadingPublicationCode, x.Number));
+                await mediaService.GetBibleTracks(currentSchedule.BiblePublicationLanguageCode, currentSchedule.BiblePublicationPublicationCode, x.Number));
 
             if (tracks == null || tracks.Count == 0)
             {
@@ -96,9 +96,9 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             // If it's the same section, preserve the current track number (if valid)
             // Otherwise, use the first track
             int trackNumber;
-            if (isSameSection && currentSchedule.BibleReadingTrackNumber.HasValue)
+            if (isSameSection && currentSchedule.BiblePublicationTrackNumber.HasValue)
             {
-                var currentTrackNumber = currentSchedule.BibleReadingTrackNumber.Value;
+                var currentTrackNumber = currentSchedule.BiblePublicationTrackNumber.Value;
                 // Verify the current track exists in the tracks list
                 if (tracks.ContainsKey(currentTrackNumber))
                 {
@@ -116,24 +116,24 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 trackNumber = tracks.Values.First().Number;
             }
 
-            // Create BibleReadingStateItem with selected section and track
+            // Create BiblePublicationStateItem with selected section and track
             // IMPORTANT: Include display names from list items (no database query needed)
             // Get language/publication codes and display names from CurrentSchedule (they should already be populated)
-            var bibleReadingItem = new BibleReadingStateItem
+            var biblePublicationItem = new BiblePublicationStateItem
             {
-                LanguageCode = currentSchedule.BibleReadingLanguageCode,
-                PublicationCode = currentSchedule.BibleReadingPublicationCode,
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationPublicationCode,
                 SectionNumber = x.Number,
                 TrackNumber = trackNumber,
                 // Store display names from list items and current state
-                LanguageName = currentSchedule.BibleReadingLanguageName,
-                PublicationName = currentSchedule.BibleReadingPublicationName,
+                LanguageName = currentSchedule.BiblePublicationLanguageName,
+                PublicationName = currentSchedule.BiblePublicationPublicationName,
                 SectionName = x.Name
             };
 
-            // Dispatch TrackSelectedAction to update CurrentBibleReadingSchedule
+            // Dispatch TrackSelectedAction to update CurrentBiblePublicationSchedule
             // Effect will automatically sync to CurrentSchedule
-            dispatcher.Dispatch(new TrackSelectedAction(bibleReadingItem));
+            dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
 
             // Navigate back to schedule page
             await navigationService.PopModalAsync();
@@ -152,25 +152,25 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             (lang, pub) => _ = Initialize(lang, pub),
             SetSelectedSection);
 
-        // Only subscribe OnBibleReadingChanged to state changes
-        // OnBibleReadingInitialized will only be called once manually in the constructor
-        state.StateChanged += OnBibleReadingChanged;
+        // Only subscribe OnBiblePublicationChanged to state changes
+        // OnBiblePublicationInitialized will only be called once manually in the constructor
+        state.StateChanged += OnBiblePublicationChanged;
 
         // Always trigger initialization immediately to ensure we read the latest state
         // This is especially important when the modal opens after a language change
         // This should only run once, not on every state change
-        OnBibleReadingInitialized(null, EventArgs.Empty);
+        OnBiblePublicationInitialized(null, EventArgs.Empty);
     }
 
-    private void OnBibleReadingChanged(object? sender, EventArgs e)
+    private void OnBiblePublicationChanged(object? sender, EventArgs e)
     {
         stateChangeHandler.HandleStateChanged(state.Value);
     }
 
-    private void OnBibleReadingInitialized(object? o, EventArgs eventArgs)
+    private void OnBiblePublicationInitialized(object? o, EventArgs eventArgs)
     {
         // This method should only be called once during construction
-        // Subsequent state changes should be handled by OnBibleReadingChanged
+        // Subsequent state changes should be handled by OnBiblePublicationChanged
         if (initComplete)
         {
             return;
@@ -188,7 +188,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
     {
         var stateValue = state.Value;
 
-        // Use CurrentSchedule as the source of truth, not CurrentBibleReadingSchedule
+        // Use CurrentSchedule as the source of truth, not CurrentBiblePublicationSchedule
         // CurrentSchedule is updated first and is authoritative
         if (stateValue.CurrentSchedule == null)
         {
@@ -196,8 +196,8 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
-        var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
+        var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+        var newPublicationCode = currentSchedule.BiblePublicationPublicationCode;
 
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
@@ -213,21 +213,21 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
 
-        // Update current if we have CurrentBibleReadingSchedule (for other properties like SectionNumber)
-        if (stateValue.CurrentBibleReadingSchedule != null)
+        // Update current if we have CurrentBiblePublicationSchedule (for other properties like SectionNumber)
+        if (stateValue.CurrentBiblePublicationSchedule != null)
         {
-            current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
+            current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
             lastCurrent = current;
         }
         else
         {
-            // Create a minimal BibleReadingSchedule from CurrentSchedule
-            current = new BibleReadingSchedule
+            // Create a minimal BiblePublicationSchedule from CurrentSchedule
+            current = new BiblePublicationSchedule
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionNumber = currentSchedule.BibleReadingSectionNumber ?? 1,
-                TrackNumber = currentSchedule.BibleReadingTrackNumber ?? 1
+                SectionNumber = currentSchedule.BiblePublicationSectionNumber ?? 1,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
         }
@@ -273,7 +273,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        state.StateChanged -= OnBibleReadingChanged;
+        state.StateChanged -= OnBiblePublicationChanged;
     }
 
     private void SetSelectedSection()

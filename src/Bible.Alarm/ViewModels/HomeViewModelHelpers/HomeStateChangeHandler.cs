@@ -70,8 +70,8 @@ public class HomeStateChangeHandler
             var currentScheduleProperties = stateValue.Schedules
                 .Where(s => s.Id > 0)
                 .ToDictionary(s => s.Id, s => (
-                    SectionNumber: s.BibleReadingSectionNumber, 
-                    TrackNumber: s.BibleReadingTrackNumber,
+                    SectionNumber: s.BiblePublicationSectionNumber, 
+                    TrackNumber: s.BiblePublicationTrackNumber,
                     Name: s.Name ?? string.Empty,
                     Hour: s.Hour,
                     Minute: s.Minute,

@@ -154,7 +154,7 @@ public class AndroidAutoScheduleChangeTracker
             // Include music track properties (MusicType, MusicPublicationCode, MusicLanguageCode, MusicTrackNumber)
             // so that track navigation (next/prev) triggers a refresh
             // NOTE: IsEnabled is intentionally excluded - enabling/disabling schedules should NOT refresh Android Auto
-            var signature = $"{schedule.Name}|{schedule.BibleReadingSectionNumber}|{schedule.BibleReadingTrackNumber}|{schedule.BibleReadingLanguageName}|{schedule.BibleReadingSectionName}|{schedule.MusicEnabled}|{schedule.MusicType}|{schedule.MusicPublicationCode}|{schedule.MusicLanguageCode}|{schedule.MusicTrackNumber}";
+            var signature = $"{schedule.Name}|{schedule.BiblePublicationSectionNumber}|{schedule.BiblePublicationTrackNumber}|{schedule.BiblePublicationLanguageName}|{schedule.BiblePublicationSectionName}|{schedule.MusicEnabled}|{schedule.MusicType}|{schedule.MusicPublicationCode}|{schedule.MusicLanguageCode}|{schedule.MusicTrackNumber}";
             signatures[schedule.Id] = signature;
         }
 

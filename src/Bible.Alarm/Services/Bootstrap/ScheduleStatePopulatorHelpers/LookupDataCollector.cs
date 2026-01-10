@@ -21,9 +21,9 @@ internal sealed class LookupDataCollector
         foreach (var schedule in alarmSchedules)
         {
             // Collect Bible reading keys
-            if (schedule.BibleReadingSchedule != null)
+            if (schedule.BiblePublicationSchedule != null)
             {
-                var br = schedule.BibleReadingSchedule;
+                var br = schedule.BiblePublicationSchedule;
                 if (!string.IsNullOrWhiteSpace(br.LanguageCode) && !string.IsNullOrWhiteSpace(br.PublicationCode))
                 {
                     translationKeys.Add((br.LanguageCode, br.PublicationCode));

@@ -47,17 +47,17 @@ public class ScheduleUpdateHandler
             // Transform DB entity to State DTO
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
 
-            // Populate BibleReadingLanguageName, BibleReadingPublicationName, and BibleReadingSectionName if missing
+            // Populate BiblePublicationLanguageName, BiblePublicationPublicationName, and BiblePublicationSectionName if missing
             // (Note: This is for UpdateScheduleAction which doesn't go through the optimistic reducer)
-            if (string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageName))
+            if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
             {
                 await displayNamePopulator.PopulateTranslationNameAsync(scheduleStateItem, action.Schedule);
             }
-            if (string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingPublicationName))
+            if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationPublicationName))
             {
                 await displayNamePopulator.PopulatePublicationNameAsync(scheduleStateItem, action.Schedule);
             }
-            if (string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingSectionName))
+            if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
             {
                 await displayNamePopulator.PopulateSectionNameAsync(scheduleStateItem, action.Schedule);
             }

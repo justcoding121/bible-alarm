@@ -56,9 +56,9 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
         logger.Debug("InitializeNewScheduleAsync: Populating display names for new schedule");
         await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, sampleSchedule);
         logger.Debug("InitializeNewScheduleAsync: Display names populated. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}",
-            scheduleStateItem.BibleReadingLanguageName ?? "null",
-            scheduleStateItem.BibleReadingPublicationName ?? "null",
-            scheduleStateItem.BibleReadingSectionName ?? "null");
+            scheduleStateItem.BiblePublicationLanguageName ?? "null",
+            scheduleStateItem.BiblePublicationPublicationName ?? "null",
+            scheduleStateItem.BiblePublicationSectionName ?? "null");
 
         return scheduleStateItem;
     }
@@ -79,7 +79,7 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
             var schedule = await alarmScheduleService.GetScheduleByIdAsync(
                 scheduleId,
                 includeMusic: true,
-                includeBibleReading: true,
+                includeBiblePublication: true,
                 CancellationToken.None);
 
             if (schedule == null)

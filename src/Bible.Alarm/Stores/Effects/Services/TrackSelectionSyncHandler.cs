@@ -119,7 +119,7 @@ public sealed class TrackSelectionSyncHandler
     private ScheduleStateItem CreateUpdatedScheduleFromTrackSelection(ScheduleStateItem currentSchedule, TrackSelectedAction action, bool musicTypeChanged)
     {
         var updatedSchedule = CloneBasicScheduleProperties(currentSchedule);
-        PreserveBibleReadingProperties(updatedSchedule, currentSchedule);
+        PreserveBiblePublicationProperties(updatedSchedule, currentSchedule);
         UpdateMusicProperties(updatedSchedule, currentSchedule, action.CurrentMusic!, musicTypeChanged);
         SetMusicDisplayNames(updatedSchedule, action.CurrentMusic!);
         return updatedSchedule;
@@ -146,17 +146,17 @@ public sealed class TrackSelectionSyncHandler
         };
     }
 
-    private static void PreserveBibleReadingProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule)
+    private static void PreserveBiblePublicationProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule)
     {
-        updatedSchedule.BibleReadingScheduleId = currentSchedule.BibleReadingScheduleId;
-        updatedSchedule.BibleReadingLanguageCode = currentSchedule.BibleReadingLanguageCode;
-        updatedSchedule.BibleReadingPublicationCode = currentSchedule.BibleReadingPublicationCode;
-        updatedSchedule.BibleReadingSectionNumber = currentSchedule.BibleReadingSectionNumber;
-        updatedSchedule.BibleReadingTrackNumber = currentSchedule.BibleReadingTrackNumber;
-        updatedSchedule.BibleReadingFinishedDuration = currentSchedule.BibleReadingFinishedDuration;
-        updatedSchedule.BibleReadingLanguageName = currentSchedule.BibleReadingLanguageName;
-        updatedSchedule.BibleReadingPublicationName = currentSchedule.BibleReadingPublicationName;
-        updatedSchedule.BibleReadingSectionName = currentSchedule.BibleReadingSectionName;
+        updatedSchedule.BiblePublicationScheduleId = currentSchedule.BiblePublicationScheduleId;
+        updatedSchedule.BiblePublicationLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+        updatedSchedule.BiblePublicationPublicationCode = currentSchedule.BiblePublicationPublicationCode;
+        updatedSchedule.BiblePublicationSectionNumber = currentSchedule.BiblePublicationSectionNumber;
+        updatedSchedule.BiblePublicationTrackNumber = currentSchedule.BiblePublicationTrackNumber;
+        updatedSchedule.BiblePublicationFinishedDuration = currentSchedule.BiblePublicationFinishedDuration;
+        updatedSchedule.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;
+        updatedSchedule.BiblePublicationPublicationName = currentSchedule.BiblePublicationPublicationName;
+        updatedSchedule.BiblePublicationSectionName = currentSchedule.BiblePublicationSectionName;
     }
 
     private static void UpdateMusicProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool musicTypeChanged)

@@ -56,7 +56,7 @@ public sealed class SchedulerService(
                 }
 
                 var downloaded = false;
-                var schedules = await alarmScheduleService.GetSchedulesAsync(x => x.IsEnabled, includeMusic: false, includeBibleReading: false, cancellationTokenSource.Token);
+                var schedules = await alarmScheduleService.GetSchedulesAsync(x => x.IsEnabled, includeMusic: false, includeBiblePublication: false, cancellationTokenSource.Token);
                 foreach (var schedule in schedules)
                 {
                     if (!await notificationService.IsScheduledAsync(schedule.Id))
@@ -97,7 +97,7 @@ public sealed class SchedulerService(
         try
         {
             // Load the schedule with all includes
-            var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, includeMusic: true, includeBibleReading: true);
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, includeMusic: true, includeBiblePublication: true);
 
             if (schedule != null && schedule.IsEnabled)
             {

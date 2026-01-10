@@ -9,18 +9,18 @@ using Bible.Alarm.Models.Schedule;
 namespace Bible.Alarm.Shared.Services.Schedule.Interfaces;
 
 /// <summary>
-/// Service for interacting with BibleReadingSchedule database operations.
+/// Service for interacting with BiblePublicationSchedule database operations.
 /// Abstracts database access from other services.
 /// </summary>
-public interface IBibleReadingScheduleService : IDisposable
+public interface IBiblePublicationScheduleService : IDisposable
 {
-    Task<List<BibleReadingSchedule>> GetAllBibleReadingSchedulesAsync(CancellationToken cancellationToken = default);
-    Task<List<BibleReadingSchedule>> GetBibleReadingSchedulesAsync(Expression<Func<BibleReadingSchedule, bool>>? predicate = null, CancellationToken cancellationToken = default);
-    Task<BibleReadingSchedule?> GetBibleReadingScheduleByIdAsync(int bibleReadingScheduleId, CancellationToken cancellationToken = default);
-    Task<BibleReadingSchedule?> GetBibleReadingScheduleByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default);
-    Task<BibleReadingSchedule> AddBibleReadingScheduleAsync(BibleReadingSchedule bibleReadingSchedule, CancellationToken cancellationToken = default);
-    Task<BibleReadingSchedule> UpdateBibleReadingScheduleAsync(BibleReadingSchedule bibleReadingSchedule, CancellationToken cancellationToken = default);
-    Task DeleteBibleReadingScheduleAsync(int bibleReadingScheduleId, CancellationToken cancellationToken = default);
-    Task<bool> BibleReadingScheduleExistsAsync(int bibleReadingScheduleId, CancellationToken cancellationToken = default);
+    Task<List<BiblePublicationSchedule>> GetAllBiblePublicationSchedulesAsync(CancellationToken cancellationToken = default);
+    Task<List<BiblePublicationSchedule>> GetBiblePublicationSchedulesAsync(Expression<Func<BiblePublicationSchedule, bool>>? predicate = null, CancellationToken cancellationToken = default);
+    Task<BiblePublicationSchedule?> GetBiblePublicationScheduleByIdAsync(int biblePublicationScheduleId, CancellationToken cancellationToken = default);
+    Task<BiblePublicationSchedule?> GetBiblePublicationScheduleByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default);
+    Task<BiblePublicationSchedule> AddBiblePublicationScheduleAsync(BiblePublicationSchedule biblePublicationSchedule, CancellationToken cancellationToken = default);
+    Task<BiblePublicationSchedule> UpdateBiblePublicationScheduleAsync(BiblePublicationSchedule biblePublicationSchedule, CancellationToken cancellationToken = default);
+    Task DeleteBiblePublicationScheduleAsync(int biblePublicationScheduleId, CancellationToken cancellationToken = default);
+    Task<bool> BiblePublicationScheduleExistsAsync(int biblePublicationScheduleId, CancellationToken cancellationToken = default);
 }
 

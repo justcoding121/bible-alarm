@@ -18,7 +18,7 @@ public sealed class ScheduleListItemStateHandler(
     IState<ApplicationState> applicationState)
 {
     private AlarmSchedule? lastKnownSchedule;
-    private string? lastKnownBibleReadingLanguageName;
+    private string? lastKnownBiblePublicationLanguageName;
     private string? lastKnownSectionName;
 
     public AlarmSchedule? LastKnownSchedule
@@ -27,10 +27,10 @@ public sealed class ScheduleListItemStateHandler(
         set => lastKnownSchedule = value;
     }
 
-    public string? LastKnownBibleReadingLanguageName
+    public string? LastKnownBiblePublicationLanguageName
     {
-        get => lastKnownBibleReadingLanguageName;
-        set => lastKnownBibleReadingLanguageName = value;
+        get => lastKnownBiblePublicationLanguageName;
+        set => lastKnownBiblePublicationLanguageName = value;
     }
 
     public string? LastKnownSectionName
@@ -62,8 +62,8 @@ public sealed class ScheduleListItemStateHandler(
 
     private ScheduleChangeInfo DetectScheduleChanges(ScheduleStateItem updatedScheduleItem, AlarmSchedule currentSchedule)
     {
-        var oldSectionNumber = currentSchedule.BibleReadingSchedule?.SectionNumber;
-        var oldTrackNumber = currentSchedule.BibleReadingSchedule?.TrackNumber;
+        var oldSectionNumber = currentSchedule.BiblePublicationSchedule?.SectionNumber;
+        var oldTrackNumber = currentSchedule.BiblePublicationSchedule?.TrackNumber;
         var oldDaysOfWeek = currentSchedule.DaysOfWeek;
         var oldIsEnabled = currentSchedule.IsEnabled;
         var oldName = currentSchedule.Name ?? string.Empty;
@@ -73,8 +73,8 @@ public sealed class ScheduleListItemStateHandler(
 
         var updatedSchedule = mapper.Map<AlarmSchedule>(updatedScheduleItem);
         var trackChanged = DetectTrackChange(updatedSchedule, currentSchedule);
-        var newBibleReadingLanguageName = updatedScheduleItem.BibleReadingLanguageName;
-        var newSectionName = updatedScheduleItem.BibleReadingSectionName;
+        var newBiblePublicationLanguageName = updatedScheduleItem.BiblePublicationLanguageName;
+        var newSectionName = updatedScheduleItem.BiblePublicationSectionName;
 
         var daysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek;
         
@@ -89,26 +89,26 @@ public sealed class ScheduleListItemStateHandler(
         {
             UpdatedSchedule = updatedSchedule,
             TrackChanged = trackChanged,
-            SectionNumberChanged = oldSectionNumber != updatedSchedule.BibleReadingSchedule?.SectionNumber,
-            TrackNumberChanged = oldTrackNumber != updatedSchedule.BibleReadingSchedule?.TrackNumber,
-            BibleReadingLanguageNameChanged = lastKnownBibleReadingLanguageName != newBibleReadingLanguageName,
+            SectionNumberChanged = oldSectionNumber != updatedSchedule.BiblePublicationSchedule?.SectionNumber,
+            TrackNumberChanged = oldTrackNumber != updatedSchedule.BiblePublicationSchedule?.TrackNumber,
+            BiblePublicationLanguageNameChanged = lastKnownBiblePublicationLanguageName != newBiblePublicationLanguageName,
             SectionNameChanged = lastKnownSectionName != newSectionName,
             DaysOfWeekChanged = daysOfWeekChanged,
             IsEnabledChanged = oldIsEnabled != updatedSchedule.IsEnabled,
             NameChanged = oldName != updatedSchedule.Name,
             TimeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute,
             MusicEnabledChanged = oldMusicEnabled != updatedSchedule.MusicEnabled,
-            NewBibleReadingLanguageName = newBibleReadingLanguageName,
+            NewBiblePublicationLanguageName = newBiblePublicationLanguageName,
             NewSectionName = newSectionName
         };
     }
 
     private bool DetectTrackChange(AlarmSchedule updatedSchedule, AlarmSchedule currentSchedule)
     {
-        if (currentSchedule.BibleReadingSchedule != null && updatedSchedule.BibleReadingSchedule != null)
+        if (currentSchedule.BiblePublicationSchedule != null && updatedSchedule.BiblePublicationSchedule != null)
         {
-            return currentSchedule.BibleReadingSchedule.SectionNumber != updatedSchedule.BibleReadingSchedule.SectionNumber ||
-                   currentSchedule.BibleReadingSchedule.TrackNumber != updatedSchedule.BibleReadingSchedule.TrackNumber;
+            return currentSchedule.BiblePublicationSchedule.SectionNumber != updatedSchedule.BiblePublicationSchedule.SectionNumber ||
+                   currentSchedule.BiblePublicationSchedule.TrackNumber != updatedSchedule.BiblePublicationSchedule.TrackNumber;
         }
 
         if (currentSchedule.Music != null && updatedSchedule.Music != null)
@@ -125,14 +125,14 @@ public sealed class ScheduleListItemStateHandler(
         public bool TrackChanged { get; init; }
         public bool SectionNumberChanged { get; init; }
         public bool TrackNumberChanged { get; init; }
-        public bool BibleReadingLanguageNameChanged { get; init; }
+        public bool BiblePublicationLanguageNameChanged { get; init; }
         public bool SectionNameChanged { get; init; }
         public bool DaysOfWeekChanged { get; init; }
         public bool IsEnabledChanged { get; init; }
         public bool NameChanged { get; init; }
         public bool TimeChanged { get; init; }
         public bool MusicEnabledChanged { get; init; }
-        public string? NewBibleReadingLanguageName { get; init; }
+        public string? NewBiblePublicationLanguageName { get; init; }
         public string? NewSectionName { get; init; }
     }
 }

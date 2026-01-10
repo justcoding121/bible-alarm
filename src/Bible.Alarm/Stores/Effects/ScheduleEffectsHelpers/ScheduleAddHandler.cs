@@ -41,7 +41,7 @@ public class ScheduleAddHandler
             // Transform DB entity to State DTO (following Fluxor best practices)
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
 
-            // Populate BibleReadingLanguageName, BibleReadingPublicationName, and BibleReadingSectionName if BibleReadingSchedule exists
+            // Populate BiblePublicationLanguageName, BiblePublicationPublicationName, and BiblePublicationSectionName if BiblePublicationSchedule exists
             await displayNamePopulator.PopulateTranslationNameAsync(scheduleStateItem, action.Schedule);
             await displayNamePopulator.PopulatePublicationNameAsync(scheduleStateItem, action.Schedule);
             await displayNamePopulator.PopulateSectionNameAsync(scheduleStateItem, action.Schedule);

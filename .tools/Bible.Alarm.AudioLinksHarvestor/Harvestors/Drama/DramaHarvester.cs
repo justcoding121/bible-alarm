@@ -27,7 +27,7 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
     /// </summary>
     private static readonly Dictionary<string, string> DramaCategoryToNameMappings = new([
         new KeyValuePair<string, string>("Dramas", "Audio Bible Dramas"),
-        new KeyValuePair<string, string>("DramaticBibleReadings", "Dramatic Bible Readings")
+        new KeyValuePair<string, string>("DramaticBiblePublications", "Dramatic Bible Readings")
     ]);
 
     private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY"];

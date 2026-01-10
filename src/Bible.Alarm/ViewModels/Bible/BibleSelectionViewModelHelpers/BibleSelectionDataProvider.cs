@@ -45,7 +45,7 @@ public sealed class BibleSelectionDataProvider
         if (languages == null) return;
 
         // Capture current language code before Task.Run to avoid state access issues
-        var currentLanguageCode = state.Value.CurrentSchedule?.BibleReadingLanguageCode;
+        var currentLanguageCode = state.Value.CurrentSchedule?.BiblePublicationLanguageCode;
 
         // Do ALL processing on background thread to avoid blocking spinner animation
         var languageVMs = await Task.Run(async () =>
@@ -102,8 +102,8 @@ public sealed class BibleSelectionDataProvider
 
         // Capture state values before Task.Run to avoid state access issues
         var stateValue = state.Value;
-        var currentPublicationCode = stateValue.CurrentSchedule?.BibleReadingPublicationCode;
-        var currentLanguageName = stateValue.CurrentSchedule?.BibleReadingLanguageName;
+        var currentPublicationCode = stateValue.CurrentSchedule?.BiblePublicationPublicationCode;
+        var currentLanguageName = stateValue.CurrentSchedule?.BiblePublicationLanguageName;
 
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (translationVMs, newMapping, defaultTranslation) = await Task.Run(async () =>
@@ -157,10 +157,10 @@ public sealed class BibleSelectionDataProvider
             // Check if state already matches what we're about to dispatch
             var currentSchedule = state.Value.CurrentSchedule;
             var alreadyMatches = currentSchedule != null &&
-                                currentSchedule.BibleReadingLanguageCode == languageCode &&
-                                currentSchedule.BibleReadingPublicationCode == defaultTranslation.Code &&
-                                currentSchedule.BibleReadingSectionNumber == 1 &&
-                                currentSchedule.BibleReadingTrackNumber == 1;
+                                currentSchedule.BiblePublicationLanguageCode == languageCode &&
+                                currentSchedule.BiblePublicationPublicationCode == defaultTranslation.Code &&
+                                currentSchedule.BiblePublicationSectionNumber == 1 &&
+                                currentSchedule.BiblePublicationTrackNumber == 1;
 
             if (!alreadyMatches)
             {
@@ -195,7 +195,7 @@ public sealed class BibleSelectionDataProvider
             if (tracks == null || tracks.Count == 0) return;
 
             var firstTrack = tracks.Values.First();
-            var bibleReadingItem = new BibleReadingStateItem
+            var biblePublicationItem = new BiblePublicationStateItem
             {
                 LanguageCode = languageCode,
                 PublicationCode = defaultTranslation.Code,
@@ -205,7 +205,7 @@ public sealed class BibleSelectionDataProvider
                 PublicationName = defaultTranslation.Name,
                 SectionName = firstSection.Name
             };
-            dispatcher.Dispatch(new TrackSelectedAction(bibleReadingItem));
+            dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
         }
         catch (Exception ex)
         {

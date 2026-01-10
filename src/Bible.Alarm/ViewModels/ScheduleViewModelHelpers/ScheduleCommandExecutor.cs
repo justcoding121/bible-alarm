@@ -110,7 +110,7 @@ public sealed class ScheduleCommandExecutor
             var scheduleId = GetScheduleId();
 
             var musicUpdated = DetectMusicChanges();
-            var bibleReadingUpdated = DetectBibleReadingChanges();
+            var biblePublicationUpdated = DetectBiblePublicationChanges();
 
             await scheduleCommandService.StopPlaybackIfNeededAsync(
                 isNewSchedule,
@@ -125,7 +125,7 @@ public sealed class ScheduleCommandExecutor
                     scheduleId,
                     currentSchedule,
                     musicUpdated,
-                    bibleReadingUpdated,
+                    biblePublicationUpdated,
                     true); // modelInitialized
 
                 if (saved)
@@ -255,7 +255,7 @@ public sealed class ScheduleCommandExecutor
         return hasMusicProperties;
     }
 
-    private bool DetectBibleReadingChanges()
+    private bool DetectBiblePublicationChanges()
     {
         // This would need to track changes - simplified for now
         return false;

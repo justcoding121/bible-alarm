@@ -65,7 +65,7 @@ public sealed class AlarmSchedule : IComparable
 
     public AlarmMusic? Music { get; set; }
 
-    public BibleReadingSchedule? BibleReadingSchedule { get; set; }
+    public BiblePublicationSchedule? BiblePublicationSchedule { get; set; }
 
     [Required]
     [Range(1, 60)]
@@ -168,7 +168,7 @@ public sealed class AlarmSchedule : IComparable
                 PublicationCode = "iam",
                 LanguageCode = null
             },
-            BibleReadingSchedule = new BibleReadingSchedule
+            BiblePublicationSchedule = new BiblePublicationSchedule
             {
                 TrackNumber = 1,
                 LanguageCode = "E",
@@ -179,8 +179,8 @@ public sealed class AlarmSchedule : IComparable
 
         var bibleQueryStartTime = DateTime.UtcNow;
         var bible = await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-            sample.BibleReadingSchedule.LanguageCode,
-            sample.BibleReadingSchedule.PublicationCode);
+            sample.BiblePublicationSchedule.LanguageCode,
+            sample.BiblePublicationSchedule.PublicationCode);
         var bibleQueryElapsed = (DateTime.UtcNow - bibleQueryStartTime).TotalMilliseconds;
         Log.Information("[PERF] GetSampleSchedule: Bible query took {ElapsedMs}ms", bibleQueryElapsed);
 
@@ -192,12 +192,12 @@ public sealed class AlarmSchedule : IComparable
         // Use Random.Shared for thread-safe random number generation
         // Safe for non-cryptographic use (selecting sample sections/tracks)
         var section = bible.Sections[Random.Shared.Next(bible.Sections.Count)];
-        if (sample.BibleReadingSchedule == null)
+        if (sample.BiblePublicationSchedule == null)
         {
-            throw new InvalidOperationException("BibleReadingSchedule is null in sample schedule");
+            throw new InvalidOperationException("BiblePublicationSchedule is null in sample schedule");
         }
 
-        sample.BibleReadingSchedule.SectionNumber = section.Number;
+        sample.BiblePublicationSchedule.SectionNumber = section.Number;
 
         if (sample.Music == null)
         {

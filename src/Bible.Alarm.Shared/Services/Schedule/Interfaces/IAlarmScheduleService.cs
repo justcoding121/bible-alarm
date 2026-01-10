@@ -15,10 +15,10 @@ namespace Bible.Alarm.Shared.Services.Schedule.Interfaces;
 public interface IAlarmScheduleService : IDisposable
 {
     // Schedule operations
-    Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default);
-    Task<List<AlarmSchedule>> GetSchedulesAsync(Expression<Func<AlarmSchedule, bool>>? predicate = null, bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default);
-    Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default);
-    Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true, bool includeBibleReading = true, CancellationToken cancellationToken = default);
+    Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true, bool includeBiblePublication = true, CancellationToken cancellationToken = default);
+    Task<List<AlarmSchedule>> GetSchedulesAsync(Expression<Func<AlarmSchedule, bool>>? predicate = null, bool includeMusic = true, bool includeBiblePublication = true, CancellationToken cancellationToken = default);
+    Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true, bool includeBiblePublication = true, CancellationToken cancellationToken = default);
+    Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true, bool includeBiblePublication = true, CancellationToken cancellationToken = default);
     Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule, CancellationToken cancellationToken = default);
     Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule, CancellationToken cancellationToken = default);
     Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId, Action<AlarmSchedule> updateAction, CancellationToken cancellationToken = default);
@@ -29,6 +29,6 @@ public interface IAlarmScheduleService : IDisposable
 
     // Related entity operations
     Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default);
-    Task<BibleReadingSchedule?> GetBibleReadingByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default);
+    Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default);
 }
 

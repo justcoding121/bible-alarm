@@ -56,7 +56,7 @@ public sealed class BibleCommandInitializer
             logger.Information("BibleSelectionContainerViewModel: SelectBibleTypeCommand - Opening Bible type selection modal");
             // TODO: Implement BibleTypeSelectionModal similar to MusicSelectionModal
             // For now, this is a placeholder that logs the action
-            // The modal will allow selecting between BibleReading, BibleDrama, and DramaticReading
+            // The modal will allow selecting between BiblePublication, BibleDrama, and DramaticReading
             await Task.CompletedTask;
             logger.Debug("BibleSelectionContainerViewModel: SelectBibleTypeCommand - Bible type selection not yet implemented");
         });
@@ -75,100 +75,100 @@ public sealed class BibleCommandInitializer
         });
     }
 
-    public ICommand CreateSelectBibleCommand(Func<BibleReadingSchedule?> getBibleReading, Action<BibleReadingSchedule?> setBibleReading, int scheduleId, bool isNewSchedule, bool bibleReadingUpdated)
+    public ICommand CreateSelectBibleCommand(Func<BiblePublicationSchedule?> getBiblePublication, Action<BiblePublicationSchedule?> setBiblePublication, int scheduleId, bool isNewSchedule, bool biblePublicationUpdated)
     {
         return new AsyncRelayCommand(async () =>
         {
             // Get Bible reading from CurrentSchedule (already loaded from AlarmDB on page load)
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;
-            var loadedBibleReading = scheduleSelectionService.LoadBibleReadingForSelection(
+            var loadedBiblePublication = scheduleSelectionService.LoadBiblePublicationForSelection(
                 scheduleId,
                 isNewSchedule,
-                getBibleReading(),
-                currentSchedule?.BibleReadingLanguageCode,
-                currentSchedule?.BibleReadingPublicationCode,
-                currentSchedule?.BibleReadingSectionNumber,
-                currentSchedule?.BibleReadingTrackNumber,
-                currentSchedule?.BibleReadingFinishedDuration);
+                getBiblePublication(),
+                currentSchedule?.BiblePublicationLanguageCode,
+                currentSchedule?.BiblePublicationPublicationCode,
+                currentSchedule?.BiblePublicationSectionNumber,
+                currentSchedule?.BiblePublicationTrackNumber,
+                currentSchedule?.BiblePublicationFinishedDuration);
             
-            setBibleReading(loadedBibleReading);
+            setBiblePublication(loadedBiblePublication);
 
             // Create view model and open modal
             var bibleSelectionViewModel = serviceProvider.GetRequiredService<BibleSelectionViewModel>();
             await navigationService.OpenBibleSelectionModalAsync(bibleSelectionViewModel);
 
             // Map entities to DTOs before dispatching
-            if (loadedBibleReading != null)
+            if (loadedBiblePublication != null)
             {
-                var currentBibleReadingItem = mapper.Map<BibleReadingStateItem>(loadedBibleReading);
-                dispatcher.Dispatch(new BiblePublicationSelectionAction(currentBibleReadingItem));
+                var currentBiblePublicationItem = mapper.Map<BiblePublicationStateItem>(loadedBiblePublication);
+                dispatcher.Dispatch(new BiblePublicationSelectionAction(currentBiblePublicationItem));
                 // State change will trigger OnStateChanged which handles cascading notifications
             }
         });
     }
 
-    public ICommand CreateSelectSectionCommand(Func<BibleReadingSchedule?> getBibleReading, Action<BibleReadingSchedule?> setBibleReading, int scheduleId, bool isNewSchedule, bool bibleReadingUpdated)
+    public ICommand CreateSelectSectionCommand(Func<BiblePublicationSchedule?> getBiblePublication, Action<BiblePublicationSchedule?> setBiblePublication, int scheduleId, bool isNewSchedule, bool biblePublicationUpdated)
     {
         return new AsyncRelayCommand(async () =>
         {
             // Get Bible reading from CurrentSchedule (already loaded from AlarmDB on page load)
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;
-            var loadedBibleReading = scheduleSelectionService.LoadBibleReadingForSelection(
+            var loadedBiblePublication = scheduleSelectionService.LoadBiblePublicationForSelection(
                 scheduleId,
                 isNewSchedule,
-                getBibleReading(),
-                currentSchedule?.BibleReadingLanguageCode,
-                currentSchedule?.BibleReadingPublicationCode,
-                currentSchedule?.BibleReadingSectionNumber,
-                currentSchedule?.BibleReadingTrackNumber,
-                currentSchedule?.BibleReadingFinishedDuration);
+                getBiblePublication(),
+                currentSchedule?.BiblePublicationLanguageCode,
+                currentSchedule?.BiblePublicationPublicationCode,
+                currentSchedule?.BiblePublicationSectionNumber,
+                currentSchedule?.BiblePublicationTrackNumber,
+                currentSchedule?.BiblePublicationFinishedDuration);
             
-            setBibleReading(loadedBibleReading);
+            setBiblePublication(loadedBiblePublication);
 
             // Create view model and open modal
             var sectionSelectionViewModel = serviceProvider.GetRequiredService<SectionSelectionViewModel>();
             await navigationService.OpenSectionSelectionModalAsync(sectionSelectionViewModel);
 
             // Map entities to DTOs before dispatching
-            if (loadedBibleReading != null)
+            if (loadedBiblePublication != null)
             {
-                var currentBibleReadingItem = mapper.Map<BibleReadingStateItem>(loadedBibleReading);
-                dispatcher.Dispatch(new SectionSelectionAction(currentBibleReadingItem));
+                var currentBiblePublicationItem = mapper.Map<BiblePublicationStateItem>(loadedBiblePublication);
+                dispatcher.Dispatch(new SectionSelectionAction(currentBiblePublicationItem));
                 // State change will trigger OnStateChanged which handles cascading notifications
             }
         });
     }
 
-    public ICommand CreateSelectTrackCommand(Func<BibleReadingSchedule?> getBibleReading, Action<BibleReadingSchedule?> setBibleReading, int scheduleId, bool isNewSchedule, bool bibleReadingUpdated)
+    public ICommand CreateSelectTrackCommand(Func<BiblePublicationSchedule?> getBiblePublication, Action<BiblePublicationSchedule?> setBiblePublication, int scheduleId, bool isNewSchedule, bool biblePublicationUpdated)
     {
         return new AsyncRelayCommand(async () =>
         {
             // Get Bible reading from CurrentSchedule (already loaded from AlarmDB on page load)
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;
-            var loadedBibleReading = scheduleSelectionService.LoadBibleReadingForSelection(
+            var loadedBiblePublication = scheduleSelectionService.LoadBiblePublicationForSelection(
                 scheduleId,
                 isNewSchedule,
-                getBibleReading(),
-                currentSchedule?.BibleReadingLanguageCode,
-                currentSchedule?.BibleReadingPublicationCode,
-                currentSchedule?.BibleReadingSectionNumber,
-                currentSchedule?.BibleReadingTrackNumber,
-                currentSchedule?.BibleReadingFinishedDuration);
+                getBiblePublication(),
+                currentSchedule?.BiblePublicationLanguageCode,
+                currentSchedule?.BiblePublicationPublicationCode,
+                currentSchedule?.BiblePublicationSectionNumber,
+                currentSchedule?.BiblePublicationTrackNumber,
+                currentSchedule?.BiblePublicationFinishedDuration);
             
-            setBibleReading(loadedBibleReading);
+            setBiblePublication(loadedBiblePublication);
 
             // Create view model and open modal
             var trackSelectionViewModel = serviceProvider.GetRequiredService<TrackSelectionViewModel>();
             await navigationService.OpenTrackSelectionModalAsync(trackSelectionViewModel);
 
             // Map entities to DTOs before dispatching
-            if (loadedBibleReading != null)
+            if (loadedBiblePublication != null)
             {
-                var currentBibleReadingItem = mapper.Map<BibleReadingStateItem>(loadedBibleReading);
-                dispatcher.Dispatch(new TrackSelectionAction(currentBibleReadingItem));
+                var currentBiblePublicationItem = mapper.Map<BiblePublicationStateItem>(loadedBiblePublication);
+                dispatcher.Dispatch(new TrackSelectionAction(currentBiblePublicationItem));
                 // State change will trigger OnStateChanged which handles cascading notifications
             }
         });

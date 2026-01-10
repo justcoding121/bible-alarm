@@ -15,24 +15,24 @@ using Serilog;
 namespace Bible.Alarm.Shared.Services.Schedule;
 
 /// <summary>
-/// Service for interacting with BibleReadingSchedule database operations.
+/// Service for interacting with BiblePublicationSchedule database operations.
 /// Abstracts database access from other services.
 /// </summary>
-public sealed class BibleReadingScheduleService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleReadingScheduleService
+public sealed class BiblePublicationScheduleService(IServiceScopeFactory scopeFactory, ILogger logger) : IBiblePublicationScheduleService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task<List<BibleReadingSchedule>> GetAllBibleReadingSchedulesAsync(CancellationToken cancellationToken = default) => await GetBibleReadingSchedulesAsync(null, cancellationToken);
+    public async Task<List<BiblePublicationSchedule>> GetAllBiblePublicationSchedulesAsync(CancellationToken cancellationToken = default) => await GetBiblePublicationSchedulesAsync(null, cancellationToken);
 
-    public async Task<List<BibleReadingSchedule>> GetBibleReadingSchedulesAsync(Expression<Func<BibleReadingSchedule, bool>>? predicate = null, CancellationToken cancellationToken = default)
+    public async Task<List<BiblePublicationSchedule>> GetBiblePublicationSchedulesAsync(Expression<Func<BiblePublicationSchedule, bool>>? predicate = null, CancellationToken cancellationToken = default)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        var query = dbContext.BibleReadingSchedules.AsQueryable();
+        var query = dbContext.BiblePublicationSchedules.AsQueryable();
 
         if (predicate != null)
         {
@@ -42,68 +42,68 @@ public sealed class BibleReadingScheduleService(IServiceScopeFactory scopeFactor
         return await query.ToListAsync(cancellationToken);
     }
 
-    public async Task<BibleReadingSchedule?> GetBibleReadingScheduleByIdAsync(int bibleReadingScheduleId, CancellationToken cancellationToken = default)
+    public async Task<BiblePublicationSchedule?> GetBiblePublicationScheduleByIdAsync(int biblePublicationScheduleId, CancellationToken cancellationToken = default)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        return await dbContext.BibleReadingSchedules
-            .FirstOrDefaultAsync(x => x.Id == bibleReadingScheduleId, cancellationToken);
+        return await dbContext.BiblePublicationSchedules
+            .FirstOrDefaultAsync(x => x.Id == biblePublicationScheduleId, cancellationToken);
     }
 
-    public async Task<BibleReadingSchedule?> GetBibleReadingScheduleByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default)
+    public async Task<BiblePublicationSchedule?> GetBiblePublicationScheduleByScheduleIdAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        return await dbContext.BibleReadingSchedules
+        return await dbContext.BiblePublicationSchedules
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.AlarmScheduleId == scheduleId, cancellationToken);
     }
 
-    public async Task<BibleReadingSchedule> AddBibleReadingScheduleAsync(BibleReadingSchedule bibleReadingSchedule, CancellationToken cancellationToken = default)
+    public async Task<BiblePublicationSchedule> AddBiblePublicationScheduleAsync(BiblePublicationSchedule biblePublicationSchedule, CancellationToken cancellationToken = default)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        await dbContext.BibleReadingSchedules.AddAsync(bibleReadingSchedule, cancellationToken);
+        await dbContext.BiblePublicationSchedules.AddAsync(biblePublicationSchedule, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GetBibleReadingScheduleByIdAsync(bibleReadingSchedule.Id, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to reload bible reading schedule {bibleReadingSchedule.Id} after adding");
+        return await GetBiblePublicationScheduleByIdAsync(biblePublicationSchedule.Id, cancellationToken)
+            ?? throw new InvalidOperationException($"Failed to reload bible reading schedule {biblePublicationSchedule.Id} after adding");
     }
 
-    public async Task<BibleReadingSchedule> UpdateBibleReadingScheduleAsync(BibleReadingSchedule bibleReadingSchedule, CancellationToken cancellationToken = default)
+    public async Task<BiblePublicationSchedule> UpdateBiblePublicationScheduleAsync(BiblePublicationSchedule biblePublicationSchedule, CancellationToken cancellationToken = default)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        dbContext.BibleReadingSchedules.Update(bibleReadingSchedule);
+        dbContext.BiblePublicationSchedules.Update(biblePublicationSchedule);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GetBibleReadingScheduleByIdAsync(bibleReadingSchedule.Id, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to reload bible reading schedule {bibleReadingSchedule.Id} after updating");
+        return await GetBiblePublicationScheduleByIdAsync(biblePublicationSchedule.Id, cancellationToken)
+            ?? throw new InvalidOperationException($"Failed to reload bible reading schedule {biblePublicationSchedule.Id} after updating");
     }
 
-    public async Task DeleteBibleReadingScheduleAsync(int bibleReadingScheduleId, CancellationToken cancellationToken = default)
+    public async Task DeleteBiblePublicationScheduleAsync(int biblePublicationScheduleId, CancellationToken cancellationToken = default)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        var bibleReadingSchedule = await dbContext.BibleReadingSchedules.FindAsync([bibleReadingScheduleId], cancellationToken);
-        if (bibleReadingSchedule != null)
+        var biblePublicationSchedule = await dbContext.BiblePublicationSchedules.FindAsync([biblePublicationScheduleId], cancellationToken);
+        if (biblePublicationSchedule != null)
         {
-            dbContext.BibleReadingSchedules.Remove(bibleReadingSchedule);
+            dbContext.BiblePublicationSchedules.Remove(biblePublicationSchedule);
             await dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 
-    public async Task<bool> BibleReadingScheduleExistsAsync(int bibleReadingScheduleId, CancellationToken cancellationToken = default)
+    public async Task<bool> BiblePublicationScheduleExistsAsync(int biblePublicationScheduleId, CancellationToken cancellationToken = default)
     {
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        return await dbContext.BibleReadingSchedules.AnyAsync(x => x.Id == bibleReadingScheduleId, cancellationToken);
+        return await dbContext.BiblePublicationSchedules.AnyAsync(x => x.Id == biblePublicationScheduleId, cancellationToken);
     }
 
     public void Dispose()
@@ -123,7 +123,7 @@ public sealed class BibleReadingScheduleService(IServiceScopeFactory scopeFactor
         catch (Exception ex)
         {
             // Ignore errors during disposal
-            logger.Warning(ex, "Error during cancellation token source disposal in BibleReadingScheduleService");
+            logger.Warning(ex, "Error during cancellation token source disposal in BiblePublicationScheduleService");
         }
 
         // IServiceScopeFactory is a singleton, so don't dispose it

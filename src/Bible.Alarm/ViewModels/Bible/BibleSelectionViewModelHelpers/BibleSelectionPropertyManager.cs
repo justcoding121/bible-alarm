@@ -143,7 +143,7 @@ public sealed class BibleSelectionPropertyManager : ObservableObject
             return;
         }
 
-        var publicationCode = stateValue.CurrentSchedule.BibleReadingPublicationCode;
+        var publicationCode = stateValue.CurrentSchedule.BiblePublicationPublicationCode;
         if (string.IsNullOrEmpty(publicationCode))
         {
             return;

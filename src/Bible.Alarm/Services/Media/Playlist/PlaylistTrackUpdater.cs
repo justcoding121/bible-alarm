@@ -21,16 +21,16 @@ public static class PlaylistTrackUpdater
         }
     }
 
-    public static void UpdateBibleReadingTrack(AlarmSchedule schedule, TrackMetadata trackMetadata)
+    public static void UpdateBiblePublicationTrack(AlarmSchedule schedule, TrackMetadata trackMetadata)
     {
-        var bibleReadingSchedule = schedule.BibleReadingSchedule ??
-            throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
+        var biblePublicationSchedule = schedule.BiblePublicationSchedule ??
+            throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {schedule.Id}");
 
-        bibleReadingSchedule.SectionNumber = trackMetadata.SectionNumber;
-        bibleReadingSchedule.TrackNumber = trackMetadata.TrackNumber;
-        bibleReadingSchedule.LanguageCode = trackMetadata.LanguageCode;
-        bibleReadingSchedule.PublicationCode = trackMetadata.PublicationCode;
-        bibleReadingSchedule.FinishedDuration = trackMetadata.FinishedDuration;
+        biblePublicationSchedule.SectionNumber = trackMetadata.SectionNumber;
+        biblePublicationSchedule.TrackNumber = trackMetadata.TrackNumber;
+        biblePublicationSchedule.LanguageCode = trackMetadata.LanguageCode;
+        biblePublicationSchedule.PublicationCode = trackMetadata.PublicationCode;
+        biblePublicationSchedule.FinishedDuration = trackMetadata.FinishedDuration;
     }
 
     public static void UpdateMusicTrackForFinished(AlarmSchedule schedule, int? nextTrackNumber)
@@ -41,24 +41,24 @@ public static class PlaylistTrackUpdater
         }
     }
 
-    public static void UpdateBibleReadingTrackForFinished(
+    public static void UpdateBiblePublicationTrackForFinished(
         AlarmSchedule schedule,
         TrackMetadata trackMetadata,
         KeyValuePair<BibleSection, BibleTrack>? nextTrack)
     {
-        var bibleReadingSchedule = schedule.BibleReadingSchedule ??
-            throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
+        var biblePublicationSchedule = schedule.BiblePublicationSchedule ??
+            throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {schedule.Id}");
 
         if (nextTrack == null || nextTrack.Value.Key == null || nextTrack.Value.Value == null)
         {
             throw new InvalidOperationException("Next track Key or Value is null");
         }
 
-        bibleReadingSchedule.SectionNumber = nextTrack.Value.Key.Number;
-        bibleReadingSchedule.TrackNumber = nextTrack.Value.Value.Number;
-        bibleReadingSchedule.LanguageCode = trackMetadata.LanguageCode;
-        bibleReadingSchedule.PublicationCode = trackMetadata.PublicationCode;
-        bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;
+        biblePublicationSchedule.SectionNumber = nextTrack.Value.Key.Number;
+        biblePublicationSchedule.TrackNumber = nextTrack.Value.Value.Number;
+        biblePublicationSchedule.LanguageCode = trackMetadata.LanguageCode;
+        biblePublicationSchedule.PublicationCode = trackMetadata.PublicationCode;
+        biblePublicationSchedule.FinishedDuration = TimeSpan.Zero;
     }
 
     public static void UpdateScheduleForPlayedTrackInternal(
@@ -72,7 +72,7 @@ public static class PlaylistTrackUpdater
         }
         else
         {
-            UpdateBibleReadingTrack(schedule, trackMetadata);
+            UpdateBiblePublicationTrack(schedule, trackMetadata);
         }
     }
 }

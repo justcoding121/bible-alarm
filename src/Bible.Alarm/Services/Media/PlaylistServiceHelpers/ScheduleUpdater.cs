@@ -23,7 +23,7 @@ public sealed class ScheduleUpdater(
             scheduleId,
             s =>
             {
-                var brs = s.BibleReadingSchedule ?? throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
+                var brs = s.BiblePublicationSchedule ?? throw new ArgumentException($"BiblePublicationSchedule is null for schedule {scheduleId}");
                 brs.SectionNumber = next.Key.Number;
                 brs.TrackNumber = next.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
@@ -40,7 +40,7 @@ public sealed class ScheduleUpdater(
             scheduleId,
             s =>
             {
-                var brs = s.BibleReadingSchedule ?? throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
+                var brs = s.BiblePublicationSchedule ?? throw new ArgumentException($"BiblePublicationSchedule is null for schedule {scheduleId}");
                 brs.SectionNumber = previous.Key.Number;
                 brs.TrackNumber = previous.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
@@ -51,14 +51,14 @@ public sealed class ScheduleUpdater(
     /// <summary>
     /// Gets schedule with Bible reading validation.
     /// </summary>
-    public async Task<AlarmSchedule> GetScheduleWithBibleReadingAsync(int scheduleId)
+    public async Task<AlarmSchedule> GetScheduleWithBiblePublicationAsync(int scheduleId)
     {
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(
             scheduleId, false, true, cancellationToken);
 
-        if (schedule?.BibleReadingSchedule == null)
+        if (schedule?.BiblePublicationSchedule == null)
         {
-            throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
+            throw new ArgumentException($"BiblePublicationSchedule is null for schedule {scheduleId}");
         }
 
         return schedule;

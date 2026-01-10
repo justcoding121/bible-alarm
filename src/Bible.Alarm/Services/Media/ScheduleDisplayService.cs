@@ -18,15 +18,15 @@ public sealed class ScheduleDisplayService(
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task<string> GetTrackDisplayNameAsync(int scheduleId, bool force = false) => await GetTrackDisplayNameForBibleReadingAsync(scheduleId, null, force);
+    public async Task<string> GetTrackDisplayNameAsync(int scheduleId, bool force = false) => await GetTrackDisplayNameForBiblePublicationAsync(scheduleId, null, force);
 
-    public async Task<string> GetTrackDisplayNameForBibleReadingAsync(int scheduleId, BibleReadingSchedule bibleReadingSchedule, bool force = false)
+    public async Task<string> GetTrackDisplayNameForBiblePublicationAsync(int scheduleId, BiblePublicationSchedule biblePublicationSchedule, bool force = false)
     {
         try
         {
-            var scheduleToUse = bibleReadingSchedule;
+            var scheduleToUse = biblePublicationSchedule;
 
-            // If bibleReadingSchedule is not provided, load it from database
+            // If biblePublicationSchedule is not provided, load it from database
             if (scheduleToUse == null)
             {
                 if (!force)
@@ -40,12 +40,12 @@ public sealed class ScheduleDisplayService(
                 var schedule = await alarmScheduleService.GetScheduleByIdAsync(
                     scheduleId, false, true, cancellationTokenSource.Token);
 
-                if (schedule?.BibleReadingSchedule == null)
+                if (schedule?.BiblePublicationSchedule == null)
                 {
                     return string.Empty;
                 }
 
-                scheduleToUse = schedule.BibleReadingSchedule;
+                scheduleToUse = schedule.BiblePublicationSchedule;
             }
 
             if (scheduleToUse == null || !scheduleToUse.SectionNumber.HasValue)

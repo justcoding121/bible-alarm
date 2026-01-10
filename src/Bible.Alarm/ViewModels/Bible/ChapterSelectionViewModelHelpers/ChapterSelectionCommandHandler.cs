@@ -29,25 +29,25 @@ public sealed class TrackSelectionCommandHandler(
         // Always use CurrentSchedule as the source of truth for language/publication codes
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null ||
-            string.IsNullOrEmpty(currentSchedule.BibleReadingLanguageCode) ||
-            string.IsNullOrEmpty(currentSchedule.BibleReadingPublicationCode) ||
-            !currentSchedule.BibleReadingSectionNumber.HasValue)
+            string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode) ||
+            string.IsNullOrEmpty(currentSchedule.BiblePublicationPublicationCode) ||
+            !currentSchedule.BiblePublicationSectionNumber.HasValue)
         {
             logger.Warning("TrackSelectionViewModel: SetTrackCommand - CurrentSchedule is null or missing required properties");
             return;
         }
 
         // Map entity to DTO before dispatching
-        var trackSelectedItem = new BibleReadingStateItem
+        var trackSelectedItem = new BiblePublicationStateItem
         {
-            LanguageCode = currentSchedule.BibleReadingLanguageCode,
-            PublicationCode = currentSchedule.BibleReadingPublicationCode,
-            SectionNumber = currentSchedule.BibleReadingSectionNumber.Value,
+            LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+            PublicationCode = currentSchedule.BiblePublicationPublicationCode,
+            SectionNumber = currentSchedule.BiblePublicationSectionNumber.Value,
             TrackNumber = track.Number,
             // Store display names from current state
-            LanguageName = currentSchedule.BibleReadingLanguageName,
-            PublicationName = currentSchedule.BibleReadingPublicationName,
-            SectionName = currentSchedule.BibleReadingSectionName
+            LanguageName = currentSchedule.BiblePublicationLanguageName,
+            PublicationName = currentSchedule.BiblePublicationPublicationName,
+            SectionName = currentSchedule.BiblePublicationSectionName
         };
 
 

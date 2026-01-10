@@ -30,7 +30,7 @@ public class TrackMetadata
     public TimeSpan FinishedDuration { get; set; }
 
     public bool IsAlarmMusic => TrackNumber > 0;
-    public bool IsBibleReading => TrackNumber > 0;
+    public bool IsBiblePublication => TrackNumber > 0;
 
     public bool IsLastTrack { get; set; }
 }

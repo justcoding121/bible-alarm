@@ -24,8 +24,8 @@ public sealed class TrackSelectionSyncHandler
     }
 
     /// <summary>
-    /// Effect: Sync CurrentBibleReadingSchedule to CurrentSchedule when TrackSelectedAction is dispatched.
-    /// This ensures that when sub-pages update CurrentBibleReadingSchedule, CurrentSchedule is also updated
+    /// Effect: Sync CurrentBiblePublicationSchedule to CurrentSchedule when TrackSelectedAction is dispatched.
+    /// This ensures that when sub-pages update CurrentBiblePublicationSchedule, CurrentSchedule is also updated
     /// so the schedule page displays the changes immediately.
     /// </summary>
     public async Task HandleTrackSelected(TrackSelectedAction action, IDispatcher dispatcher)
@@ -41,7 +41,7 @@ public sealed class TrackSelectionSyncHandler
             }
 
             var currentSchedule = currentState!.CurrentSchedule!;
-            if (!ShouldSyncBibleReadingSchedule(currentSchedule, action.CurrentBibleReadingSchedule!))
+            if (!ShouldSyncBiblePublicationSchedule(currentSchedule, action.CurrentBiblePublicationSchedule!))
             {
                 return;
             }
@@ -51,61 +51,61 @@ public sealed class TrackSelectionSyncHandler
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "ScheduleEffects: Error syncing CurrentBibleReadingSchedule to CurrentSchedule");
+            Log.Warning(ex, "ScheduleEffects: Error syncing CurrentBiblePublicationSchedule to CurrentSchedule");
         }
     }
 
     private void LogTrackSelectedStart(TrackSelectedAction action)
     {
-        Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentBibleReadingSchedule: {BibleReadingSchedule}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, SectionNumber: {SectionNumber}, TrackNumber: {TrackNumber}",
-            action.CurrentBibleReadingSchedule != null ? "not null" : "null",
-            action.CurrentBibleReadingSchedule?.LanguageCode ?? "null",
-            action.CurrentBibleReadingSchedule?.PublicationCode ?? "null",
-            action.CurrentBibleReadingSchedule?.SectionNumber ?? 0,
-            action.CurrentBibleReadingSchedule?.TrackNumber ?? 0);
+        Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentBiblePublicationSchedule: {BiblePublicationSchedule}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, SectionNumber: {SectionNumber}, TrackNumber: {TrackNumber}",
+            action.CurrentBiblePublicationSchedule != null ? "not null" : "null",
+            action.CurrentBiblePublicationSchedule?.LanguageCode ?? "null",
+            action.CurrentBiblePublicationSchedule?.PublicationCode ?? "null",
+            action.CurrentBiblePublicationSchedule?.SectionNumber ?? 0,
+            action.CurrentBiblePublicationSchedule?.TrackNumber ?? 0);
     }
 
     private bool CanSyncTrackSelection(ApplicationState? currentState, TrackSelectedAction action)
     {
-        if (currentState?.CurrentSchedule == null || action.CurrentBibleReadingSchedule == null)
+        if (currentState?.CurrentSchedule == null || action.CurrentBiblePublicationSchedule == null)
         {
-            Log.Warning("ScheduleEffects: HandleTrackSelected - CurrentSchedule or CurrentBibleReadingSchedule is null. CurrentSchedule: {CurrentSchedule}, CurrentBibleReadingSchedule: {BibleReadingSchedule}",
+            Log.Warning("ScheduleEffects: HandleTrackSelected - CurrentSchedule or CurrentBiblePublicationSchedule is null. CurrentSchedule: {CurrentSchedule}, CurrentBiblePublicationSchedule: {BiblePublicationSchedule}",
                 currentState?.CurrentSchedule != null ? "not null" : "null",
-                action.CurrentBibleReadingSchedule != null ? "not null" : "null");
+                action.CurrentBiblePublicationSchedule != null ? "not null" : "null");
             return false;
         }
         return true;
     }
 
-    private bool ShouldSyncBibleReadingSchedule(ScheduleStateItem currentSchedule, BibleReadingStateItem actionBibleReadingSchedule)
+    private bool ShouldSyncBiblePublicationSchedule(ScheduleStateItem currentSchedule, BiblePublicationStateItem actionBiblePublicationSchedule)
     {
-        Log.Debug("ScheduleEffects: HandleTrackSelected - CurrentSchedule Id: {ScheduleId}, BibleReadingScheduleId: {BibleReadingScheduleId}, Action BibleReadingSchedule Id: {ActionBibleReadingScheduleId}",
-            currentSchedule.Id, currentSchedule.BibleReadingScheduleId, actionBibleReadingSchedule.Id);
+        Log.Debug("ScheduleEffects: HandleTrackSelected - CurrentSchedule Id: {ScheduleId}, BiblePublicationScheduleId: {BiblePublicationScheduleId}, Action BiblePublicationSchedule Id: {ActionBiblePublicationScheduleId}",
+            currentSchedule.Id, currentSchedule.BiblePublicationScheduleId, actionBiblePublicationSchedule.Id);
 
         // Allow syncing if:
         // 1. Action has Id=0 (new selection, not yet saved) - always sync to update current schedule
-        // 2. Action Id matches current schedule's BibleReadingScheduleId - same schedule, sync
+        // 2. Action Id matches current schedule's BiblePublicationScheduleId - same schedule, sync
         // Reject only if action has a non-zero ID that doesn't match (different schedule)
-        if (actionBibleReadingSchedule.Id > 0 &&
-            currentSchedule.BibleReadingScheduleId.HasValue &&
-            actionBibleReadingSchedule.Id != currentSchedule.BibleReadingScheduleId.Value)
+        if (actionBiblePublicationSchedule.Id > 0 &&
+            currentSchedule.BiblePublicationScheduleId.HasValue &&
+            actionBiblePublicationSchedule.Id != currentSchedule.BiblePublicationScheduleId.Value)
         {
-            Log.Warning("ScheduleEffects: HandleTrackSelected - Different BibleReadingSchedule ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.",
-                currentSchedule.BibleReadingScheduleId.Value, actionBibleReadingSchedule.Id);
+            Log.Warning("ScheduleEffects: HandleTrackSelected - Different BiblePublicationSchedule ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.",
+                currentSchedule.BiblePublicationScheduleId.Value, actionBiblePublicationSchedule.Id);
             return false;
         }
 
-        Log.Debug("ScheduleEffects: HandleTrackSelected - Syncing allowed. Action Id: {ActionId} (0=new selection), Current BibleReadingScheduleId: {CurrentId}",
-            actionBibleReadingSchedule.Id, currentSchedule.BibleReadingScheduleId);
+        Log.Debug("ScheduleEffects: HandleTrackSelected - Syncing allowed. Action Id: {ActionId} (0=new selection), Current BiblePublicationScheduleId: {CurrentId}",
+            actionBiblePublicationSchedule.Id, currentSchedule.BiblePublicationScheduleId);
         return true;
     }
 
     private ScheduleStateItem CreateUpdatedScheduleFromTrackSelection(ScheduleStateItem currentSchedule, TrackSelectedAction action)
     {
         var updatedSchedule = CloneBasicScheduleProperties(currentSchedule);
-        UpdateBibleReadingProperties(updatedSchedule, currentSchedule, action.CurrentBibleReadingSchedule!);
+        UpdateBiblePublicationProperties(updatedSchedule, currentSchedule, action.CurrentBiblePublicationSchedule!);
         PreserveMusicProperties(updatedSchedule, currentSchedule);
-        SetBibleReadingDisplayNames(updatedSchedule, action.CurrentBibleReadingSchedule!);
+        SetBiblePublicationDisplayNames(updatedSchedule, action.CurrentBiblePublicationSchedule!);
         return updatedSchedule;
     }
 
@@ -130,14 +130,14 @@ public sealed class TrackSelectionSyncHandler
         };
     }
 
-    private static void UpdateBibleReadingProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule, BibleReadingStateItem actionBibleReadingSchedule)
+    private static void UpdateBiblePublicationProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule, BiblePublicationStateItem actionBiblePublicationSchedule)
     {
-        updatedSchedule.BibleReadingScheduleId = actionBibleReadingSchedule.Id > 0 ? actionBibleReadingSchedule.Id : currentSchedule.BibleReadingScheduleId;
-        updatedSchedule.BibleReadingLanguageCode = actionBibleReadingSchedule.LanguageCode;
-        updatedSchedule.BibleReadingPublicationCode = actionBibleReadingSchedule.PublicationCode;
-        updatedSchedule.BibleReadingSectionNumber = actionBibleReadingSchedule.SectionNumber;
-        updatedSchedule.BibleReadingTrackNumber = actionBibleReadingSchedule.TrackNumber;
-        updatedSchedule.BibleReadingFinishedDuration = actionBibleReadingSchedule.FinishedDuration;
+        updatedSchedule.BiblePublicationScheduleId = actionBiblePublicationSchedule.Id > 0 ? actionBiblePublicationSchedule.Id : currentSchedule.BiblePublicationScheduleId;
+        updatedSchedule.BiblePublicationLanguageCode = actionBiblePublicationSchedule.LanguageCode;
+        updatedSchedule.BiblePublicationPublicationCode = actionBiblePublicationSchedule.PublicationCode;
+        updatedSchedule.BiblePublicationSectionNumber = actionBiblePublicationSchedule.SectionNumber;
+        updatedSchedule.BiblePublicationTrackNumber = actionBiblePublicationSchedule.TrackNumber;
+        updatedSchedule.BiblePublicationFinishedDuration = actionBiblePublicationSchedule.FinishedDuration;
     }
 
     private static void PreserveMusicProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule)
@@ -153,34 +153,34 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
     }
 
-    private void SetBibleReadingDisplayNames(ScheduleStateItem updatedSchedule, BibleReadingStateItem actionBibleReadingSchedule)
+    private void SetBiblePublicationDisplayNames(ScheduleStateItem updatedSchedule, BiblePublicationStateItem actionBiblePublicationSchedule)
     {
         // IMPORTANT: Use display names from the action (populated from list items when user tapped).
         // Do NOT query the database - display names are already available from the selection.
-        updatedSchedule.BibleReadingLanguageName = actionBibleReadingSchedule.LanguageName;
-        updatedSchedule.BibleReadingPublicationName = actionBibleReadingSchedule.PublicationName;
-        updatedSchedule.BibleReadingSectionName = actionBibleReadingSchedule.SectionName;
+        updatedSchedule.BiblePublicationLanguageName = actionBiblePublicationSchedule.LanguageName;
+        updatedSchedule.BiblePublicationPublicationName = actionBiblePublicationSchedule.PublicationName;
+        updatedSchedule.BiblePublicationSectionName = actionBiblePublicationSchedule.SectionName;
 
         Log.Debug("ScheduleEffects: HandleTrackSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}",
-            updatedSchedule.BibleReadingLanguageName ?? "null",
-            updatedSchedule.BibleReadingPublicationName ?? "null",
-            updatedSchedule.BibleReadingSectionName ?? "null");
+            updatedSchedule.BiblePublicationLanguageName ?? "null",
+            updatedSchedule.BiblePublicationPublicationName ?? "null",
+            updatedSchedule.BiblePublicationSectionName ?? "null");
     }
 
     private void DispatchUpdateAction(IDispatcher dispatcher, ScheduleStateItem updatedSchedule, int scheduleId)
     {
         Log.Information("ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, SectionNumber: {SectionNumber}, SectionName: {SectionName}, TrackNumber: {TrackNumber}",
             updatedSchedule.Id,
-            updatedSchedule.BibleReadingLanguageCode,
-            updatedSchedule.BibleReadingLanguageName ?? "null",
-            updatedSchedule.BibleReadingPublicationCode,
-            updatedSchedule.BibleReadingPublicationName ?? "null",
-            updatedSchedule.BibleReadingSectionNumber,
-            updatedSchedule.BibleReadingSectionName ?? "null",
-            updatedSchedule.BibleReadingTrackNumber);
+            updatedSchedule.BiblePublicationLanguageCode,
+            updatedSchedule.BiblePublicationLanguageName ?? "null",
+            updatedSchedule.BiblePublicationPublicationCode,
+            updatedSchedule.BiblePublicationPublicationName ?? "null",
+            updatedSchedule.BiblePublicationSectionNumber,
+            updatedSchedule.BiblePublicationSectionName ?? "null",
+            updatedSchedule.BiblePublicationTrackNumber);
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
 
-        Log.Debug("ScheduleEffects: HandleTrackSelected - Synced CurrentBibleReadingSchedule to CurrentSchedule for ScheduleId: {ScheduleId}",
+        Log.Debug("ScheduleEffects: HandleTrackSelected - Synced CurrentBiblePublicationSchedule to CurrentSchedule for ScheduleId: {ScheduleId}",
             scheduleId);
     }
 }

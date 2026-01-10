@@ -95,7 +95,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.ToTable("AlarmSchedules");
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Models.BibleReadingSchedule", b =>
+            modelBuilder.Entity("Bible.Alarm.Models.BiblePublicationSchedule", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -124,7 +124,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.HasIndex("AlarmScheduleId")
                         .IsUnique();
 
-                    b.ToTable("BibleReadingSchedules");
+                    b.ToTable("BiblePublicationSchedules");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Models.GeneralSettings", b =>
@@ -184,11 +184,11 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Models.BibleReadingSchedule", b =>
+            modelBuilder.Entity("Bible.Alarm.Models.BiblePublicationSchedule", b =>
                 {
                     b.HasOne("Bible.Alarm.Models.AlarmSchedule", "AlarmSchedule")
-                        .WithOne("BibleReadingSchedule")
-                        .HasForeignKey("Bible.Alarm.Models.BibleReadingSchedule", "AlarmScheduleId")
+                        .WithOne("BiblePublicationSchedule")
+                        .HasForeignKey("Bible.Alarm.Models.BiblePublicationSchedule", "AlarmScheduleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
