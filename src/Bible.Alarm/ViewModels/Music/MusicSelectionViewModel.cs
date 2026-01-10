@@ -128,7 +128,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
             });
 
             // CollectionView needs a moment to render before hiding the busy indicator
-            // Add a small delay to prevent blank page flash (following chapter/track selection pattern)
+            // Add a small delay to prevent blank page flash (following track/track selection pattern)
             // Give CollectionView time to render
             await Task.Delay(100);
 

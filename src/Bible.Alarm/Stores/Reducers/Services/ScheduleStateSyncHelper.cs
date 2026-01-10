@@ -53,8 +53,8 @@ public static class ScheduleStateSyncHelper
         // Basic required properties for all content types
         if (string.IsNullOrWhiteSpace(schedule.BibleReadingLanguageCode) ||
             string.IsNullOrWhiteSpace(schedule.BibleReadingPublicationCode) ||
-            !schedule.BibleReadingChapterNumber.HasValue ||
-            schedule.BibleReadingChapterNumber.Value <= 0)
+            !schedule.BibleReadingTrackNumber.HasValue ||
+            schedule.BibleReadingTrackNumber.Value <= 0)
         {
             return false;
         }
@@ -73,9 +73,9 @@ public static class ScheduleStateSyncHelper
 
     public static BibleReadingStateItem CreateBibleReadingScheduleFromCurrent(ScheduleStateItem updatedCurrentSchedule)
     {
-        if (!updatedCurrentSchedule.BibleReadingChapterNumber.HasValue)
+        if (!updatedCurrentSchedule.BibleReadingTrackNumber.HasValue)
         {
-            throw new InvalidOperationException("BibleReadingChapterNumber must have a value");
+            throw new InvalidOperationException("BibleReadingTrackNumber must have a value");
         }
 
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(updatedCurrentSchedule.BibleReadingPublicationCode);
@@ -92,7 +92,7 @@ public static class ScheduleStateSyncHelper
             LanguageCode = updatedCurrentSchedule.BibleReadingLanguageCode ?? string.Empty,
             PublicationCode = updatedCurrentSchedule.BibleReadingPublicationCode ?? string.Empty,
             SectionNumber = updatedCurrentSchedule.BibleReadingSectionNumber,
-            ChapterNumber = updatedCurrentSchedule.BibleReadingChapterNumber.Value,
+            TrackNumber = updatedCurrentSchedule.BibleReadingTrackNumber.Value,
             FinishedDuration = updatedCurrentSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero,
             AlarmScheduleId = updatedCurrentSchedule.Id,
             TranslationName = updatedCurrentSchedule.BibleReadingPublicationName ?? string.Empty

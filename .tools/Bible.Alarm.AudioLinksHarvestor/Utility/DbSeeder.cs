@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using BibleSection = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleSection;
-using BibleChapter = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleChapter;
+using BibleTrack = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleTrack;
 using DramaTrack = Bible.Alarm.AudioLinksHarvestor.Models.Drama.DramaTrack;
 using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.Video.VideoEpisode;
 using MusicTrack = Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack;
@@ -221,31 +221,31 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
             biblePublication.Sections.Add(newSection);
 
-            var chapters = await GetSafely(() => mediaReader.GetBibleChapters(languageKey, publicationKey, section.Key));
-            if (chapters == null || chapters.Count == 0)
+            var tracks = await GetSafely(() => mediaReader.GetBibleTracks(languageKey, publicationKey, section.Key));
+            if (tracks == null || tracks.Count == 0)
             {
                 continue;
             }
 
-            await AddChaptersToSection(db, chapters, newSection);
+            await AddTracksToSection(db, tracks, newSection);
         }
     }
 
-    private async Task AddChaptersToSection(
+    private async Task AddTracksToSection(
         MediaDbContext db,
-        SortedDictionary<int, BibleChapter> chapters,
+        SortedDictionary<int, BibleTrack> tracks,
         Shared.Models.Media.Bible.BibleSection newSection)
     {
-        foreach (var chapter in chapters)
+        foreach (var track in tracks)
         {
-            var audioSource = await CreateAudioSource(db, chapter.Value.Url);
-            var newChapter = new Shared.Models.Media.Bible.BiblePublicationChapter
+            var audioSource = await CreateAudioSource(db, track.Value.Url);
+            var newTrack = new Shared.Models.Media.Bible.BiblePublicationTrack
             {
-                Number = chapter.Value.Number,
+                Number = track.Value.Number,
                 Source = audioSource
             };
 
-            newSection.Chapters.Add(newChapter);
+            newSection.Tracks.Add(newTrack);
         }
     }
 

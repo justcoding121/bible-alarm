@@ -7,28 +7,28 @@ using Serilog;
 namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 
 /// <summary>
-/// Handles Bible chapter and section navigation.
+/// Handles Bible track and section navigation.
 /// </summary>
-public sealed class ChapterNavigator(IMediaService mediaService)
+public sealed class TrackNavigator(IMediaService mediaService)
 {
     /// <summary>
-    /// Gets the next Bible chapter.
+    /// Gets the next Bible track.
     /// </summary>
-    public async Task<KeyValuePair<BibleSection, BiblePublicationChapter>> GetNextBiblePublicationChapter(
+    public async Task<KeyValuePair<BibleSection, BiblePublicationTrack>> GetNextBiblePublicationTrack(
         string languageCode,
         string publicationCode,
         int sectionNumber,
-        int chapter)
+        int track)
     {
         var currentSection = await mediaService.GetBibleSection(languageCode, publicationCode, sectionNumber) 
             ?? throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
         
-        var chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, sectionNumber);
-        var nextChapter = chapters.SkipWhile(kvp => kvp.Key <= chapter).FirstOrDefault();
+        var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
+        var nextTrack = tracks.SkipWhile(kvp => kvp.Key <= track).FirstOrDefault();
 
-        if (!nextChapter.Equals(default(KeyValuePair<int, BiblePublicationChapter>)))
+        if (!nextTrack.Equals(default(KeyValuePair<int, BiblePublicationTrack>)))
         {
-            return new KeyValuePair<BibleSection, BiblePublicationChapter>(currentSection, nextChapter.Value);
+            return new KeyValuePair<BibleSection, BiblePublicationTrack>(currentSection, nextTrack.Value);
         }
 
         var nextSection = await GetNextBibleSection(languageCode, publicationCode, sectionNumber);
@@ -37,34 +37,34 @@ public sealed class ChapterNavigator(IMediaService mediaService)
             throw new InvalidOperationException($"Next bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
         }
 
-        chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, nextSection.Key);
-        if (chapters.Count == 0)
+        tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, nextSection.Key);
+        if (tracks.Count == 0)
         {
-            throw new InvalidOperationException($"No chapters in next section: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={nextSection.Key}");
+            throw new InvalidOperationException($"No tracks in next section: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={nextSection.Key}");
         }
 
-        // Start at the first chapter of the next section (index 0)
-        return new KeyValuePair<BibleSection, BiblePublicationChapter>(nextSection.Value, chapters.ElementAt(0).Value);
+        // Start at the first track of the next section (index 0)
+        return new KeyValuePair<BibleSection, BiblePublicationTrack>(nextSection.Value, tracks.ElementAt(0).Value);
     }
 
     /// <summary>
-    /// Gets the previous Bible chapter.
+    /// Gets the previous Bible track.
     /// </summary>
-    public async Task<KeyValuePair<BibleSection, BiblePublicationChapter>> GetPreviousBiblePublicationChapter(
+    public async Task<KeyValuePair<BibleSection, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(
         string languageCode,
         string publicationCode,
         int sectionNumber,
-        int chapter)
+        int track)
     {
         var currentSection = await mediaService.GetBibleSection(languageCode, publicationCode, sectionNumber) 
             ?? throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
         
-        var chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, sectionNumber);
-        var previousChapter = chapters.Reverse().SkipWhile(kvp => kvp.Key >= chapter).FirstOrDefault();
+        var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
+        var previousTrack = tracks.Reverse().SkipWhile(kvp => kvp.Key >= track).FirstOrDefault();
 
-        if (!previousChapter.Equals(default(KeyValuePair<int, BiblePublicationChapter>)))
+        if (!previousTrack.Equals(default(KeyValuePair<int, BiblePublicationTrack>)))
         {
-            return new KeyValuePair<BibleSection, BiblePublicationChapter>(currentSection, previousChapter.Value);
+            return new KeyValuePair<BibleSection, BiblePublicationTrack>(currentSection, previousTrack.Value);
         }
 
         var previousSection = await GetPreviousBibleSection(languageCode, publicationCode, sectionNumber);
@@ -73,13 +73,13 @@ public sealed class ChapterNavigator(IMediaService mediaService)
             throw new InvalidOperationException($"Previous bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
         }
 
-        chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, previousSection.Key);
-        if (chapters.Count == 0)
+        tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, previousSection.Key);
+        if (tracks.Count == 0)
         {
-            throw new InvalidOperationException($"No chapters in previous section: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={previousSection.Key}");
+            throw new InvalidOperationException($"No tracks in previous section: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={previousSection.Key}");
         }
 
-        return new KeyValuePair<BibleSection, BiblePublicationChapter>(previousSection.Value, chapters.ElementAt(chapters.Count - 1).Value);
+        return new KeyValuePair<BibleSection, BiblePublicationTrack>(previousSection.Value, tracks.ElementAt(tracks.Count - 1).Value);
     }
 
     /// <summary>

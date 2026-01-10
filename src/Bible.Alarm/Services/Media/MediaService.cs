@@ -12,7 +12,7 @@ public sealed class MediaService(
     IMediaIndexService mediaIndexService,
     IBiblePublicationService BiblePublicationService,
     IBibleSectionService bibleSectionService,
-    IBibleChapterService bibleChapterService,
+    IBibleTrackService bibleTrackService,
     IMelodyMusicService melodyMusicService,
     IVocalMusicService vocalMusicService)
     : IMediaService, IDisposable
@@ -20,7 +20,7 @@ public sealed class MediaService(
     private readonly IMediaIndexService mediaIndexService = mediaIndexService ?? throw new ArgumentNullException(nameof(mediaIndexService));
     private readonly IBiblePublicationService BiblePublicationService = BiblePublicationService ?? throw new ArgumentNullException(nameof(BiblePublicationService));
     private readonly IBibleSectionService bibleSectionService = bibleSectionService ?? throw new ArgumentNullException(nameof(bibleSectionService));
-    private readonly IBibleChapterService bibleChapterService = bibleChapterService ?? throw new ArgumentNullException(nameof(bibleChapterService));
+    private readonly IBibleTrackService bibleTrackService = bibleTrackService ?? throw new ArgumentNullException(nameof(bibleTrackService));
     private readonly IMelodyMusicService melodyMusicService = melodyMusicService ?? throw new ArgumentNullException(nameof(melodyMusicService));
     private readonly IVocalMusicService vocalMusicService = vocalMusicService ?? throw new ArgumentNullException(nameof(vocalMusicService));
     private readonly CancellationTokenSource cancellationTokenSource = new();
@@ -51,18 +51,18 @@ public sealed class MediaService(
         return await bibleSectionService.GetSectionAsync(languageCode, versionCode, sectionNumber, cancellationTokenSource.Token);
     }
 
-    public async Task<SortedDictionary<int, BiblePublicationChapter>>
-        GetBibleChapters(string languageCode, string versionCode, int sectionNumber)
+    public async Task<SortedDictionary<int, BiblePublicationTrack>>
+        GetBibleTracks(string languageCode, string versionCode, int sectionNumber)
     {
         await mediaIndexService.Verify();
-        return await bibleChapterService.GetChaptersBySectionAsync(languageCode, versionCode, sectionNumber, cancellationTokenSource.Token);
+        return await bibleTrackService.GetTracksBySectionAsync(languageCode, versionCode, sectionNumber, cancellationTokenSource.Token);
     }
 
-    public async Task<BiblePublicationChapter> GetBibleChapter(string languageCode,
-        string versionCode, int sectionNumber, int chapterNumber)
+    public async Task<BiblePublicationTrack> GetBibleTrack(string languageCode,
+        string versionCode, int sectionNumber, int trackNumber)
     {
         await mediaIndexService.Verify();
-        return await bibleChapterService.GetChapterAsync(languageCode, versionCode, sectionNumber, chapterNumber, cancellationTokenSource.Token);
+        return await bibleTrackService.GetTrackAsync(languageCode, versionCode, sectionNumber, trackNumber, cancellationTokenSource.Token);
     }
 
     public async Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases()
@@ -113,10 +113,10 @@ public sealed class MediaService(
     }
 
     public async Task UpdateBibleTrackUrl(string languageCode, string versionCode,
-        int sectionNumber, int chapterNumber, string url)
+        int sectionNumber, int trackNumber, string url)
     {
         await mediaIndexService.Verify();
-        await bibleChapterService.UpdateChapterUrlAsync(languageCode, versionCode, sectionNumber, chapterNumber, url, cancellationTokenSource.Token);
+        await bibleTrackService.UpdateTrackUrlAsync(languageCode, versionCode, sectionNumber, trackNumber, url, cancellationTokenSource.Token);
     }
 
     public async Task UpdateVocalTrackUrl(string languageCode, string publicationCode,
@@ -140,7 +140,7 @@ public sealed class MediaService(
                 trackMetadata.LanguageCode,
                 trackMetadata.PublicationCode,
                 trackMetadata.SectionNumber,
-                trackMetadata.ChapterNumber,
+                trackMetadata.TrackNumber,
                 url);
         }
         else

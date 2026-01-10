@@ -160,7 +160,7 @@ public sealed class ScheduleListItemViewModel(
                 await playbackService.PlayScheduleAsync(Schedule.Id);
             }
         });
-        // Recreate commands with updated schedule to ensure they use the latest chapter information
+        // Recreate commands with updated schedule to ensure they use the latest track information
         PreviousCommand = commandHandler.CreatePreviousCommand(Schedule);
         NextCommand = commandHandler.CreateNextCommand(Schedule);
 
@@ -314,10 +314,10 @@ public sealed class ScheduleListItemViewModel(
     }
 
     /// <summary>
-    /// Async fallback method for refreshing chapter name from database.
+    /// Async fallback method for refreshing track name from database.
     /// Only used if SectionName is not available in state.
     /// </summary>
-    public async Task RefreshChapterNameAsync(bool force = false)
+    public async Task RefreshTrackNameAsync(bool force = false)
     {
         if (Schedule?.Id <= 0)
         {
@@ -330,7 +330,7 @@ public sealed class ScheduleListItemViewModel(
             return;
         }
 
-        await subtitleManager.RefreshChapterNameAsync(
+        await subtitleManager.RefreshTrackNameAsync(
             schedule.Id,
             force,
             value => SubTitle = value,
@@ -338,7 +338,7 @@ public sealed class ScheduleListItemViewModel(
             OnPropertyChanged);
     }
 
-    public void RefreshChapterName(bool force = false) =>
+    public void RefreshTrackName(bool force = false) =>
         // Try state first, then fallback to async lookup
         RefreshSubTitleFromState();
 
@@ -397,7 +397,7 @@ public sealed class ScheduleListItemViewModel(
         stateHandler.LastKnownSchedule = updatedSchedule;
         propertyManager.IsEnabled = updatedSchedule.IsEnabled;
 
-        var subtitleChanged = changeInfo.TrackChanged || changeInfo.SectionNumberChanged || changeInfo.ChapterNumberChanged ||
+        var subtitleChanged = changeInfo.TrackChanged || changeInfo.SectionNumberChanged || changeInfo.TrackNumberChanged ||
                              changeInfo.BibleReadingLanguageNameChanged || changeInfo.SectionNameChanged;
 
         if (subtitleChanged)

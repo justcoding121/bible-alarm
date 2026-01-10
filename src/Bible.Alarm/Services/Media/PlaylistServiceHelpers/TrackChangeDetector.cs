@@ -35,6 +35,6 @@ public sealed class TrackChangeDetector(
 
         var bibleReadingSchedule = scheduleBeforeUpdate.BibleReadingSchedule;
         return bibleReadingSchedule.SectionNumber != trackMetadata.SectionNumber ||
-               bibleReadingSchedule.ChapterNumber != trackMetadata.ChapterNumber;
+               bibleReadingSchedule.TrackNumber != trackMetadata.TrackNumber;
     }
 }

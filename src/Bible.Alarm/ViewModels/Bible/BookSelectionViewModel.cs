@@ -39,7 +39,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
-    public ICommand ChapterSelectionCommand { get; set; }
+    public ICommand TrackSelectionCommand { get; set; }
 
     public SectionSelectionViewModel(ILogger logger, IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
     {
@@ -63,7 +63,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             await navigationService.PopModalAsync();
         });
 
-        ChapterSelectionCommand = new AsyncRelayCommand<BibleSectionListViewItemModel>(async x =>
+        TrackSelectionCommand = new AsyncRelayCommand<BibleSectionListViewItemModel>(async x =>
         {
             if (x == null)
             {
@@ -84,39 +84,39 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             var currentSectionNumber = currentSchedule.BibleReadingSectionNumber;
             var isSameSection = currentSectionNumber.HasValue && currentSectionNumber.Value == x.Number;
 
-            // Get chapters for the selected section using the latest language/publication from CurrentSchedule
-            var chapters = await Task.Run(async () =>
-                await mediaService.GetBibleChapters(currentSchedule.BibleReadingLanguageCode, currentSchedule.BibleReadingPublicationCode, x.Number));
+            // Get tracks for the selected section using the latest language/publication from CurrentSchedule
+            var tracks = await Task.Run(async () =>
+                await mediaService.GetBibleTracks(currentSchedule.BibleReadingLanguageCode, currentSchedule.BibleReadingPublicationCode, x.Number));
 
-            if (chapters == null || chapters.Count == 0)
+            if (tracks == null || tracks.Count == 0)
             {
                 return;
             }
 
-            // If it's the same section, preserve the current chapter number (if valid)
-            // Otherwise, use the first chapter
-            int chapterNumber;
-            if (isSameSection && currentSchedule.BibleReadingChapterNumber.HasValue)
+            // If it's the same section, preserve the current track number (if valid)
+            // Otherwise, use the first track
+            int trackNumber;
+            if (isSameSection && currentSchedule.BibleReadingTrackNumber.HasValue)
             {
-                var currentChapterNumber = currentSchedule.BibleReadingChapterNumber.Value;
-                // Verify the current chapter exists in the chapters list
-                if (chapters.ContainsKey(currentChapterNumber))
+                var currentTrackNumber = currentSchedule.BibleReadingTrackNumber.Value;
+                // Verify the current track exists in the tracks list
+                if (tracks.ContainsKey(currentTrackNumber))
                 {
-                    chapterNumber = currentChapterNumber;
+                    trackNumber = currentTrackNumber;
                 }
                 else
                 {
-                    // Current chapter doesn't exist in this section, use first chapter
-                    chapterNumber = chapters.Values.First().Number;
+                    // Current track doesn't exist in this section, use first track
+                    trackNumber = tracks.Values.First().Number;
                 }
             }
             else
             {
-                // Different section selected, use first chapter
-                chapterNumber = chapters.Values.First().Number;
+                // Different section selected, use first track
+                trackNumber = tracks.Values.First().Number;
             }
 
-            // Create BibleReadingStateItem with selected section and chapter
+            // Create BibleReadingStateItem with selected section and track
             // IMPORTANT: Include display names from list items (no database query needed)
             // Get language/publication codes and display names from CurrentSchedule (they should already be populated)
             var bibleReadingItem = new BibleReadingStateItem
@@ -124,16 +124,16 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 LanguageCode = currentSchedule.BibleReadingLanguageCode,
                 PublicationCode = currentSchedule.BibleReadingPublicationCode,
                 SectionNumber = x.Number,
-                ChapterNumber = chapterNumber,
+                TrackNumber = trackNumber,
                 // Store display names from list items and current state
                 LanguageName = currentSchedule.BibleReadingLanguageName,
                 PublicationName = currentSchedule.BibleReadingPublicationName,
                 SectionName = x.Name
             };
 
-            // Dispatch ChapterSelectedAction to update CurrentBibleReadingSchedule
+            // Dispatch TrackSelectedAction to update CurrentBibleReadingSchedule
             // Effect will automatically sync to CurrentSchedule
-            dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
+            dispatcher.Dispatch(new TrackSelectedAction(bibleReadingItem));
 
             // Navigate back to schedule page
             await navigationService.PopModalAsync();
@@ -227,7 +227,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = currentSchedule.BibleReadingSectionNumber ?? 1,
-                ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
+                TrackNumber = currentSchedule.BibleReadingTrackNumber ?? 1
             };
             lastCurrent = current;
         }
@@ -250,7 +250,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 await MainThread.InvokeOnMainThreadAsync(() => SetSelectedSection());
 
                 // Give CollectionView time to render before hiding busy indicator
-                // This matches the pattern used in ChapterSelectionViewModel
+                // This matches the pattern used in TrackSelectionViewModel
                 await Task.Delay(100);
 
                 // Set IsBusy to false after collection is assigned and rendered - the busy overlay will hide instantly
@@ -289,7 +289,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         }
 
         // Find the section from the Sections collection (same instance as in ItemsSource)
-        // This matches the pattern used in ChapterSelectionViewModel
+        // This matches the pattern used in TrackSelectionViewModel
         var section = Sections.FirstOrDefault(b => b.Number == current.SectionNumber);
         if (section != null)
         {

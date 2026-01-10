@@ -7,6 +7,6 @@ public interface IScheduleContainerService
 {
     Task InitializeContainersAsync(
         IServiceProvider serviceProvider,
-        Action<BibleSelectionContainerViewModel, MusicSelectionContainerViewModel, NumberOfChapterContainerViewModel, ScheduleDetailsContainerViewModel> onContainersReady);
+        Action<BibleSelectionContainerViewModel, MusicSelectionContainerViewModel, NumberOfTrackContainerViewModel, ScheduleDetailsContainerViewModel> onContainersReady);
 }
 

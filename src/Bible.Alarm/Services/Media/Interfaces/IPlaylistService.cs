@@ -13,14 +13,14 @@ public interface IPlaylistService : IDisposable
 
     Task<int> GetRelevantScheduleToPlay();
 
-    Task MoveToNextBibleChapter(int scheduleId);
-    Task MoveToPreviousBibleChapter(int scheduleId);
+    Task MoveToNextBibleTrack(int scheduleId);
+    Task MoveToPreviousBibleTrack(int scheduleId);
 
-    Task<KeyValuePair<BibleSection, BiblePublicationChapter>> GetNextBibleChapter(string languageCode, string publicationCode,
-        int sectionNumber, int chapter);
+    Task<KeyValuePair<BibleSection, BiblePublicationTrack>> GetNextBibleTrack(string languageCode, string publicationCode,
+        int sectionNumber, int track);
 
-    Task<KeyValuePair<BibleSection, BiblePublicationChapter>> GetPreviousBibleChapter(string languageCode, string publicationCode,
-        int sectionNumber, int chapter);
+    Task<KeyValuePair<BibleSection, BiblePublicationTrack>> GetPreviousBibleTrack(string languageCode, string publicationCode,
+        int sectionNumber, int track);
 
     Task<KeyValuePair<int, BibleSection>>
         GetPreviousBibleSection(string languageCode, string publicationCode, int sectionNumber);

@@ -8,14 +8,14 @@ using Microsoft.Maui.Controls.Xaml;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class ChapterSelectionModal : BaseContentPage, IDisposable
+public partial class TrackSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public ChapterSelectionViewModel? ViewModel => BindingContext as ChapterSelectionViewModel;
+    public TrackSelectionViewModel? ViewModel => BindingContext as TrackSelectionViewModel;
 
-    public ChapterSelectionModal()
+    public TrackSelectionModal()
     {
         InitializeComponent();
         Appearing += OnAppearing;
@@ -28,8 +28,8 @@ public partial class ChapterSelectionModal : BaseContentPage, IDisposable
         await ModalScrollHelper.HandleModalAppearingAsync(
             () => ViewModel?.IsBusy ?? false,
             BusyOverlay,
-            chapterCollectionView,
-            getSelectedItem: () => ViewModel?.SelectedChapter,
+            trackCollectionView,
+            getSelectedItem: () => ViewModel?.SelectedTrack,
             refreshAction: ViewModel != null 
                 ? async () => await ViewModel.RefreshFromState() 
                 : null,
@@ -45,18 +45,18 @@ public partial class ChapterSelectionModal : BaseContentPage, IDisposable
         }
     }
 
-    private async void OnChapterItemTapped(object? sender, TappedEventArgs e)
+    private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
-        if (sender is Grid grid && grid.BindingContext is BibleChapterListViewItemModel chapterItem)
+        if (sender is Grid grid && grid.BindingContext is BibleTrackListViewItemModel trackItem)
         {
-            if (ViewModel != null && ViewModel.SetChapterCommand is IAsyncRelayCommand<BibleChapterListViewItemModel> asyncCommand)
+            if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<BibleTrackListViewItemModel> asyncCommand)
             {
-                if (asyncCommand.CanExecute(chapterItem))
+                if (asyncCommand.CanExecute(trackItem))
                 {
-                    await asyncCommand.ExecuteAsync(chapterItem);
+                    await asyncCommand.ExecuteAsync(trackItem);
                 }
             }
         }

@@ -88,14 +88,14 @@ public sealed class BibleSelectionCommandHandler
             }
 
             var itemSelector = new BibleSelectionItemSelector(mediaService, state);
-            var (sectionNumber, chapterNumber, sectionName) = await itemSelector.GetSectionAndChapterForTranslationAsync(x, currentLanguage);
+            var (sectionNumber, trackNumber, sectionName) = await itemSelector.GetSectionAndTrackForTranslationAsync(x, currentLanguage);
             
             if (sectionNumber == 0)
             {
                 return;
             }
 
-            var bibleReadingItem = CreateBibleReadingItemFromSelection(x, sectionNumber, chapterNumber, sectionName, currentLanguage, currentSchedule);
+            var bibleReadingItem = CreateBibleReadingItemFromSelection(x, sectionNumber, trackNumber, sectionName, currentLanguage, currentSchedule);
             
             var actionDispatcher = new BibleSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchBibleReadingSelectionActions(bibleReadingItem);
@@ -135,8 +135,8 @@ public sealed class BibleSelectionCommandHandler
             await navigationService.PopModalAsync();
 
             var itemSelector = new BibleSelectionItemSelector(mediaService, state);
-            var (publicationCode, sectionNumber, chapterNumber, sectionName, publicationName) =
-                await itemSelector.GetTranslationSectionAndChapterForLanguageAsync(x);
+            var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName) =
+                await itemSelector.GetTranslationSectionAndTrackForLanguageAsync(x);
 
             if (publicationCode == null)
             {
@@ -151,7 +151,7 @@ public sealed class BibleSelectionCommandHandler
             }
 
             var bibleReadingItem = CreateBibleReadingItemForLanguageSelection(
-                x, publicationCode, sectionNumber, chapterNumber, sectionName, publicationName, currentSchedule);
+                x, publicationCode, sectionNumber, trackNumber, sectionName, publicationName, currentSchedule);
             var actionDispatcher = new BibleSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchLanguageSelectionActions(bibleReadingItem, x);
         });
@@ -160,19 +160,19 @@ public sealed class BibleSelectionCommandHandler
     private BibleReadingStateItem CreateBibleReadingItemFromSelection(
         PublicationListViewItemModel publication,
         int sectionNumber,
-        int chapterNumber,
+        int trackNumber,
         string sectionName,
         LanguageListViewItemModel language,
         ScheduleStateItem currentSchedule)
     {
-        // Match the pattern used in SectionSelectionViewModel and ChapterSelectionCommandHandler
+        // Match the pattern used in SectionSelectionViewModel and TrackSelectionCommandHandler
         // They don't set Id or AlarmScheduleId - let them default to 0
         return new BibleReadingStateItem
         {
             PublicationCode = publication.Code,
             LanguageCode = language.Code,
             SectionNumber = sectionNumber,
-            ChapterNumber = chapterNumber,
+            TrackNumber = trackNumber,
             LanguageName = language.Name,
             PublicationName = publication.Name,
             SectionName = sectionName
@@ -183,19 +183,19 @@ public sealed class BibleSelectionCommandHandler
         LanguageListViewItemModel language,
         string publicationCode,
         int sectionNumber,
-        int chapterNumber,
+        int trackNumber,
         string sectionName,
         string publicationName,
         ScheduleStateItem currentSchedule)
     {
-        // Match the pattern used in SectionSelectionViewModel and ChapterSelectionCommandHandler
+        // Match the pattern used in SectionSelectionViewModel and TrackSelectionCommandHandler
         // They don't set Id or AlarmScheduleId - let them default to 0
         return new BibleReadingStateItem
         {
             LanguageCode = language.Code,
             PublicationCode = publicationCode,
             SectionNumber = sectionNumber,
-            ChapterNumber = chapterNumber,
+            TrackNumber = trackNumber,
             LanguageName = language.Name,
             PublicationName = publicationName,
             SectionName = sectionName

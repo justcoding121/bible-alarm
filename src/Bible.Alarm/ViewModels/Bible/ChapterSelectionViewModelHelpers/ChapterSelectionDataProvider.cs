@@ -5,36 +5,36 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Bible.TrackSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles data population for ChapterSelectionViewModel.
+/// Handles data population for TrackSelectionViewModel.
 /// </summary>
-public sealed class ChapterSelectionDataProvider(IMediaService mediaService)
+public sealed class TrackSelectionDataProvider(IMediaService mediaService)
 {
-    public async Task PopulateChapters(
+    public async Task PopulateTracks(
         string languageCode,
         string publicationCode,
         int sectionNumber,
         BibleReadingSchedule? current,
-        ObservableCollection<BibleChapterListViewItemModel> chapters,
-        Action<BibleChapterListViewItemModel?> setSelectedChapter)
+        ObservableCollection<BibleTrackListViewItemModel> tracks,
+        Action<BibleTrackListViewItemModel?> setSelectedTrack)
     {
         // Do ALL processing on background thread to avoid blocking spinner animation
-        var (chapterViewModelList, selectedChapter) = await Task.Run(async () =>
+        var (trackViewModelList, selectedTrack) = await Task.Run(async () =>
         {
-            var chaptersFromDb = await mediaService.GetBibleChapters(languageCode, publicationCode, sectionNumber);
-            var vms = new List<BibleChapterListViewItemModel>();
-            BibleChapterListViewItemModel? selected = null;
+            var tracksFromDb = await mediaService.GetBibleTracks(languageCode, publicationCode, sectionNumber);
+            var vms = new List<BibleTrackListViewItemModel>();
+            BibleTrackListViewItemModel? selected = null;
 
-            foreach (var chapter in chaptersFromDb.Values)
+            foreach (var track in tracksFromDb.Values)
             {
-                var chapterVm = new BibleChapterListViewItemModel(chapter);
-                vms.Add(chapterVm);
+                var trackVm = new BibleTrackListViewItemModel(track);
+                vms.Add(trackVm);
 
-                if (current != null && current.ChapterNumber == chapter.Number)
+                if (current != null && current.TrackNumber == track.Number)
                 {
-                    selected = chapterVm;
+                    selected = trackVm;
                     selected.IsSelected = true;
                 }
             }
@@ -45,40 +45,40 @@ public sealed class ChapterSelectionDataProvider(IMediaService mediaService)
         // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            chapters.Clear();
-            foreach (var chapter in chapterViewModelList)
+            tracks.Clear();
+            foreach (var track in trackViewModelList)
             {
-                chapters.Add(chapter);
+                tracks.Add(track);
             }
 
-            if (selectedChapter is not null)
+            if (selectedTrack is not null)
             {
-                setSelectedChapter(selectedChapter);
+                setSelectedTrack(selectedTrack);
             }
         });
     }
 
-    public void SetSelectedChapter(
+    public void SetSelectedTrack(
         BibleReadingSchedule? current,
-        ObservableCollection<BibleChapterListViewItemModel> chapters,
-        BibleChapterListViewItemModel? currentSelectedChapter,
-        Action<BibleChapterListViewItemModel?> setSelectedChapter)
+        ObservableCollection<BibleTrackListViewItemModel> tracks,
+        BibleTrackListViewItemModel? currentSelectedTrack,
+        Action<BibleTrackListViewItemModel?> setSelectedTrack)
     {
-        if (current == null || chapters == null || chapters.Count == 0)
+        if (current == null || tracks == null || tracks.Count == 0)
         {
             return;
         }
 
-        if (currentSelectedChapter != null)
+        if (currentSelectedTrack != null)
         {
-            currentSelectedChapter.IsSelected = false;
+            currentSelectedTrack.IsSelected = false;
         }
 
-        var chapter = chapters.FirstOrDefault(c => c.Number == current.ChapterNumber);
-        if (chapter != null)
+        var track = tracks.FirstOrDefault(c => c.Number == current.TrackNumber);
+        if (track != null)
         {
-            setSelectedChapter(chapter);
-            chapter.IsSelected = true;
+            setSelectedTrack(track);
+            track.IsSelected = true;
         }
     }
 }

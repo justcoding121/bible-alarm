@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.Bible.ChapterSelectionModal"
+    x:Class="Bible.Alarm.Views.Bible.TrackSelectionModal"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -11,7 +11,7 @@
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
-    x:DataType="bible:ChapterSelectionViewModel"
+    x:DataType="bible:TrackSelectionViewModel"
     Padding="0,0,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
@@ -48,7 +48,7 @@
                     FontSize="18"
                     FontAttributes="Bold"
                     HeightRequest="56"
-                    Text="Select Chapter"
+                    Text="Select Track"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />
@@ -56,14 +56,14 @@
             
             <!-- Collection View -->
             <CollectionView
-                x:Name="chapterCollectionView"
+                x:Name="trackCollectionView"
                 Grid.Row="1"
                 Margin="0,8,0,20"
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
                 IsVisible="True"
-                ItemsSource="{Binding Chapters}"
+                ItemsSource="{Binding Tracks}"
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical">
@@ -76,7 +76,7 @@
                     </LinearItemsLayout>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="bible:BibleChapterListViewItemModel">
+                    <DataTemplate x:DataType="bible:BibleTrackListViewItemModel">
                         <Grid Margin="16,0">
                             <Border
                                 BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -106,7 +106,7 @@
                                     MinimumHeightRequest="56"
                                     BackgroundColor="Transparent">
                                     <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnChapterItemTapped" />
+                                        <TapGestureRecognizer Tapped="OnTrackItemTapped" />
                                     </Grid.GestureRecognizers>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.Schedule.NumberOfChaptersModal"
+    x:Class="Bible.Alarm.Views.Schedule.NumberOfTracksModal"
     x:Name="PageRoot"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -16,7 +16,7 @@
     xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
-    x:DataType="vm:NumberOfChapterContainerViewModel"
+    x:DataType="vm:NumberOfTrackContainerViewModel"
     Padding="0"
     mc:Ignorable="d">
     <ContentPage.Resources>
@@ -24,7 +24,7 @@
         <!-- Theme-aware colors are inherited from BaseContentPage -->
 
         <!-- Style for selected/unselected item background using DynamicResource -->
-        <Style x:Key="ChaptersItemBorderStyle" TargetType="Border">
+        <Style x:Key="TracksItemBorderStyle" TargetType="Border">
             <Setter Property="BackgroundColor" Value="{DynamicResource CardBackgroundColor}" />
         </Style>
     </ContentPage.Resources>
@@ -59,7 +59,7 @@
                     FontSize="18"
                     FontAttributes="Bold"
                     HeightRequest="56"
-                    Text="Select Number of Chapters"
+                    Text="Select Number of Tracks"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />
@@ -67,13 +67,13 @@
 
             <!-- Enhanced Collection View -->
             <CollectionView
-                x:Name="ChaptersCollectionView"
+                x:Name="TracksCollectionView"
                 Grid.Row="1"
                 Margin="0,8,0,20"
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
-                ItemsSource="{Binding NumberOfChaptersList}"
+                ItemsSource="{Binding NumberOfTracksList}"
                 MinimumHeightRequest="300"
                 MinimumWidthRequest="250"
                 SelectionMode="None">
@@ -88,10 +88,10 @@
                     </LinearItemsLayout>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="shared:NumberOfChaptersListViewItemModel">
+                    <DataTemplate x:DataType="shared:NumberOfTracksListViewItemModel">
                         <Grid Margin="16,0">
                             <Border
-                                    Style="{StaticResource ChaptersItemBorderStyle}"
+                                    Style="{StaticResource TracksItemBorderStyle}"
                                     StrokeThickness="0"
                                     Padding="0">
                                 <Border.Triggers>
@@ -114,7 +114,7 @@
                                     MinimumHeightRequest="56"
                                     BackgroundColor="Transparent">
                                     <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnChapterItemTapped" />
+                                        <TapGestureRecognizer Tapped="OnTrackItemTapped" />
                                     </Grid.GestureRecognizers>
                                     <Label
                                         FontSize="16"

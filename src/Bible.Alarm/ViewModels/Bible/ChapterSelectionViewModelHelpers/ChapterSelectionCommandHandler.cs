@@ -8,20 +8,20 @@ using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Bible.TrackSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles command execution for ChapterSelectionViewModel.
+/// Handles command execution for TrackSelectionViewModel.
 /// </summary>
-public sealed class ChapterSelectionCommandHandler(
+public sealed class TrackSelectionCommandHandler(
     ILogger logger,
     IState<ApplicationState> state,
     IDispatcher dispatcher,
     INavigationService navigationService)
 {
-    public async Task HandleSetChapterAsync(BibleChapterListViewItemModel chapter)
+    public async Task HandleSetTrackAsync(BibleTrackListViewItemModel track)
     {
-        if (chapter == null)
+        if (track == null)
         {
             return;
         }
@@ -33,17 +33,17 @@ public sealed class ChapterSelectionCommandHandler(
             string.IsNullOrEmpty(currentSchedule.BibleReadingPublicationCode) ||
             !currentSchedule.BibleReadingSectionNumber.HasValue)
         {
-            logger.Warning("ChapterSelectionViewModel: SetChapterCommand - CurrentSchedule is null or missing required properties");
+            logger.Warning("TrackSelectionViewModel: SetTrackCommand - CurrentSchedule is null or missing required properties");
             return;
         }
 
         // Map entity to DTO before dispatching
-        var chapterSelectedItem = new BibleReadingStateItem
+        var trackSelectedItem = new BibleReadingStateItem
         {
             LanguageCode = currentSchedule.BibleReadingLanguageCode,
             PublicationCode = currentSchedule.BibleReadingPublicationCode,
             SectionNumber = currentSchedule.BibleReadingSectionNumber.Value,
-            ChapterNumber = chapter.Number,
+            TrackNumber = track.Number,
             // Store display names from current state
             LanguageName = currentSchedule.BibleReadingLanguageName,
             PublicationName = currentSchedule.BibleReadingPublicationName,
@@ -51,7 +51,7 @@ public sealed class ChapterSelectionCommandHandler(
         };
 
 
-        dispatcher.Dispatch(new ChapterSelectedAction(chapterSelectedItem));
+        dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
         // Navigate back to schedule page
         await navigationService.PopModalAsync();

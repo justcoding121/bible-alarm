@@ -89,7 +89,7 @@ public sealed class BibleCommandInitializer
                 currentSchedule?.BibleReadingLanguageCode,
                 currentSchedule?.BibleReadingPublicationCode,
                 currentSchedule?.BibleReadingSectionNumber,
-                currentSchedule?.BibleReadingChapterNumber,
+                currentSchedule?.BibleReadingTrackNumber,
                 currentSchedule?.BibleReadingFinishedDuration);
             
             setBibleReading(loadedBibleReading);
@@ -122,7 +122,7 @@ public sealed class BibleCommandInitializer
                 currentSchedule?.BibleReadingLanguageCode,
                 currentSchedule?.BibleReadingPublicationCode,
                 currentSchedule?.BibleReadingSectionNumber,
-                currentSchedule?.BibleReadingChapterNumber,
+                currentSchedule?.BibleReadingTrackNumber,
                 currentSchedule?.BibleReadingFinishedDuration);
             
             setBibleReading(loadedBibleReading);
@@ -141,7 +141,7 @@ public sealed class BibleCommandInitializer
         });
     }
 
-    public ICommand CreateSelectChapterCommand(Func<BibleReadingSchedule?> getBibleReading, Action<BibleReadingSchedule?> setBibleReading, int scheduleId, bool isNewSchedule, bool bibleReadingUpdated)
+    public ICommand CreateSelectTrackCommand(Func<BibleReadingSchedule?> getBibleReading, Action<BibleReadingSchedule?> setBibleReading, int scheduleId, bool isNewSchedule, bool bibleReadingUpdated)
     {
         return new AsyncRelayCommand(async () =>
         {
@@ -155,20 +155,20 @@ public sealed class BibleCommandInitializer
                 currentSchedule?.BibleReadingLanguageCode,
                 currentSchedule?.BibleReadingPublicationCode,
                 currentSchedule?.BibleReadingSectionNumber,
-                currentSchedule?.BibleReadingChapterNumber,
+                currentSchedule?.BibleReadingTrackNumber,
                 currentSchedule?.BibleReadingFinishedDuration);
             
             setBibleReading(loadedBibleReading);
 
             // Create view model and open modal
-            var chapterSelectionViewModel = serviceProvider.GetRequiredService<ChapterSelectionViewModel>();
-            await navigationService.OpenChapterSelectionModalAsync(chapterSelectionViewModel);
+            var trackSelectionViewModel = serviceProvider.GetRequiredService<TrackSelectionViewModel>();
+            await navigationService.OpenTrackSelectionModalAsync(trackSelectionViewModel);
 
             // Map entities to DTOs before dispatching
             if (loadedBibleReading != null)
             {
                 var currentBibleReadingItem = mapper.Map<BibleReadingStateItem>(loadedBibleReading);
-                dispatcher.Dispatch(new ChapterSelectionAction(currentBibleReadingItem));
+                dispatcher.Dispatch(new TrackSelectionAction(currentBibleReadingItem));
                 // State change will trigger OnStateChanged which handles cascading notifications
             }
         });

@@ -29,7 +29,7 @@ public sealed class BibleSection : IComparable
     public BiblePublication BiblePublication { get; set; } = null!;
 
     [Required]
-    public List<BiblePublicationChapter> Chapters { get; set; } = [];
+    public List<BiblePublicationTrack> Tracks { get; set; } = [];
 
     public int CompareTo(object obj) => obj is not BibleSection other ? 1 : Number.CompareTo(other.Number);
 }

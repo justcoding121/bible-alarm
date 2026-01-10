@@ -71,29 +71,29 @@ public sealed class ScheduleListItemCommandHandler(
                 return;
             }
 
-            var canMove = await playbackService.CanMoveChapterAsync(schedule.Id);
+            var canMove = await playbackService.CanMoveTrackAsync(schedule.Id);
             if (!canMove)
             {
-                logger.Debug("PreviousCommand: Cannot move chapter for schedule {ScheduleId} - schedule may be in progress", schedule.Id);
+                logger.Debug("PreviousCommand: Cannot move track for schedule {ScheduleId} - schedule may be in progress", schedule.Id);
                 return;
             }
 
-            logger.Information("PreviousCommand: Moving to previous chapter for schedule {ScheduleId}", schedule.Id);
+            logger.Information("PreviousCommand: Moving to previous track for schedule {ScheduleId}", schedule.Id);
             try
             {
                 // Run database operations off UI thread
                 await Task.Run(async () =>
                 {
-                    await playlistService.MoveToPreviousBibleChapter(schedule.Id);
+                    await playlistService.MoveToPreviousBibleTrack(schedule.Id);
                 });
-                logger.Information("PreviousCommand: Successfully moved to previous chapter for schedule {ScheduleId}", schedule.Id);
+                logger.Information("PreviousCommand: Successfully moved to previous track for schedule {ScheduleId}", schedule.Id);
                 // Don't refresh here - OnApplicationStateChanged will handle it when state updates
                 // This prevents showing stale data before the state is updated
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "PreviousCommand: Error moving to previous chapter for schedule {ScheduleId}", schedule.Id);
-                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Error moving to previous chapter"));
+                logger.Error(ex, "PreviousCommand: Error moving to previous track for schedule {ScheduleId}", schedule.Id);
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Error moving to previous track"));
             }
         });
     }
@@ -125,29 +125,29 @@ public sealed class ScheduleListItemCommandHandler(
                 return;
             }
 
-            var canMove = await playbackService.CanMoveChapterAsync(schedule.Id);
+            var canMove = await playbackService.CanMoveTrackAsync(schedule.Id);
             if (!canMove)
             {
-                logger.Debug("NextCommand: Cannot move chapter for schedule {ScheduleId} - schedule may be in progress", schedule.Id);
+                logger.Debug("NextCommand: Cannot move track for schedule {ScheduleId} - schedule may be in progress", schedule.Id);
                 return;
             }
 
-            logger.Information("NextCommand: Moving to next chapter for schedule {ScheduleId}", schedule.Id);
+            logger.Information("NextCommand: Moving to next track for schedule {ScheduleId}", schedule.Id);
             try
             {
                 // Run database operations off UI thread
                 await Task.Run(async () =>
                 {
-                    await playlistService.MoveToNextBibleChapter(schedule.Id);
+                    await playlistService.MoveToNextBibleTrack(schedule.Id);
                 });
-                logger.Information("NextCommand: Successfully moved to next chapter for schedule {ScheduleId}", schedule.Id);
+                logger.Information("NextCommand: Successfully moved to next track for schedule {ScheduleId}", schedule.Id);
                 // Don't refresh here - OnApplicationStateChanged will handle it when state updates
                 // This prevents showing stale data before the state is updated
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "NextCommand: Error moving to next chapter for schedule {ScheduleId}", schedule.Id);
-                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Error moving to next chapter"));
+                logger.Error(ex, "NextCommand: Error moving to next track for schedule {ScheduleId}", schedule.Id);
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage("Error moving to next track"));
             }
         });
     }

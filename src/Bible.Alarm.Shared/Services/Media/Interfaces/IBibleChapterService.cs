@@ -8,23 +8,23 @@ using Bible.Alarm.Shared.Models.Media.Bible;
 namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 
 /// <summary>
-/// Service for accessing BiblePublicationChapter database operations.
+/// Service for accessing BiblePublicationTrack database operations.
 /// </summary>
-public interface IBibleChapterService : IDisposable
+public interface IBibleTrackService : IDisposable
 {
     /// <summary>
-    /// Gets all BiblePublicationChapters for a given section (by language code, publication code, and section number), with Source included.
+    /// Gets all BiblePublicationTracks for a given section (by language code, publication code, and section number), with Source included.
     /// </summary>
-    Task<SortedDictionary<int, BiblePublicationChapter>> GetChaptersBySectionAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default);
+    Task<SortedDictionary<int, BiblePublicationTrack>> GetTracksBySectionAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a BiblePublicationChapter by language code, publication code, section number, and chapter number, with Source included.
+    /// Gets a BiblePublicationTrack by language code, publication code, section number, and track number, with Source included.
     /// </summary>
-    Task<BiblePublicationChapter?> GetChapterAsync(string languageCode, string publicationCode, int sectionNumber, int chapterNumber, CancellationToken cancellationToken = default);
+    Task<BiblePublicationTrack?> GetTrackAsync(string languageCode, string publicationCode, int sectionNumber, int trackNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Updates the URL for a Bible chapter's audio source.
+    /// Updates the URL for a Bible track's audio source.
     /// </summary>
-    Task UpdateChapterUrlAsync(string languageCode, string publicationCode, int sectionNumber, int chapterNumber, string url, CancellationToken cancellationToken = default);
+    Task UpdateTrackUrlAsync(string languageCode, string publicationCode, int sectionNumber, int trackNumber, string url, CancellationToken cancellationToken = default);
 }
 

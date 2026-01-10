@@ -60,7 +60,7 @@ public partial class InitialCreate : Migration
                 LanguageCode = table.Column<string>(nullable: true),
                 PublicationCode = table.Column<string>(nullable: true),
                 SectionNumber = table.Column<int>(nullable: false),
-                ChapterNumber = table.Column<int>(nullable: false),
+                TrackNumber = table.Column<int>(nullable: false),
                 AlarmScheduleId = table.Column<int>(nullable: false)
             },
             constraints: table =>

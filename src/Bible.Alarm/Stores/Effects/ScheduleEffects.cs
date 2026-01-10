@@ -60,7 +60,7 @@ public class ScheduleEffects(
         mapper,
         alarmScheduleService,
         alarmService);
-    private readonly ChapterSelectionSyncHandler chapterSyncHandler = new(state);
+    private readonly TrackSelectionSyncHandler trackSyncHandler = new(state);
     private readonly TrackSelectionSyncHandler trackSyncHandler = new(state);
 
     // Effect handlers - initialized lazily when first accessed
@@ -227,7 +227,7 @@ public class ScheduleEffects(
 
     /// <summary>
     /// Effect: Handle UpdateScheduleSuccessAction - Invalidate cache when a schedule is updated in the database.
-    /// This covers chapter navigation, enable/disable toggle, track changes, and other schedule updates.
+    /// This covers track navigation, enable/disable toggle, track changes, and other schedule updates.
     /// </summary>
     [EffectMethod]
     public Task HandleUpdateScheduleSuccess(UpdateScheduleSuccessAction action, IDispatcher dispatcher)
@@ -246,14 +246,14 @@ public class ScheduleEffects(
     }
 
     /// <summary>
-    /// Effect: Sync CurrentBibleReadingSchedule to CurrentSchedule when ChapterSelectedAction is dispatched.
+    /// Effect: Sync CurrentBibleReadingSchedule to CurrentSchedule when TrackSelectedAction is dispatched.
     /// This ensures that when sub-pages update CurrentBibleReadingSchedule, CurrentSchedule is also updated
     /// so the schedule page displays the changes immediately.
     /// </summary>
     [EffectMethod]
-    public async Task HandleChapterSelected(ChapterSelectedAction action, IDispatcher dispatcher)
+    public async Task HandleTrackSelected(TrackSelectedAction action, IDispatcher dispatcher)
     {
-        await chapterSyncHandler.HandleChapterSelected(action, dispatcher);
+        await trackSyncHandler.HandleTrackSelected(action, dispatcher);
     }
 
     /// <summary>

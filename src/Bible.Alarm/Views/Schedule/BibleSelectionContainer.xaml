@@ -261,8 +261,8 @@
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />
-            <!-- Chapter/Part Selection -->
-            <Grid x:Name="BibleChapterButton"
+            <!-- Track/Part Selection -->
+            <Grid x:Name="BibleTrackButton"
                   Grid.Row="8"
                   Margin="0"
                   Padding="16,16"
@@ -271,7 +271,7 @@
                   HorizontalOptions="Fill"
                   VerticalOptions="Fill">
                 <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectChapterCommand}"
+                    <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
                                           NumberOfTapsRequired="1" />
                 </Grid.GestureRecognizers>
                 <Grid.ColumnDefinitions>
@@ -284,7 +284,7 @@
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
-                       Text="{Binding ChapterDisplayText}"
+                       Text="{Binding TrackDisplayText}"
                        TextColor="{DynamicResource PrimaryTextColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />

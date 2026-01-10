@@ -32,7 +32,7 @@ public sealed class BibleNavigationService(
             }
 
             schedule.SectionNumber = nextSection.Value.Number;
-            schedule.ChapterNumber = 1;
+            schedule.TrackNumber = 1;
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
         }
@@ -65,7 +65,7 @@ public sealed class BibleNavigationService(
             }
 
             schedule.SectionNumber = nextSection.Value.Number;
-            schedule.ChapterNumber = 1;
+            schedule.TrackNumber = 1;
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
         }
@@ -76,7 +76,7 @@ public sealed class BibleNavigationService(
         }
     }
 
-    public async Task<bool> MoveToPreviousChapterAsync(BibleReadingSchedule schedule)
+    public async Task<bool> MoveToPreviousTrackAsync(BibleReadingSchedule schedule)
     {
         if (schedule == null || !schedule.SectionNumber.HasValue)
         {
@@ -87,30 +87,30 @@ public sealed class BibleNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var prevChapter = await playlistService.GetPreviousBibleChapter(
+            var prevTrack = await playlistService.GetPreviousBibleTrack(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
                 schedule.SectionNumber.Value,
-                schedule.ChapterNumber);
+                schedule.TrackNumber);
 
-            if (prevChapter.Key == null || prevChapter.Value == null)
+            if (prevTrack.Key == null || prevTrack.Value == null)
             {
                 return false;
             }
 
-            schedule.SectionNumber = prevChapter.Key.Number;
-            schedule.ChapterNumber = prevChapter.Value.Number;
+            schedule.SectionNumber = prevTrack.Key.Number;
+            schedule.TrackNumber = prevTrack.Value.Number;
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error moving to previous chapter");
+            logger.Error(ex, "Error moving to previous track");
             return false;
         }
     }
 
-    public async Task<bool> MoveToNextChapterAsync(BibleReadingSchedule schedule)
+    public async Task<bool> MoveToNextTrackAsync(BibleReadingSchedule schedule)
     {
         if (schedule == null || !schedule.SectionNumber.HasValue)
         {
@@ -121,25 +121,25 @@ public sealed class BibleNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var nextChapter = await playlistService.GetNextBibleChapter(
+            var nextTrack = await playlistService.GetNextBibleTrack(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
                 schedule.SectionNumber.Value,
-                schedule.ChapterNumber);
+                schedule.TrackNumber);
 
-            if (nextChapter.Key == null || nextChapter.Value == null)
+            if (nextTrack.Key == null || nextTrack.Value == null)
             {
                 return false;
             }
 
-            schedule.SectionNumber = nextChapter.Key.Number;
-            schedule.ChapterNumber = nextChapter.Value.Number;
+            schedule.SectionNumber = nextTrack.Key.Number;
+            schedule.TrackNumber = nextTrack.Value.Number;
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error moving to next chapter");
+            logger.Error(ex, "Error moving to next track");
             return false;
         }
     }

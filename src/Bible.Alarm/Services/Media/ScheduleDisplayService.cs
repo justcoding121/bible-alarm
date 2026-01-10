@@ -18,9 +18,9 @@ public sealed class ScheduleDisplayService(
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task<string> GetChapterDisplayNameAsync(int scheduleId, bool force = false) => await GetChapterDisplayNameForBibleReadingAsync(scheduleId, null, force);
+    public async Task<string> GetTrackDisplayNameAsync(int scheduleId, bool force = false) => await GetTrackDisplayNameForBibleReadingAsync(scheduleId, null, force);
 
-    public async Task<string> GetChapterDisplayNameForBibleReadingAsync(int scheduleId, BibleReadingSchedule bibleReadingSchedule, bool force = false)
+    public async Task<string> GetTrackDisplayNameForBibleReadingAsync(int scheduleId, BibleReadingSchedule bibleReadingSchedule, bool force = false)
     {
         try
         {
@@ -64,11 +64,11 @@ public sealed class ScheduleDisplayService(
                 return string.Empty;
             }
 
-            return $"{sectionName} {scheduleToUse.ChapterNumber}";
+            return $"{sectionName} {scheduleToUse.TrackNumber}";
         }
         catch (Exception e)
         {
-            logger.Error(e, "An error happened while getting chapter display name for schedule {ScheduleId}", scheduleId);
+            logger.Error(e, "An error happened while getting track display name for schedule {ScheduleId}", scheduleId);
             return string.Empty;
         }
     }

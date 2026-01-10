@@ -19,18 +19,18 @@ public class TrackMetadata
     /// This replaces storing LookUpPath in the database.
     /// </summary>
     public string LookUpPath => PlayType == PlayType.Bible
-        ? LookUpPathBuilder.BuildBibleChapterLookUpPath(LanguageCode, PublicationCode, SectionNumber, ChapterNumber)
+        ? LookUpPathBuilder.BuildBibleTrackLookUpPath(LanguageCode, PublicationCode, SectionNumber, TrackNumber)
         : LookUpPathBuilder.BuildMusicTrackLookUpPath(PublicationCode, LanguageCode, TrackNumber);
 
     public int SectionNumber { get; set; }
-    public int ChapterNumber { get; set; }
+    public int TrackNumber { get; set; }
 
     public int TrackNumber { get; set; }
 
     public TimeSpan FinishedDuration { get; set; }
 
     public bool IsAlarmMusic => TrackNumber > 0;
-    public bool IsBibleReading => ChapterNumber > 0;
+    public bool IsBibleReading => TrackNumber > 0;
 
     public bool IsLastTrack { get; set; }
 }

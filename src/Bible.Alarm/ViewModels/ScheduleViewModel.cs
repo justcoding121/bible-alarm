@@ -122,9 +122,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             {
                 OnPropertyChanged(nameof(MusicSelectionContainerViewModel));
             }
-            else if (e.PropertyName == nameof(SchedulePropertyManager.NumberOfChapterContainerViewModel))
+            else if (e.PropertyName == nameof(SchedulePropertyManager.NumberOfTrackContainerViewModel))
             {
-                OnPropertyChanged(nameof(NumberOfChapterContainerViewModel));
+                OnPropertyChanged(nameof(NumberOfTrackContainerViewModel));
             }
             else if (e.PropertyName == nameof(SchedulePropertyManager.ScheduleDetailsContainerViewModel))
             {
@@ -198,11 +198,11 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             // This is important when page/ViewModel is reused on device
             DisposeContainers();
             
-            await containerManager.InitializeContainerViewModelsAsync((bible, music, chapters, details) =>
+            await containerManager.InitializeContainerViewModelsAsync((bible, music, tracks, details) =>
             {
                 propertyManager.BibleSelectionContainerViewModel = bible;
                 propertyManager.MusicSelectionContainerViewModel = music;
-                propertyManager.NumberOfChapterContainerViewModel = chapters;
+                propertyManager.NumberOfTrackContainerViewModel = tracks;
                 propertyManager.ScheduleDetailsContainerViewModel = details;
             });
             
@@ -232,11 +232,11 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         }
         propertyManager.MusicSelectionContainerViewModel = null;
         
-        if (propertyManager.NumberOfChapterContainerViewModel is IDisposable chaptersDisposable)
+        if (propertyManager.NumberOfTrackContainerViewModel is IDisposable tracksDisposable)
         {
-            chaptersDisposable.Dispose();
+            tracksDisposable.Dispose();
         }
-        propertyManager.NumberOfChapterContainerViewModel = null;
+        propertyManager.NumberOfTrackContainerViewModel = null;
         
         if (propertyManager.ScheduleDetailsContainerViewModel is IDisposable detailsDisposable)
         {
@@ -375,7 +375,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     // Container ViewModels - exposed for XAML binding
     public BibleSelectionContainerViewModel? BibleSelectionContainerViewModel => propertyManager.BibleSelectionContainerViewModel;
     public MusicSelectionContainerViewModel? MusicSelectionContainerViewModel => propertyManager.MusicSelectionContainerViewModel;
-    public NumberOfChapterContainerViewModel? NumberOfChapterContainerViewModel => propertyManager.NumberOfChapterContainerViewModel;
+    public NumberOfTrackContainerViewModel? NumberOfTrackContainerViewModel => propertyManager.NumberOfTrackContainerViewModel;
     public ScheduleDetailsContainerViewModel? ScheduleDetailsContainerViewModel => propertyManager.ScheduleDetailsContainerViewModel;
 
     /// <summary>

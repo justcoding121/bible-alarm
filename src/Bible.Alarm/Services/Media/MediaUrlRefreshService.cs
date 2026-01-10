@@ -32,11 +32,11 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
             var playType = trackMetadata.PlayType;
             if (playType == PlayType.Bible)
             {
-                return await GetBibleChapterUrl(
+                return await GetBibleTrackUrl(
                     trackMetadata.LanguageCode,
                     trackMetadata.PublicationCode,
                     trackMetadata.SectionNumber,
-                    trackMetadata.ChapterNumber,
+                    trackMetadata.TrackNumber,
                     lookUpPath);
             }
 
@@ -51,7 +51,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
     }
 
-    public async Task<string?> GetBibleChapterUrl(string languageCode, string pubCode, int sectionNumber, int chapter,
+    public async Task<string?> GetBibleTrackUrl(string languageCode, string pubCode, int sectionNumber, int track,
         string lookUpPath)
     {
         try
@@ -66,39 +66,39 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
             // Check if root is an object, not an array
             if (root.ValueKind != JsonValueKind.Object)
             {
-                logger.Warning("Root element is not an object (type: {ValueKind}) for Bible chapter URL refresh", root.ValueKind);
+                logger.Warning("Root element is not an object (type: {ValueKind}) for Bible track URL refresh", root.ValueKind);
                 return null;
             }
 
             if (!root.TryGetProperty("files", out var files))
             {
-                logger.Warning("'files' property not found in JSON response for Bible chapter URL refresh");
+                logger.Warning("'files' property not found in JSON response for Bible track URL refresh");
                 return null;
             }
 
             if (!files.TryGetProperty(languageCode, out var languageFiles))
             {
-                logger.Warning("Language '{LanguageCode}' not found in files for Bible chapter URL refresh", languageCode);
+                logger.Warning("Language '{LanguageCode}' not found in files for Bible track URL refresh", languageCode);
                 return null;
             }
 
             if (!languageFiles.TryGetProperty("MP3", out var mp3Files))
             {
-                logger.Warning("'MP3' property not found for language '{LanguageCode}' in Bible chapter URL refresh", languageCode);
+                logger.Warning("'MP3' property not found for language '{LanguageCode}' in Bible track URL refresh", languageCode);
                 return null;
             }
 
             // Check if MP3 is an array
             if (mp3Files.ValueKind != JsonValueKind.Array)
             {
-                logger.Warning("'MP3' property is not an array (type: {ValueKind}) for language '{LanguageCode}' in Bible chapter URL refresh", mp3Files.ValueKind, languageCode);
+                logger.Warning("'MP3' property is not an array (type: {ValueKind}) for language '{LanguageCode}' in Bible track URL refresh", mp3Files.ValueKind, languageCode);
                 return null;
             }
 
             var mp3Array = mp3Files.EnumerateArray().ToList();
             if (mp3Array.Count == 0)
             {
-                logger.Warning("No MP3 files found for language '{LanguageCode}' in Bible chapter URL refresh", languageCode);
+                logger.Warning("No MP3 files found for language '{LanguageCode}' in Bible track URL refresh", languageCode);
                 return null;
             }
 
@@ -106,14 +106,14 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
             if (!firstMp3.TryGetProperty("file", out var fileElement) ||
                 !fileElement.TryGetProperty("url", out var urlElement))
             {
-                logger.Warning("Missing 'file.url' property in MP3 file for Bible chapter URL refresh");
+                logger.Warning("Missing 'file.url' property in MP3 file for Bible track URL refresh");
                 return null;
             }
 
             var url = urlElement.GetString();
             if (string.IsNullOrEmpty(url))
             {
-                logger.Warning("URL is null or empty in MP3 file for Bible chapter URL refresh");
+                logger.Warning("URL is null or empty in MP3 file for Bible track URL refresh");
                 return null;
             }
 
@@ -121,7 +121,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Exception in GetBibleChapterUrl for language '{LanguageCode}', section {SectionNumber}, chapter {Chapter}", languageCode, sectionNumber, chapter);
+            logger.Error(ex, "Exception in GetBibleTrackUrl for language '{LanguageCode}', section {SectionNumber}, track {Track}", languageCode, sectionNumber, track);
             return null;
         }
     }

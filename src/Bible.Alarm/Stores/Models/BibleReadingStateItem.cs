@@ -21,7 +21,7 @@ public sealed class BibleReadingStateItem : IComparable
     /// </summary>
     public int? SectionNumber { get; set; }
 
-    public int ChapterNumber { get; set; }
+    public int TrackNumber { get; set; }
     public TimeSpan FinishedDuration { get; set; }
     public int AlarmScheduleId { get; set; }
 

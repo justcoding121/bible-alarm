@@ -9,16 +9,16 @@ namespace Bible.Alarm.Shared.Helpers;
 public static class LookUpPathBuilder
 {
     /// <summary>
-    /// Builds a lookup path for a Bible chapter.
+    /// Builds a lookup path for a Bible track.
     /// </summary>
     /// <param name="languageCode">The language code (e.g., "E" for English)</param>
     /// <param name="publicationCode">The publication/translation code (e.g., "nwt")</param>
     /// <param name="sectionNumber">The Bible section number (1-66)</param>
-    /// <param name="chapterNumber">The chapter number</param>
+    /// <param name="trackNumber">The track number</param>
     /// <returns>The lookup path query string</returns>
-    public static string BuildBibleChapterLookUpPath(string languageCode, string publicationCode, int sectionNumber, int chapterNumber)
+    public static string BuildBibleTrackLookUpPath(string languageCode, string publicationCode, int sectionNumber, int trackNumber)
     {
-        return $"?output=json&pub={publicationCode}&fileformat=MP3&langwritten={languageCode}&txtCMSLang=E&sectionnum={sectionNumber}&track={chapterNumber}";
+        return $"?output=json&pub={publicationCode}&fileformat=MP3&langwritten={languageCode}&txtCMSLang=E&sectionnum={sectionNumber}&track={trackNumber}";
     }
 
     /// <summary>

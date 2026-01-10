@@ -5,9 +5,9 @@ using Microsoft.Maui.Controls.Xaml;
 namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class NumberOfChapterContainer : ContentView
+public partial class NumberOfTrackContainer : ContentView
 {
-    public NumberOfChapterContainer()
+    public NumberOfTrackContainer()
     {
         InitializeComponent();
         // Ensure container is visible even when BindingContext is null

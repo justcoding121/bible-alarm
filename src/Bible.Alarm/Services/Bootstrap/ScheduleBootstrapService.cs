@@ -427,14 +427,14 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
                 cachedSchedule.NotificationEnabled != freshSchedule.NotificationEnabled ||
                 cachedSchedule.MusicEnabled != freshSchedule.MusicEnabled ||
                 cachedSchedule.SnoozeMinutes != freshSchedule.SnoozeMinutes ||
-                cachedSchedule.NumberOfChaptersToRead != freshSchedule.NumberOfChaptersToRead ||
+                cachedSchedule.NumberOfTracksToRead != freshSchedule.NumberOfTracksToRead ||
                 cachedSchedule.AlwaysPlayFromStart != freshSchedule.AlwaysPlayFromStart ||
                 cachedSchedule.CurrentPlayItem != freshSchedule.CurrentPlayItem ||
                 cachedSchedule.BibleReadingScheduleId != freshSchedule.BibleReadingScheduleId ||
                 cachedSchedule.BibleReadingLanguageCode != freshSchedule.BibleReadingLanguageCode ||
                 cachedSchedule.BibleReadingPublicationCode != freshSchedule.BibleReadingPublicationCode ||
                 cachedSchedule.BibleReadingSectionNumber != freshSchedule.BibleReadingSectionNumber ||
-                cachedSchedule.BibleReadingChapterNumber != freshSchedule.BibleReadingChapterNumber ||
+                cachedSchedule.BibleReadingTrackNumber != freshSchedule.BibleReadingTrackNumber ||
                 cachedSchedule.MusicId != freshSchedule.MusicId ||
                 cachedSchedule.MusicType != freshSchedule.MusicType ||
                 cachedSchedule.MusicPublicationCode != freshSchedule.MusicPublicationCode ||

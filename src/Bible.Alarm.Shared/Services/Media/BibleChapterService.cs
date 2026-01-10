@@ -15,42 +15,42 @@ using Serilog;
 namespace Bible.Alarm.Shared.Services.Media;
 
 /// <summary>
-/// Service for accessing BiblePublicationChapter database operations.
+/// Service for accessing BiblePublicationTrack database operations.
 /// </summary>
-public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleChapterService
+public sealed class BibleTrackService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleTrackService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
 
-    public async Task<SortedDictionary<int, BiblePublicationChapter>> GetChaptersBySectionAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default)
+    public async Task<SortedDictionary<int, BiblePublicationTrack>> GetTracksBySectionAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default)
     {
         try
         {
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var chapters = await dbContext.BiblePublications
+            var tracks = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Sections)
                 .Where(x => x.Number == sectionNumber)
-                .SelectMany(x => x.Chapters)
+                .SelectMany(x => x.Tracks)
                 .Include(x => x.Source)
                 .OrderBy(x => x.Number)
                 .ToListAsync(cancellationToken);
 
-            return new SortedDictionary<int, BiblePublicationChapter>(chapters.ToDictionary(x => x.Number, x => x));
+            return new SortedDictionary<int, BiblePublicationTrack>(tracks.ToDictionary(x => x.Number, x => x));
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublicationChapters by section. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}",
+            logger.Error(ex, "Error getting BiblePublicationTracks by section. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}",
                 languageCode, publicationCode, sectionNumber);
             throw;
         }
     }
 
-    public async Task<BiblePublicationChapter?> GetChapterAsync(string languageCode, string publicationCode, int sectionNumber, int chapterNumber, CancellationToken cancellationToken = default)
+    public async Task<BiblePublicationTrack?> GetTrackAsync(string languageCode, string publicationCode, int sectionNumber, int trackNumber, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -62,54 +62,54 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Sections)
                 .Where(x => x.Number == sectionNumber)
-                .SelectMany(x => x.Chapters)
+                .SelectMany(x => x.Tracks)
                 .Include(x => x.Source)
-                .Where(x => x.Number == chapterNumber)
+                .Where(x => x.Number == trackNumber)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublicationChapter. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}, ChapterNumber={ChapterNumber}",
-                languageCode, publicationCode, sectionNumber, chapterNumber);
+            logger.Error(ex, "Error getting BiblePublicationTrack. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}, TrackNumber={TrackNumber}",
+                languageCode, publicationCode, sectionNumber, trackNumber);
             throw;
         }
     }
 
-    public async Task UpdateChapterUrlAsync(string languageCode, string publicationCode, int sectionNumber, int chapterNumber, string url, CancellationToken cancellationToken = default)
+    public async Task UpdateTrackUrlAsync(string languageCode, string publicationCode, int sectionNumber, int trackNumber, string url, CancellationToken cancellationToken = default)
     {
         try
         {
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var chapter = await dbContext.BiblePublications
+            var track = await dbContext.BiblePublications
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Sections)
                 .Where(x => x.Number == sectionNumber)
-                .SelectMany(x => x.Chapters)
+                .SelectMany(x => x.Tracks)
                 .Include(x => x.Source)
                 .ThenInclude(s => s!.BaseUrlEntity)
-                .Where(x => x.Number == chapterNumber)
+                .Where(x => x.Number == trackNumber)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (chapter?.Source != null)
+            if (track?.Source != null)
             {
                 // Extract path from the new URL and update UrlPath
                 var (baseUrl, urlPath) = ExtractBaseUrlAndPath(url);
-                chapter.Source.UrlPath = urlPath;
+                track.Source.UrlPath = urlPath;
                 
                 // Update BaseUrl if it changed (rare, but handle it)
-                if (chapter.Source.BaseUrlEntity.BaseUrl != baseUrl)
+                if (track.Source.BaseUrlEntity.BaseUrl != baseUrl)
                 {
                     var existingBaseUrl = await dbContext.AudioSourceBaseUrls
                         .FirstOrDefaultAsync(x => x.BaseUrl == baseUrl, cancellationToken);
                     if (existingBaseUrl != null)
                     {
-                        chapter.Source.BaseUrlEntity = existingBaseUrl;
+                        track.Source.BaseUrlEntity = existingBaseUrl;
                     }
                     else
                     {
-                        chapter.Source.BaseUrlEntity = new AudioSourceBaseUrl { BaseUrl = baseUrl };
+                        track.Source.BaseUrlEntity = new AudioSourceBaseUrl { BaseUrl = baseUrl };
                     }
                 }
                 
@@ -118,8 +118,8 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error updating BiblePublicationChapter URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}, ChapterNumber={ChapterNumber}",
-                languageCode, publicationCode, sectionNumber, chapterNumber);
+            logger.Error(ex, "Error updating BiblePublicationTrack URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}, TrackNumber={TrackNumber}",
+                languageCode, publicationCode, sectionNumber, trackNumber);
             throw;
         }
     }

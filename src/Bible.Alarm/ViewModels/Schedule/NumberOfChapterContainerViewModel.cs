@@ -27,7 +27,7 @@ using Bible.Alarm.Platforms.Android.Services.Helpers;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
-public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDisposable
+public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
@@ -41,10 +41,10 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
     private bool hasSignaledReady;
     private bool isReadyActionQueued;
 
-    private ObservableCollection<NumberOfChaptersListViewItemModel> numberOfChaptersList = new();
-    private NumberOfChaptersListViewItemModel? currentNumberOfChapters;
+    private ObservableCollection<NumberOfTracksListViewItemModel> numberOfTracksList = new();
+    private NumberOfTracksListViewItemModel? currentNumberOfTracks;
 
-    public NumberOfChapterContainerViewModel(
+    public NumberOfTrackContainerViewModel(
         ILogger logger,
         INavigationService navigationService,
         IServiceProvider serviceProvider,
@@ -66,31 +66,31 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
     {
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
-            await navigationService.OpenNumberOfChaptersModalAsync(this);
+            await navigationService.OpenNumberOfTracksModalAsync(this);
         });
 
-        SelectNumberOfChaptersCommand = new AsyncRelayCommand<NumberOfChaptersListViewItemModel>(async x =>
+        SelectNumberOfTracksCommand = new AsyncRelayCommand<NumberOfTracksListViewItemModel>(async x =>
         {
-            if (CurrentNumberOfChapters != null)
+            if (CurrentNumberOfTracks != null)
             {
-                CurrentNumberOfChapters.IsSelected = false;
+                CurrentNumberOfTracks.IsSelected = false;
             }
 
-            CurrentNumberOfChapters = x;
-            if (CurrentNumberOfChapters != null)
+            CurrentNumberOfTracks = x;
+            if (CurrentNumberOfTracks != null)
             {
-                CurrentNumberOfChapters.IsSelected = true;
+                CurrentNumberOfTracks.IsSelected = true;
             }
 
             // Dispatch update to state
-            if (CurrentNumberOfChapters != null)
+            if (CurrentNumberOfTracks != null)
             {
-                DispatchScheduleUpdate(s => s.NumberOfChaptersToRead = CurrentNumberOfChapters.Value);
+                DispatchScheduleUpdate(s => s.NumberOfTracksToRead = CurrentNumberOfTracks.Value);
             }
 
             // Explicitly notify property changes to ensure UI binding updates
-            OnPropertyChanged(nameof(CurrentNumberOfChapters));
-            OnPropertyChanged(nameof(CurrentNumberOfChaptersText));
+            OnPropertyChanged(nameof(CurrentNumberOfTracks));
+            OnPropertyChanged(nameof(CurrentNumberOfTracksText));
 
             await navigationService.PopModalAsync();
         });
@@ -114,7 +114,7 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
             notificationEnabled = currentSchedule.NotificationEnabled;
             alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
 
-            PopulateNumberOfChaptersListView();
+            PopulateNumberOfTracksListView();
 
             OnPropertyChanged(nameof(NotificationEnabled));
             OnPropertyChanged(nameof(AlwaysPlayFromStart));
@@ -128,7 +128,7 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
     {
         // Check if already signaled or already marked ready in state
         // This check must happen first to prevent any duplicate work
-        if (hasSignaledReady || state.Value.ContainerReadiness.NumberOfChapter) return;
+        if (hasSignaledReady || state.Value.ContainerReadiness.NumberOfTrack) return;
         
         // Check if action is already queued to prevent duplicate queued actions
         // This prevents multiple rapid calls from queuing multiple actions
@@ -141,7 +141,7 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
         
         // Double-check state immediately after setting flags (before queuing)
         // This catches the case where state changed between the initial check and flag setting
-        if (state.Value.ContainerReadiness.NumberOfChapter)
+        if (state.Value.ContainerReadiness.NumberOfTrack)
         {
             // State already shows ready, reset flags and return
             isReadyActionQueued = false;
@@ -156,13 +156,13 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
             isReadyActionQueued = false; // Reset flag when action executes
             
             // Final check before dispatching - if state already shows we're ready, another action already handled it
-            if (state.Value.ContainerReadiness.NumberOfChapter)
+            if (state.Value.ContainerReadiness.NumberOfTrack)
             {
                 // Ensure flag is set to prevent future attempts
                 hasSignaledReady = true;
                 return;
             }
-            dispatcher.Dispatch(new ContainerReadyAction("NumberOfChapter"));
+            dispatcher.Dispatch(new ContainerReadyAction("NumberOfTrack"));
         });
     }
 
@@ -173,7 +173,7 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
         
         // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
         // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
-        if (hasSignaledReady && !stateValue.ContainerReadiness.NumberOfChapter && currentSchedule != null)
+        if (hasSignaledReady && !stateValue.ContainerReadiness.NumberOfTrack && currentSchedule != null)
         {
             hasSignaledReady = false;
             isReadyActionQueued = false; // Reset queued flag as well
@@ -214,35 +214,35 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
     }
 
     public ICommand OpenModalCommand { get; private set; } = null!;
-    public ICommand SelectNumberOfChaptersCommand { get; private set; } = null!;
+    public ICommand SelectNumberOfTracksCommand { get; private set; } = null!;
     public ICommand ToggleAlwaysPlayFromStartCommand { get; private set; } = null!;
     public ICommand NotificationEnabledCommand { get; private set; } = null!;
     public ICommand CloseModalCommand { get; private set; } = null!;
 
-    public ObservableCollection<NumberOfChaptersListViewItemModel> NumberOfChaptersList
+    public ObservableCollection<NumberOfTracksListViewItemModel> NumberOfTracksList
     {
-        get => numberOfChaptersList;
-        set => SetProperty(ref numberOfChaptersList, value);
+        get => numberOfTracksList;
+        set => SetProperty(ref numberOfTracksList, value);
     }
 
-    public NumberOfChaptersListViewItemModel? CurrentNumberOfChapters
+    public NumberOfTracksListViewItemModel? CurrentNumberOfTracks
     {
-        get => currentNumberOfChapters;
+        get => currentNumberOfTracks;
         set
         {
-            if (SetProperty(ref currentNumberOfChapters, value))
+            if (SetProperty(ref currentNumberOfTracks, value))
             {
-                // Notify that the Text property (computed from CurrentNumberOfChapters) has changed
-                OnPropertyChanged(nameof(CurrentNumberOfChaptersText));
+                // Notify that the Text property (computed from CurrentNumberOfTracks) has changed
+                OnPropertyChanged(nameof(CurrentNumberOfTracksText));
             }
         }
     }
 
     /// <summary>
-    /// Computed property for binding to the number of chapters text in the UI.
-    /// This ensures the UI updates when CurrentNumberOfChapters changes.
+    /// Computed property for binding to the number of tracks text in the UI.
+    /// This ensures the UI updates when CurrentNumberOfTracks changes.
     /// </summary>
-    public string CurrentNumberOfChaptersText => CurrentNumberOfChapters?.Text ?? string.Empty;
+    public string CurrentNumberOfTracksText => CurrentNumberOfTracks?.Text ?? string.Empty;
 
     public bool NotificationEnabled
     {
@@ -311,34 +311,34 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
         }
     }
 
-    private void PopulateNumberOfChaptersListView()
+    private void PopulateNumberOfTracksListView()
     {
         // Preserve the current selection if user has made one
-        var preservedSelection = CurrentNumberOfChapters?.Value;
+        var preservedSelection = CurrentNumberOfTracks?.Value;
         var currentSchedule = state.Value.CurrentSchedule;
-        var numberOfChapters = currentSchedule?.NumberOfChaptersToRead ?? 3;
+        var numberOfTracks = currentSchedule?.NumberOfTracksToRead ?? 3;
 
-        var chapterVMs = new ObservableCollection<NumberOfChaptersListViewItemModel>();
+        var trackVMs = new ObservableCollection<NumberOfTracksListViewItemModel>();
 
         for (var i = 1; i <= 21; i++)
         {
-            var chaptersVm = new NumberOfChaptersListViewItemModel(i);
+            var tracksVm = new NumberOfTracksListViewItemModel(i);
 
             // If user has made a selection, use that; otherwise use the state's value
             var shouldSelect = preservedSelection.HasValue
                 ? preservedSelection.Value == i
-                : numberOfChapters == i;
+                : numberOfTracks == i;
 
             if (shouldSelect)
             {
-                chaptersVm.IsSelected = true;
-                CurrentNumberOfChapters = chaptersVm;
+                tracksVm.IsSelected = true;
+                CurrentNumberOfTracks = tracksVm;
             }
 
-            chapterVMs.Add(chaptersVm);
+            trackVMs.Add(tracksVm);
         }
 
-        NumberOfChaptersList = chapterVMs;
+        NumberOfTracksList = trackVMs;
     }
 
     private void DispatchScheduleUpdate(Action<ScheduleStateItem> updateAction)
@@ -369,7 +369,7 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
             NotificationEnabled = source.NotificationEnabled,
             MusicEnabled = source.MusicEnabled,
             SnoozeMinutes = source.SnoozeMinutes,
-            NumberOfChaptersToRead = source.NumberOfChaptersToRead,
+            NumberOfTracksToRead = source.NumberOfTracksToRead,
             AlwaysPlayFromStart = source.AlwaysPlayFromStart,
             CurrentPlayItem = source.CurrentPlayItem,
             LatestAlarmNotificationId = source.LatestAlarmNotificationId,
@@ -377,7 +377,7 @@ public sealed class NumberOfChapterContainerViewModel : ObservableObject, IDispo
             BibleReadingLanguageCode = source.BibleReadingLanguageCode,
             BibleReadingPublicationCode = source.BibleReadingPublicationCode,
             BibleReadingSectionNumber = source.BibleReadingSectionNumber,
-            BibleReadingChapterNumber = source.BibleReadingChapterNumber,
+            BibleReadingTrackNumber = source.BibleReadingTrackNumber,
             BibleReadingFinishedDuration = source.BibleReadingFinishedDuration,
             MusicId = source.MusicId,
             MusicType = source.MusicType,

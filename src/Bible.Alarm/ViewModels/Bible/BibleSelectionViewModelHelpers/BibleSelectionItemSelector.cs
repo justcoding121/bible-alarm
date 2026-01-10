@@ -11,7 +11,7 @@ using Fluxor;
 namespace Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles complex selection logic for sections, chapters, and translations.
+/// Handles complex selection logic for sections, tracks, and translations.
 /// </summary>
 public sealed class BibleSelectionItemSelector
 {
@@ -26,7 +26,7 @@ public sealed class BibleSelectionItemSelector
         this.state = state;
     }
 
-    public async Task<(int SectionNumber, int ChapterNumber, string SectionName)> GetSectionAndChapterForTranslationAsync(
+    public async Task<(int SectionNumber, int TrackNumber, string SectionName)> GetSectionAndTrackForTranslationAsync(
         PublicationListViewItemModel publication,
         LanguageListViewItemModel language)
     {
@@ -41,16 +41,16 @@ public sealed class BibleSelectionItemSelector
             return (0, 0, string.Empty);
         }
 
-        if (isSameTranslation && HasValidSectionAndChapter(currentSchedule))
+        if (isSameTranslation && HasValidSectionAndTrack(currentSchedule))
         {
-            return await GetPreservedSectionAndChapterAsync(currentSchedule!, publication, sections);
+            return await GetPreservedSectionAndTrackAsync(currentSchedule!, publication, sections);
         }
 
-        return await GetFirstSectionAndChapterAsync(language.Code, publication, sections);
+        return await GetFirstSectionAndTrackAsync(language.Code, publication, sections);
     }
 
-    public async Task<(string? PublicationCode, int SectionNumber, int ChapterNumber, string SectionName, string PublicationName)>
-        GetTranslationSectionAndChapterForLanguageAsync(LanguageListViewItemModel language)
+    public async Task<(string? PublicationCode, int SectionNumber, int TrackNumber, string SectionName, string PublicationName)>
+        GetTranslationSectionAndTrackForLanguageAsync(LanguageListViewItemModel language)
     {
         var currentSchedule = state.Value.CurrentSchedule;
         var isSameLanguage = currentSchedule != null &&
@@ -66,10 +66,10 @@ public sealed class BibleSelectionItemSelector
 
         if (isSameLanguage && CanPreserveCurrentTranslation(currentSchedule!, translations))
         {
-            return await GetPreservedTranslationSectionAndChapterAsync(currentSchedule!, language, translations);
+            return await GetPreservedTranslationSectionAndTrackAsync(currentSchedule!, language, translations);
         }
 
-        return await GetDefaultTranslationSectionAndChapterAsync(language, translations);
+        return await GetDefaultTranslationSectionAndTrackAsync(language, translations);
     }
 
     private static bool IsSameTranslation(ScheduleStateItem? currentSchedule, PublicationListViewItemModel publication)
@@ -79,53 +79,53 @@ public sealed class BibleSelectionItemSelector
                currentSchedule.BibleReadingPublicationCode == publication.Code;
     }
 
-    private static bool HasValidSectionAndChapter(ScheduleStateItem? schedule)
+    private static bool HasValidSectionAndTrack(ScheduleStateItem? schedule)
     {
         return schedule != null &&
                schedule.BibleReadingSectionNumber.HasValue &&
-               schedule.BibleReadingChapterNumber.HasValue;
+               schedule.BibleReadingTrackNumber.HasValue;
     }
 
-    private async Task<(int SectionNumber, int ChapterNumber, string SectionName)> GetPreservedSectionAndChapterAsync(
+    private async Task<(int SectionNumber, int TrackNumber, string SectionName)> GetPreservedSectionAndTrackAsync(
         ScheduleStateItem currentSchedule,
         PublicationListViewItemModel publication,
         IDictionary<int, BibleSection> sections)
     {
         var currentSectionNumber = currentSchedule.BibleReadingSectionNumber!.Value;
-        var currentChapterNumber = currentSchedule.BibleReadingChapterNumber!.Value;
+        var currentTrackNumber = currentSchedule.BibleReadingTrackNumber!.Value;
 
         if (sections.TryGetValue(currentSectionNumber, out var currentSection))
         {
-            var chapters = await Task.Run(async () =>
-                await mediaService.GetBibleChapters(currentSchedule.BibleReadingLanguageCode!, publication.Code, currentSectionNumber));
+            var tracks = await Task.Run(async () =>
+                await mediaService.GetBibleTracks(currentSchedule.BibleReadingLanguageCode!, publication.Code, currentSectionNumber));
 
-            var chapterNumber = chapters != null && chapters.ContainsKey(currentChapterNumber)
-                ? currentChapterNumber
-                : chapters?.Values.First().Number ?? 1;
+            var trackNumber = tracks != null && tracks.ContainsKey(currentTrackNumber)
+                ? currentTrackNumber
+                : tracks?.Values.First().Number ?? 1;
 
-            return (currentSectionNumber, chapterNumber, currentSection.Name);
+            return (currentSectionNumber, trackNumber, currentSection.Name);
         }
 
         // Use the language code from the schedule directly
         var languageCode = currentSchedule.BibleReadingLanguageCode ?? "en";
-        return await GetFirstSectionAndChapterAsync(languageCode, publication, sections);
+        return await GetFirstSectionAndTrackAsync(languageCode, publication, sections);
     }
 
-    private async Task<(int SectionNumber, int ChapterNumber, string SectionName)> GetFirstSectionAndChapterAsync(
+    private async Task<(int SectionNumber, int TrackNumber, string SectionName)> GetFirstSectionAndTrackAsync(
         string languageCode,
         PublicationListViewItemModel publication,
         IDictionary<int, BibleSection> sections)
     {
         var firstSection = sections.Values.First();
-        var chapters = await Task.Run(async () =>
-            await mediaService.GetBibleChapters(languageCode, publication.Code, firstSection.Number));
+        var tracks = await Task.Run(async () =>
+            await mediaService.GetBibleTracks(languageCode, publication.Code, firstSection.Number));
 
-        if (chapters == null || chapters.Count == 0)
+        if (tracks == null || tracks.Count == 0)
         {
             return (0, 0, string.Empty);
         }
 
-        return (firstSection.Number, chapters.Values.First().Number, firstSection.Name);
+        return (firstSection.Number, tracks.Values.First().Number, firstSection.Name);
     }
 
     private static bool CanPreserveCurrentTranslation(ScheduleStateItem schedule, Dictionary<string, BiblePublication> translations)
@@ -133,40 +133,40 @@ public sealed class BibleSelectionItemSelector
         return !string.IsNullOrEmpty(schedule.BibleReadingPublicationCode) &&
                translations.ContainsKey(schedule.BibleReadingPublicationCode) &&
                schedule.BibleReadingSectionNumber.HasValue &&
-               schedule.BibleReadingChapterNumber.HasValue;
+               schedule.BibleReadingTrackNumber.HasValue;
     }
 
-    private async Task<(string PublicationCode, int SectionNumber, int ChapterNumber, string SectionName, string PublicationName)>
-        GetPreservedTranslationSectionAndChapterAsync(
+    private async Task<(string PublicationCode, int SectionNumber, int TrackNumber, string SectionName, string PublicationName)>
+        GetPreservedTranslationSectionAndTrackAsync(
             ScheduleStateItem currentSchedule,
             LanguageListViewItemModel language,
             Dictionary<string, BiblePublication> translations)
     {
         var publicationCode = currentSchedule.BibleReadingPublicationCode!;
         var currentSectionNumber = currentSchedule.BibleReadingSectionNumber!.Value;
-        var currentChapterNumber = currentSchedule.BibleReadingChapterNumber!.Value;
+        var currentTrackNumber = currentSchedule.BibleReadingTrackNumber!.Value;
 
         var sections = await Task.Run(async () =>
             await mediaService.GetBibleSections(language.Code, publicationCode));
 
         if (sections != null && sections.TryGetValue(currentSectionNumber, out var currentSection))
         {
-            var chapters = await Task.Run(async () =>
-                await mediaService.GetBibleChapters(language.Code, publicationCode, currentSectionNumber));
+            var tracks = await Task.Run(async () =>
+                await mediaService.GetBibleTracks(language.Code, publicationCode, currentSectionNumber));
 
-            var chapterNumber = chapters != null && chapters.ContainsKey(currentChapterNumber)
-                ? currentChapterNumber
-                : chapters?.Values.First().Number ?? 1;
+            var trackNumber = tracks != null && tracks.ContainsKey(currentTrackNumber)
+                ? currentTrackNumber
+                : tracks?.Values.First().Number ?? 1;
 
             var publicationName = translations.TryGetValue(publicationCode, out var pub) ? pub.Name : publicationCode;
-            return (publicationCode, currentSectionNumber, chapterNumber, currentSection.Name, publicationName);
+            return (publicationCode, currentSectionNumber, trackNumber, currentSection.Name, publicationName);
         }
 
         return await GetFirstSectionForTranslationAsync(language, publicationCode, translations);
     }
 
-    private async Task<(string PublicationCode, int SectionNumber, int ChapterNumber, string SectionName, string PublicationName)>
-        GetDefaultTranslationSectionAndChapterAsync(
+    private async Task<(string PublicationCode, int SectionNumber, int TrackNumber, string SectionName, string PublicationName)>
+        GetDefaultTranslationSectionAndTrackAsync(
             LanguageListViewItemModel language,
             Dictionary<string, BiblePublication> translations)
     {
@@ -180,7 +180,7 @@ public sealed class BibleSelectionItemSelector
         return await GetFirstSectionForTranslationAsync(language, publicationCode, translations);
     }
 
-    private async Task<(string PublicationCode, int SectionNumber, int ChapterNumber, string SectionName, string PublicationName)>
+    private async Task<(string PublicationCode, int SectionNumber, int TrackNumber, string SectionName, string PublicationName)>
         GetFirstSectionForTranslationAsync(
             LanguageListViewItemModel language,
             string publicationCode,
@@ -195,15 +195,15 @@ public sealed class BibleSelectionItemSelector
         }
 
         var firstSection = sections.Values.First();
-        var chapters = await Task.Run(async () =>
-            await mediaService.GetBibleChapters(language.Code, publicationCode, firstSection.Number));
+        var tracks = await Task.Run(async () =>
+            await mediaService.GetBibleTracks(language.Code, publicationCode, firstSection.Number));
 
-        if (chapters == null || chapters.Count == 0)
+        if (tracks == null || tracks.Count == 0)
         {
             return (string.Empty, 0, 0, string.Empty, string.Empty);
         }
 
         var publicationName = translations.TryGetValue(publicationCode, out var pub) ? pub.Name : publicationCode;
-        return (publicationCode, firstSection.Number, chapters.Values.First().Number, firstSection.Name, publicationName);
+        return (publicationCode, firstSection.Number, tracks.Values.First().Number, firstSection.Name, publicationName);
     }
 }

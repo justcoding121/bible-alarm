@@ -102,7 +102,7 @@ public class StateChangeHandler
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = currentSchedule.BibleReadingSectionNumber ?? 1,
-                ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
+                TrackNumber = currentSchedule.BibleReadingTrackNumber ?? 1
             };
             setCurrent(newCurrent);
             setLastCurrent(newCurrent);

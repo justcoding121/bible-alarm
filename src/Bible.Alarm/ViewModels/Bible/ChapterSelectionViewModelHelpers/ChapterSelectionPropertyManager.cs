@@ -2,16 +2,16 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Bible.TrackSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles property management for ChapterSelectionViewModel.
+/// Handles property management for TrackSelectionViewModel.
 /// </summary>
-public sealed class ChapterSelectionPropertyManager : ObservableObject
+public sealed class TrackSelectionPropertyManager : ObservableObject
 {
     private bool isBusy = true;
-    private ObservableCollection<BibleChapterListViewItemModel>? chapters;
-    private BibleChapterListViewItemModel? selectedChapter;
+    private ObservableCollection<BibleTrackListViewItemModel>? tracks;
+    private BibleTrackListViewItemModel? selectedTrack;
 
     public bool IsBusy
     {
@@ -19,16 +19,16 @@ public sealed class ChapterSelectionPropertyManager : ObservableObject
         set => SetProperty(ref isBusy, value);
     }
 
-    public ObservableCollection<BibleChapterListViewItemModel> Chapters
+    public ObservableCollection<BibleTrackListViewItemModel> Tracks
     {
-        get => chapters ??= [];
-        set => SetProperty(ref chapters, value);
+        get => tracks ??= [];
+        set => SetProperty(ref tracks, value);
     }
 
-    public BibleChapterListViewItemModel? SelectedChapter
+    public BibleTrackListViewItemModel? SelectedTrack
     {
-        get => selectedChapter;
-        set => SetProperty(ref selectedChapter, value);
+        get => selectedTrack;
+        set => SetProperty(ref selectedTrack, value);
     }
 }
 

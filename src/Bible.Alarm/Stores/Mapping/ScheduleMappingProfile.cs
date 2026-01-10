@@ -19,7 +19,7 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.BibleReadingLanguageCode, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? src.BibleReadingSchedule.LanguageCode : null))
             .ForMember(dest => dest.BibleReadingPublicationCode, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? src.BibleReadingSchedule.PublicationCode : null))
             .ForMember(dest => dest.BibleReadingSectionNumber, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? src.BibleReadingSchedule.SectionNumber : null))
-            .ForMember(dest => dest.BibleReadingChapterNumber, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? (int?)src.BibleReadingSchedule.ChapterNumber : null))
+            .ForMember(dest => dest.BibleReadingTrackNumber, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? (int?)src.BibleReadingSchedule.TrackNumber : null))
             .ForMember(dest => dest.BibleReadingFinishedDuration, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? (TimeSpan?)src.BibleReadingSchedule.FinishedDuration : null))
             .ForMember(dest => dest.MusicId, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.Id : null))
             .ForMember(dest => dest.MusicType, opt => opt.MapFrom(src => src.Music != null ? (MusicType?)src.Music.MusicType : null))
@@ -39,7 +39,7 @@ public class ScheduleMappingProfile : Profile
                 LanguageCode = src.BibleReadingLanguageCode ?? string.Empty,
                 PublicationCode = src.BibleReadingPublicationCode ?? string.Empty,
                 SectionNumber = src.BibleReadingSectionNumber,
-                ChapterNumber = src.BibleReadingChapterNumber ?? 0,
+                TrackNumber = src.BibleReadingTrackNumber ?? 0,
                 FinishedDuration = src.BibleReadingFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = src.Id
             } : null))

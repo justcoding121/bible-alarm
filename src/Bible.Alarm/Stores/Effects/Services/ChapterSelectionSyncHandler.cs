@@ -11,31 +11,31 @@ using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.Stores.Effects.Services;
 
 /// <summary>
-/// Handles syncing of chapter selection to CurrentSchedule.
+/// Handles syncing of track selection to CurrentSchedule.
 /// Separated from ScheduleEffects for better modularity.
 /// </summary>
-public sealed class ChapterSelectionSyncHandler
+public sealed class TrackSelectionSyncHandler
 {
     private readonly IState<ApplicationState>? state;
 
-    public ChapterSelectionSyncHandler(IState<ApplicationState>? state = null)
+    public TrackSelectionSyncHandler(IState<ApplicationState>? state = null)
     {
         this.state = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
     }
 
     /// <summary>
-    /// Effect: Sync CurrentBibleReadingSchedule to CurrentSchedule when ChapterSelectedAction is dispatched.
+    /// Effect: Sync CurrentBibleReadingSchedule to CurrentSchedule when TrackSelectedAction is dispatched.
     /// This ensures that when sub-pages update CurrentBibleReadingSchedule, CurrentSchedule is also updated
     /// so the schedule page displays the changes immediately.
     /// </summary>
-    public async Task HandleChapterSelected(ChapterSelectedAction action, IDispatcher dispatcher)
+    public async Task HandleTrackSelected(TrackSelectedAction action, IDispatcher dispatcher)
     {
         try
         {
-            LogChapterSelectedStart(action);
+            LogTrackSelectedStart(action);
 
             var currentState = state?.Value;
-            if (!CanSyncChapterSelection(currentState, action))
+            if (!CanSyncTrackSelection(currentState, action))
             {
                 return;
             }
@@ -46,7 +46,7 @@ public sealed class ChapterSelectionSyncHandler
                 return;
             }
 
-            var updatedSchedule = CreateUpdatedScheduleFromChapterSelection(currentSchedule, action);
+            var updatedSchedule = CreateUpdatedScheduleFromTrackSelection(currentSchedule, action);
             DispatchUpdateAction(dispatcher, updatedSchedule, currentSchedule.Id);
         }
         catch (Exception ex)
@@ -55,21 +55,21 @@ public sealed class ChapterSelectionSyncHandler
         }
     }
 
-    private void LogChapterSelectedStart(ChapterSelectedAction action)
+    private void LogTrackSelectedStart(TrackSelectedAction action)
     {
-        Log.Information("ScheduleEffects: HandleChapterSelected - Received action. CurrentBibleReadingSchedule: {BibleReadingSchedule}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, SectionNumber: {SectionNumber}, ChapterNumber: {ChapterNumber}",
+        Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentBibleReadingSchedule: {BibleReadingSchedule}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, SectionNumber: {SectionNumber}, TrackNumber: {TrackNumber}",
             action.CurrentBibleReadingSchedule != null ? "not null" : "null",
             action.CurrentBibleReadingSchedule?.LanguageCode ?? "null",
             action.CurrentBibleReadingSchedule?.PublicationCode ?? "null",
             action.CurrentBibleReadingSchedule?.SectionNumber ?? 0,
-            action.CurrentBibleReadingSchedule?.ChapterNumber ?? 0);
+            action.CurrentBibleReadingSchedule?.TrackNumber ?? 0);
     }
 
-    private bool CanSyncChapterSelection(ApplicationState? currentState, ChapterSelectedAction action)
+    private bool CanSyncTrackSelection(ApplicationState? currentState, TrackSelectedAction action)
     {
         if (currentState?.CurrentSchedule == null || action.CurrentBibleReadingSchedule == null)
         {
-            Log.Warning("ScheduleEffects: HandleChapterSelected - CurrentSchedule or CurrentBibleReadingSchedule is null. CurrentSchedule: {CurrentSchedule}, CurrentBibleReadingSchedule: {BibleReadingSchedule}",
+            Log.Warning("ScheduleEffects: HandleTrackSelected - CurrentSchedule or CurrentBibleReadingSchedule is null. CurrentSchedule: {CurrentSchedule}, CurrentBibleReadingSchedule: {BibleReadingSchedule}",
                 currentState?.CurrentSchedule != null ? "not null" : "null",
                 action.CurrentBibleReadingSchedule != null ? "not null" : "null");
             return false;
@@ -79,7 +79,7 @@ public sealed class ChapterSelectionSyncHandler
 
     private bool ShouldSyncBibleReadingSchedule(ScheduleStateItem currentSchedule, BibleReadingStateItem actionBibleReadingSchedule)
     {
-        Log.Debug("ScheduleEffects: HandleChapterSelected - CurrentSchedule Id: {ScheduleId}, BibleReadingScheduleId: {BibleReadingScheduleId}, Action BibleReadingSchedule Id: {ActionBibleReadingScheduleId}",
+        Log.Debug("ScheduleEffects: HandleTrackSelected - CurrentSchedule Id: {ScheduleId}, BibleReadingScheduleId: {BibleReadingScheduleId}, Action BibleReadingSchedule Id: {ActionBibleReadingScheduleId}",
             currentSchedule.Id, currentSchedule.BibleReadingScheduleId, actionBibleReadingSchedule.Id);
 
         // Allow syncing if:
@@ -90,17 +90,17 @@ public sealed class ChapterSelectionSyncHandler
             currentSchedule.BibleReadingScheduleId.HasValue &&
             actionBibleReadingSchedule.Id != currentSchedule.BibleReadingScheduleId.Value)
         {
-            Log.Warning("ScheduleEffects: HandleChapterSelected - Different BibleReadingSchedule ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.",
+            Log.Warning("ScheduleEffects: HandleTrackSelected - Different BibleReadingSchedule ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.",
                 currentSchedule.BibleReadingScheduleId.Value, actionBibleReadingSchedule.Id);
             return false;
         }
 
-        Log.Debug("ScheduleEffects: HandleChapterSelected - Syncing allowed. Action Id: {ActionId} (0=new selection), Current BibleReadingScheduleId: {CurrentId}",
+        Log.Debug("ScheduleEffects: HandleTrackSelected - Syncing allowed. Action Id: {ActionId} (0=new selection), Current BibleReadingScheduleId: {CurrentId}",
             actionBibleReadingSchedule.Id, currentSchedule.BibleReadingScheduleId);
         return true;
     }
 
-    private ScheduleStateItem CreateUpdatedScheduleFromChapterSelection(ScheduleStateItem currentSchedule, ChapterSelectedAction action)
+    private ScheduleStateItem CreateUpdatedScheduleFromTrackSelection(ScheduleStateItem currentSchedule, TrackSelectedAction action)
     {
         var updatedSchedule = CloneBasicScheduleProperties(currentSchedule);
         UpdateBibleReadingProperties(updatedSchedule, currentSchedule, action.CurrentBibleReadingSchedule!);
@@ -123,7 +123,7 @@ public sealed class ChapterSelectionSyncHandler
             NotificationEnabled = currentSchedule.NotificationEnabled,
             MusicEnabled = currentSchedule.MusicEnabled,
             SnoozeMinutes = currentSchedule.SnoozeMinutes,
-            NumberOfChaptersToRead = currentSchedule.NumberOfChaptersToRead,
+            NumberOfTracksToRead = currentSchedule.NumberOfTracksToRead,
             AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart,
             CurrentPlayItem = currentSchedule.CurrentPlayItem,
             LatestAlarmNotificationId = currentSchedule.LatestAlarmNotificationId
@@ -136,7 +136,7 @@ public sealed class ChapterSelectionSyncHandler
         updatedSchedule.BibleReadingLanguageCode = actionBibleReadingSchedule.LanguageCode;
         updatedSchedule.BibleReadingPublicationCode = actionBibleReadingSchedule.PublicationCode;
         updatedSchedule.BibleReadingSectionNumber = actionBibleReadingSchedule.SectionNumber;
-        updatedSchedule.BibleReadingChapterNumber = actionBibleReadingSchedule.ChapterNumber;
+        updatedSchedule.BibleReadingTrackNumber = actionBibleReadingSchedule.TrackNumber;
         updatedSchedule.BibleReadingFinishedDuration = actionBibleReadingSchedule.FinishedDuration;
     }
 
@@ -161,7 +161,7 @@ public sealed class ChapterSelectionSyncHandler
         updatedSchedule.BibleReadingPublicationName = actionBibleReadingSchedule.PublicationName;
         updatedSchedule.BibleReadingSectionName = actionBibleReadingSchedule.SectionName;
 
-        Log.Debug("ScheduleEffects: HandleChapterSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}",
+        Log.Debug("ScheduleEffects: HandleTrackSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}",
             updatedSchedule.BibleReadingLanguageName ?? "null",
             updatedSchedule.BibleReadingPublicationName ?? "null",
             updatedSchedule.BibleReadingSectionName ?? "null");
@@ -169,7 +169,7 @@ public sealed class ChapterSelectionSyncHandler
 
     private void DispatchUpdateAction(IDispatcher dispatcher, ScheduleStateItem updatedSchedule, int scheduleId)
     {
-        Log.Information("ScheduleEffects: HandleChapterSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, SectionNumber: {SectionNumber}, SectionName: {SectionName}, ChapterNumber: {ChapterNumber}",
+        Log.Information("ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, SectionNumber: {SectionNumber}, SectionName: {SectionName}, TrackNumber: {TrackNumber}",
             updatedSchedule.Id,
             updatedSchedule.BibleReadingLanguageCode,
             updatedSchedule.BibleReadingLanguageName ?? "null",
@@ -177,10 +177,10 @@ public sealed class ChapterSelectionSyncHandler
             updatedSchedule.BibleReadingPublicationName ?? "null",
             updatedSchedule.BibleReadingSectionNumber,
             updatedSchedule.BibleReadingSectionName ?? "null",
-            updatedSchedule.BibleReadingChapterNumber);
+            updatedSchedule.BibleReadingTrackNumber);
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
 
-        Log.Debug("ScheduleEffects: HandleChapterSelected - Synced CurrentBibleReadingSchedule to CurrentSchedule for ScheduleId: {ScheduleId}",
+        Log.Debug("ScheduleEffects: HandleTrackSelected - Synced CurrentBibleReadingSchedule to CurrentSchedule for ScheduleId: {ScheduleId}",
             scheduleId);
     }
 }

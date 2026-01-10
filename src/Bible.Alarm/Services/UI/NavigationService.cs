@@ -158,16 +158,16 @@ public sealed class NavigationService(
         await modalHandler.OpenSectionSelectionModalAsync(navigation, bindingContext);
     }
 
-    public async Task OpenChapterSelectionModalAsync(object bindingContext)
+    public async Task OpenTrackSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        await modalHandler.OpenChapterSelectionModalAsync(navigation, bindingContext);
+        await modalHandler.OpenTrackSelectionModalAsync(navigation, bindingContext);
     }
 
-    public async Task OpenNumberOfChaptersModalAsync(object bindingContext)
+    public async Task OpenNumberOfTracksModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        await modalHandler.OpenNumberOfChaptersModalAsync(navigation, bindingContext);
+        await modalHandler.OpenNumberOfTracksModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenLanguageModalAsync(object bindingContext)

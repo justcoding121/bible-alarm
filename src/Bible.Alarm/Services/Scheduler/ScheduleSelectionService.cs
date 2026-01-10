@@ -44,10 +44,10 @@ public sealed class ScheduleSelectionService
     /// <summary>
     /// Loads Bible reading for selection modal. For existing schedules, creates BibleReadingSchedule from CurrentSchedule properties
     /// instead of querying AlarmDB (since all data is already in CurrentSchedule from page load).
-    /// Only queries media index DB for section lists, chapters, etc.
+    /// Only queries media index DB for section lists, tracks, etc.
     /// </summary>
     public BibleReadingSchedule? LoadBibleReadingForSelection(int scheduleId, bool isNewSchedule, BibleReadingSchedule? currentBibleReading,
-        string? languageCode, string? publicationCode, int? sectionNumber, int? chapterNumber, TimeSpan? finishedDuration)
+        string? languageCode, string? publicationCode, int? sectionNumber, int? trackNumber, TimeSpan? finishedDuration)
     {
         // For new schedules, return currentBibleReading (which may be null)
         if (isNewSchedule)
@@ -61,7 +61,7 @@ public sealed class ScheduleSelectionService
         if (!string.IsNullOrWhiteSpace(languageCode) && 
             !string.IsNullOrWhiteSpace(publicationCode) && 
             sectionNumber.HasValue && 
-            chapterNumber.HasValue)
+            trackNumber.HasValue)
         {
             return new BibleReadingSchedule
             {
@@ -69,7 +69,7 @@ public sealed class ScheduleSelectionService
                 LanguageCode = languageCode,
                 PublicationCode = publicationCode,
                 SectionNumber = sectionNumber.Value,
-                ChapterNumber = chapterNumber.Value,
+                TrackNumber = trackNumber.Value,
                 FinishedDuration = finishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = scheduleId
             };

@@ -215,7 +215,7 @@ namespace Bible.Alarm.DbMigration.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "BibleChapter",
+                name: "BibleTrack",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -226,14 +226,14 @@ namespace Bible.Alarm.DbMigration.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_BibleChapter", x => x.Id);
+                    table.PrimaryKey("PK_BibleTrack", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_BibleChapter_AudioSource_SourceId",
+                        name: "FK_BibleTrack_AudioSource_SourceId",
                         column: x => x.SourceId,
                         principalTable: "AudioSource",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_BibleChapter_BibleSection_BibleSectionId",
+                        name: "FK_BibleTrack_BibleSection_BibleSectionId",
                         column: x => x.BibleSectionId,
                         principalTable: "BibleSection",
                         principalColumn: "Id",
@@ -252,14 +252,14 @@ namespace Bible.Alarm.DbMigration.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_BibleChapter_BibleSectionId_Number",
-                table: "BibleChapter",
+                name: "IX_BibleTrack_BibleSectionId_Number",
+                table: "BibleTrack",
                 columns: new[] { "BibleSectionId", "Number" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_BibleChapter_SourceId",
-                table: "BibleChapter",
+                name: "IX_BibleTrack_SourceId",
+                table: "BibleTrack",
                 column: "SourceId");
 
             migrationBuilder.CreateIndex(
@@ -342,7 +342,7 @@ namespace Bible.Alarm.DbMigration.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "BibleChapter");
+                name: "BibleTrack");
 
             migrationBuilder.DropTable(
                 name: "BiblePublicationTrack");

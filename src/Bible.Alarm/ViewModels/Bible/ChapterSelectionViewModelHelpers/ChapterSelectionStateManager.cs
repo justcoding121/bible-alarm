@@ -6,12 +6,12 @@ using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Bible.TrackSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles state management and initialization for ChapterSelectionViewModel.
+/// Handles state management and initialization for TrackSelectionViewModel.
 /// </summary>
-public sealed class ChapterSelectionStateManager(IMapper mapper)
+public sealed class TrackSelectionStateManager(IMapper mapper)
 {
     private BibleReadingSchedule? current;
     private BibleReadingSchedule? lastCurrent;
@@ -74,7 +74,7 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = newSectionNumber.Value,
-                ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
+                TrackNumber = currentSchedule.BibleReadingTrackNumber ?? 1
             };
             lastCurrent = current;
         }
@@ -93,7 +93,7 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
         IState<ApplicationState> state,
         Action<bool> setBusy,
         Func<string, string, int, Task> initialize,
-        Action setSelectedChapter)
+        Action setSelectedTrack)
     {
         var stateValue = state.Value;
 
@@ -142,12 +142,12 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = newSectionNumber.Value,
-                ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
+                TrackNumber = currentSchedule.BibleReadingTrackNumber ?? 1
             };
             lastCurrent = current;
         }
 
-        // If language, publication code, or section number changed, repopulate chapters
+        // If language, publication code, or section number changed, repopulate tracks
         if (needsRepopulation && initComplete)
         {
             Task.Run(async () =>
@@ -160,8 +160,8 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
         }
         else
         {
-            // Update selected chapter when state changes
-            MainThread.BeginInvokeOnMainThread(setSelectedChapter);
+            // Update selected track when state changes
+            MainThread.BeginInvokeOnMainThread(setSelectedTrack);
         }
     }
 
@@ -201,7 +201,7 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = newSectionNumber.Value,
-                ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
+                TrackNumber = currentSchedule.BibleReadingTrackNumber ?? 1
             };
         }
         lastCurrent = current;

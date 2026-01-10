@@ -23,13 +23,13 @@ public sealed class BiblePublicationSelectionActionDispatcher
 
     public void DispatchBibleReadingSelectionActions(BibleReadingStateItem bibleReadingItem)
     {
-        dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
+        dispatcher.Dispatch(new TrackSelectedAction(bibleReadingItem));
         dispatcher.Dispatch(new BiblePublicationSelectionAction(bibleReadingItem));
     }
 
     public void DispatchLanguageSelectionActions(BibleReadingStateItem bibleReadingItem, LanguageListViewItemModel language)
     {
-        dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
+        dispatcher.Dispatch(new TrackSelectedAction(bibleReadingItem));
         dispatcher.Dispatch(new BiblePublicationSelectionAction(bibleReadingItem));
     }
 }

@@ -47,7 +47,7 @@ public sealed class SchedulePlaybackService(
         }
     }
 
-    public async Task<bool> CanMoveChapterAsync(int scheduleId)
+    public async Task<bool> CanMoveTrackAsync(int scheduleId)
     {
         using var scope = scopeFactory.CreateScope();
 
@@ -57,7 +57,7 @@ public sealed class SchedulePlaybackService(
         }
 
         var toastService = scope.ServiceProvider.GetRequiredService<IToastService>();
-        await toastService.ShowMessage("Cannot update the chapter when schedule is in progress.");
+        await toastService.ShowMessage("Cannot update the track when schedule is in progress.");
 
         return false;
     }

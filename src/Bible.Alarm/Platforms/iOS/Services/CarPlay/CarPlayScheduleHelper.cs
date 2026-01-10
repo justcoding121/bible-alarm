@@ -45,7 +45,7 @@ public static class CarPlayScheduleHelper
 
     /// <summary>
     /// Builds the display title for a schedule state item.
-    /// Format: SectionName Chapter Number (e.g., "Joshua 22")
+    /// Format: SectionName Track Number (e.g., "Joshua 22")
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
@@ -63,10 +63,10 @@ public static class CarPlayScheduleHelper
                 titleParts.Add($"Section {scheduleItem.BibleReadingSectionNumber.Value}");
             }
 
-            // Add chapter number
-            if (scheduleItem.BibleReadingChapterNumber.HasValue && scheduleItem.BibleReadingChapterNumber.Value > 0)
+            // Add track number
+            if (scheduleItem.BibleReadingTrackNumber.HasValue && scheduleItem.BibleReadingTrackNumber.Value > 0)
             {
-                titleParts.Add(scheduleItem.BibleReadingChapterNumber.Value.ToString());
+                titleParts.Add(scheduleItem.BibleReadingTrackNumber.Value.ToString());
             }
 
             if (titleParts.Count > 0)

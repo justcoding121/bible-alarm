@@ -23,42 +23,42 @@ public class PlaylistBibleTrackBuilder
         this.mediaService = mediaService;
     }
 
-    public record ChapterInfo(int SectionNumber, BiblePublicationChapter Chapter, string Url);
+    public record TrackInfo(int SectionNumber, BiblePublicationTrack Track, string Url);
 
     public async Task<List<PlayItem>> BuildBibleTracks(
         int scheduleId,
         AlarmSchedule schedule,
         BibleReadingSchedule bibleReadingSchedule,
-        Func<string, string, int, int, Task<KeyValuePair<BibleSection, BiblePublicationChapter>>> getNextBibleChapterAsync)
+        Func<string, string, int, int, Task<KeyValuePair<BibleSection, BiblePublicationTrack>>> getNextBibleTrackAsync)
     {
-        var initialChapterInfo = await GetInitialChapterInfo(bibleReadingSchedule);
+        var initialTrackInfo = await GetInitialTrackInfo(bibleReadingSchedule);
         var result = new List<PlayItem>();
-        var numberOfChaptersToRead = schedule.NumberOfChaptersToRead;
+        var numberOfTracksToRead = schedule.NumberOfTracksToRead;
         var markedSeekTrack = false;
 
-        var currentSectionNumber = initialChapterInfo.SectionNumber;
-        var currentChapter = initialChapterInfo.Chapter;
-        var currentUrl = initialChapterInfo.Url;
+        var currentSectionNumber = initialTrackInfo.SectionNumber;
+        var currentTrack = initialTrackInfo.Track;
+        var currentUrl = initialTrackInfo.Url;
 
-        while (numberOfChaptersToRead > 0)
+        while (numberOfTracksToRead > 0)
         {
             var trackMetadata = CreateTrackMetadata(
                 scheduleId,
                 bibleReadingSchedule,
                 currentSectionNumber,
-                currentChapter.Number,
-                numberOfChaptersToRead,
+                currentTrack.Number,
+                numberOfTracksToRead,
                 schedule,
                 ref markedSeekTrack);
 
             result.Add(new PlayItem(trackMetadata, currentUrl));
 
-            numberOfChaptersToRead--;
-            if (numberOfChaptersToRead > 0)
+            numberOfTracksToRead--;
+            if (numberOfTracksToRead > 0)
             {
-                var next = await GetNextChapterInfo(bibleReadingSchedule, currentSectionNumber, currentChapter.Number, getNextBibleChapterAsync);
+                var next = await GetNextTrackInfo(bibleReadingSchedule, currentSectionNumber, currentTrack.Number, getNextBibleTrackAsync);
                 currentSectionNumber = next.SectionNumber;
-                currentChapter = next.Chapter;
+                currentTrack = next.Track;
                 currentUrl = next.Url;
             }
         }
@@ -66,39 +66,39 @@ public class PlaylistBibleTrackBuilder
         return result;
     }
 
-    public async Task<ChapterInfo> GetInitialChapterInfo(BibleReadingSchedule bibleReadingSchedule)
+    public async Task<TrackInfo> GetInitialTrackInfo(BibleReadingSchedule bibleReadingSchedule)
     {
         var sectionNumber = bibleReadingSchedule.SectionNumber ?? throw new InvalidOperationException("SectionNumber is null");
         
-        var chapters = await mediaService.GetBibleChapters(
+        var tracks = await mediaService.GetBibleTracks(
             bibleReadingSchedule.LanguageCode,
             bibleReadingSchedule.PublicationCode,
             sectionNumber);
 
-        if (!chapters.TryGetValue(bibleReadingSchedule.ChapterNumber, out var chapterDetail))
+        if (!tracks.TryGetValue(bibleReadingSchedule.TrackNumber, out var trackDetail))
         {
             logger.Error(
-                $"Chapter: ${bibleReadingSchedule.ChapterNumber}, section: {sectionNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup.");
-            throw new InvalidOperationException($"Chapter {bibleReadingSchedule.ChapterNumber} not found in section {sectionNumber}");
+                $"Track: ${bibleReadingSchedule.TrackNumber}, section: {sectionNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup.");
+            throw new InvalidOperationException($"Track {bibleReadingSchedule.TrackNumber} not found in section {sectionNumber}");
         }
 
-        if (chapterDetail.Source == null)
+        if (trackDetail.Source == null)
         {
-            throw new InvalidOperationException($"Chapter {bibleReadingSchedule.ChapterNumber} Source is null in section {sectionNumber}");
+            throw new InvalidOperationException($"Track {bibleReadingSchedule.TrackNumber} Source is null in section {sectionNumber}");
         }
 
-        return new ChapterInfo(
+        return new TrackInfo(
             sectionNumber,
-            chapterDetail,
-            chapterDetail.Source.Url);
+            trackDetail,
+            trackDetail.Source.Url);
     }
 
     private TrackMetadata CreateTrackMetadata(
         int scheduleId,
         BibleReadingSchedule bibleReadingSchedule,
         int sectionNumber,
-        int chapterNumber,
-        int remainingChapters,
+        int trackNumber,
+        int remainingTracks,
         AlarmSchedule schedule,
         ref bool markedSeekTrack)
     {
@@ -107,10 +107,10 @@ public class PlaylistBibleTrackBuilder
             ScheduleId = scheduleId,
             PublicationCode = bibleReadingSchedule.PublicationCode,
             LanguageCode = bibleReadingSchedule.LanguageCode,
-            // LookUpPath is now computed from LanguageCode, PublicationCode, SectionNumber, ChapterNumber
+            // LookUpPath is now computed from LanguageCode, PublicationCode, SectionNumber, TrackNumber
             SectionNumber = sectionNumber,
-            ChapterNumber = chapterNumber,
-            IsLastTrack = remainingChapters == 1
+            TrackNumber = trackNumber,
+            IsLastTrack = remainingTracks == 1
         };
 
         var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, bibleReadingSchedule, trackMetadata);
@@ -145,29 +145,29 @@ public class PlaylistBibleTrackBuilder
                bibleReadingSchedule.SectionNumber == trackMetadata.SectionNumber;
     }
 
-    public async Task<ChapterInfo> GetNextChapterInfo(
+    public async Task<TrackInfo> GetNextTrackInfo(
         BibleReadingSchedule bibleReadingSchedule,
         int currentSectionNumber,
-        int currentChapterNumber,
-        Func<string, string, int, int, Task<KeyValuePair<BibleSection, BibleChapter>>> getNextBibleChapterAsync)
+        int currentTrackNumber,
+        Func<string, string, int, int, Task<KeyValuePair<BibleSection, BibleTrack>>> getNextBibleTrackAsync)
     {
-        var next = await getNextBibleChapterAsync(
+        var next = await getNextBibleTrackAsync(
             bibleReadingSchedule.LanguageCode,
             bibleReadingSchedule.PublicationCode,
             currentSectionNumber,
-            currentChapterNumber);
+            currentTrackNumber);
 
         if (next.Key == null || next.Value == null)
         {
-            throw new InvalidOperationException("Next chapter Key or Value is null");
+            throw new InvalidOperationException("Next track Key or Value is null");
         }
 
         if (next.Value.Source == null)
         {
-            throw new InvalidOperationException("Next chapter Source is null");
+            throw new InvalidOperationException("Next track Source is null");
         }
 
-        return new ChapterInfo(
+        return new TrackInfo(
             next.Key.Number,
             next.Value,
             next.Value.Source.Url);

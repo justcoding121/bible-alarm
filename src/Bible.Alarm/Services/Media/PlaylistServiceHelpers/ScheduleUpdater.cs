@@ -8,16 +8,16 @@ using Serilog;
 namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 
 /// <summary>
-/// Handles schedule updates for chapter navigation.
+/// Handles schedule updates for track navigation.
 /// </summary>
 public sealed class ScheduleUpdater(
     IAlarmScheduleService alarmScheduleService,
     CancellationToken cancellationToken)
 {
     /// <summary>
-    /// Updates schedule to the next chapter.
+    /// Updates schedule to the next track.
     /// </summary>
-    public async Task<AlarmSchedule> UpdateScheduleToNextChapterAsync(int scheduleId, KeyValuePair<BibleSection, BiblePublicationChapter> next)
+    public async Task<AlarmSchedule> UpdateScheduleToNextTrackAsync(int scheduleId, KeyValuePair<BibleSection, BiblePublicationTrack> next)
     {
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
@@ -25,16 +25,16 @@ public sealed class ScheduleUpdater(
             {
                 var brs = s.BibleReadingSchedule ?? throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
                 brs.SectionNumber = next.Key.Number;
-                brs.ChapterNumber = next.Value.Number;
+                brs.TrackNumber = next.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
             },
             cancellationToken);
     }
 
     /// <summary>
-    /// Updates schedule to the previous chapter.
+    /// Updates schedule to the previous track.
     /// </summary>
-    public async Task<AlarmSchedule> UpdateScheduleToPreviousChapterAsync(int scheduleId, KeyValuePair<BibleSection, BiblePublicationChapter> previous)
+    public async Task<AlarmSchedule> UpdateScheduleToPreviousTrackAsync(int scheduleId, KeyValuePair<BibleSection, BiblePublicationTrack> previous)
     {
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
@@ -42,7 +42,7 @@ public sealed class ScheduleUpdater(
             {
                 var brs = s.BibleReadingSchedule ?? throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
                 brs.SectionNumber = previous.Key.Number;
-                brs.ChapterNumber = previous.Value.Number;
+                brs.TrackNumber = previous.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
             },
             cancellationToken);

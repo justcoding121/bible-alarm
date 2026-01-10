@@ -24,7 +24,7 @@ public static class ContainerReadinessReducer
         {
             "BibleSelection" => currentReadiness.BibleSelection,
             "MusicSelection" => currentReadiness.MusicSelection,
-            "NumberOfChapter" => currentReadiness.NumberOfChapter,
+            "NumberOfTrack" => currentReadiness.NumberOfTrack,
             "ScheduleDetails" => currentReadiness.ScheduleDetails,
             _ => false
         };
@@ -40,7 +40,7 @@ public static class ContainerReadinessReducer
         {
             "BibleSelection" => currentReadiness with { BibleSelection = true },
             "MusicSelection" => currentReadiness with { MusicSelection = true },
-            "NumberOfChapter" => currentReadiness with { NumberOfChapter = true },
+            "NumberOfTrack" => currentReadiness with { NumberOfTrack = true },
             "ScheduleDetails" => currentReadiness with { ScheduleDetails = true },
             _ => currentReadiness
         };
@@ -50,7 +50,7 @@ public static class ContainerReadinessReducer
             updatedReadiness.AllReady,
             updatedReadiness.BibleSelection,
             updatedReadiness.MusicSelection,
-            updatedReadiness.NumberOfChapter,
+            updatedReadiness.NumberOfTrack,
             updatedReadiness.ScheduleDetails);
 
         // Must return NEW instance for Fluxor to detect change and fire StateChanged

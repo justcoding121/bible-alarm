@@ -149,7 +149,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.Property<bool>("NotificationEnabled")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("NumberOfChaptersToRead")
+                    b.Property<int>("NumberOfTracksToRead")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Second")
@@ -179,7 +179,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.Property<int?>("SectionNumber")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ChapterNumber")
+                    b.Property<int>("TrackNumber")
                         .HasColumnType("INTEGER");
 
                     b.Property<TimeSpan>("FinishedDuration")

@@ -43,7 +43,7 @@ public sealed class PlaybackEventHandler
     {
         var currentTrackIndex = getCurrentTrackIndex();
 
-        // Mark track as finished - this advances Bible chapter to next chapter with position 0.00
+        // Mark track as finished - this advances Bible track to next track with position 0.00
         await MarkCurrentTrackAsFinishedAsync(playlist, currentTrackIndex);
 
         if (playlist is not null && currentTrackIndex < playlist.Count - 1)
@@ -130,7 +130,7 @@ public sealed class PlaybackEventHandler
         {
             var track = playlist[currentTrackIndex];
             
-            // Only mark Bible tracks as finished here (advances chapter)
+            // Only mark Bible tracks as finished here (advances track)
             // Music tracks are handled by ProgressTracker on first progress update
             if (track.PlayItem.Metadata.PlayType == PlayType.Music)
             {

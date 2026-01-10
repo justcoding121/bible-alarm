@@ -86,7 +86,7 @@ public class ScheduleCreateHandler
                 var mapped = mapper.Map<ScheduleStateItem>(savedSchedule);
 
                 // IMPORTANT: Display names are already populated in action.Schedule (from CurrentSchedule state).
-                // Selection pages/containers populate display names when user selects items (via HandleChapterSelected/HandleTrackSelected effects).
+                // Selection pages/containers populate display names when user selects items (via HandleTrackSelected/HandleTrackSelected effects).
                 // We should NOT query the database here - just preserve the display names from the action.
                 // Copy display names from action.Schedule to scheduleStateItem (which was mapped from savedSchedule, so it doesn't have display names)
                 if (action.Schedule != null)

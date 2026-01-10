@@ -63,7 +63,7 @@ public sealed class ScheduleListItemStateHandler(
     private ScheduleChangeInfo DetectScheduleChanges(ScheduleStateItem updatedScheduleItem, AlarmSchedule currentSchedule)
     {
         var oldSectionNumber = currentSchedule.BibleReadingSchedule?.SectionNumber;
-        var oldChapterNumber = currentSchedule.BibleReadingSchedule?.ChapterNumber;
+        var oldTrackNumber = currentSchedule.BibleReadingSchedule?.TrackNumber;
         var oldDaysOfWeek = currentSchedule.DaysOfWeek;
         var oldIsEnabled = currentSchedule.IsEnabled;
         var oldName = currentSchedule.Name ?? string.Empty;
@@ -90,7 +90,7 @@ public sealed class ScheduleListItemStateHandler(
             UpdatedSchedule = updatedSchedule,
             TrackChanged = trackChanged,
             SectionNumberChanged = oldSectionNumber != updatedSchedule.BibleReadingSchedule?.SectionNumber,
-            ChapterNumberChanged = oldChapterNumber != updatedSchedule.BibleReadingSchedule?.ChapterNumber,
+            TrackNumberChanged = oldTrackNumber != updatedSchedule.BibleReadingSchedule?.TrackNumber,
             BibleReadingLanguageNameChanged = lastKnownBibleReadingLanguageName != newBibleReadingLanguageName,
             SectionNameChanged = lastKnownSectionName != newSectionName,
             DaysOfWeekChanged = daysOfWeekChanged,
@@ -108,7 +108,7 @@ public sealed class ScheduleListItemStateHandler(
         if (currentSchedule.BibleReadingSchedule != null && updatedSchedule.BibleReadingSchedule != null)
         {
             return currentSchedule.BibleReadingSchedule.SectionNumber != updatedSchedule.BibleReadingSchedule.SectionNumber ||
-                   currentSchedule.BibleReadingSchedule.ChapterNumber != updatedSchedule.BibleReadingSchedule.ChapterNumber;
+                   currentSchedule.BibleReadingSchedule.TrackNumber != updatedSchedule.BibleReadingSchedule.TrackNumber;
         }
 
         if (currentSchedule.Music != null && updatedSchedule.Music != null)
@@ -124,7 +124,7 @@ public sealed class ScheduleListItemStateHandler(
         public AlarmSchedule UpdatedSchedule { get; init; } = null!;
         public bool TrackChanged { get; init; }
         public bool SectionNumberChanged { get; init; }
-        public bool ChapterNumberChanged { get; init; }
+        public bool TrackNumberChanged { get; init; }
         public bool BibleReadingLanguageNameChanged { get; init; }
         public bool SectionNameChanged { get; init; }
         public bool DaysOfWeekChanged { get; init; }

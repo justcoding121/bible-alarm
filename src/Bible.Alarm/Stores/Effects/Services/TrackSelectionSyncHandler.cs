@@ -139,7 +139,7 @@ public sealed class TrackSelectionSyncHandler
             NotificationEnabled = currentSchedule.NotificationEnabled,
             MusicEnabled = currentSchedule.MusicEnabled,
             SnoozeMinutes = currentSchedule.SnoozeMinutes,
-            NumberOfChaptersToRead = currentSchedule.NumberOfChaptersToRead,
+            NumberOfTracksToRead = currentSchedule.NumberOfTracksToRead,
             AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart,
             CurrentPlayItem = currentSchedule.CurrentPlayItem,
             LatestAlarmNotificationId = currentSchedule.LatestAlarmNotificationId
@@ -152,7 +152,7 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.BibleReadingLanguageCode = currentSchedule.BibleReadingLanguageCode;
         updatedSchedule.BibleReadingPublicationCode = currentSchedule.BibleReadingPublicationCode;
         updatedSchedule.BibleReadingSectionNumber = currentSchedule.BibleReadingSectionNumber;
-        updatedSchedule.BibleReadingChapterNumber = currentSchedule.BibleReadingChapterNumber;
+        updatedSchedule.BibleReadingTrackNumber = currentSchedule.BibleReadingTrackNumber;
         updatedSchedule.BibleReadingFinishedDuration = currentSchedule.BibleReadingFinishedDuration;
         updatedSchedule.BibleReadingLanguageName = currentSchedule.BibleReadingLanguageName;
         updatedSchedule.BibleReadingPublicationName = currentSchedule.BibleReadingPublicationName;

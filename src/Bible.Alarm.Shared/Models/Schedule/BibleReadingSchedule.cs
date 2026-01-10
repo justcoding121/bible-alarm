@@ -31,11 +31,11 @@ public class BibleReadingSchedule
     public int? SectionNumber { get; set; }
 
     /// <summary>
-    /// Chapter number for traditional Bible readings, or track/part number for dramas.
+    /// Track number for traditional Bible readings, or track/part number for dramas.
     /// </summary>
     [Required]
     [Range(1, 500)]
-    public int ChapterNumber { get; set; }
+    public int TrackNumber { get; set; }
 
     [Required]
     public TimeSpan FinishedDuration { get; set; }

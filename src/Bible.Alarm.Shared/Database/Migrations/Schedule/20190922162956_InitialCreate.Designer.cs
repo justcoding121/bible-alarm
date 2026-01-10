@@ -77,7 +77,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
                     b.Property<int>("SectionNumber");
 
-                    b.Property<int>("ChapterNumber");
+                    b.Property<int>("TrackNumber");
 
                     b.Property<string>("LanguageCode");
 

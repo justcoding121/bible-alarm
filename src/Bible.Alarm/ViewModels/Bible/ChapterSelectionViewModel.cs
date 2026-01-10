@@ -6,7 +6,7 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
-using Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.Bible.TrackSelectionViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -15,7 +15,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
+public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -24,14 +24,14 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
     private readonly IMapper mapper;
 
     // Helper classes
-    private readonly ChapterSelectionStateManager stateManager;
-    private readonly ChapterSelectionDataProvider dataProvider;
-    private readonly ChapterSelectionCommandHandler commandHandler;
-    private readonly ChapterSelectionPropertyManager propertyManager;
+    private readonly TrackSelectionStateManager stateManager;
+    private readonly TrackSelectionDataProvider dataProvider;
+    private readonly TrackSelectionCommandHandler commandHandler;
+    private readonly TrackSelectionPropertyManager propertyManager;
 
     private readonly SemaphoreSlim @lock = new(1);
 
-    public ChapterSelectionViewModel(
+    public TrackSelectionViewModel(
         ILogger logger,
         IMediaService mediaService,
         IToastService toastService,
@@ -49,10 +49,10 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         this.mapper = mapper;
 
         // Initialize helper classes
-        stateManager = new ChapterSelectionStateManager(mapper);
-        dataProvider = new ChapterSelectionDataProvider(mediaService);
-        commandHandler = new ChapterSelectionCommandHandler(logger, state, dispatcher, navigationService);
-        propertyManager = new ChapterSelectionPropertyManager();
+        stateManager = new TrackSelectionStateManager(mapper);
+        dataProvider = new TrackSelectionDataProvider(mediaService);
+        commandHandler = new TrackSelectionCommandHandler(logger, state, dispatcher, navigationService);
+        propertyManager = new TrackSelectionPropertyManager();
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
@@ -64,14 +64,14 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
             await navigationService.PopModalAsync();
         });
 
-        SetChapterCommand = new AsyncRelayCommand<BibleChapterListViewItemModel>(async x =>
+        SetTrackCommand = new AsyncRelayCommand<BibleTrackListViewItemModel>(async x =>
         {
             if (x != null)
             {
-                propertyManager.SelectedChapter?.IsSelected = false;
-                propertyManager.SelectedChapter = x;
-                propertyManager.SelectedChapter.IsSelected = true;
-                await commandHandler.HandleSetChapterAsync(x);
+                propertyManager.SelectedTrack?.IsSelected = false;
+                propertyManager.SelectedTrack = x;
+                propertyManager.SelectedTrack.IsSelected = true;
+                await commandHandler.HandleSetTrackAsync(x);
             }
         });
 
@@ -85,7 +85,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
             state,
             busy => propertyManager.IsBusy = busy,
             async (lang, pub, section) => await Initialize(lang, pub, section),
-            SetSelectedChapter);
+            SetSelectedTrack);
     }
 
     private void OnBibleReadingInitialized(object? o, EventArgs eventArgs)
@@ -98,7 +98,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Refreshes the ViewModel from the latest state when the modal appears.
-    /// This ensures chapters are populated and current is initialized from CurrentSchedule.
+    /// This ensures tracks are populated and current is initialized from CurrentSchedule.
     /// </summary>
     public async Task RefreshFromState()
     {
@@ -121,32 +121,32 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
 
         stateManager.UpdateFromState(state, mapper);
 
-        // Ensure chapters are populated if not already initialized
-        if (!stateManager.InitComplete || propertyManager.Chapters == null || propertyManager.Chapters.Count == 0)
+        // Ensure tracks are populated if not already initialized
+        if (!stateManager.InitComplete || propertyManager.Tracks == null || propertyManager.Tracks.Count == 0)
         {
             stateManager.SetInitComplete(true);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
             await Initialize(newLanguageCode, newPublicationCode, newSectionNumber.Value);
-            // Set selected chapter after chapters are populated
-            SetSelectedChapter();
+            // Set selected track after tracks are populated
+            SetSelectedTrack();
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
         }
         else
         {
-            // Update selected chapter when state changes (e.g., after navigating back)
-            SetSelectedChapter();
+            // Update selected track when state changes (e.g., after navigating back)
+            SetSelectedTrack();
         }
     }
 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
-    public ICommand SetChapterCommand { get; set; }
+    public ICommand SetTrackCommand { get; set; }
 
-    public BibleChapterListViewItemModel? SelectedChapter
+    public BibleTrackListViewItemModel? SelectedTrack
     {
-        get => propertyManager.SelectedChapter;
-        set => propertyManager.SelectedChapter = value;
+        get => propertyManager.SelectedTrack;
+        set => propertyManager.SelectedTrack = value;
     }
 
     public bool IsBusy
@@ -155,30 +155,30 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         set => propertyManager.IsBusy = value;
     }
 
-    public ObservableCollection<BibleChapterListViewItemModel> Chapters
+    public ObservableCollection<BibleTrackListViewItemModel> Tracks
     {
-        get => propertyManager.Chapters;
-        set => propertyManager.Chapters = value;
+        get => propertyManager.Tracks;
+        set => propertyManager.Tracks = value;
     }
 
     private async Task Initialize(string languageCode, string publicationCode, int sectionNumber)
     {
-        await dataProvider.PopulateChapters(
+        await dataProvider.PopulateTracks(
             languageCode,
             publicationCode,
             sectionNumber,
             stateManager.Current,
-            propertyManager.Chapters,
-            chapter => propertyManager.SelectedChapter = chapter);
+            propertyManager.Tracks,
+            track => propertyManager.SelectedTrack = track);
     }
 
-    private void SetSelectedChapter()
+    private void SetSelectedTrack()
     {
-        dataProvider.SetSelectedChapter(
+        dataProvider.SetSelectedTrack(
             stateManager.Current,
-            propertyManager.Chapters,
-            propertyManager.SelectedChapter,
-            chapter => propertyManager.SelectedChapter = chapter);
+            propertyManager.Tracks,
+            propertyManager.SelectedTrack,
+            track => propertyManager.SelectedTrack = track);
     }
 
     public void Dispose()
@@ -190,13 +190,13 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
     }
 }
 
-public sealed class BibleChapterListViewItemModel : ObservableObject, IComparable
+public sealed class BibleTrackListViewItemModel : ObservableObject, IComparable
 {
-    private readonly BiblePublicationChapter chapter;
+    private readonly BiblePublicationTrack track;
 
-    public BibleChapterListViewItemModel(BiblePublicationChapter chapter)
+    public BibleTrackListViewItemModel(BiblePublicationTrack track)
     {
-        this.chapter = chapter;
+        this.track = track;
     }
 
     private bool isSelected;
@@ -208,10 +208,10 @@ public sealed class BibleChapterListViewItemModel : ObservableObject, IComparabl
     }
 
     // LookUpPath is no longer stored in the database - it's computed at runtime by TrackMetadata
-    public int Number => chapter.Number;
+    public int Number => track.Number;
 
-    public string Title => chapter.Title;
-    public string Url => chapter.Source?.Url ?? string.Empty;
+    public string Title => track.Title;
+    public string Url => track.Source?.Url ?? string.Empty;
 
-    public int CompareTo(object? obj) => Number.CompareTo((obj as BibleChapterListViewItemModel)?.Number);
+    public int CompareTo(object? obj) => Number.CompareTo((obj as BibleTrackListViewItemModel)?.Number);
 }

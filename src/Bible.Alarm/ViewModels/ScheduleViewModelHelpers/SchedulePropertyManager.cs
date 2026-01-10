@@ -27,7 +27,7 @@ public sealed class SchedulePropertyManager : ObservableObject
     // Container ViewModels
     private BibleSelectionContainerViewModel? bibleSelectionContainerViewModel;
     private MusicSelectionContainerViewModel? musicSelectionContainerViewModel;
-    private NumberOfChapterContainerViewModel? numberOfChapterContainerViewModel;
+    private NumberOfTrackContainerViewModel? numberOfTrackContainerViewModel;
     private ScheduleDetailsContainerViewModel? scheduleDetailsContainerViewModel;
 
     public BibleSelectionContainerViewModel? BibleSelectionContainerViewModel
@@ -42,10 +42,10 @@ public sealed class SchedulePropertyManager : ObservableObject
         set => SetProperty(ref musicSelectionContainerViewModel, value);
     }
 
-    public NumberOfChapterContainerViewModel? NumberOfChapterContainerViewModel
+    public NumberOfTrackContainerViewModel? NumberOfTrackContainerViewModel
     {
-        get => numberOfChapterContainerViewModel;
-        set => SetProperty(ref numberOfChapterContainerViewModel, value);
+        get => numberOfTrackContainerViewModel;
+        set => SetProperty(ref numberOfTrackContainerViewModel, value);
     }
 
     public ScheduleDetailsContainerViewModel? ScheduleDetailsContainerViewModel

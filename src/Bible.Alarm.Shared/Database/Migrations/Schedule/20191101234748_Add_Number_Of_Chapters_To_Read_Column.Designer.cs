@@ -7,8 +7,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     [DbContext(typeof(ScheduleDbContext))]
-    [Migration("20191101234748_Add_Number_Of_Chapters_To_Read_Column")]
-    partial class AddNumberOfChaptersToReadColumn
+    [Migration("20191101234748_Add_Number_Of_Tracks_To_Read_Column")]
+    partial class AddNumberOfTracksToReadColumn
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -59,7 +59,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
                     b.Property<string>("Name");
 
-                    b.Property<int>("NumberOfChaptersToRead");
+                    b.Property<int>("NumberOfTracksToRead");
 
                     b.Property<int>("Second");
 
@@ -79,7 +79,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
                     b.Property<int>("SectionNumber");
 
-                    b.Property<int>("ChapterNumber");
+                    b.Property<int>("TrackNumber");
 
                     b.Property<string>("LanguageCode");
 

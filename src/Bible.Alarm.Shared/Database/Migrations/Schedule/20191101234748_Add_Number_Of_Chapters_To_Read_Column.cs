@@ -2,12 +2,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Bible.Alarm.Shared.Database.Migrations.Schedule;
 
-public partial class AddNumberOfChaptersToReadColumn : Migration
+public partial class AddNumberOfTracksToReadColumn : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.AddColumn<int>(
-            name: "NumberOfChaptersToRead",
+            name: "NumberOfTracksToRead",
             table: "AlarmSchedules",
             nullable: false,
             defaultValue: 0);
@@ -16,7 +16,7 @@ public partial class AddNumberOfChaptersToReadColumn : Migration
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropColumn(
-            name: "NumberOfChaptersToRead",
+            name: "NumberOfTracksToRead",
             table: "AlarmSchedules");
     }
 }

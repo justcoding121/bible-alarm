@@ -10,14 +10,14 @@ using Serilog;
 namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
+public partial class NumberOfTracksModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public NumberOfChapterContainerViewModel? ViewModel => BindingContext as NumberOfChapterContainerViewModel;
+    public NumberOfTrackContainerViewModel? ViewModel => BindingContext as NumberOfTrackContainerViewModel;
 
-    public NumberOfChaptersModal()
+    public NumberOfTracksModal()
     {
         InitializeComponent();
 
@@ -51,18 +51,18 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
         }
     }
 
-    private async void OnChapterItemTapped(object? sender, TappedEventArgs e)
+    private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
-        if (sender is Grid grid && grid.BindingContext is NumberOfChaptersListViewItemModel chapterItem)
+        if (sender is Grid grid && grid.BindingContext is NumberOfTracksListViewItemModel trackItem)
         {
-            if (ViewModel != null && ViewModel.SelectNumberOfChaptersCommand is IAsyncRelayCommand<NumberOfChaptersListViewItemModel> asyncCommand)
+            if (ViewModel != null && ViewModel.SelectNumberOfTracksCommand is IAsyncRelayCommand<NumberOfTracksListViewItemModel> asyncCommand)
             {
-                if (asyncCommand.CanExecute(chapterItem))
+                if (asyncCommand.CanExecute(trackItem))
                 {
-                    await asyncCommand.ExecuteAsync(chapterItem);
+                    await asyncCommand.ExecuteAsync(trackItem);
                 }
             }
         }
@@ -78,18 +78,18 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
             // Skip on Windows to avoid access violation crash
             if (DeviceInfo.Platform != DevicePlatform.WinUI)
             {
-                ChaptersCollectionView.Opacity = 0;
+                TracksCollectionView.Opacity = 0;
             }
 
             // Small delay to ensure CollectionView is rendered
             await Task.Delay(150, cancellationTokenSource.Token);
 
             // Scroll to selected item if any
-            if (ViewModel?.CurrentNumberOfChapters != null)
+            if (ViewModel?.CurrentNumberOfTracks != null)
             {
                 await CollectionViewHelper.ScrollToWhenReadyAsync(
-                    ChaptersCollectionView, 
-                    ViewModel.CurrentNumberOfChapters, 
+                    TracksCollectionView, 
+                    ViewModel.CurrentNumberOfTracks, 
                     animated: false, 
                     cancellationToken: cancellationTokenSource.Token);
 
@@ -104,7 +104,7 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
                 // Only set Opacity on non-Windows (we didn't hide it there)
                 if (DeviceInfo.Platform != DevicePlatform.WinUI)
                 {
-                    ChaptersCollectionView.Opacity = 1;
+                    TracksCollectionView.Opacity = 1;
                 }
             });
         }
@@ -114,17 +114,17 @@ public partial class NumberOfChaptersModal : BaseContentPage, IDisposable
             BusyOverlay.IsVisible = false;
             if (DeviceInfo.Platform != DevicePlatform.WinUI)
             {
-                ChaptersCollectionView.Opacity = 1;
+                TracksCollectionView.Opacity = 1;
             }
         }
         catch (Exception ex)
         {
             // OnAppearing errors are non-critical (UI initialization)
-            Serilog.Log.Warning(ex, "Error in NumberOfChaptersModal.OnAppearing");
+            Serilog.Log.Warning(ex, "Error in NumberOfTracksModal.OnAppearing");
             BusyOverlay.IsVisible = false;
             if (DeviceInfo.Platform != DevicePlatform.WinUI)
             {
-                ChaptersCollectionView.Opacity = 1;
+                TracksCollectionView.Opacity = 1;
             }
         }
     }

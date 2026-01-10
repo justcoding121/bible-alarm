@@ -124,7 +124,7 @@ public sealed class SchedulePersistenceService(
         if (schedule.BibleReadingSchedule != null && existing.BibleReadingSchedule != null)
         {
             existing.BibleReadingSchedule.SectionNumber = schedule.BibleReadingSchedule.SectionNumber;
-            existing.BibleReadingSchedule.ChapterNumber = schedule.BibleReadingSchedule.ChapterNumber;
+            existing.BibleReadingSchedule.TrackNumber = schedule.BibleReadingSchedule.TrackNumber;
             existing.BibleReadingSchedule.LanguageCode = schedule.BibleReadingSchedule.LanguageCode;
             existing.BibleReadingSchedule.PublicationCode = schedule.BibleReadingSchedule.PublicationCode;
             // Only reset duration if bible reading was changed
@@ -140,7 +140,7 @@ public sealed class SchedulePersistenceService(
         existing.MusicEnabled = schedule.MusicEnabled;
         existing.NotificationEnabled = schedule.NotificationEnabled;
         existing.AlwaysPlayFromStart = schedule.AlwaysPlayFromStart;
-        existing.NumberOfChaptersToRead = schedule.NumberOfChaptersToRead;
+        existing.NumberOfTracksToRead = schedule.NumberOfTracksToRead;
         existing.Name = schedule.Name;
         existing.Second = schedule.Second;
         existing.SnoozeMinutes = schedule.SnoozeMinutes;

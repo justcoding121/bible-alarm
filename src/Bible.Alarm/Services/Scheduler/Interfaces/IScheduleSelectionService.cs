@@ -17,9 +17,9 @@ public interface IScheduleSelectionService : IDisposable
     /// <summary>
     /// Loads Bible reading for selection modal. For existing schedules, creates BibleReadingSchedule from CurrentSchedule properties
     /// instead of querying AlarmDB (since all data is already in CurrentSchedule from page load).
-    /// Only queries media index DB for section lists, chapters, etc.
+    /// Only queries media index DB for section lists, tracks, etc.
     /// </summary>
     BibleReadingSchedule? LoadBibleReadingForSelection(int scheduleId, bool isNewSchedule, BibleReadingSchedule? currentBibleReading,
-        string? languageCode, string? publicationCode, int? sectionNumber, int? chapterNumber, TimeSpan? finishedDuration);
+        string? languageCode, string? publicationCode, int? sectionNumber, int? trackNumber, TimeSpan? finishedDuration);
 }
 

@@ -22,7 +22,7 @@ public sealed class TrackMarker(
     IDispatcher dispatcher,
     CancellationToken cancellationToken)
 {
-    public record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BibleSection, BiblePublicationChapter>? NextChapter);
+    public record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BibleSection, BiblePublicationTrack>? NextTrack);
 
     /// <summary>
     /// Marks a track as played.
@@ -48,7 +48,7 @@ public sealed class TrackMarker(
         Func<TrackMetadata, Task<NextTrackInfo>> getNextTrackInfo,
         Func<AlarmSchedule, TrackMetadata, NextTrackInfo, AlarmSchedule> updateScheduleForFinishedTrack)
     {
-        // Get next track/chapter before updating
+        // Get next track/track before updating
         var nextTrackInfo = await getNextTrackInfo(trackMetadata);
 
         // Clear cache BEFORE save to prevent stale cache if process crashes

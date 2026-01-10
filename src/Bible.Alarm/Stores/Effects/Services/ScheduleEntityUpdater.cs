@@ -45,7 +45,7 @@ public static class ScheduleEntityUpdater
         existing.MusicEnabled = dbSchedule.MusicEnabled;
         existing.NotificationEnabled = dbSchedule.NotificationEnabled;
         existing.AlwaysPlayFromStart = dbSchedule.AlwaysPlayFromStart;
-        existing.NumberOfChaptersToRead = dbSchedule.NumberOfChaptersToRead;
+        existing.NumberOfTracksToRead = dbSchedule.NumberOfTracksToRead;
         existing.Name = dbSchedule.Name;
         existing.SnoozeMinutes = dbSchedule.SnoozeMinutes;
     }
@@ -224,7 +224,7 @@ public static class ScheduleEntityUpdater
         UpdateScheduleFromViewModelAction action)
     {
         existing.SectionNumber = dbSchedule.SectionNumber;
-        existing.ChapterNumber = dbSchedule.ChapterNumber;
+        existing.TrackNumber = dbSchedule.TrackNumber;
         existing.LanguageCode = dbSchedule.LanguageCode;
         existing.PublicationCode = dbSchedule.PublicationCode;
 

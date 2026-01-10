@@ -37,15 +37,15 @@ public class MediaReader(string indexRoot)
             .ToDictionary(x => x.Number, x => x));
     }
 
-    public async Task<SortedDictionary<int, BiblePublicationChapter>> GetBibleChapters(string languageCode, string versionCode,
+    public async Task<SortedDictionary<int, BiblePublicationTrack>> GetBibleTracks(string languageCode, string versionCode,
         int sectionNumber)
     {
         var root = indexRoot;
         var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, sectionNumber.ToString(),
-            "chapters.json");
-        var bibleChapters = await File.ReadAllTextAsync(sectionsIndex);
-        return new SortedDictionary<int, BiblePublicationChapter>(JsonSerializer
-            .Deserialize<IEnumerable<BiblePublicationChapter>>(bibleChapters)!
+            "tracks.json");
+        var bibleTracks = await File.ReadAllTextAsync(sectionsIndex);
+        return new SortedDictionary<int, BiblePublicationTrack>(JsonSerializer
+            .Deserialize<IEnumerable<BiblePublicationTrack>>(bibleTracks)!
             .ToDictionary(x => x.Number, x => x));
     }
 

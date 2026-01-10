@@ -28,7 +28,7 @@ public sealed class BiblePropertyNotifier
         onPropertyChanged(nameof(BibleSelectionContainerViewModel.LanguageDisplayText));
         onPropertyChanged(nameof(BibleSelectionContainerViewModel.TranslationDisplayText));
         onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
-        onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
+        onPropertyChanged(nameof(BibleSelectionContainerViewModel.TrackDisplayText));
     }
 
     /// <summary>
@@ -44,29 +44,29 @@ public sealed class BiblePropertyNotifier
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.LanguageDisplayText));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.TranslationDisplayText));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.TrackDisplayText));
         }
         else if (changeInfo.NotifyLanguage)
         {
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.LanguageDisplayText));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.TranslationDisplayText));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.TrackDisplayText));
         }
         else if (changeInfo.NotifyTranslation)
         {
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.TranslationDisplayText));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.TrackDisplayText));
         }
         else if (changeInfo.NotifySection)
         {
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.TrackDisplayText));
         }
-        else if (changeInfo.NotifyChapter)
+        else if (changeInfo.NotifyTrack)
         {
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.TrackDisplayText));
         }
         else if (changeInfo.DisplayTextOnlyChanged)
         {
@@ -98,9 +98,9 @@ public sealed class BiblePropertyNotifier
         {
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
         }
-        if (changeInfo.ChapterDisplayChanged)
+        if (changeInfo.TrackDisplayChanged)
         {
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.TrackDisplayText));
         }
     }
 }

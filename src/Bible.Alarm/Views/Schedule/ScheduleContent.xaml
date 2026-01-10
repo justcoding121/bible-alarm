@@ -79,7 +79,7 @@
                 </Grid.RowDefinitions>
                 <scheduleViews:ScheduleDetailsContainer Grid.Row="0" BindingContext="{Binding ScheduleDetailsContainerViewModel}" />
                 <scheduleViews:BibleSelectionContainer Grid.Row="1" BindingContext="{Binding BibleSelectionContainerViewModel}" />
-                <scheduleViews:NumberOfChapterContainer Grid.Row="2" BindingContext="{Binding NumberOfChapterContainerViewModel}" />
+                <scheduleViews:NumberOfTrackContainer Grid.Row="2" BindingContext="{Binding NumberOfTrackContainerViewModel}" />
                 <scheduleViews:MusicSelectionContainer Grid.Row="3" BindingContext="{Binding MusicSelectionContainerViewModel}" />
 
                 <!-- Delete button - platform-specific styling handled via code-behind for better performance -->

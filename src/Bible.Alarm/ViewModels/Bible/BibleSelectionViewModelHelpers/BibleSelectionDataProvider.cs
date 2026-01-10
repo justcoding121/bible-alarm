@@ -160,7 +160,7 @@ public sealed class BibleSelectionDataProvider
                                 currentSchedule.BibleReadingLanguageCode == languageCode &&
                                 currentSchedule.BibleReadingPublicationCode == defaultTranslation.Code &&
                                 currentSchedule.BibleReadingSectionNumber == 1 &&
-                                currentSchedule.BibleReadingChapterNumber == 1;
+                                currentSchedule.BibleReadingTrackNumber == 1;
 
             if (!alreadyMatches)
             {
@@ -191,21 +191,21 @@ public sealed class BibleSelectionDataProvider
             if (sections == null || sections.Count == 0) return;
 
             var firstSection = sections.Values.First();
-            var chapters = await mediaService.GetBibleChapters(languageCode, defaultTranslation.Code, firstSection.Number);
-            if (chapters == null || chapters.Count == 0) return;
+            var tracks = await mediaService.GetBibleTracks(languageCode, defaultTranslation.Code, firstSection.Number);
+            if (tracks == null || tracks.Count == 0) return;
 
-            var firstChapter = chapters.Values.First();
+            var firstTrack = tracks.Values.First();
             var bibleReadingItem = new BibleReadingStateItem
             {
                 LanguageCode = languageCode,
                 PublicationCode = defaultTranslation.Code,
                 SectionNumber = firstSection.Number,
-                ChapterNumber = firstChapter.Number,
+                TrackNumber = firstTrack.Number,
                 LanguageName = languageName,
                 PublicationName = defaultTranslation.Name,
                 SectionName = firstSection.Name
             };
-            dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
+            dispatcher.Dispatch(new TrackSelectedAction(bibleReadingItem));
         }
         catch (Exception ex)
         {

@@ -29,7 +29,7 @@ public static class SchedulePropertyCopier
         target.NotificationEnabled = source.NotificationEnabled;
         target.MusicEnabled = source.MusicEnabled;
         target.SnoozeMinutes = source.SnoozeMinutes;
-        target.NumberOfChaptersToRead = source.NumberOfChaptersToRead;
+        target.NumberOfTracksToRead = source.NumberOfTracksToRead;
         target.AlwaysPlayFromStart = source.AlwaysPlayFromStart;
         target.CurrentPlayItem = source.CurrentPlayItem;
         target.LatestAlarmNotificationId = source.LatestAlarmNotificationId;
@@ -39,7 +39,7 @@ public static class SchedulePropertyCopier
         target.BibleReadingLanguageCode = source.BibleReadingLanguageCode;
         target.BibleReadingPublicationCode = source.BibleReadingPublicationCode;
         target.BibleReadingSectionNumber = source.BibleReadingSectionNumber;
-        target.BibleReadingChapterNumber = source.BibleReadingChapterNumber;
+        target.BibleReadingTrackNumber = source.BibleReadingTrackNumber;
         target.BibleReadingFinishedDuration = source.BibleReadingFinishedDuration;
 
         // Music properties

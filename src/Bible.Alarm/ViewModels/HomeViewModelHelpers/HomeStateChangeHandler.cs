@@ -29,7 +29,7 @@ public class HomeStateChangeHandler
 
     private int? lastProcessedSchedulesCount;
     private HashSet<int>? lastProcessedScheduleIds;
-    private Dictionary<int, (int? SectionNumber, int? ChapterNumber, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek)>? lastProcessedScheduleProperties;
+    private Dictionary<int, (int? SectionNumber, int? TrackNumber, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek)>? lastProcessedScheduleProperties;
 
     public HomeStateChangeHandler(
         ILogger logger,
@@ -66,12 +66,12 @@ public class HomeStateChangeHandler
             var schedulesCountChanged = lastProcessedSchedulesCount != stateValue.Schedules.Count;
             var scheduleIdsChanged = lastProcessedScheduleIds == null || !lastProcessedScheduleIds.SetEquals(currentScheduleIds);
 
-            // Check if schedule properties (like chapter number, name, time, days of week) have changed
+            // Check if schedule properties (like track number, name, time, days of week) have changed
             var currentScheduleProperties = stateValue.Schedules
                 .Where(s => s.Id > 0)
                 .ToDictionary(s => s.Id, s => (
                     SectionNumber: s.BibleReadingSectionNumber, 
-                    ChapterNumber: s.BibleReadingChapterNumber,
+                    TrackNumber: s.BibleReadingTrackNumber,
                     Name: s.Name ?? string.Empty,
                     Hour: s.Hour,
                     Minute: s.Minute,
@@ -80,7 +80,7 @@ public class HomeStateChangeHandler
                 currentScheduleProperties.Any(kvp => 
                     !lastProcessedScheduleProperties.ContainsKey(kvp.Key) ||
                     lastProcessedScheduleProperties[kvp.Key].SectionNumber != kvp.Value.SectionNumber ||
-                    lastProcessedScheduleProperties[kvp.Key].ChapterNumber != kvp.Value.ChapterNumber ||
+                    lastProcessedScheduleProperties[kvp.Key].TrackNumber != kvp.Value.TrackNumber ||
                     lastProcessedScheduleProperties[kvp.Key].Name != kvp.Value.Name ||
                     lastProcessedScheduleProperties[kvp.Key].Hour != kvp.Value.Hour ||
                     lastProcessedScheduleProperties[kvp.Key].Minute != kvp.Value.Minute ||

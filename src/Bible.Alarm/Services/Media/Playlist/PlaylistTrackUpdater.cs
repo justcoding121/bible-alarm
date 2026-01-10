@@ -27,7 +27,7 @@ public static class PlaylistTrackUpdater
             throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
 
         bibleReadingSchedule.SectionNumber = trackMetadata.SectionNumber;
-        bibleReadingSchedule.ChapterNumber = trackMetadata.ChapterNumber;
+        bibleReadingSchedule.TrackNumber = trackMetadata.TrackNumber;
         bibleReadingSchedule.LanguageCode = trackMetadata.LanguageCode;
         bibleReadingSchedule.PublicationCode = trackMetadata.PublicationCode;
         bibleReadingSchedule.FinishedDuration = trackMetadata.FinishedDuration;
@@ -44,18 +44,18 @@ public static class PlaylistTrackUpdater
     public static void UpdateBibleReadingTrackForFinished(
         AlarmSchedule schedule,
         TrackMetadata trackMetadata,
-        KeyValuePair<BibleSection, BibleChapter>? nextChapter)
+        KeyValuePair<BibleSection, BibleTrack>? nextTrack)
     {
         var bibleReadingSchedule = schedule.BibleReadingSchedule ??
             throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {schedule.Id}");
 
-        if (nextChapter == null || nextChapter.Value.Key == null || nextChapter.Value.Value == null)
+        if (nextTrack == null || nextTrack.Value.Key == null || nextTrack.Value.Value == null)
         {
-            throw new InvalidOperationException("Next chapter Key or Value is null");
+            throw new InvalidOperationException("Next track Key or Value is null");
         }
 
-        bibleReadingSchedule.SectionNumber = nextChapter.Value.Key.Number;
-        bibleReadingSchedule.ChapterNumber = nextChapter.Value.Value.Number;
+        bibleReadingSchedule.SectionNumber = nextTrack.Value.Key.Number;
+        bibleReadingSchedule.TrackNumber = nextTrack.Value.Value.Number;
         bibleReadingSchedule.LanguageCode = trackMetadata.LanguageCode;
         bibleReadingSchedule.PublicationCode = trackMetadata.PublicationCode;
         bibleReadingSchedule.FinishedDuration = TimeSpan.Zero;

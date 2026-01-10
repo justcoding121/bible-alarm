@@ -106,26 +106,26 @@ public sealed class BibleDisplayTextProvider
         return string.Empty;
     }
 
-    public string GetChapterDisplayText()
+    public string GetTrackDisplayText()
     {
         var currentSchedule = state.Value.CurrentSchedule;
 
         // Determine the label based on publication type
-        var label = PublicationTypeHelper.GetChapterLabel(currentSchedule?.BibleReadingPublicationCode);
+        var label = PublicationTypeHelper.GetTrackLabel(currentSchedule?.BibleReadingPublicationCode);
 
-        // Read directly from CurrentBibleReadingSchedule so it updates immediately when chapter changes
+        // Read directly from CurrentBibleReadingSchedule so it updates immediately when track changes
         var bibleReading = state.Value.CurrentBibleReadingSchedule;
-        if (bibleReading != null && bibleReading.ChapterNumber > 0)
+        if (bibleReading != null && bibleReading.TrackNumber > 0)
         {
-            return $"{label} {bibleReading.ChapterNumber}";
+            return $"{label} {bibleReading.TrackNumber}";
         }
 
         // Fallback to CurrentSchedule if CurrentBibleReadingSchedule is not set (e.g., new schedule)
         if (currentSchedule != null &&
-            currentSchedule.BibleReadingChapterNumber.HasValue &&
-            currentSchedule.BibleReadingChapterNumber.Value > 0)
+            currentSchedule.BibleReadingTrackNumber.HasValue &&
+            currentSchedule.BibleReadingTrackNumber.Value > 0)
         {
-            return $"{label} {currentSchedule.BibleReadingChapterNumber.Value}";
+            return $"{label} {currentSchedule.BibleReadingTrackNumber.Value}";
         }
 
         return string.Empty;

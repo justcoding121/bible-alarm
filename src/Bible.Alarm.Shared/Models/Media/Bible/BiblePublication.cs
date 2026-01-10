@@ -17,7 +17,7 @@ public sealed class BiblePublication : TranslatedPublication
     public int Id { get; set; }
 
     /// <summary>
-    /// Sections for traditional Bible translations (Section → Chapter structure).
+    /// Sections for traditional Bible translations (Section → Track structure).
     /// Empty for Drama/Video publications.
     /// </summary>
     [Required]

@@ -99,7 +99,7 @@ public partial class SectionSelectionModal : BaseContentPage, IDisposable
 
         if (sender is Grid grid && grid.BindingContext is BibleSectionListViewItemModel sectionItem)
         {
-            if (ViewModel != null && ViewModel.ChapterSelectionCommand is IAsyncRelayCommand<BibleSectionListViewItemModel> asyncCommand)
+            if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BibleSectionListViewItemModel> asyncCommand)
             {
                 if (asyncCommand.CanExecute(sectionItem))
                 {

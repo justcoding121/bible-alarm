@@ -66,12 +66,12 @@ public sealed class ScheduleListItemSubtitleManager(
                 ClearLanguage(setLanguage, onPropertyChanged);
             }
 
-            _ = RefreshChapterNameAsync(scheduleId, force: false, setSubTitle, setLanguage, onPropertyChanged);
+            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, onPropertyChanged);
         }
         catch (Exception e)
         {
             logger.Error(e, "An error happened while refreshing subtitle from state for schedule {ScheduleId}", scheduleId);
-            _ = RefreshChapterNameAsync(scheduleId, force: false, setSubTitle, setLanguage, onPropertyChanged);
+            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, onPropertyChanged);
         }
     }
 
@@ -105,9 +105,9 @@ public sealed class ScheduleListItemSubtitleManager(
             subtitleParts.Add($"Section {scheduleStateItem.BibleReadingSectionNumber.Value}");
         }
 
-        if (scheduleStateItem.BibleReadingChapterNumber.HasValue && scheduleStateItem.BibleReadingChapterNumber.Value > 0)
+        if (scheduleStateItem.BibleReadingTrackNumber.HasValue && scheduleStateItem.BibleReadingTrackNumber.Value > 0)
         {
-            subtitleParts.Add(scheduleStateItem.BibleReadingChapterNumber.Value.ToString());
+            subtitleParts.Add(scheduleStateItem.BibleReadingTrackNumber.Value.ToString());
         }
 
         return subtitleParts.Count > 0 ? string.Join(" ", subtitleParts) : string.Empty;
@@ -120,10 +120,10 @@ public sealed class ScheduleListItemSubtitleManager(
     }
 
     /// <summary>
-    /// Async fallback method for refreshing chapter name from database.
+    /// Async fallback method for refreshing track name from database.
     /// Only used if SectionName is not available in state.
     /// </summary>
-    public async Task RefreshChapterNameAsync(int scheduleId, bool force, Action<string> setSubTitle, Action<string> setLanguage, Action<string> onPropertyChanged)
+    public async Task RefreshTrackNameAsync(int scheduleId, bool force, Action<string> setSubTitle, Action<string> setLanguage, Action<string> onPropertyChanged)
     {
         if (scheduleId <= 0)
         {
@@ -151,7 +151,7 @@ public sealed class ScheduleListItemSubtitleManager(
 
             // Run database operations off UI thread
             var displayName = await Task.Run(async () =>
-                await displayService.GetChapterDisplayNameAsync(scheduleId, force));
+                await displayService.GetTrackDisplayNameAsync(scheduleId, force));
 
             // Update UI on main thread
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -169,7 +169,7 @@ public sealed class ScheduleListItemSubtitleManager(
         }
         catch (Exception e)
         {
-            logger.Error(e, "An error happened while refreshing chapter name for schedule {ScheduleId}", scheduleId);
+            logger.Error(e, "An error happened while refreshing track name for schedule {ScheduleId}", scheduleId);
         }
     }
 }

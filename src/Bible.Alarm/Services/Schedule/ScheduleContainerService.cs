@@ -18,7 +18,7 @@ public sealed class ScheduleContainerService : IScheduleContainerService
 
     public async Task InitializeContainersAsync(
         IServiceProvider serviceProvider,
-        Action<BibleSelectionContainerViewModel, MusicSelectionContainerViewModel, NumberOfChapterContainerViewModel, ScheduleDetailsContainerViewModel> onContainersReady)
+        Action<BibleSelectionContainerViewModel, MusicSelectionContainerViewModel, NumberOfTrackContainerViewModel, ScheduleDetailsContainerViewModel> onContainersReady)
     {
         try
         {
@@ -30,8 +30,8 @@ public sealed class ScheduleContainerService : IScheduleContainerService
             var musicSelection = await Task.Run(() => 
                 serviceProvider.GetRequiredService<MusicSelectionContainerViewModel>());
             
-            var numberOfChapter = await Task.Run(() => 
-                serviceProvider.GetRequiredService<NumberOfChapterContainerViewModel>());
+            var numberOfTrack = await Task.Run(() => 
+                serviceProvider.GetRequiredService<NumberOfTrackContainerViewModel>());
             
             var scheduleDetails = await Task.Run(() => 
                 serviceProvider.GetRequiredService<ScheduleDetailsContainerViewModel>());
@@ -41,7 +41,7 @@ public sealed class ScheduleContainerService : IScheduleContainerService
                 onContainersReady(
                     bibleSelection,
                     musicSelection,
-                    numberOfChapter,
+                    numberOfTrack,
                     scheduleDetails);
             });
         }

@@ -9,16 +9,16 @@ using Serilog;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class ChapterSelection : BaseContentPage, IDisposable
+public partial class TrackSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
-    private readonly ChapterSelectionViewModel viewModel;
+    private readonly TrackSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public ChapterSelectionViewModel? ViewModel => BindingContext as ChapterSelectionViewModel;
+    public TrackSelectionViewModel? ViewModel => BindingContext as TrackSelectionViewModel;
 
 
-    public ChapterSelection(ChapterSelectionViewModel viewModel, TaskScheduler taskScheduler)
+    public TrackSelection(TrackSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
         InitializeComponent();
         BindingContext = viewModel;
@@ -43,9 +43,9 @@ public partial class ChapterSelection : BaseContentPage, IDisposable
             // Small additional delay to ensure CollectionView is rendered
             await Task.Delay(200, cancellationTokenSource.Token);
 
-            if (ViewModel.SelectedChapter != null && chapterCollectionView != null)
+            if (ViewModel.SelectedTrack != null && trackCollectionView != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(chapterCollectionView, ViewModel.SelectedChapter, cancellationToken: cancellationTokenSource.Token);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(trackCollectionView, ViewModel.SelectedTrack, cancellationToken: cancellationTokenSource.Token);
             }
         }
     }
@@ -84,15 +84,15 @@ public partial class ChapterSelection : BaseContentPage, IDisposable
         }
     }
 
-    private async void OnChapterItemTapped(object? sender, TappedEventArgs e)
+    private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is Grid grid && grid.BindingContext is BibleChapterListViewItemModel chapterItem)
+        if (sender is Grid grid && grid.BindingContext is BibleTrackListViewItemModel trackItem)
         {
-            if (ViewModel != null && ViewModel.SetChapterCommand is IAsyncRelayCommand<BibleChapterListViewItemModel> asyncCommand)
+            if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<BibleTrackListViewItemModel> asyncCommand)
             {
-                if (asyncCommand.CanExecute(chapterItem))
+                if (asyncCommand.CanExecute(trackItem))
                 {
-                    await asyncCommand.ExecuteAsync(chapterItem);
+                    await asyncCommand.ExecuteAsync(trackItem);
                 }
             }
         }

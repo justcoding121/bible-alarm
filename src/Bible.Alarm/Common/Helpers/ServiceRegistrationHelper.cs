@@ -144,7 +144,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IBibleReadingScheduleService, BibleReadingScheduleService>();
         services.AddSingleton<IBiblePublicationService, BiblePublicationService>();
         services.AddSingleton<IBibleSectionService, BibleSectionService>();
-        services.AddSingleton<IBibleChapterService, BibleChapterService>();
+        services.AddSingleton<IBibleTrackService, BibleTrackService>();
         services.AddSingleton<IMelodyMusicService, MelodyMusicService>();
         services.AddSingleton<IVocalMusicService, VocalMusicService>();
         services.AddSingleton<IBibleNavigationService, BibleNavigationService>();
@@ -289,11 +289,11 @@ public static class ServiceRegistrationHelper
         services.AddTransient<TrackSelectionViewModel>();
         services.AddTransient<BibleSelectionViewModel>();
         services.AddTransient<SectionSelectionViewModel>();
-        services.AddTransient<ChapterSelectionViewModel>();
+        services.AddTransient<TrackSelectionViewModel>();
         services.AddTransient<AlarmViewModel>();
         services.AddTransient<BibleSelectionContainerViewModel>();
         services.AddTransient<MusicSelectionContainerViewModel>();
-        services.AddTransient<NumberOfChapterContainerViewModel>();
+        services.AddTransient<NumberOfTrackContainerViewModel>();
         services.AddTransient<ScheduleDetailsContainerViewModel>();
 
         // Register ScheduleListItem as transient for list items
@@ -319,18 +319,18 @@ public static class ServiceRegistrationHelper
         services.AddTransient<TrackSelection>();
         services.AddTransient<BiblePublicationSelection>();
         services.AddTransient<SectionSelection>();
-        services.AddTransient<ChapterSelection>();
+        services.AddTransient<TrackSelection>();
         services.AddTransient<BibleLanguageModal>();
         services.AddTransient<MusicLanguageModal>();
         services.AddTransient<AlarmModal>();
         services.AddTransient<BibleSelectionModal>();
         services.AddTransient<SectionSelectionModal>();
-        services.AddTransient<ChapterSelectionModal>();
+        services.AddTransient<TrackSelectionModal>();
         services.AddTransient<MusicSelectionModal>();
         services.AddTransient<SongPublicationSelectionModal>();
         services.AddTransient<TrackSelectionModal>();
         services.AddTransient<AlarmSettingsModal>();
-        services.AddTransient<NumberOfChaptersModal>();
+        services.AddTransient<NumberOfTracksModal>();
 
         // NavigationPage with Home as the root page
         services.AddTransient(sp =>

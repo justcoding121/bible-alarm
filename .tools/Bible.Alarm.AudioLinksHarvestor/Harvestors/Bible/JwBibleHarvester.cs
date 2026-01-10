@@ -140,7 +140,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
     {
         languageCodeToNameMappings.TryAdd(languageCode, language);
 
-        logger.Information("Harvesting Bible chapter links for {PublicationName} of {Language} language.", publicationName, language);
+        logger.Information("Harvesting Bible track links for {PublicationName} of {Language} language.", publicationName, language);
         await HarvestBibleLinks(languageCode, publicationCode);
 
         if (!languageCodeToEditionsMapping.TryAdd(languageCode, [publicationCode]))
@@ -209,7 +209,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         var sectionsIndex = $"{sectionsDirectory}/sections.json";
 
         var sectionNumberSectionMap = new Dictionary<int, BibleSection>();
-        var sectionNumberChapterMap = new Dictionary<int, Dictionary<int, BibleChapter>>();
+        var sectionNumberTrackMap = new Dictionary<int, Dictionary<int, BibleTrack>>();
 
         var sectionNumber = 1;
         var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&sectionnum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
@@ -287,7 +287,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                     sectionName = pubNameElement.GetString();
                 }
 
-                ProcessSectionFiles(sectionFiles, doc.RootElement, sectionNumberSectionMap, sectionNumberChapterMap, ref sectionNumber, languageCode, sectionName);
+                ProcessSectionFiles(sectionFiles, doc.RootElement, sectionNumberSectionMap, sectionNumberTrackMap, ref sectionNumber, languageCode, sectionName);
 
                 // Advance to next section after successful processing
                 AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
@@ -309,7 +309,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         // Note: sectionNumberSectionMap will have items if ProcessSectionFiles successfully processed any section files
         if (sectionNumberSectionMap.Count > 0)
         {
-            SaveSectionsAndChapters(sectionsDirectory, sectionsIndex, sectionNumberSectionMap, sectionNumberChapterMap);
+            SaveSectionsAndTracks(sectionsDirectory, sectionsIndex, sectionNumberSectionMap, sectionNumberTrackMap);
             return true;
         }
 
@@ -320,7 +320,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         JsonElement sectionFiles,
         JsonElement root,
         Dictionary<int, BibleSection> sectionNumberSectionMap,
-        Dictionary<int, Dictionary<int, BibleChapter>> sectionNumberChapterMap,
+        Dictionary<int, Dictionary<int, BibleTrack>> sectionNumberTrackMap,
         ref int sectionNumber,
         string languageCode,
         string? sectionName)
@@ -339,7 +339,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
             sectionNumber = fileSectionNumber;
             EnsureSectionExists(root, sectionNumber, sectionNumberSectionMap, languageCode, sectionName);
-            AddChapterIfNotExists(sectionNumber, track, url, sectionNumberChapterMap);
+            AddTrackIfNotExists(sectionNumber, track, url, sectionNumberTrackMap);
         }
     }
 
@@ -427,20 +427,20 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         };
     }
 
-    private static void AddChapterIfNotExists(
+    private static void AddTrackIfNotExists(
         int sectionNumber,
         int trackNumber,
         string url,
-        Dictionary<int, Dictionary<int, BibleChapter>> sectionNumberChapterMap)
+        Dictionary<int, Dictionary<int, BibleTrack>> sectionNumberTrackMap)
     {
-        if (!sectionNumberChapterMap.ContainsKey(sectionNumber))
+        if (!sectionNumberTrackMap.ContainsKey(sectionNumber))
         {
-            sectionNumberChapterMap[sectionNumber] = new Dictionary<int, BibleChapter>();
+            sectionNumberTrackMap[sectionNumber] = new Dictionary<int, BibleTrack>();
         }
 
-        if (!sectionNumberChapterMap[sectionNumber].ContainsKey(trackNumber))
+        if (!sectionNumberTrackMap[sectionNumber].ContainsKey(trackNumber))
         {
-            sectionNumberChapterMap[sectionNumber].Add(trackNumber, new BibleChapter
+            sectionNumberTrackMap[sectionNumber].Add(trackNumber, new BibleTrack
             {
                 Number = trackNumber,
                 Url = url,
@@ -457,12 +457,12 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         var parts = title.Split('-', 2);
         
-        // If title starts with "Chapter", the section name is after the dash
-        // Format: "Chapter X - Section Name"
+        // If title starts with "Track", the section name is after the dash
+        // Format: "Track X - Section Name"
         // Otherwise, the section name is before the dash
-        // Format: "Section Name - Chapter X" or just "Section Name"
+        // Format: "Section Name - Track X" or just "Section Name"
         string name;
-        if (title.TrimStart().StartsWith("Chapter", StringComparison.OrdinalIgnoreCase) && parts.Length > 1)
+        if (title.TrimStart().StartsWith("Track", StringComparison.OrdinalIgnoreCase) && parts.Length > 1)
         {
             name = parts[1].Trim();
         }
@@ -492,11 +492,11 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&sectionnum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
     }
 
-    private static void SaveSectionsAndChapters(
+    private static void SaveSectionsAndTracks(
         string sectionsDirectory,
         string sectionsIndex,
         Dictionary<int, BibleSection> sectionNumberSectionMap,
-        Dictionary<int, Dictionary<int, BibleChapter>> sectionNumberChapterMap)
+        Dictionary<int, Dictionary<int, BibleTrack>> sectionNumberTrackMap)
     {
         if (!Directory.Exists(sectionsDirectory))
         {
@@ -515,9 +515,9 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             var directory = $"{sectionsDirectory}/{section.Value.Number}";
             DirectoryHelper.Ensure(directory);
 
-            var chapterIndex = $"{directory}/chapters.json";
-            File.WriteAllText(chapterIndex, JsonSerializer.Serialize(
-                sectionNumberChapterMap[section.Key]
+            var trackIndex = $"{directory}/tracks.json";
+            File.WriteAllText(trackIndex, JsonSerializer.Serialize(
+                sectionNumberTrackMap[section.Key]
                     .Select(x => x.Value)
                     .OrderBy(x => x.Number)
                     .ToList()));

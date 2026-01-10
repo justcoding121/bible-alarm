@@ -242,7 +242,7 @@ public static class ApplicationReducer
                 LanguageCode = action.SelectedSchedule.BibleReadingLanguageCode ?? string.Empty,
                 PublicationCode = action.SelectedSchedule.BibleReadingPublicationCode ?? string.Empty,
                 SectionNumber = action.SelectedSchedule.BibleReadingSectionNumber,
-                ChapterNumber = action.SelectedSchedule.BibleReadingChapterNumber ?? 1,
+                TrackNumber = action.SelectedSchedule.BibleReadingTrackNumber ?? 1,
                 FinishedDuration = action.SelectedSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = action.SelectedSchedule.Id,
                 TranslationName = action.SelectedSchedule.BibleReadingPublicationName ?? string.Empty
@@ -382,7 +382,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnChapterSelection(ApplicationState state, ChapterSelectionAction action)
+    public static ApplicationState OnTrackSelection(ApplicationState state, TrackSelectionAction action)
     {
         return StateFactory.CreateUpdatedState(
             state,
@@ -392,7 +392,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnChapterSelected(ApplicationState state, ChapterSelectedAction action)
+    public static ApplicationState OnTrackSelected(ApplicationState state, TrackSelectedAction action)
     {
         return StateFactory.CreateUpdatedState(
             state,

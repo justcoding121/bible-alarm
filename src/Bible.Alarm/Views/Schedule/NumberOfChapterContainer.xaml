@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ContentView x:Class="Bible.Alarm.Views.Schedule.NumberOfChapterContainer"
+<ContentView x:Class="Bible.Alarm.Views.Schedule.NumberOfTrackContainer"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Schedule;assembly=Bible.Alarm"
              xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
-             x:DataType="vm:NumberOfChapterContainerViewModel"
+             x:DataType="vm:NumberOfTrackContainerViewModel"
              IsVisible="True">
     <Border Margin="0"
             Padding="0"
@@ -33,7 +33,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Grid x:Name="ChaptersButton"
+            <Grid x:Name="TracksButton"
                   Grid.Row="0"
                   Margin="0"
                   Padding="16,16"
@@ -56,7 +56,7 @@
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
-                       Text="Number of chapters to play"
+                       Text="Number of tracks to play"
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center"
@@ -65,7 +65,7 @@
                        FontSize="16"
                        FontAttributes="None"
                        HorizontalOptions="End"
-                       Text="{Binding CurrentNumberOfChaptersText, TargetNullValue=''}"
+                       Text="{Binding CurrentNumberOfTracksText, TargetNullValue=''}"
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center"
@@ -101,7 +101,7 @@
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center">
-                    Restart incomplete chapters from the beginning?
+                    Restart incomplete tracks from the beginning?
                 </Label>
                 <Grid Grid.Column="1"
                       HorizontalOptions="End"

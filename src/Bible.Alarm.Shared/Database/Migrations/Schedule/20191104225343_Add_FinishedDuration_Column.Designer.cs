@@ -62,7 +62,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
                     b.Property<string>("Name");
 
-                    b.Property<int>("NumberOfChaptersToRead");
+                    b.Property<int>("NumberOfTracksToRead");
 
                     b.Property<int>("Second");
 
@@ -82,7 +82,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
                     b.Property<int>("SectionNumber");
 
-                    b.Property<int>("ChapterNumber");
+                    b.Property<int>("TrackNumber");
 
                     b.Property<TimeSpan>("FinishedDuration");
 

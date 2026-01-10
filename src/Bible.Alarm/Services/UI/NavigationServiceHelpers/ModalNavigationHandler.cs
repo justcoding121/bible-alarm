@@ -52,16 +52,16 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task OpenChapterSelectionModalAsync(INavigation navigation, object bindingContext)
+    public async Task OpenTrackSelectionModalAsync(INavigation navigation, object bindingContext)
     {
-        var modal = serviceProvider.GetRequiredService<ChapterSelectionModal>();
+        var modal = serviceProvider.GetRequiredService<TrackSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task OpenNumberOfChaptersModalAsync(INavigation navigation, object bindingContext)
+    public async Task OpenNumberOfTracksModalAsync(INavigation navigation, object bindingContext)
     {
-        var modal = serviceProvider.GetRequiredService<NumberOfChaptersModal>();
+        var modal = serviceProvider.GetRequiredService<NumberOfTracksModal>();
         modal.BindingContext = bindingContext;
         // Disable animation for instant appearance
         await navigation.PushModalAsync(modal, animated: false);

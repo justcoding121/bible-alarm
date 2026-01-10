@@ -7,7 +7,7 @@ namespace Bible.Alarm.Shared.Helpers;
 
 /// <summary>
 /// Helper for determining content structure based on publication code.
-/// Drama publications have a flat Track structure, while Bible publications have Section → Chapter structure.
+/// Drama publications have a flat Track structure, while Bible publications have Section → Track structure.
 /// </summary>
 public static class PublicationTypeHelper
 {
@@ -18,7 +18,7 @@ public static class PublicationTypeHelper
     };
 
     /// <summary>
-    /// Returns true if the publication has a Section → Chapter structure (traditional Bible).
+    /// Returns true if the publication has a Section → Track structure (traditional Bible).
     /// Returns false for dramas which have a flat Track structure.
     /// </summary>
     public static bool HasSectionStructure(string? publicationCode)
@@ -45,11 +45,11 @@ public static class PublicationTypeHelper
     }
 
     /// <summary>
-    /// Gets the appropriate label for chapter/track selection based on publication type.
+    /// Gets the appropriate label for track/track selection based on publication type.
     /// </summary>
-    public static string GetChapterLabel(string? publicationCode)
+    public static string GetTrackLabel(string? publicationCode)
     {
-        return HasSectionStructure(publicationCode) ? "Chapter" : "Part";
+        return HasSectionStructure(publicationCode) ? "Track" : "Part";
     }
 
     /// <summary>
