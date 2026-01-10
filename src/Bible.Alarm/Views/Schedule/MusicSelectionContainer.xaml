@@ -198,9 +198,9 @@
                          BackgroundColor="{DynamicResource DividerColor}"
                          Margin="0"
                          HorizontalOptions="Fill"
-                         IsVisible="{Binding IsSongBookVisible}" />
+                         IsVisible="{Binding IsSongPublicationVisible}" />
                 <!-- Song Book Row (only visible when Music Type is Vocals) -->
-                <Grid x:Name="SongBookButton"
+                <Grid x:Name="SongPublicationButton"
                       Grid.Row="5"
                       Margin="0"
                       Padding="16,16"
@@ -208,9 +208,9 @@
                       MinimumHeightRequest="56"
                       HorizontalOptions="Fill"
                       VerticalOptions="Fill"
-                      IsVisible="{Binding IsSongBookVisible}">
+                      IsVisible="{Binding IsSongPublicationVisible}">
                     <Grid.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding SelectSongBookCommand}"
+                        <TapGestureRecognizer Command="{Binding SelectSongPublicationCommand}"
                                               NumberOfTapsRequired="1" />
                     </Grid.GestureRecognizers>
                     <Grid.ColumnDefinitions>
@@ -223,7 +223,7 @@
                            HorizontalOptions="Fill"
                            HorizontalTextAlignment="Start"
                            MinimumHeightRequest="24"
-                           Text="{Binding SongBookDisplayText}"
+                           Text="{Binding SongPublicationDisplayText}"
                            TextColor="{DynamicResource TextPrimaryColor}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />

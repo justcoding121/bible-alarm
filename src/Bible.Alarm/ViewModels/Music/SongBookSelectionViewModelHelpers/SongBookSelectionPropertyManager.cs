@@ -4,19 +4,19 @@ using System.ComponentModel;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles property management for SongBookSelectionViewModel.
+/// Handles property management for SongPublicationSelectionViewModel.
 /// </summary>
-public sealed class SongBookSelectionPropertyManager : ObservableObject
+public sealed class SongPublicationSelectionPropertyManager : ObservableObject
 {
     private bool isBusy = true;
-    private ObservableCollection<PublicationListViewItemModel>? songBooks;
+    private ObservableCollection<PublicationListViewItemModel>? songPublications;
     private ObservableCollection<LanguageListViewItemModel>? languages;
     private LanguageListViewItemModel? currentLanguage;
     private string languageSearchTerm = string.Empty;
-    private PublicationListViewItemModel? selectedSongBook;
+    private PublicationListViewItemModel? selectedSongPublication;
     private PropertyChangedEventHandler? propertyChangedHandler;
 
     public bool IsBusy
@@ -25,10 +25,10 @@ public sealed class SongBookSelectionPropertyManager : ObservableObject
         set => SetProperty(ref isBusy, value);
     }
 
-    public ObservableCollection<PublicationListViewItemModel> SongBooks
+    public ObservableCollection<PublicationListViewItemModel> SongPublications
     {
-        get => songBooks ??= [];
-        set => SetProperty(ref songBooks, value);
+        get => songPublications ??= [];
+        set => SetProperty(ref songPublications, value);
     }
 
     public ObservableCollection<LanguageListViewItemModel> Languages
@@ -49,10 +49,10 @@ public sealed class SongBookSelectionPropertyManager : ObservableObject
         set => SetProperty(ref languageSearchTerm, value);
     }
 
-    public PublicationListViewItemModel? SelectedSongBook
+    public PublicationListViewItemModel? SelectedSongPublication
     {
-        get => selectedSongBook;
-        set => SetProperty(ref selectedSongBook, value);
+        get => selectedSongPublication;
+        set => SetProperty(ref selectedSongPublication, value);
     }
 
     public object? SelectedItem => CurrentLanguage;

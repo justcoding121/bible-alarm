@@ -332,7 +332,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnSongBookSelection(ApplicationState state, SongBookSelectionAction action)
+    public static ApplicationState OnSongPublicationSelection(ApplicationState state, SongPublicationSelectionAction action)
     {
         return StateFactory.CreateUpdatedState(
             state,

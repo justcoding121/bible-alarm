@@ -134,10 +134,10 @@ public sealed class NavigationService(
         await modalHandler.OpenMusicSelectionModalAsync(navigation, bindingContext);
     }
 
-    public async Task OpenSongBookSelectionModalAsync(object bindingContext)
+    public async Task OpenSongPublicationSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        await modalHandler.OpenSongBookSelectionModalAsync(navigation, bindingContext);
+        await modalHandler.OpenSongPublicationSelectionModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenTrackSelectionModalAsync(object bindingContext)

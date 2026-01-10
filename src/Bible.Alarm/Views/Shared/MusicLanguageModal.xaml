@@ -13,7 +13,7 @@
     xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
-    x:DataType="music:SongBookSelectionViewModel"
+    x:DataType="music:SongPublicationSelectionViewModel"
     Padding="0,0,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />

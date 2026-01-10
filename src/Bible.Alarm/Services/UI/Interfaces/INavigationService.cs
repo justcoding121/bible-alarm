@@ -14,7 +14,7 @@ public interface INavigationService : IDisposable
     /// </summary>
     Task NavigateToScheduleAsync(int scheduleId, bool isEnabled);
     Task OpenMusicSelectionModalAsync(object bindingContext);
-    Task OpenSongBookSelectionModalAsync(object bindingContext);
+    Task OpenSongPublicationSelectionModalAsync(object bindingContext);
     Task OpenTrackSelectionModalAsync(object bindingContext);
     Task OpenBibleSelectionModalAsync(object bindingContext);
     Task OpenBookSelectionModalAsync(object bindingContext);

@@ -7,7 +7,7 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Interfaces;
-using Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -17,7 +17,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class SongBookSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed class SongPublicationSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -27,12 +27,12 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
     private readonly IMapper mapper;
 
     // Helper classes
-    private readonly SongBookSelectionStateManager stateManager;
-    private readonly SongBookSelectionDataProvider dataProvider;
-    private readonly SongBookSelectionCommandHandler commandHandler;
-    private readonly SongBookSelectionPropertyManager propertyManager;
+    private readonly SongPublicationSelectionStateManager stateManager;
+    private readonly SongPublicationSelectionDataProvider dataProvider;
+    private readonly SongPublicationSelectionCommandHandler commandHandler;
+    private readonly SongPublicationSelectionPropertyManager propertyManager;
 
-    public SongBookSelectionViewModel(
+    public SongPublicationSelectionViewModel(
         ILogger logger,
         IMediaService mediaService,
         IServiceScopeFactory scopeFactory,
@@ -49,10 +49,10 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         this.mapper = mapper;
 
         // Initialize helper classes
-        stateManager = new SongBookSelectionStateManager(mapper);
-        dataProvider = new SongBookSelectionDataProvider(mediaService);
-        commandHandler = new SongBookSelectionCommandHandler(navigationService, state, dispatcher);
-        propertyManager = new SongBookSelectionPropertyManager();
+        stateManager = new SongPublicationSelectionStateManager(mapper);
+        dataProvider = new SongPublicationSelectionDataProvider(mediaService);
+        commandHandler = new SongPublicationSelectionCommandHandler(navigationService, state, dispatcher);
+        propertyManager = new SongPublicationSelectionPropertyManager();
 
         state.StateChanged += OnMusicInitialized;
         state.StateChanged += OnMusicChanged;
@@ -137,8 +137,8 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         stateManager.HandleMusicChanged(
             state,
             busy => propertyManager.IsBusy = busy,
-            async (langCode) => await PopulateSongBooks(langCode),
-            SetSelectedSongBook);
+            async (langCode) => await PopulateSongPublications(langCode),
+            SetSelectedSongPublication);
     }
 
     private void OnMusicInitialized(object? o, EventArgs eventArgs)
@@ -149,13 +149,13 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
             Initialize);
     }
 
-    private void SetSelectedSongBook()
+    private void SetSelectedSongPublication()
     {
-        dataProvider.SetSelectedSongBook(
+        dataProvider.SetSelectedSongPublication(
             stateManager.Current,
-            dataProvider.SongBookVMsMapping,
-            propertyManager.SelectedSongBook,
-            songBook => propertyManager.SelectedSongBook = songBook);
+            dataProvider.SongPublicationVMsMapping,
+            propertyManager.SelectedSongPublication,
+            songPublication => propertyManager.SelectedSongPublication = songPublication);
     }
 
     public ICommand BackCommand { get; set; }
@@ -170,10 +170,10 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         set => propertyManager.IsBusy = value;
     }
 
-    public ObservableCollection<PublicationListViewItemModel> SongBooks
+    public ObservableCollection<PublicationListViewItemModel> SongPublications
     {
-        get => propertyManager.SongBooks;
-        set => propertyManager.SongBooks = value;
+        get => propertyManager.SongPublications;
+        set => propertyManager.SongPublications = value;
     }
 
     public ObservableCollection<LanguageListViewItemModel> Languages
@@ -194,10 +194,10 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         set => propertyManager.LanguageSearchTerm = value;
     }
 
-    public PublicationListViewItemModel? SelectedSongBook
+    public PublicationListViewItemModel? SelectedSongPublication
     {
-        get => propertyManager.SelectedSongBook;
-        set => propertyManager.SelectedSongBook = value;
+        get => propertyManager.SelectedSongPublication;
+        set => propertyManager.SelectedSongPublication = value;
     }
 
     public object? SelectedItem => propertyManager.SelectedItem;
@@ -220,7 +220,7 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         }
 
         await PopulateLanguages();
-        await PopulateSongBooks(languageCode);
+        await PopulateSongPublications(languageCode);
 
         propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await PopulateLanguages(searchTerm));
     }
@@ -370,26 +370,26 @@ public sealed class SongBookSelectionViewModel : ObservableObject, IListViewMode
         // 2. Song books aren't already populated
         // 3. Language code changed (cascade effect)
         if (!string.IsNullOrEmpty(languageCodeToUse) && 
-            (propertyManager.SongBooks == null || propertyManager.SongBooks.Count == 0 || languageChanged))
+            (propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0 || languageChanged))
         {
-            await PopulateSongBooks(languageCodeToUse);
+            await PopulateSongPublications(languageCodeToUse);
         }
         else if (!string.IsNullOrEmpty(languageCodeToUse))
         {
             // Song books already populated, just set selected
-            SetSelectedSongBook();
+            SetSelectedSongPublication();
         }
 
         await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
     }
 
-    private async Task PopulateSongBooks(string languageCode)
+    private async Task PopulateSongPublications(string languageCode)
     {
-        await dataProvider.PopulateSongBooks(
+        await dataProvider.PopulateSongPublications(
             languageCode,
             stateManager.Current,
-            propertyManager.SongBooks,
-            songBook => propertyManager.SelectedSongBook = songBook);
+            propertyManager.SongPublications,
+            songPublication => propertyManager.SelectedSongPublication = songPublication);
     }
 
     private void UpdateSelectedLanguage(LanguageListViewItemModel language)

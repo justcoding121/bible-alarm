@@ -8,14 +8,14 @@ using Microsoft.Maui.Controls.Xaml;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class SongBookSelection : BaseContentPage, IDisposable
+public partial class SongPublicationSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
-    private readonly SongBookSelectionViewModel viewModel;
+    private readonly SongPublicationSelectionViewModel viewModel;
 
-    public SongBookSelectionViewModel? ViewModel => BindingContext as SongBookSelectionViewModel;
+    public SongPublicationSelectionViewModel? ViewModel => BindingContext as SongPublicationSelectionViewModel;
 
-    public SongBookSelection(SongBookSelectionViewModel viewModel)
+    public SongPublicationSelection(SongPublicationSelectionViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;
@@ -46,7 +46,7 @@ public partial class SongBookSelection : BaseContentPage, IDisposable
         }
     }
 
-    private async void OnSongBookItemTapped(object? sender, TappedEventArgs e)
+    private async void OnSongPublicationItemTapped(object? sender, TappedEventArgs e)
     {
         if (sender is Grid grid && grid.BindingContext is PublicationListViewItemModel publicationItem)
         {

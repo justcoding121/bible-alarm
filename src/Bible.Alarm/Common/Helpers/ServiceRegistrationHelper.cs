@@ -285,7 +285,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<HomeViewModel>();
         services.AddTransient<ScheduleViewModel>();
         services.AddTransient<MusicSelectionViewModel>();
-        services.AddTransient<SongBookSelectionViewModel>();
+        services.AddTransient<SongPublicationSelectionViewModel>();
         services.AddTransient<TrackSelectionViewModel>();
         services.AddTransient<BibleSelectionViewModel>();
         services.AddTransient<BookSelectionViewModel>();
@@ -315,7 +315,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<Home>();
         services.AddTransient<Schedule>();
         services.AddTransient<MusicSelection>();
-        services.AddTransient<SongBookSelection>();
+        services.AddTransient<SongPublicationSelection>();
         services.AddTransient<TrackSelection>();
         services.AddTransient<BiblePublicationSelection>();
         services.AddTransient<BookSelection>();
@@ -327,7 +327,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BookSelectionModal>();
         services.AddTransient<ChapterSelectionModal>();
         services.AddTransient<MusicSelectionModal>();
-        services.AddTransient<SongBookSelectionModal>();
+        services.AddTransient<SongPublicationSelectionModal>();
         services.AddTransient<TrackSelectionModal>();
         services.AddTransient<AlarmSettingsModal>();
         services.AddTransient<NumberOfChaptersModal>();

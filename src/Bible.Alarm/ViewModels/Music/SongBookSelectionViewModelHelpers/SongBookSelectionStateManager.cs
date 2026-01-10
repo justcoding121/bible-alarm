@@ -7,12 +7,12 @@ using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles state management and initialization for SongBookSelectionViewModel.
+/// Handles state management and initialization for SongPublicationSelectionViewModel.
 /// </summary>
-public sealed class SongBookSelectionStateManager(IMapper mapper)
+public sealed class SongPublicationSelectionStateManager(IMapper mapper)
 {
     private AlarmMusic? current;
     private AlarmMusic? lastCurrent;
@@ -113,8 +113,8 @@ public sealed class SongBookSelectionStateManager(IMapper mapper)
     public void HandleMusicChanged(
         IState<ApplicationState> state,
         Action<bool> setBusy,
-        Func<string, Task> populateSongBooks,
-        Action setSelectedSongBook)
+        Func<string, Task> populateSongPublications,
+        Action setSelectedSongPublication)
     {
         var stateValue = state.Value;
 
@@ -172,7 +172,7 @@ public sealed class SongBookSelectionStateManager(IMapper mapper)
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                await populateSongBooks(newLanguageCode);
+                await populateSongPublications(newLanguageCode);
                 await Task.Delay(100);
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
             });
@@ -180,7 +180,7 @@ public sealed class SongBookSelectionStateManager(IMapper mapper)
         else
         {
             // Update selected song book when state changes
-            MainThread.BeginInvokeOnMainThread(setSelectedSongBook);
+            MainThread.BeginInvokeOnMainThread(setSelectedSongPublication);
         }
     }
 

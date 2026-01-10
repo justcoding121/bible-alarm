@@ -15,7 +15,7 @@ public sealed class MusicDisplayTextProvider
     private readonly IState<ApplicationState> state;
 
     // Cache fields
-    private string? cachedSongBookName;
+    private string? cachedSongPublicationName;
     private string? lastMusicPublicationCode;
     private string? cachedTrackName;
     private int? lastMusicTrackNumber;
@@ -30,7 +30,7 @@ public sealed class MusicDisplayTextProvider
 
     public void ClearCaches()
     {
-        cachedSongBookName = null;
+        cachedSongPublicationName = null;
         cachedTrackName = null;
         lastMusicPublicationCode = null;
         lastMusicTrackNumber = null;
@@ -39,9 +39,9 @@ public sealed class MusicDisplayTextProvider
         lastTrackMusicType = null;
     }
 
-    public void ClearSongBookCache()
+    public void ClearSongPublicationCache()
     {
-        cachedSongBookName = null;
+        cachedSongPublicationName = null;
         lastMusicPublicationCode = null;
     }
 
@@ -63,9 +63,9 @@ public sealed class MusicDisplayTextProvider
         lastTrackMusicType = musicType;
     }
 
-    public void UpdateSongBookCache(string? songBookName, string? publicationCode)
+    public void UpdateSongPublicationCache(string? songPublicationName, string? publicationCode)
     {
-        cachedSongBookName = songBookName;
+        cachedSongPublicationName = songPublicationName;
         lastMusicPublicationCode = publicationCode;
     }
 
@@ -85,7 +85,7 @@ public sealed class MusicDisplayTextProvider
         };
     }
 
-    public bool GetIsSongBookVisible()
+    public bool GetIsSongPublicationVisible()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         return currentSchedule != null &&
@@ -117,9 +117,9 @@ public sealed class MusicDisplayTextProvider
         return currentSchedule.MusicLanguageName;
     }
 
-    public string GetSongBookDisplayText()
+    public string GetSongPublicationDisplayText()
     {
-        if (!GetIsSongBookVisible())
+        if (!GetIsSongPublicationVisible())
         {
             return string.Empty;
         }
@@ -130,25 +130,25 @@ public sealed class MusicDisplayTextProvider
         if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationName))
         {
             // Update cache if it's different or empty
-            if (string.IsNullOrEmpty(cachedSongBookName) || cachedSongBookName != currentSchedule.MusicPublicationName)
+            if (string.IsNullOrEmpty(cachedSongPublicationName) || cachedSongPublicationName != currentSchedule.MusicPublicationName)
             {
-                cachedSongBookName = currentSchedule.MusicPublicationName;
+                cachedSongPublicationName = currentSchedule.MusicPublicationName;
                 lastMusicPublicationCode = currentSchedule.MusicPublicationCode;
             }
             return currentSchedule.MusicPublicationName;
         }
 
         // Return cached value if available
-        if (!string.IsNullOrEmpty(cachedSongBookName))
+        if (!string.IsNullOrEmpty(cachedSongPublicationName))
         {
-            return cachedSongBookName;
+            return cachedSongPublicationName;
         }
 
         // Return empty if not loaded yet
         return string.Empty;
     }
 
-    public async Task<string> GetSongBookDisplayTextAsync()
+    public async Task<string> GetSongPublicationDisplayTextAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null ||
@@ -163,16 +163,16 @@ public sealed class MusicDisplayTextProvider
         // First check if publication name is already in state (populated during bootstrap or from effect)
         if (!string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationName))
         {
-            cachedSongBookName = currentSchedule.MusicPublicationName;
+            cachedSongPublicationName = currentSchedule.MusicPublicationName;
             lastMusicPublicationCode = currentSchedule.MusicPublicationCode;
             return currentSchedule.MusicPublicationName;
         }
 
         // Return cached value if publication code hasn't changed
-        if (!string.IsNullOrEmpty(cachedSongBookName) &&
+        if (!string.IsNullOrEmpty(cachedSongPublicationName) &&
             lastMusicPublicationCode == currentSchedule.MusicPublicationCode)
         {
-            return cachedSongBookName;
+            return cachedSongPublicationName;
         }
 
         // NOTE: Do NOT query database here - publication names should be in state from bootstrap

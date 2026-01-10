@@ -30,9 +30,9 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
 
         if (sender is Grid grid && grid.BindingContext is LanguageListViewItemModel languageItem)
         {
-            if (ViewModel is SongBookSelectionViewModel songBookViewModel)
+            if (ViewModel is SongPublicationSelectionViewModel songPublicationViewModel)
             {
-                if (songBookViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
+                if (songPublicationViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
                 {
                     if (asyncCommand.CanExecute(languageItem))
                     {
@@ -52,7 +52,7 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
             // Yield immediately to let spinner start animating
             await Task.Yield();
             
-            var songBookViewModel = ViewModel as SongBookSelectionViewModel;
+            var songPublicationViewModel = ViewModel as SongPublicationSelectionViewModel;
             
             // Hide CollectionView - overlay is already visible (no binding)
             // Skip on Windows to avoid access violation crash
@@ -65,9 +65,9 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
             await Task.Yield();
             
             // Trigger data refresh
-            if (songBookViewModel != null)
+            if (songPublicationViewModel != null)
             {
-                await songBookViewModel.RefreshFromState();
+                await songPublicationViewModel.RefreshFromState();
             }
             
             // Wait for IsBusy to become false (data loaded)
@@ -79,7 +79,7 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
             await Task.Delay(150, cancellationTokenSource.Token);
             
             // Scroll to selected item
-            var selectedItem = songBookViewModel?.Languages?.FirstOrDefault(l => l.IsSelected);
+            var selectedItem = songPublicationViewModel?.Languages?.FirstOrDefault(l => l.IsSelected);
             if (selectedItem != null)
             {
                 await CollectionViewHelper.ScrollToWhenReadyAsync(

@@ -13,23 +13,23 @@ using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles command execution for SongBookSelectionViewModel.
+/// Handles command execution for SongPublicationSelectionViewModel.
 /// </summary>
-public sealed class SongBookSelectionCommandHandler(
+public sealed class SongPublicationSelectionCommandHandler(
     INavigationService navigationService,
     IState<ApplicationState> state,
     IDispatcher dispatcher)
 {
     public async Task HandleTrackSelectionAsync(
-        PublicationListViewItemModel songBook,
+        PublicationListViewItemModel songPublication,
         LanguageListViewItemModel? currentLanguage,
-        SongBookSelectionDataProvider dataProvider,
+        SongPublicationSelectionDataProvider dataProvider,
         AlarmMusic? current)
     {
-        if (songBook == null)
+        if (songPublication == null)
         {
             return;
         }
@@ -41,13 +41,13 @@ public sealed class SongBookSelectionCommandHandler(
         }
 
         var currentSchedule = state.Value.CurrentSchedule;
-        var (trackNumber, trackName) = await dataProvider.GetTrackForSongBookAsync(songBook, languageCode, currentSchedule);
+        var (trackNumber, trackName) = await dataProvider.GetTrackForSongPublicationAsync(songPublication, languageCode, currentSchedule);
         if (trackNumber == 0)
         {
             return;
         }
 
-        var trackSelectedItem = CreateMusicStateItemForSongBook(songBook, languageCode, trackNumber, trackName, currentLanguage, currentSchedule);
+        var trackSelectedItem = CreateMusicStateItemForSongPublication(songPublication, languageCode, trackNumber, trackName, currentLanguage, currentSchedule);
         dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
         await navigationService.PopModalAsync();
     }
@@ -55,7 +55,7 @@ public sealed class SongBookSelectionCommandHandler(
 
     public async Task HandleLanguageSelectionAsync(
         LanguageListViewItemModel language,
-        SongBookSelectionDataProvider dataProvider,
+        SongPublicationSelectionDataProvider dataProvider,
         Action<LanguageListViewItemModel?> setCurrentLanguage,
         Action<LanguageListViewItemModel> updateSelectedLanguage)
     {
@@ -67,7 +67,7 @@ public sealed class SongBookSelectionCommandHandler(
         updateSelectedLanguage(language);
 
         var currentSchedule = state.Value.CurrentSchedule;
-        var (publicationCode, trackNumber, trackName, publicationName) = await dataProvider.GetFirstSongBookAndTrackForLanguageAsync(language, currentSchedule);
+        var (publicationCode, trackNumber, trackName, publicationName) = await dataProvider.GetFirstSongPublicationAndTrackForLanguageAsync(language, currentSchedule);
         if (publicationCode == null)
         {
             return;
@@ -78,8 +78,8 @@ public sealed class SongBookSelectionCommandHandler(
         await navigationService.PopModalAsync();
     }
 
-    private MusicStateItem CreateMusicStateItemForSongBook(
-        PublicationListViewItemModel songBook,
+    private MusicStateItem CreateMusicStateItemForSongPublication(
+        PublicationListViewItemModel songPublication,
         string languageCode,
         int trackNumber,
         string trackName,
@@ -91,10 +91,10 @@ public sealed class SongBookSelectionCommandHandler(
             Repeat = currentSchedule?.MusicRepeat ?? false,
             MusicType = MusicType.Vocals,
             LanguageCode = languageCode,
-            PublicationCode = songBook.Code,
+            PublicationCode = songPublication.Code,
             TrackNumber = trackNumber,
             LanguageName = currentLanguage?.Name,
-            PublicationName = songBook.Name,
+            PublicationName = songPublication.Name,
             TrackName = trackName
         };
     }

@@ -9,14 +9,14 @@ using Microsoft.Maui.Controls.Xaml;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class SongBookSelectionModal : BaseContentPage, IDisposable
+public partial class SongPublicationSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public SongBookSelectionViewModel? ViewModel => BindingContext as SongBookSelectionViewModel;
+    public SongPublicationSelectionViewModel? ViewModel => BindingContext as SongPublicationSelectionViewModel;
 
-    public SongBookSelectionModal()
+    public SongPublicationSelectionModal()
     {
         InitializeComponent();
         Appearing += OnAppearing;
@@ -29,8 +29,8 @@ public partial class SongBookSelectionModal : BaseContentPage, IDisposable
         await ModalScrollHelper.HandleModalAppearingAsync(
             () => ViewModel?.IsBusy ?? false,
             BusyOverlay,
-            songBooksCollectionView,
-            getSelectedItem: () => ViewModel?.SelectedSongBook,
+            songPublicationsCollectionView,
+            getSelectedItem: () => ViewModel?.SelectedSongPublication,
             refreshAction: ViewModel != null 
                 ? async () => await ViewModel.RefreshFromState() 
                 : null,
@@ -46,7 +46,7 @@ public partial class SongBookSelectionModal : BaseContentPage, IDisposable
         }
     }
 
-    private async void OnSongBookItemTapped(object? sender, TappedEventArgs e)
+    private async void OnSongPublicationItemTapped(object? sender, TappedEventArgs e)
     {
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }

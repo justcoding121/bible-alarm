@@ -24,9 +24,9 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task OpenSongBookSelectionModalAsync(INavigation navigation, object bindingContext)
+    public async Task OpenSongPublicationSelectionModalAsync(INavigation navigation, object bindingContext)
     {
-        var modal = serviceProvider.GetRequiredService<SongBookSelectionModal>();
+        var modal = serviceProvider.GetRequiredService<SongPublicationSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
     }
@@ -73,7 +73,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         {
             // Use the appropriate modal based on the ViewModel type for compiled bindings
             BibleSelectionViewModel => serviceProvider.GetRequiredService<BibleLanguageModal>(),
-            SongBookSelectionViewModel => serviceProvider.GetRequiredService<MusicLanguageModal>(),
+            SongPublicationSelectionViewModel => serviceProvider.GetRequiredService<MusicLanguageModal>(),
             _ => throw new ArgumentException($"Unsupported ViewModel type: {bindingContext?.GetType().Name}",
                 nameof(bindingContext))
         };

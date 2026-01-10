@@ -91,7 +91,7 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
 
         if (sender is Grid grid && grid.BindingContext is MusicTypeListItemViewModel musicTypeItem)
         {
-            if (ViewModel != null && ViewModel.SongBookSelectionCommand is IAsyncRelayCommand<MusicTypeListItemViewModel> asyncCommand)
+            if (ViewModel != null && ViewModel.SongPublicationSelectionCommand is IAsyncRelayCommand<MusicTypeListItemViewModel> asyncCommand)
             {
                 if (asyncCommand.CanExecute(musicTypeItem))
                 {

@@ -63,7 +63,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
         this.state.StateChanged += OnStateOnStateChanged;
 
-        SongBookSelectionCommand = new AsyncRelayCommand<MusicTypeListItemViewModel>(async x =>
+        SongPublicationSelectionCommand = new AsyncRelayCommand<MusicTypeListItemViewModel>(async x =>
         {
             if (x == null)
             {
@@ -204,7 +204,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
-    public ICommand SongBookSelectionCommand { get; set; }
+    public ICommand SongPublicationSelectionCommand { get; set; }
 
     public ObservableCollection<MusicTypeListItemViewModel> MusicTypes { get; set; }
         = new(
@@ -248,7 +248,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
     private async Task HandleVocalsSelectionAsync(ScheduleStateItem? currentSchedule, bool isSameMusicType)
     {
-        var result = await GetFirstLanguageAndSongBookAsync();
+        var result = await GetFirstLanguageAndSongPublicationAsync();
         if (result.LanguageCode == null)
         {
             return;
@@ -263,13 +263,13 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         }
 
         var (trackNumber, trackName) = GetTrackForVocals(currentSchedule, isSameMusicType, result.LanguageCode, result.PublicationCode, tracks);
-        var trackSelectedItem = CreateVocalsMusicStateItem(currentSchedule, result.LanguageCode, result.PublicationCode, trackNumber, trackName, result.Language, result.FirstSongBook);
+        var trackSelectedItem = CreateVocalsMusicStateItem(currentSchedule, result.LanguageCode, result.PublicationCode, trackNumber, trackName, result.Language, result.FirstSongPublication);
 
         this.dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
         await navigationService.PopModalAsync();
     }
 
-    private async Task<(string? LanguageCode, Language Language, string PublicationCode, VocalMusic FirstSongBook)> GetFirstLanguageAndSongBookAsync()
+    private async Task<(string? LanguageCode, Language Language, string PublicationCode, VocalMusic FirstSongPublication)> GetFirstLanguageAndSongPublicationAsync()
     {
         var languages = await Task.Run(async () =>
             await mediaService.GetVocalMusicLanguages());
@@ -282,21 +282,21 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         var languageCode = languages.ContainsKey("E") ? "E" : languages.FirstOrDefault().Key ?? "E";
         var language = languages[languageCode];
 
-        var songBooks = await Task.Run(async () =>
+        var songPublications = await Task.Run(async () =>
             await mediaService.GetVocalMusicReleases(languageCode));
 
-        if (songBooks == null || songBooks.Count == 0)
+        if (songPublications == null || songPublications.Count == 0)
         {
             return (null, null!, string.Empty, null!);
         }
 
-        var firstSongBook = songBooks.FirstOrDefault();
-        if (firstSongBook.Value == null)
+        var firstSongPublication = songPublications.FirstOrDefault();
+        if (firstSongPublication.Value == null)
         {
             return (null, null!, string.Empty, null!);
         }
 
-        return (languageCode, language, firstSongBook.Key, firstSongBook.Value);
+        return (languageCode, language, firstSongPublication.Key, firstSongPublication.Value);
     }
 
     private static (int TrackNumber, string TrackName) GetTrackForVocals(
@@ -327,7 +327,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         int trackNumber,
         string trackName,
         Language language,
-        VocalMusic firstSongBook)
+        VocalMusic firstSongPublication)
     {
         return new MusicStateItem
         {
@@ -337,7 +337,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
             PublicationCode = publicationCode,
             TrackNumber = trackNumber,
             LanguageName = language.Name,
-            PublicationName = firstSongBook.Name,
+            PublicationName = firstSongPublication.Name,
             TrackName = trackName
         };
     }

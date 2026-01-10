@@ -633,12 +633,12 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             // Skip if already exists (in-memory check, fast)
             if (existingCodes.Contains(vocalMusicRelease.Value.Code))
             {
-                logger.Information("Skipping song book {SongBookName} ({SongBookCode}) for language {LanguageCode} - already exists",
+                logger.Information("Skipping song book {SongPublicationName} ({SongPublicationCode}) for language {LanguageCode} - already exists",
                     vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, languageCode);
                 continue;
             }
 
-            logger.Information("Seeding song book {SongBookName} ({SongBookCode}) for language {LanguageCode}",
+            logger.Information("Seeding song book {SongPublicationName} ({SongPublicationCode}) for language {LanguageCode}",
                 vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, languageCode);
 
             var tracks = await GetSafely(() => mediaReader.GetVocalMusicTracks(languageCode, vocalMusicRelease.Key));

@@ -7,16 +7,16 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles data population for SongBookSelectionViewModel.
+/// Handles data population for SongPublicationSelectionViewModel.
 /// </summary>
-public sealed class SongBookSelectionDataProvider(IMediaService mediaService)
+public sealed class SongPublicationSelectionDataProvider(IMediaService mediaService)
 {
-    private readonly Dictionary<string, PublicationListViewItemModel> songBookVMsMapping = [];
+    private readonly Dictionary<string, PublicationListViewItemModel> songPublicationVMsMapping = [];
 
-    public Dictionary<string, PublicationListViewItemModel> SongBookVMsMapping => songBookVMsMapping;
+    public Dictionary<string, PublicationListViewItemModel> SongPublicationVMsMapping => songPublicationVMsMapping;
 
     public async Task PopulateLanguages(
         AlarmMusic? current,
@@ -77,21 +77,21 @@ public sealed class SongBookSelectionDataProvider(IMediaService mediaService)
         }
     }
 
-    public async Task PopulateSongBooks(
+    public async Task PopulateSongPublications(
         string languageCode,
         AlarmMusic? current,
-        ObservableCollection<PublicationListViewItemModel> songBooks,
-        Action<PublicationListViewItemModel?> setSelectedSongBook)
+        ObservableCollection<PublicationListViewItemModel> songPublications,
+        Action<PublicationListViewItemModel?> setSelectedSongPublication)
     {
         // Do ALL processing on background thread to avoid blocking spinner animation
-        var (songBookVMs, newMapping, selectedSongBook) = await Task.Run(async () =>
+        var (songPublicationVMs, newMapping, selectedSongPublication) = await Task.Run(async () =>
         {
-            var songBooksFromDb = await mediaService.GetVocalMusicReleases(languageCode);
+            var songPublicationsFromDb = await mediaService.GetVocalMusicReleases(languageCode);
             var vms = new List<PublicationListViewItemModel>();
             var mapping = new Dictionary<string, PublicationListViewItemModel>();
             PublicationListViewItemModel? selected = null;
 
-            foreach (var release in songBooksFromDb.Values)
+            foreach (var release in songPublicationsFromDb.Values)
             {
                 // Skip duplicates - if code already exists, use the existing one
                 if (mapping.TryGetValue(release.Code, out var existingVm))
@@ -108,17 +108,17 @@ public sealed class SongBookSelectionDataProvider(IMediaService mediaService)
                     continue;
                 }
 
-                var songBookListViewItemModel = new PublicationListViewItemModel(release);
-                vms.Add(songBookListViewItemModel);
-                mapping[songBookListViewItemModel.Code] = songBookListViewItemModel;
+                var songPublicationListViewItemModel = new PublicationListViewItemModel(release);
+                vms.Add(songPublicationListViewItemModel);
+                mapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
 
                 if (current != null &&
                     current.MusicType == MusicType.Vocals &&
                     current.LanguageCode == languageCode &&
                     current.PublicationCode == release.Code)
                 {
-                    songBookListViewItemModel.IsSelected = true;
-                    selected = songBookListViewItemModel;
+                    songPublicationListViewItemModel.IsSelected = true;
+                    selected = songPublicationListViewItemModel;
                 }
             }
 
@@ -126,68 +126,68 @@ public sealed class SongBookSelectionDataProvider(IMediaService mediaService)
         });
 
         // Update mapping
-        songBookVMsMapping.Clear();
+        songPublicationVMsMapping.Clear();
         foreach (var kvp in newMapping)
         {
-            songBookVMsMapping[kvp.Key] = kvp.Value;
+            songPublicationVMsMapping[kvp.Key] = kvp.Value;
         }
 
         // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            songBooks.Clear();
-            foreach (var songBook in songBookVMs)
+            songPublications.Clear();
+            foreach (var songPublication in songPublicationVMs)
             {
-                songBooks.Add(songBook);
+                songPublications.Add(songPublication);
             }
-            if (selectedSongBook != null)
+            if (selectedSongPublication != null)
             {
-                setSelectedSongBook(selectedSongBook);
+                setSelectedSongPublication(selectedSongPublication);
             }
         });
     }
 
-    public void SetSelectedSongBook(
+    public void SetSelectedSongPublication(
         AlarmMusic? current,
-        Dictionary<string, PublicationListViewItemModel> songBookVMsMapping,
-        PublicationListViewItemModel? currentSelectedSongBook,
-        Action<PublicationListViewItemModel?> setSelectedSongBook)
+        Dictionary<string, PublicationListViewItemModel> songPublicationVMsMapping,
+        PublicationListViewItemModel? currentSelectedSongPublication,
+        Action<PublicationListViewItemModel?> setSelectedSongPublication)
     {
         if (current == null)
         {
             return;
         }
 
-        if (currentSelectedSongBook != null)
+        if (currentSelectedSongPublication != null)
         {
-            currentSelectedSongBook.IsSelected = false;
+            currentSelectedSongPublication.IsSelected = false;
         }
 
-        if (!songBookVMsMapping.TryGetValue(current.PublicationCode, out var songBook))
+        if (!songPublicationVMsMapping.TryGetValue(current.PublicationCode, out var songPublication))
         {
             return;
         }
 
-        setSelectedSongBook(songBook);
-        songBook.IsSelected = true;
+        setSelectedSongPublication(songPublication);
+        songPublication.IsSelected = true;
     }
 
-    public async Task<(int TrackNumber, string TrackName)> GetTrackForSongBookAsync(
-        PublicationListViewItemModel songBook,
+    public async Task<(int TrackNumber, string TrackName)> GetTrackForSongPublicationAsync(
+        PublicationListViewItemModel songPublication,
         string languageCode,
         ScheduleStateItem? currentSchedule)
     {
-        var isSameSongBook = IsSameSongBook(currentSchedule, languageCode, songBook.Code);
+        var isSameSongPublication = IsSameSongPublication(currentSchedule, languageCode, songPublication.Code);
 
         var tracks = await Task.Run(async () =>
-            await mediaService.GetVocalMusicTracks(languageCode, songBook.Code));
+            await mediaService.GetVocalMusicTracks(languageCode, songPublication.Code));
 
         if (tracks == null || tracks.Count == 0)
         {
             return (0, string.Empty);
         }
 
-        if (isSameSongBook &&
+        if (isSameSongPublication &&
             currentSchedule?.MusicTrackNumber.HasValue == true &&
             tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
         {
@@ -199,26 +199,26 @@ public sealed class SongBookSelectionDataProvider(IMediaService mediaService)
         return (randomTrack.Number, randomTrack.Title);
     }
 
-    public async Task<(string? PublicationCode, int TrackNumber, string TrackName, string PublicationName)> GetFirstSongBookAndTrackForLanguageAsync(
+    public async Task<(string? PublicationCode, int TrackNumber, string TrackName, string PublicationName)> GetFirstSongPublicationAndTrackForLanguageAsync(
         LanguageListViewItemModel language,
         ScheduleStateItem? currentSchedule)
     {
-        var songBooks = await Task.Run(async () =>
+        var songPublications = await Task.Run(async () =>
             await mediaService.GetVocalMusicReleases(language.Code));
 
-        if (songBooks == null || songBooks.Count == 0)
+        if (songPublications == null || songPublications.Count == 0)
         {
             return (null, 0, string.Empty, string.Empty);
         }
 
-        var firstSongBook = songBooks.FirstOrDefault();
-        if (firstSongBook.Value == null)
+        var firstSongPublication = songPublications.FirstOrDefault();
+        if (firstSongPublication.Value == null)
         {
             return (null, 0, string.Empty, string.Empty);
         }
 
-        var publicationCode = firstSongBook.Key;
-        var isSameLanguage = IsSameLanguageAndSongBook(currentSchedule, language.Code, publicationCode);
+        var publicationCode = firstSongPublication.Key;
+        var isSameLanguage = IsSameLanguageAndSongPublication(currentSchedule, language.Code, publicationCode);
 
         var tracks = await Task.Run(async () =>
             await mediaService.GetVocalMusicTracks(language.Code, publicationCode));
@@ -246,10 +246,10 @@ public sealed class SongBookSelectionDataProvider(IMediaService mediaService)
             trackName = randomTrack.Title;
         }
 
-        return (publicationCode, trackNumber, trackName, firstSongBook.Value.Name);
+        return (publicationCode, trackNumber, trackName, firstSongPublication.Value.Name);
     }
 
-    private static bool IsSameSongBook(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
+    private static bool IsSameSongPublication(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
     {
         return currentSchedule != null &&
                currentSchedule.MusicType == MusicType.Vocals &&
@@ -257,7 +257,7 @@ public sealed class SongBookSelectionDataProvider(IMediaService mediaService)
                currentSchedule.MusicPublicationCode == publicationCode;
     }
 
-    private static bool IsSameLanguageAndSongBook(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
+    private static bool IsSameLanguageAndSongPublication(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
     {
         return currentSchedule != null &&
                currentSchedule.MusicType == MusicType.Vocals &&

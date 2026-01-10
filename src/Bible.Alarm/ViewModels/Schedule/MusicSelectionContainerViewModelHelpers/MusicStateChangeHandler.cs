@@ -186,10 +186,10 @@ public sealed class MusicStateChangeHandler
         // Determine which properties need to be notified (cascading logic)
         var notifyMusicType = musicTypeChanged;
         var notifyLanguage = musicTypeChanged || languageCodeChanged;
-        var notifySongBook = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
+        var notifySongPublication = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
         var notifyTrack = musicTypeChanged || languageCodeChanged || publicationCodeChanged || trackNumberChanged;
 
-        if (notifyMusicType || notifyLanguage || notifySongBook || notifyTrack || repeatChanged)
+        if (notifyMusicType || notifyLanguage || notifySongPublication || notifyTrack || repeatChanged)
         {
             // Update last values
             stateTracker.UpdateFromSchedule(currentSchedule);
@@ -201,7 +201,7 @@ public sealed class MusicStateChangeHandler
                 propertyNotifier.NotifyPropertiesChanged(
                     notifyMusicType,
                     notifyLanguage,
-                    notifySongBook,
+                    notifySongPublication,
                     notifyTrack,
                     repeatChanged,
                     currentSchedule?.MusicType,
