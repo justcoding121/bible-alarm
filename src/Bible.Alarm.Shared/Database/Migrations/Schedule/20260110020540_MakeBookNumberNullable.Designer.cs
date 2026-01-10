@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     [DbContext(typeof(ScheduleDbContext))]
-    [Migration("20260110020540_MakeBookNumberNullable")]
-    partial class MakeBookNumberNullable
+    [Migration("20260110020540_MakeSectionNumberNullable")]
+    partial class MakeSectionNumberNullable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -179,7 +179,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.Property<int>("AlarmScheduleId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("BookNumber")
+                    b.Property<int?>("SectionNumber")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ChapterNumber")

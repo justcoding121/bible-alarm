@@ -14,16 +14,16 @@ namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 internal sealed class LookupDataLoader
 {
     private readonly IBiblePublicationService? BiblePublicationService;
-    private readonly IBibleBookService? bibleBookService;
+    private readonly IBibleSectionService? bibleSectionService;
     private readonly IMediaService? mediaService;
 
     public LookupDataLoader(
         IBiblePublicationService? BiblePublicationService,
-        IBibleBookService? bibleBookService,
+        IBibleSectionService? bibleSectionService,
         IMediaService? mediaService)
     {
         this.BiblePublicationService = BiblePublicationService;
-        this.bibleBookService = bibleBookService;
+        this.bibleSectionService = bibleSectionService;
         this.mediaService = mediaService;
     }
 
@@ -35,7 +35,7 @@ internal sealed class LookupDataLoader
             try
             {
                 var translation = BiblePublicationService != null 
-                    ? await BiblePublicationService.GetByLanguageAndCodeWithBooksAsync(
+                    ? await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
                         key.LanguageCode, key.PublicationCode)
                     : null;
                 return (Key: key, Translation: translation);
@@ -48,21 +48,21 @@ internal sealed class LookupDataLoader
             }
         }).ToList();
 
-        var bookTasks = keys.BookKeys.Select(async key =>
+        var sectionTasks = keys.SectionKeys.Select(async key =>
         {
             try
             {
-                var bookName = bibleBookService != null
-                    ? await bibleBookService.GetBookNameAsync(
-                        key.LanguageCode, key.PublicationCode, key.BookNumber)
+                var sectionName = bibleSectionService != null
+                    ? await bibleSectionService.GetSectionNameAsync(
+                        key.LanguageCode, key.PublicationCode, key.SectionNumber)
                     : null;
-                return (Key: key, BookName: bookName);
+                return (Key: key, SectionName: sectionName);
             }
             catch (Exception ex)
             {
-                Log.Logger.Warning(ex, "Error loading book {LanguageCode}/{PublicationCode}/{BookNumber}",
-                    key.LanguageCode, key.PublicationCode, key.BookNumber);
-                return (Key: key, BookName: (string?)null);
+                Log.Logger.Warning(ex, "Error loading section {LanguageCode}/{PublicationCode}/{SectionNumber}",
+                    key.LanguageCode, key.PublicationCode, key.SectionNumber);
+                return (Key: key, SectionName: (string?)null);
             }
         }).ToList();
 
@@ -122,7 +122,7 @@ internal sealed class LookupDataLoader
         // Wait for all batch loads to complete in parallel
         await Task.WhenAll(
             Task.WhenAll(translationTasks),
-            Task.WhenAll(bookTasks),
+            Task.WhenAll(sectionTasks),
             vocalLanguagesTask,
             Task.WhenAll(vocalReleasesTasks),
             Task.WhenAll(vocalTracksTasks),
@@ -133,9 +133,9 @@ internal sealed class LookupDataLoader
             .Where(t => t.Result.Translation != null)
             .ToDictionary(t => t.Result.Key, t => t.Result.Translation!);
 
-        var booksDict = bookTasks
-            .Where(t => !string.IsNullOrWhiteSpace(t.Result.BookName))
-            .ToDictionary(t => t.Result.Key, t => t.Result.BookName!);
+        var sectionsDict = sectionTasks
+            .Where(t => !string.IsNullOrWhiteSpace(t.Result.SectionName))
+            .ToDictionary(t => t.Result.Key, t => t.Result.SectionName!);
 
         var vocalLanguagesDict = await vocalLanguagesTask;
 
@@ -151,7 +151,7 @@ internal sealed class LookupDataLoader
 
         return new LookupData(
             Translations: translationsDict,
-            Books: booksDict,
+            Sections: sectionsDict,
             VocalLanguages: vocalLanguagesDict,
             VocalReleases: vocalReleasesDict,
             VocalTracks: vocalTracksDict,
@@ -160,7 +160,7 @@ internal sealed class LookupDataLoader
 
     public sealed record LookupData(
         Dictionary<(string LanguageCode, string PublicationCode), BiblePublication> Translations,
-        Dictionary<(string LanguageCode, string PublicationCode, int BookNumber), string> Books,
+        Dictionary<(string LanguageCode, string PublicationCode, int SectionNumber), string> Sections,
         Dictionary<string, Language> VocalLanguages,
         Dictionary<(string LanguageCode, string PublicationCode), VocalMusic> VocalReleases,
         Dictionary<(string LanguageCode, string PublicationCode), SortedDictionary<int, MusicTrack>> VocalTracks,

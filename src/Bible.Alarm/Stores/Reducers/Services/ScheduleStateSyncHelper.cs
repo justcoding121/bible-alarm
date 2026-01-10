@@ -59,15 +59,15 @@ public static class ScheduleStateSyncHelper
             return false;
         }
 
-        // For traditional Bible reading (has book structure), BookNumber is required
-        // For dramas (no book structure), BookNumber is not required (null is valid)
-        if (PublicationTypeHelper.HasBookStructure(schedule.BibleReadingPublicationCode))
+        // For traditional Bible reading (has section structure), SectionNumber is required
+        // For dramas (no section structure), SectionNumber is not required (null is valid)
+        if (PublicationTypeHelper.HasSectionStructure(schedule.BibleReadingPublicationCode))
         {
-            return schedule.BibleReadingBookNumber.HasValue &&
-                   schedule.BibleReadingBookNumber.Value > 0;
+            return schedule.BibleReadingSectionNumber.HasValue &&
+                   schedule.BibleReadingSectionNumber.Value > 0;
         }
 
-        // For dramas, BookNumber is not required
+        // For dramas, SectionNumber is not required
         return true;
     }
 
@@ -78,12 +78,12 @@ public static class ScheduleStateSyncHelper
             throw new InvalidOperationException("BibleReadingChapterNumber must have a value");
         }
 
-        var hasBookStructure = PublicationTypeHelper.HasBookStructure(updatedCurrentSchedule.BibleReadingPublicationCode);
+        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(updatedCurrentSchedule.BibleReadingPublicationCode);
 
-        // For traditional Bible reading (has book structure), BookNumber is required
-        if (hasBookStructure && !updatedCurrentSchedule.BibleReadingBookNumber.HasValue)
+        // For traditional Bible reading (has section structure), SectionNumber is required
+        if (hasSectionStructure && !updatedCurrentSchedule.BibleReadingSectionNumber.HasValue)
         {
-            throw new InvalidOperationException("BibleReadingBookNumber must have a value for publications with book structure");
+            throw new InvalidOperationException("BibleReadingSectionNumber must have a value for publications with section structure");
         }
 
         return new BibleReadingStateItem
@@ -91,7 +91,7 @@ public static class ScheduleStateSyncHelper
             Id = updatedCurrentSchedule.BibleReadingScheduleId ?? 0,
             LanguageCode = updatedCurrentSchedule.BibleReadingLanguageCode ?? string.Empty,
             PublicationCode = updatedCurrentSchedule.BibleReadingPublicationCode ?? string.Empty,
-            BookNumber = updatedCurrentSchedule.BibleReadingBookNumber,
+            SectionNumber = updatedCurrentSchedule.BibleReadingSectionNumber,
             ChapterNumber = updatedCurrentSchedule.BibleReadingChapterNumber.Value,
             FinishedDuration = updatedCurrentSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero,
             AlarmScheduleId = updatedCurrentSchedule.Id,

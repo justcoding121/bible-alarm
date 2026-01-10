@@ -35,7 +35,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                 return await GetBibleChapterUrl(
                     trackMetadata.LanguageCode,
                     trackMetadata.PublicationCode,
-                    trackMetadata.BookNumber,
+                    trackMetadata.SectionNumber,
                     trackMetadata.ChapterNumber,
                     lookUpPath);
             }
@@ -51,7 +51,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
     }
 
-    public async Task<string?> GetBibleChapterUrl(string languageCode, string pubCode, int bookNumber, int chapter,
+    public async Task<string?> GetBibleChapterUrl(string languageCode, string pubCode, int sectionNumber, int chapter,
         string lookUpPath)
     {
         try
@@ -121,7 +121,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Exception in GetBibleChapterUrl for language '{LanguageCode}', book {BookNumber}, chapter {Chapter}", languageCode, bookNumber, chapter);
+            logger.Error(ex, "Exception in GetBibleChapterUrl for language '{LanguageCode}', section {SectionNumber}, chapter {Chapter}", languageCode, sectionNumber, chapter);
             return null;
         }
     }

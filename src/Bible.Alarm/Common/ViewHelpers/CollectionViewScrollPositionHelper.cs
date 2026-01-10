@@ -112,9 +112,9 @@ internal static class CollectionViewScrollPositionHelper
             {
                 return i;
             }
-            else if (item is BibleBookListViewItemModel bookItem &&
-                     itemsList[i] is BibleBookListViewItemModel listBookItem &&
-                     bookItem.Number == listBookItem.Number)
+            else if (item is BibleSectionListViewItemModel sectionItem &&
+                     itemsList[i] is BibleSectionListViewItemModel listSectionItem &&
+                     sectionItem.Number == listSectionItem.Number)
             {
                 return i;
             }

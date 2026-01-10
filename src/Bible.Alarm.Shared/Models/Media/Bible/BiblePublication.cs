@@ -17,11 +17,11 @@ public sealed class BiblePublication : TranslatedPublication
     public int Id { get; set; }
 
     /// <summary>
-    /// Books for traditional Bible translations (Book → Chapter structure).
+    /// Sections for traditional Bible translations (Section → Chapter structure).
     /// Empty for Drama/Video publications.
     /// </summary>
     [Required]
-    public List<BibleBook> Books { get; set; } = [];
+    public List<BibleSection> Sections { get; set; } = [];
 
     /// <summary>
     /// Tracks for Drama/Video publications (flat structure).

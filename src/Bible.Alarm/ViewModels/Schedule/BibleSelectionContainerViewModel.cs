@@ -56,8 +56,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     private string? lastProcessedLanguageName;
     private string? lastProcessedPublicationCode;
     private string? lastProcessedPublicationName;
-    private int? lastProcessedBookNumber;
-    private string? lastProcessedBookName;
+    private int? lastProcessedSectionNumber;
+    private string? lastProcessedSectionName;
     private int? lastProcessedChapterNumber;
     private bool shouldScrollToContainer;
 
@@ -99,7 +99,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             propertyChangeDetector.Initialize(
                 currentSchedule.BibleReadingLanguageCode,
                 currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode,
-                currentBibleReading?.BookNumber ?? currentSchedule.BibleReadingBookNumber,
+                currentBibleReading?.SectionNumber ?? currentSchedule.BibleReadingSectionNumber,
                 currentBibleReading?.ChapterNumber ?? currentSchedule.BibleReadingChapterNumber);
 
             // Initialize last processed state to prevent duplicate processing
@@ -108,8 +108,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             lastProcessedLanguageName = currentSchedule.BibleReadingLanguageName;
             lastProcessedPublicationCode = currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode;
             lastProcessedPublicationName = currentSchedule.BibleReadingPublicationName;
-            lastProcessedBookNumber = currentBibleReading?.BookNumber ?? currentSchedule.BibleReadingBookNumber;
-            lastProcessedBookName = currentSchedule.BibleReadingBookName;
+            lastProcessedSectionNumber = currentBibleReading?.SectionNumber ?? currentSchedule.BibleReadingSectionNumber;
+            lastProcessedSectionName = currentSchedule.BibleReadingSectionName;
             lastProcessedChapterNumber = currentBibleReading?.ChapterNumber ?? currentSchedule.BibleReadingChapterNumber;
 
             // Batch property notifications to reduce UI thread work
@@ -168,7 +168,7 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         SelectLanguageCommand = commandInitializer.CreateSelectLanguageCommand();
         SelectBibleCommand = commandInitializer.CreateSelectBibleCommand(
             () => bibleReadingSchedule, b => bibleReadingSchedule = b, scheduleId, isNewSchedule, bibleReadingUpdated);
-        SelectBookCommand = commandInitializer.CreateSelectBookCommand(
+        SelectSectionCommand = commandInitializer.CreateSelectSectionCommand(
             () => bibleReadingSchedule, b => bibleReadingSchedule = b, scheduleId, isNewSchedule, bibleReadingUpdated);
         SelectChapterCommand = commandInitializer.CreateSelectChapterCommand(
             () => bibleReadingSchedule, b => bibleReadingSchedule = b, scheduleId, isNewSchedule, bibleReadingUpdated);
@@ -210,15 +210,15 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
         }
 
         // Early exit if we've already processed this exact state
-        // Also check display names (language name, publication name, book name) to ensure display text updates when they change
+        // Also check display names (language name, publication name, section name) to ensure display text updates when they change
         if (currentSchedule != null &&
             currentSchedule.Id == lastProcessedScheduleId &&
             currentSchedule.BibleReadingLanguageCode == lastProcessedLanguageCode &&
             currentSchedule.BibleReadingLanguageName == lastProcessedLanguageName &&
             (currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode) == lastProcessedPublicationCode &&
             currentSchedule.BibleReadingPublicationName == lastProcessedPublicationName &&
-            (currentBibleReading?.BookNumber ?? currentSchedule.BibleReadingBookNumber) == lastProcessedBookNumber &&
-            currentSchedule.BibleReadingBookName == lastProcessedBookName &&
+            (currentBibleReading?.SectionNumber ?? currentSchedule.BibleReadingSectionNumber) == lastProcessedSectionNumber &&
+            currentSchedule.BibleReadingSectionName == lastProcessedSectionName &&
             (currentBibleReading?.ChapterNumber ?? currentSchedule.BibleReadingChapterNumber) == lastProcessedChapterNumber)
         {
             return;
@@ -239,8 +239,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
 
             ResetProgressIfNeeded(currentSchedule, changeInfo);
             
-            // Set scroll flag if book or chapter changed (user made a selection)
-            var shouldScroll = changeInfo.NotifyBook || changeInfo.NotifyChapter;
+            // Set scroll flag if section or chapter changed (user made a selection)
+            var shouldScroll = changeInfo.NotifySection || changeInfo.NotifyChapter;
             
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -260,8 +260,8 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
             lastProcessedLanguageName = currentSchedule.BibleReadingLanguageName;
             lastProcessedPublicationCode = currentBibleReading?.PublicationCode ?? currentSchedule.BibleReadingPublicationCode;
             lastProcessedPublicationName = currentSchedule.BibleReadingPublicationName;
-            lastProcessedBookNumber = currentBibleReading?.BookNumber ?? currentSchedule.BibleReadingBookNumber;
-            lastProcessedBookName = currentSchedule.BibleReadingBookName;
+            lastProcessedSectionNumber = currentBibleReading?.SectionNumber ?? currentSchedule.BibleReadingSectionNumber;
+            lastProcessedSectionName = currentSchedule.BibleReadingSectionName;
             lastProcessedChapterNumber = currentBibleReading?.ChapterNumber ?? currentSchedule.BibleReadingChapterNumber;
         }
     }
@@ -349,14 +349,14 @@ public sealed class BibleSelectionContainerViewModel : ObservableObject, IDispos
     public ICommand SelectLanguageCommand { get; private set; } = null!;
     public ICommand SelectBibleTypeCommand { get; private set; } = null!;
     public ICommand SelectBibleCommand { get; private set; } = null!;
-    public ICommand SelectBookCommand { get; private set; } = null!;
+    public ICommand SelectSectionCommand { get; private set; } = null!;
     public ICommand SelectChapterCommand { get; private set; } = null!;
 
     public string BibleTypeDisplayText => displayTextProvider.GetBibleTypeDisplayText();
-    public bool IsBookVisible => displayTextProvider.GetIsBookVisible();
+    public bool IsSectionVisible => displayTextProvider.GetIsSectionVisible();
     public string LanguageDisplayText => displayTextProvider.GetLanguageDisplayText();
     public string TranslationDisplayText => displayTextProvider.GetTranslationDisplayText();
-    public string BookDisplayText => displayTextProvider.GetBookDisplayText();
+    public string SectionDisplayText => displayTextProvider.GetSectionDisplayText();
     public string ChapterDisplayText => displayTextProvider.GetChapterDisplayText();
 
     public bool ShouldScrollToContainer

@@ -34,8 +34,8 @@ public sealed class ScheduleListItemSubtitleManager(
     }
 
     /// <summary>
-    /// Refreshes subtitle from ScheduleStateItem in state (uses pre-populated BookName).
-    /// Falls back to async database lookup if BookName is not available in state.
+    /// Refreshes subtitle from ScheduleStateItem in state (uses pre-populated SectionName).
+    /// Falls back to async database lookup if SectionName is not available in state.
     /// </summary>
     public void RefreshSubTitleFromState(int scheduleId, ScheduleStateItem? providedScheduleStateItem, Action<string> setSubTitle, Action<string> setLanguage, Action<string> onPropertyChanged)
     {
@@ -96,13 +96,13 @@ public sealed class ScheduleListItemSubtitleManager(
     {
         var subtitleParts = new List<string>();
 
-        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingBookName))
+        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingSectionName))
         {
-            subtitleParts.Add(scheduleStateItem.BibleReadingBookName);
+            subtitleParts.Add(scheduleStateItem.BibleReadingSectionName);
         }
-        else if (scheduleStateItem.BibleReadingBookNumber.HasValue && scheduleStateItem.BibleReadingBookNumber.Value > 0)
+        else if (scheduleStateItem.BibleReadingSectionNumber.HasValue && scheduleStateItem.BibleReadingSectionNumber.Value > 0)
         {
-            subtitleParts.Add($"Book {scheduleStateItem.BibleReadingBookNumber.Value}");
+            subtitleParts.Add($"Section {scheduleStateItem.BibleReadingSectionNumber.Value}");
         }
 
         if (scheduleStateItem.BibleReadingChapterNumber.HasValue && scheduleStateItem.BibleReadingChapterNumber.Value > 0)
@@ -121,7 +121,7 @@ public sealed class ScheduleListItemSubtitleManager(
 
     /// <summary>
     /// Async fallback method for refreshing chapter name from database.
-    /// Only used if BookName is not available in state.
+    /// Only used if SectionName is not available in state.
     /// </summary>
     public async Task RefreshChapterNameAsync(int scheduleId, bool force, Action<string> setSubTitle, Action<string> setLanguage, Action<string> onPropertyChanged)
     {

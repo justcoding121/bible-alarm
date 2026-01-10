@@ -14,62 +14,62 @@ using Serilog;
 namespace Bible.Alarm.Shared.Services.Media;
 
 /// <summary>
-/// Service for accessing BibleBook database operations.
+/// Service for accessing BibleSection database operations.
 /// </summary>
-public sealed class BibleBookService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleBookService
+public sealed class BibleSectionService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleSectionService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
 
-    public async Task<string?> GetBookNameAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default)
+    public async Task<string?> GetSectionNameAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default)
     {
         try
         {
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.BibleBooks
+            return await dbContext.BibleSections
                 .AsNoTracking()
                 .Where(x => x.BiblePublication.Code == publicationCode
                             && x.BiblePublication.Language.Code == languageCode
-                            && x.Number == bookNumber)
+                            && x.Number == sectionNumber)
                 .Select(x => x.Name)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BibleBook name. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
-                languageCode, publicationCode, bookNumber);
+            logger.Error(ex, "Error getting BibleSection name. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}",
+                languageCode, publicationCode, sectionNumber);
             throw;
         }
     }
 
-    public async Task<SortedDictionary<int, BibleBook>> GetBooksByPublicationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
+    public async Task<SortedDictionary<int, BibleSection>> GetSectionsByPublicationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var books = await dbContext.BiblePublications
+            var sections = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
-                .SelectMany(x => x.Books)
+                .SelectMany(x => x.Sections)
                 .OrderBy(x => x.Number)
                 .ToListAsync(cancellationToken);
 
-            return new SortedDictionary<int, BibleBook>(books.ToDictionary(x => x.Number, x => x));
+            return new SortedDictionary<int, BibleSection>(sections.ToDictionary(x => x.Number, x => x));
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BibleBooks by publication. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+            logger.Error(ex, "Error getting BibleSections by publication. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }
     }
 
-    public async Task<BibleBook?> GetBookAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default)
+    public async Task<BibleSection?> GetSectionAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -79,14 +79,14 @@ public sealed class BibleBookService(IServiceScopeFactory scopeFactory, ILogger 
             return await dbContext.BiblePublications
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
-                .SelectMany(x => x.Books)
-                .Where(x => x.Number == bookNumber)
+                .SelectMany(x => x.Sections)
+                .Where(x => x.Number == sectionNumber)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BibleBook. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
-                languageCode, publicationCode, bookNumber);
+            logger.Error(ex, "Error getting BibleSection. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}",
+                languageCode, publicationCode, sectionNumber);
             throw;
         }
     }

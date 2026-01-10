@@ -34,7 +34,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
     private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IDispatcher dispatcher;
     private readonly IBiblePublicationService? BiblePublicationService;
-    private readonly IBibleBookService? bibleBookService;
+    private readonly IBibleSectionService? bibleSectionService;
     private readonly IMapper mapper;
     private readonly IMediaService? mediaService;
     private readonly IMelodyMusicService? melodyMusicService;
@@ -47,7 +47,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         IAlarmScheduleService alarmScheduleService,
         IDispatcher dispatcher,
         IBiblePublicationService? BiblePublicationService,
-        IBibleBookService? bibleBookService,
+        IBibleSectionService? bibleSectionService,
         IMapper mapper,
         IMediaService? mediaService,
         IMelodyMusicService? melodyMusicService,
@@ -58,14 +58,14 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         this.alarmScheduleService = alarmScheduleService;
         this.dispatcher = dispatcher;
         this.BiblePublicationService = BiblePublicationService;
-        this.bibleBookService = bibleBookService;
+        this.bibleSectionService = bibleSectionService;
         this.mapper = mapper;
         this.mediaService = mediaService;
         this.melodyMusicService = melodyMusicService;
         this.diskCacheService = diskCacheService;
         this.statePopulator = new ScheduleStatePopulator(
             BiblePublicationService,
-            bibleBookService,
+            bibleSectionService,
             mapper,
             mediaService,
             melodyMusicService);
@@ -433,7 +433,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
                 cachedSchedule.BibleReadingScheduleId != freshSchedule.BibleReadingScheduleId ||
                 cachedSchedule.BibleReadingLanguageCode != freshSchedule.BibleReadingLanguageCode ||
                 cachedSchedule.BibleReadingPublicationCode != freshSchedule.BibleReadingPublicationCode ||
-                cachedSchedule.BibleReadingBookNumber != freshSchedule.BibleReadingBookNumber ||
+                cachedSchedule.BibleReadingSectionNumber != freshSchedule.BibleReadingSectionNumber ||
                 cachedSchedule.BibleReadingChapterNumber != freshSchedule.BibleReadingChapterNumber ||
                 cachedSchedule.MusicId != freshSchedule.MusicId ||
                 cachedSchedule.MusicType != freshSchedule.MusicType ||

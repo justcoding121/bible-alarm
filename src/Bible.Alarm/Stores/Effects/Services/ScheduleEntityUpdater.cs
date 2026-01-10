@@ -223,7 +223,7 @@ public static class ScheduleEntityUpdater
         BibleReadingSchedule dbSchedule,
         UpdateScheduleFromViewModelAction action)
     {
-        existing.BookNumber = dbSchedule.BookNumber;
+        existing.SectionNumber = dbSchedule.SectionNumber;
         existing.ChapterNumber = dbSchedule.ChapterNumber;
         existing.LanguageCode = dbSchedule.LanguageCode;
         existing.PublicationCode = dbSchedule.PublicationCode;

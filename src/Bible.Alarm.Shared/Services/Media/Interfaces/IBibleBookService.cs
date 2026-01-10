@@ -8,23 +8,23 @@ using Bible.Alarm.Shared.Models.Media.Bible;
 namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 
 /// <summary>
-/// Service for accessing BibleBook database operations.
+/// Service for accessing BibleSection database operations.
 /// </summary>
-public interface IBibleBookService : IDisposable
+public interface IBibleSectionService : IDisposable
 {
     /// <summary>
-    /// Gets the name of a Bible book by language code, publication code, and book number.
+    /// Gets the name of a Bible section by language code, publication code, and section number.
     /// </summary>
-    Task<string?> GetBookNameAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default);
+    Task<string?> GetSectionNameAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all BibleBooks for a given publication (by language code and publication code).
+    /// Gets all BibleSections for a given publication (by language code and publication code).
     /// </summary>
-    Task<SortedDictionary<int, BibleBook>> GetBooksByPublicationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default);
+    Task<SortedDictionary<int, BibleSection>> GetSectionsByPublicationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a BibleBook by language code, publication code, and book number.
+    /// Gets a BibleSection by language code, publication code, and section number.
     /// </summary>
-    Task<BibleBook?> GetBookAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default);
+    Task<BibleSection?> GetSectionAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default);
 }
 

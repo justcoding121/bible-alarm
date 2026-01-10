@@ -29,7 +29,7 @@ public class HomeStateChangeHandler
 
     private int? lastProcessedSchedulesCount;
     private HashSet<int>? lastProcessedScheduleIds;
-    private Dictionary<int, (int? BookNumber, int? ChapterNumber, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek)>? lastProcessedScheduleProperties;
+    private Dictionary<int, (int? SectionNumber, int? ChapterNumber, string Name, int Hour, int Minute, DaysOfWeek DaysOfWeek)>? lastProcessedScheduleProperties;
 
     public HomeStateChangeHandler(
         ILogger logger,
@@ -70,7 +70,7 @@ public class HomeStateChangeHandler
             var currentScheduleProperties = stateValue.Schedules
                 .Where(s => s.Id > 0)
                 .ToDictionary(s => s.Id, s => (
-                    BookNumber: s.BibleReadingBookNumber, 
+                    SectionNumber: s.BibleReadingSectionNumber, 
                     ChapterNumber: s.BibleReadingChapterNumber,
                     Name: s.Name ?? string.Empty,
                     Hour: s.Hour,
@@ -79,7 +79,7 @@ public class HomeStateChangeHandler
             var schedulePropertiesChanged = lastProcessedScheduleProperties == null ||
                 currentScheduleProperties.Any(kvp => 
                     !lastProcessedScheduleProperties.ContainsKey(kvp.Key) ||
-                    lastProcessedScheduleProperties[kvp.Key].BookNumber != kvp.Value.BookNumber ||
+                    lastProcessedScheduleProperties[kvp.Key].SectionNumber != kvp.Value.SectionNumber ||
                     lastProcessedScheduleProperties[kvp.Key].ChapterNumber != kvp.Value.ChapterNumber ||
                     lastProcessedScheduleProperties[kvp.Key].Name != kvp.Value.Name ||
                     lastProcessedScheduleProperties[kvp.Key].Hour != kvp.Value.Hour ||

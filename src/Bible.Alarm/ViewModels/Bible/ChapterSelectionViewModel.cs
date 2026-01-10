@@ -84,7 +84,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         stateManager.HandleBibleReadingChanged(
             state,
             busy => propertyManager.IsBusy = busy,
-            async (lang, pub, book) => await Initialize(lang, pub, book),
+            async (lang, pub, section) => await Initialize(lang, pub, section),
             SetSelectedChapter);
     }
 
@@ -93,7 +93,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         stateManager.HandleBibleReadingInitialized(
             state,
             busy => propertyManager.IsBusy = busy,
-            async (lang, pub, book) => await Initialize(lang, pub, book));
+            async (lang, pub, section) => await Initialize(lang, pub, section));
     }
 
     /// <summary>
@@ -112,9 +112,9 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
         var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
-        var newBookNumber = currentSchedule.BibleReadingBookNumber;
+        var newSectionNumber = currentSchedule.BibleReadingSectionNumber;
 
-        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newBookNumber.HasValue)
+        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
         {
             return;
         }
@@ -126,7 +126,7 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         {
             stateManager.SetInitComplete(true);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
-            await Initialize(newLanguageCode, newPublicationCode, newBookNumber.Value);
+            await Initialize(newLanguageCode, newPublicationCode, newSectionNumber.Value);
             // Set selected chapter after chapters are populated
             SetSelectedChapter();
             await Task.Delay(100);
@@ -161,12 +161,12 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
         set => propertyManager.Chapters = value;
     }
 
-    private async Task Initialize(string languageCode, string publicationCode, int bookNumber)
+    private async Task Initialize(string languageCode, string publicationCode, int sectionNumber)
     {
         await dataProvider.PopulateChapters(
             languageCode,
             publicationCode,
-            bookNumber,
+            sectionNumber,
             stateManager.Current,
             propertyManager.Chapters,
             chapter => propertyManager.SelectedChapter = chapter);

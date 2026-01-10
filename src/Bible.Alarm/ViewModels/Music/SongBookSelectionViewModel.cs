@@ -310,7 +310,7 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
             stateManager.EnsureCurrentIsSet(state, mapper);
         }
 
-        // Check if language code changed (need to repopulate song books)
+        // Check if language code changed (need to repopulate song sections)
         var languageChanged = stateManager.LastLanguageCode != newLanguageCode;
 
         // Ensure languages are populated
@@ -365,9 +365,9 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
             languageCodeToUse = newLanguageCode;
         }
 
-        // Always repopulate song books if:
+        // Always repopulate song sections if:
         // 1. We have a language code (for Vocals)
-        // 2. Song books aren't already populated
+        // 2. Song sections aren't already populated
         // 3. Language code changed (cascade effect)
         if (!string.IsNullOrEmpty(languageCodeToUse) && 
             (propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0 || languageChanged))
@@ -376,7 +376,7 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         }
         else if (!string.IsNullOrEmpty(languageCodeToUse))
         {
-            // Song books already populated, just set selected
+            // Song sections already populated, just set selected
             SetSelectedSongPublication();
         }
 

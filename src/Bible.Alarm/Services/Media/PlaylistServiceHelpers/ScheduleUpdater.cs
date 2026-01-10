@@ -17,14 +17,14 @@ public sealed class ScheduleUpdater(
     /// <summary>
     /// Updates schedule to the next chapter.
     /// </summary>
-    public async Task<AlarmSchedule> UpdateScheduleToNextChapterAsync(int scheduleId, KeyValuePair<BibleBook, BiblePublicationChapter> next)
+    public async Task<AlarmSchedule> UpdateScheduleToNextChapterAsync(int scheduleId, KeyValuePair<BibleSection, BiblePublicationChapter> next)
     {
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
             s =>
             {
                 var brs = s.BibleReadingSchedule ?? throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
-                brs.BookNumber = next.Key.Number;
+                brs.SectionNumber = next.Key.Number;
                 brs.ChapterNumber = next.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
             },
@@ -34,14 +34,14 @@ public sealed class ScheduleUpdater(
     /// <summary>
     /// Updates schedule to the previous chapter.
     /// </summary>
-    public async Task<AlarmSchedule> UpdateScheduleToPreviousChapterAsync(int scheduleId, KeyValuePair<BibleBook, BiblePublicationChapter> previous)
+    public async Task<AlarmSchedule> UpdateScheduleToPreviousChapterAsync(int scheduleId, KeyValuePair<BibleSection, BiblePublicationChapter> previous)
     {
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
             s =>
             {
                 var brs = s.BibleReadingSchedule ?? throw new ArgumentException($"BibleReadingSchedule is null for schedule {scheduleId}");
-                brs.BookNumber = previous.Key.Number;
+                brs.SectionNumber = previous.Key.Number;
                 brs.ChapterNumber = previous.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
             },

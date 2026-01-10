@@ -56,7 +56,7 @@ public partial class BibleSelectionContainer : ContentView
     {
         if (viewModel == null) return;
 
-        // Scroll when ViewModel signals it (after book/chapter selection)
+        // Scroll when ViewModel signals it (after section/chapter selection)
         if (e.PropertyName == nameof(BibleSelectionContainerViewModel.ShouldScrollToContainer) && viewModel.ShouldScrollToContainer)
         {
 #if DEBUG

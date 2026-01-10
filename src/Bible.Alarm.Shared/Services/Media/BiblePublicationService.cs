@@ -23,7 +23,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
 
-    public async Task<BiblePublication?> GetByLanguageAndCodeWithBooksAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
+    public async Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -32,13 +32,13 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             return await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Books)
+                .Include(x => x.Sections)
                 .Where(x => x.Code == publicationCode && x.Language.Code == languageCode)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublication with Books. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+            logger.Error(ex, "Error getting BiblePublication with Sections. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }

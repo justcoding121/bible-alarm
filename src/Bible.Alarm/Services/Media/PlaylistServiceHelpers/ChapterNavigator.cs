@@ -7,138 +7,138 @@ using Serilog;
 namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 
 /// <summary>
-/// Handles Bible chapter and book navigation.
+/// Handles Bible chapter and section navigation.
 /// </summary>
 public sealed class ChapterNavigator(IMediaService mediaService)
 {
     /// <summary>
     /// Gets the next Bible chapter.
     /// </summary>
-    public async Task<KeyValuePair<BibleBook, BiblePublicationChapter>> GetNextBiblePublicationChapter(
+    public async Task<KeyValuePair<BibleSection, BiblePublicationChapter>> GetNextBiblePublicationChapter(
         string languageCode,
         string publicationCode,
-        int bookNumber,
+        int sectionNumber,
         int chapter)
     {
-        var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber) 
-            ?? throw new InvalidOperationException($"Bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
+        var currentSection = await mediaService.GetBibleSection(languageCode, publicationCode, sectionNumber) 
+            ?? throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
         
-        var chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, bookNumber);
+        var chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, sectionNumber);
         var nextChapter = chapters.SkipWhile(kvp => kvp.Key <= chapter).FirstOrDefault();
 
         if (!nextChapter.Equals(default(KeyValuePair<int, BiblePublicationChapter>)))
         {
-            return new KeyValuePair<BibleBook, BiblePublicationChapter>(currentBook, nextChapter.Value);
+            return new KeyValuePair<BibleSection, BiblePublicationChapter>(currentSection, nextChapter.Value);
         }
 
-        var nextBook = await GetNextBibleBook(languageCode, publicationCode, bookNumber);
-        if (nextBook.Value == null)
+        var nextSection = await GetNextBibleSection(languageCode, publicationCode, sectionNumber);
+        if (nextSection.Value == null)
         {
-            throw new InvalidOperationException($"Next bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
+            throw new InvalidOperationException($"Next bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
         }
 
-        chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, nextBook.Key);
+        chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, nextSection.Key);
         if (chapters.Count == 0)
         {
-            throw new InvalidOperationException($"No chapters in next book: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={nextBook.Key}");
+            throw new InvalidOperationException($"No chapters in next section: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={nextSection.Key}");
         }
 
-        // Start at the first chapter of the next book (index 0)
-        return new KeyValuePair<BibleBook, BiblePublicationChapter>(nextBook.Value, chapters.ElementAt(0).Value);
+        // Start at the first chapter of the next section (index 0)
+        return new KeyValuePair<BibleSection, BiblePublicationChapter>(nextSection.Value, chapters.ElementAt(0).Value);
     }
 
     /// <summary>
     /// Gets the previous Bible chapter.
     /// </summary>
-    public async Task<KeyValuePair<BibleBook, BiblePublicationChapter>> GetPreviousBiblePublicationChapter(
+    public async Task<KeyValuePair<BibleSection, BiblePublicationChapter>> GetPreviousBiblePublicationChapter(
         string languageCode,
         string publicationCode,
-        int bookNumber,
+        int sectionNumber,
         int chapter)
     {
-        var currentBook = await mediaService.GetBibleBook(languageCode, publicationCode, bookNumber) 
-            ?? throw new InvalidOperationException($"Bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
+        var currentSection = await mediaService.GetBibleSection(languageCode, publicationCode, sectionNumber) 
+            ?? throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
         
-        var chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, bookNumber);
+        var chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, sectionNumber);
         var previousChapter = chapters.Reverse().SkipWhile(kvp => kvp.Key >= chapter).FirstOrDefault();
 
         if (!previousChapter.Equals(default(KeyValuePair<int, BiblePublicationChapter>)))
         {
-            return new KeyValuePair<BibleBook, BiblePublicationChapter>(currentBook, previousChapter.Value);
+            return new KeyValuePair<BibleSection, BiblePublicationChapter>(currentSection, previousChapter.Value);
         }
 
-        var previousBook = await GetPreviousBibleBook(languageCode, publicationCode, bookNumber);
-        if (previousBook.Value == null)
+        var previousSection = await GetPreviousBibleSection(languageCode, publicationCode, sectionNumber);
+        if (previousSection.Value == null)
         {
-            throw new InvalidOperationException($"Previous bible book not found: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={bookNumber}");
+            throw new InvalidOperationException($"Previous bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
         }
 
-        chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, previousBook.Key);
+        chapters = await mediaService.GetBiblePublicationChapters(languageCode, publicationCode, previousSection.Key);
         if (chapters.Count == 0)
         {
-            throw new InvalidOperationException($"No chapters in previous book: languageCode={languageCode}, publicationCode={publicationCode}, bookNumber={previousBook.Key}");
+            throw new InvalidOperationException($"No chapters in previous section: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={previousSection.Key}");
         }
 
-        return new KeyValuePair<BibleBook, BiblePublicationChapter>(previousBook.Value, chapters.ElementAt(chapters.Count - 1).Value);
+        return new KeyValuePair<BibleSection, BiblePublicationChapter>(previousSection.Value, chapters.ElementAt(chapters.Count - 1).Value);
     }
 
     /// <summary>
-    /// Gets the previous Bible book.
+    /// Gets the previous Bible section.
     /// </summary>
-    public async Task<KeyValuePair<int, BibleBook>> GetPreviousBibleBook(
+    public async Task<KeyValuePair<int, BibleSection>> GetPreviousBibleSection(
         string languageCode,
         string publicationCode,
-        int bookNumber)
+        int sectionNumber)
     {
-        var books = await mediaService.GetBibleBooks(languageCode, publicationCode);
-        if (books.Count == 0)
+        var sections = await mediaService.GetBibleSections(languageCode, publicationCode);
+        if (sections.Count == 0)
         {
-            throw new InvalidOperationException($"No bible books found: languageCode={languageCode}, publicationCode={publicationCode}");
+            throw new InvalidOperationException($"No bible sections found: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        var previousBook = books.Reverse().SkipWhile(kvp => kvp.Key >= bookNumber).FirstOrDefault();
+        var previousSection = sections.Reverse().SkipWhile(kvp => kvp.Key >= sectionNumber).FirstOrDefault();
 
-        if (!previousBook.Equals(default(KeyValuePair<int, BibleBook>)))
+        if (!previousSection.Equals(default(KeyValuePair<int, BibleSection>)))
         {
-            return previousBook;
+            return previousSection;
         }
 
-        var maxKey = books.Keys.Max();
-        if (!books.TryGetValue(maxKey, out var maxBook))
+        var maxKey = sections.Keys.Max();
+        if (!sections.TryGetValue(maxKey, out var maxSection))
         {
-            throw new InvalidOperationException($"Bible book with key {maxKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
+            throw new InvalidOperationException($"Bible section with key {maxKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        return new KeyValuePair<int, BibleBook>(maxKey, maxBook);
+        return new KeyValuePair<int, BibleSection>(maxKey, maxSection);
     }
 
     /// <summary>
-    /// Gets the next Bible book.
+    /// Gets the next Bible section.
     /// </summary>
-    public async Task<KeyValuePair<int, BibleBook>> GetNextBibleBook(
+    public async Task<KeyValuePair<int, BibleSection>> GetNextBibleSection(
         string languageCode,
         string publicationCode,
-        int bookNumber)
+        int sectionNumber)
     {
-        var books = await mediaService.GetBibleBooks(languageCode, publicationCode);
-        if (books.Count == 0)
+        var sections = await mediaService.GetBibleSections(languageCode, publicationCode);
+        if (sections.Count == 0)
         {
-            throw new InvalidOperationException($"No bible books found: languageCode={languageCode}, publicationCode={publicationCode}");
+            throw new InvalidOperationException($"No bible sections found: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        var nextBook = books.SkipWhile(kvp => kvp.Key <= bookNumber).FirstOrDefault();
+        var nextSection = sections.SkipWhile(kvp => kvp.Key <= sectionNumber).FirstOrDefault();
 
-        if (!nextBook.Equals(default(KeyValuePair<int, BibleBook>)))
+        if (!nextSection.Equals(default(KeyValuePair<int, BibleSection>)))
         {
-            return nextBook;
+            return nextSection;
         }
 
-        var minKey = books.Keys.Min();
-        if (!books.TryGetValue(minKey, out var minBook))
+        var minKey = sections.Keys.Min();
+        if (!sections.TryGetValue(minKey, out var minSection))
         {
-            throw new InvalidOperationException($"Bible book with key {minKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
+            throw new InvalidOperationException($"Bible section with key {minKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        return new KeyValuePair<int, BibleBook>(minKey, minBook);
+        return new KeyValuePair<int, BibleSection>(minKey, minSection);
     }
 }

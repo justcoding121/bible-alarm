@@ -29,20 +29,20 @@ public class MediaReader(string indexRoot)
         return JsonSerializer.Deserialize<IEnumerable<Publication>>(biblePublications)!.ToDictionary(x => x.Code, x => x);
     }
 
-    public async Task<SortedDictionary<int, BibleBook>> GetBibleBooks(string languageCode, string versionCode)
+    public async Task<SortedDictionary<int, BibleSection>> GetBibleSections(string languageCode, string versionCode)
     {
         var root = indexRoot;
-        var booksIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, "books.json");
-        var bibleBooks = await File.ReadAllTextAsync(booksIndex);
-        return new SortedDictionary<int, BibleBook>(JsonSerializer.Deserialize<IEnumerable<BibleBook>>(bibleBooks)!
+        var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, "sections.json");
+        var bibleSections = await File.ReadAllTextAsync(sectionsIndex);
+        return new SortedDictionary<int, BibleSection>(JsonSerializer.Deserialize<IEnumerable<BibleSection>>(bibleSections)!
                                                 .ToDictionary(x => x.Number, x => x));
     }
 
-    public async Task<SortedDictionary<int, BibleChapter>> GetBibleChapters(string languageCode, string versionCode, int bookNumber)
+    public async Task<SortedDictionary<int, BibleChapter>> GetBibleChapters(string languageCode, string versionCode, int sectionNumber)
     {
         var root = indexRoot;
-        var booksIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, bookNumber.ToString(), "chapters.json");
-        var bibleChapters = await File.ReadAllTextAsync(booksIndex);
+        var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, sectionNumber.ToString(), "chapters.json");
+        var bibleChapters = await File.ReadAllTextAsync(sectionsIndex);
         return new SortedDictionary<int, BibleChapter>(JsonSerializer.Deserialize<IEnumerable<BibleChapter>>(bibleChapters)!
                                                    .ToDictionary(x => x.Number, x => x));
     }

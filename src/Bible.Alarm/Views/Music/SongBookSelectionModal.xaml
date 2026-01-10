@@ -49,7 +49,7 @@
                     FontSize="18"
                     FontAttributes="Bold"
                     HeightRequest="56"
-                    Text="Select Song Book"
+                    Text="Select Song Section"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />

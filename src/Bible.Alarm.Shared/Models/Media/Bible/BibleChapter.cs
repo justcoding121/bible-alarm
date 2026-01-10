@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Bible.Alarm.Shared.Models.Media.Bible;
 
 [Table("BibleChapter")]
-[Index(nameof(BibleBookId), nameof(Number), IsUnique = true)]
+[Index(nameof(BibleSectionId), nameof(Number), IsUnique = true)]
 public sealed class BiblePublicationChapter : IComparable
 {
     [Key]
@@ -23,11 +23,11 @@ public sealed class BiblePublicationChapter : IComparable
     public AudioSource? Source { get; set; }
 
     [Required]
-    [ForeignKey(nameof(Book))]
-    public int BibleBookId { get; set; }
+    [ForeignKey(nameof(Section))]
+    public int BibleSectionId { get; set; }
 
     [Required]
-    public BibleBook Book { get; set; } = null!;
+    public BibleSection Section { get; set; } = null!;
 
     public int CompareTo(object? obj)
     {

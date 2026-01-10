@@ -165,7 +165,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
     {
         // Use case-insensitive dictionary to avoid duplicates from case differences
         var discoveredLanguages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum=1&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
+        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&sectionnum=1&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
         var jsonString = await downloadUtility.GetAsync(harvestLink);
         using var doc = JsonDocument.Parse(jsonString);
@@ -205,16 +205,16 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
     private async Task<bool> HarvestBibleLinks(string languageCode, string publicationCode)
     {
-        var booksDirectory = $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageCode}/{publicationCode}";
-        var booksIndex = $"{booksDirectory}/books.json";
+        var sectionsDirectory = $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageCode}/{publicationCode}";
+        var sectionsIndex = $"{sectionsDirectory}/sections.json";
 
-        var bookNumberBookMap = new Dictionary<int, BibleBook>();
-        var bookNumberChapterMap = new Dictionary<int, Dictionary<int, BibleChapter>>();
+        var sectionNumberSectionMap = new Dictionary<int, BibleSection>();
+        var sectionNumberChapterMap = new Dictionary<int, Dictionary<int, BibleChapter>>();
 
-        var bookNumber = 1;
-        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+        var sectionNumber = 1;
+        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&sectionnum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
 
-        while (bookNumber <= 66)
+        while (sectionNumber <= 66)
         {
             string jsonString;
             try
@@ -223,13 +223,13 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
             {
-                AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
+                AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
                 continue;
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Failed to fetch book {BookNumber} for publication {PublicationCode} in language {LanguageCode}. Skipping to next book.", bookNumber, publicationCode, languageCode);
-                AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
+                logger.Error(ex, "Failed to fetch section {SectionNumber} for publication {PublicationCode} in language {LanguageCode}. Skipping to next section.", sectionNumber, publicationCode, languageCode);
+                AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
                 continue;
             }
 
@@ -243,14 +243,14 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
                 if (root.ValueKind != JsonValueKind.Object)
                 {
-                    AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
+                    AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
                     doc?.Dispose();
                     continue;
                 }
 
                 if (!root.TryGetProperty("files", out files))
                 {
-                    AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
+                    AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
                     doc?.Dispose();
                     continue;
                 }
@@ -259,7 +259,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             {
                 if (e is JsonException or ArgumentException or KeyNotFoundException or InvalidOperationException)
                 {
-                    AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
+                    AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
                     doc?.Dispose();
                     continue;
                 }
@@ -270,34 +270,34 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             {
                 if (!files.TryGetProperty(languageCode, out var languageFiles))
                 {
-                    AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
+                    AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
                     continue;
                 }
 
-                if (!languageFiles.TryGetProperty("MP3", out var bookFiles))
+                if (!languageFiles.TryGetProperty("MP3", out var sectionFiles))
                 {
-                    AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
+                    AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
                     continue;
                 }
 
-                // Extract book name from root pubName field
-                string? bookName = null;
+                // Extract section name from root pubName field
+                string? sectionName = null;
                 if (doc.RootElement.TryGetProperty("pubName", out var pubNameElement))
                 {
-                    bookName = pubNameElement.GetString();
+                    sectionName = pubNameElement.GetString();
                 }
 
-                ProcessBookFiles(bookFiles, doc.RootElement, bookNumberBookMap, bookNumberChapterMap, ref bookNumber, languageCode, bookName);
+                ProcessSectionFiles(sectionFiles, doc.RootElement, sectionNumberSectionMap, sectionNumberChapterMap, ref sectionNumber, languageCode, sectionName);
 
-                // Advance to next book after successful processing
-                AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
+                // Advance to next section after successful processing
+                AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
             }
             catch (Exception ex)
             {
-                // Log and advance to next book on any exception during processing
+                // Log and advance to next section on any exception during processing
                 // This ensures we don't get stuck in an infinite loop
-                logger.Warning(ex, "Error processing book files for book {BookNumber}. Advancing to next book.", bookNumber);
-                AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
+                logger.Warning(ex, "Error processing section files for section {SectionNumber}. Advancing to next section.", sectionNumber);
+                AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
             }
             finally
             {
@@ -305,29 +305,29 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             }
         }
 
-        // Check if any books were successfully harvested
-        // Note: bookNumberBookMap will have items if ProcessBookFiles successfully processed any book files
-        if (bookNumberBookMap.Count > 0)
+        // Check if any sections were successfully harvested
+        // Note: sectionNumberSectionMap will have items if ProcessSectionFiles successfully processed any section files
+        if (sectionNumberSectionMap.Count > 0)
         {
-            SaveBooksAndChapters(booksDirectory, booksIndex, bookNumberBookMap, bookNumberChapterMap);
+            SaveSectionsAndChapters(sectionsDirectory, sectionsIndex, sectionNumberSectionMap, sectionNumberChapterMap);
             return true;
         }
 
         return false;
     }
 
-    private static void ProcessBookFiles(
-        JsonElement bookFiles,
+    private static void ProcessSectionFiles(
+        JsonElement sectionFiles,
         JsonElement root,
-        Dictionary<int, BibleBook> bookNumberBookMap,
-        Dictionary<int, Dictionary<int, BibleChapter>> bookNumberChapterMap,
-        ref int bookNumber,
+        Dictionary<int, BibleSection> sectionNumberSectionMap,
+        Dictionary<int, Dictionary<int, BibleChapter>> sectionNumberChapterMap,
+        ref int sectionNumber,
         string languageCode,
-        string? bookName)
+        string? sectionName)
     {
-        foreach (var bookFile in bookFiles.EnumerateArray())
+        foreach (var sectionFile in sectionFiles.EnumerateArray())
         {
-            if (!TryExtractBookFileData(bookFile, out var url, out var track, out var fileBookNumber))
+            if (!TryExtractSectionFileData(sectionFile, out var url, out var track, out var fileSectionNumber))
             {
                 continue;
             }
@@ -337,19 +337,19 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                 continue;
             }
 
-            bookNumber = fileBookNumber;
-            EnsureBookExists(root, bookNumber, bookNumberBookMap, languageCode, bookName);
-            AddChapterIfNotExists(bookNumber, track, url, bookNumberChapterMap);
+            sectionNumber = fileSectionNumber;
+            EnsureSectionExists(root, sectionNumber, sectionNumberSectionMap, languageCode, sectionName);
+            AddChapterIfNotExists(sectionNumber, track, url, sectionNumberChapterMap);
         }
     }
 
-    private static bool TryExtractBookFileData(JsonElement bookFile, out string url, out int track, out int bookNumber)
+    private static bool TryExtractSectionFileData(JsonElement sectionFile, out string url, out int track, out int sectionNumber)
     {
         url = string.Empty;
         track = 0;
-        bookNumber = 0;
+        sectionNumber = 0;
 
-        if (!bookFile.TryGetProperty("file", out var fileElement) ||
+        if (!sectionFile.TryGetProperty("file", out var fileElement) ||
             !fileElement.TryGetProperty("url", out var urlElement))
         {
             return false;
@@ -361,86 +361,86 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             return false;
         }
 
-        if (!bookFile.TryGetProperty("track", out var trackElement))
+        if (!sectionFile.TryGetProperty("track", out var trackElement))
         {
             return false;
         }
 
         track = trackElement.GetInt32();
 
-        if (!bookFile.TryGetProperty("booknum", out var bookNumElement))
+        if (!sectionFile.TryGetProperty("sectionnum", out var sectionNumElement))
         {
             return false;
         }
 
-        bookNumber = bookNumElement.GetInt32();
+        sectionNumber = sectionNumElement.GetInt32();
         return true;
     }
 
-    private static void EnsureBookExists(
+    private static void EnsureSectionExists(
         JsonElement root,
-        int bookNumber,
-        Dictionary<int, BibleBook> bookNumberBookMap,
+        int sectionNumber,
+        Dictionary<int, BibleSection> sectionNumberSectionMap,
         string languageCode,
-        string? bookName)
+        string? sectionName)
     {
-        if (bookNumberBookMap.ContainsKey(bookNumber))
+        if (sectionNumberSectionMap.ContainsKey(sectionNumber))
         {
             return;
         }
 
         // Use pubName from root if available, otherwise fall back to parsing from title
-        if (string.IsNullOrEmpty(bookName))
+        if (string.IsNullOrEmpty(sectionName))
         {
             // Fallback: try to get from root pubName field
             if (root.TryGetProperty("pubName", out var pubNameElement))
             {
-                bookName = pubNameElement.GetString();
+                sectionName = pubNameElement.GetString();
             }
         }
 
         // If still empty, try to get from first file title as last resort
-        if (string.IsNullOrEmpty(bookName))
+        if (string.IsNullOrEmpty(sectionName))
         {
             if (root.TryGetProperty("files", out var files) &&
                 files.TryGetProperty(languageCode, out var languageFiles) &&
-                languageFiles.TryGetProperty("MP3", out var bookFiles) &&
-                bookFiles.GetArrayLength() > 0)
+                languageFiles.TryGetProperty("MP3", out var sectionFiles) &&
+                sectionFiles.GetArrayLength() > 0)
             {
-                var firstFile = bookFiles[0];
+                var firstFile = sectionFiles[0];
                 if (firstFile.TryGetProperty("title", out var titleElement))
                 {
-                    bookName = GetBookNameFromTitle(titleElement.GetString()!, languageCode, bookNumber);
+                    sectionName = GetSectionNameFromTitle(titleElement.GetString()!, languageCode, sectionNumber);
                 }
             }
         }
 
-        if (string.IsNullOrEmpty(bookName))
+        if (string.IsNullOrEmpty(sectionName))
         {
             return;
         }
 
-        bookNumberBookMap[bookNumber] = new BibleBook
+        sectionNumberSectionMap[sectionNumber] = new BibleSection
         {
-            Number = bookNumber,
-            Name = bookName
+            Number = sectionNumber,
+            Name = sectionName
         };
     }
 
     private static void AddChapterIfNotExists(
-        int bookNumber,
+        int sectionNumber,
         int trackNumber,
         string url,
-        Dictionary<int, Dictionary<int, BibleChapter>> bookNumberChapterMap)
+        Dictionary<int, Dictionary<int, BibleChapter>> sectionNumberChapterMap)
     {
-        if (!bookNumberChapterMap.ContainsKey(bookNumber))
+        if (!sectionNumberChapterMap.ContainsKey(sectionNumber))
         {
-            bookNumberChapterMap[bookNumber] = new Dictionary<int, BibleChapter>();
+            sectionNumberChapterMap[sectionNumber] = new Dictionary<int, BibleChapter>();
         }
 
-        if (!bookNumberChapterMap[bookNumber].ContainsKey(trackNumber))
+        if (!sectionNumberChapterMap[sectionNumber].ContainsKey(trackNumber))
         {
-            bookNumberChapterMap[bookNumber].Add(trackNumber, new BibleChapter
+            sectionNumberChapterMap[sectionNumber].Add(trackNumber, new BibleChapter
             {
                 Number = trackNumber,
                 Url = url,
@@ -448,7 +448,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
     }
 
-    private static string? GetBookNameFromTitle(string title, string languageCode, int bookNumber)
+    private static string? GetSectionNameFromTitle(string title, string languageCode, int sectionNumber)
     {
         if (string.IsNullOrEmpty(title))
         {
@@ -457,10 +457,10 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         var parts = title.Split('-', 2);
         
-        // If title starts with "Chapter", the book name is after the dash
-        // Format: "Chapter X - Book Name"
-        // Otherwise, the book name is before the dash
-        // Format: "Book Name - Chapter X" or just "Book Name"
+        // If title starts with "Chapter", the section name is after the dash
+        // Format: "Chapter X - Section Name"
+        // Otherwise, the section name is before the dash
+        // Format: "Section Name - Chapter X" or just "Section Name"
         string name;
         if (title.TrimStart().StartsWith("Chapter", StringComparison.OrdinalIgnoreCase) && parts.Length > 1)
         {
@@ -471,13 +471,13 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             name = parts[0].Trim();
         }
         
-        return FormatBookName(name, languageCode, bookNumber);
+        return FormatSectionName(name, languageCode, sectionNumber);
     }
 
-    private static string FormatBookName(string name, string languageCode, int bookNumber)
+    private static string FormatSectionName(string name, string languageCode, int sectionNumber)
     {
-        // For Malayalam (MY) language, remove "1" suffix from Psalms (book 19)
-        if (languageCode == "MY" && bookNumber == 19 && name.EndsWith(" 1", StringComparison.Ordinal))
+        // For Malayalam (MY) language, remove "1" suffix from Psalms (section 19)
+        if (languageCode == "MY" && sectionNumber == 19 && name.EndsWith(" 1", StringComparison.Ordinal))
         {
             return name.Substring(0, name.Length - 2).TrimEnd();
         }
@@ -486,38 +486,38 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         return name == "Psalm 1" ? "Psalms" : name;
     }
 
-    private static void AdvanceToNextBook(ref int bookNumber, ref string harvestLink, string publicationCode, string languageCode)
+    private static void AdvanceToNextSection(ref int sectionNumber, ref string harvestLink, string publicationCode, string languageCode)
     {
-        bookNumber++;
-        harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+        sectionNumber++;
+        harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&sectionnum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
     }
 
-    private static void SaveBooksAndChapters(
-        string booksDirectory,
-        string booksIndex,
-        Dictionary<int, BibleBook> bookNumberBookMap,
-        Dictionary<int, Dictionary<int, BibleChapter>> bookNumberChapterMap)
+    private static void SaveSectionsAndChapters(
+        string sectionsDirectory,
+        string sectionsIndex,
+        Dictionary<int, BibleSection> sectionNumberSectionMap,
+        Dictionary<int, Dictionary<int, BibleChapter>> sectionNumberChapterMap)
     {
-        if (!Directory.Exists(booksDirectory))
+        if (!Directory.Exists(sectionsDirectory))
         {
-            Directory.CreateDirectory(booksDirectory);
+            Directory.CreateDirectory(sectionsDirectory);
         }
 
-        File.WriteAllText(booksIndex, JsonSerializer.Serialize(bookNumberBookMap.Select(x =>
-            new BibleBook
+        File.WriteAllText(sectionsIndex, JsonSerializer.Serialize(sectionNumberSectionMap.Select(x =>
+            new BibleSection
             {
                 Number = x.Key,
                 Name = x.Value.Name
             }).OrderBy(x => x.Number)));
 
-        foreach (var book in bookNumberBookMap)
+        foreach (var section in sectionNumberSectionMap)
         {
-            var directory = $"{booksDirectory}/{book.Value.Number}";
+            var directory = $"{sectionsDirectory}/{section.Value.Number}";
             DirectoryHelper.Ensure(directory);
 
             var chapterIndex = $"{directory}/chapters.json";
             File.WriteAllText(chapterIndex, JsonSerializer.Serialize(
-                bookNumberChapterMap[book.Key]
+                sectionNumberChapterMap[section.Key]
                     .Select(x => x.Value)
                     .OrderBy(x => x.Number)
                     .ToList()));

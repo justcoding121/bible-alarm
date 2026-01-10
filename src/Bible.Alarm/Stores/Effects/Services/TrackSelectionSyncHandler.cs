@@ -151,12 +151,12 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.BibleReadingScheduleId = currentSchedule.BibleReadingScheduleId;
         updatedSchedule.BibleReadingLanguageCode = currentSchedule.BibleReadingLanguageCode;
         updatedSchedule.BibleReadingPublicationCode = currentSchedule.BibleReadingPublicationCode;
-        updatedSchedule.BibleReadingBookNumber = currentSchedule.BibleReadingBookNumber;
+        updatedSchedule.BibleReadingSectionNumber = currentSchedule.BibleReadingSectionNumber;
         updatedSchedule.BibleReadingChapterNumber = currentSchedule.BibleReadingChapterNumber;
         updatedSchedule.BibleReadingFinishedDuration = currentSchedule.BibleReadingFinishedDuration;
         updatedSchedule.BibleReadingLanguageName = currentSchedule.BibleReadingLanguageName;
         updatedSchedule.BibleReadingPublicationName = currentSchedule.BibleReadingPublicationName;
-        updatedSchedule.BibleReadingBookName = currentSchedule.BibleReadingBookName;
+        updatedSchedule.BibleReadingSectionName = currentSchedule.BibleReadingSectionName;
     }
 
     private static void UpdateMusicProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool musicTypeChanged)

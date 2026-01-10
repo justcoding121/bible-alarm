@@ -41,27 +41,27 @@ public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaSe
 
     private async Task SetBibleMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri)
     {
-        var book = await mediaService.GetBibleBook(
+        var section = await mediaService.GetBibleSection(
             trackMetadata.LanguageCode,
             trackMetadata.PublicationCode,
-            trackMetadata.BookNumber);
+            trackMetadata.SectionNumber);
 
-        if (book != null)
+        if (section != null)
         {
-            await SetBibleBookMetadataAsync(trackMetadata, meta, book);
+            await SetBibleSectionMetadataAsync(trackMetadata, meta, section);
         }
         else
         {
-            meta.Title = $"Book {trackMetadata.BookNumber} Chapter {trackMetadata.ChapterNumber}";
+            meta.Title = $"Section {trackMetadata.SectionNumber} Chapter {trackMetadata.ChapterNumber}";
         }
 
         await TryExtractArtworkFromFileAsync(meta, uri, "Bible file");
     }
 
-    private async Task SetBibleBookMetadataAsync(TrackMetadata trackMetadata, MetaData meta, BibleBook book)
+    private async Task SetBibleSectionMetadataAsync(TrackMetadata trackMetadata, MetaData meta, BibleSection section)
     {
-        // Title: Book name + Chapter number
-        meta.Title = $"{book.Name} {trackMetadata.ChapterNumber}";
+        // Title: Section name + Chapter number
+        meta.Title = $"{section.Name} {trackMetadata.ChapterNumber}";
 
         // Description: Language name
         var languages = await mediaService.GetBibleLanguages();

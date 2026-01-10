@@ -241,7 +241,7 @@ public static class ApplicationReducer
                 Id = action.SelectedSchedule.BibleReadingScheduleId ?? 0,
                 LanguageCode = action.SelectedSchedule.BibleReadingLanguageCode ?? string.Empty,
                 PublicationCode = action.SelectedSchedule.BibleReadingPublicationCode ?? string.Empty,
-                BookNumber = action.SelectedSchedule.BibleReadingBookNumber,
+                SectionNumber = action.SelectedSchedule.BibleReadingSectionNumber,
                 ChapterNumber = action.SelectedSchedule.BibleReadingChapterNumber ?? 1,
                 FinishedDuration = action.SelectedSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = action.SelectedSchedule.Id,
@@ -372,7 +372,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnBookSelection(ApplicationState state, BookSelectionAction action)
+    public static ApplicationState OnSectionSelection(ApplicationState state, SectionSelectionAction action)
     {
         return StateFactory.CreateUpdatedState(
             state,

@@ -59,7 +59,7 @@ public partial class InitialCreate : Migration
                     .Annotation("Sqlite:Autoincrement", true),
                 LanguageCode = table.Column<string>(nullable: true),
                 PublicationCode = table.Column<string>(nullable: true),
-                BookNumber = table.Column<int>(nullable: false),
+                SectionNumber = table.Column<int>(nullable: false),
                 ChapterNumber = table.Column<int>(nullable: false),
                 AlarmScheduleId = table.Column<int>(nullable: false)
             },

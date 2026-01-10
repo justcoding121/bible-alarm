@@ -12,7 +12,7 @@ using Bible.Alarm.Shared.Models.Media.Music;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-using BibleBook = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleBook;
+using BibleSection = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleSection;
 using BibleChapter = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleChapter;
 using DramaTrack = Bible.Alarm.AudioLinksHarvestor.Models.Drama.DramaTrack;
 using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.Video.VideoEpisode;
@@ -178,14 +178,14 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             logger.Information("Seeding publication {PublicationName} ({PublicationCode}) for language {LanguageCode}",
                 publication.Value.Name, publication.Value.Code, languageKey);
 
-            var books = await GetSafely(() => mediaReader.GetBibleBooks(languageKey, publication.Key));
-            if (books == null || books.Count == 0)
+            var sections = await GetSafely(() => mediaReader.GetBibleSections(languageKey, publication.Key));
+            if (sections == null || sections.Count == 0)
             {
                 continue;
             }
 
             var biblePublication = CreateBiblePublication(publication.Value, newLanguage, displayLanguage);
-            await SeedBooksForPublication(db, mediaReader, languageKey, publication.Key, books, biblePublication);
+            await SeedSectionsForPublication(db, mediaReader, languageKey, publication.Key, sections, biblePublication);
 
             await db.BiblePublications.AddAsync(biblePublication);
             await db.SaveChangesAsync();
@@ -203,38 +203,38 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         };
     }
 
-    private async Task SeedBooksForPublication(
+    private async Task SeedSectionsForPublication(
         MediaDbContext db,
         MediaReader mediaReader,
         string languageKey,
         string publicationKey,
-        SortedDictionary<int, BibleBook> books,
+        SortedDictionary<int, BibleSection> sections,
         BiblePublication biblePublication)
     {
-        foreach (var book in books)
+        foreach (var section in sections)
         {
-            var newBook = new Shared.Models.Media.Bible.BibleBook
+            var newSection = new Shared.Models.Media.Bible.BibleSection
             {
-                Name = book.Value.Name,
-                Number = book.Value.Number
+                Name = section.Value.Name,
+                Number = section.Value.Number
             };
 
-            biblePublication.Books.Add(newBook);
+            biblePublication.Sections.Add(newSection);
 
-            var chapters = await GetSafely(() => mediaReader.GetBibleChapters(languageKey, publicationKey, book.Key));
+            var chapters = await GetSafely(() => mediaReader.GetBibleChapters(languageKey, publicationKey, section.Key));
             if (chapters == null || chapters.Count == 0)
             {
                 continue;
             }
 
-            await AddChaptersToBook(db, chapters, newBook);
+            await AddChaptersToSection(db, chapters, newSection);
         }
     }
 
-    private async Task AddChaptersToBook(
+    private async Task AddChaptersToSection(
         MediaDbContext db,
         SortedDictionary<int, BibleChapter> chapters,
-        Shared.Models.Media.Bible.BibleBook newBook)
+        Shared.Models.Media.Bible.BibleSection newSection)
     {
         foreach (var chapter in chapters)
         {
@@ -245,7 +245,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
                 Source = audioSource
             };
 
-            newBook.Chapters.Add(newChapter);
+            newSection.Chapters.Add(newChapter);
         }
     }
 
@@ -633,12 +633,12 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             // Skip if already exists (in-memory check, fast)
             if (existingCodes.Contains(vocalMusicRelease.Value.Code))
             {
-                logger.Information("Skipping song book {SongPublicationName} ({SongPublicationCode}) for language {LanguageCode} - already exists",
+                logger.Information("Skipping song section {SongPublicationName} ({SongPublicationCode}) for language {LanguageCode} - already exists",
                     vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, languageCode);
                 continue;
             }
 
-            logger.Information("Seeding song book {SongPublicationName} ({SongPublicationCode}) for language {LanguageCode}",
+            logger.Information("Seeding song section {SongPublicationName} ({SongPublicationCode}) for language {LanguageCode}",
                 vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, languageCode);
 
             var tracks = await GetSafely(() => mediaReader.GetVocalMusicTracks(languageCode, vocalMusicRelease.Key));

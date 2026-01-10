@@ -12,7 +12,7 @@ public sealed class ScheduleDisplayService(
     ILogger logger,
     IState<PlaybackState> playbackState,
     IAlarmScheduleService alarmScheduleService,
-    IBibleBookService bibleBookService)
+    IBibleSectionService bibleSectionService)
     : IScheduleDisplayService, IDisposable
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
@@ -48,23 +48,23 @@ public sealed class ScheduleDisplayService(
                 scheduleToUse = schedule.BibleReadingSchedule;
             }
 
-            if (scheduleToUse == null || !scheduleToUse.BookNumber.HasValue)
+            if (scheduleToUse == null || !scheduleToUse.SectionNumber.HasValue)
             {
                 return string.Empty;
             }
 
-            var bookName = await bibleBookService.GetBookNameAsync(
+            var sectionName = await bibleSectionService.GetSectionNameAsync(
                 scheduleToUse.LanguageCode,
                 scheduleToUse.PublicationCode,
-                scheduleToUse.BookNumber.Value,
+                scheduleToUse.SectionNumber.Value,
                 cancellationTokenSource.Token);
 
-            if (bookName == null)
+            if (sectionName == null)
             {
                 return string.Empty;
             }
 
-            return $"{bookName} {scheduleToUse.ChapterNumber}";
+            return $"{sectionName} {scheduleToUse.ChapterNumber}";
         }
         catch (Exception e)
         {

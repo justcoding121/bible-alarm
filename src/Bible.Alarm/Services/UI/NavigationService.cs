@@ -152,10 +152,10 @@ public sealed class NavigationService(
         await modalHandler.OpenBibleSelectionModalAsync(navigation, bindingContext);
     }
 
-    public async Task OpenBookSelectionModalAsync(object bindingContext)
+    public async Task OpenSectionSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        await modalHandler.OpenBookSelectionModalAsync(navigation, bindingContext);
+        await modalHandler.OpenSectionSelectionModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenChapterSelectionModalAsync(object bindingContext)

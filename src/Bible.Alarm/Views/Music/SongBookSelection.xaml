@@ -15,7 +15,7 @@
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="music:SongPublicationSelectionViewModel"
-    Title="Select Song Book">
+    Title="Select Song Section">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
@@ -117,7 +117,7 @@
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         
-                                        <!-- Song Book Name -->
+                                        <!-- Song Section Name -->
                                         <Label
                                             Grid.Column="0"
                                             FontSize="16"

@@ -8,14 +8,14 @@ using Microsoft.Maui.Controls.Xaml;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class BookSelectionModal : BaseContentPage, IDisposable
+public partial class SectionSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public BookSelectionViewModel? ViewModel => BindingContext as BookSelectionViewModel;
+    public SectionSelectionViewModel? ViewModel => BindingContext as SectionSelectionViewModel;
 
-    public BookSelectionModal()
+    public SectionSelectionModal()
     {
         InitializeComponent();
         Appearing += OnAppearing;
@@ -31,7 +31,7 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
             // Skip on Windows to avoid access violation crash
             if (DeviceInfo.Platform != DevicePlatform.WinUI)
             {
-                bookCollectionView.Opacity = 0;
+                sectionCollectionView.Opacity = 0;
             }
             
             // Trigger data refresh
@@ -49,11 +49,11 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
             await Task.Delay(150, cancellationTokenSource.Token);
             
             // Scroll to selected item
-            var selectedItem = ViewModel?.SelectedBook;
+            var selectedItem = ViewModel?.SelectedSection;
             if (selectedItem != null)
             {
                 await CollectionViewHelper.ScrollToWhenReadyAsync(
-                    bookCollectionView,
+                    sectionCollectionView,
                     selectedItem,
                     animated: false,
                     cancellationToken: cancellationTokenSource.Token);
@@ -68,7 +68,7 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
                 // Only set Opacity on non-Windows (we didn't hide it there)
                 if (DeviceInfo.Platform != DevicePlatform.WinUI)
                 {
-                    bookCollectionView.Opacity = 1;
+                    sectionCollectionView.Opacity = 1;
                 }
             });
         }
@@ -78,7 +78,7 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
             BusyOverlay.IsVisible = false;
             if (DeviceInfo.Platform != DevicePlatform.WinUI)
             {
-                bookCollectionView.Opacity = 1;
+                sectionCollectionView.Opacity = 1;
             }
         }
     }
@@ -92,18 +92,18 @@ public partial class BookSelectionModal : BaseContentPage, IDisposable
         }
     }
 
-    private async void OnBookItemTapped(object? sender, TappedEventArgs e)
+    private async void OnSectionItemTapped(object? sender, TappedEventArgs e)
     {
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
-        if (sender is Grid grid && grid.BindingContext is BibleBookListViewItemModel bookItem)
+        if (sender is Grid grid && grid.BindingContext is BibleSectionListViewItemModel sectionItem)
         {
-            if (ViewModel != null && ViewModel.ChapterSelectionCommand is IAsyncRelayCommand<BibleBookListViewItemModel> asyncCommand)
+            if (ViewModel != null && ViewModel.ChapterSelectionCommand is IAsyncRelayCommand<BibleSectionListViewItemModel> asyncCommand)
             {
-                if (asyncCommand.CanExecute(bookItem))
+                if (asyncCommand.CanExecute(sectionItem))
                 {
-                    await asyncCommand.ExecuteAsync(bookItem);
+                    await asyncCommand.ExecuteAsync(sectionItem);
                 }
             }
         }

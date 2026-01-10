@@ -15,7 +15,7 @@ public sealed class ChapterSelectionDataProvider(IMediaService mediaService)
     public async Task PopulateChapters(
         string languageCode,
         string publicationCode,
-        int bookNumber,
+        int sectionNumber,
         BibleReadingSchedule? current,
         ObservableCollection<BibleChapterListViewItemModel> chapters,
         Action<BibleChapterListViewItemModel?> setSelectedChapter)
@@ -23,7 +23,7 @@ public sealed class ChapterSelectionDataProvider(IMediaService mediaService)
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (chapterViewModelList, selectedChapter) = await Task.Run(async () =>
         {
-            var chaptersFromDb = await mediaService.GetBibleChapters(languageCode, publicationCode, bookNumber);
+            var chaptersFromDb = await mediaService.GetBibleChapters(languageCode, publicationCode, sectionNumber);
             var vms = new List<BibleChapterListViewItemModel>();
             BibleChapterListViewItemModel? selected = null;
 

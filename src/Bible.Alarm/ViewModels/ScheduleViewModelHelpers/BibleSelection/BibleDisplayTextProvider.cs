@@ -38,10 +38,10 @@ public sealed class BibleDisplayTextProvider
     }
 
     /// <summary>
-    /// Determines if the book selection row should be visible.
-    /// Returns false for dramas which don't have book selection.
+    /// Determines if the section selection row should be visible.
+    /// Returns false for dramas which don't have section selection.
     /// </summary>
-    public bool GetIsBookVisible()
+    public bool GetIsSectionVisible()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BibleReadingPublicationCode))
@@ -49,7 +49,7 @@ public sealed class BibleDisplayTextProvider
             return true; // Default to visible for traditional Bible reading
         }
 
-        return PublicationTypeHelper.HasBookStructure(currentSchedule.BibleReadingPublicationCode);
+        return PublicationTypeHelper.HasSectionStructure(currentSchedule.BibleReadingPublicationCode);
     }
 
     public string GetLanguageDisplayText()
@@ -93,14 +93,14 @@ public sealed class BibleDisplayTextProvider
         return PublicationDisplayHelper.GetDisplayName(publicationCode);
     }
 
-    public string GetBookDisplayText()
+    public string GetSectionDisplayText()
     {
         var currentSchedule = state.Value.CurrentSchedule;
 
-        // Read from CurrentSchedule for book name (populated during bootstrap/effects)
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BibleReadingBookName))
+        // Read from CurrentSchedule for section name (populated during bootstrap/effects)
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BibleReadingSectionName))
         {
-            return currentSchedule.BibleReadingBookName;
+            return currentSchedule.BibleReadingSectionName;
         }
 
         return string.Empty;

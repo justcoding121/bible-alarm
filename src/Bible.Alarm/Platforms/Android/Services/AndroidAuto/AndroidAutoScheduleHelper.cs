@@ -48,24 +48,24 @@ public static class AndroidAutoScheduleHelper
 
     /// <summary>
     /// Builds the display title for a schedule state item.
-    /// Format: BookName Chapter Number (e.g., "Joshua 22")
+    /// Format: SectionName Chapter Number (e.g., "Joshua 22")
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
         if (scheduleItem.BibleReadingScheduleId.HasValue)
         {
-            // Build title as "BookName ChapterNumber" (e.g., "Joshua 22")
+            // Build title as "SectionName ChapterNumber" (e.g., "Joshua 22")
             var titleParts = new List<string>();
 
-            // Add book name (populated during bootstrap) or fallback to book number
-            if (!string.IsNullOrWhiteSpace(scheduleItem.BibleReadingBookName))
+            // Add section name (populated during bootstrap) or fallback to section number
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BibleReadingSectionName))
             {
-                titleParts.Add(scheduleItem.BibleReadingBookName);
+                titleParts.Add(scheduleItem.BibleReadingSectionName);
             }
-            else if (scheduleItem.BibleReadingBookNumber.HasValue && scheduleItem.BibleReadingBookNumber.Value > 0)
+            else if (scheduleItem.BibleReadingSectionNumber.HasValue && scheduleItem.BibleReadingSectionNumber.Value > 0)
             {
-                // Fallback to book number if book name is not available
-                titleParts.Add($"Book {scheduleItem.BibleReadingBookNumber.Value}");
+                // Fallback to section number if section name is not available
+                titleParts.Add($"Section {scheduleItem.BibleReadingSectionNumber.Value}");
             }
 
             // Add chapter number

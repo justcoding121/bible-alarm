@@ -19,7 +19,7 @@ public sealed class ScheduleListItemStateHandler(
 {
     private AlarmSchedule? lastKnownSchedule;
     private string? lastKnownBibleReadingLanguageName;
-    private string? lastKnownBookName;
+    private string? lastKnownSectionName;
 
     public AlarmSchedule? LastKnownSchedule
     {
@@ -33,10 +33,10 @@ public sealed class ScheduleListItemStateHandler(
         set => lastKnownBibleReadingLanguageName = value;
     }
 
-    public string? LastKnownBookName
+    public string? LastKnownSectionName
     {
-        get => lastKnownBookName;
-        set => lastKnownBookName = value;
+        get => lastKnownSectionName;
+        set => lastKnownSectionName = value;
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ public sealed class ScheduleListItemStateHandler(
 
     private ScheduleChangeInfo DetectScheduleChanges(ScheduleStateItem updatedScheduleItem, AlarmSchedule currentSchedule)
     {
-        var oldBookNumber = currentSchedule.BibleReadingSchedule?.BookNumber;
+        var oldSectionNumber = currentSchedule.BibleReadingSchedule?.SectionNumber;
         var oldChapterNumber = currentSchedule.BibleReadingSchedule?.ChapterNumber;
         var oldDaysOfWeek = currentSchedule.DaysOfWeek;
         var oldIsEnabled = currentSchedule.IsEnabled;
@@ -74,7 +74,7 @@ public sealed class ScheduleListItemStateHandler(
         var updatedSchedule = mapper.Map<AlarmSchedule>(updatedScheduleItem);
         var trackChanged = DetectTrackChange(updatedSchedule, currentSchedule);
         var newBibleReadingLanguageName = updatedScheduleItem.BibleReadingLanguageName;
-        var newBookName = updatedScheduleItem.BibleReadingBookName;
+        var newSectionName = updatedScheduleItem.BibleReadingSectionName;
 
         var daysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek;
         
@@ -89,17 +89,17 @@ public sealed class ScheduleListItemStateHandler(
         {
             UpdatedSchedule = updatedSchedule,
             TrackChanged = trackChanged,
-            BookNumberChanged = oldBookNumber != updatedSchedule.BibleReadingSchedule?.BookNumber,
+            SectionNumberChanged = oldSectionNumber != updatedSchedule.BibleReadingSchedule?.SectionNumber,
             ChapterNumberChanged = oldChapterNumber != updatedSchedule.BibleReadingSchedule?.ChapterNumber,
             BibleReadingLanguageNameChanged = lastKnownBibleReadingLanguageName != newBibleReadingLanguageName,
-            BookNameChanged = lastKnownBookName != newBookName,
+            SectionNameChanged = lastKnownSectionName != newSectionName,
             DaysOfWeekChanged = daysOfWeekChanged,
             IsEnabledChanged = oldIsEnabled != updatedSchedule.IsEnabled,
             NameChanged = oldName != updatedSchedule.Name,
             TimeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute,
             MusicEnabledChanged = oldMusicEnabled != updatedSchedule.MusicEnabled,
             NewBibleReadingLanguageName = newBibleReadingLanguageName,
-            NewBookName = newBookName
+            NewSectionName = newSectionName
         };
     }
 
@@ -107,7 +107,7 @@ public sealed class ScheduleListItemStateHandler(
     {
         if (currentSchedule.BibleReadingSchedule != null && updatedSchedule.BibleReadingSchedule != null)
         {
-            return currentSchedule.BibleReadingSchedule.BookNumber != updatedSchedule.BibleReadingSchedule.BookNumber ||
+            return currentSchedule.BibleReadingSchedule.SectionNumber != updatedSchedule.BibleReadingSchedule.SectionNumber ||
                    currentSchedule.BibleReadingSchedule.ChapterNumber != updatedSchedule.BibleReadingSchedule.ChapterNumber;
         }
 
@@ -123,16 +123,16 @@ public sealed class ScheduleListItemStateHandler(
     {
         public AlarmSchedule UpdatedSchedule { get; init; } = null!;
         public bool TrackChanged { get; init; }
-        public bool BookNumberChanged { get; init; }
+        public bool SectionNumberChanged { get; init; }
         public bool ChapterNumberChanged { get; init; }
         public bool BibleReadingLanguageNameChanged { get; init; }
-        public bool BookNameChanged { get; init; }
+        public bool SectionNameChanged { get; init; }
         public bool DaysOfWeekChanged { get; init; }
         public bool IsEnabledChanged { get; init; }
         public bool NameChanged { get; init; }
         public bool TimeChanged { get; init; }
         public bool MusicEnabledChanged { get; init; }
         public string? NewBibleReadingLanguageName { get; init; }
-        public string? NewBookName { get; init; }
+        public string? NewSectionName { get; init; }
     }
 }

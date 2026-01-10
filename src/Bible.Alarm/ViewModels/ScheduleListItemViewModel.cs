@@ -140,7 +140,7 @@ public sealed class ScheduleListItemViewModel(
         if (scheduleStateItem != null)
         {
             stateHandler.LastKnownBibleReadingLanguageName = scheduleStateItem.BibleReadingLanguageName;
-            stateHandler.LastKnownBookName = scheduleStateItem.BibleReadingBookName;
+            stateHandler.LastKnownSectionName = scheduleStateItem.BibleReadingSectionName;
         }
 
         // Subscribe to PlaybackState changes to manage IsBusy
@@ -184,7 +184,7 @@ public sealed class ScheduleListItemViewModel(
             dispatcher.Dispatch(new DeleteScheduleAction(Schedule.Id));
         });
 
-        // Initialize subtitle and language from state (BookName is pre-populated during bootstrap)
+        // Initialize subtitle and language from state (SectionName is pre-populated during bootstrap)
         // Use the provided scheduleStateItem if available to avoid re-looking it up
         RefreshSubTitleFromState(scheduleStateItem);
     }
@@ -295,8 +295,8 @@ public sealed class ScheduleListItemViewModel(
     }
 
     /// <summary>
-    /// Refreshes subtitle from ScheduleStateItem in state (uses pre-populated BookName).
-    /// Falls back to async database lookup if BookName is not available in state.
+    /// Refreshes subtitle from ScheduleStateItem in state (uses pre-populated SectionName).
+    /// Falls back to async database lookup if SectionName is not available in state.
     /// </summary>
     private void RefreshSubTitleFromState(ScheduleStateItem? providedScheduleStateItem = null)
     {
@@ -315,7 +315,7 @@ public sealed class ScheduleListItemViewModel(
 
     /// <summary>
     /// Async fallback method for refreshing chapter name from database.
-    /// Only used if BookName is not available in state.
+    /// Only used if SectionName is not available in state.
     /// </summary>
     public async Task RefreshChapterNameAsync(bool force = false)
     {
@@ -397,13 +397,13 @@ public sealed class ScheduleListItemViewModel(
         stateHandler.LastKnownSchedule = updatedSchedule;
         propertyManager.IsEnabled = updatedSchedule.IsEnabled;
 
-        var subtitleChanged = changeInfo.TrackChanged || changeInfo.BookNumberChanged || changeInfo.ChapterNumberChanged ||
-                             changeInfo.BibleReadingLanguageNameChanged || changeInfo.BookNameChanged;
+        var subtitleChanged = changeInfo.TrackChanged || changeInfo.SectionNumberChanged || changeInfo.ChapterNumberChanged ||
+                             changeInfo.BibleReadingLanguageNameChanged || changeInfo.SectionNameChanged;
 
         if (subtitleChanged)
         {
             stateHandler.LastKnownBibleReadingLanguageName = changeInfo.NewBibleReadingLanguageName;
-            stateHandler.LastKnownBookName = changeInfo.NewBookName;
+            stateHandler.LastKnownSectionName = changeInfo.NewSectionName;
             // Refresh subtitle from state
             var updatedScheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == updatedSchedule.Id);
             RefreshSubTitleFromState(updatedScheduleItem);

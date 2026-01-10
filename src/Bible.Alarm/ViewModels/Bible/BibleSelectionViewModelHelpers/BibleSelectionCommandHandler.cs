@@ -43,7 +43,7 @@ public sealed class BibleSelectionCommandHandler
         this.mapper = mapper;
     }
 
-    public ICommand CreateBookSelectionCommand(
+    public ICommand CreateSectionSelectionCommand(
         Func<LanguageListViewItemModel?> getCurrentLanguage,
         Func<ObservableCollection<PublicationListViewItemModel>> getTranslations,
         Func<Dictionary<string, PublicationListViewItemModel>> getTranslationVMsMapping,
@@ -88,14 +88,14 @@ public sealed class BibleSelectionCommandHandler
             }
 
             var itemSelector = new BibleSelectionItemSelector(mediaService, state);
-            var (bookNumber, chapterNumber, bookName) = await itemSelector.GetBookAndChapterForTranslationAsync(x, currentLanguage);
+            var (sectionNumber, chapterNumber, sectionName) = await itemSelector.GetSectionAndChapterForTranslationAsync(x, currentLanguage);
             
-            if (bookNumber == 0)
+            if (sectionNumber == 0)
             {
                 return;
             }
 
-            var bibleReadingItem = CreateBibleReadingItemFromSelection(x, bookNumber, chapterNumber, bookName, currentLanguage, currentSchedule);
+            var bibleReadingItem = CreateBibleReadingItemFromSelection(x, sectionNumber, chapterNumber, sectionName, currentLanguage, currentSchedule);
             
             var actionDispatcher = new BibleSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchBibleReadingSelectionActions(bibleReadingItem);
@@ -135,8 +135,8 @@ public sealed class BibleSelectionCommandHandler
             await navigationService.PopModalAsync();
 
             var itemSelector = new BibleSelectionItemSelector(mediaService, state);
-            var (publicationCode, bookNumber, chapterNumber, bookName, publicationName) =
-                await itemSelector.GetTranslationBookAndChapterForLanguageAsync(x);
+            var (publicationCode, sectionNumber, chapterNumber, sectionName, publicationName) =
+                await itemSelector.GetTranslationSectionAndChapterForLanguageAsync(x);
 
             if (publicationCode == null)
             {
@@ -151,7 +151,7 @@ public sealed class BibleSelectionCommandHandler
             }
 
             var bibleReadingItem = CreateBibleReadingItemForLanguageSelection(
-                x, publicationCode, bookNumber, chapterNumber, bookName, publicationName, currentSchedule);
+                x, publicationCode, sectionNumber, chapterNumber, sectionName, publicationName, currentSchedule);
             var actionDispatcher = new BibleSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchLanguageSelectionActions(bibleReadingItem, x);
         });
@@ -159,46 +159,46 @@ public sealed class BibleSelectionCommandHandler
 
     private BibleReadingStateItem CreateBibleReadingItemFromSelection(
         PublicationListViewItemModel publication,
-        int bookNumber,
+        int sectionNumber,
         int chapterNumber,
-        string bookName,
+        string sectionName,
         LanguageListViewItemModel language,
         ScheduleStateItem currentSchedule)
     {
-        // Match the pattern used in BookSelectionViewModel and ChapterSelectionCommandHandler
+        // Match the pattern used in SectionSelectionViewModel and ChapterSelectionCommandHandler
         // They don't set Id or AlarmScheduleId - let them default to 0
         return new BibleReadingStateItem
         {
             PublicationCode = publication.Code,
             LanguageCode = language.Code,
-            BookNumber = bookNumber,
+            SectionNumber = sectionNumber,
             ChapterNumber = chapterNumber,
             LanguageName = language.Name,
             PublicationName = publication.Name,
-            BookName = bookName
+            SectionName = sectionName
         };
     }
 
     private BibleReadingStateItem CreateBibleReadingItemForLanguageSelection(
         LanguageListViewItemModel language,
         string publicationCode,
-        int bookNumber,
+        int sectionNumber,
         int chapterNumber,
-        string bookName,
+        string sectionName,
         string publicationName,
         ScheduleStateItem currentSchedule)
     {
-        // Match the pattern used in BookSelectionViewModel and ChapterSelectionCommandHandler
+        // Match the pattern used in SectionSelectionViewModel and ChapterSelectionCommandHandler
         // They don't set Id or AlarmScheduleId - let them default to 0
         return new BibleReadingStateItem
         {
             LanguageCode = language.Code,
             PublicationCode = publicationCode,
-            BookNumber = bookNumber,
+            SectionNumber = sectionNumber,
             ChapterNumber = chapterNumber,
             LanguageName = language.Name,
             PublicationName = publicationName,
-            BookName = bookName
+            SectionName = sectionName
         };
     }
 }

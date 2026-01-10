@@ -25,7 +25,7 @@ internal sealed class BibleReadingDisplayNamePopulator
         var bibleReading = schedule.BibleReadingSchedule;
         SetLanguageName(schedule, scheduleStateItem, bibleReading, languagesDict);
         SetPublicationName(schedule, scheduleStateItem, bibleReading, lookupData);
-        SetBookName(schedule, scheduleStateItem, bibleReading, lookupData);
+        SetSectionName(schedule, scheduleStateItem, bibleReading, lookupData);
     }
 
     private static void SetLanguageName(
@@ -79,22 +79,22 @@ internal sealed class BibleReadingDisplayNamePopulator
         }
     }
 
-    private static void SetBookName(
+    private static void SetSectionName(
         AlarmSchedule schedule,
         ScheduleStateItem scheduleStateItem,
         BibleReadingSchedule bibleReading,
         LookupDataLoader.LookupData lookupData)
     {
-        if (bibleReading.BookNumber.HasValue && bibleReading.BookNumber.Value > 0 &&
+        if (bibleReading.SectionNumber.HasValue && bibleReading.SectionNumber.Value > 0 &&
             !string.IsNullOrWhiteSpace(bibleReading.LanguageCode) &&
             !string.IsNullOrWhiteSpace(bibleReading.PublicationCode))
         {
-            var bookKey = (bibleReading.LanguageCode, bibleReading.PublicationCode, bibleReading.BookNumber.Value);
-            if (lookupData.Books.TryGetValue(bookKey, out var bookName))
+            var sectionKey = (bibleReading.LanguageCode, bibleReading.PublicationCode, bibleReading.SectionNumber.Value);
+            if (lookupData.Sections.TryGetValue(sectionKey, out var sectionName))
             {
-                scheduleStateItem.BibleReadingBookName = bookName;
-                Log.Logger.Debug("Set BibleReadingBookName '{BibleReadingBookName}' for schedule {ScheduleId} (BookNumber: {BookNumber})",
-                    bookName, schedule.Id, bibleReading.BookNumber);
+                scheduleStateItem.BibleReadingSectionName = sectionName;
+                Log.Logger.Debug("Set BibleReadingSectionName '{BibleReadingSectionName}' for schedule {ScheduleId} (SectionNumber: {SectionNumber})",
+                    sectionName, schedule.Id, bibleReading.SectionNumber);
             }
         }
     }

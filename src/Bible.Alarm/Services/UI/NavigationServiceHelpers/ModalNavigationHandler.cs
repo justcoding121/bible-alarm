@@ -45,9 +45,9 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task OpenBookSelectionModalAsync(INavigation navigation, object bindingContext)
+    public async Task OpenSectionSelectionModalAsync(INavigation navigation, object bindingContext)
     {
-        var modal = serviceProvider.GetRequiredService<BookSelectionModal>();
+        var modal = serviceProvider.GetRequiredService<SectionSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
     }

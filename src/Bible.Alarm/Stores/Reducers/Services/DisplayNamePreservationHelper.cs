@@ -40,9 +40,9 @@ public static class DisplayNamePreservationHelper
             actionSchedule.BibleReadingPublicationName = existingScheduleItem.BibleReadingPublicationName;
         }
 
-        if (string.IsNullOrWhiteSpace(actionSchedule.BibleReadingBookName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BibleReadingBookName))
+        if (string.IsNullOrWhiteSpace(actionSchedule.BibleReadingSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BibleReadingSectionName))
         {
-            actionSchedule.BibleReadingBookName = existingScheduleItem.BibleReadingBookName;
+            actionSchedule.BibleReadingSectionName = existingScheduleItem.BibleReadingSectionName;
         }
     }
 

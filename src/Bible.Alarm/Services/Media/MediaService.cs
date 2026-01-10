@@ -11,7 +11,7 @@ namespace Bible.Alarm.Services.Media;
 public sealed class MediaService(
     IMediaIndexService mediaIndexService,
     IBiblePublicationService BiblePublicationService,
-    IBibleBookService bibleBookService,
+    IBibleSectionService bibleSectionService,
     IBibleChapterService bibleChapterService,
     IMelodyMusicService melodyMusicService,
     IVocalMusicService vocalMusicService)
@@ -19,7 +19,7 @@ public sealed class MediaService(
 {
     private readonly IMediaIndexService mediaIndexService = mediaIndexService ?? throw new ArgumentNullException(nameof(mediaIndexService));
     private readonly IBiblePublicationService BiblePublicationService = BiblePublicationService ?? throw new ArgumentNullException(nameof(BiblePublicationService));
-    private readonly IBibleBookService bibleBookService = bibleBookService ?? throw new ArgumentNullException(nameof(bibleBookService));
+    private readonly IBibleSectionService bibleSectionService = bibleSectionService ?? throw new ArgumentNullException(nameof(bibleSectionService));
     private readonly IBibleChapterService bibleChapterService = bibleChapterService ?? throw new ArgumentNullException(nameof(bibleChapterService));
     private readonly IMelodyMusicService melodyMusicService = melodyMusicService ?? throw new ArgumentNullException(nameof(melodyMusicService));
     private readonly IVocalMusicService vocalMusicService = vocalMusicService ?? throw new ArgumentNullException(nameof(vocalMusicService));
@@ -38,31 +38,31 @@ public sealed class MediaService(
         return await BiblePublicationService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
     }
 
-    public async Task<SortedDictionary<int, BibleBook>> GetBibleBooks(
+    public async Task<SortedDictionary<int, BibleSection>> GetBibleSections(
         string languageCode, string versionCode)
     {
         await mediaIndexService.Verify();
-        return await bibleBookService.GetBooksByPublicationAsync(languageCode, versionCode, cancellationTokenSource.Token);
+        return await bibleSectionService.GetSectionsByPublicationAsync(languageCode, versionCode, cancellationTokenSource.Token);
     }
 
-    public async Task<BibleBook> GetBibleBook(string languageCode, string versionCode, int bookNumber)
+    public async Task<BibleSection> GetBibleSection(string languageCode, string versionCode, int sectionNumber)
     {
         await mediaIndexService.Verify();
-        return await bibleBookService.GetBookAsync(languageCode, versionCode, bookNumber, cancellationTokenSource.Token);
+        return await bibleSectionService.GetSectionAsync(languageCode, versionCode, sectionNumber, cancellationTokenSource.Token);
     }
 
     public async Task<SortedDictionary<int, BiblePublicationChapter>>
-        GetBibleChapters(string languageCode, string versionCode, int bookNumber)
+        GetBibleChapters(string languageCode, string versionCode, int sectionNumber)
     {
         await mediaIndexService.Verify();
-        return await bibleChapterService.GetChaptersByBookAsync(languageCode, versionCode, bookNumber, cancellationTokenSource.Token);
+        return await bibleChapterService.GetChaptersBySectionAsync(languageCode, versionCode, sectionNumber, cancellationTokenSource.Token);
     }
 
     public async Task<BiblePublicationChapter> GetBibleChapter(string languageCode,
-        string versionCode, int bookNumber, int chapterNumber)
+        string versionCode, int sectionNumber, int chapterNumber)
     {
         await mediaIndexService.Verify();
-        return await bibleChapterService.GetChapterAsync(languageCode, versionCode, bookNumber, chapterNumber, cancellationTokenSource.Token);
+        return await bibleChapterService.GetChapterAsync(languageCode, versionCode, sectionNumber, chapterNumber, cancellationTokenSource.Token);
     }
 
     public async Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases()
@@ -113,10 +113,10 @@ public sealed class MediaService(
     }
 
     public async Task UpdateBibleTrackUrl(string languageCode, string versionCode,
-        int bookNumber, int chapterNumber, string url)
+        int sectionNumber, int chapterNumber, string url)
     {
         await mediaIndexService.Verify();
-        await bibleChapterService.UpdateChapterUrlAsync(languageCode, versionCode, bookNumber, chapterNumber, url, cancellationTokenSource.Token);
+        await bibleChapterService.UpdateChapterUrlAsync(languageCode, versionCode, sectionNumber, chapterNumber, url, cancellationTokenSource.Token);
     }
 
     public async Task UpdateVocalTrackUrl(string languageCode, string publicationCode,
@@ -139,7 +139,7 @@ public sealed class MediaService(
             await UpdateBibleTrackUrl(
                 trackMetadata.LanguageCode,
                 trackMetadata.PublicationCode,
-                trackMetadata.BookNumber,
+                trackMetadata.SectionNumber,
                 trackMetadata.ChapterNumber,
                 url);
         }

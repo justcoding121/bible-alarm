@@ -12,7 +12,7 @@ internal sealed class LookupDataCollector
     public LookupKeys CollectKeys(List<AlarmSchedule> alarmSchedules)
     {
         var translationKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
-        var bookKeys = new HashSet<(string LanguageCode, string PublicationCode, int BookNumber)>();
+        var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, int SectionNumber)>();
         var vocalMusicLanguageCodes = new HashSet<string>();
         var vocalMusicKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var vocalTrackKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
@@ -27,9 +27,9 @@ internal sealed class LookupDataCollector
                 if (!string.IsNullOrWhiteSpace(br.LanguageCode) && !string.IsNullOrWhiteSpace(br.PublicationCode))
                 {
                     translationKeys.Add((br.LanguageCode, br.PublicationCode));
-                    if (br.BookNumber.HasValue && br.BookNumber.Value > 0)
+                    if (br.SectionNumber.HasValue && br.SectionNumber.Value > 0)
                     {
-                        bookKeys.Add((br.LanguageCode, br.PublicationCode, br.BookNumber.Value));
+                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, br.SectionNumber.Value));
                     }
                 }
             }
@@ -65,7 +65,7 @@ internal sealed class LookupDataCollector
 
         return new LookupKeys(
             TranslationKeys: translationKeys,
-            BookKeys: bookKeys,
+            SectionKeys: sectionKeys,
             VocalMusicLanguageCodes: vocalMusicLanguageCodes,
             VocalMusicKeys: vocalMusicKeys,
             VocalTrackKeys: vocalTrackKeys,
@@ -74,7 +74,7 @@ internal sealed class LookupDataCollector
 
     public sealed record LookupKeys(
         HashSet<(string LanguageCode, string PublicationCode)> TranslationKeys,
-        HashSet<(string LanguageCode, string PublicationCode, int BookNumber)> BookKeys,
+        HashSet<(string LanguageCode, string PublicationCode, int SectionNumber)> SectionKeys,
         HashSet<string> VocalMusicLanguageCodes,
         HashSet<(string LanguageCode, string PublicationCode)> VocalMusicKeys,
         HashSet<(string LanguageCode, string PublicationCode)> VocalTrackKeys,

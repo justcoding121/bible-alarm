@@ -34,7 +34,7 @@ public sealed class TrackChangeDetector(
         }
 
         var bibleReadingSchedule = scheduleBeforeUpdate.BibleReadingSchedule;
-        return bibleReadingSchedule.BookNumber != trackMetadata.BookNumber ||
+        return bibleReadingSchedule.SectionNumber != trackMetadata.SectionNumber ||
                bibleReadingSchedule.ChapterNumber != trackMetadata.ChapterNumber;
     }
 }

@@ -75,7 +75,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
                     b.Property<int>("AlarmScheduleId");
 
-                    b.Property<int>("BookNumber");
+                    b.Property<int>("SectionNumber");
 
                     b.Property<int>("ChapterNumber");
 

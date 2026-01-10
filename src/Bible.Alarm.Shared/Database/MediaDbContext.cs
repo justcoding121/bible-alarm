@@ -19,7 +19,7 @@ public class MediaDbContext : DbContext
     public DbSet<AudioSourceBaseUrl> AudioSourceBaseUrls { get; set; }
 
     public DbSet<BiblePublication> BiblePublications { get; set; }
-    public DbSet<BibleBook> BibleBooks { get; set; }
+    public DbSet<BibleSection> BibleSections { get; set; }
     public DbSet<BiblePublicationChapter> BibleChapters { get; set; }
     public DbSet<BiblePublicationTrack> BiblePublicationTracks { get; set; }
     public DbSet<MelodyMusic> MelodyMusic { get; set; }

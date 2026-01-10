@@ -121,10 +121,10 @@ public sealed class ScheduleCommandService : IScheduleCommandService
                     await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, reloadedSchedule);
 
                     // Update the schedule in the Schedules collection to revert optimistic changes
-                    logger.Information("CancelCommand: Reloaded schedule from database. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
+                    logger.Information("CancelCommand: Reloaded schedule from database. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, SectionNumber: {SectionNumber}, ChapterNumber: {ChapterNumber}",
                         scheduleStateItem.BibleReadingLanguageCode ?? "null",
                         scheduleStateItem.BibleReadingPublicationCode ?? "null",
-                        scheduleStateItem.BibleReadingBookNumber ?? 0,
+                        scheduleStateItem.BibleReadingSectionNumber ?? 0,
                         scheduleStateItem.BibleReadingChapterNumber ?? 0);
 
                     // Dispatch action to update the schedule in Schedules collection

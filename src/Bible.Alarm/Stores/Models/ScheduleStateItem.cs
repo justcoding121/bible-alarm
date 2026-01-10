@@ -38,11 +38,11 @@ public sealed class ScheduleStateItem : IComparable
     public string? BibleReadingPublicationCode { get; set; }
 
     /// <summary>
-    /// Book number for traditional Bible readings (1-66).
-    /// Null for drama publications which don't have books.
-    /// Use PublicationTypeHelper.HasBookStructure() to check if this applies.
+    /// Section number for traditional Bible readings (1-66).
+    /// Null for drama publications which don't have sections.
+    /// Use PublicationTypeHelper.HasSectionStructure() to check if this applies.
     /// </summary>
-    public int? BibleReadingBookNumber { get; set; }
+    public int? BibleReadingSectionNumber { get; set; }
 
     public int? BibleReadingChapterNumber { get; set; }
     public TimeSpan? BibleReadingFinishedDuration { get; set; }
@@ -70,11 +70,11 @@ public sealed class ScheduleStateItem : IComparable
     public string? BibleReadingPublicationName { get; set; }
 
     /// <summary>
-    /// Bible reading book name for display purposes.
-    /// This is populated during bootstrap from Bible book service.
+    /// Bible reading section name for display purposes.
+    /// This is populated during bootstrap from Bible section service.
     /// Not persisted to database.
     /// </summary>
-    public string? BibleReadingBookName { get; set; }
+    public string? BibleReadingSectionName { get; set; }
 
     /// <summary>
     /// Music language name for display purposes (for vocals only).
@@ -84,7 +84,7 @@ public sealed class ScheduleStateItem : IComparable
     public string? MusicLanguageName { get; set; }
 
     /// <summary>
-    /// Music publication name (song book name) for display purposes (for vocals only).
+    /// Music publication name (song section name) for display purposes (for vocals only).
     /// This is populated during bootstrap from vocal music service.
     /// Not persisted to database.
     /// </summary>

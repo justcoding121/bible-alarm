@@ -16,11 +16,11 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.ViewModels.Bible.BookSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.Bible.SectionSelectionViewModelHelpers;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
-public sealed class BookSelectionViewModel : ObservableObject, IDisposable
+public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 {
     private BibleReadingSchedule? current;
 
@@ -41,7 +41,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
     public ICommand CloseModalCommand { get; set; }
     public ICommand ChapterSelectionCommand { get; set; }
 
-    public BookSelectionViewModel(ILogger logger, IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
+    public SectionSelectionViewModel(ILogger logger, IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
     {
         this.logger = logger;
         this.mediaService = mediaService;
@@ -63,7 +63,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             await navigationService.PopModalAsync();
         });
 
-        ChapterSelectionCommand = new AsyncRelayCommand<BibleBookListViewItemModel>(async x =>
+        ChapterSelectionCommand = new AsyncRelayCommand<BibleSectionListViewItemModel>(async x =>
         {
             if (x == null)
             {
@@ -80,11 +80,11 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            // Check if the selected book is the same as the current book
-            var currentBookNumber = currentSchedule.BibleReadingBookNumber;
-            var isSameBook = currentBookNumber.HasValue && currentBookNumber.Value == x.Number;
+            // Check if the selected section is the same as the current section
+            var currentSectionNumber = currentSchedule.BibleReadingSectionNumber;
+            var isSameSection = currentSectionNumber.HasValue && currentSectionNumber.Value == x.Number;
 
-            // Get chapters for the selected book using the latest language/publication from CurrentSchedule
+            // Get chapters for the selected section using the latest language/publication from CurrentSchedule
             var chapters = await Task.Run(async () =>
                 await mediaService.GetBibleChapters(currentSchedule.BibleReadingLanguageCode, currentSchedule.BibleReadingPublicationCode, x.Number));
 
@@ -93,10 +93,10 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            // If it's the same book, preserve the current chapter number (if valid)
+            // If it's the same section, preserve the current chapter number (if valid)
             // Otherwise, use the first chapter
             int chapterNumber;
-            if (isSameBook && currentSchedule.BibleReadingChapterNumber.HasValue)
+            if (isSameSection && currentSchedule.BibleReadingChapterNumber.HasValue)
             {
                 var currentChapterNumber = currentSchedule.BibleReadingChapterNumber.Value;
                 // Verify the current chapter exists in the chapters list
@@ -106,29 +106,29 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
                 }
                 else
                 {
-                    // Current chapter doesn't exist in this book, use first chapter
+                    // Current chapter doesn't exist in this section, use first chapter
                     chapterNumber = chapters.Values.First().Number;
                 }
             }
             else
             {
-                // Different book selected, use first chapter
+                // Different section selected, use first chapter
                 chapterNumber = chapters.Values.First().Number;
             }
 
-            // Create BibleReadingStateItem with selected book and chapter
+            // Create BibleReadingStateItem with selected section and chapter
             // IMPORTANT: Include display names from list items (no database query needed)
             // Get language/publication codes and display names from CurrentSchedule (they should already be populated)
             var bibleReadingItem = new BibleReadingStateItem
             {
                 LanguageCode = currentSchedule.BibleReadingLanguageCode,
                 PublicationCode = currentSchedule.BibleReadingPublicationCode,
-                BookNumber = x.Number,
+                SectionNumber = x.Number,
                 ChapterNumber = chapterNumber,
                 // Store display names from list items and current state
                 LanguageName = currentSchedule.BibleReadingLanguageName,
                 PublicationName = currentSchedule.BibleReadingPublicationName,
-                BookName = x.Name
+                SectionName = x.Name
             };
 
             // Dispatch ChapterSelectedAction to update CurrentBibleReadingSchedule
@@ -148,9 +148,9 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             (c) => lastCurrent = c,
             () => initComplete,
             (b) => IsBusy = b,
-            () => Books,
+            () => Sections,
             (lang, pub) => _ = Initialize(lang, pub),
-            SetSelectedBook);
+            SetSelectedSection);
 
         // Only subscribe OnBibleReadingChanged to state changes
         // OnBibleReadingInitialized will only be called once manually in the constructor
@@ -182,7 +182,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Refreshes the books list from the current state. Can be called when modal appears to ensure latest state is used.
+    /// Refreshes the sections list from the current state. Can be called when modal appears to ensure latest state is used.
     /// </summary>
     public async Task RefreshFromState()
     {
@@ -204,7 +204,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             return;
         }
 
-        // Check if language or publication code changed (need to repopulate books)
+        // Check if language or publication code changed (need to repopulate sections)
         var languageChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
         var needsRepopulation = languageChanged || publicationCodeChanged || !initComplete;
@@ -213,7 +213,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
 
-        // Update current if we have CurrentBibleReadingSchedule (for other properties like BookNumber)
+        // Update current if we have CurrentBibleReadingSchedule (for other properties like SectionNumber)
         if (stateValue.CurrentBibleReadingSchedule != null)
         {
             current = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
@@ -226,7 +226,7 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                BookNumber = currentSchedule.BibleReadingBookNumber ?? 1,
+                SectionNumber = currentSchedule.BibleReadingSectionNumber ?? 1,
                 ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
             };
             lastCurrent = current;
@@ -246,8 +246,8 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
                 // Use the latest state values, not cached ones
                 await Initialize(newLanguageCode, newPublicationCode);
 
-                // Set selected book after books are populated (on main thread to ensure UI is ready)
-                await MainThread.InvokeOnMainThreadAsync(() => SetSelectedBook());
+                // Set selected section after sections are populated (on main thread to ensure UI is ready)
+                await MainThread.InvokeOnMainThreadAsync(() => SetSelectedSection());
 
                 // Give CollectionView time to render before hiding busy indicator
                 // This matches the pattern used in ChapterSelectionViewModel
@@ -259,15 +259,15 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
             catch (Exception ex)
             {
                 // Log error but don't throw - allow modal to continue functioning
-                logger.Error(ex, "BookSelectionViewModel: RefreshFromState - Error during repopulation");
+                logger.Error(ex, "SectionSelectionViewModel: RefreshFromState - Error during repopulation");
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
             }
         }
         else
         {
-            // Update selected book when state changes (e.g., after navigating back)
+            // Update selected section when state changes (e.g., after navigating back)
             // Ensure this runs on main thread for UI updates
-            MainThread.BeginInvokeOnMainThread(() => SetSelectedBook());
+            MainThread.BeginInvokeOnMainThread(() => SetSelectedSection());
         }
     }
 
@@ -276,29 +276,29 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         state.StateChanged -= OnBibleReadingChanged;
     }
 
-    private void SetSelectedBook()
+    private void SetSelectedSection()
     {
-        if (current == null || Books == null || Books.Count == 0)
+        if (current == null || Sections == null || Sections.Count == 0)
         {
             return;
         }
 
-        if (SelectedBook != null)
+        if (SelectedSection != null)
         {
-            SelectedBook.IsSelected = false;
+            SelectedSection.IsSelected = false;
         }
 
-        // Find the book from the Books collection (same instance as in ItemsSource)
+        // Find the section from the Sections collection (same instance as in ItemsSource)
         // This matches the pattern used in ChapterSelectionViewModel
-        var book = Books.FirstOrDefault(b => b.Number == current.BookNumber);
-        if (book != null)
+        var section = Sections.FirstOrDefault(b => b.Number == current.SectionNumber);
+        if (section != null)
         {
-            SelectedBook = book;
-            SelectedBook.IsSelected = true;
+            SelectedSection = section;
+            SelectedSection.IsSelected = true;
         }
     }
 
-    public BibleBookListViewItemModel? SelectedBook { get; set; }
+    public BibleSectionListViewItemModel? SelectedSection { get; set; }
 
     // Start as true to show busy indicator immediately
     private bool isBusy = true;
@@ -309,43 +309,43 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         set => SetProperty(ref isBusy, value);
     }
 
-    private ObservableCollection<BibleBookListViewItemModel> books = [];
+    private ObservableCollection<BibleSectionListViewItemModel> sections = [];
 
-    public ObservableCollection<BibleBookListViewItemModel> Books
+    public ObservableCollection<BibleSectionListViewItemModel> Sections
     {
-        get => books;
-        set => SetProperty(ref books, value);
+        get => sections;
+        set => SetProperty(ref sections, value);
     }
 
-    private async Task Initialize(string languageCode, string publicationCode) => await PopulateBooks(languageCode, publicationCode);
+    private async Task Initialize(string languageCode, string publicationCode) => await PopulateSections(languageCode, publicationCode);
 
-    private readonly Dictionary<int, BibleBookListViewItemModel> bookVMsMapping = [];
+    private readonly Dictionary<int, BibleSectionListViewItemModel> sectionVMsMapping = [];
 
-    private async Task PopulateBooks(string languageCode, string publicationCode)
+    private async Task PopulateSections(string languageCode, string publicationCode)
     {
         // Do ALL processing on background thread to avoid blocking spinner animation
-        var (bookViewModelList, newMapping, selectedBook) = await Task.Run(async () =>
+        var (sectionViewModelList, newMapping, selectedSection) = await Task.Run(async () =>
         {
-            var booksFromDb = await mediaService.GetBibleBooks(languageCode, publicationCode);
+            var sectionsFromDb = await mediaService.GetBibleSections(languageCode, publicationCode);
             
-            if (booksFromDb == null)
+            if (sectionsFromDb == null)
             {
-                return (new List<BibleBookListViewItemModel>(), new Dictionary<int, BibleBookListViewItemModel>(), (BibleBookListViewItemModel?)null);
+                return (new List<BibleSectionListViewItemModel>(), new Dictionary<int, BibleSectionListViewItemModel>(), (BibleSectionListViewItemModel?)null);
             }
 
-            var vms = new List<BibleBookListViewItemModel>();
-            var mapping = new Dictionary<int, BibleBookListViewItemModel>();
-            BibleBookListViewItemModel? selected = null;
+            var vms = new List<BibleSectionListViewItemModel>();
+            var mapping = new Dictionary<int, BibleSectionListViewItemModel>();
+            BibleSectionListViewItemModel? selected = null;
 
-            foreach (var book in booksFromDb.Values)
+            foreach (var section in sectionsFromDb.Values)
             {
-                var bookVm = new BibleBookListViewItemModel(book);
-                vms.Add(bookVm);
-                mapping[bookVm.Number] = bookVm;
+                var sectionVm = new BibleSectionListViewItemModel(section);
+                vms.Add(sectionVm);
+                mapping[sectionVm.Number] = sectionVm;
 
-                if (current != null && current.BookNumber == book.Number)
+                if (current != null && current.SectionNumber == section.Number)
                 {
-                    selected = bookVm;
+                    selected = sectionVm;
                     selected.IsSelected = true;
                 }
             }
@@ -354,30 +354,30 @@ public sealed class BookSelectionViewModel : ObservableObject, IDisposable
         });
 
         // Update mapping
-        bookVMsMapping.Clear();
+        sectionVMsMapping.Clear();
         foreach (var kvp in newMapping)
         {
-            bookVMsMapping[kvp.Key] = kvp.Value;
+            sectionVMsMapping[kvp.Key] = kvp.Value;
         }
 
         // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            Books.Clear();
-            foreach (var book in bookViewModelList)
+            Sections.Clear();
+            foreach (var section in sectionViewModelList)
             {
-                Books.Add(book);
+                Sections.Add(section);
             }
 
-            if (selectedBook is not null)
+            if (selectedSection is not null)
             {
-                SelectedBook = selectedBook;
+                SelectedSection = selectedSection;
             }
         });
     }
 }
 
-public sealed class BibleBookListViewItemModel(BibleBook book) : ObservableObject, IComparable
+public sealed class BibleSectionListViewItemModel(BibleSection section) : ObservableObject, IComparable
 {
     private bool isSelected;
 
@@ -387,8 +387,8 @@ public sealed class BibleBookListViewItemModel(BibleBook book) : ObservableObjec
         set => SetProperty(ref isSelected, value);
     }
 
-    public string Name => book.Name;
-    public int Number => book.Number;
+    public string Name => section.Name;
+    public int Number => section.Number;
 
-    public int CompareTo(object? obj) => obj is not BibleBookListViewItemModel other ? 1 : Number.CompareTo(other.Number);
+    public int CompareTo(object? obj) => obj is not BibleSectionListViewItemModel other ? 1 : Number.CompareTo(other.Number);
 }

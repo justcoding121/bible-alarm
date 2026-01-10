@@ -8,10 +8,10 @@ using Bible.Alarm.Stores.Models;
 using Microsoft.Maui.Essentials;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Bible.BookSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Bible.SectionSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles state change logic for BookSelectionViewModel.
+/// Handles state change logic for SectionSelectionViewModel.
 /// </summary>
 public class StateChangeHandler
 {
@@ -22,9 +22,9 @@ public class StateChangeHandler
     private readonly Action<BibleReadingSchedule> setLastCurrent;
     private readonly Func<bool> getInitComplete;
     private readonly Action<bool> setIsBusy;
-    private readonly Func<ObservableCollection<BibleBookListViewItemModel>?> getBooks;
+    private readonly Func<ObservableCollection<BibleSectionListViewItemModel>?> getSections;
     private readonly Action<string, string> initialize;
-    private readonly Action setSelectedBook;
+    private readonly Action setSelectedSection;
 
     // Track last language and publication code to detect changes
     private string? lastLanguageCode;
@@ -38,9 +38,9 @@ public class StateChangeHandler
         Action<BibleReadingSchedule> setLastCurrent,
         Func<bool> getInitComplete,
         Action<bool> setIsBusy,
-        Func<ObservableCollection<BibleBookListViewItemModel>?> getBooks,
+        Func<ObservableCollection<BibleSectionListViewItemModel>?> getSections,
         Action<string, string> initialize,
-        Action setSelectedBook)
+        Action setSelectedSection)
     {
         this.logger = logger;
         this.mapper = mapper;
@@ -49,9 +49,9 @@ public class StateChangeHandler
         this.setLastCurrent = setLastCurrent;
         this.getInitComplete = getInitComplete;
         this.setIsBusy = setIsBusy;
-        this.getBooks = getBooks;
+        this.getSections = getSections;
         this.initialize = initialize;
-        this.setSelectedBook = setSelectedBook;
+        this.setSelectedSection = setSelectedSection;
     }
 
     public void HandleStateChanged(ApplicationState stateValue)
@@ -72,7 +72,7 @@ public class StateChangeHandler
             return;
         }
 
-        // Check if language or publication code changed (need to repopulate books)
+        // Check if language or publication code changed (need to repopulate sections)
         var languageChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
         var needsRepopulation = languageChanged || publicationCodeChanged;
@@ -87,7 +87,7 @@ public class StateChangeHandler
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
 
-        // Update current if we have CurrentBibleReadingSchedule (for other properties like BookNumber)
+        // Update current if we have CurrentBibleReadingSchedule (for other properties like SectionNumber)
         if (stateValue.CurrentBibleReadingSchedule != null)
         {
             var newCurrent = mapper.Map<BibleReadingSchedule>(stateValue.CurrentBibleReadingSchedule);
@@ -101,14 +101,14 @@ public class StateChangeHandler
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                BookNumber = currentSchedule.BibleReadingBookNumber ?? 1,
+                SectionNumber = currentSchedule.BibleReadingSectionNumber ?? 1,
                 ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
             };
             setCurrent(newCurrent);
             setLastCurrent(newCurrent);
         }
 
-        // If language or publication code changed, repopulate books
+        // If language or publication code changed, repopulate sections
         if (needsRepopulation && getInitComplete())
         {
             Task.Run(async () =>
@@ -121,15 +121,15 @@ public class StateChangeHandler
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "BookSelectionViewModel: OnBibleReadingChanged - Error during repopulation");
+                    logger.Error(ex, "SectionSelectionViewModel: OnBibleReadingChanged - Error during repopulation");
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
             });
         }
         else
         {
-            // Update selected book when state changes (e.g., after navigating back)
-            MainThread.BeginInvokeOnMainThread(setSelectedBook);
+            // Update selected section when state changes (e.g., after navigating back)
+            MainThread.BeginInvokeOnMainThread(setSelectedSection);
         }
     }
 }

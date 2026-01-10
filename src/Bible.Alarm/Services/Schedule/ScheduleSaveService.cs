@@ -153,7 +153,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         // Preserve all display names from CurrentSchedule state
         scheduleStateItem.BibleReadingLanguageName = currentSchedule.BibleReadingLanguageName;
         scheduleStateItem.BibleReadingPublicationName = currentSchedule.BibleReadingPublicationName;
-        scheduleStateItem.BibleReadingBookName = currentSchedule.BibleReadingBookName;
+        scheduleStateItem.BibleReadingSectionName = currentSchedule.BibleReadingSectionName;
         scheduleStateItem.MusicLanguageName = currentSchedule.MusicLanguageName;
         scheduleStateItem.MusicPublicationName = currentSchedule.MusicPublicationName;
         scheduleStateItem.MusicTrackName = currentSchedule.MusicTrackName;

@@ -87,7 +87,7 @@ public sealed class BibleSelectionStateHandler
                 {
                     LanguageCode = newLanguageCode,
                     PublicationCode = stateValue.CurrentSchedule.BibleReadingPublicationCode,
-                    BookNumber = stateValue.CurrentSchedule.BibleReadingBookNumber ?? 1,
+                    SectionNumber = stateValue.CurrentSchedule.BibleReadingSectionNumber ?? 1,
                     ChapterNumber = stateValue.CurrentSchedule.BibleReadingChapterNumber ?? 1
                 };
             }
@@ -151,7 +151,7 @@ public sealed class BibleSelectionStateHandler
                         {
                             LanguageCode = selectedLanguage.Code,
                             PublicationCode = string.Empty,
-                            BookNumber = 1,
+                            SectionNumber = 1,
                             ChapterNumber = 1
                         };
                     }
@@ -219,7 +219,7 @@ public sealed class BibleSelectionStateHandler
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = currentSchedule.BibleReadingPublicationCode,
-                BookNumber = currentSchedule.BibleReadingBookNumber ?? 1,
+                SectionNumber = currentSchedule.BibleReadingSectionNumber ?? 1,
                 ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
             };
             lastCurrent = current;
@@ -318,7 +318,7 @@ public sealed class BibleSelectionStateHandler
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = currentSchedule.BibleReadingPublicationCode,
-                BookNumber = currentSchedule.BibleReadingBookNumber ?? 1,
+                SectionNumber = currentSchedule.BibleReadingSectionNumber ?? 1,
                 ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
             };
         }

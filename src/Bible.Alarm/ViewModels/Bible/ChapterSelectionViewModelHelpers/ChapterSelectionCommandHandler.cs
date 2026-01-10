@@ -31,7 +31,7 @@ public sealed class ChapterSelectionCommandHandler(
         if (currentSchedule == null ||
             string.IsNullOrEmpty(currentSchedule.BibleReadingLanguageCode) ||
             string.IsNullOrEmpty(currentSchedule.BibleReadingPublicationCode) ||
-            !currentSchedule.BibleReadingBookNumber.HasValue)
+            !currentSchedule.BibleReadingSectionNumber.HasValue)
         {
             logger.Warning("ChapterSelectionViewModel: SetChapterCommand - CurrentSchedule is null or missing required properties");
             return;
@@ -42,12 +42,12 @@ public sealed class ChapterSelectionCommandHandler(
         {
             LanguageCode = currentSchedule.BibleReadingLanguageCode,
             PublicationCode = currentSchedule.BibleReadingPublicationCode,
-            BookNumber = currentSchedule.BibleReadingBookNumber.Value,
+            SectionNumber = currentSchedule.BibleReadingSectionNumber.Value,
             ChapterNumber = chapter.Number,
             // Store display names from current state
             LanguageName = currentSchedule.BibleReadingLanguageName,
             PublicationName = currentSchedule.BibleReadingPublicationName,
-            BookName = currentSchedule.BibleReadingBookName
+            SectionName = currentSchedule.BibleReadingSectionName
         };
 
 

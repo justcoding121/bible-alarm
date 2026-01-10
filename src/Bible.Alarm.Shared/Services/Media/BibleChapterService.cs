@@ -23,7 +23,7 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
 
-    public async Task<SortedDictionary<int, BiblePublicationChapter>> GetChaptersByBookAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default)
+    public async Task<SortedDictionary<int, BiblePublicationChapter>> GetChaptersBySectionAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -33,8 +33,8 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
             var chapters = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
-                .SelectMany(x => x.Books)
-                .Where(x => x.Number == bookNumber)
+                .SelectMany(x => x.Sections)
+                .Where(x => x.Number == sectionNumber)
                 .SelectMany(x => x.Chapters)
                 .Include(x => x.Source)
                 .OrderBy(x => x.Number)
@@ -44,13 +44,13 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublicationChapters by book. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
-                languageCode, publicationCode, bookNumber);
+            logger.Error(ex, "Error getting BiblePublicationChapters by section. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}",
+                languageCode, publicationCode, sectionNumber);
             throw;
         }
     }
 
-    public async Task<BiblePublicationChapter?> GetChapterAsync(string languageCode, string publicationCode, int bookNumber, int chapterNumber, CancellationToken cancellationToken = default)
+    public async Task<BiblePublicationChapter?> GetChapterAsync(string languageCode, string publicationCode, int sectionNumber, int chapterNumber, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -60,8 +60,8 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
             return await dbContext.BiblePublications
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
-                .SelectMany(x => x.Books)
-                .Where(x => x.Number == bookNumber)
+                .SelectMany(x => x.Sections)
+                .Where(x => x.Number == sectionNumber)
                 .SelectMany(x => x.Chapters)
                 .Include(x => x.Source)
                 .Where(x => x.Number == chapterNumber)
@@ -69,13 +69,13 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublicationChapter. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}, ChapterNumber={ChapterNumber}",
-                languageCode, publicationCode, bookNumber, chapterNumber);
+            logger.Error(ex, "Error getting BiblePublicationChapter. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}, ChapterNumber={ChapterNumber}",
+                languageCode, publicationCode, sectionNumber, chapterNumber);
             throw;
         }
     }
 
-    public async Task UpdateChapterUrlAsync(string languageCode, string publicationCode, int bookNumber, int chapterNumber, string url, CancellationToken cancellationToken = default)
+    public async Task UpdateChapterUrlAsync(string languageCode, string publicationCode, int sectionNumber, int chapterNumber, string url, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -84,8 +84,8 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
 
             var chapter = await dbContext.BiblePublications
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
-                .SelectMany(x => x.Books)
-                .Where(x => x.Number == bookNumber)
+                .SelectMany(x => x.Sections)
+                .Where(x => x.Number == sectionNumber)
                 .SelectMany(x => x.Chapters)
                 .Include(x => x.Source)
                 .ThenInclude(s => s!.BaseUrlEntity)
@@ -118,8 +118,8 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error updating BiblePublicationChapter URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}, ChapterNumber={ChapterNumber}",
-                languageCode, publicationCode, bookNumber, chapterNumber);
+            logger.Error(ex, "Error updating BiblePublicationChapter URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}, ChapterNumber={ChapterNumber}",
+                languageCode, publicationCode, sectionNumber, chapterNumber);
             throw;
         }
     }

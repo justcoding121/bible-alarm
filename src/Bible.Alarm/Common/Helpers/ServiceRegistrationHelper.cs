@@ -143,7 +143,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IAlarmMusicService, AlarmMusicService>();
         services.AddSingleton<IBibleReadingScheduleService, BibleReadingScheduleService>();
         services.AddSingleton<IBiblePublicationService, BiblePublicationService>();
-        services.AddSingleton<IBibleBookService, BibleBookService>();
+        services.AddSingleton<IBibleSectionService, BibleSectionService>();
         services.AddSingleton<IBibleChapterService, BibleChapterService>();
         services.AddSingleton<IMelodyMusicService, MelodyMusicService>();
         services.AddSingleton<IVocalMusicService, VocalMusicService>();
@@ -288,7 +288,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<SongPublicationSelectionViewModel>();
         services.AddTransient<TrackSelectionViewModel>();
         services.AddTransient<BibleSelectionViewModel>();
-        services.AddTransient<BookSelectionViewModel>();
+        services.AddTransient<SectionSelectionViewModel>();
         services.AddTransient<ChapterSelectionViewModel>();
         services.AddTransient<AlarmViewModel>();
         services.AddTransient<BibleSelectionContainerViewModel>();
@@ -318,13 +318,13 @@ public static class ServiceRegistrationHelper
         services.AddTransient<SongPublicationSelection>();
         services.AddTransient<TrackSelection>();
         services.AddTransient<BiblePublicationSelection>();
-        services.AddTransient<BookSelection>();
+        services.AddTransient<SectionSelection>();
         services.AddTransient<ChapterSelection>();
         services.AddTransient<BibleLanguageModal>();
         services.AddTransient<MusicLanguageModal>();
         services.AddTransient<AlarmModal>();
         services.AddTransient<BibleSelectionModal>();
-        services.AddTransient<BookSelectionModal>();
+        services.AddTransient<SectionSelectionModal>();
         services.AddTransient<ChapterSelectionModal>();
         services.AddTransient<MusicSelectionModal>();
         services.AddTransient<SongPublicationSelectionModal>();

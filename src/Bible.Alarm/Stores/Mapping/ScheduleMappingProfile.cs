@@ -18,7 +18,7 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.BibleReadingScheduleId, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? (int?)src.BibleReadingSchedule.Id : null))
             .ForMember(dest => dest.BibleReadingLanguageCode, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? src.BibleReadingSchedule.LanguageCode : null))
             .ForMember(dest => dest.BibleReadingPublicationCode, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? src.BibleReadingSchedule.PublicationCode : null))
-            .ForMember(dest => dest.BibleReadingBookNumber, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? src.BibleReadingSchedule.BookNumber : null))
+            .ForMember(dest => dest.BibleReadingSectionNumber, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? src.BibleReadingSchedule.SectionNumber : null))
             .ForMember(dest => dest.BibleReadingChapterNumber, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? (int?)src.BibleReadingSchedule.ChapterNumber : null))
             .ForMember(dest => dest.BibleReadingFinishedDuration, opt => opt.MapFrom(src => src.BibleReadingSchedule != null ? (TimeSpan?)src.BibleReadingSchedule.FinishedDuration : null))
             .ForMember(dest => dest.MusicId, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.Id : null))
@@ -28,7 +28,7 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.MusicTrackNumber, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.TrackNumber : null))
             .ForMember(dest => dest.MusicRepeat, opt => opt.MapFrom(src => src.Music != null ? (bool?)src.Music.Repeat : null))
             .ForMember(dest => dest.BibleReadingLanguageName, opt => opt.Ignore()) // Set manually during bootstrap
-            .ForMember(dest => dest.BibleReadingBookName, opt => opt.Ignore()); // Set manually during bootstrap
+            .ForMember(dest => dest.BibleReadingSectionName, opt => opt.Ignore()); // Set manually during bootstrap
 
         // Map ScheduleStateItem back to AlarmSchedule (for when we need the entity)
         // Note: This creates a new AlarmSchedule but won't have EF tracking
@@ -38,7 +38,7 @@ public class ScheduleMappingProfile : Profile
                 Id = src.BibleReadingScheduleId.Value,
                 LanguageCode = src.BibleReadingLanguageCode ?? string.Empty,
                 PublicationCode = src.BibleReadingPublicationCode ?? string.Empty,
-                BookNumber = src.BibleReadingBookNumber,
+                SectionNumber = src.BibleReadingSectionNumber,
                 ChapterNumber = src.BibleReadingChapterNumber ?? 0,
                 FinishedDuration = src.BibleReadingFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = src.Id

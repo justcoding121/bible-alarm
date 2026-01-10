@@ -159,7 +159,7 @@ public sealed class BibleSelectionDataProvider
             var alreadyMatches = currentSchedule != null &&
                                 currentSchedule.BibleReadingLanguageCode == languageCode &&
                                 currentSchedule.BibleReadingPublicationCode == defaultTranslation.Code &&
-                                currentSchedule.BibleReadingBookNumber == 1 &&
+                                currentSchedule.BibleReadingSectionNumber == 1 &&
                                 currentSchedule.BibleReadingChapterNumber == 1;
 
             if (!alreadyMatches)
@@ -187,11 +187,11 @@ public sealed class BibleSelectionDataProvider
     {
         try
         {
-            var books = await mediaService.GetBibleBooks(languageCode, defaultTranslation.Code);
-            if (books == null || books.Count == 0) return;
+            var sections = await mediaService.GetBibleSections(languageCode, defaultTranslation.Code);
+            if (sections == null || sections.Count == 0) return;
 
-            var firstBook = books.Values.First();
-            var chapters = await mediaService.GetBibleChapters(languageCode, defaultTranslation.Code, firstBook.Number);
+            var firstSection = sections.Values.First();
+            var chapters = await mediaService.GetBibleChapters(languageCode, defaultTranslation.Code, firstSection.Number);
             if (chapters == null || chapters.Count == 0) return;
 
             var firstChapter = chapters.Values.First();
@@ -199,11 +199,11 @@ public sealed class BibleSelectionDataProvider
             {
                 LanguageCode = languageCode,
                 PublicationCode = defaultTranslation.Code,
-                BookNumber = firstBook.Number,
+                SectionNumber = firstSection.Number,
                 ChapterNumber = firstChapter.Number,
                 LanguageName = languageName,
                 PublicationName = defaultTranslation.Name,
-                BookName = firstBook.Name
+                SectionName = firstSection.Name
             };
             dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
         }

@@ -24,10 +24,10 @@ public sealed class BiblePropertyNotifier
     public void NotifyAllDisplayTextPropertiesChanged()
     {
         onPropertyChanged(nameof(BibleSelectionContainerViewModel.BibleTypeDisplayText));
-        onPropertyChanged(nameof(BibleSelectionContainerViewModel.IsBookVisible));
+        onPropertyChanged(nameof(BibleSelectionContainerViewModel.IsSectionVisible));
         onPropertyChanged(nameof(BibleSelectionContainerViewModel.LanguageDisplayText));
         onPropertyChanged(nameof(BibleSelectionContainerViewModel.TranslationDisplayText));
-        onPropertyChanged(nameof(BibleSelectionContainerViewModel.BookDisplayText));
+        onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
         onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
     }
 
@@ -40,28 +40,28 @@ public sealed class BiblePropertyNotifier
         if (changeInfo.NotifyBibleType)
         {
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.BibleTypeDisplayText));
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.IsBookVisible));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.IsSectionVisible));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.LanguageDisplayText));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.TranslationDisplayText));
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.BookDisplayText));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
         }
         else if (changeInfo.NotifyLanguage)
         {
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.LanguageDisplayText));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.TranslationDisplayText));
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.BookDisplayText));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
         }
         else if (changeInfo.NotifyTranslation)
         {
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.TranslationDisplayText));
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.BookDisplayText));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
         }
-        else if (changeInfo.NotifyBook)
+        else if (changeInfo.NotifySection)
         {
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.BookDisplayText));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.ChapterDisplayText));
         }
         else if (changeInfo.NotifyChapter)
@@ -73,10 +73,10 @@ public sealed class BiblePropertyNotifier
             NotifyDisplayTextOnlyChanges(changeInfo);
         }
 
-        // Handle IsBookVisible separately if it changed but BibleType didn't
-        if (changeInfo.NotifyIsBookVisible && !changeInfo.NotifyBibleType)
+        // Handle IsSectionVisible separately if it changed but BibleType didn't
+        if (changeInfo.NotifyIsSectionVisible && !changeInfo.NotifyBibleType)
         {
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.IsBookVisible));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.IsSectionVisible));
         }
     }
 
@@ -94,9 +94,9 @@ public sealed class BiblePropertyNotifier
         {
             onPropertyChanged(nameof(BibleSelectionContainerViewModel.TranslationDisplayText));
         }
-        if (changeInfo.BookDisplayChanged)
+        if (changeInfo.SectionDisplayChanged)
         {
-            onPropertyChanged(nameof(BibleSelectionContainerViewModel.BookDisplayText));
+            onPropertyChanged(nameof(BibleSelectionContainerViewModel.SectionDisplayText));
         }
         if (changeInfo.ChapterDisplayChanged)
         {

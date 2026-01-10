@@ -88,7 +88,7 @@ public sealed class BibleCommandInitializer
                 getBibleReading(),
                 currentSchedule?.BibleReadingLanguageCode,
                 currentSchedule?.BibleReadingPublicationCode,
-                currentSchedule?.BibleReadingBookNumber,
+                currentSchedule?.BibleReadingSectionNumber,
                 currentSchedule?.BibleReadingChapterNumber,
                 currentSchedule?.BibleReadingFinishedDuration);
             
@@ -108,7 +108,7 @@ public sealed class BibleCommandInitializer
         });
     }
 
-    public ICommand CreateSelectBookCommand(Func<BibleReadingSchedule?> getBibleReading, Action<BibleReadingSchedule?> setBibleReading, int scheduleId, bool isNewSchedule, bool bibleReadingUpdated)
+    public ICommand CreateSelectSectionCommand(Func<BibleReadingSchedule?> getBibleReading, Action<BibleReadingSchedule?> setBibleReading, int scheduleId, bool isNewSchedule, bool bibleReadingUpdated)
     {
         return new AsyncRelayCommand(async () =>
         {
@@ -121,21 +121,21 @@ public sealed class BibleCommandInitializer
                 getBibleReading(),
                 currentSchedule?.BibleReadingLanguageCode,
                 currentSchedule?.BibleReadingPublicationCode,
-                currentSchedule?.BibleReadingBookNumber,
+                currentSchedule?.BibleReadingSectionNumber,
                 currentSchedule?.BibleReadingChapterNumber,
                 currentSchedule?.BibleReadingFinishedDuration);
             
             setBibleReading(loadedBibleReading);
 
             // Create view model and open modal
-            var bookSelectionViewModel = serviceProvider.GetRequiredService<BookSelectionViewModel>();
-            await navigationService.OpenBookSelectionModalAsync(bookSelectionViewModel);
+            var sectionSelectionViewModel = serviceProvider.GetRequiredService<SectionSelectionViewModel>();
+            await navigationService.OpenSectionSelectionModalAsync(sectionSelectionViewModel);
 
             // Map entities to DTOs before dispatching
             if (loadedBibleReading != null)
             {
                 var currentBibleReadingItem = mapper.Map<BibleReadingStateItem>(loadedBibleReading);
-                dispatcher.Dispatch(new BookSelectionAction(currentBibleReadingItem));
+                dispatcher.Dispatch(new SectionSelectionAction(currentBibleReadingItem));
                 // State change will trigger OnStateChanged which handles cascading notifications
             }
         });
@@ -154,7 +154,7 @@ public sealed class BibleCommandInitializer
                 getBibleReading(),
                 currentSchedule?.BibleReadingLanguageCode,
                 currentSchedule?.BibleReadingPublicationCode,
-                currentSchedule?.BibleReadingBookNumber,
+                currentSchedule?.BibleReadingSectionNumber,
                 currentSchedule?.BibleReadingChapterNumber,
                 currentSchedule?.BibleReadingFinishedDuration);
             

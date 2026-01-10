@@ -64,7 +64,7 @@ public sealed class MusicPropertyNotifier
             // Clear cached values when music type changes
             displayTextProvider.ClearCaches();
 
-            // For vocals: notify language, song book, and track
+            // For vocals: notify language, song section, and track
             // For melodies: only notify track
             if (musicType == MusicType.Vocals)
             {
@@ -76,24 +76,24 @@ public sealed class MusicPropertyNotifier
             }
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
         }
-        // Language change (vocals only) cascades to song book and track
+        // Language change (vocals only) cascades to song section and track
         else if (notifyLanguage && musicType == MusicType.Vocals)
         {
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicLanguageDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
 
-            // Clear song book and track caches when language changes
+            // Clear song section and track caches when language changes
             displayTextProvider.ClearSongPublicationCache();
             displayTextProvider.ClearTrackCache();
         }
-        // Song book change cascades to track
+        // Song section change cascades to track
         else if (notifySongPublication)
         {
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
 
-            // Clear track cache when song book changes
+            // Clear track cache when song section changes
             displayTextProvider.ClearTrackCache();
         }
         // Track change only affects itself

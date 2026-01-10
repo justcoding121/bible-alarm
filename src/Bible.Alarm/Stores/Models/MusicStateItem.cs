@@ -26,8 +26,8 @@ public sealed class MusicStateItem : IComparable
     public string? LanguageName { get; set; }
 
     /// <summary>
-    /// Publication name (song book name) for display purposes (for vocals only).
-    /// This is populated from the list item when user selects a song book.
+    /// Publication name (song section name) for display purposes (for vocals only).
+    /// This is populated from the list item when user selects a song section.
     /// Not persisted to database.
     /// </summary>
     public string? PublicationName { get; set; }

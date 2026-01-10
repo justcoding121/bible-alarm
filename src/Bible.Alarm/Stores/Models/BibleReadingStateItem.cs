@@ -15,11 +15,11 @@ public sealed class BibleReadingStateItem : IComparable
     public string PublicationCode { get; set; } = string.Empty;
 
     /// <summary>
-    /// Book number for traditional Bible readings (1-66).
-    /// Null for drama publications which don't have books.
-    /// Use PublicationTypeHelper.HasBookStructure() to check if this applies.
+    /// Section number for traditional Bible readings (1-66).
+    /// Null for drama publications which don't have sections.
+    /// Use PublicationTypeHelper.HasSectionStructure() to check if this applies.
     /// </summary>
-    public int? BookNumber { get; set; }
+    public int? SectionNumber { get; set; }
 
     public int ChapterNumber { get; set; }
     public TimeSpan FinishedDuration { get; set; }
@@ -47,11 +47,11 @@ public sealed class BibleReadingStateItem : IComparable
     public string? PublicationName { get; set; }
 
     /// <summary>
-    /// Book name for display purposes.
-    /// This is populated from the list item when user selects a book.
+    /// Section name for display purposes.
+    /// This is populated from the list item when user selects a section.
     /// Not persisted to database.
     /// </summary>
-    public string? BookName { get; set; }
+    public string? SectionName { get; set; }
 
     /// <summary>
     /// Compare by ID for ObservableHashSet ordering.

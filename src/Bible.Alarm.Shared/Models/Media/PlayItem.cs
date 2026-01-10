@@ -10,6 +10,6 @@ public class PlayItem(TrackMetadata metadata, string url)
     {
         return Metadata.LanguageCode + " " + Metadata.PublicationCode + " "
             + (Metadata.IsAlarmMusic ? Metadata.TrackNumber.ToString()
-            : Metadata.BookNumber + " " + Metadata.ChapterNumber);
+            : Metadata.SectionNumber + " " + Metadata.ChapterNumber);
     }
 }

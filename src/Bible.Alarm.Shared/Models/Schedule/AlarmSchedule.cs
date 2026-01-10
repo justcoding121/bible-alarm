@@ -173,12 +173,12 @@ public sealed class AlarmSchedule : IComparable
                 ChapterNumber = 1,
                 LanguageCode = "E",
                 PublicationCode = "nwt", // NWT 2013 (not 1984 - use "bi12" for 1984)
-                BookNumber = 1 // Will be updated below with a random book
+                SectionNumber = 1 // Will be updated below with a random section
             }
         };
 
         var bibleQueryStartTime = DateTime.UtcNow;
-        var bible = await BiblePublicationService.GetByLanguageAndCodeWithBooksAsync(
+        var bible = await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
             sample.BibleReadingSchedule.LanguageCode,
             sample.BibleReadingSchedule.PublicationCode);
         var bibleQueryElapsed = (DateTime.UtcNow - bibleQueryStartTime).TotalMilliseconds;
@@ -190,14 +190,14 @@ public sealed class AlarmSchedule : IComparable
         }
 
         // Use Random.Shared for thread-safe random number generation
-        // Safe for non-cryptographic use (selecting sample books/tracks)
-        var book = bible.Books[Random.Shared.Next(bible.Books.Count)];
+        // Safe for non-cryptographic use (selecting sample sections/tracks)
+        var section = bible.Sections[Random.Shared.Next(bible.Sections.Count)];
         if (sample.BibleReadingSchedule == null)
         {
             throw new InvalidOperationException("BibleReadingSchedule is null in sample schedule");
         }
 
-        sample.BibleReadingSchedule.BookNumber = book.Number;
+        sample.BibleReadingSchedule.SectionNumber = section.Number;
 
         if (sample.Music == null)
         {

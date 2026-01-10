@@ -168,7 +168,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
 
 
-    private static int GetBookIconSize()
+    private static int GetSectionIconSize()
     {
         return 128;
     }

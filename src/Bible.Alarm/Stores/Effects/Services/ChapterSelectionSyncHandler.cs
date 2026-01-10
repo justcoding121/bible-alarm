@@ -57,11 +57,11 @@ public sealed class ChapterSelectionSyncHandler
 
     private void LogChapterSelectedStart(ChapterSelectedAction action)
     {
-        Log.Information("ScheduleEffects: HandleChapterSelected - Received action. CurrentBibleReadingSchedule: {BibleReadingSchedule}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, BookNumber: {BookNumber}, ChapterNumber: {ChapterNumber}",
+        Log.Information("ScheduleEffects: HandleChapterSelected - Received action. CurrentBibleReadingSchedule: {BibleReadingSchedule}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, SectionNumber: {SectionNumber}, ChapterNumber: {ChapterNumber}",
             action.CurrentBibleReadingSchedule != null ? "not null" : "null",
             action.CurrentBibleReadingSchedule?.LanguageCode ?? "null",
             action.CurrentBibleReadingSchedule?.PublicationCode ?? "null",
-            action.CurrentBibleReadingSchedule?.BookNumber ?? 0,
+            action.CurrentBibleReadingSchedule?.SectionNumber ?? 0,
             action.CurrentBibleReadingSchedule?.ChapterNumber ?? 0);
     }
 
@@ -135,7 +135,7 @@ public sealed class ChapterSelectionSyncHandler
         updatedSchedule.BibleReadingScheduleId = actionBibleReadingSchedule.Id > 0 ? actionBibleReadingSchedule.Id : currentSchedule.BibleReadingScheduleId;
         updatedSchedule.BibleReadingLanguageCode = actionBibleReadingSchedule.LanguageCode;
         updatedSchedule.BibleReadingPublicationCode = actionBibleReadingSchedule.PublicationCode;
-        updatedSchedule.BibleReadingBookNumber = actionBibleReadingSchedule.BookNumber;
+        updatedSchedule.BibleReadingSectionNumber = actionBibleReadingSchedule.SectionNumber;
         updatedSchedule.BibleReadingChapterNumber = actionBibleReadingSchedule.ChapterNumber;
         updatedSchedule.BibleReadingFinishedDuration = actionBibleReadingSchedule.FinishedDuration;
     }
@@ -159,24 +159,24 @@ public sealed class ChapterSelectionSyncHandler
         // Do NOT query the database - display names are already available from the selection.
         updatedSchedule.BibleReadingLanguageName = actionBibleReadingSchedule.LanguageName;
         updatedSchedule.BibleReadingPublicationName = actionBibleReadingSchedule.PublicationName;
-        updatedSchedule.BibleReadingBookName = actionBibleReadingSchedule.BookName;
+        updatedSchedule.BibleReadingSectionName = actionBibleReadingSchedule.SectionName;
 
-        Log.Debug("ScheduleEffects: HandleChapterSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, BookName: {BookName}",
+        Log.Debug("ScheduleEffects: HandleChapterSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}",
             updatedSchedule.BibleReadingLanguageName ?? "null",
             updatedSchedule.BibleReadingPublicationName ?? "null",
-            updatedSchedule.BibleReadingBookName ?? "null");
+            updatedSchedule.BibleReadingSectionName ?? "null");
     }
 
     private void DispatchUpdateAction(IDispatcher dispatcher, ScheduleStateItem updatedSchedule, int scheduleId)
     {
-        Log.Information("ScheduleEffects: HandleChapterSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, BookNumber: {BookNumber}, BookName: {BookName}, ChapterNumber: {ChapterNumber}",
+        Log.Information("ScheduleEffects: HandleChapterSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, SectionNumber: {SectionNumber}, SectionName: {SectionName}, ChapterNumber: {ChapterNumber}",
             updatedSchedule.Id,
             updatedSchedule.BibleReadingLanguageCode,
             updatedSchedule.BibleReadingLanguageName ?? "null",
             updatedSchedule.BibleReadingPublicationCode,
             updatedSchedule.BibleReadingPublicationName ?? "null",
-            updatedSchedule.BibleReadingBookNumber,
-            updatedSchedule.BibleReadingBookName ?? "null",
+            updatedSchedule.BibleReadingSectionNumber,
+            updatedSchedule.BibleReadingSectionName ?? "null",
             updatedSchedule.BibleReadingChapterNumber);
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
 

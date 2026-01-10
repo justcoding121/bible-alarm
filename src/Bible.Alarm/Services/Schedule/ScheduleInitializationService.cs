@@ -55,10 +55,10 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
         // Populate display names before dispatching action
         logger.Debug("InitializeNewScheduleAsync: Populating display names for new schedule");
         await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, sampleSchedule);
-        logger.Debug("InitializeNewScheduleAsync: Display names populated. LanguageName: {LanguageName}, PublicationName: {PublicationName}, BookName: {BookName}",
+        logger.Debug("InitializeNewScheduleAsync: Display names populated. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}",
             scheduleStateItem.BibleReadingLanguageName ?? "null",
             scheduleStateItem.BibleReadingPublicationName ?? "null",
-            scheduleStateItem.BibleReadingBookName ?? "null");
+            scheduleStateItem.BibleReadingSectionName ?? "null");
 
         return scheduleStateItem;
     }

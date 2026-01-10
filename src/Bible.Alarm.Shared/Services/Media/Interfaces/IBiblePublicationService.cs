@@ -14,9 +14,9 @@ namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 public interface IBiblePublicationService : IDisposable
 {
     /// <summary>
-    /// Gets a BiblePublication by language code and publication code, with Books included.
+    /// Gets a BiblePublication by language code and publication code, with Sections included.
     /// </summary>
-    Task<BiblePublication?> GetByLanguageAndCodeWithBooksAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default);
+    Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a BiblePublication by language code and publication code, with Tracks included.

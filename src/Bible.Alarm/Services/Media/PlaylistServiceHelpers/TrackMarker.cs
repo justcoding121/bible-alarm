@@ -22,7 +22,7 @@ public sealed class TrackMarker(
     IDispatcher dispatcher,
     CancellationToken cancellationToken)
 {
-    public record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BibleBook, BiblePublicationChapter>? NextChapter);
+    public record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BibleSection, BiblePublicationChapter>? NextChapter);
 
     /// <summary>
     /// Marks a track as played.

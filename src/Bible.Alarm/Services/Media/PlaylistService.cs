@@ -162,7 +162,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             var nextChapter = await chapterNavigator.GetNextBibleChapter(
                 trackMetadata.LanguageCode,
                 trackMetadata.PublicationCode,
-                trackMetadata.BookNumber,
+                trackMetadata.SectionNumber,
                 trackMetadata.ChapterNumber);
             return new NextTrackInfo(null, nextChapter);
         }
@@ -196,7 +196,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     }
 
 
-    private record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BibleBook, BiblePublicationChapter>? NextChapter);
+    private record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BibleSection, BiblePublicationChapter>? NextChapter);
 
     public async Task<PlayItem> NextTrack(int scheduleId)
     {
@@ -208,30 +208,30 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
 
         var bibleReadingSchedule = schedule.BibleReadingSchedule ?? throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
-        var bookNumber = bibleReadingSchedule.BookNumber ?? throw new InvalidOperationException($"BookNumber is null for schedule {scheduleId}");
+        var sectionNumber = bibleReadingSchedule.SectionNumber ?? throw new InvalidOperationException($"SectionNumber is null for schedule {scheduleId}");
         var chapter = bibleReadingSchedule.ChapterNumber;
 
         var chapterDetail = await mediaService.GetBibleChapter(bibleReadingSchedule.LanguageCode,
-            bibleReadingSchedule.PublicationCode, bookNumber, chapter);
+            bibleReadingSchedule.PublicationCode, sectionNumber, chapter);
 
         if (chapterDetail == null)
         {
             logger.Error(
-                $"Chapter: ${chapter}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
-            throw new InvalidOperationException($"Chapter not found: {chapter}, book: {bookNumber}");
+                $"Chapter: ${chapter}, section: {sectionNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup. ");
+            throw new InvalidOperationException($"Chapter not found: {chapter}, section: {sectionNumber}");
         }
 
         var publicationCode = bibleReadingSchedule.PublicationCode;
         var languageCode = bibleReadingSchedule.LanguageCode;
         var url = chapterDetail.Source?.Url ?? string.Empty;
 
-        // LookUpPath is now computed from LanguageCode, PublicationCode, BookNumber, ChapterNumber
+        // LookUpPath is now computed from LanguageCode, PublicationCode, SectionNumber, ChapterNumber
         var trackMetadata = new TrackMetadata
         {
             ScheduleId = scheduleId,
             PublicationCode = publicationCode,
             LanguageCode = languageCode,
-            BookNumber = bookNumber,
+            SectionNumber = sectionNumber,
             ChapterNumber = chapter,
             IsLastTrack = false
         };
@@ -254,7 +254,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var bibleReadingSchedule = schedule.BibleReadingSchedule ??
             throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
         var bibleTracks = await bibleTrackBuilder.BuildBibleTracks(scheduleId, schedule, bibleReadingSchedule, 
-            (lang, pub, book, chapter) => chapterNavigator.GetNextBibleChapter(lang, pub, book, chapter));
+            (lang, pub, section, chapter) => chapterNavigator.GetNextBibleChapter(lang, pub, section, chapter));
         result.AddRange(bibleTracks);
 
         return result;
@@ -265,14 +265,14 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     public async Task MoveToNextBibleChapter(int scheduleId)
     {
         var schedule = await scheduleUpdater.GetScheduleWithBibleReadingAsync(scheduleId);
-        if (schedule.BibleReadingSchedule == null || !schedule.BibleReadingSchedule.BookNumber.HasValue)
+        if (schedule.BibleReadingSchedule == null || !schedule.BibleReadingSchedule.SectionNumber.HasValue)
         {
             return;
         }
         var next = await chapterNavigator.GetNextBibleChapter(
             schedule.BibleReadingSchedule.LanguageCode,
             schedule.BibleReadingSchedule.PublicationCode,
-            schedule.BibleReadingSchedule.BookNumber.Value,
+            schedule.BibleReadingSchedule.SectionNumber.Value,
             schedule.BibleReadingSchedule.ChapterNumber);
 
         var updatedSchedule = await scheduleUpdater.UpdateScheduleToNextChapterAsync(scheduleId, next);
@@ -282,14 +282,14 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     public async Task MoveToPreviousBibleChapter(int scheduleId)
     {
         var schedule = await scheduleUpdater.GetScheduleWithBibleReadingAsync(scheduleId);
-        if (schedule.BibleReadingSchedule == null || !schedule.BibleReadingSchedule.BookNumber.HasValue)
+        if (schedule.BibleReadingSchedule == null || !schedule.BibleReadingSchedule.SectionNumber.HasValue)
         {
             return;
         }
         var previous = await chapterNavigator.GetPreviousBibleChapter(
             schedule.BibleReadingSchedule.LanguageCode,
             schedule.BibleReadingSchedule.PublicationCode,
-            schedule.BibleReadingSchedule.BookNumber.Value,
+            schedule.BibleReadingSchedule.SectionNumber.Value,
             schedule.BibleReadingSchedule.ChapterNumber);
 
         if (previous.Key == null || previous.Value == null)
@@ -301,28 +301,28 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
-    public async Task<KeyValuePair<BibleBook, BiblePublicationChapter>> GetNextBibleChapter(string languageCode,
-        string publicationCode, int bookNumber, int chapter)
+    public async Task<KeyValuePair<BibleSection, BiblePublicationChapter>> GetNextBibleChapter(string languageCode,
+        string publicationCode, int sectionNumber, int chapter)
     {
-        return await chapterNavigator.GetNextBibleChapter(languageCode, publicationCode, bookNumber, chapter);
+        return await chapterNavigator.GetNextBibleChapter(languageCode, publicationCode, sectionNumber, chapter);
     }
 
-    public async Task<KeyValuePair<BibleBook, BiblePublicationChapter>> GetPreviousBibleChapter(string languageCode,
-        string publicationCode, int bookNumber, int chapter)
+    public async Task<KeyValuePair<BibleSection, BiblePublicationChapter>> GetPreviousBibleChapter(string languageCode,
+        string publicationCode, int sectionNumber, int chapter)
     {
-        return await chapterNavigator.GetPreviousBibleChapter(languageCode, publicationCode, bookNumber, chapter);
+        return await chapterNavigator.GetPreviousBibleChapter(languageCode, publicationCode, sectionNumber, chapter);
     }
 
-    public async Task<KeyValuePair<int, BibleBook>> GetPreviousBibleBook(string languageCode, string publicationCode,
-        int bookNumber)
+    public async Task<KeyValuePair<int, BibleSection>> GetPreviousBibleSection(string languageCode, string publicationCode,
+        int sectionNumber)
     {
-        return await chapterNavigator.GetPreviousBibleBook(languageCode, publicationCode, bookNumber);
+        return await chapterNavigator.GetPreviousBibleSection(languageCode, publicationCode, sectionNumber);
     }
 
-    public async Task<KeyValuePair<int, BibleBook>> GetNextBibleBook(string languageCode, string publicationCode,
-        int bookNumber)
+    public async Task<KeyValuePair<int, BibleSection>> GetNextBibleSection(string languageCode, string publicationCode,
+        int sectionNumber)
     {
-        return await chapterNavigator.GetNextBibleBook(languageCode, publicationCode, bookNumber);
+        return await chapterNavigator.GetNextBibleSection(languageCode, publicationCode, sectionNumber);
     }
 
     private async Task<PlayItem> NextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)

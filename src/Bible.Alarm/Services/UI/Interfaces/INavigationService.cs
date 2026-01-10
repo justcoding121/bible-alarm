@@ -17,7 +17,7 @@ public interface INavigationService : IDisposable
     Task OpenSongPublicationSelectionModalAsync(object bindingContext);
     Task OpenTrackSelectionModalAsync(object bindingContext);
     Task OpenBibleSelectionModalAsync(object bindingContext);
-    Task OpenBookSelectionModalAsync(object bindingContext);
+    Task OpenSectionSelectionModalAsync(object bindingContext);
     Task OpenChapterSelectionModalAsync(object bindingContext);
     Task OpenNumberOfChaptersModalAsync(object bindingContext);
     Task OpenLanguageModalAsync(object bindingContext);

@@ -9,7 +9,7 @@ public class TrackMetadata
     public long ScheduleId { get; set; }
     public DateTimeOffset NotificationTime { get; set; }
 
-    public PlayType PlayType => BookNumber > 0 ? PlayType.Bible : PlayType.Music;
+    public PlayType PlayType => SectionNumber > 0 ? PlayType.Bible : PlayType.Music;
 
     public string LanguageCode { get; set; } = string.Empty;
     public string PublicationCode { get; set; } = string.Empty;
@@ -19,10 +19,10 @@ public class TrackMetadata
     /// This replaces storing LookUpPath in the database.
     /// </summary>
     public string LookUpPath => PlayType == PlayType.Bible
-        ? LookUpPathBuilder.BuildBibleChapterLookUpPath(LanguageCode, PublicationCode, BookNumber, ChapterNumber)
+        ? LookUpPathBuilder.BuildBibleChapterLookUpPath(LanguageCode, PublicationCode, SectionNumber, ChapterNumber)
         : LookUpPathBuilder.BuildMusicTrackLookUpPath(PublicationCode, LanguageCode, TrackNumber);
 
-    public int BookNumber { get; set; }
+    public int SectionNumber { get; set; }
     public int ChapterNumber { get; set; }
 
     public int TrackNumber { get; set; }

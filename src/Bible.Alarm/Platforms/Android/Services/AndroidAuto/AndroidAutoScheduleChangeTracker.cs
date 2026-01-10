@@ -137,7 +137,7 @@ public class AndroidAutoScheduleChangeTracker
     /// 
     /// IMPORTANT: IsEnabled is intentionally excluded from the signature.
     /// This ensures Android Auto does NOT refresh when schedules are enabled/disabled on the home screen.
-    /// Only changes to display-relevant properties (name, language, book, chapter, music) trigger a refresh.
+    /// Only changes to display-relevant properties (name, language, section, chapter, music) trigger a refresh.
     /// </summary>
     private static Dictionary<int, string> BuildScheduleSignatures(ICollection<ScheduleStateItem>? schedules)
     {
@@ -154,7 +154,7 @@ public class AndroidAutoScheduleChangeTracker
             // Include music track properties (MusicType, MusicPublicationCode, MusicLanguageCode, MusicTrackNumber)
             // so that track navigation (next/prev) triggers a refresh
             // NOTE: IsEnabled is intentionally excluded - enabling/disabling schedules should NOT refresh Android Auto
-            var signature = $"{schedule.Name}|{schedule.BibleReadingBookNumber}|{schedule.BibleReadingChapterNumber}|{schedule.BibleReadingLanguageName}|{schedule.BibleReadingBookName}|{schedule.MusicEnabled}|{schedule.MusicType}|{schedule.MusicPublicationCode}|{schedule.MusicLanguageCode}|{schedule.MusicTrackNumber}";
+            var signature = $"{schedule.Name}|{schedule.BibleReadingSectionNumber}|{schedule.BibleReadingChapterNumber}|{schedule.BibleReadingLanguageName}|{schedule.BibleReadingSectionName}|{schedule.MusicEnabled}|{schedule.MusicType}|{schedule.MusicPublicationCode}|{schedule.MusicLanguageCode}|{schedule.MusicTrackNumber}";
             signatures[schedule.Id] = signature;
         }
 

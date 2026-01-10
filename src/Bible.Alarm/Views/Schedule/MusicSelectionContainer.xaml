@@ -199,7 +199,7 @@
                          Margin="0"
                          HorizontalOptions="Fill"
                          IsVisible="{Binding IsSongPublicationVisible}" />
-                <!-- Song Book Row (only visible when Music Type is Vocals) -->
+                <!-- Song Section Row (only visible when Music Type is Vocals) -->
                 <Grid x:Name="SongPublicationButton"
                       Grid.Row="5"
                       Margin="0"

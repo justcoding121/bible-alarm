@@ -76,7 +76,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             try
             {
                 var translation = await Task.Run(async () =>
-                    await BiblePublicationService.GetByLanguageAndCodeWithBooksAsync(
+                    await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
                         bibleReadingSchedule.LanguageCode,
                         bibleReadingSchedule.PublicationCode));
 
@@ -91,29 +91,29 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             }
         }
 
-        // Book name
-        if (bibleReadingSchedule.BookNumber > 0 &&
+        // Section name
+        if (bibleReadingSchedule.SectionNumber > 0 &&
             !string.IsNullOrWhiteSpace(bibleReadingSchedule.LanguageCode) &&
             !string.IsNullOrWhiteSpace(bibleReadingSchedule.PublicationCode))
         {
             try
             {
-                var bibleBookService = serviceProvider.GetRequiredService<IBibleBookService>();
-                if (!bibleReadingSchedule.BookNumber.HasValue) return;
-                var bookName = await Task.Run(async () =>
-                    await bibleBookService.GetBookNameAsync(
+                var bibleSectionService = serviceProvider.GetRequiredService<IBibleSectionService>();
+                if (!bibleReadingSchedule.SectionNumber.HasValue) return;
+                var sectionName = await Task.Run(async () =>
+                    await bibleSectionService.GetSectionNameAsync(
                         bibleReadingSchedule.LanguageCode,
                         bibleReadingSchedule.PublicationCode,
-                        bibleReadingSchedule.BookNumber.Value));
+                        bibleReadingSchedule.SectionNumber.Value));
 
-                if (!string.IsNullOrWhiteSpace(bookName))
+                if (!string.IsNullOrWhiteSpace(sectionName))
                 {
-                    scheduleStateItem.BibleReadingBookName = bookName;
+                    scheduleStateItem.BibleReadingSectionName = sectionName;
                 }
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating BibleReadingBookName");
+                logger.Warning(ex, "Error populating BibleReadingSectionName");
             }
         }
     }

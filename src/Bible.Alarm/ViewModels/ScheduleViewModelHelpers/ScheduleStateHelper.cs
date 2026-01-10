@@ -30,7 +30,7 @@ public static class ScheduleStateHelper
             BibleReadingScheduleId = source.BibleReadingScheduleId,
             BibleReadingLanguageCode = source.BibleReadingLanguageCode,
             BibleReadingPublicationCode = source.BibleReadingPublicationCode,
-            BibleReadingBookNumber = source.BibleReadingBookNumber,
+            BibleReadingSectionNumber = source.BibleReadingSectionNumber,
             BibleReadingChapterNumber = source.BibleReadingChapterNumber,
             BibleReadingFinishedDuration = source.BibleReadingFinishedDuration,
             MusicId = source.MusicId,
@@ -41,7 +41,7 @@ public static class ScheduleStateHelper
             MusicRepeat = source.MusicRepeat,
             BibleReadingLanguageName = source.BibleReadingLanguageName,
             BibleReadingPublicationName = source.BibleReadingPublicationName,
-            BibleReadingBookName = source.BibleReadingBookName,
+            BibleReadingSectionName = source.BibleReadingSectionName,
             MusicLanguageName = source.MusicLanguageName,
             MusicPublicationName = source.MusicPublicationName,
             MusicTrackName = source.MusicTrackName

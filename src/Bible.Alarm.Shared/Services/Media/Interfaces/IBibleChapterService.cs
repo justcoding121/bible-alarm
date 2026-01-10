@@ -13,18 +13,18 @@ namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 public interface IBibleChapterService : IDisposable
 {
     /// <summary>
-    /// Gets all BiblePublicationChapters for a given book (by language code, publication code, and book number), with Source included.
+    /// Gets all BiblePublicationChapters for a given section (by language code, publication code, and section number), with Source included.
     /// </summary>
-    Task<SortedDictionary<int, BiblePublicationChapter>> GetChaptersByBookAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default);
+    Task<SortedDictionary<int, BiblePublicationChapter>> GetChaptersBySectionAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a BiblePublicationChapter by language code, publication code, book number, and chapter number, with Source included.
+    /// Gets a BiblePublicationChapter by language code, publication code, section number, and chapter number, with Source included.
     /// </summary>
-    Task<BiblePublicationChapter?> GetChapterAsync(string languageCode, string publicationCode, int bookNumber, int chapterNumber, CancellationToken cancellationToken = default);
+    Task<BiblePublicationChapter?> GetChapterAsync(string languageCode, string publicationCode, int sectionNumber, int chapterNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates the URL for a Bible chapter's audio source.
     /// </summary>
-    Task UpdateChapterUrlAsync(string languageCode, string publicationCode, int bookNumber, int chapterNumber, string url, CancellationToken cancellationToken = default);
+    Task UpdateChapterUrlAsync(string languageCode, string publicationCode, int sectionNumber, int chapterNumber, string url, CancellationToken cancellationToken = default);
 }
 

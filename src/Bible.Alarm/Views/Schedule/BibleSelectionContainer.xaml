@@ -199,15 +199,15 @@
                         VerticalTextAlignment="Center" />
                 </Border>
             </Grid>
-            <!-- Divider for Book (only visible when Book is visible) -->
+            <!-- Divider for Section (only visible when Section is visible) -->
             <BoxView Grid.Row="5"
                      HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill"
-                     IsVisible="{Binding IsBookVisible}" />
-            <!-- Book Selection (only visible for traditional Bible reading) -->
-            <Grid x:Name="BibleBookButton"
+                     IsVisible="{Binding IsSectionVisible}" />
+            <!-- Section Selection (only visible for traditional Bible reading) -->
+            <Grid x:Name="BibleSectionButton"
                   Grid.Row="6"
                   Margin="0"
                   Padding="16,16"
@@ -215,9 +215,9 @@
                   MinimumHeightRequest="56"
                   HorizontalOptions="Fill"
                   VerticalOptions="Fill"
-                  IsVisible="{Binding IsBookVisible}">
+                  IsVisible="{Binding IsSectionVisible}">
                 <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectBookCommand}"
+                    <TapGestureRecognizer Command="{Binding SelectSectionCommand}"
                                           NumberOfTapsRequired="1" />
                 </Grid.GestureRecognizers>
                 <Grid.ColumnDefinitions>
@@ -230,7 +230,7 @@
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
-                       Text="{Binding BookDisplayText}"
+                       Text="{Binding SectionDisplayText}"
                        TextColor="{DynamicResource PrimaryTextColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />

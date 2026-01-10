@@ -166,7 +166,7 @@ public sealed class SongPublicationSelectionStateManager(IMapper mapper)
             lastCurrent = current;
         }
 
-        // If music type or language changed, repopulate song books
+        // If music type or language changed, repopulate song sections
         if (needsRepopulation && initComplete && newMusicType.Value == MusicType.Vocals)
         {
             Task.Run(async () =>
@@ -179,7 +179,7 @@ public sealed class SongPublicationSelectionStateManager(IMapper mapper)
         }
         else
         {
-            // Update selected song book when state changes
+            // Update selected song section when state changes
             MainThread.BeginInvokeOnMainThread(setSelectedSongPublication);
         }
     }

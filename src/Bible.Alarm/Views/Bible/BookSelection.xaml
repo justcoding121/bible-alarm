@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.Bible.BookSelection"
+    x:Class="Bible.Alarm.Views.Bible.SectionSelection"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -14,8 +14,8 @@
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
-    x:DataType="bible:BookSelectionViewModel"
-    Title="Select Book">
+    x:DataType="bible:SectionSelectionViewModel"
+    Title="Select Section">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
@@ -30,12 +30,12 @@
                 RowSpacing="0">
                 <!-- Enhanced Collection View -->
                 <CollectionView
-                    x:Name="bookCollectionView"
+                    x:Name="sectionCollectionView"
                     Margin="0,8,0,0"
                     BackgroundColor="Transparent"
                     Footer="{OnPlatform iOS=''}"
                     HorizontalOptions="Fill"
-                    ItemsSource="{Binding Books}"
+                    ItemsSource="{Binding Sections}"
                     SelectionMode="None">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical">
@@ -48,7 +48,7 @@
                         </LinearItemsLayout>
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="bible:BibleBookListViewItemModel">
+                        <DataTemplate x:DataType="bible:BibleSectionListViewItemModel">
                             <Grid Margin="16,0">
                                 <Border
                                     BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -78,13 +78,13 @@
                                         MinimumHeightRequest="56"
                                         BackgroundColor="Transparent">
                                         <Grid.GestureRecognizers>
-                                            <TapGestureRecognizer Tapped="OnBookItemTapped" />
+                                            <TapGestureRecognizer Tapped="OnSectionItemTapped" />
                                         </Grid.GestureRecognizers>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         
-                                        <!-- Book Name -->
+                                        <!-- Section Name -->
                                         <Label
                                             Grid.Column="0"
                                             FontSize="16"

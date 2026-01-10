@@ -4,8 +4,8 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IBibleNavigationService
 {
-    Task<bool> MoveToPreviousBookAsync(BibleReadingSchedule schedule);
-    Task<bool> MoveToNextBookAsync(BibleReadingSchedule schedule);
+    Task<bool> MoveToPreviousSectionAsync(BibleReadingSchedule schedule);
+    Task<bool> MoveToNextSectionAsync(BibleReadingSchedule schedule);
     Task<bool> MoveToPreviousChapterAsync(BibleReadingSchedule schedule);
     Task<bool> MoveToNextChapterAsync(BibleReadingSchedule schedule);
 }

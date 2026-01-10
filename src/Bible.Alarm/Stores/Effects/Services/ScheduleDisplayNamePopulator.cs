@@ -18,16 +18,16 @@ namespace Bible.Alarm.Stores.Effects.Services;
 public sealed class ScheduleDisplayNamePopulator
 {
     private readonly IBiblePublicationService? BiblePublicationService;
-    private readonly IBibleBookService? bibleBookService;
+    private readonly IBibleSectionService? bibleSectionService;
     private readonly IMediaService? mediaService;
 
     public ScheduleDisplayNamePopulator(
         IBiblePublicationService? BiblePublicationService = null,
-        IBibleBookService? bibleBookService = null,
+        IBibleSectionService? bibleSectionService = null,
         IMediaService? mediaService = null)
     {
         this.BiblePublicationService = BiblePublicationService ?? ServiceProviderManager.GetService<IBiblePublicationService>();
-        this.bibleBookService = bibleBookService ?? ServiceProviderManager.GetService<IBibleBookService>();
+        this.bibleSectionService = bibleSectionService ?? ServiceProviderManager.GetService<IBibleSectionService>();
         this.mediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>();
     }
 
@@ -124,7 +124,7 @@ public sealed class ScheduleDisplayNamePopulator
                 return;
             }
 
-            var translation = await BiblePublicationService.GetByLanguageAndCodeWithBooksAsync(
+            var translation = await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
                 bibleReading.LanguageCode,
                 bibleReading.PublicationCode);
 
@@ -142,11 +142,11 @@ public sealed class ScheduleDisplayNamePopulator
     }
 
     /// <summary>
-    /// Populate BookName from BibleBookService if BibleReadingSchedule exists.
+    /// Populate SectionName from BibleSectionService if BibleReadingSchedule exists.
     /// </summary>
-    public async Task PopulateBookNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
+    public async Task PopulateSectionNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BibleReadingSchedule == null || bibleBookService == null)
+        if (schedule.BibleReadingSchedule == null || bibleSectionService == null)
         {
             return;
         }
@@ -154,28 +154,28 @@ public sealed class ScheduleDisplayNamePopulator
         try
         {
             var bibleReading = schedule.BibleReadingSchedule;
-            if (!bibleReading.BookNumber.HasValue || bibleReading.BookNumber.Value <= 0 ||
+            if (!bibleReading.SectionNumber.HasValue || bibleReading.SectionNumber.Value <= 0 ||
                 string.IsNullOrWhiteSpace(bibleReading.LanguageCode) ||
                 string.IsNullOrWhiteSpace(bibleReading.PublicationCode))
             {
                 return;
             }
 
-            var bookName = await bibleBookService.GetBookNameAsync(
+            var sectionName = await bibleSectionService.GetSectionNameAsync(
                 bibleReading.LanguageCode,
                 bibleReading.PublicationCode,
-                bibleReading.BookNumber.Value);
+                bibleReading.SectionNumber.Value);
 
-            if (!string.IsNullOrWhiteSpace(bookName))
+            if (!string.IsNullOrWhiteSpace(sectionName))
             {
-                scheduleStateItem.BibleReadingBookName = bookName;
-                Log.Debug("ScheduleEffects: Set BibleReadingBookName '{BibleReadingBookName}' for schedule {ScheduleId} (BookNumber: {BookNumber})",
-                    bookName, schedule.Id, bibleReading.BookNumber);
+                scheduleStateItem.BibleReadingSectionName = sectionName;
+                Log.Debug("ScheduleEffects: Set BibleReadingSectionName '{BibleReadingSectionName}' for schedule {ScheduleId} (SectionNumber: {SectionNumber})",
+                    sectionName, schedule.Id, bibleReading.SectionNumber);
             }
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "ScheduleEffects: Error populating BookName for schedule {ScheduleId}", schedule.Id);
+            Log.Warning(ex, "ScheduleEffects: Error populating SectionName for schedule {ScheduleId}", schedule.Id);
         }
     }
 

@@ -53,7 +53,7 @@ public partial class BibleSelectionModal : BaseContentPage, IDisposable
 
         if (sender is Grid grid && grid.BindingContext is PublicationListViewItemModel publicationItem)
         {
-            if (ViewModel != null && ViewModel.BookSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
+            if (ViewModel != null && ViewModel.SectionSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
             {
                 if (asyncCommand.CanExecute(publicationItem))
                 {

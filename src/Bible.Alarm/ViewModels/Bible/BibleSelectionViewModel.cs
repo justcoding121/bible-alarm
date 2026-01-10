@@ -34,7 +34,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
     private readonly BibleSelectionPropertyManager propertyManager;
 
     public ICommand BackCommand { get; set; }
-    public ICommand BookSelectionCommand { get; set; }
+    public ICommand SectionSelectionCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
 
@@ -75,7 +75,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
             {
                 LanguageCode = currentSchedule.BibleReadingLanguageCode,
                 PublicationCode = currentSchedule.BibleReadingPublicationCode ?? string.Empty,
-                BookNumber = currentSchedule.BibleReadingBookNumber ?? 1,
+                SectionNumber = currentSchedule.BibleReadingSectionNumber ?? 1,
                 ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
             };
             initialLanguageCode = initialCurrent.LanguageCode;
@@ -87,7 +87,7 @@ public sealed class BibleSelectionViewModel : ObservableObject, IListViewModel, 
         state.StateChanged += OnBibleReadingChanged;
 
         // Initialize commands
-        BookSelectionCommand = commandHandler.CreateBookSelectionCommand(
+        SectionSelectionCommand = commandHandler.CreateSectionSelectionCommand(
             () => propertyManager.CurrentLanguage,
             () => propertyManager.Translations,
             () => dataProvider.GetTranslationVMsMapping(),

@@ -107,7 +107,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.Property<int>("AlarmScheduleId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("BookNumber")
+                    b.Property<int>("SectionNumber")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ChapterNumber")

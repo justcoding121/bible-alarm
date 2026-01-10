@@ -21,9 +21,9 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserH
 /// </summary>
 public sealed class MediaBrowser(ILogger logger)
 {
-    private const int BookIconSize = 128;
-    private const int BookOffset = BookIconSize / 2 - 8;
-    private const int BitmapSize = BookIconSize + BookOffset;
+    private const int SectionIconSize = 128;
+    private const int SectionOffset = SectionIconSize / 2 - 8;
+    private const int BitmapSize = SectionIconSize + SectionOffset;
 
     /// <summary>
     /// Loads children for the given parent media ID.
@@ -142,28 +142,28 @@ public sealed class MediaBrowser(ILogger logger)
 
         if (context != null)
         {
-            var bookIconBitmap = CreateBookIconBitmap(context);
-            if (bookIconBitmap != null)
+            var sectionIconBitmap = CreateSectionIconBitmap(context);
+            if (sectionIconBitmap != null)
             {
-                descriptionBuilder.SetIconBitmap(bookIconBitmap);
-                logger.Debug("Set book icon bitmap for schedule {ScheduleId} - Size: {Width}x{Height}",
-                    scheduleItem.Id, bookIconBitmap.Width, bookIconBitmap.Height);
+                descriptionBuilder.SetIconBitmap(sectionIconBitmap);
+                logger.Debug("Set section icon bitmap for schedule {ScheduleId} - Size: {Width}x{Height}",
+                    scheduleItem.Id, sectionIconBitmap.Width, sectionIconBitmap.Height);
             }
             else
             {
-                logger.Warning("Failed to create book icon bitmap for schedule {ScheduleId}", scheduleItem.Id);
+                logger.Warning("Failed to create section icon bitmap for schedule {ScheduleId}", scheduleItem.Id);
             }
         }
 
         return descriptionBuilder.Build();
     }
 
-    private Bitmap? CreateBookIconBitmap(Context context)
+    private Bitmap? CreateSectionIconBitmap(Context context)
     {
         try
         {
-            var bookDrawable = GetBookDrawable(context);
-            if (bookDrawable == null)
+            var sectionDrawable = GetSectionDrawable(context);
+            if (sectionDrawable == null)
             {
                 return null;
             }
@@ -171,26 +171,26 @@ public sealed class MediaBrowser(ILogger logger)
             var bitmap = CreateIconBitmap();
             var canvas = new Canvas(bitmap);
 
-            DrawBookIcon(canvas, bookDrawable);
+            DrawSectionIcon(canvas, sectionDrawable);
 
-            logger.Debug("Created book icon bitmap - Size: {Size}x{Size}", BitmapSize, BitmapSize);
+            logger.Debug("Created section icon bitmap - Size: {Size}x{Size}", BitmapSize, BitmapSize);
             return bitmap;
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to create book icon bitmap - MediaItems will display without icon");
+            logger.Warning(ex, "Failed to create section icon bitmap - MediaItems will display without icon");
             return null;
         }
     }
 
-    private Drawable? GetBookDrawable(Context context)
+    private Drawable? GetSectionDrawable(Context context)
     {
-        var bookDrawable = ContextCompat.GetDrawable(context, ResourceConstant.Drawable.ic_book_open);
-        if (bookDrawable == null)
+        var sectionDrawable = ContextCompat.GetDrawable(context, ResourceConstant.Drawable.ic_section_open);
+        if (sectionDrawable == null)
         {
-            logger.Warning("Could not get app drawable for book icon");
+            logger.Warning("Could not get app drawable for section icon");
         }
-        return bookDrawable;
+        return sectionDrawable;
     }
 
     private Bitmap CreateIconBitmap()
@@ -201,10 +201,10 @@ public sealed class MediaBrowser(ILogger logger)
         return bitmap;
     }
 
-    private void DrawBookIcon(Canvas canvas, Drawable bookDrawable)
+    private void DrawSectionIcon(Canvas canvas, Drawable sectionDrawable)
     {
-        bookDrawable.SetBounds(BookOffset, BookOffset, BookOffset + BookIconSize, BookOffset + BookIconSize);
-        bookDrawable.Draw(canvas);
+        sectionDrawable.SetBounds(SectionOffset, SectionOffset, SectionOffset + SectionIconSize, SectionOffset + SectionIconSize);
+        sectionDrawable.Draw(canvas);
     }
 
     /// <summary>

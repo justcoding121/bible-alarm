@@ -9,7 +9,7 @@ namespace Bible.Alarm.Shared.Models.Media.Bible;
 
 /// <summary>
 /// Represents a track/episode for Drama or Video publications.
-/// Links directly to BiblePublication without an intermediate Book level.
+/// Links directly to BiblePublication without an intermediate Section level.
 /// </summary>
 [Table("BiblePublicationTrack")]
 [Index(nameof(BiblePublicationId), nameof(Number), IsUnique = true)]

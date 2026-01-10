@@ -45,7 +45,7 @@ public static class CommonBootstrapHelper
         IAlarmScheduleService AlarmScheduleService,
         IDispatcher Dispatcher,
         IBiblePublicationService? BiblePublicationService,
-        IBibleBookService? BibleBookService,
+        IBibleSectionService? BibleSectionService,
         IMapper Mapper,
         IMediaService? MediaService,
         IMelodyMusicService? MelodyMusicService);
@@ -100,7 +100,7 @@ public static class CommonBootstrapHelper
         var alarmScheduleService = ServiceProviderManager.GetService<IAlarmScheduleService>();
         var dispatcher = ServiceProviderManager.GetService<IDispatcher>();
         var BiblePublicationService = ServiceProviderManager.GetService<IBiblePublicationService>();
-        var bibleBookService = ServiceProviderManager.GetService<IBibleBookService>();
+        var bibleSectionService = ServiceProviderManager.GetService<IBibleSectionService>();
         var mapper = ServiceProviderManager.GetService<IMapper>();
         var mediaService = ServiceProviderManager.GetService<IMediaService>();
         var melodyMusicService = ServiceProviderManager.GetService<IMelodyMusicService>();
@@ -118,7 +118,7 @@ public static class CommonBootstrapHelper
             alarmScheduleService,
             dispatcher,
             BiblePublicationService,
-            bibleBookService,
+            bibleSectionService,
             mapper,
             mediaService,
             melodyMusicService);

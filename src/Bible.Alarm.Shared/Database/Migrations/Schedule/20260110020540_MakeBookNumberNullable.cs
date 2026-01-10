@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     /// <inheritdoc />
-    public partial class MakeBookNumberNullable : Migration
+    public partial class MakeSectionNumberNullable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterColumn<int>(
-                name: "BookNumber",
+                name: "SectionNumber",
                 table: "BibleReadingSchedules",
                 type: "INTEGER",
                 nullable: true,
@@ -23,7 +23,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterColumn<int>(
-                name: "BookNumber",
+                name: "SectionNumber",
                 table: "BibleReadingSchedules",
                 type: "INTEGER",
                 nullable: false,

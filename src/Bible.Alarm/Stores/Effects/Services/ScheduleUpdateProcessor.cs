@@ -138,7 +138,7 @@ public sealed class ScheduleUpdateProcessor
 
         scheduleStateItem.BibleReadingLanguageName = actionSchedule.BibleReadingLanguageName;
         scheduleStateItem.BibleReadingPublicationName = actionSchedule.BibleReadingPublicationName;
-        scheduleStateItem.BibleReadingBookName = actionSchedule.BibleReadingBookName;
+        scheduleStateItem.BibleReadingSectionName = actionSchedule.BibleReadingSectionName;
         scheduleStateItem.MusicLanguageName = actionSchedule.MusicLanguageName;
         scheduleStateItem.MusicPublicationName = actionSchedule.MusicPublicationName;
         scheduleStateItem.MusicTrackName = actionSchedule.MusicTrackName;

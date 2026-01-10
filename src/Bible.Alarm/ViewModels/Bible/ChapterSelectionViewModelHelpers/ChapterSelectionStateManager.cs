@@ -17,16 +17,16 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
     private BibleReadingSchedule? lastCurrent;
     private bool initComplete;
 
-    // Track last language, publication code, and book number to detect changes
+    // Track last language, publication code, and section number to detect changes
     private string? lastLanguageCode;
     private string? lastPublicationCode;
-    private int? lastBookNumber;
+    private int? lastSectionNumber;
 
     public BibleReadingSchedule? Current => current;
     public bool InitComplete => initComplete;
     public string? LastLanguageCode => lastLanguageCode;
     public string? LastPublicationCode => lastPublicationCode;
-    public int? LastBookNumber => lastBookNumber;
+    public int? LastSectionNumber => lastSectionNumber;
 
     public void HandleBibleReadingInitialized(
         IState<ApplicationState> state,
@@ -48,9 +48,9 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
         var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
-        var newBookNumber = currentSchedule.BibleReadingBookNumber;
+        var newSectionNumber = currentSchedule.BibleReadingSectionNumber;
 
-        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newBookNumber.HasValue)
+        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
         {
             return;
         }
@@ -58,7 +58,7 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        lastBookNumber = newBookNumber.Value;
+        lastSectionNumber = newSectionNumber.Value;
 
         // Update current if we have CurrentBibleReadingSchedule
         if (stateValue.CurrentBibleReadingSchedule != null)
@@ -73,7 +73,7 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                BookNumber = newBookNumber.Value,
+                SectionNumber = newSectionNumber.Value,
                 ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
             };
             lastCurrent = current;
@@ -83,7 +83,7 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-            await initialize(newLanguageCode, newPublicationCode, newBookNumber.Value);
+            await initialize(newLanguageCode, newPublicationCode, newSectionNumber.Value);
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
         });
@@ -105,18 +105,18 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
         var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
-        var newBookNumber = currentSchedule.BibleReadingBookNumber;
+        var newSectionNumber = currentSchedule.BibleReadingSectionNumber;
 
-        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newBookNumber.HasValue)
+        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
         {
             return;
         }
 
-        // Check if language, publication code, or book number changed
+        // Check if language, publication code, or section number changed
         var languageChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
-        var bookNumberChanged = lastBookNumber != newBookNumber.Value;
-        var needsRepopulation = languageChanged || publicationCodeChanged || bookNumberChanged;
+        var sectionNumberChanged = lastSectionNumber != newSectionNumber.Value;
+        var needsRepopulation = languageChanged || publicationCodeChanged || sectionNumberChanged;
 
         if (!needsRepopulation && initComplete)
         {
@@ -126,7 +126,7 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        lastBookNumber = newBookNumber.Value;
+        lastSectionNumber = newSectionNumber.Value;
 
         // Update current if we have CurrentBibleReadingSchedule
         if (stateValue.CurrentBibleReadingSchedule != null)
@@ -141,19 +141,19 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                BookNumber = newBookNumber.Value,
+                SectionNumber = newSectionNumber.Value,
                 ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
             };
             lastCurrent = current;
         }
 
-        // If language, publication code, or book number changed, repopulate chapters
+        // If language, publication code, or section number changed, repopulate chapters
         if (needsRepopulation && initComplete)
         {
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                await initialize(newLanguageCode, newPublicationCode, newBookNumber.Value);
+                await initialize(newLanguageCode, newPublicationCode, newSectionNumber.Value);
                 await Task.Delay(100);
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
             });
@@ -177,9 +177,9 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BibleReadingLanguageCode;
         var newPublicationCode = currentSchedule.BibleReadingPublicationCode;
-        var newBookNumber = currentSchedule.BibleReadingBookNumber;
+        var newSectionNumber = currentSchedule.BibleReadingSectionNumber;
 
-        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newBookNumber.HasValue)
+        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
         {
             return;
         }
@@ -187,7 +187,7 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        lastBookNumber = newBookNumber.Value;
+        lastSectionNumber = newSectionNumber.Value;
 
         // Update current from CurrentSchedule
         if (stateValue.CurrentBibleReadingSchedule != null)
@@ -200,7 +200,7 @@ public sealed class ChapterSelectionStateManager(IMapper mapper)
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                BookNumber = newBookNumber.Value,
+                SectionNumber = newSectionNumber.Value,
                 ChapterNumber = currentSchedule.BibleReadingChapterNumber ?? 1
             };
         }

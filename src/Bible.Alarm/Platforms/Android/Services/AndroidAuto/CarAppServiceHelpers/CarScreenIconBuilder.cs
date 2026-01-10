@@ -19,20 +19,20 @@ public sealed class CarScreenIconBuilder(Context context, ILogger logger)
 {
     /// <summary>
     /// Creates a CarIcon for playlist items to display in Android Auto.
-    /// Uses a custom open book icon to represent Bible reading schedules.
+    /// Uses a custom open section icon to represent Bible reading schedules.
     /// </summary>
-    public CarIcon? CreateBookIcon()
+    public CarIcon? CreateSectionIcon()
     {
         try
         {
-            const int BookIconSize = 128;
-            const int BookOffset = BookIconSize / 2 - 8;
-            const int BitmapSize = BookIconSize + BookOffset;
+            const int SectionIconSize = 128;
+            const int SectionOffset = SectionIconSize / 2 - 8;
+            const int BitmapSize = SectionIconSize + SectionOffset;
 
-            var bookDrawable = ContextCompat.GetDrawable(context, ResourceConstant.Drawable.ic_book_open);
-            if (bookDrawable == null)
+            var sectionDrawable = ContextCompat.GetDrawable(context, ResourceConstant.Drawable.ic_section_open);
+            if (sectionDrawable == null)
             {
-                logger.Warning("Could not get app drawable for book icon");
+                logger.Warning("Could not get app drawable for section icon");
                 return null;
             }
 
@@ -42,9 +42,9 @@ public sealed class CarScreenIconBuilder(Context context, ILogger logger)
 
             var canvas = new Canvas(bitmap);
 
-            // Draw book icon
-            bookDrawable.SetBounds(BookOffset, BookOffset, BookOffset + BookIconSize, BookOffset + BookIconSize);
-            bookDrawable.Draw(canvas);
+            // Draw section icon
+            sectionDrawable.SetBounds(SectionOffset, SectionOffset, SectionOffset + SectionIconSize, SectionOffset + SectionIconSize);
+            sectionDrawable.Draw(canvas);
 
             // Convert bitmap to IconCompat
             var iconCompat = IconCompat.CreateWithBitmap(bitmap);
@@ -52,7 +52,7 @@ public sealed class CarScreenIconBuilder(Context context, ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to create book icon - Rows will display without icon");
+            logger.Warning(ex, "Failed to create section icon - Rows will display without icon");
             return null;
         }
     }
