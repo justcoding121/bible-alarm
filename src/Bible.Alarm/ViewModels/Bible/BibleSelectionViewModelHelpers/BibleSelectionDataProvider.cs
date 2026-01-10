@@ -108,7 +108,7 @@ public sealed class BibleSelectionDataProvider
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (translationVMs, newMapping, defaultTranslation) = await Task.Run(async () =>
         {
-            var translationsData = await mediaService.GetBibleTranslations(languageCode);
+            var translationsData = await mediaService.GetBiblePublications(languageCode);
             var vms = new List<PublicationListViewItemModel>();
             var mapping = new Dictionary<string, PublicationListViewItemModel>();
             PublicationListViewItemModel? lastTranslation = null;

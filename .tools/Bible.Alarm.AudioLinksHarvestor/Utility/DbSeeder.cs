@@ -61,7 +61,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         foreach (var language in bibleLanguages)
         {
             var newLanguage = await GetOrCreateLanguage(db, language.Value.Code, language.Value.Name);
-            await SeedTranslationsForLanguage(db, mediaReader, language.Key, newLanguage, displayLanguage);
+            await SeedPublicationsForLanguage(db, mediaReader, language.Key, newLanguage, displayLanguage);
         }
     }
 
@@ -145,15 +145,15 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         return await GetSafely(() => mediaReader.GetBibleLanguages());
     }
 
-    private async Task SeedTranslationsForLanguage(
+    private async Task SeedPublicationsForLanguage(
         MediaDbContext db,
         MediaReader mediaReader,
         string languageKey,
         Language newLanguage,
         Language displayLanguage)
     {
-        var translations = await GetSafely(() => mediaReader.GetBibleTranslations(languageKey));
-        if (translations == null || translations.Count == 0)
+        var publications = await GetSafely(() => mediaReader.GetBiblePublications(languageKey));
+        if (publications == null || publications.Count == 0)
         {
             return;
         }
@@ -165,49 +165,49 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             .ToListAsync();
         var existingCodes = new HashSet<string>(existingCodesList);
 
-        foreach (var translation in translations)
+        foreach (var publication in publications)
         {
             // Skip if already exists (in-memory check, fast)
-            if (existingCodes.Contains(translation.Value.Code))
+            if (existingCodes.Contains(publication.Value.Code))
             {
-                logger.Information("Skipping translation {TranslationName} ({TranslationCode}) for language {LanguageCode} - already exists",
-                    translation.Value.Name, translation.Value.Code, languageKey);
+                logger.Information("Skipping publication {PublicationName} ({PublicationCode}) for language {LanguageCode} - already exists",
+                    publication.Value.Name, publication.Value.Code, languageKey);
                 continue;
             }
 
-            logger.Information("Seeding translation {TranslationName} ({TranslationCode}) for language {LanguageCode}",
-                translation.Value.Name, translation.Value.Code, languageKey);
+            logger.Information("Seeding publication {PublicationName} ({PublicationCode}) for language {LanguageCode}",
+                publication.Value.Name, publication.Value.Code, languageKey);
 
-            var books = await GetSafely(() => mediaReader.GetBibleBooks(languageKey, translation.Key));
+            var books = await GetSafely(() => mediaReader.GetBibleBooks(languageKey, publication.Key));
             if (books == null || books.Count == 0)
             {
                 continue;
             }
 
-            var biblePublication = CreateBiblePublication(translation.Value, newLanguage, displayLanguage);
-            await SeedBooksForTranslation(db, mediaReader, languageKey, translation.Key, books, biblePublication);
+            var biblePublication = CreateBiblePublication(publication.Value, newLanguage, displayLanguage);
+            await SeedBooksForPublication(db, mediaReader, languageKey, publication.Key, books, biblePublication);
 
             await db.BiblePublications.AddAsync(biblePublication);
             await db.SaveChangesAsync();
         }
     }
 
-    private static BiblePublication CreateBiblePublication(Publication translation, Language newLanguage, Language displayLanguage)
+    private static BiblePublication CreateBiblePublication(Publication publication, Language newLanguage, Language displayLanguage)
     {
         return new BiblePublication
         {
-            Name = translation.Name,
-            Code = translation.Code,
+            Name = publication.Name,
+            Code = publication.Code,
             Language = newLanguage,
             DisplayLanguage = displayLanguage
         };
     }
 
-    private async Task SeedBooksForTranslation(
+    private async Task SeedBooksForPublication(
         MediaDbContext db,
         MediaReader mediaReader,
         string languageKey,
-        string translationKey,
+        string publicationKey,
         SortedDictionary<int, BibleBook> books,
         BiblePublication biblePublication)
     {
@@ -221,7 +221,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
             biblePublication.Books.Add(newBook);
 
-            var chapters = await GetSafely(() => mediaReader.GetBibleChapters(languageKey, translationKey, book.Key));
+            var chapters = await GetSafely(() => mediaReader.GetBibleChapters(languageKey, publicationKey, book.Key));
             if (chapters == null || chapters.Count == 0)
             {
                 continue;
@@ -239,7 +239,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         foreach (var chapter in chapters)
         {
             var audioSource = await CreateAudioSource(db, chapter.Value.Url);
-            var newChapter = new Shared.Models.Media.Bible.BibleChapter
+            var newChapter = new Shared.Models.Media.Bible.BiblePublicationChapter
             {
                 Number = chapter.Value.Number,
                 Source = audioSource
@@ -291,19 +291,16 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
     /// <summary>
     /// Gets an existing base URL or creates a new one.
+    /// Always checks the current database context first to ensure entities are tracked correctly.
     /// </summary>
     private async Task<AudioSourceBaseUrl> GetOrCreateBaseUrl(MediaDbContext db, string baseUrl)
     {
-        // Check cache first
-        if (baseUrlCache.TryGetValue(baseUrl, out var cached))
-        {
-            return cached;
-        }
-
-        // Check database
+        // Always check database first in current context to ensure entity is tracked by this context
+        // Don't use cached entities directly as they may be from a different DbContext scope
         var existing = await db.AudioSourceBaseUrls.FirstOrDefaultAsync(x => x.BaseUrl == baseUrl);
         if (existing != null)
         {
+            // Update cache with entity from current context
             baseUrlCache[baseUrl] = existing;
             return existing;
         }
@@ -405,7 +402,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         foreach (var track in tracks)
         {
             var audioSource = await CreateAudioSource(db, track.Value.Url);
-            var newTrack = new Shared.Models.Media.Bible.PublicationTrack
+            var newTrack = new Shared.Models.Media.Bible.BiblePublicationTrack
             {
                 Number = track.Value.Number,
                 Title = track.Value.Title,
@@ -506,7 +503,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         foreach (var episode in episodes)
         {
             var audioSource = await CreateAudioSource(db, episode.Value.Url);
-            var newTrack = new Shared.Models.Media.Bible.PublicationTrack
+            var newTrack = new Shared.Models.Media.Bible.BiblePublicationTrack
             {
                 Number = episode.Value.Number,
                 Title = episode.Value.Title,

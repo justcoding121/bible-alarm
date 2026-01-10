@@ -20,7 +20,6 @@ public sealed class BibleBookService(IServiceScopeFactory scopeFactory, ILogger 
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
     public async Task<string?> GetBookNameAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default)
@@ -46,7 +45,7 @@ public sealed class BibleBookService(IServiceScopeFactory scopeFactory, ILogger 
         }
     }
 
-    public async Task<SortedDictionary<int, BibleBook>> GetBooksByTranslationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
+    public async Task<SortedDictionary<int, BibleBook>> GetBooksByPublicationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -100,16 +99,6 @@ public sealed class BibleBookService(IServiceScopeFactory scopeFactory, ILogger 
         }
 
         isDisposed = true;
-
-        try
-        {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error during cancellation token source disposal in BibleBookService");
-        }
     }
 }
 

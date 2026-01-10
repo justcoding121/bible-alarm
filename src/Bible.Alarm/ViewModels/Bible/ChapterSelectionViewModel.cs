@@ -192,9 +192,9 @@ public sealed class ChapterSelectionViewModel : ObservableObject, IDisposable
 
 public sealed class BibleChapterListViewItemModel : ObservableObject, IComparable
 {
-    private readonly BibleChapter chapter;
+    private readonly BiblePublicationChapter chapter;
 
-    public BibleChapterListViewItemModel(BibleChapter chapter)
+    public BibleChapterListViewItemModel(BiblePublicationChapter chapter)
     {
         this.chapter = chapter;
     }

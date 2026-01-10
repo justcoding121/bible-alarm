@@ -280,7 +280,14 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                     continue;
                 }
 
-                ProcessBookFiles(bookFiles, bookNumberBookMap, bookNumberChapterMap, ref bookNumber, languageCode);
+                // Extract book name from root pubName field
+                string? bookName = null;
+                if (doc.RootElement.TryGetProperty("pubName", out var pubNameElement))
+                {
+                    bookName = pubNameElement.GetString();
+                }
+
+                ProcessBookFiles(bookFiles, doc.RootElement, bookNumberBookMap, bookNumberChapterMap, ref bookNumber, languageCode, bookName);
 
                 // Advance to next book after successful processing
                 AdvanceToNextBook(ref bookNumber, ref harvestLink, publicationCode, languageCode);
@@ -311,10 +318,12 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
     private static void ProcessBookFiles(
         JsonElement bookFiles,
+        JsonElement root,
         Dictionary<int, BibleBook> bookNumberBookMap,
         Dictionary<int, Dictionary<int, BibleChapter>> bookNumberChapterMap,
         ref int bookNumber,
-        string languageCode)
+        string languageCode,
+        string? bookName)
     {
         foreach (var bookFile in bookFiles.EnumerateArray())
         {
@@ -329,7 +338,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             }
 
             bookNumber = fileBookNumber;
-            EnsureBookExists(bookFile, bookNumber, bookNumberBookMap, languageCode);
+            EnsureBookExists(root, bookNumber, bookNumberBookMap, languageCode, bookName);
             AddChapterIfNotExists(bookNumber, track, url, bookNumberChapterMap);
         }
     }
@@ -369,17 +378,43 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
     }
 
     private static void EnsureBookExists(
-        JsonElement bookFile,
+        JsonElement root,
         int bookNumber,
         Dictionary<int, BibleBook> bookNumberBookMap,
-        string languageCode)
+        string languageCode,
+        string? bookName)
     {
         if (bookNumberBookMap.ContainsKey(bookNumber))
         {
             return;
         }
 
-        var bookName = GetBookName(bookFile, languageCode, bookNumber);
+        // Use pubName from root if available, otherwise fall back to parsing from title
+        if (string.IsNullOrEmpty(bookName))
+        {
+            // Fallback: try to get from root pubName field
+            if (root.TryGetProperty("pubName", out var pubNameElement))
+            {
+                bookName = pubNameElement.GetString();
+            }
+        }
+
+        // If still empty, try to get from first file title as last resort
+        if (string.IsNullOrEmpty(bookName))
+        {
+            if (root.TryGetProperty("files", out var files) &&
+                files.TryGetProperty(languageCode, out var languageFiles) &&
+                languageFiles.TryGetProperty("MP3", out var bookFiles) &&
+                bookFiles.GetArrayLength() > 0)
+            {
+                var firstFile = bookFiles[0];
+                if (firstFile.TryGetProperty("title", out var titleElement))
+                {
+                    bookName = GetBookNameFromTitle(titleElement.GetString()!, languageCode, bookNumber);
+                }
+            }
+        }
+
         if (string.IsNullOrEmpty(bookName))
         {
             return;
@@ -413,14 +448,29 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
     }
 
-    private static string? GetBookName(JsonElement bookFile, string languageCode, int bookNumber)
+    private static string? GetBookNameFromTitle(string title, string languageCode, int bookNumber)
     {
-        if (!bookFile.TryGetProperty("title", out var titleElement))
+        if (string.IsNullOrEmpty(title))
         {
             return null;
         }
 
-        var name = titleElement.GetString()!.Split('-')[0].Trim();
+        var parts = title.Split('-', 2);
+        
+        // If title starts with "Chapter", the book name is after the dash
+        // Format: "Chapter X - Book Name"
+        // Otherwise, the book name is before the dash
+        // Format: "Book Name - Chapter X" or just "Book Name"
+        string name;
+        if (title.TrimStart().StartsWith("Chapter", StringComparison.OrdinalIgnoreCase) && parts.Length > 1)
+        {
+            name = parts[1].Trim();
+        }
+        else
+        {
+            name = parts[0].Trim();
+        }
+        
         return FormatBookName(name, languageCode, bookNumber);
     }
 

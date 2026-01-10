@@ -57,7 +57,7 @@ public sealed class BibleSelectionItemSelector
                            currentSchedule.BibleReadingLanguageCode == language.Code;
 
         var translations = await Task.Run(async () =>
-            await mediaService.GetBibleTranslations(language.Code));
+            await mediaService.GetBiblePublications(language.Code));
 
         if (translations == null || translations.Count == 0)
         {

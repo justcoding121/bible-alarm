@@ -362,7 +362,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnBibleSelection(ApplicationState state, BibleSelectionAction action)
+    public static ApplicationState OnBibleSelection(ApplicationState state, BiblePublicationSelectionAction action)
     {
         return StateFactory.CreateUpdatedState(
             state,

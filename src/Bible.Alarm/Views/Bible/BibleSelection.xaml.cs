@@ -10,7 +10,7 @@ using Serilog;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class BibleSelection : BaseContentPage, IDisposable
+public partial class BiblePublicationSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly BibleSelectionViewModel viewModel;
@@ -18,7 +18,7 @@ public partial class BibleSelection : BaseContentPage, IDisposable
 
     public BibleSelectionViewModel? ViewModel => BindingContext as BibleSelectionViewModel;
 
-    public BibleSelection(BibleSelectionViewModel viewModel)
+    public BiblePublicationSelection(BibleSelectionViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;

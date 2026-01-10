@@ -15,16 +15,15 @@ using Serilog;
 namespace Bible.Alarm.Shared.Services.Media;
 
 /// <summary>
-/// Service for accessing BibleChapter database operations.
+/// Service for accessing BiblePublicationChapter database operations.
 /// </summary>
 public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogger logger) : IBibleChapterService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    public async Task<SortedDictionary<int, BibleChapter>> GetChaptersByBookAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default)
+    public async Task<SortedDictionary<int, BiblePublicationChapter>> GetChaptersByBookAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -41,17 +40,17 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
                 .OrderBy(x => x.Number)
                 .ToListAsync(cancellationToken);
 
-            return new SortedDictionary<int, BibleChapter>(chapters.ToDictionary(x => x.Number, x => x));
+            return new SortedDictionary<int, BiblePublicationChapter>(chapters.ToDictionary(x => x.Number, x => x));
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BibleChapters by book. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
+            logger.Error(ex, "Error getting BiblePublicationChapters by book. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}",
                 languageCode, publicationCode, bookNumber);
             throw;
         }
     }
 
-    public async Task<BibleChapter?> GetChapterAsync(string languageCode, string publicationCode, int bookNumber, int chapterNumber, CancellationToken cancellationToken = default)
+    public async Task<BiblePublicationChapter?> GetChapterAsync(string languageCode, string publicationCode, int bookNumber, int chapterNumber, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -70,7 +69,7 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BibleChapter. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}, ChapterNumber={ChapterNumber}",
+            logger.Error(ex, "Error getting BiblePublicationChapter. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}, ChapterNumber={ChapterNumber}",
                 languageCode, publicationCode, bookNumber, chapterNumber);
             throw;
         }
@@ -119,7 +118,7 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error updating BibleChapter URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}, ChapterNumber={ChapterNumber}",
+            logger.Error(ex, "Error updating BiblePublicationChapter URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}, ChapterNumber={ChapterNumber}",
                 languageCode, publicationCode, bookNumber, chapterNumber);
             throw;
         }
@@ -153,16 +152,6 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
         }
 
         isDisposed = true;
-
-        try
-        {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error during cancellation token source disposal in BibleChapterService");
-        }
     }
 }
 

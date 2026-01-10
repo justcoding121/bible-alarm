@@ -277,7 +277,7 @@ public sealed class BibleSelectionStateHandler
             }
 
             // Fall back to CurrentBibleReadingSchedule if CurrentSchedule isn't updated yet
-            // This handles the case where BibleSelectionAction updates CurrentBibleReadingSchedule
+            // This handles the case where BiblePublicationSelectionAction updates CurrentBibleReadingSchedule
             // but the effect that syncs to CurrentSchedule hasn't run yet
             if (string.IsNullOrEmpty(newLanguageCode) && stateValue.CurrentBibleReadingSchedule != null)
             {

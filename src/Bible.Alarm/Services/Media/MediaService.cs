@@ -32,7 +32,7 @@ public sealed class MediaService(
         return await BiblePublicationService.GetDistinctLanguagesAsync(cancellationTokenSource.Token);
     }
 
-    public async Task<Dictionary<string, BiblePublication>> GetBibleTranslations(string languageCode)
+    public async Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode)
     {
         await mediaIndexService.Verify();
         return await BiblePublicationService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
@@ -42,7 +42,7 @@ public sealed class MediaService(
         string languageCode, string versionCode)
     {
         await mediaIndexService.Verify();
-        return await bibleBookService.GetBooksByTranslationAsync(languageCode, versionCode, cancellationTokenSource.Token);
+        return await bibleBookService.GetBooksByPublicationAsync(languageCode, versionCode, cancellationTokenSource.Token);
     }
 
     public async Task<BibleBook> GetBibleBook(string languageCode, string versionCode, int bookNumber)
@@ -51,14 +51,14 @@ public sealed class MediaService(
         return await bibleBookService.GetBookAsync(languageCode, versionCode, bookNumber, cancellationTokenSource.Token);
     }
 
-    public async Task<SortedDictionary<int, BibleChapter>>
+    public async Task<SortedDictionary<int, BiblePublicationChapter>>
         GetBibleChapters(string languageCode, string versionCode, int bookNumber)
     {
         await mediaIndexService.Verify();
         return await bibleChapterService.GetChaptersByBookAsync(languageCode, versionCode, bookNumber, cancellationTokenSource.Token);
     }
 
-    public async Task<BibleChapter> GetBibleChapter(string languageCode,
+    public async Task<BiblePublicationChapter> GetBibleChapter(string languageCode,
         string versionCode, int bookNumber, int chapterNumber)
     {
         await mediaIndexService.Verify();

@@ -317,7 +317,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<MusicSelection>();
         services.AddTransient<SongBookSelection>();
         services.AddTransient<TrackSelection>();
-        services.AddTransient<BibleSelection>();
+        services.AddTransient<BiblePublicationSelection>();
         services.AddTransient<BookSelection>();
         services.AddTransient<ChapterSelection>();
         services.AddTransient<BibleLanguageModal>();

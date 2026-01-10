@@ -11,9 +11,9 @@ namespace Bible.Alarm.Shared.Models.Media.Bible;
 /// Represents a track/episode for Drama or Video publications.
 /// Links directly to BiblePublication without an intermediate Book level.
 /// </summary>
-[Table("PublicationTrack")]
+[Table("BiblePublicationTrack")]
 [Index(nameof(BiblePublicationId), nameof(Number), IsUnique = true)]
-public sealed class PublicationTrack : IComparable
+public sealed class BiblePublicationTrack : IComparable
 {
     [Key]
     public int Id { get; set; }
@@ -37,7 +37,7 @@ public sealed class PublicationTrack : IComparable
 
     public int CompareTo(object? obj)
     {
-        if (obj is not PublicationTrack other)
+        if (obj is not BiblePublicationTrack other)
         {
             return 1;
         }

@@ -21,7 +21,6 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
     public async Task<MelodyMusic?> GetByCodeWithTracksAsync(string publicationCode, CancellationToken cancellationToken = default)
@@ -176,16 +175,6 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
         }
 
         isDisposed = true;
-
-        try
-        {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error during cancellation token source disposal in MelodyMusicService");
-        }
     }
 }
 

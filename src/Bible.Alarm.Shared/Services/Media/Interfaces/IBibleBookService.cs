@@ -18,9 +18,9 @@ public interface IBibleBookService : IDisposable
     Task<string?> GetBookNameAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all BibleBooks for a given translation (by language code and publication code).
+    /// Gets all BibleBooks for a given publication (by language code and publication code).
     /// </summary>
-    Task<SortedDictionary<int, BibleBook>> GetBooksByTranslationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default);
+    Task<SortedDictionary<int, BibleBook>> GetBooksByPublicationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a BibleBook by language code, publication code, and book number.

@@ -17,7 +17,7 @@ public sealed class ScheduleUpdater(
     /// <summary>
     /// Updates schedule to the next chapter.
     /// </summary>
-    public async Task<AlarmSchedule> UpdateScheduleToNextChapterAsync(int scheduleId, KeyValuePair<BibleBook, BibleChapter> next)
+    public async Task<AlarmSchedule> UpdateScheduleToNextChapterAsync(int scheduleId, KeyValuePair<BibleBook, BiblePublicationChapter> next)
     {
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
@@ -34,7 +34,7 @@ public sealed class ScheduleUpdater(
     /// <summary>
     /// Updates schedule to the previous chapter.
     /// </summary>
-    public async Task<AlarmSchedule> UpdateScheduleToPreviousChapterAsync(int scheduleId, KeyValuePair<BibleBook, BibleChapter> previous)
+    public async Task<AlarmSchedule> UpdateScheduleToPreviousChapterAsync(int scheduleId, KeyValuePair<BibleBook, BiblePublicationChapter> previous)
     {
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,

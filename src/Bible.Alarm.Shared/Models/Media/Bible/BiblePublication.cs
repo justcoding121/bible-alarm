@@ -9,7 +9,7 @@ namespace Bible.Alarm.Shared.Models.Media.Bible;
 /// Represents a Bible-related publication including traditional Bible translations,
 /// Audio Bible Dramas, Dramatic Bible Readings, and Video publications.
 /// </summary>
-[Table("BiblePublications")]
+[Table("BiblePublication")]
 [Index(nameof(Code), nameof(LanguageId), IsUnique = true)]
 public sealed class BiblePublication : TranslatedPublication
 {
@@ -28,5 +28,5 @@ public sealed class BiblePublication : TranslatedPublication
     /// Empty for traditional Bible translations.
     /// </summary>
     [Required]
-    public List<PublicationTrack> Tracks { get; set; } = [];
+    public List<BiblePublicationTrack> Tracks { get; set; } = [];
 }

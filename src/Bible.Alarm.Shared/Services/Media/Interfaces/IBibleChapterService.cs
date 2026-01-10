@@ -8,19 +8,19 @@ using Bible.Alarm.Shared.Models.Media.Bible;
 namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 
 /// <summary>
-/// Service for accessing BibleChapter database operations.
+/// Service for accessing BiblePublicationChapter database operations.
 /// </summary>
 public interface IBibleChapterService : IDisposable
 {
     /// <summary>
-    /// Gets all BibleChapters for a given book (by language code, publication code, and book number), with Source included.
+    /// Gets all BiblePublicationChapters for a given book (by language code, publication code, and book number), with Source included.
     /// </summary>
-    Task<SortedDictionary<int, BibleChapter>> GetChaptersByBookAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default);
+    Task<SortedDictionary<int, BiblePublicationChapter>> GetChaptersByBookAsync(string languageCode, string publicationCode, int bookNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a BibleChapter by language code, publication code, book number, and chapter number, with Source included.
+    /// Gets a BiblePublicationChapter by language code, publication code, book number, and chapter number, with Source included.
     /// </summary>
-    Task<BibleChapter?> GetChapterAsync(string languageCode, string publicationCode, int bookNumber, int chapterNumber, CancellationToken cancellationToken = default);
+    Task<BiblePublicationChapter?> GetChapterAsync(string languageCode, string publicationCode, int bookNumber, int chapterNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates the URL for a Bible chapter's audio source.

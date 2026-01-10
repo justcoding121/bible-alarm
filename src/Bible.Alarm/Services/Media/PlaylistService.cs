@@ -196,7 +196,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     }
 
 
-    private record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BibleBook, BibleChapter>? NextChapter);
+    private record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BibleBook, BiblePublicationChapter>? NextChapter);
 
     public async Task<PlayItem> NextTrack(int scheduleId)
     {
@@ -301,13 +301,13 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
-    public async Task<KeyValuePair<BibleBook, BibleChapter>> GetNextBibleChapter(string languageCode,
+    public async Task<KeyValuePair<BibleBook, BiblePublicationChapter>> GetNextBibleChapter(string languageCode,
         string publicationCode, int bookNumber, int chapter)
     {
         return await chapterNavigator.GetNextBibleChapter(languageCode, publicationCode, bookNumber, chapter);
     }
 
-    public async Task<KeyValuePair<BibleBook, BibleChapter>> GetPreviousBibleChapter(string languageCode,
+    public async Task<KeyValuePair<BibleBook, BiblePublicationChapter>> GetPreviousBibleChapter(string languageCode,
         string publicationCode, int bookNumber, int chapter)
     {
         return await chapterNavigator.GetPreviousBibleChapter(languageCode, publicationCode, bookNumber, chapter);

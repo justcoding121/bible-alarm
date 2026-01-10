@@ -102,7 +102,7 @@ public sealed class BibleCommandInitializer
             if (loadedBibleReading != null)
             {
                 var currentBibleReadingItem = mapper.Map<BibleReadingStateItem>(loadedBibleReading);
-                dispatcher.Dispatch(new BibleSelectionAction(currentBibleReadingItem));
+                dispatcher.Dispatch(new BiblePublicationSelectionAction(currentBibleReadingItem));
                 // State change will trigger OnStateChanged which handles cascading notifications
             }
         });

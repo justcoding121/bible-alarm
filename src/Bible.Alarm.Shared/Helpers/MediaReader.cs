@@ -19,12 +19,12 @@ public class MediaReader(string indexRoot)
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!.ToDictionary(x => x.Code, x => x);
     }
 
-    public async Task<Dictionary<string, Publication>> GetBibleTranslations(string languageCode)
+    public async Task<Dictionary<string, Publication>> GetBiblePublications(string languageCode)
     {
         var root = indexRoot;
         var bibleIndex = Path.Combine(root, "Audio", "Bible", languageCode, "publications.json");
-        var bibleTranslations = await File.ReadAllTextAsync(bibleIndex);
-        return JsonSerializer.Deserialize<IEnumerable<Publication>>(bibleTranslations)!
+        var biblePublications = await File.ReadAllTextAsync(bibleIndex);
+        return JsonSerializer.Deserialize<IEnumerable<Publication>>(biblePublications)!
             .ToDictionary(x => x.Code, x => x);
     }
 
@@ -37,15 +37,15 @@ public class MediaReader(string indexRoot)
             .ToDictionary(x => x.Number, x => x));
     }
 
-    public async Task<SortedDictionary<int, BibleChapter>> GetBibleChapters(string languageCode, string versionCode,
+    public async Task<SortedDictionary<int, BiblePublicationChapter>> GetBibleChapters(string languageCode, string versionCode,
         int bookNumber)
     {
         var root = indexRoot;
         var booksIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, bookNumber.ToString(),
             "chapters.json");
         var bibleChapters = await File.ReadAllTextAsync(booksIndex);
-        return new SortedDictionary<int, BibleChapter>(JsonSerializer
-            .Deserialize<IEnumerable<BibleChapter>>(bibleChapters)!
+        return new SortedDictionary<int, BiblePublicationChapter>(JsonSerializer
+            .Deserialize<IEnumerable<BiblePublicationChapter>>(bibleChapters)!
             .ToDictionary(x => x.Number, x => x));
     }
 

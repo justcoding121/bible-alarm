@@ -70,11 +70,11 @@ public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaSe
             meta.Album = language.Name;
         }
 
-        // SubTitle: Translation name + (jw.org)
-        var translations = await mediaService.GetBibleTranslations(trackMetadata.LanguageCode);
-        if (translations.TryGetValue(trackMetadata.PublicationCode, out var translation))
+        // SubTitle: Publication name + (jw.org)
+        var publications = await mediaService.GetBiblePublications(trackMetadata.LanguageCode);
+        if (publications.TryGetValue(trackMetadata.PublicationCode, out var publication))
         {
-            meta.Artist = $"{translation.Name} (jw.org)";
+            meta.Artist = $"{publication.Name} (jw.org)";
         }
         else
         {

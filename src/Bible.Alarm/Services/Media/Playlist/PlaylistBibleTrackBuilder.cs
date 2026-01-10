@@ -23,13 +23,13 @@ public class PlaylistBibleTrackBuilder
         this.mediaService = mediaService;
     }
 
-    public record ChapterInfo(int BookNumber, BibleChapter Chapter, string Url);
+    public record ChapterInfo(int BookNumber, BiblePublicationChapter Chapter, string Url);
 
     public async Task<List<PlayItem>> BuildBibleTracks(
         int scheduleId,
         AlarmSchedule schedule,
         BibleReadingSchedule bibleReadingSchedule,
-        Func<string, string, int, int, Task<KeyValuePair<BibleBook, BibleChapter>>> getNextBibleChapterAsync)
+        Func<string, string, int, int, Task<KeyValuePair<BibleBook, BiblePublicationChapter>>> getNextBibleChapterAsync)
     {
         var initialChapterInfo = await GetInitialChapterInfo(bibleReadingSchedule);
         var result = new List<PlayItem>();

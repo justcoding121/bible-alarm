@@ -12,11 +12,11 @@ namespace Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 /// <summary>
 /// Handles dispatching actions for bible selection operations.
 /// </summary>
-public sealed class BibleSelectionActionDispatcher
+public sealed class BiblePublicationSelectionActionDispatcher
 {
     private readonly IDispatcher dispatcher;
 
-    public BibleSelectionActionDispatcher(IDispatcher dispatcher)
+    public BiblePublicationSelectionActionDispatcher(IDispatcher dispatcher)
     {
         this.dispatcher = dispatcher;
     }
@@ -24,12 +24,12 @@ public sealed class BibleSelectionActionDispatcher
     public void DispatchBibleReadingSelectionActions(BibleReadingStateItem bibleReadingItem)
     {
         dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
-        dispatcher.Dispatch(new BibleSelectionAction(bibleReadingItem));
+        dispatcher.Dispatch(new BiblePublicationSelectionAction(bibleReadingItem));
     }
 
     public void DispatchLanguageSelectionActions(BibleReadingStateItem bibleReadingItem, LanguageListViewItemModel language)
     {
         dispatcher.Dispatch(new ChapterSelectedAction(bibleReadingItem));
-        dispatcher.Dispatch(new BibleSelectionAction(bibleReadingItem));
+        dispatcher.Dispatch(new BiblePublicationSelectionAction(bibleReadingItem));
     }
 }
