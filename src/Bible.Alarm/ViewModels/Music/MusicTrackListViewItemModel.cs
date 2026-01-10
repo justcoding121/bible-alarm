@@ -26,7 +26,7 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
         set => SetProperty(ref isSelected, value);
     }
 
-    public string LookUpPath => track.Source?.LookUpPath ?? string.Empty;
+    // LookUpPath is no longer stored in the database - it's computed at runtime by TrackMetadata
     public int Number => track.Number;
 
     public string Title => isMelody ? $"Melody Number(s) {track.Title}" : track.Title;

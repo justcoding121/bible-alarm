@@ -33,7 +33,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
     private readonly IScheduleMigrationService scheduleMigrationService;
     private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IDispatcher dispatcher;
-    private readonly IBibleTranslationService? bibleTranslationService;
+    private readonly IBiblePublicationService? BiblePublicationService;
     private readonly IBibleBookService? bibleBookService;
     private readonly IMapper mapper;
     private readonly IMediaService? mediaService;
@@ -46,7 +46,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         IScheduleMigrationService scheduleMigrationService,
         IAlarmScheduleService alarmScheduleService,
         IDispatcher dispatcher,
-        IBibleTranslationService? bibleTranslationService,
+        IBiblePublicationService? BiblePublicationService,
         IBibleBookService? bibleBookService,
         IMapper mapper,
         IMediaService? mediaService,
@@ -57,14 +57,14 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         this.scheduleMigrationService = scheduleMigrationService;
         this.alarmScheduleService = alarmScheduleService;
         this.dispatcher = dispatcher;
-        this.bibleTranslationService = bibleTranslationService;
+        this.BiblePublicationService = BiblePublicationService;
         this.bibleBookService = bibleBookService;
         this.mapper = mapper;
         this.mediaService = mediaService;
         this.melodyMusicService = melodyMusicService;
         this.diskCacheService = diskCacheService;
         this.statePopulator = new ScheduleStatePopulator(
-            bibleTranslationService,
+            BiblePublicationService,
             bibleBookService,
             mapper,
             mediaService,
@@ -241,14 +241,14 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
 
     public async Task<Dictionary<string, Language>?> LoadLanguagesDictionaryAsync()
     {
-        if (bibleTranslationService == null)
+        if (BiblePublicationService == null)
         {
             return null;
         }
 
         try
         {
-            var languagesDict = await bibleTranslationService.GetDistinctLanguagesAsync();
+            var languagesDict = await BiblePublicationService.GetDistinctLanguagesAsync();
             Log.Logger.Information("Loaded {Count} languages for translation name lookup", languagesDict.Count);
             return languagesDict;
         }

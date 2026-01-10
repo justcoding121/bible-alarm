@@ -89,12 +89,12 @@ public class PlaylistMusicTrackBuilder
         {
             throw new InvalidOperationException($"Melody track {melodyTrack.Number} Source is null");
         }
+        // LookUpPath is now computed from PublicationCode, LanguageCode (null for melody), and TrackNumber
         return new PlayItem(new TrackMetadata
         {
             ScheduleId = schedule.Id,
             PublicationCode = melodyMusic.PublicationCode,
-            TrackNumber = melodyTrack.Number,
-            LookUpPath = melodyTrack.Source.LookUpPath
+            TrackNumber = melodyTrack.Number
         }, melodyTrack.Source.Url);
     }
 
@@ -104,14 +104,13 @@ public class PlaylistMusicTrackBuilder
         {
             throw new InvalidOperationException($"Vocal track {vocalTrack.Number} Source is null");
         }
+        // LookUpPath is now computed from PublicationCode, LanguageCode, and TrackNumber
         return new PlayItem(new TrackMetadata
         {
             ScheduleId = schedule.Id,
             PublicationCode = vocalMusic.PublicationCode,
             LanguageCode = vocalMusic.LanguageCode,
-            TrackNumber = vocalTrack.Number,
-            LookUpPath = vocalTrack.Source.LookUpPath
+            TrackNumber = vocalTrack.Number
         }, vocalTrack.Source.Url);
     }
 }
-

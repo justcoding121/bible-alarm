@@ -147,7 +147,7 @@ public sealed class AlarmSchedule : IComparable
         return Id.CompareTo(other.Id);
     }
 
-    public static async Task<AlarmSchedule> GetSampleSchedule(bool isNew, IBibleTranslationService bibleTranslationService, IMelodyMusicService melodyMusicService)
+    public static async Task<AlarmSchedule> GetSampleSchedule(bool isNew, IBiblePublicationService BiblePublicationService, IMelodyMusicService melodyMusicService)
     {
         var startTime = DateTime.UtcNow;
         Log.Information("[PERF] GetSampleSchedule: Started at {StartTime}", startTime);
@@ -172,12 +172,13 @@ public sealed class AlarmSchedule : IComparable
             {
                 ChapterNumber = 1,
                 LanguageCode = "E",
-                PublicationCode = "nwt" // NWT 2013 (not 1984 - use "bi12" for 1984)
+                PublicationCode = "nwt", // NWT 2013 (not 1984 - use "bi12" for 1984)
+                BookNumber = 1 // Will be updated below with a random book
             }
         };
 
         var bibleQueryStartTime = DateTime.UtcNow;
-        var bible = await bibleTranslationService.GetByLanguageAndCodeWithBooksAsync(
+        var bible = await BiblePublicationService.GetByLanguageAndCodeWithBooksAsync(
             sample.BibleReadingSchedule.LanguageCode,
             sample.BibleReadingSchedule.PublicationCode);
         var bibleQueryElapsed = (DateTime.UtcNow - bibleQueryStartTime).TotalMilliseconds;

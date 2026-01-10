@@ -1,4 +1,5 @@
 #nullable enable
+
 namespace Bible.Alarm.Stores.Models;
 
 /// <summary>
@@ -9,9 +10,17 @@ namespace Bible.Alarm.Stores.Models;
 public sealed class BibleReadingStateItem : IComparable
 {
     public int Id { get; set; }
+
     public string LanguageCode { get; set; } = string.Empty;
     public string PublicationCode { get; set; } = string.Empty;
-    public int BookNumber { get; set; }
+
+    /// <summary>
+    /// Book number for traditional Bible readings (1-66).
+    /// Null for drama publications which don't have books.
+    /// Use PublicationTypeHelper.HasBookStructure() to check if this applies.
+    /// </summary>
+    public int? BookNumber { get; set; }
+
     public int ChapterNumber { get; set; }
     public TimeSpan FinishedDuration { get; set; }
     public int AlarmScheduleId { get; set; }

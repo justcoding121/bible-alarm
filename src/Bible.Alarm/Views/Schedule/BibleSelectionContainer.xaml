@@ -30,10 +30,71 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
+            <!-- Bible Type Selector with icon -->
+            <Grid x:Name="BibleTypeButton"
+                  Grid.Row="0"
+                  Margin="0"
+                  Padding="16,16"
+                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                  MinimumHeightRequest="56"
+                  HorizontalOptions="Fill"
+                  VerticalOptions="Fill">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SelectBibleTypeCommand}"
+                                          NumberOfTapsRequired="1" />
+                </Grid.GestureRecognizers>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
+                <!-- Bible Type Name -->
+                <Label Grid.Column="0"
+                       FontSize="16"
+                       FontAttributes="None"
+                       HorizontalOptions="Fill"
+                       HorizontalTextAlignment="Start"
+                       Text="{Binding BibleTypeDisplayText}"
+                       TextColor="{DynamicResource PrimaryTextColor}"
+                       VerticalOptions="Center"
+                       VerticalTextAlignment="Center" />
+                
+                <!-- Bible Icon -->
+                <Border Grid.Column="1"
+                        BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                        HeightRequest="32"
+                        HorizontalOptions="End"
+                        Margin="12,0,0,0"
+                        StrokeThickness="0"
+                        VerticalOptions="Center"
+                        WidthRequest="32">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <Label
+                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                        FontSize="16"
+                        HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"
+                        InputTransparent="True"
+                        Text="{x:Static fn:GlyphNames.Bible}"
+                        TextColor="{DynamicResource PrimaryColor}"
+                        VerticalOptions="Center"
+                        VerticalTextAlignment="Center" />
+                </Border>
+            </Grid>
+            <!-- Divider -->
+            <BoxView Grid.Row="1"
+                     HeightRequest="1"
+                     BackgroundColor="{DynamicResource DividerColor}"
+                     Margin="0"
+                     HorizontalOptions="Fill" />
             <!-- Language Name with icon -->
             <Grid x:Name="BibleLanguageButton"
-                  Grid.Row="0"
+                  Grid.Row="2"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -85,14 +146,14 @@
                 </Border>
             </Grid>
             <!-- Divider -->
-            <BoxView Grid.Row="1"
+            <BoxView Grid.Row="3"
                      HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />
             <!-- Translation Name with right arrow -->
             <Grid x:Name="BibleTranslationButton"
-                  Grid.Row="2"
+                  Grid.Row="4"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -138,20 +199,23 @@
                         VerticalTextAlignment="Center" />
                 </Border>
             </Grid>
-            <!-- Divider -->
-            <BoxView Grid.Row="3"
+            <!-- Divider for Book (only visible when Book is visible) -->
+            <BoxView Grid.Row="5"
                      HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
-                     HorizontalOptions="Fill" />
+                     HorizontalOptions="Fill"
+                     IsVisible="{Binding IsBookVisible}" />
+            <!-- Book Selection (only visible for traditional Bible reading) -->
             <Grid x:Name="BibleBookButton"
-                  Grid.Row="4"
+                  Grid.Row="6"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
                   MinimumHeightRequest="56"
                   HorizontalOptions="Fill"
-                  VerticalOptions="Fill">
+                  VerticalOptions="Fill"
+                  IsVisible="{Binding IsBookVisible}">
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectBookCommand}"
                                           NumberOfTapsRequired="1" />
@@ -192,13 +256,14 @@
                 </Border>
             </Grid>
             <!-- Divider -->
-            <BoxView Grid.Row="5"
+            <BoxView Grid.Row="7"
                      HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />
+            <!-- Chapter/Part Selection -->
             <Grid x:Name="BibleChapterButton"
-                  Grid.Row="6"
+                  Grid.Row="8"
                   Margin="0"
                   Padding="16,16"
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -247,4 +312,3 @@
         </Grid>
     </Border>
 </ContentView>
-

@@ -18,7 +18,7 @@ public class PlaylistScheduleManager
     private readonly ILogger logger;
     private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IGeneralSettingsService generalSettingsService;
-    private readonly IBibleTranslationService bibleTranslationService;
+    private readonly IBiblePublicationService BiblePublicationService;
     private readonly IMelodyMusicService melodyMusicService;
     private readonly CancellationToken cancellationToken;
 
@@ -26,14 +26,14 @@ public class PlaylistScheduleManager
         ILogger logger,
         IAlarmScheduleService alarmScheduleService,
         IGeneralSettingsService generalSettingsService,
-        IBibleTranslationService bibleTranslationService,
+        IBiblePublicationService BiblePublicationService,
         IMelodyMusicService melodyMusicService,
         CancellationToken cancellationToken)
     {
         this.logger = logger;
         this.alarmScheduleService = alarmScheduleService;
         this.generalSettingsService = generalSettingsService;
-        this.bibleTranslationService = bibleTranslationService;
+        this.BiblePublicationService = BiblePublicationService;
         this.melodyMusicService = melodyMusicService;
         this.cancellationToken = cancellationToken;
     }
@@ -59,7 +59,7 @@ public class PlaylistScheduleManager
 
         if (schedule == null)
         {
-            schedule = await AlarmSchedule.GetSampleSchedule(false, bibleTranslationService, melodyMusicService);
+            schedule = await AlarmSchedule.GetSampleSchedule(false, BiblePublicationService, melodyMusicService);
             schedule = await alarmScheduleService.AddScheduleAsync(schedule, cancellationToken);
         }
 

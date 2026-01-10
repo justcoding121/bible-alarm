@@ -24,7 +24,7 @@ internal sealed class ScheduleStatePopulator
     private readonly DefaultMusicPopulator defaultMusicPopulator;
 
     public ScheduleStatePopulator(
-        IBibleTranslationService? bibleTranslationService,
+        IBiblePublicationService? BiblePublicationService,
         IBibleBookService? bibleBookService,
         IMapper mapper,
         IMediaService? mediaService,
@@ -32,7 +32,7 @@ internal sealed class ScheduleStatePopulator
     {
         this.mapper = mapper;
         keyCollector = new LookupDataCollector();
-        dataLoader = new LookupDataLoader(bibleTranslationService, bibleBookService, mediaService);
+        dataLoader = new LookupDataLoader(BiblePublicationService, bibleBookService, mediaService);
         bibleReadingPopulator = new BibleReadingDisplayNamePopulator();
         musicPopulator = new MusicDisplayNamePopulator();
         defaultMusicPopulator = new DefaultMusicPopulator(melodyMusicService);

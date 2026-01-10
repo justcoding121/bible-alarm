@@ -14,6 +14,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using BibleBook = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleBook;
 using BibleChapter = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BibleChapter;
+using DramaTrack = Bible.Alarm.AudioLinksHarvestor.Models.Drama.DramaTrack;
+using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.Video.VideoEpisode;
 using MusicTrack = Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack;
 using Publication = Bible.Alarm.AudioLinksHarvestor.Models.Publication;
 
@@ -21,6 +23,9 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 
 public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 {
+    // Cache for base URLs to avoid duplicate lookups
+    private readonly Dictionary<string, AudioSourceBaseUrl> baseUrlCache = new();
+
     public async Task Seed()
     {
         using (var scope = scopeFactory.CreateScope())
@@ -32,12 +37,14 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         var indexDir = DirectoryHelper.IndexDirectory;
         var mediaDir = Path.Combine(indexDir, "media");
-        await SeedBibleTranslations(mediaDir);
+        await SeedBiblePublications(mediaDir);
+        await SeedDramas(mediaDir);
+        await SeedVideos(mediaDir);
         await SeedMelodies(mediaDir);
         await SeedVocals(mediaDir);
     }
 
-    private async Task SeedBibleTranslations(string indexDir)
+    private async Task SeedBiblePublications(string indexDir)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -76,14 +83,43 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
     private async Task<Language> GetOrCreateLanguage(MediaDbContext db, string code, string name)
     {
-        var language = await db.Languages.FirstOrDefaultAsync(x => x.Code == code && x.Name == name);
+        // Normalize code to uppercase for consistent storage and comparison
+        var normalizedCode = code.ToUpperInvariant();
+        
+        // Case-insensitive lookup by code only (name may vary between sources)
+        var language = await db.Languages.FirstOrDefaultAsync(x => x.Code.ToUpper() == normalizedCode);
         if (language == null)
         {
             language = new Language
             {
-                Code = code,
+                Code = normalizedCode,
                 Name = name
             };
+        }
+        return language;
+    }
+
+    /// <summary>
+    /// Gets an existing language by code (case-insensitive) or creates one with code as the name (fallback).
+    /// Used for drama seeding where names come from existing Language table.
+    /// </summary>
+    private async Task<Language> GetOrCreateLanguageByCode(MediaDbContext db, string code)
+    {
+        // Normalize code to uppercase for consistent storage and comparison
+        var normalizedCode = code.ToUpperInvariant();
+        
+        // Case-insensitive lookup by code only
+        var language = await db.Languages.FirstOrDefaultAsync(x => x.Code.ToUpper() == normalizedCode);
+        if (language == null)
+        {
+            // Create with code as name (fallback for languages only in drama, not in Bible/Music)
+            language = new Language
+            {
+                Code = normalizedCode,
+                Name = normalizedCode // Use code as name - will be overwritten if found later
+            };
+            db.Languages.Add(language);
+            await db.SaveChangesAsync();
         }
         return language;
     }
@@ -122,8 +158,8 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             return;
         }
 
-        // Load existing translation codes for this language upfront (one query)
-        var existingCodesList = await db.BibleTranslations
+        // Load existing publication codes for this language upfront (one query)
+        var existingCodesList = await db.BiblePublications
             .Where(t => t.Language.Code == languageKey)
             .Select(t => t.Code)
             .ToListAsync();
@@ -148,17 +184,17 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
                 continue;
             }
 
-            var bibleTranslation = CreateBibleTranslation(translation.Value, newLanguage, displayLanguage);
-            await SeedBooksForTranslation(db, mediaReader, languageKey, translation.Key, books, bibleTranslation);
+            var biblePublication = CreateBiblePublication(translation.Value, newLanguage, displayLanguage);
+            await SeedBooksForTranslation(db, mediaReader, languageKey, translation.Key, books, biblePublication);
 
-            await db.BibleTranslations.AddAsync(bibleTranslation);
+            await db.BiblePublications.AddAsync(biblePublication);
             await db.SaveChangesAsync();
         }
     }
 
-    private static BibleTranslation CreateBibleTranslation(Publication translation, Language newLanguage, Language displayLanguage)
+    private static BiblePublication CreateBiblePublication(Publication translation, Language newLanguage, Language displayLanguage)
     {
-        return new BibleTranslation
+        return new BiblePublication
         {
             Name = translation.Name,
             Code = translation.Code,
@@ -173,7 +209,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         string languageKey,
         string translationKey,
         SortedDictionary<int, BibleBook> books,
-        BibleTranslation bibleTranslation)
+        BiblePublication biblePublication)
     {
         foreach (var book in books)
         {
@@ -183,7 +219,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
                 Number = book.Value.Number
             };
 
-            bibleTranslation.Books.Add(newBook);
+            biblePublication.Books.Add(newBook);
 
             var chapters = await GetSafely(() => mediaReader.GetBibleChapters(languageKey, translationKey, book.Key));
             if (chapters == null || chapters.Count == 0)
@@ -191,38 +227,297 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
                 continue;
             }
 
-            AddChaptersToBook(chapters, newBook, bibleTranslation);
+            await AddChaptersToBook(db, chapters, newBook);
         }
     }
 
-    private static void AddChaptersToBook(
+    private async Task AddChaptersToBook(
+        MediaDbContext db,
         SortedDictionary<int, BibleChapter> chapters,
-        Shared.Models.Media.Bible.BibleBook newBook,
-        BibleTranslation bibleTranslation)
+        Shared.Models.Media.Bible.BibleBook newBook)
     {
         foreach (var chapter in chapters)
         {
-            var lookUpPath = BuildChapterLookUpPath(bibleTranslation, newBook, chapter.Value.Number);
+            var audioSource = await CreateAudioSource(db, chapter.Value.Url);
             var newChapter = new Shared.Models.Media.Bible.BibleChapter
             {
                 Number = chapter.Value.Number,
-                Source = new AudioSource
-                {
-                    Url = chapter.Value.Url,
-                    LookUpPath = lookUpPath
-                }
+                Source = audioSource
             };
 
             newBook.Chapters.Add(newChapter);
         }
     }
 
-    private static string BuildChapterLookUpPath(BibleTranslation bibleTranslation, Shared.Models.Media.Bible.BibleBook newBook, int chapterNumber)
+    /// <summary>
+    /// Creates an AudioSource by extracting and caching the base URL.
+    /// </summary>
+    private async Task<AudioSource> CreateAudioSource(MediaDbContext db, string fullUrl)
     {
-        return $"?output=json&pub={bibleTranslation.Code}" +
-               $"&fileformat=MP3&langwritten={bibleTranslation.Language.Code}" +
-               $"&txtCMSLang=E&booknum={newBook.Number}&track={chapterNumber}";
+        var (baseUrl, urlPath) = ExtractBaseUrlAndPath(fullUrl);
+        var baseUrlEntity = await GetOrCreateBaseUrl(db, baseUrl);
+        
+        return new AudioSource
+        {
+            BaseUrlEntity = baseUrlEntity,
+            BaseUrlId = baseUrlEntity.Id,
+            UrlPath = urlPath
+        };
     }
+
+    /// <summary>
+    /// Extracts the base URL (scheme + host) and path from a full URL.
+    /// </summary>
+    private static (string BaseUrl, string UrlPath) ExtractBaseUrlAndPath(string fullUrl)
+    {
+        if (string.IsNullOrEmpty(fullUrl))
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        try
+        {
+            var uri = new Uri(fullUrl);
+            var baseUrl = $"{uri.Scheme}://{uri.Host}";
+            var urlPath = uri.PathAndQuery;
+            return (baseUrl, urlPath);
+        }
+        catch (UriFormatException)
+        {
+            // If URL is malformed, store the whole thing as the path
+            return (string.Empty, fullUrl);
+        }
+    }
+
+    /// <summary>
+    /// Gets an existing base URL or creates a new one.
+    /// </summary>
+    private async Task<AudioSourceBaseUrl> GetOrCreateBaseUrl(MediaDbContext db, string baseUrl)
+    {
+        // Check cache first
+        if (baseUrlCache.TryGetValue(baseUrl, out var cached))
+        {
+            return cached;
+        }
+
+        // Check database
+        var existing = await db.AudioSourceBaseUrls.FirstOrDefaultAsync(x => x.BaseUrl == baseUrl);
+        if (existing != null)
+        {
+            baseUrlCache[baseUrl] = existing;
+            return existing;
+        }
+
+        // Create new
+        var newBaseUrl = new AudioSourceBaseUrl { BaseUrl = baseUrl };
+        db.AudioSourceBaseUrls.Add(newBaseUrl);
+        await db.SaveChangesAsync();
+        
+        baseUrlCache[baseUrl] = newBaseUrl;
+        return newBaseUrl;
+    }
+
+    #region Drama Seeding
+
+    private async Task SeedDramas(string indexDir)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var displayLanguage = await GetOrCreateDisplayLanguage(db);
+        var mediaReader = new MediaReader(indexDir);
+
+        var dramaLanguages = await GetSafely(() => mediaReader.GetDramaLanguages());
+        if (dramaLanguages == null || dramaLanguages.Count == 0)
+        {
+            logger.Information("No drama languages found to seed.");
+            return;
+        }
+
+        logger.Information("Found {Count} drama languages to seed.", dramaLanguages.Count);
+
+        foreach (var language in dramaLanguages)
+        {
+            var newLanguage = await GetOrCreateLanguageByCode(db, language.Value.Code);
+            await SeedDramaPublicationsForLanguage(db, mediaReader, language.Key, newLanguage, displayLanguage);
+        }
+    }
+
+    private async Task SeedDramaPublicationsForLanguage(
+        MediaDbContext db,
+        MediaReader mediaReader,
+        string languageCode,
+        Language language,
+        Language displayLanguage)
+    {
+        var dramaPublications = await GetSafely(() => mediaReader.GetDramaPublications(languageCode));
+        if (dramaPublications == null || dramaPublications.Count == 0)
+        {
+            return;
+        }
+
+        // Load existing publication codes for this language upfront (one query)
+        var existingCodesList = await db.BiblePublications
+            .Where(p => p.Language.Code == languageCode)
+            .Select(p => p.Code)
+            .ToListAsync();
+        var existingCodes = new HashSet<string>(existingCodesList);
+
+        foreach (var publication in dramaPublications)
+        {
+            // Skip if already exists
+            if (existingCodes.Contains(publication.Value.Code))
+            {
+                logger.Information("Skipping drama publication {PublicationName} ({PublicationCode}) for language {LanguageCode} - already exists",
+                    publication.Value.Name, publication.Value.Code, languageCode);
+                continue;
+            }
+
+            logger.Information("Seeding drama publication {PublicationName} ({PublicationCode}) for language {LanguageCode}",
+                publication.Value.Name, publication.Value.Code, languageCode);
+
+            var tracks = await GetSafely(() => mediaReader.GetDramaTracks(languageCode, publication.Key));
+            if (tracks == null || tracks.Count == 0)
+            {
+                continue;
+            }
+
+            var newPublication = new BiblePublication
+            {
+                Name = publication.Value.Name,
+                Code = publication.Value.Code,
+                Language = language,
+                DisplayLanguage = displayLanguage
+            };
+
+            await AddTracksToPublication(db, tracks, newPublication);
+
+            await db.BiblePublications.AddAsync(newPublication);
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private async Task AddTracksToPublication(
+        MediaDbContext db,
+        SortedDictionary<int, DramaTrack> tracks,
+        BiblePublication publication)
+    {
+        foreach (var track in tracks)
+        {
+            var audioSource = await CreateAudioSource(db, track.Value.Url);
+            var newTrack = new Shared.Models.Media.Bible.PublicationTrack
+            {
+                Number = track.Value.Number,
+                Title = track.Value.Title,
+                Source = audioSource
+            };
+
+            publication.Tracks.Add(newTrack);
+        }
+    }
+
+    #endregion
+
+    #region Video Seeding
+
+    private async Task SeedVideos(string indexDir)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var displayLanguage = await GetOrCreateDisplayLanguage(db);
+        var mediaReader = new MediaReader(indexDir);
+
+        var videoLanguages = await GetSafely(() => mediaReader.GetVideoLanguages());
+        if (videoLanguages == null || videoLanguages.Count == 0)
+        {
+            logger.Information("No video languages found to seed.");
+            return;
+        }
+
+        logger.Information("Found {Count} video languages to seed.", videoLanguages.Count);
+
+        foreach (var language in videoLanguages)
+        {
+            var newLanguage = await GetOrCreateLanguageByCode(db, language.Value.Code);
+            await SeedVideoPublicationsForLanguage(db, mediaReader, language.Key, newLanguage, displayLanguage);
+        }
+    }
+
+    private async Task SeedVideoPublicationsForLanguage(
+        MediaDbContext db,
+        MediaReader mediaReader,
+        string languageCode,
+        Language language,
+        Language displayLanguage)
+    {
+        var videoPublications = await GetSafely(() => mediaReader.GetVideoPublications(languageCode));
+        if (videoPublications == null || videoPublications.Count == 0)
+        {
+            return;
+        }
+
+        // Load existing publication codes for this language upfront (one query)
+        var existingCodesList = await db.BiblePublications
+            .Where(p => p.Language.Code == languageCode)
+            .Select(p => p.Code)
+            .ToListAsync();
+        var existingCodes = new HashSet<string>(existingCodesList);
+
+        foreach (var publication in videoPublications)
+        {
+            // Skip if already exists
+            if (existingCodes.Contains(publication.Value.Code))
+            {
+                logger.Information("Skipping video publication {PublicationName} ({PublicationCode}) for language {LanguageCode} - already exists",
+                    publication.Value.Name, publication.Value.Code, languageCode);
+                continue;
+            }
+
+            logger.Information("Seeding video publication {PublicationName} ({PublicationCode}) for language {LanguageCode}",
+                publication.Value.Name, publication.Value.Code, languageCode);
+
+            var episodes = await GetSafely(() => mediaReader.GetVideoEpisodes(languageCode, publication.Key));
+            if (episodes == null || episodes.Count == 0)
+            {
+                continue;
+            }
+
+            var newPublication = new BiblePublication
+            {
+                Name = publication.Value.Name,
+                Code = publication.Value.Code,
+                Language = language,
+                DisplayLanguage = displayLanguage
+            };
+
+            await AddEpisodesToPublication(db, episodes, newPublication);
+
+            await db.BiblePublications.AddAsync(newPublication);
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private async Task AddEpisodesToPublication(
+        MediaDbContext db,
+        SortedDictionary<int, VideoEpisode> episodes,
+        BiblePublication publication)
+    {
+        foreach (var episode in episodes)
+        {
+            var audioSource = await CreateAudioSource(db, episode.Value.Url);
+            var newTrack = new Shared.Models.Media.Bible.PublicationTrack
+            {
+                Number = episode.Value.Number,
+                Title = episode.Value.Title,
+                Source = audioSource
+            };
+
+            publication.Tracks.Add(newTrack);
+        }
+    }
+
+    #endregion
 
     private async Task SeedMelodies(string indexDir)
     {
@@ -262,7 +557,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             }
 
             var newMelodyMusic = CreateMelodyMusic(melodyMusicRelease.Value, displayLanguage);
-            AddTracksToMelodyMusic(tracks, newMelodyMusic);
+            await AddTracksToMelodyMusic(db, tracks, newMelodyMusic);
 
             await db.MelodyMusic.AddAsync(newMelodyMusic);
             await db.SaveChangesAsync();
@@ -279,19 +574,16 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         };
     }
 
-    private static void AddTracksToMelodyMusic(SortedDictionary<int, MusicTrack> tracks, MelodyMusic newMelodyMusic)
+    private async Task AddTracksToMelodyMusic(MediaDbContext db, SortedDictionary<int, MusicTrack> tracks, MelodyMusic newMelodyMusic)
     {
         foreach (var track in tracks)
         {
+            var audioSource = await CreateAudioSource(db, track.Value.Url);
             var newTrack = new Shared.Models.Media.Music.MusicTrack
             {
                 Number = track.Value.Number,
                 Title = track.Value.Title,
-                Source = new AudioSource
-                {
-                    Url = track.Value.Url,
-                    LookUpPath = track.Value.LookUpPath
-                }
+                Source = audioSource
             };
 
             newMelodyMusic.Tracks.Add(newTrack);
@@ -359,7 +651,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             }
 
             var newVocalMusic = CreateVocalMusic(vocalMusicRelease.Value, newLanguage, displayLanguage);
-            AddTracksToVocalMusic(tracks, newVocalMusic);
+            await AddTracksToVocalMusic(db, tracks, newVocalMusic);
 
             await db.VocalMusic.AddAsync(newVocalMusic);
             await db.SaveChangesAsync();
@@ -377,23 +669,19 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         };
     }
 
-    private static void AddTracksToVocalMusic(SortedDictionary<int, MusicTrack> tracks, VocalMusic newVocalMusic)
+    private async Task AddTracksToVocalMusic(MediaDbContext db, SortedDictionary<int, MusicTrack> tracks, VocalMusic newVocalMusic)
     {
         foreach (var track in tracks)
         {
+            var audioSource = await CreateAudioSource(db, track.Value.Url);
             var newTrack = new Shared.Models.Media.Music.MusicTrack
             {
                 Number = track.Value.Number,
                 Title = track.Value.Title,
-                Source = new AudioSource
-                {
-                    Url = track.Value.Url,
-                    LookUpPath = track.Value.LookUpPath
-                }
+                Source = audioSource
             };
 
             newVocalMusic.Tracks.Add(newTrack);
         }
     }
 }
-

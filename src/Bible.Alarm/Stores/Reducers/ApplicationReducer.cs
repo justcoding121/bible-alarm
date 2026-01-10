@@ -241,8 +241,8 @@ public static class ApplicationReducer
                 Id = action.SelectedSchedule.BibleReadingScheduleId ?? 0,
                 LanguageCode = action.SelectedSchedule.BibleReadingLanguageCode ?? string.Empty,
                 PublicationCode = action.SelectedSchedule.BibleReadingPublicationCode ?? string.Empty,
-                BookNumber = action.SelectedSchedule.BibleReadingBookNumber!.Value,
-                ChapterNumber = action.SelectedSchedule.BibleReadingChapterNumber!.Value,
+                BookNumber = action.SelectedSchedule.BibleReadingBookNumber,
+                ChapterNumber = action.SelectedSchedule.BibleReadingChapterNumber ?? 1,
                 FinishedDuration = action.SelectedSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = action.SelectedSchedule.Id,
                 TranslationName = action.SelectedSchedule.BibleReadingPublicationName ?? string.Empty

@@ -128,7 +128,7 @@ public sealed class BibleSelectionItemSelector
         return (firstBook.Number, chapters.Values.First().Number, firstBook.Name);
     }
 
-    private static bool CanPreserveCurrentTranslation(ScheduleStateItem schedule, Dictionary<string, BibleTranslation> translations)
+    private static bool CanPreserveCurrentTranslation(ScheduleStateItem schedule, Dictionary<string, BiblePublication> translations)
     {
         return !string.IsNullOrEmpty(schedule.BibleReadingPublicationCode) &&
                translations.ContainsKey(schedule.BibleReadingPublicationCode) &&
@@ -140,7 +140,7 @@ public sealed class BibleSelectionItemSelector
         GetPreservedTranslationBookAndChapterAsync(
             ScheduleStateItem currentSchedule,
             LanguageListViewItemModel language,
-            Dictionary<string, BibleTranslation> translations)
+            Dictionary<string, BiblePublication> translations)
     {
         var publicationCode = currentSchedule.BibleReadingPublicationCode!;
         var currentBookNumber = currentSchedule.BibleReadingBookNumber!.Value;
@@ -168,7 +168,7 @@ public sealed class BibleSelectionItemSelector
     private async Task<(string PublicationCode, int BookNumber, int ChapterNumber, string BookName, string PublicationName)>
         GetDefaultTranslationBookAndChapterAsync(
             LanguageListViewItemModel language,
-            Dictionary<string, BibleTranslation> translations)
+            Dictionary<string, BiblePublication> translations)
     {
         var lastTranslation = translations.LastOrDefault();
         if (lastTranslation.Value == null)
@@ -184,7 +184,7 @@ public sealed class BibleSelectionItemSelector
         GetFirstBookForTranslationAsync(
             LanguageListViewItemModel language,
             string publicationCode,
-            Dictionary<string, BibleTranslation> translations)
+            Dictionary<string, BiblePublication> translations)
     {
         var books = await Task.Run(async () =>
             await mediaService.GetBibleBooks(language.Code, publicationCode));

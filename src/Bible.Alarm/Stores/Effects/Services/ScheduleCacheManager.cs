@@ -65,7 +65,7 @@ public sealed class ScheduleCacheManager
                 return;
             }
 
-            var languagesDict = await CommonBootstrapHelper.LoadLanguagesDictionaryForCache(services.BibleTranslationService);
+            var languagesDict = await CommonBootstrapHelper.LoadLanguagesDictionaryForCache(services.BiblePublicationService);
             var schedulesList = await CommonBootstrapHelper.LoadSchedulesListAsyncForCache(services, languagesDict);
 
             await diskCacheService.SetAsync(CacheKey, schedulesList);

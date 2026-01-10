@@ -17,16 +17,16 @@ namespace Bible.Alarm.Stores.Effects.Services;
 /// </summary>
 public sealed class ScheduleDisplayNamePopulator
 {
-    private readonly IBibleTranslationService? bibleTranslationService;
+    private readonly IBiblePublicationService? BiblePublicationService;
     private readonly IBibleBookService? bibleBookService;
     private readonly IMediaService? mediaService;
 
     public ScheduleDisplayNamePopulator(
-        IBibleTranslationService? bibleTranslationService = null,
+        IBiblePublicationService? BiblePublicationService = null,
         IBibleBookService? bibleBookService = null,
         IMediaService? mediaService = null)
     {
-        this.bibleTranslationService = bibleTranslationService ?? ServiceProviderManager.GetService<IBibleTranslationService>();
+        this.BiblePublicationService = BiblePublicationService ?? ServiceProviderManager.GetService<IBiblePublicationService>();
         this.bibleBookService = bibleBookService ?? ServiceProviderManager.GetService<IBibleBookService>();
         this.mediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>();
     }
@@ -36,7 +36,7 @@ public sealed class ScheduleDisplayNamePopulator
     /// </summary>
     public async Task PopulateTranslationNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BibleReadingSchedule == null || bibleTranslationService == null)
+        if (schedule.BibleReadingSchedule == null || BiblePublicationService == null)
         {
             return;
         }
@@ -49,7 +49,7 @@ public sealed class ScheduleDisplayNamePopulator
                 return;
             }
 
-            var languagesDict = await bibleTranslationService.GetDistinctLanguagesAsync();
+            var languagesDict = await BiblePublicationService.GetDistinctLanguagesAsync();
             if (languagesDict.TryGetValue(languageCode, out var language))
             {
                 scheduleStateItem.BibleReadingLanguageName = language.Name;
@@ -76,14 +76,14 @@ public sealed class ScheduleDisplayNamePopulator
     /// </summary>
     public async Task PopulateTranslationNameAsync(ScheduleStateItem scheduleStateItem)
     {
-        if (string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode) || bibleTranslationService == null)
+        if (string.IsNullOrWhiteSpace(scheduleStateItem.BibleReadingLanguageCode) || BiblePublicationService == null)
         {
             return;
         }
 
         try
         {
-            var languagesDict = await bibleTranslationService.GetDistinctLanguagesAsync();
+            var languagesDict = await BiblePublicationService.GetDistinctLanguagesAsync();
             if (languagesDict.TryGetValue(scheduleStateItem.BibleReadingLanguageCode, out var language))
             {
                 scheduleStateItem.BibleReadingLanguageName = language.Name;
@@ -106,11 +106,11 @@ public sealed class ScheduleDisplayNamePopulator
     }
 
     /// <summary>
-    /// Populate BibleReadingPublicationName from BibleTranslationService if BibleReadingSchedule exists.
+    /// Populate BibleReadingPublicationName from BiblePublicationService if BibleReadingSchedule exists.
     /// </summary>
     public async Task PopulatePublicationNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BibleReadingSchedule == null || bibleTranslationService == null)
+        if (schedule.BibleReadingSchedule == null || BiblePublicationService == null)
         {
             return;
         }
@@ -124,7 +124,7 @@ public sealed class ScheduleDisplayNamePopulator
                 return;
             }
 
-            var translation = await bibleTranslationService.GetByLanguageAndCodeWithBooksAsync(
+            var translation = await BiblePublicationService.GetByLanguageAndCodeWithBooksAsync(
                 bibleReading.LanguageCode,
                 bibleReading.PublicationCode);
 
@@ -154,7 +154,7 @@ public sealed class ScheduleDisplayNamePopulator
         try
         {
             var bibleReading = schedule.BibleReadingSchedule;
-            if (bibleReading.BookNumber <= 0 ||
+            if (!bibleReading.BookNumber.HasValue || bibleReading.BookNumber.Value <= 0 ||
                 string.IsNullOrWhiteSpace(bibleReading.LanguageCode) ||
                 string.IsNullOrWhiteSpace(bibleReading.PublicationCode))
             {
@@ -164,7 +164,7 @@ public sealed class ScheduleDisplayNamePopulator
             var bookName = await bibleBookService.GetBookNameAsync(
                 bibleReading.LanguageCode,
                 bibleReading.PublicationCode,
-                bibleReading.BookNumber);
+                bibleReading.BookNumber.Value);
 
             if (!string.IsNullOrWhiteSpace(bookName))
             {

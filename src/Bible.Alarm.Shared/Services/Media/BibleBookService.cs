@@ -30,10 +30,10 @@ public sealed class BibleBookService(IServiceScopeFactory scopeFactory, ILogger 
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.BibleBook
+            return await dbContext.BibleBooks
                 .AsNoTracking()
-                .Where(x => x.BibleTranslation.Code == publicationCode
-                            && x.BibleTranslation.Language.Code == languageCode
+                .Where(x => x.BiblePublication.Code == publicationCode
+                            && x.BiblePublication.Language.Code == languageCode
                             && x.Number == bookNumber)
                 .Select(x => x.Name)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -53,7 +53,7 @@ public sealed class BibleBookService(IServiceScopeFactory scopeFactory, ILogger 
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var books = await dbContext.BibleTranslations
+            var books = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Books)
@@ -64,7 +64,7 @@ public sealed class BibleBookService(IServiceScopeFactory scopeFactory, ILogger 
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BibleBooks by translation. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+            logger.Error(ex, "Error getting BibleBooks by publication. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
                 languageCode, publicationCode);
             throw;
         }
@@ -77,7 +77,7 @@ public sealed class BibleBookService(IServiceScopeFactory scopeFactory, ILogger 
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.BibleTranslations
+            return await dbContext.BiblePublications
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Books)

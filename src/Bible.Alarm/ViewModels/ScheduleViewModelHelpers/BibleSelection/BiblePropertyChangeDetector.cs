@@ -1,5 +1,6 @@
 #nullable enable
 using Bible;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BibleSelection;
@@ -13,10 +14,12 @@ public sealed class BiblePropertyChangeDetector
     private readonly BibleDisplayTextProvider displayTextProvider;
 
     // Track last values to prevent unnecessary PropertyChanged notifications
+    private string? lastBibleTypeDisplayText;
     private string? lastLanguageDisplayText;
     private string? lastTranslationDisplayText;
     private string? lastBookDisplayText;
     private string? lastChapterDisplayText;
+    private bool? lastIsBookVisible;
 
     // Track underlying property values to detect cascading changes
     private string? lastLanguageCode;
@@ -39,10 +42,12 @@ public sealed class BiblePropertyChangeDetector
         lastPublicationCode = publicationCode;
         lastBookNumber = bookNumber;
         lastChapterNumber = chapterNumber;
+        lastBibleTypeDisplayText = displayTextProvider.GetBibleTypeDisplayText();
         lastLanguageDisplayText = displayTextProvider.GetLanguageDisplayText();
         lastTranslationDisplayText = displayTextProvider.GetTranslationDisplayText();
         lastBookDisplayText = displayTextProvider.GetBookDisplayText();
         lastChapterDisplayText = displayTextProvider.GetChapterDisplayText();
+        lastIsBookVisible = displayTextProvider.GetIsBookVisible();
     }
 
     public PropertyChangeInfo DetectPropertyChanges(ScheduleStateItem? currentSchedule, BibleReadingStateItem? currentBibleReading)
@@ -56,28 +61,40 @@ public sealed class BiblePropertyChangeDetector
         var publicationCodeChanged = currentPublicationCode != lastPublicationCode;
         var bookNumberChanged = currentBookNumber != lastBookNumber;
         var chapterNumberChanged = currentChapterNumber != lastChapterNumber;
+        
+        // Content type changes when publication code changes to/from a drama type
+        var contentTypeChanged = publicationCodeChanged && 
+            PublicationTypeHelper.IsDrama(currentPublicationCode) != PublicationTypeHelper.IsDrama(lastPublicationCode);
 
+        var newBibleTypeDisplayText = displayTextProvider.GetBibleTypeDisplayText();
         var newLanguageDisplayText = displayTextProvider.GetLanguageDisplayText();
         var newTranslationDisplayText = displayTextProvider.GetTranslationDisplayText();
         var newBookDisplayText = displayTextProvider.GetBookDisplayText();
         var newChapterDisplayText = displayTextProvider.GetChapterDisplayText();
+        var newIsBookVisible = displayTextProvider.GetIsBookVisible();
 
+        var bibleTypeDisplayChanged = newBibleTypeDisplayText != lastBibleTypeDisplayText;
         var languageDisplayChanged = newLanguageDisplayText != lastLanguageDisplayText;
         var translationDisplayChanged = newTranslationDisplayText != lastTranslationDisplayText;
         var bookDisplayChanged = newBookDisplayText != lastBookDisplayText;
         var chapterDisplayChanged = newChapterDisplayText != lastChapterDisplayText;
+        var isBookVisibleChanged = newIsBookVisible != lastIsBookVisible;
 
-        var notifyLanguage = languageCodeChanged;
-        var notifyTranslation = languageCodeChanged || publicationCodeChanged;
-        var notifyBook = languageCodeChanged || publicationCodeChanged || bookNumberChanged;
-        var notifyChapter = languageCodeChanged || publicationCodeChanged || bookNumberChanged || chapterNumberChanged;
+        // Content type change (publication code changed to/from drama) cascades to all properties below
+        var notifyBibleType = contentTypeChanged;
+        var notifyLanguage = contentTypeChanged || languageCodeChanged;
+        var notifyTranslation = contentTypeChanged || languageCodeChanged || publicationCodeChanged;
+        var notifyBook = contentTypeChanged || languageCodeChanged || publicationCodeChanged || bookNumberChanged;
+        var notifyChapter = contentTypeChanged || languageCodeChanged || publicationCodeChanged || bookNumberChanged || chapterNumberChanged;
+        var notifyIsBookVisible = contentTypeChanged || isBookVisibleChanged;
 
-        var displayTextOnlyChanged = (languageDisplayChanged && !languageCodeChanged) ||
-                                    (translationDisplayChanged && !languageCodeChanged && !publicationCodeChanged) ||
-                                    (bookDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !bookNumberChanged) ||
-                                    (chapterDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !bookNumberChanged && !chapterNumberChanged);
+        var displayTextOnlyChanged = (bibleTypeDisplayChanged && !contentTypeChanged) ||
+                                    (languageDisplayChanged && !contentTypeChanged && !languageCodeChanged) ||
+                                    (translationDisplayChanged && !contentTypeChanged && !languageCodeChanged && !publicationCodeChanged) ||
+                                    (bookDisplayChanged && !contentTypeChanged && !languageCodeChanged && !publicationCodeChanged && !bookNumberChanged) ||
+                                    (chapterDisplayChanged && !contentTypeChanged && !languageCodeChanged && !publicationCodeChanged && !bookNumberChanged && !chapterNumberChanged);
 
-        var cascadeChangeOccurred = languageCodeChanged || publicationCodeChanged || bookNumberChanged || chapterNumberChanged;
+        var cascadeChangeOccurred = contentTypeChanged || languageCodeChanged || publicationCodeChanged || bookNumberChanged || chapterNumberChanged;
 
         var changeInfo = new PropertyChangeInfo
         {
@@ -85,21 +102,26 @@ public sealed class BiblePropertyChangeDetector
             CurrentPublicationCode = currentPublicationCode,
             CurrentBookNumber = currentBookNumber,
             CurrentChapterNumber = currentChapterNumber,
+            NewBibleTypeDisplayText = newBibleTypeDisplayText,
             NewLanguageDisplayText = newLanguageDisplayText,
             NewTranslationDisplayText = newTranslationDisplayText,
             NewBookDisplayText = newBookDisplayText,
             NewChapterDisplayText = newChapterDisplayText,
+            NewIsBookVisible = newIsBookVisible,
+            NotifyBibleType = notifyBibleType,
             NotifyLanguage = notifyLanguage,
             NotifyTranslation = notifyTranslation,
             NotifyBook = notifyBook,
             NotifyChapter = notifyChapter,
+            NotifyIsBookVisible = notifyIsBookVisible,
             DisplayTextOnlyChanged = displayTextOnlyChanged,
             CascadeChangeOccurred = cascadeChangeOccurred,
+            BibleTypeDisplayChanged = bibleTypeDisplayChanged,
             LanguageDisplayChanged = languageDisplayChanged,
             TranslationDisplayChanged = translationDisplayChanged,
             BookDisplayChanged = bookDisplayChanged,
             ChapterDisplayChanged = chapterDisplayChanged,
-            HasChanges = notifyLanguage || notifyTranslation || notifyBook || notifyChapter || displayTextOnlyChanged
+            HasChanges = notifyBibleType || notifyLanguage || notifyTranslation || notifyBook || notifyChapter || notifyIsBookVisible || displayTextOnlyChanged
         };
 
         // Update last values
@@ -107,10 +129,12 @@ public sealed class BiblePropertyChangeDetector
         lastPublicationCode = currentPublicationCode;
         lastBookNumber = currentBookNumber;
         lastChapterNumber = currentChapterNumber;
+        lastBibleTypeDisplayText = newBibleTypeDisplayText;
         lastLanguageDisplayText = newLanguageDisplayText;
         lastTranslationDisplayText = newTranslationDisplayText;
         lastBookDisplayText = newBookDisplayText;
         lastChapterDisplayText = newChapterDisplayText;
+        lastIsBookVisible = newIsBookVisible;
 
         return changeInfo;
     }
@@ -121,16 +145,21 @@ public sealed class BiblePropertyChangeDetector
         public string? CurrentPublicationCode { get; init; }
         public int? CurrentBookNumber { get; init; }
         public int? CurrentChapterNumber { get; init; }
+        public string NewBibleTypeDisplayText { get; init; } = string.Empty;
         public string NewLanguageDisplayText { get; init; } = string.Empty;
         public string NewTranslationDisplayText { get; init; } = string.Empty;
         public string NewBookDisplayText { get; init; } = string.Empty;
         public string NewChapterDisplayText { get; init; } = string.Empty;
+        public bool NewIsBookVisible { get; init; }
+        public bool NotifyBibleType { get; init; }
         public bool NotifyLanguage { get; init; }
         public bool NotifyTranslation { get; init; }
         public bool NotifyBook { get; init; }
         public bool NotifyChapter { get; init; }
+        public bool NotifyIsBookVisible { get; init; }
         public bool DisplayTextOnlyChanged { get; init; }
         public bool CascadeChangeOccurred { get; init; }
+        public bool BibleTypeDisplayChanged { get; init; }
         public bool LanguageDisplayChanged { get; init; }
         public bool TranslationDisplayChanged { get; init; }
         public bool BookDisplayChanged { get; init; }

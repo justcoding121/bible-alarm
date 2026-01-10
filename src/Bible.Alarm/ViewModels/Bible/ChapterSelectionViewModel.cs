@@ -207,7 +207,7 @@ public sealed class BibleChapterListViewItemModel : ObservableObject, IComparabl
         set => SetProperty(ref isSelected, value);
     }
 
-    public string LookUpPath => chapter.Source?.LookUpPath ?? string.Empty;
+    // LookUpPath is no longer stored in the database - it's computed at runtime by TrackMetadata
     public int Number => chapter.Number;
 
     public string Title => chapter.Title;

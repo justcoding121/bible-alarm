@@ -19,6 +19,7 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible;
 internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 {
     private const int MaxConcurrentLanguageDownloads = 8;
+    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY"];
 
     internal async Task HarvestBibleLinks(
         Dictionary<string, string> biblePublicationCodeToNameMappings,
@@ -79,10 +80,15 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         if (isTestRun)
         {
-            if (filteredLanguages.TryGetValue("E", out var englishName))
+            var testRunLanguages = filteredLanguages
+                .Where(l => TestRunLanguageCodes.Contains(l.Key))
+                .ToDictionary(l => l.Key, l => l.Value);
+
+            if (testRunLanguages.Count > 0)
             {
-                logger.Information("TEST RUN: Processing only English language for publication {PublicationCode}", publicationCode);
-                return new Dictionary<string, string> { ["E"] = englishName };
+                logger.Information("TEST RUN: Processing languages {Languages} for publication {PublicationCode}",
+                    string.Join(", ", testRunLanguages.Keys), publicationCode);
+                return testRunLanguages;
             }
             return null;
         }
@@ -157,7 +163,8 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
     private async Task<Dictionary<string, string>> DiscoverLanguagesFromApi(string publicationCode)
     {
-        var discoveredLanguages = new Dictionary<string, string>();
+        // Use case-insensitive dictionary to avoid duplicates from case differences
+        var discoveredLanguages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum=1&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
         var jsonString = await downloadUtility.GetAsync(harvestLink);
@@ -176,7 +183,8 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         foreach (var item in languages.EnumerateObject())
         {
-            var languageCode = item.Name;
+            // Normalize language code to uppercase for consistent storage
+            var languageCode = item.Name.ToUpperInvariant();
 
             if (!item.Value.TryGetProperty("name", out var nameElement))
             {

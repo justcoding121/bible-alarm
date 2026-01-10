@@ -44,7 +44,7 @@ public static class CommonBootstrapHelper
         IScheduleMigrationService ScheduleMigrationService,
         IAlarmScheduleService AlarmScheduleService,
         IDispatcher Dispatcher,
-        IBibleTranslationService? BibleTranslationService,
+        IBiblePublicationService? BiblePublicationService,
         IBibleBookService? BibleBookService,
         IMapper Mapper,
         IMediaService? MediaService,
@@ -63,7 +63,7 @@ public static class CommonBootstrapHelper
     /// Loads languages dictionary for cache refresh operations.
     /// Exposed for use by ScheduleEffects to refresh cache after mutations.
     /// </summary>
-    public static async Task<Dictionary<string, Language>?> LoadLanguagesDictionaryForCache(IBibleTranslationService? bibleTranslationService)
+    public static async Task<Dictionary<string, Language>?> LoadLanguagesDictionaryForCache(IBiblePublicationService? BiblePublicationService)
     {
         var scheduleBootstrapService = ServiceProviderManager.GetService<IScheduleBootstrapService>();
         if (scheduleBootstrapService == null)
@@ -99,7 +99,7 @@ public static class CommonBootstrapHelper
         var scheduleMigrationService = ServiceProviderManager.GetService<IScheduleMigrationService>();
         var alarmScheduleService = ServiceProviderManager.GetService<IAlarmScheduleService>();
         var dispatcher = ServiceProviderManager.GetService<IDispatcher>();
-        var bibleTranslationService = ServiceProviderManager.GetService<IBibleTranslationService>();
+        var BiblePublicationService = ServiceProviderManager.GetService<IBiblePublicationService>();
         var bibleBookService = ServiceProviderManager.GetService<IBibleBookService>();
         var mapper = ServiceProviderManager.GetService<IMapper>();
         var mediaService = ServiceProviderManager.GetService<IMediaService>();
@@ -117,7 +117,7 @@ public static class CommonBootstrapHelper
             scheduleMigrationService,
             alarmScheduleService,
             dispatcher,
-            bibleTranslationService,
+            BiblePublicationService,
             bibleBookService,
             mapper,
             mediaService,

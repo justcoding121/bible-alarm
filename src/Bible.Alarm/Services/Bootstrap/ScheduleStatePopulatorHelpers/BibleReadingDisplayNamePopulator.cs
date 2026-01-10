@@ -85,11 +85,11 @@ internal sealed class BibleReadingDisplayNamePopulator
         BibleReadingSchedule bibleReading,
         LookupDataLoader.LookupData lookupData)
     {
-        if (bibleReading.BookNumber > 0 &&
+        if (bibleReading.BookNumber.HasValue && bibleReading.BookNumber.Value > 0 &&
             !string.IsNullOrWhiteSpace(bibleReading.LanguageCode) &&
             !string.IsNullOrWhiteSpace(bibleReading.PublicationCode))
         {
-            var bookKey = (bibleReading.LanguageCode, bibleReading.PublicationCode, bibleReading.BookNumber);
+            var bookKey = (bibleReading.LanguageCode, bibleReading.PublicationCode, bibleReading.BookNumber.Value);
             if (lookupData.Books.TryGetValue(bookKey, out var bookName))
             {
                 scheduleStateItem.BibleReadingBookName = bookName;

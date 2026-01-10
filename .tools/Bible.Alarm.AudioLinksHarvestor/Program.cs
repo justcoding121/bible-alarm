@@ -10,7 +10,9 @@ using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible;
+using Bible.Alarm.AudioLinksHarvestor.Harvestors.Drama;
 using Bible.Alarm.AudioLinksHarvestor.Harvestors.Music;
+using Bible.Alarm.AudioLinksHarvestor.Harvestors.Video;
 using Bible.Alarm.AudioLinksHarvestor.Models;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Constants;
@@ -70,6 +72,8 @@ public class Program
 
         services.AddTransient<JwBibleHarvester>();
         services.AddTransient<MusicHarvester>();
+        services.AddTransient<DramaHarvester>();
+        services.AddTransient<VideoHarvester>();
         services.AddTransient<DbSeeder>();
         services.AddTransient<DownloadUtility>();
 
@@ -80,7 +84,7 @@ public class Program
 
         if (isTestRun)
         {
-            logger.Information("=== TEST RUN MODE: Processing only English language per publication ===");
+            logger.Information("=== TEST RUN MODE: Processing English (E) and Malayalam (MY) languages per publication ===");
         }
 
         try
@@ -92,13 +96,16 @@ public class Program
 
             var bibleTasks = new List<Task>();
 
-            var languageCodeToNameMappings = new ConcurrentDictionary<string, string>();
-            var languageCodeToEditionsMapping = new ConcurrentDictionary<string, List<string>>();
+            // Use case-insensitive dictionaries for language codes
+            var languageCodeToNameMappings = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var languageCodeToEditionsMapping = new ConcurrentDictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
             await using (var harvesterScope = serviceProvider.CreateAsyncScope())
             {
                 var bibleHarvester = harvesterScope.ServiceProvider.GetRequiredService<JwBibleHarvester>();
                 var musicHarvester = harvesterScope.ServiceProvider.GetRequiredService<MusicHarvester>();
+                var dramaHarvester = harvesterScope.ServiceProvider.GetRequiredService<DramaHarvester>();
+                var videoHarvester = harvesterScope.ServiceProvider.GetRequiredService<VideoHarvester>();
 
                 bibleTasks.Add(bibleHarvester.HarvestBibleLinks(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping, isTestRun));
 
@@ -108,7 +115,17 @@ public class Program
                     musicHarvester.HarvestMusicMelodyLinks(isTestRun)
                 };
 
-                await Task.WhenAll([.. bibleTasks, .. musicTasks]);
+                var dramaTasks = new List<Task>
+                {
+                    dramaHarvester.HarvestDramaLinks(isTestRun)
+                };
+
+                var videoTasks = new List<Task>
+                {
+                    videoHarvester.HarvestVideoLinks(isTestRun)
+                };
+
+                await Task.WhenAll([.. bibleTasks, .. musicTasks, .. dramaTasks, .. videoTasks]);
             }
 
             WriteBibleIndex(languageCodeToNameMappings, languageCodeToEditionsMapping);

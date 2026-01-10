@@ -33,9 +33,17 @@ public sealed class ScheduleStateItem : IComparable
 
     // Bible Reading Schedule properties (flattened)
     public int? BibleReadingScheduleId { get; set; }
+
     public string? BibleReadingLanguageCode { get; set; }
     public string? BibleReadingPublicationCode { get; set; }
+
+    /// <summary>
+    /// Book number for traditional Bible readings (1-66).
+    /// Null for drama publications which don't have books.
+    /// Use PublicationTypeHelper.HasBookStructure() to check if this applies.
+    /// </summary>
     public int? BibleReadingBookNumber { get; set; }
+
     public int? BibleReadingChapterNumber { get; set; }
     public TimeSpan? BibleReadingFinishedDuration { get; set; }
 

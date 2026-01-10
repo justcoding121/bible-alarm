@@ -17,11 +17,11 @@ public sealed class SchedulePersistenceService(
     IDispatcher dispatcher,
     IMediaCacheService mediaCacheService,
     IAlarmScheduleService alarmScheduleService,
-    IBibleTranslationService bibleTranslationService,
+    IBiblePublicationService BiblePublicationService,
     IMelodyMusicService melodyMusicService)
     : ISchedulePersistenceService, IDisposable
 {
-    private readonly IBibleTranslationService bibleTranslationService = bibleTranslationService;
+    private readonly IBiblePublicationService BiblePublicationService = BiblePublicationService;
     private readonly IMelodyMusicService melodyMusicService = melodyMusicService;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;

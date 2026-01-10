@@ -12,7 +12,7 @@ public sealed class BibleNavigationService(
 
     public async Task<bool> MoveToPreviousBookAsync(BibleReadingSchedule schedule)
     {
-        if (schedule == null)
+        if (schedule == null || !schedule.BookNumber.HasValue)
         {
             return false;
         }
@@ -24,7 +24,7 @@ public sealed class BibleNavigationService(
             var nextBook = await playlistService.GetPreviousBibleBook(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                schedule.BookNumber);
+                schedule.BookNumber.Value);
 
             if (nextBook.Value == null)
             {
@@ -45,7 +45,7 @@ public sealed class BibleNavigationService(
 
     public async Task<bool> MoveToNextBookAsync(BibleReadingSchedule schedule)
     {
-        if (schedule == null)
+        if (schedule == null || !schedule.BookNumber.HasValue)
         {
             return false;
         }
@@ -57,7 +57,7 @@ public sealed class BibleNavigationService(
             var nextBook = await playlistService.GetNextBibleBook(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                schedule.BookNumber);
+                schedule.BookNumber.Value);
 
             if (nextBook.Value == null)
             {
@@ -78,7 +78,7 @@ public sealed class BibleNavigationService(
 
     public async Task<bool> MoveToPreviousChapterAsync(BibleReadingSchedule schedule)
     {
-        if (schedule == null)
+        if (schedule == null || !schedule.BookNumber.HasValue)
         {
             return false;
         }
@@ -90,7 +90,7 @@ public sealed class BibleNavigationService(
             var prevChapter = await playlistService.GetPreviousBibleChapter(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                schedule.BookNumber,
+                schedule.BookNumber.Value,
                 schedule.ChapterNumber);
 
             if (prevChapter.Key == null || prevChapter.Value == null)
@@ -112,7 +112,7 @@ public sealed class BibleNavigationService(
 
     public async Task<bool> MoveToNextChapterAsync(BibleReadingSchedule schedule)
     {
-        if (schedule == null)
+        if (schedule == null || !schedule.BookNumber.HasValue)
         {
             return false;
         }
@@ -124,7 +124,7 @@ public sealed class BibleNavigationService(
             var nextChapter = await playlistService.GetNextBibleChapter(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                schedule.BookNumber,
+                schedule.BookNumber.Value,
                 schedule.ChapterNumber);
 
             if (nextChapter.Key == null || nextChapter.Value == null)

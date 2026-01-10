@@ -13,7 +13,7 @@ namespace Bible.Alarm.Services.Schedule;
 public sealed class ScheduleInitializationService : IScheduleInitializationService
 {
     private readonly ILogger logger;
-    private readonly IBibleTranslationService? bibleTranslationService;
+    private readonly IBiblePublicationService? BiblePublicationService;
     private readonly IMelodyMusicService melodyMusicService;
     private readonly IMapper mapper;
     private readonly IScheduleDisplayNameService scheduleDisplayNameService;
@@ -21,14 +21,14 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
 
     public ScheduleInitializationService(
         ILogger logger,
-        IBibleTranslationService? bibleTranslationService,
+        IBiblePublicationService? BiblePublicationService,
         IMelodyMusicService melodyMusicService,
         IMapper mapper,
         IScheduleDisplayNameService scheduleDisplayNameService,
         IAlarmScheduleService? alarmScheduleService = null)
     {
         this.logger = logger;
-        this.bibleTranslationService = bibleTranslationService;
+        this.BiblePublicationService = BiblePublicationService;
         this.melodyMusicService = melodyMusicService;
         this.mapper = mapper;
         this.scheduleDisplayNameService = scheduleDisplayNameService;
@@ -37,11 +37,11 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
 
     public async Task<ScheduleStateItem> InitializeNewScheduleAsync()
     {
-        if (bibleTranslationService == null || melodyMusicService == null)
+        if (BiblePublicationService == null || melodyMusicService == null)
         {
             throw new InvalidOperationException("Required services are not initialized");
         }
-        var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, bibleTranslationService, melodyMusicService);
+        var sampleSchedule = await AlarmSchedule.GetSampleSchedule(true, BiblePublicationService, melodyMusicService);
 
         // Map sample schedule to state item
         var scheduleStateItem = mapper.Map<ScheduleStateItem>(sampleSchedule);

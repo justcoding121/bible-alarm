@@ -13,16 +13,16 @@ namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 /// </summary>
 internal sealed class LookupDataLoader
 {
-    private readonly IBibleTranslationService? bibleTranslationService;
+    private readonly IBiblePublicationService? BiblePublicationService;
     private readonly IBibleBookService? bibleBookService;
     private readonly IMediaService? mediaService;
 
     public LookupDataLoader(
-        IBibleTranslationService? bibleTranslationService,
+        IBiblePublicationService? BiblePublicationService,
         IBibleBookService? bibleBookService,
         IMediaService? mediaService)
     {
-        this.bibleTranslationService = bibleTranslationService;
+        this.BiblePublicationService = BiblePublicationService;
         this.bibleBookService = bibleBookService;
         this.mediaService = mediaService;
     }
@@ -34,8 +34,8 @@ internal sealed class LookupDataLoader
         {
             try
             {
-                var translation = bibleTranslationService != null 
-                    ? await bibleTranslationService.GetByLanguageAndCodeWithBooksAsync(
+                var translation = BiblePublicationService != null 
+                    ? await BiblePublicationService.GetByLanguageAndCodeWithBooksAsync(
                         key.LanguageCode, key.PublicationCode)
                     : null;
                 return (Key: key, Translation: translation);
@@ -44,7 +44,7 @@ internal sealed class LookupDataLoader
             {
                 Log.Logger.Warning(ex, "Error loading translation {LanguageCode}/{PublicationCode}",
                     key.LanguageCode, key.PublicationCode);
-                return (Key: key, Translation: (BibleTranslation?)null);
+                return (Key: key, Translation: (BiblePublication?)null);
             }
         }).ToList();
 
@@ -159,7 +159,7 @@ internal sealed class LookupDataLoader
     }
 
     public sealed record LookupData(
-        Dictionary<(string LanguageCode, string PublicationCode), BibleTranslation> Translations,
+        Dictionary<(string LanguageCode, string PublicationCode), BiblePublication> Translations,
         Dictionary<(string LanguageCode, string PublicationCode, int BookNumber), string> Books,
         Dictionary<string, Language> VocalLanguages,
         Dictionary<(string LanguageCode, string PublicationCode), VocalMusic> VocalReleases,

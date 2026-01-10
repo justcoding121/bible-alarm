@@ -23,7 +23,7 @@ public class PlaylistBibleTrackBuilder
         this.mediaService = mediaService;
     }
 
-    public record ChapterInfo(int BookNumber, BibleChapter Chapter, string Url, string LookUpPath);
+    public record ChapterInfo(int BookNumber, BibleChapter Chapter, string Url);
 
     public async Task<List<PlayItem>> BuildBibleTracks(
         int scheduleId,
@@ -39,7 +39,6 @@ public class PlaylistBibleTrackBuilder
         var currentBookNumber = initialChapterInfo.BookNumber;
         var currentChapter = initialChapterInfo.Chapter;
         var currentUrl = initialChapterInfo.Url;
-        var currentLookUpPath = initialChapterInfo.LookUpPath;
 
         while (numberOfChaptersToRead > 0)
         {
@@ -48,7 +47,6 @@ public class PlaylistBibleTrackBuilder
                 bibleReadingSchedule,
                 currentBookNumber,
                 currentChapter.Number,
-                currentLookUpPath,
                 numberOfChaptersToRead,
                 schedule,
                 ref markedSeekTrack);
@@ -62,7 +60,6 @@ public class PlaylistBibleTrackBuilder
                 currentBookNumber = next.BookNumber;
                 currentChapter = next.Chapter;
                 currentUrl = next.Url;
-                currentLookUpPath = next.LookUpPath;
             }
         }
 
@@ -71,28 +68,29 @@ public class PlaylistBibleTrackBuilder
 
     public async Task<ChapterInfo> GetInitialChapterInfo(BibleReadingSchedule bibleReadingSchedule)
     {
+        var bookNumber = bibleReadingSchedule.BookNumber ?? throw new InvalidOperationException("BookNumber is null");
+        
         var chapters = await mediaService.GetBibleChapters(
             bibleReadingSchedule.LanguageCode,
             bibleReadingSchedule.PublicationCode,
-            bibleReadingSchedule.BookNumber);
+            bookNumber);
 
         if (!chapters.TryGetValue(bibleReadingSchedule.ChapterNumber, out var chapterDetail))
         {
             logger.Error(
-                $"Chapter: ${bibleReadingSchedule.ChapterNumber}, book: {bibleReadingSchedule.BookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup.");
-            throw new InvalidOperationException($"Chapter {bibleReadingSchedule.ChapterNumber} not found in book {bibleReadingSchedule.BookNumber}");
+                $"Chapter: ${bibleReadingSchedule.ChapterNumber}, book: {bookNumber}, language: {bibleReadingSchedule.LanguageCode}, pub code: {bibleReadingSchedule.PublicationCode} not in lookup.");
+            throw new InvalidOperationException($"Chapter {bibleReadingSchedule.ChapterNumber} not found in book {bookNumber}");
         }
 
         if (chapterDetail.Source == null)
         {
-            throw new InvalidOperationException($"Chapter {bibleReadingSchedule.ChapterNumber} Source is null in book {bibleReadingSchedule.BookNumber}");
+            throw new InvalidOperationException($"Chapter {bibleReadingSchedule.ChapterNumber} Source is null in book {bookNumber}");
         }
 
         return new ChapterInfo(
-            bibleReadingSchedule.BookNumber,
+            bookNumber,
             chapterDetail,
-            chapterDetail.Source.Url,
-            chapterDetail.Source.LookUpPath);
+            chapterDetail.Source.Url);
     }
 
     private TrackMetadata CreateTrackMetadata(
@@ -100,7 +98,6 @@ public class PlaylistBibleTrackBuilder
         BibleReadingSchedule bibleReadingSchedule,
         int bookNumber,
         int chapterNumber,
-        string lookUpPath,
         int remainingChapters,
         AlarmSchedule schedule,
         ref bool markedSeekTrack)
@@ -110,7 +107,7 @@ public class PlaylistBibleTrackBuilder
             ScheduleId = scheduleId,
             PublicationCode = bibleReadingSchedule.PublicationCode,
             LanguageCode = bibleReadingSchedule.LanguageCode,
-            LookUpPath = lookUpPath,
+            // LookUpPath is now computed from LanguageCode, PublicationCode, BookNumber, ChapterNumber
             BookNumber = bookNumber,
             ChapterNumber = chapterNumber,
             IsLastTrack = remainingChapters == 1
@@ -173,8 +170,6 @@ public class PlaylistBibleTrackBuilder
         return new ChapterInfo(
             next.Key.Number,
             next.Value,
-            next.Value.Source.Url,
-            next.Value.Source.LookUpPath);
+            next.Value.Source.Url);
     }
 }
-

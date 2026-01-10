@@ -67,7 +67,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         IState<ApplicationState> state,
         IState<PlaybackState> playbackState,
         IDispatcher dispatcher,
-        IBibleTranslationService bibleTranslationService,
+        IBiblePublicationService BiblePublicationService,
         IMelodyMusicService melodyMusicService,
         IMediaService mediaService,
         IMapper mapper,

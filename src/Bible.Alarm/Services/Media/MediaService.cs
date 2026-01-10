@@ -10,7 +10,7 @@ namespace Bible.Alarm.Services.Media;
 
 public sealed class MediaService(
     IMediaIndexService mediaIndexService,
-    IBibleTranslationService bibleTranslationService,
+    IBiblePublicationService BiblePublicationService,
     IBibleBookService bibleBookService,
     IBibleChapterService bibleChapterService,
     IMelodyMusicService melodyMusicService,
@@ -18,7 +18,7 @@ public sealed class MediaService(
     : IMediaService, IDisposable
 {
     private readonly IMediaIndexService mediaIndexService = mediaIndexService ?? throw new ArgumentNullException(nameof(mediaIndexService));
-    private readonly IBibleTranslationService bibleTranslationService = bibleTranslationService ?? throw new ArgumentNullException(nameof(bibleTranslationService));
+    private readonly IBiblePublicationService BiblePublicationService = BiblePublicationService ?? throw new ArgumentNullException(nameof(BiblePublicationService));
     private readonly IBibleBookService bibleBookService = bibleBookService ?? throw new ArgumentNullException(nameof(bibleBookService));
     private readonly IBibleChapterService bibleChapterService = bibleChapterService ?? throw new ArgumentNullException(nameof(bibleChapterService));
     private readonly IMelodyMusicService melodyMusicService = melodyMusicService ?? throw new ArgumentNullException(nameof(melodyMusicService));
@@ -29,13 +29,13 @@ public sealed class MediaService(
     public async Task<Dictionary<string, Language>> GetBibleLanguages()
     {
         await mediaIndexService.Verify();
-        return await bibleTranslationService.GetDistinctLanguagesAsync(cancellationTokenSource.Token);
+        return await BiblePublicationService.GetDistinctLanguagesAsync(cancellationTokenSource.Token);
     }
 
-    public async Task<Dictionary<string, BibleTranslation>> GetBibleTranslations(string languageCode)
+    public async Task<Dictionary<string, BiblePublication>> GetBibleTranslations(string languageCode)
     {
         await mediaIndexService.Verify();
-        return await bibleTranslationService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
+        return await BiblePublicationService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
     }
 
     public async Task<SortedDictionary<int, BibleBook>> GetBibleBooks(

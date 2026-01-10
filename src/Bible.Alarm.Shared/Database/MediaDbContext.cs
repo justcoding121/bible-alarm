@@ -16,10 +16,12 @@ public class MediaDbContext : DbContext
     }
 
     public DbSet<Language> Languages { get; set; }
+    public DbSet<AudioSourceBaseUrl> AudioSourceBaseUrls { get; set; }
 
-    public DbSet<BibleTranslation> BibleTranslations { get; set; }
-    public DbSet<BibleBook> BibleBook { get; set; }
-    public DbSet<BibleChapter> BibleChapter { get; set; }
+    public DbSet<BiblePublication> BiblePublications { get; set; }
+    public DbSet<BibleBook> BibleBooks { get; set; }
+    public DbSet<BibleChapter> BibleChapters { get; set; }
+    public DbSet<PublicationTrack> PublicationTracks { get; set; }
     public DbSet<MelodyMusic> MelodyMusic { get; set; }
     public DbSet<VocalMusic> VocalMusic { get; set; }
 

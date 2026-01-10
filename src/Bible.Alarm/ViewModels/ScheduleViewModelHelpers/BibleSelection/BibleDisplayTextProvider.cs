@@ -23,6 +23,35 @@ public sealed class BibleDisplayTextProvider
         this.logger = logger;
     }
 
+    /// <summary>
+    /// Gets the display text for the content type (Bible Reading or Drama type).
+    /// </summary>
+    public string GetBibleTypeDisplayText()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BibleReadingPublicationCode))
+        {
+            return "Bible Reading";
+        }
+
+        return PublicationTypeHelper.GetContentTypeDisplayName(currentSchedule.BibleReadingPublicationCode);
+    }
+
+    /// <summary>
+    /// Determines if the book selection row should be visible.
+    /// Returns false for dramas which don't have book selection.
+    /// </summary>
+    public bool GetIsBookVisible()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BibleReadingPublicationCode))
+        {
+            return true; // Default to visible for traditional Bible reading
+        }
+
+        return PublicationTypeHelper.HasBookStructure(currentSchedule.BibleReadingPublicationCode);
+    }
+
     public string GetLanguageDisplayText()
     {
         var currentSchedule = state.Value.CurrentSchedule;
@@ -79,21 +108,24 @@ public sealed class BibleDisplayTextProvider
 
     public string GetChapterDisplayText()
     {
+        var currentSchedule = state.Value.CurrentSchedule;
+
+        // Determine the label based on publication type
+        var label = PublicationTypeHelper.GetChapterLabel(currentSchedule?.BibleReadingPublicationCode);
+
         // Read directly from CurrentBibleReadingSchedule so it updates immediately when chapter changes
         var bibleReading = state.Value.CurrentBibleReadingSchedule;
         if (bibleReading != null && bibleReading.ChapterNumber > 0)
         {
-            // ChapterNumber is always valid (1-150) if BibleReadingSchedule exists
-            return $"Chapter {bibleReading.ChapterNumber}";
+            return $"{label} {bibleReading.ChapterNumber}";
         }
 
         // Fallback to CurrentSchedule if CurrentBibleReadingSchedule is not set (e.g., new schedule)
-        var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule != null &&
             currentSchedule.BibleReadingChapterNumber.HasValue &&
             currentSchedule.BibleReadingChapterNumber.Value > 0)
         {
-            return $"Chapter {currentSchedule.BibleReadingChapterNumber.Value}";
+            return $"{label} {currentSchedule.BibleReadingChapterNumber.Value}";
         }
 
         return string.Empty;

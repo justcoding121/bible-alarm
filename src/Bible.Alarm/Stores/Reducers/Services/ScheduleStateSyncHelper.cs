@@ -2,6 +2,7 @@
 using Bible;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.DataStructures;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Serilog;
@@ -49,26 +50,48 @@ public static class ScheduleStateSyncHelper
 
     public static bool HasValidBibleReadingProperties(ScheduleStateItem schedule)
     {
-        return !string.IsNullOrWhiteSpace(schedule.BibleReadingLanguageCode) &&
-               !string.IsNullOrWhiteSpace(schedule.BibleReadingPublicationCode) &&
-               schedule.BibleReadingBookNumber.HasValue &&
-               schedule.BibleReadingBookNumber.Value > 0 &&
-               schedule.BibleReadingChapterNumber.HasValue &&
-               schedule.BibleReadingChapterNumber.Value > 0;
+        // Basic required properties for all content types
+        if (string.IsNullOrWhiteSpace(schedule.BibleReadingLanguageCode) ||
+            string.IsNullOrWhiteSpace(schedule.BibleReadingPublicationCode) ||
+            !schedule.BibleReadingChapterNumber.HasValue ||
+            schedule.BibleReadingChapterNumber.Value <= 0)
+        {
+            return false;
+        }
+
+        // For traditional Bible reading (has book structure), BookNumber is required
+        // For dramas (no book structure), BookNumber is not required (null is valid)
+        if (PublicationTypeHelper.HasBookStructure(schedule.BibleReadingPublicationCode))
+        {
+            return schedule.BibleReadingBookNumber.HasValue &&
+                   schedule.BibleReadingBookNumber.Value > 0;
+        }
+
+        // For dramas, BookNumber is not required
+        return true;
     }
 
     public static BibleReadingStateItem CreateBibleReadingScheduleFromCurrent(ScheduleStateItem updatedCurrentSchedule)
     {
-        if (!updatedCurrentSchedule.BibleReadingBookNumber.HasValue || !updatedCurrentSchedule.BibleReadingChapterNumber.HasValue)
+        if (!updatedCurrentSchedule.BibleReadingChapterNumber.HasValue)
         {
-            throw new InvalidOperationException("BibleReadingBookNumber and BibleReadingChapterNumber must have values");
+            throw new InvalidOperationException("BibleReadingChapterNumber must have a value");
         }
+
+        var hasBookStructure = PublicationTypeHelper.HasBookStructure(updatedCurrentSchedule.BibleReadingPublicationCode);
+
+        // For traditional Bible reading (has book structure), BookNumber is required
+        if (hasBookStructure && !updatedCurrentSchedule.BibleReadingBookNumber.HasValue)
+        {
+            throw new InvalidOperationException("BibleReadingBookNumber must have a value for publications with book structure");
+        }
+
         return new BibleReadingStateItem
         {
             Id = updatedCurrentSchedule.BibleReadingScheduleId ?? 0,
             LanguageCode = updatedCurrentSchedule.BibleReadingLanguageCode ?? string.Empty,
             PublicationCode = updatedCurrentSchedule.BibleReadingPublicationCode ?? string.Empty,
-            BookNumber = updatedCurrentSchedule.BibleReadingBookNumber.Value,
+            BookNumber = updatedCurrentSchedule.BibleReadingBookNumber,
             ChapterNumber = updatedCurrentSchedule.BibleReadingChapterNumber.Value,
             FinishedDuration = updatedCurrentSchedule.BibleReadingFinishedDuration ?? TimeSpan.Zero,
             AlarmScheduleId = updatedCurrentSchedule.Id,

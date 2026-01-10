@@ -24,7 +24,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     private readonly IDispatcher dispatcher;
     private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IGeneralSettingsService generalSettingsService;
-    private readonly IBibleTranslationService bibleTranslationService;
+    private readonly IBiblePublicationService BiblePublicationService;
     private readonly IMelodyMusicService melodyMusicService;
     private readonly IDiskCacheService? diskCacheService;
     private readonly CancellationTokenSource cancellationTokenSource = new();
@@ -34,7 +34,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         logger,
         alarmScheduleService,
         generalSettingsService,
-        bibleTranslationService,
+        BiblePublicationService,
         melodyMusicService,
         cancellationTokenSource.Token);
     private readonly PlaylistBibleTrackBuilder bibleTrackBuilder;
@@ -51,7 +51,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         IDispatcher dispatcher,
         IAlarmScheduleService alarmScheduleService,
         IGeneralSettingsService generalSettingsService,
-        IBibleTranslationService bibleTranslationService,
+        IBiblePublicationService BiblePublicationService,
         IMelodyMusicService melodyMusicService,
         IDiskCacheService? diskCacheService)
     {
@@ -60,7 +60,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         this.dispatcher = dispatcher;
         this.alarmScheduleService = alarmScheduleService;
         this.generalSettingsService = generalSettingsService;
-        this.bibleTranslationService = bibleTranslationService;
+        this.BiblePublicationService = BiblePublicationService;
         this.melodyMusicService = melodyMusicService;
         this.diskCacheService = diskCacheService;
         bibleTrackBuilder = new PlaylistBibleTrackBuilder(logger, mediaService);
@@ -208,7 +208,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
 
         var bibleReadingSchedule = schedule.BibleReadingSchedule ?? throw new InvalidOperationException($"BibleReadingSchedule is null for schedule {scheduleId}");
-        var bookNumber = bibleReadingSchedule.BookNumber;
+        var bookNumber = bibleReadingSchedule.BookNumber ?? throw new InvalidOperationException($"BookNumber is null for schedule {scheduleId}");
         var chapter = bibleReadingSchedule.ChapterNumber;
 
         var chapterDetail = await mediaService.GetBibleChapter(bibleReadingSchedule.LanguageCode,
@@ -224,14 +224,13 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var publicationCode = bibleReadingSchedule.PublicationCode;
         var languageCode = bibleReadingSchedule.LanguageCode;
         var url = chapterDetail.Source?.Url ?? string.Empty;
-        var lookUpPath = chapterDetail.Source?.LookUpPath ?? string.Empty;
 
+        // LookUpPath is now computed from LanguageCode, PublicationCode, BookNumber, ChapterNumber
         var trackMetadata = new TrackMetadata
         {
             ScheduleId = scheduleId,
             PublicationCode = publicationCode,
             LanguageCode = languageCode,
-            LookUpPath = lookUpPath,
             BookNumber = bookNumber,
             ChapterNumber = chapter,
             IsLastTrack = false
@@ -266,14 +265,14 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     public async Task MoveToNextBibleChapter(int scheduleId)
     {
         var schedule = await scheduleUpdater.GetScheduleWithBibleReadingAsync(scheduleId);
-        if (schedule.BibleReadingSchedule == null)
+        if (schedule.BibleReadingSchedule == null || !schedule.BibleReadingSchedule.BookNumber.HasValue)
         {
             return;
         }
         var next = await chapterNavigator.GetNextBibleChapter(
             schedule.BibleReadingSchedule.LanguageCode,
             schedule.BibleReadingSchedule.PublicationCode,
-            schedule.BibleReadingSchedule.BookNumber,
+            schedule.BibleReadingSchedule.BookNumber.Value,
             schedule.BibleReadingSchedule.ChapterNumber);
 
         var updatedSchedule = await scheduleUpdater.UpdateScheduleToNextChapterAsync(scheduleId, next);
@@ -283,14 +282,14 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     public async Task MoveToPreviousBibleChapter(int scheduleId)
     {
         var schedule = await scheduleUpdater.GetScheduleWithBibleReadingAsync(scheduleId);
-        if (schedule.BibleReadingSchedule == null)
+        if (schedule.BibleReadingSchedule == null || !schedule.BibleReadingSchedule.BookNumber.HasValue)
         {
             return;
         }
         var previous = await chapterNavigator.GetPreviousBibleChapter(
             schedule.BibleReadingSchedule.LanguageCode,
             schedule.BibleReadingSchedule.PublicationCode,
-            schedule.BibleReadingSchedule.BookNumber,
+            schedule.BibleReadingSchedule.BookNumber.Value,
             schedule.BibleReadingSchedule.ChapterNumber);
 
         if (previous.Key == null || previous.Value == null)
@@ -405,12 +404,12 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         {
             throw new InvalidOperationException($"Melody track {melodyTrack.Number} Source is null");
         }
+        // LookUpPath is now computed from PublicationCode, LanguageCode (null for melody), and TrackNumber
         return new PlayItem(new TrackMetadata
         {
             ScheduleId = schedule.Id,
             PublicationCode = melodyMusic.PublicationCode,
-            TrackNumber = melodyTrack.Number,
-            LookUpPath = melodyTrack.Source.LookUpPath
+            TrackNumber = melodyTrack.Number
         }, melodyTrack.Source.Url);
     }
 
@@ -420,13 +419,13 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         {
             throw new InvalidOperationException($"Vocal track {vocalTrack.Number} Source is null");
         }
+        // LookUpPath is now computed from PublicationCode, LanguageCode, and TrackNumber
         return new PlayItem(new TrackMetadata
         {
             ScheduleId = schedule.Id,
             PublicationCode = vocalMusic.PublicationCode,
             LanguageCode = vocalMusic.LanguageCode,
-            TrackNumber = vocalTrack.Number,
-            LookUpPath = vocalTrack.Source.LookUpPath
+            TrackNumber = vocalTrack.Number
         }, vocalTrack.Source.Url);
     }
 

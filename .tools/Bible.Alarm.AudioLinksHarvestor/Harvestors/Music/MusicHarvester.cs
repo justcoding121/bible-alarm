@@ -23,7 +23,9 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
     private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new([
         new KeyValuePair<string, string>("osg","Original Songs"),
         new KeyValuePair<string, string>("sjjc","\"Sing Out Joyfully\" to Jehovah (2016)"),
-        new KeyValuePair<string, string>("snv","Sing to Jehovah (2014) ")
+        new KeyValuePair<string, string>("sjji","\"Sing Out Joyfully\" to Jehovah—Instrumental"),
+        new KeyValuePair<string, string>("snv","Sing to Jehovah (2014) "),
+        new KeyValuePair<string, string>("pksjj","Children's Songs")
     ]);
 
     internal async Task HarvestVocalMusicLinks(bool isTestRun = false)
@@ -101,11 +103,14 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
                 continue;
             }
 
-            languageEntries.Add((item.Name, language));
+            // Normalize language code to uppercase for consistent storage
+            languageEntries.Add((item.Name.ToUpperInvariant(), language));
         }
 
         return languageEntries;
     }
+
+    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY"];
 
     private static List<(string Code, string Name)>? FilterLanguageEntriesForTestRun(
         List<(string Code, string Name)> languageEntries,
@@ -117,13 +122,8 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
             return languageEntries;
         }
 
-        var englishEntry = languageEntries.FirstOrDefault(e => e.Code == "E");
-        if (englishEntry.Code == "E")
-        {
-            return [englishEntry];
-        }
-
-        return null;
+        var testRunEntries = languageEntries.Where(e => TestRunLanguageCodes.Contains(e.Code)).ToList();
+        return testRunEntries.Count > 0 ? testRunEntries : null;
     }
 
     private async Task ProcessLanguageEntries(
@@ -283,13 +283,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         foreach (var publicationDownloadCode in publicationDownloadCodes)
         {
-            var musicFiles = await FetchAndParseMusicFiles(publicationDownloadCode, languageCode);
-            if (!musicFiles.HasValue)
-            {
-                continue;
-            }
-
-            ProcessMusicFiles(musicFiles.Value, publicationDownloadCode, languageCode, ref trackNumber, musicTracks);
+            trackNumber = await FetchAndProcessMusicFiles(publicationDownloadCode, languageCode, trackNumber, musicTracks);
         }
 
         if (musicTracks.Count == 0)
@@ -308,7 +302,11 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
             : $"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languageCode}/{publicationCode}";
     }
 
-    private async Task<JsonElement?> FetchAndParseMusicFiles(string publicationDownloadCode, string? languageCode)
+    private async Task<int> FetchAndProcessMusicFiles(
+        string publicationDownloadCode,
+        string? languageCode,
+        int trackNumber,
+        List<MusicTrack> musicTracks)
     {
         string jsonString;
         try
@@ -318,15 +316,31 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
         {
-            return null;
+            return trackNumber;
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Failed to fetch tracks for publication {PublicationCode}. Skipping.", publicationDownloadCode);
-            return null;
+            return trackNumber;
         }
 
-        return ParseMusicFilesFromJson(jsonString, languageCode);
+        // Parse and process within the same scope to keep JsonDocument alive
+        using var doc = JsonDocument.Parse(jsonString);
+        var root = doc.RootElement;
+
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
+        {
+            return trackNumber;
+        }
+
+        var lc = languageCode ?? "E";
+        if (!filesElement.TryGetProperty(lc, out var languageFiles) ||
+            !languageFiles.TryGetProperty("MP3", out var musicFiles))
+        {
+            return trackNumber;
+        }
+
+        return ProcessMusicFiles(musicFiles, publicationDownloadCode, languageCode, trackNumber, musicTracks);
     }
 
     private static string BuildMusicHarvestLink(string publicationDownloadCode, string? languageCode)
@@ -335,31 +349,11 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         return $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationDownloadCode}&fileformat=MP3&alllangs=0{langParam}&txtCMSLang=E";
     }
 
-    private static JsonElement? ParseMusicFilesFromJson(string jsonString, string? languageCode)
-    {
-        using var doc = JsonDocument.Parse(jsonString);
-        var root = doc.RootElement;
-
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
-        {
-            return null;
-        }
-
-        var lc = languageCode ?? "E";
-        if (!filesElement.TryGetProperty(lc, out var languageFiles) ||
-            !languageFiles.TryGetProperty("MP3", out var musicFiles))
-        {
-            return null;
-        }
-
-        return musicFiles;
-    }
-
-    private static void ProcessMusicFiles(
+    private static int ProcessMusicFiles(
         JsonElement musicFiles,
         string publicationDownloadCode,
         string? languageCode,
-        ref int trackNumber,
+        int trackNumber,
         List<MusicTrack> musicTracks)
     {
         foreach (var musicFile in musicFiles.EnumerateArray())
@@ -378,6 +372,8 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
             musicTracks.Add(musicTrack);
             trackNumber++;
         }
+
+        return trackNumber;
     }
 
     private static bool TryExtractMusicTrackData(JsonElement musicFile, out string url, out int track, out string title)
@@ -426,15 +422,16 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         string publicationDownloadCode,
         string? languageCode)
     {
-        var langParam = languageCode == null ? "&langwritten=E" : $"&langwritten={languageCode}";
-        var lookUpPath = $"?output=json&pub={publicationDownloadCode}&fileformat=MP3{langParam}&txtCMSLang=E&track={track}";
+        // LookUpPath is no longer stored in the database - it's computed at runtime
+        // The parameters are still passed in case we need them for other purposes
+        _ = publicationDownloadCode;
+        _ = languageCode;
 
         return new MusicTrack
         {
             Number = trackNumber,
             Title = title,
-            Url = url,
-            LookUpPath = lookUpPath
+            Url = url
         };
     }
 

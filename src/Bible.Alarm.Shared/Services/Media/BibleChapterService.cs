@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,7 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var chapters = await dbContext.BibleTranslations
+            var chapters = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Books)
@@ -57,7 +58,7 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.BibleTranslations
+            return await dbContext.BiblePublications
                 .AsNoTracking()
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Books)
@@ -82,18 +83,37 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var chapter = await dbContext.BibleTranslations
+            var chapter = await dbContext.BiblePublications
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Books)
                 .Where(x => x.Number == bookNumber)
                 .SelectMany(x => x.Chapters)
                 .Include(x => x.Source)
+                .ThenInclude(s => s!.BaseUrlEntity)
                 .Where(x => x.Number == chapterNumber)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (chapter?.Source != null)
             {
-                chapter.Source.Url = url;
+                // Extract path from the new URL and update UrlPath
+                var (baseUrl, urlPath) = ExtractBaseUrlAndPath(url);
+                chapter.Source.UrlPath = urlPath;
+                
+                // Update BaseUrl if it changed (rare, but handle it)
+                if (chapter.Source.BaseUrlEntity.BaseUrl != baseUrl)
+                {
+                    var existingBaseUrl = await dbContext.AudioSourceBaseUrls
+                        .FirstOrDefaultAsync(x => x.BaseUrl == baseUrl, cancellationToken);
+                    if (existingBaseUrl != null)
+                    {
+                        chapter.Source.BaseUrlEntity = existingBaseUrl;
+                    }
+                    else
+                    {
+                        chapter.Source.BaseUrlEntity = new AudioSourceBaseUrl { BaseUrl = baseUrl };
+                    }
+                }
+                
                 await dbContext.SaveChangesAsync(cancellationToken);
             }
         }
@@ -102,6 +122,26 @@ public sealed class BibleChapterService(IServiceScopeFactory scopeFactory, ILogg
             logger.Error(ex, "Error updating BibleChapter URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, BookNumber={BookNumber}, ChapterNumber={ChapterNumber}",
                 languageCode, publicationCode, bookNumber, chapterNumber);
             throw;
+        }
+    }
+
+    private static (string BaseUrl, string UrlPath) ExtractBaseUrlAndPath(string fullUrl)
+    {
+        if (string.IsNullOrEmpty(fullUrl))
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        try
+        {
+            var uri = new Uri(fullUrl);
+            var baseUrl = $"{uri.Scheme}://{uri.Host}";
+            var urlPath = uri.PathAndQuery;
+            return (baseUrl, urlPath);
+        }
+        catch (UriFormatException)
+        {
+            return (string.Empty, fullUrl);
         }
     }
 

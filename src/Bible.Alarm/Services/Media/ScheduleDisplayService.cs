@@ -48,7 +48,7 @@ public sealed class ScheduleDisplayService(
                 scheduleToUse = schedule.BibleReadingSchedule;
             }
 
-            if (scheduleToUse == null)
+            if (scheduleToUse == null || !scheduleToUse.BookNumber.HasValue)
             {
                 return string.Empty;
             }
@@ -56,7 +56,7 @@ public sealed class ScheduleDisplayService(
             var bookName = await bibleBookService.GetBookNameAsync(
                 scheduleToUse.LanguageCode,
                 scheduleToUse.PublicationCode,
-                scheduleToUse.BookNumber,
+                scheduleToUse.BookNumber.Value,
                 cancellationTokenSource.Token);
 
             if (bookName == null)

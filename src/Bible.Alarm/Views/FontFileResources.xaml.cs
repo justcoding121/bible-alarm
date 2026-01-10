@@ -112,4 +112,6 @@ public sealed class GlyphNames
     public static string ExclamationTriangle = "\uf071";
     // Font Awesome checkmark icon
     public static string Check = "\uf00c";
+    // Font Awesome book-bible icon (for Bible type selection)
+    public static string Bible = "\uf647";
 }

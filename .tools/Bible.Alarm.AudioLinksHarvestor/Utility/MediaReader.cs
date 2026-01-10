@@ -5,7 +5,9 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Models;
 using Bible.Alarm.AudioLinksHarvestor.Models.Bible;
+using Bible.Alarm.AudioLinksHarvestor.Models.Drama;
 using Bible.Alarm.AudioLinksHarvestor.Models.Music;
+using Bible.Alarm.AudioLinksHarvestor.Models.Video;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 
@@ -86,6 +88,76 @@ public class MediaReader(string indexRoot)
         return new SortedDictionary<int, MusicTrack>(JsonSerializer.Deserialize<IEnumerable<MusicTrack>>(melodyTracks)!
                                                 .ToDictionary(x => x.Number, x => x));
     }
+
+    #region Drama
+
+    public async Task<Dictionary<string, Language>> GetDramaLanguages()
+    {
+        var root = indexRoot;
+        var languageIndex = Path.Combine(root, "Audio", "Drama", "languages.json");
+        var languages = await File.ReadAllTextAsync(languageIndex);
+        return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!
+            .ToDictionary(x => x.Code.ToUpperInvariant(), x => x); // Normalize keys to uppercase
+    }
+
+    public async Task<Dictionary<string, Publication>> GetDramaPublications(string languageCode)
+    {
+        var root = indexRoot;
+        // Normalize language code for file path lookup
+        var normalizedCode = languageCode.ToUpperInvariant();
+        var publicationsIndex = Path.Combine(root, "Audio", "Drama", normalizedCode, "publications.json");
+        var publications = await File.ReadAllTextAsync(publicationsIndex);
+        return JsonSerializer.Deserialize<IEnumerable<Publication>>(publications)!
+            .ToDictionary(x => x.Code, x => x);
+    }
+
+    public async Task<SortedDictionary<int, DramaTrack>> GetDramaTracks(string languageCode, string categoryKey)
+    {
+        var root = indexRoot;
+        // Normalize language code for file path lookup
+        var normalizedCode = languageCode.ToUpperInvariant();
+        var trackIndex = Path.Combine(root, "Audio", "Drama", normalizedCode, categoryKey, "tracks.json");
+        var dramaTracks = await File.ReadAllTextAsync(trackIndex);
+        return new SortedDictionary<int, DramaTrack>(JsonSerializer.Deserialize<IEnumerable<DramaTrack>>(dramaTracks)!
+            .ToDictionary(x => x.Number, x => x));
+    }
+
+    #endregion
+
+    #region Video
+
+    public async Task<Dictionary<string, Language>> GetVideoLanguages()
+    {
+        var root = indexRoot;
+        var languageIndex = Path.Combine(root, "Video", "languages.json");
+        var languages = await File.ReadAllTextAsync(languageIndex);
+        return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!
+            .ToDictionary(x => x.Code.ToUpperInvariant(), x => x); // Normalize keys to uppercase
+    }
+
+    public async Task<Dictionary<string, Publication>> GetVideoPublications(string languageCode)
+    {
+        var root = indexRoot;
+        // Normalize language code for file path lookup
+        var normalizedCode = languageCode.ToUpperInvariant();
+        var publicationsIndex = Path.Combine(root, "Video", normalizedCode, "publications.json");
+        var publications = await File.ReadAllTextAsync(publicationsIndex);
+        return JsonSerializer.Deserialize<IEnumerable<Publication>>(publications)!
+            .ToDictionary(x => x.Code, x => x);
+    }
+
+    public async Task<SortedDictionary<int, VideoEpisode>> GetVideoEpisodes(string languageCode, string publicationCode)
+    {
+        var root = indexRoot;
+        // Normalize language code for file path lookup
+        var normalizedCode = languageCode.ToUpperInvariant();
+        var episodeIndex = Path.Combine(root, "Video", normalizedCode, publicationCode, "episodes.json");
+        var videoEpisodes = await File.ReadAllTextAsync(episodeIndex);
+        return new SortedDictionary<int, VideoEpisode>(JsonSerializer.Deserialize<IEnumerable<VideoEpisode>>(videoEpisodes)!
+            .ToDictionary(x => x.Number, x => x));
+    }
+
+    #endregion
 
 }
 

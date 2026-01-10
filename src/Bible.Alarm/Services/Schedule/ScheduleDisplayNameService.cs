@@ -12,18 +12,18 @@ namespace Bible.Alarm.Services.Schedule;
 public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
 {
     private readonly ILogger logger;
-    private readonly IBibleTranslationService? bibleTranslationService;
+    private readonly IBiblePublicationService? BiblePublicationService;
     private readonly IMediaService mediaService;
     private readonly IServiceProvider serviceProvider;
 
     public ScheduleDisplayNameService(
         ILogger logger,
-        IBibleTranslationService? bibleTranslationService,
+        IBiblePublicationService? BiblePublicationService,
         IMediaService mediaService,
         IServiceProvider serviceProvider)
     {
         this.logger = logger;
-        this.bibleTranslationService = bibleTranslationService;
+        this.BiblePublicationService = BiblePublicationService;
         this.mediaService = mediaService;
         this.serviceProvider = serviceProvider;
     }
@@ -46,12 +46,12 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
     private async Task PopulateBibleReadingDisplayNamesAsync(ScheduleStateItem scheduleStateItem, BibleReadingSchedule bibleReadingSchedule)
     {
         // Language name
-        if (!string.IsNullOrWhiteSpace(bibleReadingSchedule.LanguageCode) && bibleTranslationService != null)
+        if (!string.IsNullOrWhiteSpace(bibleReadingSchedule.LanguageCode) && BiblePublicationService != null)
         {
             try
             {
                 var languagesDict = await Task.Run(async () =>
-                    await bibleTranslationService.GetDistinctLanguagesAsync());
+                    await BiblePublicationService.GetDistinctLanguagesAsync());
                 if (languagesDict.TryGetValue(bibleReadingSchedule.LanguageCode, out var language))
                 {
                     scheduleStateItem.BibleReadingLanguageName = language.Name;
@@ -71,12 +71,12 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         // Translation name
         if (!string.IsNullOrWhiteSpace(bibleReadingSchedule.LanguageCode) &&
             !string.IsNullOrWhiteSpace(bibleReadingSchedule.PublicationCode) &&
-            bibleTranslationService != null)
+            BiblePublicationService != null)
         {
             try
             {
                 var translation = await Task.Run(async () =>
-                    await bibleTranslationService.GetByLanguageAndCodeWithBooksAsync(
+                    await BiblePublicationService.GetByLanguageAndCodeWithBooksAsync(
                         bibleReadingSchedule.LanguageCode,
                         bibleReadingSchedule.PublicationCode));
 
@@ -99,11 +99,12 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             try
             {
                 var bibleBookService = serviceProvider.GetRequiredService<IBibleBookService>();
+                if (!bibleReadingSchedule.BookNumber.HasValue) return;
                 var bookName = await Task.Run(async () =>
                     await bibleBookService.GetBookNameAsync(
                         bibleReadingSchedule.LanguageCode,
                         bibleReadingSchedule.PublicationCode,
-                        bibleReadingSchedule.BookNumber));
+                        bibleReadingSchedule.BookNumber.Value));
 
                 if (!string.IsNullOrWhiteSpace(bookName))
                 {

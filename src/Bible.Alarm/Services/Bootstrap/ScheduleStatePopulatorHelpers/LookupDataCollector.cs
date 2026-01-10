@@ -27,9 +27,9 @@ internal sealed class LookupDataCollector
                 if (!string.IsNullOrWhiteSpace(br.LanguageCode) && !string.IsNullOrWhiteSpace(br.PublicationCode))
                 {
                     translationKeys.Add((br.LanguageCode, br.PublicationCode));
-                    if (br.BookNumber > 0)
+                    if (br.BookNumber.HasValue && br.BookNumber.Value > 0)
                     {
-                        bookKeys.Add((br.LanguageCode, br.PublicationCode, br.BookNumber));
+                        bookKeys.Add((br.LanguageCode, br.PublicationCode, br.BookNumber.Value));
                     }
                 }
             }

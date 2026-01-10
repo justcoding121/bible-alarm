@@ -9,7 +9,7 @@ namespace Bible.Alarm.Services.Database;
 public sealed class DatabaseSeedService(
     ILogger logger,
     IAlarmScheduleService alarmScheduleService,
-    IBibleTranslationService bibleTranslationService,
+    IBiblePublicationService BiblePublicationService,
     IMelodyMusicService melodyMusicService)
     : IDatabaseSeedService, IDisposable
 {
@@ -22,7 +22,7 @@ public sealed class DatabaseSeedService(
         if (!await alarmScheduleService.AnySchedulesExistAsync(cancellationTokenSource.Token))
         {
             // Create sample schedule with IsEnabled = false (disabled by default)
-            var schedule = await AlarmSchedule.GetSampleSchedule(false, bibleTranslationService, melodyMusicService);
+            var schedule = await AlarmSchedule.GetSampleSchedule(false, BiblePublicationService, melodyMusicService);
 
             await alarmScheduleService.AddScheduleAsync(schedule, cancellationTokenSource.Token);
 

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -111,12 +112,31 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 .Where(x => x.Code == publicationCode)
                 .SelectMany(x => x.Tracks)
                 .Include(x => x.Source)
+                .ThenInclude(s => s!.BaseUrlEntity)
                 .Where(x => x.Number == trackNumber)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (track?.Source != null)
             {
-                track.Source.Url = url;
+                // Extract path from the new URL and update UrlPath
+                var (baseUrl, urlPath) = ExtractBaseUrlAndPath(url);
+                track.Source.UrlPath = urlPath;
+                
+                // Update BaseUrl if it changed (rare, but handle it)
+                if (track.Source.BaseUrlEntity.BaseUrl != baseUrl)
+                {
+                    var existingBaseUrl = await dbContext.AudioSourceBaseUrls
+                        .FirstOrDefaultAsync(x => x.BaseUrl == baseUrl, cancellationToken);
+                    if (existingBaseUrl != null)
+                    {
+                        track.Source.BaseUrlEntity = existingBaseUrl;
+                    }
+                    else
+                    {
+                        track.Source.BaseUrlEntity = new AudioSourceBaseUrl { BaseUrl = baseUrl };
+                    }
+                }
+                
                 await dbContext.SaveChangesAsync(cancellationToken);
             }
         }
@@ -125,6 +145,26 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             logger.Error(ex, "Error updating MelodyMusic track URL. PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
                 publicationCode, trackNumber);
             throw;
+        }
+    }
+
+    private static (string BaseUrl, string UrlPath) ExtractBaseUrlAndPath(string fullUrl)
+    {
+        if (string.IsNullOrEmpty(fullUrl))
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        try
+        {
+            var uri = new Uri(fullUrl);
+            var baseUrl = $"{uri.Scheme}://{uri.Host}";
+            var urlPath = uri.PathAndQuery;
+            return (baseUrl, urlPath);
+        }
+        catch (UriFormatException)
+        {
+            return (string.Empty, fullUrl);
         }
     }
 
