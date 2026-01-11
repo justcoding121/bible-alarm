@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Models.Media.Music;
 
 namespace Bible.Alarm.Shared.Helpers;

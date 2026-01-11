@@ -1,8 +1,5 @@
 using System.Runtime.Versioning;
-using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Core.Handlers;
-using CommunityToolkit.Maui.Media.Services;
-using CommunityToolkit.Maui.Views;
 
 namespace CommunityToolkit.Maui;
 

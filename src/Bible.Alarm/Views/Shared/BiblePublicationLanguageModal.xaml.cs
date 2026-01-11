@@ -1,6 +1,5 @@
 #nullable enable
 using Bible.Alarm.Common.ViewHelpers;
-using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;

@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Text;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;

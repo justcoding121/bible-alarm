@@ -1,7 +1,6 @@
 #nullable enable
 using System.Windows.Input;
 using AutoMapper;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Models;
-using Bible.Alarm.AudioLinksHarvestor.Models.Bible;
 using Bible.Alarm.AudioLinksHarvestor.Models.Drama;
 using Bible.Alarm.AudioLinksHarvestor.Models.Music;
 using Bible.Alarm.AudioLinksHarvestor.Models.Video;

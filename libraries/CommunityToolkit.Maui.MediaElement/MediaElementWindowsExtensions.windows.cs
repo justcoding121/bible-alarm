@@ -1,6 +1,5 @@
 #if WINDOWS
 using CommunityToolkit.Maui.Core.Handlers;
-using CommunityToolkit.Maui.Views;
 using Windows.Media;
 
 namespace CommunityToolkit.Maui;

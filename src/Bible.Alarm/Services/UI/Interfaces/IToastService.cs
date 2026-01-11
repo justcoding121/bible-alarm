@@ -1,5 +1,3 @@
-using Bible.Alarm.Models.Schedule;
-
 namespace Bible.Alarm.Services.UI.Interfaces;
 
 public interface IToastService : IDisposable

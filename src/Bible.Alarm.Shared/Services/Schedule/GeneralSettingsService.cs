@@ -2,7 +2,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Bible.Alarm.Models;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Microsoft.EntityFrameworkCore;

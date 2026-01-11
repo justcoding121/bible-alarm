@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Bible.Alarm.Models.Schedule;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Schedule;

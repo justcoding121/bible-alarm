@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using CommunityToolkit.Maui.Views;
 using UriTypeConverter = Microsoft.Maui.Controls.UriTypeConverter;
 
 namespace CommunityToolkit.Maui.MediaSource;

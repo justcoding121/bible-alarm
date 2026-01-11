@@ -1,7 +1,6 @@
 #nullable enable
 using System.Windows.Input;
 using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;

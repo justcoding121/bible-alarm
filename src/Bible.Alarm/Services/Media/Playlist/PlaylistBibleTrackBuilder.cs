@@ -1,8 +1,6 @@
 #nullable enable
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Shared.Models.Media.Bible;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playlist;

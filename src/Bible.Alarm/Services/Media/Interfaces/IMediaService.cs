@@ -1,5 +1,4 @@
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Models.Media.Music;
 
 namespace Bible.Alarm.Services.Media.Interfaces;

@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
 using Serilog;

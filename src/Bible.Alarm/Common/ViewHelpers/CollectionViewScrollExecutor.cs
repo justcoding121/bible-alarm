@@ -1,14 +1,13 @@
 #nullable enable
 using System.Collections;
-
 <<<<<<< TODO: Unmerged change from project 'Bible.Alarm (net10.0-windows10.0.19041.0)', Before:
 using System.Linq;
-using Serilog;
 =======
 using Serilog;
 >>>>>>> After
 using System.Runtime.InteropServices;
 using Bible.Alarm.ViewModels.Shared;
+using Serilog;
 using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 #if WINDOWS

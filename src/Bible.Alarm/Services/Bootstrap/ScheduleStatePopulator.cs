@@ -1,7 +1,6 @@
 #nullable enable
 
 using AutoMapper;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.DataStructures;

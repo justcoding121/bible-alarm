@@ -3,7 +3,6 @@
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores.Actions;
-using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;

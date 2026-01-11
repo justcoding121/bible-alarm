@@ -1,7 +1,6 @@
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;

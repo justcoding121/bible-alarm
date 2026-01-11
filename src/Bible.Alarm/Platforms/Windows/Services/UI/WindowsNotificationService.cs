@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.Windows.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Serilog;

@@ -1,4 +1,3 @@
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Serilog;
 

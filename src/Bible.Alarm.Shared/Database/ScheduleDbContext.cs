@@ -1,6 +1,4 @@
 using System.IO;
-using Bible.Alarm.Models;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 

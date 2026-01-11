@@ -1,9 +1,7 @@
 #nullable enable
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Playlist;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using IDispatcher = Fluxor.IDispatcher;

@@ -1,5 +1,4 @@
 #nullable enable
-using CommunityToolkit.Maui.Views;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.iOS.Helpers;

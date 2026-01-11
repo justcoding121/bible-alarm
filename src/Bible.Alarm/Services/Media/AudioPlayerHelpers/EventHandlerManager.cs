@@ -3,8 +3,6 @@
 using Bible.Alarm.Services.Media.Audio;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Media;
-using CommunityToolkit.Maui.Core;
-using CommunityToolkit.Maui.Views;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.AudioPlayerHelpers;

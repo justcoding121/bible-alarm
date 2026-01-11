@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using CommunityToolkit.Maui.Converters;
-using CommunityToolkit.Maui.Views;
 
 namespace CommunityToolkit.Maui.MediaSource;
 

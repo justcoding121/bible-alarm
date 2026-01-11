@@ -1,7 +1,6 @@
 #nullable enable
 
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;

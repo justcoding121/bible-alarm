@@ -5,7 +5,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Microsoft.EntityFrameworkCore;

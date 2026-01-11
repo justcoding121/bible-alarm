@@ -149,15 +149,15 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
                         }
                         catch (IOException deleteEx) when (attempt < maxRetries - 1)
                         {
-                            Log.Logger.Debug(deleteEx, 
-                                "[BOOTSTRAP] Could not delete corrupted database file (attempt {Attempt}/{MaxRetries}), retrying...", 
+                            Log.Logger.Debug(deleteEx,
+                                "[BOOTSTRAP] Could not delete corrupted database file (attempt {Attempt}/{MaxRetries}), retrying...",
                                 attempt + 1, maxRetries);
                             await Task.Delay(retryDelayMs);
                         }
                         catch (IOException deleteEx)
                         {
-                            Log.Logger.Warning(deleteEx, 
-                                "[BOOTSTRAP] Could not delete corrupted database file after {MaxRetries} attempts, may be locked", 
+                            Log.Logger.Warning(deleteEx,
+                                "[BOOTSTRAP] Could not delete corrupted database file after {MaxRetries} attempts, may be locked",
                                 maxRetries);
                             throw; // Re-throw on final attempt
                         }

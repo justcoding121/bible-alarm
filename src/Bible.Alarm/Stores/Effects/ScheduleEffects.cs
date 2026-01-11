@@ -6,7 +6,6 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;

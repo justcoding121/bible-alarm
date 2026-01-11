@@ -2,7 +2,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Bible.Alarm.Models;
 
 namespace Bible.Alarm.Shared.Services.Schedule.Interfaces;
 

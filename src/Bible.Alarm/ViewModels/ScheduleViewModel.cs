@@ -2,7 +2,6 @@
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;

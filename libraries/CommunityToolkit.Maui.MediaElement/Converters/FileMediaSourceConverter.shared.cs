@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Globalization;
-using CommunityToolkit.Maui.Views;
 
 namespace CommunityToolkit.Maui.Converters;
 

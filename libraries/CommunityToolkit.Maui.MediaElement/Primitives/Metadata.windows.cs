@@ -1,4 +1,3 @@
-using CommunityToolkit.Maui.Core;
 using Windows.Media;
 using Windows.Storage.Streams;
 

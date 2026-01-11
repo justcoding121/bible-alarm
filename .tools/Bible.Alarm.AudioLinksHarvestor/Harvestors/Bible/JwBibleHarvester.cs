@@ -9,7 +9,6 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Bible.Alarm.AudioLinksHarvestor.Models.Bible;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Constants;
 using Serilog;

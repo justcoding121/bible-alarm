@@ -9,7 +9,6 @@ using AndroidX.Core.App;
 using AndroidX.Core.Content;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 using Bible.Alarm.Services.UI.Interfaces;

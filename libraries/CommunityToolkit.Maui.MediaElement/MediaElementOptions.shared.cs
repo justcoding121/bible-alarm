@@ -1,5 +1,3 @@
-using CommunityToolkit.Maui.Core;
-
 namespace CommunityToolkit.Maui;
 
 /// <summary>

@@ -1,6 +1,5 @@
 #nullable enable
 using AutoMapper;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
 

@@ -1,6 +1,5 @@
 #nullable enable
 using CommunityToolkit.Maui.Core.Handlers;
-using CommunityToolkit.Maui.Views;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media.AndroidPlayerNotificationHelpers;

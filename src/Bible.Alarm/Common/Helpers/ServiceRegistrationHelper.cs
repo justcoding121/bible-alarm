@@ -55,7 +55,6 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.ViewModels;
-using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.ViewModels.Shared;

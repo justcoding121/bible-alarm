@@ -1,5 +1,3 @@
-using CommunityToolkit.Maui.Views;
-
 namespace CommunityToolkit.Maui.Primitives;
 
 /// <summary>

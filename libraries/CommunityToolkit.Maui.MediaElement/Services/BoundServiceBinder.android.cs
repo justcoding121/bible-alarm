@@ -1,5 +1,4 @@
 using Android.OS;
-using CommunityToolkit.Maui.Media.Services;
 
 namespace CommunityToolkit.Maui.Services;
 

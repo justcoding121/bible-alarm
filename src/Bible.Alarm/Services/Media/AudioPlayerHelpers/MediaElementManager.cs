@@ -4,8 +4,6 @@ using Bible.Alarm.Services.Media.Audio;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Media;
-using CommunityToolkit.Maui.Core;
-using CommunityToolkit.Maui.Views;
 using Serilog;
 
 #if ANDROID

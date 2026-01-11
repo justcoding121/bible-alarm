@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Bible.Alarm.Shared.Models.Media.Bible;
 
 namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 

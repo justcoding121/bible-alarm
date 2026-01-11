@@ -1,5 +1,4 @@
 using CommunityToolkit.Maui.Core.Views;
-using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.Handlers;
 using Microsoft.UI.Xaml;
 using Windows.Media;
