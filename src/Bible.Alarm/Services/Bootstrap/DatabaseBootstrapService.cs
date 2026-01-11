@@ -115,17 +115,72 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
         }
         catch (Exception ex)
         {
-            // If GetPendingMigrationsAsync fails (e.g., database is corrupted), try to migrate
-            Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to check pending migrations, attempting to migrate database");
+            // If GetPendingMigrationsAsync or MigrateAsync fails (e.g., database is corrupted, EF version incompatibility),
+            // try to recover by copying the bundled database as a safety net
+            Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to check/apply migrations, attempting recovery with bundled database");
+            
             try
             {
-                await scheduleDb.Database.MigrateAsync();
-                Log.Logger.Information("[BOOTSTRAP] Schedule database migration completed after error recovery");
+                // Close the database connection before attempting to replace the file
+                await scheduleDb.Database.CloseConnectionAsync();
+                scheduleDb.Dispose();
+                
+                // Delete the corrupted database file and any WAL/SHM files
+                if (System.IO.File.Exists(dbPath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(dbPath);
+                        Log.Logger.Information("[BOOTSTRAP] Deleted corrupted Schedule database file");
+                    }
+                    catch (IOException deleteEx)
+                    {
+                        Log.Logger.Warning(deleteEx, "[BOOTSTRAP] Could not delete corrupted database file, may be locked");
+                    }
+                }
+                
+                // Clean up WAL and SHM files if they exist
+                var walPath = dbPath + "-wal";
+                var shmPath = dbPath + "-shm";
+                try { if (System.IO.File.Exists(walPath)) System.IO.File.Delete(walPath); } catch { }
+                try { if (System.IO.File.Exists(shmPath)) System.IO.File.Delete(shmPath); } catch { }
+                
+                // Copy the bundled database as a fresh start using existing logic
+                // Create a temporary context just for the copy operation
+                var tempScheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+                await CopyScheduleDatabaseFromResourceIfNeededAsync(scope, tempScheduleDb, dbPath);
+                tempScheduleDb.Dispose();
+                
+                // Verify the database was copied successfully
+                if (!System.IO.File.Exists(dbPath))
+                {
+                    throw new InvalidOperationException("Failed to copy bundled database during recovery");
+                }
+                
+                // Get a fresh DbContext instance for the new database
+                scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
+                
+                // Try to verify/apply migrations again with the fresh database
+                var pendingScheduleMigrationsAfterRecovery = await scheduleDb.Database.GetPendingMigrationsAsync();
+                if (pendingScheduleMigrationsAfterRecovery.Any())
+                {
+                    Log.Logger.Information(
+                        "[BOOTSTRAP] Schedule database recovery: {Count} pending migrations after copying bundled database, applying...",
+                        pendingScheduleMigrationsAfterRecovery.Count());
+                    await scheduleDb.Database.MigrateAsync();
+                    Log.Logger.Information("[BOOTSTRAP] Schedule database migrations applied successfully after recovery");
+                }
+                else
+                {
+                    Log.Logger.Information("[BOOTSTRAP] Schedule database recovery successful - bundled database had correct schema");
+                }
             }
-            catch (Exception migrateEx)
+            catch (Exception recoveryEx)
             {
-                Log.Logger.Error(migrateEx, "[BOOTSTRAP] Failed to migrate Schedule database, database may be corrupted");
-                throw;
+                Log.Logger.Error(recoveryEx, "[BOOTSTRAP] Failed to recover Schedule database using bundled database");
+                throw new InvalidOperationException(
+                    "Schedule database migration failed and recovery attempt failed. The app cannot continue without a valid database.",
+                    recoveryEx);
             }
         }
 
