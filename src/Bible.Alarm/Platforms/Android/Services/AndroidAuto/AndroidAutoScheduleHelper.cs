@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -14,6 +15,10 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 public static class AndroidAutoScheduleHelper
 {
     private static readonly ILogger logger = Log.ForContext(typeof(AndroidAutoScheduleHelper));
+
+    // Unicode directional control characters for RTL support
+    private const char RightToLeftMark = '\u200F';
+    private const char LeftToRightMark = '\u200E';
 
     /// <summary>
     /// Loads schedule state items from Fluxor ApplicationState.
@@ -48,35 +53,55 @@ public static class AndroidAutoScheduleHelper
 
     /// <summary>
     /// Builds the display title for a schedule state item.
-    /// Format: SectionName Track Number (e.g., "Joshua 22")
+    /// Format for sectioned Bible: SectionName Track Number (e.g., "Joshua 22")
+    /// Format for drama/video: Track Title (e.g., "Adam and Eve in the Garden of Eden")
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
         if (scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            // Build title as "SectionName TrackNumber" (e.g., "Joshua 22")
-            var titleParts = new List<string>();
+            var isRtl = string.Equals(scheduleItem.BiblePublicationLanguageDirection, "rtl", StringComparison.OrdinalIgnoreCase);
+            var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
 
-            // Add section name (populated during bootstrap) or fallback to section number
-            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
+            if (hasSectionStructure)
             {
-                titleParts.Add(scheduleItem.BiblePublicationSectionName);
-            }
-            else if (scheduleItem.BiblePublicationSectionNumber.HasValue && scheduleItem.BiblePublicationSectionNumber.Value > 0)
-            {
-                // Fallback to section number if section name is not available
-                titleParts.Add($"Section {scheduleItem.BiblePublicationSectionNumber.Value}");
-            }
+                // Traditional Bible: "SectionName TrackNumber" (e.g., "Joshua 22")
+                var titleParts = new List<string>();
 
-            // Add track number
-            if (scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0)
-            {
-                titleParts.Add(scheduleItem.BiblePublicationTrackNumber.Value.ToString());
-            }
+                if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
+                {
+                    titleParts.Add(scheduleItem.BiblePublicationSectionName);
+                }
+                else if (scheduleItem.BiblePublicationSectionNumber.HasValue && scheduleItem.BiblePublicationSectionNumber.Value > 0)
+                {
+                    titleParts.Add($"Section {scheduleItem.BiblePublicationSectionNumber.Value}");
+                }
 
-            if (titleParts.Count > 0)
+                if (scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0)
+                {
+                    titleParts.Add(scheduleItem.BiblePublicationTrackNumber.Value.ToString());
+                }
+
+                if (titleParts.Count > 0)
+                {
+                    var title = string.Join(" ", titleParts);
+                    return isRtl ? $"{RightToLeftMark}{title}" : title;
+                }
+            }
+            else
             {
-                return string.Join(" ", titleParts);
+                // Drama/Video: Show track title
+                if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
+                {
+                    var title = scheduleItem.BiblePublicationTrackTitle;
+                    return isRtl ? $"{RightToLeftMark}{title}" : title;
+                }
+                else if (scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0)
+                {
+                    // Fallback to "Part X" if track title not available
+                    var trackLabel = PublicationTypeHelper.GetTrackLabel(scheduleItem.BiblePublicationCode);
+                    return $"{trackLabel} {scheduleItem.BiblePublicationTrackNumber.Value}";
+                }
             }
         }
 
@@ -93,6 +118,7 @@ public static class AndroidAutoScheduleHelper
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
         var subtitleParts = new List<string>();
+        var isRtl = string.Equals(scheduleItem.BiblePublicationLanguageDirection, "rtl", StringComparison.OrdinalIgnoreCase);
 
         // Add schedule name with bullet points only if not empty
         if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
@@ -111,18 +137,23 @@ public static class AndroidAutoScheduleHelper
 
             if (!string.IsNullOrWhiteSpace(languageName))
             {
+                // Apply RTL marker to the language name if needed
+                var rtlLanguageName = isRtl ? $"{RightToLeftMark}{languageName}" : languageName;
+
                 // Add music note emoji (🎵) to the right of language text if music is enabled
                 // Using emoji instead of single note symbol for larger, more visible appearance
                 var languageText = scheduleItem.MusicEnabled
-                    ? $"{languageName} 🎵"
-                    : languageName;
+                    ? $"{rtlLanguageName} 🎵"
+                    : rtlLanguageName;
                 subtitleParts.Add(languageText);
             }
         }
 
         if (subtitleParts.Count > 0)
         {
-            return string.Join(" ", subtitleParts);
+            var subtitle = string.Join(" ", subtitleParts);
+            // Apply RTL marker to the entire subtitle if RTL
+            return isRtl ? $"{RightToLeftMark}{subtitle}" : subtitle;
         }
 
         // Fallback: show status and time if no Bible reading schedule

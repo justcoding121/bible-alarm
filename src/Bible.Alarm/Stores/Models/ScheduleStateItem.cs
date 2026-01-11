@@ -85,6 +85,14 @@ public sealed class ScheduleStateItem : IComparable
     public string? BiblePublicationSectionName { get; set; }
 
     /// <summary>
+    /// Bible reading track title for display purposes.
+    /// Used for drama/video publications that don't have sections.
+    /// This is populated during bootstrap from track data.
+    /// Not persisted to database.
+    /// </summary>
+    public string? BiblePublicationTrackTitle { get; set; }
+
+    /// <summary>
     /// Music language name for display purposes (for vocals only).
     /// This is populated during bootstrap from language dictionary.
     /// Not persisted to database.

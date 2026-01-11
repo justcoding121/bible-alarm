@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
@@ -30,14 +31,21 @@ internal sealed class LookupDataLoader
     public async Task<LookupData> LoadAllAsync(LookupDataCollector.LookupKeys keys)
     {
         // Load all data in parallel
+        // For drama/video publications (non-sectioned), load tracks instead of sections
         var translationTasks = keys.TranslationKeys.Select(async key =>
         {
             try
             {
-                var translation = BiblePublicationService != null
-                    ? await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                        key.LanguageCode, key.PublicationCode)
-                    : null;
+                BiblePublication? translation = null;
+                if (BiblePublicationService != null)
+                {
+                    // Use GetByLanguageAndCodeWithTracksAsync for drama/video publications
+                    // Use GetByLanguageAndCodeWithSectionsAsync for traditional Bible (sectioned)
+                    var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(key.PublicationCode);
+                    translation = hasSectionStructure
+                        ? await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(key.LanguageCode, key.PublicationCode)
+                        : await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(key.LanguageCode, key.PublicationCode);
+                }
                 return (Key: key, Translation: translation);
             }
             catch (Exception ex)

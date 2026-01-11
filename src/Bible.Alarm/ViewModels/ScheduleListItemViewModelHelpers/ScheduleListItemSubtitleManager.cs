@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -17,6 +18,7 @@ public sealed class ScheduleListItemSubtitleManager(
 {
     private string subtitle = string.Empty;
     private string language = string.Empty;
+    private FlowDirection flowDirection = FlowDirection.LeftToRight;
 
     public string SubTitle
     {
@@ -30,11 +32,17 @@ public sealed class ScheduleListItemSubtitleManager(
         set => language = value;
     }
 
+    public FlowDirection FlowDirection
+    {
+        get => flowDirection;
+        set => flowDirection = value;
+    }
+
     /// <summary>
     /// Refreshes subtitle from ScheduleStateItem in state (uses pre-populated SectionName).
     /// Falls back to async database lookup if SectionName is not available in state.
     /// </summary>
-    public void RefreshSubTitleFromState(int scheduleId, ScheduleStateItem? providedScheduleStateItem, Action<string> setSubTitle, Action<string> setLanguage, Action<string> onPropertyChanged)
+    public void RefreshSubTitleFromState(int scheduleId, ScheduleStateItem? providedScheduleStateItem, Action<string> setSubTitle, Action<string> setLanguage, Action<FlowDirection> setFlowDirection, Action<string> onPropertyChanged)
     {
         if (scheduleId <= 0)
         {
@@ -49,7 +57,7 @@ public sealed class ScheduleListItemSubtitleManager(
 
             if (scheduleStateItem?.BiblePublicationScheduleId.HasValue == true)
             {
-                UpdateLanguageFromState(scheduleStateItem, setLanguage, onPropertyChanged);
+                UpdateLanguageFromState(scheduleStateItem, setLanguage, setFlowDirection, onPropertyChanged);
                 var subtitle = BuildSubtitleFromState(scheduleStateItem);
                 if (!string.IsNullOrEmpty(subtitle))
                 {
@@ -60,19 +68,19 @@ public sealed class ScheduleListItemSubtitleManager(
             }
             else
             {
-                ClearLanguage(setLanguage, onPropertyChanged);
+                ClearLanguage(setLanguage, setFlowDirection, onPropertyChanged);
             }
 
-            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, onPropertyChanged);
+            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, setFlowDirection, onPropertyChanged);
         }
         catch (Exception e)
         {
             logger.Error(e, "An error happened while refreshing subtitle from state for schedule {ScheduleId}", scheduleId);
-            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, onPropertyChanged);
+            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, setFlowDirection, onPropertyChanged);
         }
     }
 
-    private void UpdateLanguageFromState(ScheduleStateItem scheduleStateItem, Action<string> setLanguage, Action<string> onPropertyChanged)
+    private static void UpdateLanguageFromState(ScheduleStateItem scheduleStateItem, Action<string> setLanguage, Action<FlowDirection> setFlowDirection, Action<string> onPropertyChanged)
     {
         if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
         {
@@ -87,40 +95,69 @@ public sealed class ScheduleListItemSubtitleManager(
             setLanguage(string.Empty);
         }
         onPropertyChanged("Language");
+
+        // Update flow direction based on language direction
+        var direction = scheduleStateItem.BiblePublicationLanguageDirection ?? "ltr";
+        var flowDirection = string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+            ? FlowDirection.RightToLeft
+            : FlowDirection.LeftToRight;
+        setFlowDirection(flowDirection);
+        onPropertyChanged("ContentFlowDirection");
     }
 
     private static string BuildSubtitleFromState(ScheduleStateItem scheduleStateItem)
     {
         var subtitleParts = new List<string>();
+        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode);
 
-        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
+        if (hasSectionStructure)
         {
-            subtitleParts.Add(scheduleStateItem.BiblePublicationSectionName);
-        }
-        else if (scheduleStateItem.BiblePublicationSectionNumber.HasValue && scheduleStateItem.BiblePublicationSectionNumber.Value > 0)
-        {
-            subtitleParts.Add($"Section {scheduleStateItem.BiblePublicationSectionNumber.Value}");
-        }
+            // Traditional Bible: Show section name/number and track number
+            if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
+            {
+                subtitleParts.Add(scheduleStateItem.BiblePublicationSectionName);
+            }
+            else if (scheduleStateItem.BiblePublicationSectionNumber.HasValue && scheduleStateItem.BiblePublicationSectionNumber.Value > 0)
+            {
+                subtitleParts.Add($"Section {scheduleStateItem.BiblePublicationSectionNumber.Value}");
+            }
 
-        if (scheduleStateItem.BiblePublicationTrackNumber.HasValue && scheduleStateItem.BiblePublicationTrackNumber.Value > 0)
+            if (scheduleStateItem.BiblePublicationTrackNumber.HasValue && scheduleStateItem.BiblePublicationTrackNumber.Value > 0)
+            {
+                subtitleParts.Add(scheduleStateItem.BiblePublicationTrackNumber.Value.ToString());
+            }
+        }
+        else
         {
-            subtitleParts.Add(scheduleStateItem.BiblePublicationTrackNumber.Value.ToString());
+            // Drama/Video: Show track title (e.g., "Adam and Eve in the Garden of Eden")
+            if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
+            {
+                subtitleParts.Add(scheduleStateItem.BiblePublicationTrackTitle);
+            }
+            else if (scheduleStateItem.BiblePublicationTrackNumber.HasValue && scheduleStateItem.BiblePublicationTrackNumber.Value > 0)
+            {
+                // Fallback to "Part X" if track title not available
+                var trackLabel = PublicationTypeHelper.GetTrackLabel(scheduleStateItem.BiblePublicationCode);
+                subtitleParts.Add($"{trackLabel} {scheduleStateItem.BiblePublicationTrackNumber.Value}");
+            }
         }
 
         return subtitleParts.Count > 0 ? string.Join(" ", subtitleParts) : string.Empty;
     }
 
-    private void ClearLanguage(Action<string> setLanguage, Action<string> onPropertyChanged)
+    private static void ClearLanguage(Action<string> setLanguage, Action<FlowDirection> setFlowDirection, Action<string> onPropertyChanged)
     {
         setLanguage(string.Empty);
         onPropertyChanged("Language");
+        setFlowDirection(FlowDirection.LeftToRight);
+        onPropertyChanged("ContentFlowDirection");
     }
 
     /// <summary>
     /// Async fallback method for refreshing track name from database.
     /// Only used if SectionName is not available in state.
     /// </summary>
-    public async Task RefreshTrackNameAsync(int scheduleId, bool force, Action<string> setSubTitle, Action<string> setLanguage, Action<string> onPropertyChanged)
+    public async Task RefreshTrackNameAsync(int scheduleId, bool force, Action<string> setSubTitle, Action<string> setLanguage, Action<FlowDirection> setFlowDirection, Action<string> onPropertyChanged)
     {
         if (scheduleId <= 0)
         {
@@ -134,6 +171,7 @@ public sealed class ScheduleListItemSubtitleManager(
                 .FirstOrDefault(s => s.Id == scheduleId);
 
             string language = string.Empty;
+            string direction = "ltr";
             if (scheduleStateItem != null)
             {
                 if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
@@ -144,11 +182,16 @@ public sealed class ScheduleListItemSubtitleManager(
                 {
                     language = scheduleStateItem.BiblePublicationLanguageCode;
                 }
+                direction = scheduleStateItem.BiblePublicationLanguageDirection ?? "ltr";
             }
 
             // Run database operations off UI thread
             var displayName = await Task.Run(async () =>
                 await displayService.GetTrackDisplayNameAsync(scheduleId, force));
+
+            var flowDirection = string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+                ? FlowDirection.RightToLeft
+                : FlowDirection.LeftToRight;
 
             // Update UI on main thread
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -162,6 +205,10 @@ public sealed class ScheduleListItemSubtitleManager(
                 // Update Language property
                 setLanguage(language);
                 onPropertyChanged("Language");
+
+                // Update FlowDirection property
+                setFlowDirection(flowDirection);
+                onPropertyChanged("ContentFlowDirection");
             });
         }
         catch (Exception e)

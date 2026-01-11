@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -180,6 +181,55 @@ public sealed class ScheduleDisplayNamePopulator
         catch (Exception ex)
         {
             Log.Warning(ex, "ScheduleEffects: Error populating SectionName for schedule {ScheduleId}", schedule.Id);
+        }
+    }
+
+    /// <summary>
+    /// Populate TrackTitle for drama/video publications from BiblePublicationService.
+    /// </summary>
+    public async Task PopulateTrackTitleAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
+    {
+        if (schedule.BiblePublicationSchedule == null || BiblePublicationService == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var biblePublication = schedule.BiblePublicationSchedule;
+
+            // Only populate for non-sectioned publications (drama/video)
+            if (PublicationTypeHelper.HasSectionStructure(biblePublication.PublicationCode))
+            {
+                return;
+            }
+
+            if (biblePublication.TrackNumber <= 0 ||
+                string.IsNullOrWhiteSpace(biblePublication.LanguageCode) ||
+                string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
+            {
+                return;
+            }
+
+            // Use GetByLanguageAndCodeWithTracksAsync to load tracks for drama/video publications
+            var translation = await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(
+                biblePublication.LanguageCode,
+                biblePublication.PublicationCode);
+
+            if (translation != null)
+            {
+                var track = translation.Tracks.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
+                if (track != null && !string.IsNullOrWhiteSpace(track.Title))
+                {
+                    scheduleStateItem.BiblePublicationTrackTitle = track.Title;
+                    Log.Debug("ScheduleEffects: Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
+                        track.Title, schedule.Id, biblePublication.TrackNumber);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "ScheduleEffects: Error populating TrackTitle for schedule {ScheduleId}", schedule.Id);
         }
     }
 

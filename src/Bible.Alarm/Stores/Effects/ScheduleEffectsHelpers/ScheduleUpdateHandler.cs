@@ -59,6 +59,10 @@ public class ScheduleUpdateHandler
             {
                 await displayNamePopulator.PopulateSectionNameAsync(scheduleStateItem, action.Schedule);
             }
+            if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
+            {
+                await displayNamePopulator.PopulateTrackTitleAsync(scheduleStateItem, action.Schedule);
+            }
 
             // Populate music display properties if missing
             if (string.IsNullOrWhiteSpace(scheduleStateItem.MusicLanguageName))

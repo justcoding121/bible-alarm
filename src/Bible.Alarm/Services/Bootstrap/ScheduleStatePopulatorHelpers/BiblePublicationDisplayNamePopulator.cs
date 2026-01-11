@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -26,6 +27,7 @@ internal sealed class BiblePublicationDisplayNamePopulator
         SetLanguageName(schedule, scheduleStateItem, biblePublication, languagesDict);
         SetPublicationName(schedule, scheduleStateItem, biblePublication, lookupData);
         SetSectionName(schedule, scheduleStateItem, biblePublication, lookupData);
+        SetTrackTitle(schedule, scheduleStateItem, biblePublication, lookupData);
     }
 
     private static void SetLanguageName(
@@ -97,6 +99,38 @@ internal sealed class BiblePublicationDisplayNamePopulator
                 scheduleStateItem.BiblePublicationSectionName = sectionName;
                 Log.Logger.Debug("Set BiblePublicationSectionName '{BiblePublicationSectionName}' for schedule {ScheduleId} (SectionNumber: {SectionNumber})",
                     sectionName, schedule.Id, biblePublication.SectionNumber);
+            }
+        }
+    }
+
+    private static void SetTrackTitle(
+        AlarmSchedule schedule,
+        ScheduleStateItem scheduleStateItem,
+        BiblePublicationSchedule biblePublication,
+        LookupDataLoader.LookupData lookupData)
+    {
+        // Only set track title for non-sectioned publications (Drama/Video)
+        if (PublicationTypeHelper.HasSectionStructure(biblePublication.PublicationCode))
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(biblePublication.LanguageCode) ||
+            string.IsNullOrWhiteSpace(biblePublication.PublicationCode) ||
+            biblePublication.TrackNumber <= 0)
+        {
+            return;
+        }
+
+        var translationKey = (biblePublication.LanguageCode, biblePublication.PublicationCode);
+        if (lookupData.Translations.TryGetValue(translationKey, out var translation))
+        {
+            var track = translation.Tracks.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
+            if (track != null && !string.IsNullOrWhiteSpace(track.Title))
+            {
+                scheduleStateItem.BiblePublicationTrackTitle = track.Title;
+                Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
+                    track.Title, schedule.Id, biblePublication.TrackNumber);
             }
         }
     }

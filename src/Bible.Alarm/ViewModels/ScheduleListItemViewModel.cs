@@ -205,6 +205,17 @@ public sealed class ScheduleListItemViewModel(
         private set => subtitleManager.Language = value;
     }
 
+    private FlowDirection contentFlowDirection = FlowDirection.LeftToRight;
+
+    /// <summary>
+    /// Gets the FlowDirection for content based on the selected language direction.
+    /// </summary>
+    public FlowDirection ContentFlowDirection
+    {
+        get => contentFlowDirection;
+        private set => SetProperty(ref contentFlowDirection, value);
+    }
+
     public bool MusicEnabled => Schedule?.MusicEnabled ?? false;
 
     public bool IsEnabled
@@ -310,6 +321,7 @@ public sealed class ScheduleListItemViewModel(
             providedScheduleStateItem,
             value => SubTitle = value,
             value => Language = value,
+            value => ContentFlowDirection = value,
             OnPropertyChanged);
     }
 
@@ -335,6 +347,7 @@ public sealed class ScheduleListItemViewModel(
             force,
             value => SubTitle = value,
             value => Language = value,
+            value => ContentFlowDirection = value,
             OnPropertyChanged);
     }
 

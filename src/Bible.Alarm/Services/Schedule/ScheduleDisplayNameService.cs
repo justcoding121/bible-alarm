@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -117,6 +118,36 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating BiblePublicationSectionName");
+            }
+        }
+
+        // Track title for drama/video publications (non-sectioned)
+        if (!PublicationTypeHelper.HasSectionStructure(biblePublicationSchedule.PublicationCode) &&
+            biblePublicationSchedule.TrackNumber > 0 &&
+            !string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
+            !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode) &&
+            BiblePublicationService != null)
+        {
+            try
+            {
+                // Use GetByLanguageAndCodeWithTracksAsync to load tracks for drama/video publications
+                var translation = await Task.Run(async () =>
+                    await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(
+                        biblePublicationSchedule.LanguageCode,
+                        biblePublicationSchedule.PublicationCode));
+
+                if (translation != null)
+                {
+                    var track = translation.Tracks.FirstOrDefault(t => t.Number == biblePublicationSchedule.TrackNumber);
+                    if (track != null && !string.IsNullOrWhiteSpace(track.Title))
+                    {
+                        scheduleStateItem.BiblePublicationTrackTitle = track.Title;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error populating BiblePublicationTrackTitle");
             }
         }
     }

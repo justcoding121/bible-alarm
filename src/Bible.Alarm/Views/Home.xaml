@@ -132,7 +132,8 @@
                                         Padding="16,16,16,16"
                                         BackgroundColor="{DynamicResource CardBackgroundColor}"
                                         StrokeThickness="0"
-                                        StrokeShape="RoundRectangle 12,12,12,12">
+                                        StrokeShape="RoundRectangle 12,12,12,12"
+                                        FlowDirection="{Binding ContentFlowDirection}">
                                     <Border.Shadow>
                                         <Shadow Brush="#20000000" 
                                                     Offset="0,2" 
@@ -374,7 +375,9 @@
                                                HorizontalTextAlignment="Start"
                                                FontSize="14"
                                                Text="{Binding SubTitle}"
-                                               TextColor="{DynamicResource PrimaryTextColor}" />
+                                               TextColor="{DynamicResource PrimaryTextColor}"
+                                               LineBreakMode="WordWrap"
+                                               MaxLines="2" />
                                     </Grid>
                                     <Grid Grid.Row="2"
                                           Grid.Column="0"
