@@ -456,7 +456,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
 
         var parts = title.Split('-', 2);
-        
+
         // If title starts with "Track", the section name is after the dash
         // Format: "Track X - Section Name"
         // Otherwise, the section name is before the dash
@@ -470,7 +470,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         {
             name = parts[0].Trim();
         }
-        
+
         return FormatSectionName(name, languageCode, sectionNumber);
     }
 

@@ -1,9 +1,7 @@
 #nullable enable
 
 using System.Text.Json;
-using System.Threading;
 using Bible.Alarm.Services.Storage.Interfaces;
-using Microsoft.Maui.Storage;
 using Serilog;
 
 namespace Bible.Alarm.Services.Storage;
@@ -151,7 +149,7 @@ public sealed class DiskCacheService : IDiskCacheService
         try
         {
             var json = JsonSerializer.Serialize(value, jsonOptions);
-            
+
             // Retry logic for Preferences.Set() which can throw IOException if file is locked
             const int maxRetries = 5;
             for (int attempt = 1; attempt <= maxRetries; attempt++)
@@ -165,7 +163,7 @@ public sealed class DiskCacheService : IDiskCacheService
                 catch (IOException ioEx) when (attempt < maxRetries)
                 {
                     var delayMs = 100 * (int)Math.Pow(2, attempt - 1); // 100ms, 200ms, 400ms, 800ms, 1600ms
-                    logger.Warning(ioEx, "Error writing to Preferences (likely file locked), retrying (attempt {Attempt}/{MaxRetries}) after {DelayMs}ms for key: {Key}", 
+                    logger.Warning(ioEx, "Error writing to Preferences (likely file locked), retrying (attempt {Attempt}/{MaxRetries}) after {DelayMs}ms for key: {Key}",
                         attempt, maxRetries, delayMs, key);
                     await Task.Delay(delayMs, cancellationToken);
                 }

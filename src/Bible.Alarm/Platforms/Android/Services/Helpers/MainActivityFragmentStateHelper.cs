@@ -1,7 +1,5 @@
 #nullable enable
 
-using System;
-using System.Collections.Generic;
 using Android.App;
 using Android.Content;
 using Android.OS;
@@ -158,18 +156,18 @@ public static class MainActivityFragmentStateHelper
                     // Create a fresh intent for the main launcher activity
                     var intent = new Intent(activity, activity.GetType());
                     intent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.NewTask | ActivityFlags.ClearTask);
-                    
+
                     // Remove any potential fragment state extras
                     intent.RemoveExtra("android:support:fragments");
                     intent.RemoveExtra("androidx.lifecycle");
-                    
+
                     // Start the new activity
                     activity.StartActivity(intent);
-                    
+
                     // Use FinishAffinity to properly close this activity and any related activities
                     // This ensures a clean transition without black screen
                     activity.FinishAffinity();
-                    
+
                     logger.Information("Activity restarted to recover from fragment restoration error");
                 }
                 catch (Exception restartEx)

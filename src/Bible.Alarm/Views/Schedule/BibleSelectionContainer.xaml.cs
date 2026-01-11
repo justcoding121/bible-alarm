@@ -1,8 +1,7 @@
 #nullable enable
+using System.ComponentModel;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
-using Microsoft.Maui.Controls.Xaml;
-using System.ComponentModel;
 using Serilog;
 
 namespace Bible.Alarm.Views.Schedule;
@@ -45,7 +44,7 @@ public partial class BibleSelectionContainer : ContentView
 
         // Subscribe to new view model
         viewModel = BindingContext as BiblePublicationSelectionContainerViewModel;
-        
+
         if (viewModel != null)
         {
             viewModel.PropertyChanged += OnViewModelPropertyChanged;

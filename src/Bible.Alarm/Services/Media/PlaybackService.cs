@@ -1,11 +1,9 @@
 #nullable enable
-using System.Timers;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Media.Playback;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -13,7 +11,6 @@ using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Timer = System.Timers.Timer;
 
 namespace Bible.Alarm.Services.Media;
 
@@ -134,13 +131,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             if (stateManager.Playlist is null)
             {
                 logger.Information("Track preparation cancelled or failed for schedule {ScheduleId}", scheduleId);
-                
+
                 // Keep modal open and show error with retry option for both alarm and non-alarm
                 // For alarms, show message about playing default alarm sound
                 var errorMessage = isAlarm
                     ? "Download failed. Playing default alarm sound."
                     : "Media download failed. Check your internet connection.";
-                
+
                 dispatcher.Dispatch(new PlaybackErrorAction
                 {
                     ErrorMessage = errorMessage
@@ -148,26 +145,26 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 // Keep modal open by not resetting - the state will keep isPreparingOrPlaying true
                 // Set status to Failed to indicate error state
                 dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
-                
+
                 // For alarms, also try to play fallback alarm sound (keep error message visible)
                 if (isAlarm)
                 {
                     await TryPlayFallbackAlarmSoundAsync(scheduleId, keepErrorMessage: true);
                 }
-                
+
                 return;
             }
 
             if (stateManager.Playlist.Count == 0)
             {
                 logger.Warning("No tracks prepared for schedule {ScheduleId}", scheduleId);
-                
+
                 // Keep modal open and show error with retry option for both alarm and non-alarm
                 // For alarms, show message about playing default alarm sound
                 var errorMessage = isAlarm
                     ? "Download failed. Playing default alarm sound."
                     : "Media download failed. Check your internet connection.";
-                
+
                 dispatcher.Dispatch(new PlaybackErrorAction
                 {
                     ErrorMessage = errorMessage
@@ -175,13 +172,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 // Keep modal open by not resetting - the state will keep isPreparingOrPlaying true
                 // Set status to Failed to indicate error state
                 dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
-                
+
                 // For alarms, also try to play fallback alarm sound (keep error message visible)
                 if (isAlarm)
                 {
                     await TryPlayFallbackAlarmSoundAsync(scheduleId, keepErrorMessage: true);
                 }
-                
+
                 return;
             }
 
@@ -271,7 +268,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         systemControlsHandler.HandlePlayButton(async () =>
         {
             // If there's no active playback, check if we should start the default schedule
-            if (!stateManager.IsPreparingOrPlaying(audioPlayer) && 
+            if (!stateManager.IsPreparingOrPlaying(audioPlayer) &&
                 (stateManager.Playlist == null || stateManager.Playlist.Count == 0 || !stateManager.CurrentScheduleId.HasValue))
             {
                 // Get default schedule ID from state
@@ -283,7 +280,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                     return;
                 }
             }
-            
+
             // Otherwise, resume/play current playback
             await PlayAsync();
         });
@@ -387,15 +384,15 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     public async Task ResetAndRetryAsync(int scheduleId)
     {
         logger.Information("ResetAndRetryAsync - resetting and retrying schedule {ScheduleId}", scheduleId);
-        
+
         // Clear error message first
         dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = null });
-        
+
         // Reset internal state without dispatching PlaybackStoppedAction (keeps modal open)
         progressTracker.Stop();
         await audioPlayer.ResetAsync();
         stateManager.Reset();
-        
+
         // Immediately prepare and play again with isAlarm=false (regular playback) - modal will update automatically as state changes
         await PrepareAndPlayAsync(scheduleId, isAlarm: false);
     }

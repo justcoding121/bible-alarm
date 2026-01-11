@@ -6,7 +6,6 @@ using Bible.Alarm.Platforms.iOS.Helpers;
 #endif
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
-using Microsoft.Maui.Essentials;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.AudioPlayerHelpers;

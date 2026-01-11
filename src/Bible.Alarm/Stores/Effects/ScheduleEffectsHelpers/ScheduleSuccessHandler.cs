@@ -6,7 +6,6 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.Services;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 

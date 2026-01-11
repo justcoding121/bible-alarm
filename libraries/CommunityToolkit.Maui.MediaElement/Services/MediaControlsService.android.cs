@@ -7,9 +7,8 @@ using Android.OS;
 using AndroidX.Core.App;
 using AndroidX.Media3.Session;
 using AndroidX.Media3.UI;
-using CommunityToolkit.Maui.Services;
 
-namespace CommunityToolkit.Maui.Media.Services;
+namespace CommunityToolkit.Maui.Services;
 
 [SupportedOSPlatform("Android26.0")]
 [IntentFilter(["androidx.media3.session.MediaSessionService"])]
@@ -185,10 +184,10 @@ sealed class MediaControlsService : Service
     void StartForegroundServices()
     {
         NotificationManager ??= GetSystemService(NotificationService) as NotificationManager ?? throw new InvalidOperationException($"{nameof(NotificationManager)} cannot be null");
-        
+
         // Create notification channel BEFORE creating the builder to ensure it's available
         CreateNotificationChannel(NotificationManager);
-        
+
         notificationBuilder ??= new NotificationCompat.Builder(Platform.AppContext, "1");
 
         var pendingIntent = CreateActivityPendingIntent();

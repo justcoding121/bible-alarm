@@ -1,9 +1,7 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores.Models;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
@@ -136,7 +134,7 @@ public class ScheduleViewModelManager
 
             if (scheduleViewModels.TryGetValue(scheduleId, out var existingViewModel))
             {
-                logger.Debug("ScheduleViewModelManager: Updating existing ViewModel for schedule {ScheduleId}. DaysOfWeek: {DaysOfWeek}", 
+                logger.Debug("ScheduleViewModelManager: Updating existing ViewModel for schedule {ScheduleId}. DaysOfWeek: {DaysOfWeek}",
                     scheduleId, scheduleItem.DaysOfWeek);
                 // Update the view model with latest state
                 // Note: SetScheduleId may fail if schedule is not in state yet (timing issue),

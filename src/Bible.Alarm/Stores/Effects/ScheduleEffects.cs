@@ -1,9 +1,6 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Common;
-using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
@@ -11,12 +8,9 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Music;
-using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Effects.Services;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
-using Bible.Alarm.Stores.Models;
-using CommunityToolkit.Mvvm.Messaging;
+using Bible.Alarm.Stores.Effects.Services;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -201,19 +195,19 @@ public class ScheduleEffects(
         try
         {
             Log.Information("ScheduleEffects: HandleDeleteSchedule Effect method called - ScheduleId: {ScheduleId}", action.ScheduleId);
-            
+
             if (action == null)
             {
                 Log.Error("ScheduleEffects: HandleDeleteSchedule - Action is null!");
                 return;
             }
-            
+
             if (dispatcher == null)
             {
                 Log.Error("ScheduleEffects: HandleDeleteSchedule - Dispatcher is null!");
                 return;
             }
-            
+
             Log.Debug("ScheduleEffects: HandleDeleteSchedule - Calling deleteHandler.HandleAsync for ScheduleId: {ScheduleId}", action.ScheduleId);
             await deleteHandler.HandleAsync(action, dispatcher);
             Log.Debug("ScheduleEffects: HandleDeleteSchedule - deleteHandler.HandleAsync completed for ScheduleId: {ScheduleId}", action.ScheduleId);

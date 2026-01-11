@@ -4,13 +4,10 @@ using AutoMapper;
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Storage.Interfaces;
-using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Models;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 

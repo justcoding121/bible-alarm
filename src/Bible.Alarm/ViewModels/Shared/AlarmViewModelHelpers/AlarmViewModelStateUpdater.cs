@@ -1,9 +1,6 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Models;
-using Microsoft.Maui.Essentials;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;

@@ -12,7 +12,6 @@ using CommunityToolkit.Maui.Services;
 using CommunityToolkit.Maui.Views;
 using Java.Lang;
 using Microsoft.Extensions.Logging;
-using Serilog;
 using Application = Android.App.Application;
 using AudioAttributes = AndroidX.Media3.Common.AudioAttributes;
 using DeviceInfo = AndroidX.Media3.Common.DeviceInfo;

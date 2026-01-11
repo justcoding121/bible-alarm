@@ -2,7 +2,6 @@
 using Bible.Alarm.Services.Media.Models;
 using Foundation;
 using MediaPlayer;
-using Microsoft.Maui.Storage;
 using Serilog;
 using UIKit;
 
@@ -44,10 +43,10 @@ public sealed class iOSNowPlayingInfoManager
             // Preserve previous artwork reference - NEVER clear artwork
             var previousArtwork = currentArtwork;
             var oldArtworkUrl = currentArtworkUrl;
-            
+
             // Always start with previous artwork as fallback (never show empty lock screen)
             MPMediaItemArtwork? artworkToUse = previousArtwork;
-            
+
             // Try to load new artwork if URL is provided
             if (!string.IsNullOrEmpty(artworkUrl))
             {
@@ -82,7 +81,7 @@ public sealed class iOSNowPlayingInfoManager
             logger.Error(ex, "[iOS NowPlaying] Failed to update metadata");
         }
     }
-    
+
     private void LoadArtworkAsyncAndUpdate(string artworkUrl)
     {
         Task.Run(async () =>
@@ -110,7 +109,7 @@ public sealed class iOSNowPlayingInfoManager
             }
         });
     }
-    
+
     private MPNowPlayingInfo CreateNowPlayingInfoWithArtwork(string? title, string? artist, string? album, TimeSpan duration, MPMediaItemArtwork? artwork)
     {
         var info = new MPNowPlayingInfo
@@ -145,7 +144,7 @@ public sealed class iOSNowPlayingInfoManager
             {
                 return;
             }
-            
+
             currentStatus = status;
             currentDuration = duration.TotalSeconds;
 
@@ -158,7 +157,7 @@ public sealed class iOSNowPlayingInfoManager
                 {
                     return;
                 }
-                
+
                 // Create new info using cached metadata
                 nowPlayingInfo = new MPNowPlayingInfo
                 {
@@ -167,7 +166,7 @@ public sealed class iOSNowPlayingInfoManager
                     AlbumTitle = currentAlbum ?? string.Empty,
                     MediaType = MPNowPlayingInfoMediaType.Audio
                 };
-                
+
                 // Use cached artwork or load synchronously
                 if (currentArtwork != null)
                 {
@@ -188,7 +187,7 @@ public sealed class iOSNowPlayingInfoManager
             nowPlayingInfo.ElapsedPlaybackTime = currentPosition.TotalSeconds;
             nowPlayingInfo.PlaybackDuration = duration.TotalSeconds;
             nowPlayingInfo.PlaybackRate = status == PlayStatus.Playing ? 1.0 : 0.0;
-            
+
             // Re-apply cached artwork - getting NowPlaying returns a copy that may lose the artwork
             if (currentArtwork != null)
             {
@@ -220,13 +219,13 @@ public sealed class iOSNowPlayingInfoManager
             }
 
             nowPlayingInfo.PlaybackRate = status == PlayStatus.Playing ? 1.0 : 0.0;
-            
+
             // Re-apply cached artwork - getting NowPlaying returns a copy that may lose the artwork
             if (currentArtwork != null)
             {
                 nowPlayingInfo.Artwork = currentArtwork;
             }
-            
+
             MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
         }
         catch (Exception ex)
@@ -251,13 +250,13 @@ public sealed class iOSNowPlayingInfoManager
             }
 
             nowPlayingInfo.PlaybackDuration = duration.TotalSeconds;
-            
+
             // Re-apply cached artwork - getting NowPlaying returns a copy that may lose the artwork
             if (currentArtwork != null)
             {
                 nowPlayingInfo.Artwork = currentArtwork;
             }
-            
+
             MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = nowPlayingInfo;
         }
         catch (Exception ex)
@@ -303,10 +302,10 @@ public sealed class iOSNowPlayingInfoManager
             currentAlbum = album;
             currentStatus = PlayStatus.Stopped;
             currentDuration = 0;
-            
+
             // Preserve previous artwork
             var previousArtwork = currentArtwork;
-            
+
             MPMediaItemArtwork? artworkToUse = null;
             if (!string.IsNullOrEmpty(artworkUrl))
             {
@@ -376,7 +375,7 @@ public sealed class iOSNowPlayingInfoManager
                 // Try AppDataDirectory first, then CacheDirectory for backwards compatibility
                 var appDataDir = FileSystem.AppDataDirectory;
                 filePath = System.IO.Path.Combine(appDataDir, artworkUrl);
-                
+
                 if (!File.Exists(filePath))
                 {
                     var cacheDir = FileSystem.CacheDirectory;
@@ -422,7 +421,7 @@ public sealed class iOSNowPlayingInfoManager
         try
         {
             // Skip if it's a file path (should have been handled by sync method)
-            if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase) || 
+            if (artworkUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase) ||
                 System.IO.Path.IsPathRooted(artworkUrl))
             {
                 return null;

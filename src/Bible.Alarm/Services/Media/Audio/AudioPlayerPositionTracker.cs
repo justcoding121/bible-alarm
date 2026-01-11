@@ -1,10 +1,7 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Mvvm.Messaging;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 

@@ -2,10 +2,8 @@
 using System.Collections.ObjectModel;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Models.Media.Bible;
-using Serilog;
 
-namespace Bible.Alarm.ViewModels.Bible.TrackSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles data population for TrackSelectionViewModel.

@@ -4,8 +4,6 @@ using Android.Content.PM;
 using Android.OS;
 using AndroidX.Core.App;
 using AndroidX.Core.Content;
-using Bible.Alarm.Common;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using AndroidApplication = Android.App.Application;
 
@@ -94,7 +92,7 @@ public static class NotificationPermissionHelper
         // Check permission status after request
         var granted = IsNotificationPermissionGranted();
         logger.Information("Notification permission request result: Granted: {Granted}", granted);
-        
+
         return granted;
     }
 }

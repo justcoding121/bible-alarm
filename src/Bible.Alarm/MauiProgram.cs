@@ -11,7 +11,6 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Constants;
 using CommunityToolkit.Maui;
 using Serilog;
 using Syncfusion.Licensing;

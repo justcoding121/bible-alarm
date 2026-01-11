@@ -1,6 +1,5 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Serilog;
@@ -90,13 +89,13 @@ public sealed class TrackPlaybackHandler
 
         // Determine if we need to seek to a saved position
         TimeSpan? seekPosition = null;
-        
+
         logger.Debug("[Resume] Checking resume conditions - startFromBeginning: {StartFromBeginning}, HasMetadata: {HasMetadata}, PlayType: {PlayType}, FinishedDuration: {FinishedDuration}",
             startFromBeginning,
             track.PlayItem?.Metadata != null,
             track.PlayItem?.Metadata?.PlayType.ToString() ?? "null",
             track.PlayItem?.Metadata?.FinishedDuration.ToString() ?? "null");
-            
+
         if (!startFromBeginning
             && track.PlayItem?.Metadata != null
             && track.PlayItem.Metadata.PlayType == PlayType.Bible
@@ -104,7 +103,7 @@ public sealed class TrackPlaybackHandler
         {
             var shouldResume = await trackPreparationHandler.ShouldResumeFromLastPositionAsync(currentScheduleId);
             logger.Debug("[Resume] ShouldResume check result: {ShouldResume}, ScheduleId: {ScheduleId}", shouldResume, currentScheduleId);
-            
+
             if (shouldResume)
             {
                 seekPosition = track.PlayItem.Metadata.FinishedDuration;
@@ -135,12 +134,12 @@ public sealed class TrackPlaybackHandler
         logger.Debug("Calling PlayAsync for track at index {TrackIndex}", currentTrackIndex);
         // Note: isPreparingTrack is already false at this point, so IsPreparingOrPlayingInternal
         // will rely on actual MediaElement state, which should be ready by now
-        
+
 #if IOS
         var positionBeforePlay = audioPlayer.CurrentPosition;
         logger.Debug("[iOS Playback] Position BEFORE PlayAsync: {Position}", positionBeforePlay);
 #endif
-        
+
         await audioPlayer.PlayAsync();
 
         // On iOS, wait a bit longer for playback to actually start
@@ -149,13 +148,13 @@ public sealed class TrackPlaybackHandler
         await Task.Delay(300);
         var positionAfterPlay = audioPlayer.CurrentPosition;
         logger.Debug("[iOS Playback] Position AFTER PlayAsync (after 300ms): {Position}", positionAfterPlay);
-        
+
         // On iOS, seek AFTER play starts - seekable ranges are more reliable once playing
         if (seekPosition.HasValue)
         {
             logger.Debug("[iOS Resume] Seeking AFTER play started to position: {Position}", seekPosition.Value);
             await SeekWithRetryAsync(seekPosition.Value);
-            
+
             // Verify final position
             await Task.Delay(100);
             var finalPosition = audioPlayer.CurrentPosition;
@@ -189,34 +188,34 @@ public sealed class TrackPlaybackHandler
         // from one source to another (e.g., music track to Bible track).
         const int maxRetries = 10;
         const int retryDelayMs = 300;
-        
+
         logger.Debug("[iOS Seek] Starting seek retry loop for position {Position}, max retries: {MaxRetries}", position, maxRetries);
-        
+
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
             try
             {
                 logger.Debug("[iOS Seek] Attempt {Attempt}: Calling SeekToAsync({Position})", attempt, position);
                 await audioPlayer.SeekToAsync(position);
-                
+
                 // Verify the seek actually worked by checking position after a brief delay
                 // On iOS, the seek might silently be a no-op if seekable ranges aren't ready yet
                 await Task.Delay(150);
                 var currentPos = audioPlayer.CurrentPosition;
-                
+
                 // Check if seek actually moved the position (within 1 second tolerance)
                 if (currentPos.HasValue && Math.Abs(currentPos.Value.TotalSeconds - position.TotalSeconds) < 1.0)
                 {
-                    logger.Debug("[iOS Seek] Attempt {Attempt} VERIFIED SUCCESS - Target: {Target}, Current: {Current}", 
+                    logger.Debug("[iOS Seek] Attempt {Attempt} VERIFIED SUCCESS - Target: {Target}, Current: {Current}",
                         attempt, position, currentPos);
                     return;
                 }
                 else
                 {
                     // Seek was a no-op (probably no seekable ranges yet)
-                    logger.Warning("[iOS Seek] Attempt {Attempt} was NO-OP - Target: {Target}, Current: {Current}, will retry", 
+                    logger.Warning("[iOS Seek] Attempt {Attempt} was NO-OP - Target: {Target}, Current: {Current}, will retry",
                         attempt, position, currentPos);
-                    
+
                     if (attempt < maxRetries)
                     {
                         await Task.Delay(retryDelayMs);
@@ -229,7 +228,7 @@ public sealed class TrackPlaybackHandler
             }
             catch (InvalidOperationException ex)
             {
-                logger.Warning(ex, "[iOS Seek] Attempt {Attempt} FAILED (InvalidOperationException): {Message}", 
+                logger.Warning(ex, "[iOS Seek] Attempt {Attempt} FAILED (InvalidOperationException): {Message}",
                     attempt, ex.Message);
                 if (attempt < maxRetries)
                 {

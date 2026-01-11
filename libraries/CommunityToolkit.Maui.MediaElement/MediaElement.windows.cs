@@ -3,7 +3,7 @@ using CommunityToolkit.Maui.Core.Handlers;
 using CommunityToolkit.Maui.Views;
 using Windows.Media;
 
-namespace CommunityToolkit.Maui.Views;
+namespace CommunityToolkit.Maui;
 
 /// <summary>
 /// Windows-specific extensions for MediaElement to access System Media Transport Controls.

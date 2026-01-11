@@ -6,7 +6,6 @@ using Android.Graphics.Drawables;
 using AndroidX.Car.App.Model;
 using AndroidX.Core.Content;
 using AndroidX.Core.Graphics.Drawable;
-using Bible.Alarm.Common;
 using Serilog;
 using Color = Android.Graphics.Color;
 

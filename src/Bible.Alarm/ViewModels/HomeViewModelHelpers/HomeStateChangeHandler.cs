@@ -1,10 +1,8 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
-using Microsoft.Maui.Essentials;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
@@ -70,14 +68,14 @@ public class HomeStateChangeHandler
             var currentScheduleProperties = stateValue.Schedules
                 .Where(s => s.Id > 0)
                 .ToDictionary(s => s.Id, s => (
-                    SectionNumber: s.BiblePublicationSectionNumber, 
+                    SectionNumber: s.BiblePublicationSectionNumber,
                     TrackNumber: s.BiblePublicationTrackNumber,
                     Name: s.Name ?? string.Empty,
                     Hour: s.Hour,
                     Minute: s.Minute,
                     DaysOfWeek: s.DaysOfWeek));
             var schedulePropertiesChanged = lastProcessedScheduleProperties == null ||
-                currentScheduleProperties.Any(kvp => 
+                currentScheduleProperties.Any(kvp =>
                     !lastProcessedScheduleProperties.ContainsKey(kvp.Key) ||
                     lastProcessedScheduleProperties[kvp.Key].SectionNumber != kvp.Value.SectionNumber ||
                     lastProcessedScheduleProperties[kvp.Key].TrackNumber != kvp.Value.TrackNumber ||
@@ -89,7 +87,7 @@ public class HomeStateChangeHandler
             if (!schedulesCountChanged && !scheduleIdsChanged && !schedulePropertiesChanged && lastProcessedScheduleIds != null)
             {
                 logger.Debug("OnStateChanged: Skipping processing - Schedules collection unchanged. Count: {Count}", stateValue.Schedules.Count);
-                
+
                 // Even if skipping processing, ensure progress bar is hidden if we have schedules
                 if (stateValue.Schedules.Count > 0 && getIsBusy())
                 {
@@ -145,7 +143,7 @@ public class HomeStateChangeHandler
             if (isInitialLoad && hasSchedulesNow && newSchedules != null)
             {
                 logger.Debug("OnStateChanged: Initial load - setting {Count} schedules via property setter", newSchedules.Count);
-                
+
                 var schedulesCollection = BuildScheduleCollection(newSchedules, schedulesToRemove);
                 setSchedules(schedulesCollection);
                 logger.Debug("OnStateChanged: Initial load complete. Collection now has {Count} items", getSchedules()?.Count ?? 0);
@@ -221,7 +219,7 @@ public class HomeStateChangeHandler
         List<int> schedulesToRemove)
     {
         var collection = new ObservableHashSet<ScheduleListItemViewModel>();
-        
+
         // Add all existing items that aren't being removed
         foreach (var existingItem in getSchedules() ?? [])
         {

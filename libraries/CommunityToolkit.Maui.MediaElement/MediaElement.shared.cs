@@ -1,8 +1,30 @@
 using System.ComponentModel;
+
+<<<<<<< TODO: Unmerged change from project 'CommunityToolkit.Maui.MediaElement (net10.0-ios)', Before:
+using CommunityToolkit.Maui.Converters;
+=======
+<<<<<<< TODO: Unmerged change from project 'CommunityToolkit.Maui.MediaElement (net10.0-windows10.0.19041.0)', Before:
+using CommunityToolkit.Maui.Converters;
+=======
+using CommunityToolkit;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Converters;
+>>>>>>> After
+
+<<<<<<< TODO: Unmerged change from project 'CommunityToolkit.Maui.MediaElement (net10.0-ios)', Before:
+using CommunityToolkit.Maui.Converters;
+=======
+using CommunityToolkit;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Converters;
+>>>>>>> After
 using CommunityToolkit.Maui.Converters;
 using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Views;
 
-namespace CommunityToolkit.Maui.Views;
+namespace CommunityToolkit.Maui;
 
 /// <summary>
 /// Represents an object used to play audio and video (headless or with UI).

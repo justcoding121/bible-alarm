@@ -1,7 +1,6 @@
 #nullable enable
 using System.Windows.Input;
 using AutoMapper;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -11,7 +10,6 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Bible;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -91,7 +89,7 @@ public sealed class BiblePublicationCommandInitializer
                 currentSchedule?.BiblePublicationSectionNumber,
                 currentSchedule?.BiblePublicationTrackNumber,
                 currentSchedule?.BiblePublicationFinishedDuration);
-            
+
             setBiblePublication(loadedBiblePublication);
 
             // Create view model and open modal
@@ -124,7 +122,7 @@ public sealed class BiblePublicationCommandInitializer
                 currentSchedule?.BiblePublicationSectionNumber,
                 currentSchedule?.BiblePublicationTrackNumber,
                 currentSchedule?.BiblePublicationFinishedDuration);
-            
+
             setBiblePublication(loadedBiblePublication);
 
             // Create view model and open modal
@@ -157,7 +155,7 @@ public sealed class BiblePublicationCommandInitializer
                 currentSchedule?.BiblePublicationSectionNumber,
                 currentSchedule?.BiblePublicationTrackNumber,
                 currentSchedule?.BiblePublicationFinishedDuration);
-            
+
             setBiblePublication(loadedBiblePublication);
 
             // Create view model and open modal

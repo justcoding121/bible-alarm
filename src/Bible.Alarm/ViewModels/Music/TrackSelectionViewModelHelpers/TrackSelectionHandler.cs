@@ -2,12 +2,10 @@
 using AutoMapper;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
-using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music.TrackSelectionViewModelHelpers;

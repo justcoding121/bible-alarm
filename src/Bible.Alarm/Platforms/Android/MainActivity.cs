@@ -30,11 +30,11 @@ public class MainActivity : MauiAppCompatActivity
 #if DEBUG
         Logger.Information("[BOOTSTRAP] App launch started - Stopwatch started at {ElapsedMs}ms", BootstrapTimingHelper.GetElapsedMilliseconds());
 #endif
-        
+
         // Initialize helpers
         intentHandler = new MainActivityIntentHandler(Logger);
         backgroundTaskHelper = new MainActivityBackgroundTaskHelper(Logger, this);
-        
+
         MainActivityExceptionHandler.SetupGlobalExceptionHandlers();
         Logger.Debug("MainActivity: OnCreate started");
 

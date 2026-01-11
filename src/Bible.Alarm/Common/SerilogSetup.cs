@@ -2,7 +2,6 @@ using System.Runtime.InteropServices;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
-using Serilog.Sinks.File;
 
 namespace Bible.Alarm.Common;
 
@@ -78,12 +77,12 @@ public class SerilogSetup
             {
                 // Ensure log directory exists
                 Directory.CreateDirectory(logDirectory);
-                
+
                 // Delete today's log file on each app start in DEBUG mode (clean slate for debugging)
                 DeleteTodaysLogFile(logDirectory);
-                
+
                 var logFilePath = Path.Combine(logDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
-                
+
                 // Write to file with rolling (daily rotation, keep last 7 days)
                 // All levels (Debug and above) will be written
                 // flushToDiskInterval: TimeSpan.Zero forces immediate flushing (no buffering)
@@ -176,7 +175,7 @@ public class SerilogSetup
         {
             // Use platform-specific cache directory that OS can clear when needed
             string cacheBasePath;
-            
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 // Windows: Use cache subfolder in LocalApplicationData
@@ -202,7 +201,7 @@ public class SerilogSetup
                 // Fallback for other platforms
                 cacheBasePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             }
-            
+
             return Path.Combine(cacheBasePath, AppConstants.FilePaths.LogsDirectoryName);
         }
         catch

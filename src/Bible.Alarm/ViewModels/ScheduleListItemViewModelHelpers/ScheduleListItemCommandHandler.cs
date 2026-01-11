@@ -1,20 +1,11 @@
 #nullable enable
-using Bible;
-using Bible.Alarm.Common;
+using System.Windows.Input;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Scheduler.Interfaces;
-using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Actions.Schedule;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using Fluxor;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
-using System.Windows.Input;
-using IDispatcher = Fluxor.IDispatcher;
-using IToastService = Bible.Alarm.Services.UI.Interfaces.IToastService;
 
 namespace Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
 

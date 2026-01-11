@@ -1,6 +1,5 @@
 #nullable enable
 using System.Globalization;
-using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
 

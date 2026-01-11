@@ -5,9 +5,8 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
-using Serilog;
 
-namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles data population for SongPublicationSelectionViewModel.
@@ -29,7 +28,7 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
         {
             var languagesFromDb = await mediaService.GetVocalMusicLanguages();
             var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
-            
+
             var vms = new List<LanguageListViewItemModel>();
             LanguageListViewItemModel? selected = null;
 
@@ -55,7 +54,7 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
         const int batchSize = 15;
         await MainThread.InvokeOnMainThreadAsync(() => languages.Clear());
         await Task.Yield(); // Let spinner animate after clear
-        
+
         for (int i = 0; i < languageVMs.Count; i += batchSize)
         {
             var batch = languageVMs.Skip(i).Take(batchSize).ToList();
@@ -66,11 +65,11 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
                     languages.Add(lang);
                 }
             });
-            
+
             // Yield after every batch for smooth animation
             await Task.Yield();
         }
-        
+
         if (selectedLanguage != null)
         {
             await MainThread.InvokeOnMainThreadAsync(() => setCurrentLanguage(selectedLanguage));

@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores.Models;
 
@@ -61,9 +60,9 @@ public sealed class BiblePublicationPropertyChangeDetector
         var publicationCodeChanged = currentPublicationCode != lastPublicationCode;
         var sectionNumberChanged = currentSectionNumber != lastSectionNumber;
         var trackNumberChanged = currentTrackNumber != lastTrackNumber;
-        
+
         // Content type changes when publication code changes to/from a drama type
-        var contentTypeChanged = publicationCodeChanged && 
+        var contentTypeChanged = publicationCodeChanged &&
             PublicationTypeHelper.IsDrama(currentPublicationCode) != PublicationTypeHelper.IsDrama(lastPublicationCode);
 
         var newBibleTypeDisplayText = displayTextProvider.GetBibleTypeDisplayText();

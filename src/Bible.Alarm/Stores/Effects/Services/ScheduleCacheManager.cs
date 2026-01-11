@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Storage.Interfaces;

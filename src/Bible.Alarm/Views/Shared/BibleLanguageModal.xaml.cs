@@ -1,11 +1,9 @@
 #nullable enable
 using Bible.Alarm.Common.ViewHelpers;
-using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Bible;
+using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views.Shared;
 
@@ -28,7 +26,7 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         Appearing -= OnAppearing;
 
         var bibleViewModel = ViewModel as BiblePublicationSelectionViewModel;
-        
+
         // Clear search term to show all languages when modal opens
         if (bibleViewModel != null)
         {
@@ -41,8 +39,8 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
             LanguageCollectionView,
             // Get selected item AFTER refresh to ensure fresh reference
             getSelectedItem: () => bibleViewModel?.Languages?.FirstOrDefault(l => l.IsSelected),
-            refreshAction: bibleViewModel != null 
-                ? async () => await bibleViewModel.RefreshFromState() 
+            refreshAction: bibleViewModel != null
+                ? async () => await bibleViewModel.RefreshFromState()
                 : null,
             cancellationToken: cancellationTokenSource.Token);
     }

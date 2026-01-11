@@ -2,11 +2,9 @@
 using AutoMapper;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Models;
 using Fluxor;
-using Serilog;
 
-namespace Bible.Alarm.ViewModels.Bible.TrackSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles state management and initialization for TrackSelectionViewModel.

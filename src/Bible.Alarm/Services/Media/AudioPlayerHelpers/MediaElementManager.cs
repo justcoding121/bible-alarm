@@ -3,11 +3,10 @@
 using Bible.Alarm.Services.Media.Audio;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
-using CommunityToolkit.Maui.Views;
-using Microsoft.Maui.Essentials;
-using Serilog;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Views;
+using Serilog;
 
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Services.Media;
@@ -161,7 +160,7 @@ public class MediaElementManager
                 logger.Information("Disposing MediaElement instance to free up resources");
                 await mediaElementService.DisposeMediaElementAsync();
                 logger.Information("MediaElement disposed - resources freed");
-                
+
 #if ANDROID
                 // Notify coordinator that MediaElement is fully disposed and its notification is removed
                 // This allows Android Auto to take ownership after disposal is complete

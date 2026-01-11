@@ -1,6 +1,4 @@
 #nullable enable
-using Microsoft.Maui.Controls;
-
 namespace Bible.Alarm.Services.UI.NavigationServiceHelpers;
 
 /// <summary>

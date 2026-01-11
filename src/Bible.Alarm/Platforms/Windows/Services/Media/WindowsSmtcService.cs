@@ -4,7 +4,6 @@ using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.Messaging;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using Windows.Media;
 
@@ -49,10 +48,10 @@ public sealed class WindowsSmtcService : IDisposable
                 {
                     // Get MediaElement to access SystemMediaTransportControls
                     var mediaElement = await mediaElementService.GetMediaElementAsync();
-                    
+
                     // Get SystemMediaTransportControls directly from MediaElement (Windows-specific API)
                     systemMediaControls = mediaElement.GetSystemMediaTransportControls();
-                    
+
                     if (systemMediaControls == null)
                     {
                         if (attempt < 3)
@@ -112,7 +111,7 @@ public sealed class WindowsSmtcService : IDisposable
 
             systemMediaControls.IsNextEnabled = canPlayNext;
             systemMediaControls.IsPreviousEnabled = canPlayPrevious;
-            
+
             // Enable seek buttons when next/prev buttons are enabled (playback is active)
             // Seek buttons should be available whenever we can navigate
             var isPlaybackActive = canPlayNext || canPlayPrevious;

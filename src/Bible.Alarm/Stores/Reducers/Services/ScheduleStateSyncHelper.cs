@@ -1,7 +1,5 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;

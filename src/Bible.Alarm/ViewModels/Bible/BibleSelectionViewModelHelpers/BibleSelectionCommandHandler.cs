@@ -6,9 +6,7 @@ using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
@@ -89,14 +87,14 @@ public sealed class BiblePublicationSelectionCommandHandler
 
             var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state);
             var (sectionNumber, trackNumber, sectionName) = await itemSelector.GetSectionAndTrackForTranslationAsync(x, currentLanguage);
-            
+
             if (sectionNumber == 0)
             {
                 return;
             }
 
             var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionNumber, trackNumber, sectionName, currentLanguage, currentSchedule);
-            
+
             var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);
             await navigationService.PopModalAsync();

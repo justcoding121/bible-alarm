@@ -1,7 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Models;
@@ -76,7 +75,7 @@ public sealed class BiblePublicationSelectionDataProvider
         const int batchSize = 15;
         await MainThread.InvokeOnMainThreadAsync(() => languages.Clear());
         await Task.Yield(); // Let spinner animate after clear
-        
+
         for (int i = 0; i < languageVMs.Count; i += batchSize)
         {
             var batch = languageVMs.Skip(i).Take(batchSize).ToList();
@@ -87,7 +86,7 @@ public sealed class BiblePublicationSelectionDataProvider
                     languages.Add(lang);
                 }
             });
-            
+
             // Yield after every batch for smooth animation
             await Task.Yield();
         }

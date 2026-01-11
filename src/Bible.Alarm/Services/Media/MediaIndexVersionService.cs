@@ -1,10 +1,8 @@
 #nullable enable
 
-using System.IO;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
-using Microsoft.Maui.Storage;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;

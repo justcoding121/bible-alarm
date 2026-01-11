@@ -35,7 +35,7 @@ public sealed class SchedulePlaybackService(
             // Also stop any alarm foreground service that might be active
             Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
 #endif
-            
+
             await playbackService.PrepareAndPlayAsync(scheduleId, false);
             // Note: ShowNotificationAsync is not called here because it triggers AlarmRingerReceiver
             // which would cause duplicate playback. Notifications are only shown when alarms actually fire.

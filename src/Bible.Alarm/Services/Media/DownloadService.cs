@@ -125,7 +125,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             }
         }, combinedCts.Token);
     }
-    
+
     /// <summary>
     /// Downloads a file with a stall timeout - only times out if no data is received for X seconds.
     /// This prevents canceling slow but active downloads while still detecting stalled connections.
@@ -139,29 +139,29 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
         using var client = new HttpClient(handler, false);
         // No total timeout - we use stall detection instead
         client.Timeout = Timeout.InfiniteTimeSpan;
-        
+
         // Get response headers first (fast operation, use connection timeout)
         using var connectionTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         connectionTimeoutCts.CancelAfter(TimeSpan.FromSeconds(timeOutSeconds));
-        
+
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, connectionTimeoutCts.Token);
         response.EnsureSuccessStatusCode();
-        
+
         // Stream the content with stall detection
         await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var memoryStream = new MemoryStream();
-        
+
         var buffer = new byte[8192];
         int bytesRead;
-        
+
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             // Create a new timeout for each read operation - resets on each successful read
             using var readTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             readTimeoutCts.CancelAfter(TimeSpan.FromSeconds(timeOutSeconds));
-            
+
             try
             {
                 bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, readTimeoutCts.Token);
@@ -171,15 +171,15 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                 // Read timeout (stall detected), not user cancellation
                 throw new TimeoutException($"Download stalled - no data received for {timeOutSeconds} seconds");
             }
-            
+
             if (bytesRead == 0)
             {
                 break; // End of stream
             }
-            
+
             memoryStream.Write(buffer, 0, bytesRead);
         }
-        
+
         return memoryStream.ToArray();
     }
 

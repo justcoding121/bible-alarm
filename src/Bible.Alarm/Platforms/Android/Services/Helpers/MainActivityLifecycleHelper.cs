@@ -1,6 +1,5 @@
 #nullable enable
 
-using System;
 using Android.App;
 using Android.OS;
 using Bible.Alarm.Common;

@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
@@ -69,7 +68,7 @@ public class PlaylistBiblePublicationTrackBuilder
     public async Task<TrackInfo> GetInitialTrackInfo(BiblePublicationSchedule biblePublicationSchedule)
     {
         var sectionNumber = biblePublicationSchedule.SectionNumber ?? throw new InvalidOperationException("SectionNumber is null");
-        
+
         var tracks = await mediaService.GetBiblePublicationTracks(
             biblePublicationSchedule.LanguageCode,
             biblePublicationSchedule.PublicationCode,
@@ -120,7 +119,7 @@ public class PlaylistBiblePublicationTrackBuilder
             schedule.AlwaysPlayFromStart,
             biblePublicationSchedule.FinishedDuration,
             biblePublicationSchedule.SectionNumber == trackMetadata.SectionNumber);
-            
+
         if (shouldSet)
         {
             trackMetadata.FinishedDuration = biblePublicationSchedule.FinishedDuration;

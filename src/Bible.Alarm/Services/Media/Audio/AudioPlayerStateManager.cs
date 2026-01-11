@@ -1,11 +1,8 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Services.Media.Models;
-using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 

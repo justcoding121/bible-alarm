@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 

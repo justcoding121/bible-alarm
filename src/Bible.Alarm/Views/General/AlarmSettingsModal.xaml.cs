@@ -1,5 +1,3 @@
-using Microsoft.Maui.Controls.Xaml;
-
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]

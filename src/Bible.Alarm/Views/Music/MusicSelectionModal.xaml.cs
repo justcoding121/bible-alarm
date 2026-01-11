@@ -2,8 +2,6 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Music;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views.Music;
 
@@ -35,13 +33,13 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
             {
                 musicTypesCollectionView.Opacity = 0;
             }
-            
+
             // Refresh state synchronously
             ViewModel?.RefreshFromState();
-            
+
             // Small delay for UI to settle
             await Task.Delay(100, cancellationTokenSource.Token);
-            
+
             // Scroll to selected item if any
             var selectedItem = ViewModel?.SelectedMusicType;
             if (selectedItem != null)
@@ -52,7 +50,7 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
                     animated: false,
                     cancellationToken: cancellationTokenSource.Token);
             }
-            
+
             // Hide overlay and reveal list together
             await MainThread.InvokeOnMainThreadAsync(() =>
             {

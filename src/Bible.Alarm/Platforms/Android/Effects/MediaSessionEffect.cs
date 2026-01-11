@@ -1,7 +1,6 @@
 #nullable enable
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
-using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;

@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Common.Messenger;
 using CommunityToolkit.Mvvm.Messaging;
 

@@ -1,6 +1,5 @@
 #nullable enable
 
-using System;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
@@ -19,7 +18,7 @@ public class AlarmForegroundService : Service
     private static readonly ILogger logger = Log.ForContext<AlarmForegroundService>();
     private static readonly object instanceLock = new();
     private static AlarmForegroundService? instance;
-    
+
     /// <summary>
     /// Gets the current service instance in a thread-safe manner.
     /// </summary>
@@ -33,9 +32,9 @@ public class AlarmForegroundService : Service
             }
         }
     }
-    
+
     public override IBinder? OnBind(Intent? intent) => null;
-    
+
     public override void OnCreate()
     {
         base.OnCreate();
@@ -45,13 +44,13 @@ public class AlarmForegroundService : Service
         }
         logger.Information("AlarmForegroundService.OnCreate() called - instance registered");
     }
-    
+
     public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
     {
         logger.Information("AlarmForegroundService.OnStartCommand() called");
         return StartCommandResult.Sticky; // Keep service running
     }
-    
+
     public override void OnDestroy()
     {
         logger.Information("AlarmForegroundService.OnDestroy() called");

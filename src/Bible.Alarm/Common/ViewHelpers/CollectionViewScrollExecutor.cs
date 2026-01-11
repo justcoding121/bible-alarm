@@ -1,11 +1,16 @@
 #nullable enable
 using System.Collections;
+
+<<<<<<< TODO: Unmerged change from project 'Bible.Alarm (net10.0-windows10.0.19041.0)', Before:
 using System.Linq;
 using Serilog;
-using Microsoft.Maui.Controls;
-using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
-using Bible.Alarm.ViewModels.Shared;
+=======
+using Serilog;
+>>>>>>> After
 using System.Runtime.InteropServices;
+using Bible.Alarm.ViewModels.Shared;
+using Serilog;
+using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 #if WINDOWS
 using Microsoft.Maui.Essentials;
 #endif
@@ -45,11 +50,11 @@ internal static class CollectionViewScrollExecutor
 
         // Wait for the UI thread to process the scroll
         await Task.Yield();
-        
+
         // Additional delay to ensure the scroll is visually complete
         // For non-animated scrolls, this gives Windows' ScrollViewer time to update
         await Task.Delay(animated ? 300 : 200, cancellationToken);
-        
+
         // On Windows, give extra time for ScrollViewer to update its extent
 #if WINDOWS
         if (DeviceInfo.Platform == DevicePlatform.WinUI)
@@ -114,7 +119,7 @@ internal static class CollectionViewScrollExecutor
                                                     break;
                                                 }
                                             }
-                                            
+
                                             // Check if item is in the last 10 positions
                                             if (itemIndex >= 0 && itemIndex >= itemsList.Count - 10)
                                             {

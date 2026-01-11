@@ -1,16 +1,14 @@
-using System.Diagnostics;
 using System.Numerics;
-using Windows.Media;
-using Windows.Media.Core;
-using Windows.Media.Playback;
-using Windows.Storage;
-using Windows.Storage.Streams;
-using Windows.System.Display;
 using CommunityToolkit.Maui.Core.Primitives;
 using CommunityToolkit.Maui.Extensions;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Media;
+using Windows.Media.Playback;
+using Windows.Storage;
+using Windows.Storage.Streams;
+using Windows.System.Display;
 using ParentWindow = CommunityToolkit.Maui.Extensions.PageExtensions.ParentWindow;
 using Stretch = Microsoft.UI.Xaml.Media.Stretch;
 using WindowsMediaElement = Windows.Media.Playback.MediaPlayer;
@@ -354,10 +352,10 @@ partial class MediaManager : IDisposable
             {
                 var source = WinMediaSource.CreateFromUri(new Uri(uri));
                 var playbackItem = new MediaPlaybackItem(source);
-                
+
                 // Set metadata on MediaPlaybackItem for SMTC integration
                 await SetPlaybackItemMetadata(playbackItem);
-                
+
                 if (Player is not null)
                 {
                     Player.AutoPlay = MediaElement.ShouldAutoPlay;
@@ -381,10 +379,10 @@ partial class MediaManager : IDisposable
                 StorageFile storageFile = await StorageFile.GetFileFromPathAsync(filename);
                 var source = WinMediaSource.CreateFromStorageFile(storageFile);
                 var playbackItem = new MediaPlaybackItem(source);
-                
+
                 // Set metadata on MediaPlaybackItem for SMTC integration
                 await SetPlaybackItemMetadata(playbackItem);
-                
+
                 if (Player is not null)
                 {
                     Player.AutoPlay = MediaElement.ShouldAutoPlay;
@@ -508,18 +506,18 @@ partial class MediaManager : IDisposable
         {
             var displayProps = playbackItem.GetDisplayProperties();
             displayProps.Type = MediaPlaybackType.Music; // Important for media-style display
-            
+
             // Set metadata from MediaElement properties
             if (!string.IsNullOrWhiteSpace(MediaElement.MetadataTitle))
             {
                 displayProps.MusicProperties.Title = MediaElement.MetadataTitle;
             }
-            
+
             if (!string.IsNullOrWhiteSpace(MediaElement.MetadataArtist))
             {
                 displayProps.MusicProperties.Artist = MediaElement.MetadataArtist;
             }
-            
+
             // Set artwork if available
             if (!string.IsNullOrWhiteSpace(MediaElement.MetadataArtworkUrl))
             {
@@ -542,7 +540,7 @@ partial class MediaManager : IDisposable
                     Logger?.LogWarning(ex, "Failed to set artwork thumbnail for MediaPlaybackItem");
                 }
             }
-            
+
             playbackItem.ApplyDisplayProperties(displayProps);
         }
         catch (Exception ex)
@@ -696,7 +694,7 @@ partial class MediaManager : IDisposable
         };
 
         MediaElement?.CurrentStateChanged(newState);
-        
+
         // Update SMTC playback status to sync with actual playback state
         if (systemMediaControls is not null)
         {
@@ -710,7 +708,7 @@ partial class MediaManager : IDisposable
             };
             systemMediaControls.PlaybackStatus = smtcStatus;
         }
-        
+
         if (sender.PlaybackState == MediaPlaybackState.Playing && IsZero(sender.PlaybackRate))
         {
             Dispatcher.Dispatch(() =>

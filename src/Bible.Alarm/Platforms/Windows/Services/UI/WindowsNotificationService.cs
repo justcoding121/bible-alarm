@@ -1,17 +1,16 @@
 #nullable enable
 
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using Windows.ApplicationModel;
-using Windows.Data.Xml.Dom;
-using Windows.UI.Notifications;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Platforms.Windows.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Serilog;
+using Windows.ApplicationModel;
+using Windows.Data.Xml.Dom;
+using Windows.UI.Notifications;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI;
 
@@ -33,7 +32,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         try
         {
             var scheduleId = schedule.Id;
-            
+
             var notifier = GetToastNotifier();
             if (notifier == null)
             {
@@ -74,7 +73,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                 // ScheduleId can be up to 4 digits (9999), so we have ~12 chars for the hash
                 var dateHash = GetShortDateHash(fireDate);
                 var uniqueId = $"{scheduleId}_{dateHash}";
-                
+
                 // Ensure ID doesn't exceed 16 characters (Windows limit)
                 if (uniqueId.Length > 16)
                 {
@@ -83,9 +82,9 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                     dateHash = dateHash.Substring(0, Math.Min(maxHashLength, dateHash.Length));
                     uniqueId = $"{scheduleId}_{dateHash}";
                 }
-                
+
                 var toast = CreateScheduledToast(uniqueId, scheduleId, title, body, fireDate);
-                
+
                 try
                 {
                     notifier.AddToSchedule(toast);
@@ -93,7 +92,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "Failed to schedule notification for schedule {ScheduleId} at {FireDate}. Error: {ErrorMessage}", 
+                    logger.Warning(ex, "Failed to schedule notification for schedule {ScheduleId} at {FireDate}. Error: {ErrorMessage}",
                         scheduleId, fireDate, ex.Message);
                     // Continue with next occurrence
                 }
@@ -108,10 +107,10 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             else
             {
                 logger.Warning("No notifications were scheduled for schedule {ScheduleId}. Check alarm schedule configuration.", scheduleId);
-                
+
                 // Log additional diagnostic information
                 var scheduledToasts = notifier.GetScheduledToastNotifications();
-                logger.Warning("Total scheduled toasts in system: {TotalCount}. Next fire date was: {NextFireDate}", 
+                logger.Warning("Total scheduled toasts in system: {TotalCount}. Next fire date was: {NextFireDate}",
                     scheduledToasts.Count, schedule.NextFireDate(DateTimeOffset.Now));
             }
         }
@@ -221,18 +220,18 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
 
             var toastXml = CreateMediaToastXml(title, subtitle, body, artworkUrl, canPlayNext, canPlayPrevious, isPlaying);
             var toast = new ToastNotification(toastXml);
-            
+
             // Use the same Tag and Group - Windows will automatically replace any existing toast with these values
             // This allows seamless updates when track changes or play/pause state changes
             toast.Tag = "MediaPlayback";
             toast.Group = "MediaPlayback";
-            
+
             // Sound is suppressed via silent audio element in the toast XML
             toast.SuppressPopup = false;
-            
+
             // Show the toast - Windows will automatically replace any existing toast with the same tag/group
             notifier.Show(toast);
-            logger.Debug("Media toast shown/updated: Title={Title}, Subtitle={Subtitle}, ArtworkUrl={ArtworkUrl}. Clicking toast will activate existing app instance.", 
+            logger.Debug("Media toast shown/updated: Title={Title}, Subtitle={Subtitle}, ArtworkUrl={ArtworkUrl}. Clicking toast will activate existing app instance.",
                 title, subtitle, artworkUrl);
         }
         catch (Exception ex)
@@ -246,7 +245,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         // Create compact ToastGeneric XML with two-column layout
         // Column 1: Artwork, Column 2: Title, Subtitle
         var toastXml = new XmlDocument();
-        
+
         // Create toast element
         var toastElement = toastXml.CreateElement("toast");
         // Set toast to appear on bottom right (UWP style)
@@ -254,17 +253,17 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         toastElement.SetAttribute("scenario", "reminder"); // Makes it more compact
         toastElement.SetAttribute("useButtonStyle", "false"); // Don't use button style
         toastXml.AppendChild(toastElement);
-        
+
         // Create visual element
         var visual = toastXml.CreateElement("visual");
         toastElement.AppendChild(visual);
-        
+
         // Suppress app name by setting displayName attribute to empty string
         // Note: App icon may still appear, but this hides the app name text
         var displayNameAttribute = toastXml.CreateAttribute("displayName");
         displayNameAttribute.Value = ""; // Empty string to hide app name
         visual.Attributes.SetNamedItem(displayNameAttribute);
-        
+
         // Create binding element with ToastGeneric template
         var binding = toastXml.CreateElement("binding");
         binding.SetAttribute("template", "ToastGeneric");
@@ -289,9 +288,9 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             {
                 // Convert local file path to proper URI for Windows toast
                 var imageUri = artworkUrl;
-                
+
                 // If it's already a URI (http/https), use it as-is
-                if (Uri.TryCreate(artworkUrl, UriKind.Absolute, out var uri) && 
+                if (Uri.TryCreate(artworkUrl, UriKind.Absolute, out var uri) &&
                     (uri.Scheme == "http" || uri.Scheme == "https"))
                 {
                     imageUri = artworkUrl;
@@ -386,20 +385,20 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
     {
         // Create ToastGeneric XML manually for more control over content
         var toastXml = new XmlDocument();
-        
+
         // Create toast element
         var toastElement = toastXml.CreateElement("toast");
         toastXml.AppendChild(toastElement);
-        
+
         // Create visual element
         var visual = toastXml.CreateElement("visual");
         toastElement.AppendChild(visual);
-        
+
         // Suppress app name by setting displayName attribute on visual element
         var displayNameAttribute = toastXml.CreateAttribute("displayName");
         displayNameAttribute.Value = ""; // Empty string to hide app name
         visual.Attributes.SetNamedItem(displayNameAttribute);
-        
+
         // Create binding element with ToastGeneric template
         var binding = toastXml.CreateElement("binding");
         binding.SetAttribute("template", "ToastGeneric");
@@ -616,11 +615,11 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         var dateStr = dateTime.ToString("yyyyMMddHHmmss");
         var bytes = Encoding.UTF8.GetBytes(dateStr);
         var hashBytes = MD5.HashData(bytes);
-        
+
         // Convert hash to base36 (0-9, a-z) for a compact 11-character representation
         const string base36Chars = "0123456789abcdefghijklmnopqrstuvwxyz";
         var hash = new StringBuilder();
-        
+
         // Use first 6 bytes of hash (48 bits) to generate 11 base36 characters
         // 36^11 is much larger than 2^48, so we have good distribution
         ulong value = 0;
@@ -628,7 +627,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
         {
             value = (value << 8) | hashBytes[i];
         }
-        
+
         // Convert to base36
         if (value == 0)
         {
@@ -642,7 +641,7 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
                 value /= 36;
             }
         }
-        
+
         // Pad to exactly 11 characters for consistency
         return hash.ToString().PadLeft(11, '0').Substring(0, 11);
     }

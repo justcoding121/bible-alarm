@@ -1,27 +1,18 @@
 #nullable enable
-using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
-using Android.Graphics;
-using Android.Graphics.Drawables;
 using Android.OS;
 using Android.Runtime;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
-using AndroidX.Core.Content;
 using AndroidX.Media;
 using AndroidX.Media.Session;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;
 using Bible.Alarm.Platforms.Android.Services.Media;
-using Bible.Alarm.Services.Scheduler.Interfaces;
-using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Models;
-using Fluxor;
 using Java.Util;
 using Serilog;
-using Color = Android.Graphics.Color;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
@@ -53,7 +44,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     private readonly MediaBrowser mediaBrowser = new(logger);
     private readonly PlaybackController playbackController = new(logger);
     private readonly StateSubscriptionManager stateSubscriptionManager = new(logger);
-    
+
     // MediaSession references
     private MediaSessionCompat? session;
     private Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager? mediaSessionManager;
@@ -87,14 +78,14 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     public override BrowserRoot? OnGetRoot(string clientPackageName, int clientUid, Bundle? rootHints)
     {
         var root = clientValidator.ValidateClientAndGetRoot(clientPackageName, clientUid, rootHints);
-        
+
         // If root is returned (Android Auto is connecting), mark as connected
         if (root != null)
         {
             logger.Information("Android Auto client validated - marking as connected");
             ForegroundServiceCoordinator.OnAndroidAutoConnected(this);
         }
-        
+
         return root;
     }
 

@@ -2,23 +2,14 @@
 
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
-using Bible.Alarm.ViewModels;
-using Bible.Alarm.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Essentials;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 #if ANDROID
@@ -118,7 +109,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
             OnPropertyChanged(nameof(NotificationEnabled));
             OnPropertyChanged(nameof(AlwaysPlayFromStart));
-            
+
             // Signal that this container is ready (initialized from CurrentSchedule)
             SignalContainerReady();
         }
@@ -129,16 +120,16 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         // Check if already signaled or already marked ready in state
         // This check must happen first to prevent any duplicate work
         if (hasSignaledReady || state.Value.ContainerReadiness.NumberOfTrack) return;
-        
+
         // Check if action is already queued to prevent duplicate queued actions
         // This prevents multiple rapid calls from queuing multiple actions
         if (isReadyActionQueued) return;
-        
+
         // Atomically set both flags to prevent race conditions
         // If another thread/call checks between these lines, it will see isReadyActionQueued=true
         isReadyActionQueued = true;
         hasSignaledReady = true;
-        
+
         // Double-check state immediately after setting flags (before queuing)
         // This catches the case where state changed between the initial check and flag setting
         if (state.Value.ContainerReadiness.NumberOfTrack)
@@ -148,13 +139,13 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             hasSignaledReady = true;
             return;
         }
-        
+
         // Dispatch to state that this container is ready
         // Check state again inside the queued action to prevent duplicates from queued actions
         MainThread.BeginInvokeOnMainThread(() =>
         {
             isReadyActionQueued = false; // Reset flag when action executes
-            
+
             // Final check before dispatching - if state already shows we're ready, another action already handled it
             if (state.Value.ContainerReadiness.NumberOfTrack)
             {
@@ -170,7 +161,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     {
         var stateValue = state.Value;
         var currentSchedule = stateValue.CurrentSchedule;
-        
+
         // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
         // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
         if (hasSignaledReady && !stateValue.ContainerReadiness.NumberOfTrack && currentSchedule != null)
@@ -181,7 +172,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             InitializeFromState();
             return;
         }
-        
+
         // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
         // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
         if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
@@ -189,7 +180,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             InitializeFromState();
             return;
         }
-        
+
         // Initialize if schedule ID changed to a different positive ID (existing schedule opened)
         if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
         {
@@ -271,7 +262,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                                     notificationEnabled = false;
                                     OnPropertyChanged(nameof(NotificationEnabled));
                                 });
-                                
+
                                 // Show message to user
                                 var toastService = serviceProvider.GetService<IToastService>();
                                 if (toastService != null)
@@ -293,7 +284,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                     });
 #endif
                 }
-                
+
                 DispatchScheduleUpdate(s => s.NotificationEnabled = value);
             }
         }

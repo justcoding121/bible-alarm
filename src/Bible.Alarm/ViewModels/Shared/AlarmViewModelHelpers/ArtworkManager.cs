@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;

@@ -1,6 +1,5 @@
 #nullable enable
 using Bible.Alarm.ViewModels.Interfaces;
-using Microsoft.Maui.Controls;
 using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 
@@ -70,7 +69,7 @@ public static class ModalScrollHelper
 
             // 3. Wait for IsBusy to become false
             await CollectionViewHelper.WaitForNotBusyAsync(
-                () => viewModel.IsBusy, 
+                () => viewModel.IsBusy,
                 cancellationToken: cancellationToken);
 
             // 4. Keep spinner visible while we scroll (override binding)
@@ -86,11 +85,11 @@ public static class ModalScrollHelper
             if (selectedItem != null && collectionView != null)
             {
                 await CollectionViewHelper.ScrollToWhenReadyAsync(
-                    collectionView, 
-                    selectedItem, 
-                    animated: false, 
+                    collectionView,
+                    selectedItem,
+                    animated: false,
                     cancellationToken: cancellationToken);
-                
+
                 // Small delay to ensure scroll completes
                 await Task.Delay(PostScrollDelayMs, cancellationToken);
             }
@@ -156,7 +155,7 @@ public static class ModalScrollHelper
 
             // 3. Wait for IsBusy to become false
             await CollectionViewHelper.WaitForNotBusyAsync(
-                isBusyGetter, 
+                isBusyGetter,
                 cancellationToken: cancellationToken);
 
             // 4. Keep spinner visible while we scroll (override binding)
@@ -171,11 +170,11 @@ public static class ModalScrollHelper
             if (selectedItem != null && collectionView != null)
             {
                 await CollectionViewHelper.ScrollToWhenReadyAsync(
-                    collectionView, 
-                    selectedItem, 
-                    animated: false, 
+                    collectionView,
+                    selectedItem,
+                    animated: false,
                     cancellationToken: cancellationToken);
-                
+
                 // Small delay to ensure scroll completes
                 await Task.Delay(PostScrollDelayMs, cancellationToken);
             }

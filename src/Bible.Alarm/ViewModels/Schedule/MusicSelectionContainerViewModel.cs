@@ -2,30 +2,16 @@
 
 using System.Windows.Input;
 using AutoMapper;
-using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Models.Enums;
-using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Actions;
-using Bible.Alarm.Stores.Actions.Music;
-using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Models;
-using Bible.Alarm.ViewModels.Music;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.ApplicationModel;
+using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
@@ -89,7 +75,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         stateChangeHandler = new MusicStateChangeHandler(state, dispatcher, mapper, stateTracker, propertyNotifier, displayTextProvider);
 
         state.StateChanged += OnStateChanged;
-        
+
         // Initialize scheduleId and isNewSchedule before creating commands
         // so commands capture the correct values
         var currentSchedule = state.Value.CurrentSchedule;
@@ -98,7 +84,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             scheduleId = currentSchedule.Id;
             isNewSchedule = currentSchedule.Id <= 0;
         }
-        
+
         InitializeCommands();
         InitializeFromState();
     }

@@ -1,7 +1,5 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;

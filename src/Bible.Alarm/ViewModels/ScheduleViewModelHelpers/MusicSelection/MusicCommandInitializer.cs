@@ -2,7 +2,6 @@
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -12,7 +11,6 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Music;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -61,15 +59,15 @@ public sealed class MusicCommandInitializer
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
-                scheduleId, 
-                isNewSchedule, 
+                scheduleId,
+                isNewSchedule,
                 getMusic(),
                 currentSchedule?.MusicType,
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
                 currentSchedule?.MusicTrackNumber,
                 currentSchedule?.MusicRepeat);
-            
+
             setMusic(loadedMusic);
 
             // Create view model and open modal
@@ -93,15 +91,15 @@ public sealed class MusicCommandInitializer
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
-                scheduleId, 
-                isNewSchedule, 
+                scheduleId,
+                isNewSchedule,
                 getMusic(),
                 currentSchedule?.MusicType,
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
                 currentSchedule?.MusicTrackNumber,
                 currentSchedule?.MusicRepeat);
-            
+
             setMusic(loadedMusic);
 
             // Create view model and open modal
@@ -125,15 +123,15 @@ public sealed class MusicCommandInitializer
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
-                scheduleId, 
-                isNewSchedule, 
+                scheduleId,
+                isNewSchedule,
                 getMusic(),
                 currentSchedule?.MusicType,
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
                 currentSchedule?.MusicTrackNumber,
                 currentSchedule?.MusicRepeat);
-            
+
             setMusic(loadedMusic);
 
             // Create view model and open modal
@@ -157,15 +155,15 @@ public sealed class MusicCommandInitializer
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
-                scheduleId, 
-                isNewSchedule, 
+                scheduleId,
+                isNewSchedule,
                 getMusic(),
                 currentSchedule?.MusicType,
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
                 currentSchedule?.MusicTrackNumber,
                 currentSchedule?.MusicRepeat);
-            
+
             setMusic(loadedMusic);
 
             // Create view model and open modal
@@ -189,15 +187,15 @@ public sealed class MusicCommandInitializer
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;
             var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
-                scheduleId, 
-                isNewSchedule, 
+                scheduleId,
+                isNewSchedule,
                 getMusic(),
                 currentSchedule?.MusicType,
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
                 currentSchedule?.MusicTrackNumber,
                 currentSchedule?.MusicRepeat);
-            
+
             setMusic(loadedMusic);
 
             // Map entity to DTO before dispatching

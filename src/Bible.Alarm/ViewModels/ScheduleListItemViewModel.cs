@@ -126,7 +126,7 @@ public sealed class ScheduleListItemViewModel(
             OnPropertyChanged(nameof(MusicEnabled));
             // Notify 'This' to trigger converters that bind to the entire ViewModel (e.g., dayColorConverter, dayBackgroundColorConverter)
             OnPropertyChanged(nameof(This));
-            logger.Debug("ScheduleListItemViewModel: InitializeCommon - Notified all properties including This. ScheduleId={ScheduleId}, DaysOfWeek={DaysOfWeek}", 
+            logger.Debug("ScheduleListItemViewModel: InitializeCommon - Notified all properties including This. ScheduleId={ScheduleId}, DaysOfWeek={DaysOfWeek}",
                 Schedule?.Id ?? 0, Schedule?.DaysOfWeek ?? 0);
         });
         // Note: SubTitle and Language will be set by RefreshSubTitleFromState() below

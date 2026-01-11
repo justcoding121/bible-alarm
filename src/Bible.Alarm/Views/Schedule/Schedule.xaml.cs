@@ -1,8 +1,6 @@
 #nullable enable
-using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels;
 using Serilog;
-using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views.Schedule;
 
@@ -134,19 +132,19 @@ public partial class Schedule : BaseContentPage, IDisposable
 
         // Allow spinner animation to run before heavy XAML parsing
         await Task.Yield();
-        
+
         // Create the content view - XAML parsing must be on UI thread
         // Break into smaller steps with yields for smoother spinner
         ScheduleContent? scheduleContent = null;
-        
+
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             scheduleContent = new ScheduleContent();
         });
-        
+
         // Yield to allow spinner to animate
         await Task.Yield();
-        
+
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             if (scheduleContent != null)
@@ -154,10 +152,10 @@ public partial class Schedule : BaseContentPage, IDisposable
                 scheduleContent.BindingContext = viewModel;
             }
         });
-        
+
         // Yield again
         await Task.Yield();
-        
+
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             if (scheduleContent != null)
@@ -165,10 +163,10 @@ public partial class Schedule : BaseContentPage, IDisposable
                 contentContainer.Content = scheduleContent;
             }
         });
-        
+
         // Yield before fade
         await Task.Yield();
-        
+
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
             // Fade in content smoothly
@@ -269,7 +267,7 @@ public partial class Schedule : BaseContentPage, IDisposable
             {
                 disposable.Dispose();
             }
-            
+
             BindingContext = null;
             isDisposed = true;
         }

@@ -60,7 +60,7 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         // Check current state immediately in case state is already set
         // Also check CurrentSchedule as fallback (source of truth for new schedules)
         var currentState = state.Value;
-        if (currentState.CurrentMusic != null || 
+        if (currentState.CurrentMusic != null ||
             (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue))
         {
             OnMusicInitialized(null, EventArgs.Empty);
@@ -369,7 +369,7 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         // 1. We have a language code (for Vocals)
         // 2. Song sections aren't already populated
         // 3. Language code changed (cascade effect)
-        if (!string.IsNullOrEmpty(languageCodeToUse) && 
+        if (!string.IsNullOrEmpty(languageCodeToUse) &&
             (propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0 || languageChanged))
         {
             await PopulateSongPublications(languageCodeToUse);

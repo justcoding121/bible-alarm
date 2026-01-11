@@ -2,7 +2,6 @@ using Android.App;
 using Android.Content;
 using Android.OS;
 using Bible.Alarm.Common.Interfaces.Battery;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using AndroidApplication = Android.App.Application;
 using AndroidProvider = Android.Provider;

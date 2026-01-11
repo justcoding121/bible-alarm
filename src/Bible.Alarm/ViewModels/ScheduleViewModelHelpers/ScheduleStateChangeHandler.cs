@@ -1,9 +1,6 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Shared.Models.Enums;
-using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 

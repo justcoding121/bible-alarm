@@ -1,6 +1,6 @@
 using CommunityToolkit.Maui.Views;
 
-namespace CommunityToolkit.Maui.Core;
+namespace CommunityToolkit.Maui.Primitives;
 
 /// <summary>
 /// Enum for <see cref="MediaElement"/> view type on Android

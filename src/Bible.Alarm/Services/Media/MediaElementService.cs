@@ -1,11 +1,9 @@
 #nullable enable
 using System.Reflection;
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Core.Handlers;
 using CommunityToolkit.Maui.Views;
-using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Maui.Handlers;
 using Serilog;
 #if ANDROID
@@ -134,7 +132,7 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
         {
             toDispose = mediaElementInstance;
             mediaElementInstance = null;
-            
+
 #if ANDROID
             // Reset flags to allow new MediaElement creation
             handlerCreated = false;
@@ -180,8 +178,8 @@ public sealed class MediaElementService : IMediaElementService, IDisposable
         try
         {
             // Stop playback if still playing
-            if (mediaElement.CurrentState is MediaElementState.Playing or 
-                MediaElementState.Paused or 
+            if (mediaElement.CurrentState is MediaElementState.Playing or
+                MediaElementState.Paused or
                 MediaElementState.Buffering)
             {
                 mediaElement.Stop();

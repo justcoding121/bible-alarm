@@ -1,7 +1,6 @@
 #nullable enable
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Models;
 using Fluxor;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;

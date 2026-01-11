@@ -1,10 +1,10 @@
 #nullable enable
 #if WINDOWS
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Controls;
-using Serilog;
 using Microsoft.Maui.Controls;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 
 namespace Bible.Alarm.Common.ViewHelpers;

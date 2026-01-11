@@ -1,10 +1,11 @@
 using AVFoundation;
+using CommunityToolkit.Maui.Core;
 using CoreMedia;
 using Foundation;
 using MediaPlayer;
 using UIKit;
 
-namespace CommunityToolkit.Maui.Core;
+namespace CommunityToolkit.Maui.Primitives;
 
 sealed class Metadata
 {

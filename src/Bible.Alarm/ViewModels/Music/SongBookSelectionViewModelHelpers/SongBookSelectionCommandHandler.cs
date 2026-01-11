@@ -1,19 +1,16 @@
 #nullable enable
-using AutoMapper;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
-using Bible.Alarm.ViewModels.Interfaces;
+using Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
-using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles command execution for SongPublicationSelectionViewModel.

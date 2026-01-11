@@ -7,7 +7,6 @@ using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.Services;
 using Bible.Alarm.Stores.Models;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -65,7 +64,7 @@ public class ScheduleCreateHandler
             dbSchedule.Id = 0;
 
             // Save to database on background thread to avoid blocking UI
-            var savedSchedule = await Task.Run(async () => 
+            var savedSchedule = await Task.Run(async () =>
                 await alarmScheduleService.AddScheduleAsync(dbSchedule, CancellationToken.None));
 
             Log.Debug("ScheduleEffects: HandleCreateSchedule - After save. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",

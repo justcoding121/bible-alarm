@@ -11,8 +11,6 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
-using Microsoft.Maui.ApplicationModel;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
@@ -65,7 +63,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
 
             // Batch property notifications to reduce UI thread work
             NotifyScheduleDetailsPropertiesChanged();
-            
+
             // Signal that this container is ready (initialized from CurrentSchedule)
             SignalContainerReady();
         }
@@ -76,16 +74,16 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         // Check if already signaled or already marked ready in state
         // This check must happen first to prevent any duplicate work
         if (hasSignaledReady || state.Value.ContainerReadiness.ScheduleDetails) return;
-        
+
         // Check if action is already queued to prevent duplicate queued actions
         // This prevents multiple rapid calls from queuing multiple actions
         if (isReadyActionQueued) return;
-        
+
         // Atomically set both flags to prevent race conditions
         // If another thread/call checks between these lines, it will see isReadyActionQueued=true
         isReadyActionQueued = true;
         hasSignaledReady = true;
-        
+
         // Double-check state immediately after setting flags (before queuing)
         // This catches the case where state changed between the initial check and flag setting
         if (state.Value.ContainerReadiness.ScheduleDetails)
@@ -95,13 +93,13 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             hasSignaledReady = true;
             return;
         }
-        
+
         // Dispatch to state that this container is ready
         // Check state again inside the queued action to prevent duplicates from queued actions
         MainThread.BeginInvokeOnMainThread(() =>
         {
             isReadyActionQueued = false; // Reset flag when action executes
-            
+
             // Final check before dispatching - if state already shows we're ready, another action already handled it
             if (state.Value.ContainerReadiness.ScheduleDetails)
             {
@@ -117,7 +115,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
     {
         var stateValue = state.Value;
         var currentSchedule = stateValue.CurrentSchedule;
-        
+
         // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
         // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
         if (hasSignaledReady && !stateValue.ContainerReadiness.ScheduleDetails && currentSchedule != null)
@@ -128,7 +126,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             InitializeFromState();
             return;
         }
-        
+
         // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
         // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
         if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
@@ -136,7 +134,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             InitializeFromState();
             return;
         }
-        
+
         // Reset hasSignaledReady when schedule ID changes to a different positive ID (existing schedule opened)
         if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
         {
@@ -145,7 +143,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             InitializeFromState();
             return;
         }
-        
+
         // Only update properties if they changed (don't re-initialize)
         if (currentSchedule != null && !hasSignaledReady)
         {

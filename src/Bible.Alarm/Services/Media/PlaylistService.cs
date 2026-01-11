@@ -4,7 +4,6 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Playlist;
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 using Bible.Alarm.Services.Storage.Interfaces;
-using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Bible;
@@ -253,7 +252,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         var biblePublicationSchedule = schedule.BiblePublicationSchedule ??
             throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {scheduleId}");
-        var biblePublicationTracks = await biblePublicationTrackBuilder.BuildBiblePublicationTracks(scheduleId, schedule, biblePublicationSchedule, 
+        var biblePublicationTracks = await biblePublicationTrackBuilder.BuildBiblePublicationTracks(scheduleId, schedule, biblePublicationSchedule,
             (lang, pub, section, track) => trackNavigator.GetNextBiblePublicationTrack(lang, pub, section, track));
         result.AddRange(biblePublicationTracks);
 

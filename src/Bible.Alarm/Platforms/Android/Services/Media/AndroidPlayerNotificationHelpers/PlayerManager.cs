@@ -1,14 +1,13 @@
 #nullable enable
+using System.Reflection;
+using AndroidX.Media3.Common;
 using AndroidX.Media3.ExoPlayer;
 using AndroidX.Media3.ExoPlayer.Source;
-using AndroidX.Media3.Common;
 using Bible.Alarm.Common.Messenger;
-using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Maui.Core.Handlers;
-using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Views;
+using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
-using System.Reflection;
 using Object = Java.Lang.Object;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media.AndroidPlayerNotificationHelpers;

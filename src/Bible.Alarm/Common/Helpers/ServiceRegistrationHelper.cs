@@ -32,7 +32,6 @@ using Bible.Alarm.Platforms.Windows.Services.Bootstrap;
 using Bible.Alarm.Common.Interfaces.Media;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Database;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media;
@@ -114,7 +113,7 @@ public static class ServiceRegistrationHelper
             // options.UseReduxDevTools();
 #endif
         });
-        
+
         // Explicitly register ScheduleEffects to ensure it's available for Effect discovery
         // Note: Fluxor should auto-discover Effects, but explicit registration ensures DI can resolve it
         services.AddScoped<Bible.Alarm.Stores.Effects.ScheduleEffects>();

@@ -1,8 +1,6 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.ViewModels.Schedule;
-using Serilog;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 

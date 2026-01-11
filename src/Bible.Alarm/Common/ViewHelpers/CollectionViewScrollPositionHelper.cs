@@ -1,11 +1,8 @@
 #nullable enable
 using System.Collections;
-using System.Linq;
-using Serilog;
-using Microsoft.Maui.Controls;
-using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
-using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.ViewModels.Bible;
+using Bible.Alarm.ViewModels.Shared;
+using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 
 namespace Bible.Alarm.Common.ViewHelpers;
 

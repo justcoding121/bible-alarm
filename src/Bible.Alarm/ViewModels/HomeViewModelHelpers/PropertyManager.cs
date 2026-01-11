@@ -1,7 +1,6 @@
 #nullable enable
 
 using Bible.Alarm.Shared.DataStructures;
-using Bible.Alarm.ViewModels;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 

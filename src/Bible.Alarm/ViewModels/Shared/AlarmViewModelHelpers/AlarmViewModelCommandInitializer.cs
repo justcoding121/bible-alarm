@@ -122,7 +122,7 @@ public class AlarmViewModelCommandInitializer
                     var scheduleIdToRetry = scheduleId.Value;
                     // Note: ResetAndRetryAsync will preserve the original isAlarm value from state
                     // The modal will stay open and update automatically as state changes
-                    
+
                     // Reset internally without closing modal - just reset player and state
                     // Then immediately prepare and play again - modal will update automatically
                     await playbackService.ResetAndRetryAsync(scheduleIdToRetry);

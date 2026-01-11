@@ -3,11 +3,9 @@ using AutoMapper;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Models;
 using Fluxor;
-using Serilog;
 
-namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles state management and initialization for SongPublicationSelectionViewModel.

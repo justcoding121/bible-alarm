@@ -2,8 +2,6 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Bible;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -33,21 +31,21 @@ public partial class SectionSelectionModal : BaseContentPage, IDisposable
             {
                 sectionCollectionView.Opacity = 0;
             }
-            
+
             // Trigger data refresh
             if (ViewModel != null)
             {
                 await ViewModel.RefreshFromState();
             }
-            
+
             // Wait for IsBusy to become false (data loaded)
             await CollectionViewHelper.WaitForNotBusyAsync(
                 () => ViewModel?.IsBusy ?? false,
                 cancellationToken: cancellationTokenSource.Token);
-            
+
             // Delay for CollectionView to render
             await Task.Delay(150, cancellationTokenSource.Token);
-            
+
             // Scroll to selected item
             var selectedItem = ViewModel?.SelectedSection;
             if (selectedItem != null)
@@ -57,10 +55,10 @@ public partial class SectionSelectionModal : BaseContentPage, IDisposable
                     selectedItem,
                     animated: false,
                     cancellationToken: cancellationTokenSource.Token);
-                
+
                 await Task.Delay(50, cancellationTokenSource.Token);
             }
-            
+
             // Hide overlay and reveal list together
             await MainThread.InvokeOnMainThreadAsync(() =>
             {

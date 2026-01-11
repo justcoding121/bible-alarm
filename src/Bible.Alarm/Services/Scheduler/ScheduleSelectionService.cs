@@ -2,7 +2,6 @@
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
-using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 
 namespace Bible.Alarm.Services.Scheduler;
 
@@ -58,9 +57,9 @@ public sealed class ScheduleSelectionService
         // For existing schedules, create BiblePublicationSchedule from CurrentSchedule properties
         // All data is already loaded from AlarmDB when the schedule page opened
         // No need to query AlarmDB again - only media index DB queries are needed for selection lists
-        if (!string.IsNullOrWhiteSpace(languageCode) && 
-            !string.IsNullOrWhiteSpace(publicationCode) && 
-            sectionNumber.HasValue && 
+        if (!string.IsNullOrWhiteSpace(languageCode) &&
+            !string.IsNullOrWhiteSpace(publicationCode) &&
+            sectionNumber.HasValue &&
             trackNumber.HasValue)
         {
             return new BiblePublicationSchedule

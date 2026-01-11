@@ -1,11 +1,9 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Maui.Views;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -77,7 +75,7 @@ public class AudioPlayerMetadataHandler
             }
         });
     }
-    
+
     /// <summary>
     /// Cleans up old media element artwork files.
     /// </summary>
@@ -89,7 +87,7 @@ public class AudioPlayerMetadataHandler
                 .Select(f => new FileInfo(f))
                 .Where(f => f.LastWriteTimeUtc < DateTime.UtcNow.AddMinutes(-1))
                 .ToList();
-            
+
             foreach (var file in artworkFiles)
             {
                 try
@@ -111,7 +109,7 @@ public class AudioPlayerMetadataHandler
     private void SendMetadataMessage(MetaData meta)
     {
         string? artworkUrl = meta.ArtworkUrl;
-        
+
         // ALWAYS save artwork bytes to a local file if available
         // This ensures iOSNowPlayingInfoManager can load artwork synchronously from a file path
         // rather than trying to load from HTTP URLs which would require async loading
@@ -126,10 +124,10 @@ public class AudioPlayerMetadataHandler
                 // Use a unique filename with timestamp to ensure iOS lock screen detects the change
                 // The iOSNowPlayingInfoManager caches by URL, so same URL = same cached artwork
                 var artworkPath = Path.Combine(artworkDir, $"playing_track_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg");
-                
+
                 // Clean up old artwork files to prevent accumulation
                 CleanupOldArtworkFiles(artworkDir);
-                
+
                 File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
                 artworkUrl = artworkPath; // Always use local file path for iOS lock screen
             }
@@ -148,7 +146,7 @@ public class AudioPlayerMetadataHandler
             ArtworkUrl = artworkUrl
         });
     }
-    
+
     /// <summary>
     /// Cleans up old artwork files to prevent accumulation.
     /// Keeps only the most recent file or removes files older than 1 minute.
@@ -161,7 +159,7 @@ public class AudioPlayerMetadataHandler
                 .Select(f => new FileInfo(f))
                 .Where(f => f.LastWriteTimeUtc < DateTime.UtcNow.AddMinutes(-1))
                 .ToList();
-            
+
             foreach (var file in artworkFiles)
             {
                 try

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bible.Alarm.Models;
+namespace Bible.Alarm.Shared.Models.Schedule;
 
 [Table("GeneralSettings")]
 [Index(nameof(Key), IsUnique = true)]

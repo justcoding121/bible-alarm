@@ -1,11 +1,7 @@
 #nullable enable
 using System.Collections;
-using System.Runtime.InteropServices;
 using Polly;
-using Serilog;
-using Microsoft.Maui.Controls;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
-using Bible.Alarm.ViewModels.Shared;
 #if WINDOWS
 using Microsoft.Maui.Essentials;
 #endif
@@ -53,7 +49,7 @@ public static class CollectionViewHelper
             // For large lists, add extra delay to allow virtualization to settle
             var itemsSource = collectionView.ItemsSource;
             var itemCount = GetItemCount(itemsSource);
-            
+
             if (itemCount > 100)
             {
                 // Extra delay for large lists - virtualization needs more time
@@ -75,17 +71,17 @@ public static class CollectionViewHelper
             // Ignore errors - scrolling is not critical
         }
     }
-    
+
     private static int GetItemCount(object? itemsSource)
     {
         if (itemsSource == null) return 0;
-        
+
         if (itemsSource is ICollection collection)
             return collection.Count;
-        
+
         if (itemsSource is IEnumerable enumerable)
             return enumerable.Cast<object>().Count();
-        
+
         return 0;
     }
 

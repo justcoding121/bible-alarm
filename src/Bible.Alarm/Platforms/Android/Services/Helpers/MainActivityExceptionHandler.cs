@@ -1,7 +1,5 @@
 #nullable enable
 
-using System;
-using System.Threading.Tasks;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Helpers;
@@ -31,7 +29,7 @@ public static class MainActivityExceptionHandler
 
         if (ex.InnerException != null)
         {
-            logger.Fatal(ex.InnerException, "Inner exception in OnCreate: {ExceptionType}: {Message}", 
+            logger.Fatal(ex.InnerException, "Inner exception in OnCreate: {ExceptionType}: {Message}",
                 ex.InnerException.GetType().Name, ex.InnerException.Message);
         }
 
@@ -45,7 +43,7 @@ public static class MainActivityExceptionHandler
         }
     }
 
-    private static void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e) 
+    private static void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
         => logger.Error(e.Exception, "Unobserved task exception.");
 
     private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)

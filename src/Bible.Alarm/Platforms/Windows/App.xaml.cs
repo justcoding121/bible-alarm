@@ -1,18 +1,15 @@
 #nullable enable
 
-using System.Linq;
-using Windows.ApplicationModel.Activation;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using CommunityToolkit.Mvvm.Messaging;
-using Microsoft.Maui.Controls.Xaml;
-using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.Windows.AppLifecycle;
 using Serilog;
+using Windows.ApplicationModel.Activation;
 using LaunchActivatedEventArgs = Microsoft.UI.Xaml.LaunchActivatedEventArgs;
 
 namespace Bible.Alarm.WinUI;
@@ -78,10 +75,10 @@ public partial class App : MauiWinUIApplication
         if (!instance.IsCurrent)
         {
             logger.Information("App already running - redirecting activation to existing instance. Arguments: {Arguments}", args.Arguments);
-            
+
             // Redirect activation to the existing instance
             instance.RedirectActivationToAsync(activatedEventArgs).AsTask().Wait();
-            
+
             // Exit this new instance WITHOUT calling base.OnLaunched (prevents window flash)
             Environment.Exit(0);
             return;

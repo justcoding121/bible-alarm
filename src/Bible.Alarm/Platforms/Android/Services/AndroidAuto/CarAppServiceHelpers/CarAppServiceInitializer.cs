@@ -1,6 +1,5 @@
 #nullable enable
 using Bible.Alarm.Common;
-using Bible.Alarm.Platforms.Android.Services.Media;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers;

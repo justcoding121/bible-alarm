@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.ViewModels.Schedule;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BibleSelection;

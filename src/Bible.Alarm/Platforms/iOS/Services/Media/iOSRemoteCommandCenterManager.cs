@@ -1,7 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common.Messenger;
 using CommunityToolkit.Mvvm.Messaging;
-using Foundation;
 using MediaPlayer;
 using Serilog;
 

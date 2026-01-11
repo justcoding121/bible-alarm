@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore.Migrations;
 using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {

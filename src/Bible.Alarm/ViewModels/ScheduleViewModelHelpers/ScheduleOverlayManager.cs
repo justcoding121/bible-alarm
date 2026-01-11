@@ -1,7 +1,5 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Stores.Actions;
-using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;

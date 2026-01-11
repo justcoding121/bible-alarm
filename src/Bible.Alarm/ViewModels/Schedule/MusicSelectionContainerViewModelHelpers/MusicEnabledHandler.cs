@@ -1,14 +1,11 @@
 #nullable enable
 
 using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -88,7 +85,7 @@ public class MusicEnabledHandler
             var clonedSchedule = currentSchedule.DeepClone();
             // DeepClone already returns ScheduleStateItem, no need to map again
             clonedSchedule.MusicEnabled = value;
-            
+
             // If enabling music and MusicType is not set, set default to Melodies immediately
             // This ensures MusicTypeDisplayText shows "Orchestral Melodies" right away
             // before the async DB query for the default track completes
@@ -96,7 +93,7 @@ public class MusicEnabledHandler
             {
                 clonedSchedule.MusicType = MusicType.Melodies;
             }
-            
+
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, false, false, shouldSave: false));
         });
 

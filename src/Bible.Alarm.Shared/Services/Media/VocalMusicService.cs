@@ -144,7 +144,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 // Extract path from the new URL and update UrlPath
                 var (baseUrl, urlPath) = ExtractBaseUrlAndPath(url);
                 track.Source.UrlPath = urlPath;
-                
+
                 // Update BaseUrl if it changed (rare, but handle it)
                 if (track.Source.BaseUrlEntity.BaseUrl != baseUrl)
                 {
@@ -159,7 +159,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                         track.Source.BaseUrlEntity = new AudioSourceBaseUrl { BaseUrl = baseUrl };
                     }
                 }
-                
+
                 await dbContext.SaveChangesAsync(cancellationToken);
             }
         }

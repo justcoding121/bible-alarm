@@ -1,11 +1,9 @@
 #nullable enable
 
 using AutoMapper;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.Services;
 using Bible.Alarm.Stores.Models;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 

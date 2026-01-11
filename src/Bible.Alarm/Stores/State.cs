@@ -20,7 +20,7 @@ public class ApplicationState
     public bool IsHomePageOverlayVisible { get; set; }
     public bool IsSchedulePageOverlayVisible { get; set; }
     public ContainerReadiness ContainerReadiness { get; set; }
-    
+
     /// <summary>
     /// When set, indicates a schedule needs to be loaded from DB on background thread.
     /// Used for View existing schedule flow to enable instant navigation with deferred DB load.

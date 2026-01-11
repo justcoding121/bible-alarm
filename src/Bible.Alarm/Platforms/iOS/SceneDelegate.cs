@@ -1,7 +1,6 @@
 #nullable enable
 
 using Foundation;
-using Microsoft.Maui.Platform;
 using Serilog;
 using UIKit;
 

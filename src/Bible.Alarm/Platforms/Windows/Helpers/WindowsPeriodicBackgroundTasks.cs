@@ -1,7 +1,7 @@
 #nullable enable
 
-using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.BackgroundTasks;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Windows.Helpers;

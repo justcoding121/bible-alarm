@@ -1,12 +1,10 @@
 #nullable enable
 
+using System.Windows.Input;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using CommunityToolkit.Mvvm.Input;
-using Fluxor;
-using Microsoft.Maui.ApplicationModel;
-using System.Windows.Input;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
@@ -39,18 +37,18 @@ public class CommandHandler
         {
             // Reset all schedule-related state first to ensure clean state
             dispatcher.Dispatch(new ResetScheduleStateAction());
-            
+
             // Reset container readiness to ensure containers signal ready on new page
             dispatcher.Dispatch(new ResetContainerReadinessAction());
-            
+
             // Show overlay BEFORE navigation so it's visible immediately when page appears
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
-            
+
             // Navigate immediately - the page will show with busy indicator
             // A fresh Schedule page and ViewModel will be created (both registered as Transient)
             // Containers will be assigned asynchronously once ready (handled by ScheduleViewModel)
             await navigationService.NavigateToScheduleAsync();
-            
+
             // CurrentSchedule is initialized by ScheduleViewModel after navigation
         });
     }

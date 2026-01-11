@@ -50,7 +50,7 @@ public class AndroidPlatformBootstrapService : IPlatformBootstrapService
 
                 // Schedule background jobs
                 // Use fully qualified namespace to avoid conflicts with local Platform namespace
-                var context = global::Microsoft.Maui.ApplicationModel.Platform.CurrentActivity?.ApplicationContext 
+                var context = global::Microsoft.Maui.ApplicationModel.Platform.CurrentActivity?.ApplicationContext
                     ?? AndroidApplication.Context;
                 VerifyBackgroundTasks(context);
 

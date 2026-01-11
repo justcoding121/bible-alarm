@@ -1,15 +1,11 @@
 #nullable enable
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Audio;
 using Bible.Alarm.Services.Media.AudioPlayerHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Media;
-using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
-using CommunityToolkit.Mvvm.Messaging;
-using Microsoft.Maui.Essentials;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 #if IOS

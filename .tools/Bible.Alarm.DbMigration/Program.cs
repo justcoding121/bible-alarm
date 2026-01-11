@@ -220,11 +220,11 @@ class Program
             {
                 // Apply all migrations to create the database with latest schema
                 Console.WriteLine("Applying all migrations...");
-                
+
                 // Get all available migrations
                 var migrationsAssembly = tempContext.Database.GetMigrations();
                 Console.WriteLine($"Found {migrationsAssembly.Count()} migrations in assembly");
-                
+
                 await tempContext.Database.MigrateAsync();
 
                 // Verify all migrations are applied

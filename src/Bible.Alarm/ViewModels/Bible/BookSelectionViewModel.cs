@@ -9,14 +9,13 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
-using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.Bible.SectionSelectionViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.ViewModels.Bible.SectionSelectionViewModelHelpers;
 
 namespace Bible.Alarm.ViewModels.Bible;
 
@@ -327,7 +326,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         var (sectionViewModelList, newMapping, selectedSection) = await Task.Run(async () =>
         {
             var sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
-            
+
             if (sectionsFromDb == null)
             {
                 return (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<int, BiblePublicationSectionListViewItemModel>(), (BiblePublicationSectionListViewItemModel?)null);

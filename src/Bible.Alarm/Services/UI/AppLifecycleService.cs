@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
 #if WINDOWS

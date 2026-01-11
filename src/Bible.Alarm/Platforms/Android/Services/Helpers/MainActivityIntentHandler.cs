@@ -1,10 +1,7 @@
 #nullable enable
 
-using System;
-using System.Threading.Tasks;
 using Android.Content;
 using Bible.Alarm.Common;
-using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Media;
 using Serilog;
 

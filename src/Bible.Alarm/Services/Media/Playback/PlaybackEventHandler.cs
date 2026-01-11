@@ -1,10 +1,8 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -129,14 +127,14 @@ public sealed class PlaybackEventHandler
         try
         {
             var track = playlist[currentTrackIndex];
-            
+
             // Only mark Bible tracks as finished here (advances track)
             // Music tracks are handled by ProgressTracker on first progress update
             if (track.PlayItem.Metadata.PlayType == PlayType.Music)
             {
                 return;
             }
-            
+
             await playlistService.MarkTrackAsFinished(track.PlayItem.Metadata);
         }
         catch (Exception ex)

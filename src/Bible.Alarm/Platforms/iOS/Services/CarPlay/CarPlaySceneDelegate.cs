@@ -99,7 +99,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         try
         {
             scheduleListTemplate = CreateScheduleListTemplate();
-            
+
             interfaceController.SetRootTemplate(scheduleListTemplate, animated: true, completion: (success, error) =>
             {
                 if (success)
@@ -124,7 +124,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
     private CPListTemplate CreateScheduleListTemplate()
     {
         var schedules = CarPlayScheduleHelper.LoadScheduleStateItemsFromState();
-        
+
         if (schedules.Count == 0)
         {
             logger.Warning("[CarPlay] No schedules available - showing empty state");
@@ -140,13 +140,13 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             var scheduleId = schedule.Id;
 
             var listItem = new CPListItem(title, subtitle);
-            
+
             // Set the handler for when user taps the item
             listItem.Handler = (item, completion) =>
             {
                 logger.Information("[CarPlay] User tapped schedule: {Title} (ID: {ScheduleId})", title, scheduleId);
                 CarPlayPlaybackHandler.HandleScheduleItemClicked(scheduleId);
-                
+
                 // Complete the handler - this dismisses any loading indicator
                 completion();
             };
@@ -156,13 +156,13 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
 
         // Create a section with all schedules
         var section = new CPListSection(listItems.ToArray(), "Schedules", null);
-        
+
         // Create the list template with title and sections array
         var sections = new CPListSection[] { section };
         var template = new CPListTemplate("Bible Alarm", sections);
-        
+
         logger.Information("[CarPlay] Created schedule list template with {Count} schedules", schedules.Count);
-        
+
         return template;
     }
 
@@ -198,7 +198,7 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
         try
         {
             var newTemplate = CreateScheduleListTemplate();
-            
+
             // Update the sections on the existing template if possible
             if (scheduleListTemplate != null)
             {

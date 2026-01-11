@@ -1,27 +1,20 @@
 #nullable enable
 
-using System.Linq;
 using System.Windows.Input;
 using AutoMapper;
-using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
-using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.ViewModels.General;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.General;
 using Bible.Alarm.ViewModels.HomeViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.Maui.Essentials;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -283,10 +276,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
             {
                 var isBatteryExcluded = batteryService.IsIgnoringBatteryOptimizations();
                 var isDndGranted = batteryService.IsNotificationPolicyAccessGranted();
-                
+
                 // Hide button if both permissions are granted
                 var shouldShow = !(isBatteryExcluded && isDndGranted);
-                
+
                 if (IsFloatingButtonVisible != shouldShow)
                 {
                     IsFloatingButtonVisible = shouldShow;
@@ -341,7 +334,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
                 batteryViewModel.StartPermissionCheckTimer();
                 await navigationService.OpenBatteryOptimizationModalAsync(batteryViewModel);
             }
-            
+
             // Update floating button visibility after checking permissions
             UpdateFloatingButtonVisibility();
         }

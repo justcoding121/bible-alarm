@@ -1,4 +1,6 @@
-namespace CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Core;
+
+namespace CommunityToolkit.Maui.Primitives;
 
 /// <summary>
 /// Represents event data for when media state has changed.
@@ -11,12 +13,12 @@ namespace CommunityToolkit.Maui.Core;
 public sealed class MediaStateChangedEventArgs(MediaElementState previousState, MediaElementState newState) : EventArgs
 {
     /// <summary>
-    /// Gets the previous state that the <see cref="Core.IMediaElement"/> instance is transitioning from.
+    /// Gets the previous state that the <see cref="IMediaElement"/> instance is transitioning from.
     /// </summary>
     public MediaElementState PreviousState { get; } = previousState;
 
     /// <summary>
-    /// Gets the new state that the <see cref="Core.IMediaElement"/> instance is transitioning to.
+    /// Gets the new state that the <see cref="IMediaElement"/> instance is transitioning to.
     /// </summary>
     public MediaElementState NewState { get; } = newState;
 }

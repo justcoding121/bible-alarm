@@ -1,8 +1,6 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 

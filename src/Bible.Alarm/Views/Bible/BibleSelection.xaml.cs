@@ -3,8 +3,6 @@ using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Bible;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Xaml;
 using Serilog;
 
 namespace Bible.Alarm.Views.Bible;

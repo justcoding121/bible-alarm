@@ -2,8 +2,6 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Music;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Xaml;
 using Serilog;
 
 namespace Bible.Alarm.Views.Music;

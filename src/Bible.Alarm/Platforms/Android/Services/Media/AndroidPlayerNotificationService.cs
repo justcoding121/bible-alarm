@@ -1,12 +1,12 @@
 #nullable enable
 using AndroidX.Media3.DataSource;
+using Bible.Alarm.Platforms.Android.Services.Media.AndroidPlayerNotificationHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using CommunityToolkit.Maui.Views;
 using Serilog;
 using Application = Android.App.Application;
 using Exception = System.Exception;
 using Uri = Android.Net.Uri;
-using Bible.Alarm.Platforms.Android.Services.Media.AndroidPlayerNotificationHelpers;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 

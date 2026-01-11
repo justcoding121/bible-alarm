@@ -188,7 +188,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
         // Update selected music type immediately
         SetSelectedMusicType();
-        
+
         // MusicTypes is a static list (no DB loading), so set IsBusy = false immediately
         IsBusy = false;
     }

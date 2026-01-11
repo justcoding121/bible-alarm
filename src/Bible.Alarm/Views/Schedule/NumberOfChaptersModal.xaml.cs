@@ -4,8 +4,6 @@ using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
-using Serilog;
 
 namespace Bible.Alarm.Views.Schedule;
 
@@ -88,9 +86,9 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
             if (ViewModel?.CurrentNumberOfTracks != null)
             {
                 await CollectionViewHelper.ScrollToWhenReadyAsync(
-                    TracksCollectionView, 
-                    ViewModel.CurrentNumberOfTracks, 
-                    animated: false, 
+                    TracksCollectionView,
+                    ViewModel.CurrentNumberOfTracks,
+                    animated: false,
                     cancellationToken: cancellationTokenSource.Token);
 
                 // Small delay to ensure scroll completes

@@ -179,7 +179,7 @@ public static class BootstrapHelper
         {
             bootstrapCompleted = true;
             Log.Logger.Information("Bootstrap marked as completed via MarkBootstrapCompleted");
-            
+
             // Signal waiting tasks that bootstrap is complete
             lock (bootstrapWaitLock)
             {

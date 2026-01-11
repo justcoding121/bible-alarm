@@ -78,7 +78,7 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
             // Update remote command availability based on current state
             var hasActiveSchedule = currentState.CurrentScheduleId.HasValue;
             var isPlaying = action.Status == PlayStatus.Playing;
-            
+
             if (hasActiveSchedule)
             {
                 // Active schedule - update command availability based on navigation state
@@ -201,13 +201,13 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
             logger.Information(
                 "[iOS MediaSession] Setting default schedule metadata for lock screen: Title={Title}, Artist={Artist}, ScheduleId={ScheduleId}",
                 action.Title, action.Artist, action.ScheduleId);
-            
+
             nowPlayingManager.SetDefaultMetadata(
                 action.Title,
                 action.Artist,
                 action.Album,
                 action.ArtworkUrl);
-            
+
             // Register commands so play button works from lock screen
             // This allows users to start the default schedule from lock screen controls
             remoteCommandManager.RegisterCommands();
@@ -232,11 +232,11 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
         try
         {
             logger.Information("[iOS MediaSession] Playback stopped - updating playback status to stopped");
-            
+
             // Update playback status to stopped (rate = 0) but keep metadata
             // This shows the paused/stopped state on lock screen while keeping content visible
             nowPlayingManager.UpdatePlaybackStatus(PlayStatus.Stopped);
-            
+
             // Keep commands registered so play button works from lock screen
             // The play button will start the default schedule (handled by PlaybackService)
             // Commands are already registered, no need to re-register

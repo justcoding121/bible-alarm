@@ -1,8 +1,5 @@
 #nullable enable
 using System.Collections;
-using System.Linq;
-using Serilog;
-using Microsoft.Maui.Controls;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 #if WINDOWS
 using Microsoft.UI.Xaml;

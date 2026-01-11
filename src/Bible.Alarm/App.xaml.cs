@@ -4,7 +4,6 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Views;
-using Microsoft.Maui.Controls.Xaml;
 using Serilog;
 
 namespace Bible.Alarm;
@@ -19,7 +18,7 @@ public partial class App : Application
     private readonly IFontService fontService;
 
     private static volatile bool isInForeground;
-    
+
     public static bool IsInForeground
     {
         get => isInForeground;

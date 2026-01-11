@@ -1,6 +1,5 @@
 #nullable enable
 using Bible.Alarm.Views;
-using Microsoft.Maui.Controls;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI.NavigationServiceHelpers;
@@ -82,7 +81,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
             }
             pagesToPop.Add(page);
         }
-        
+
         // Pop only the pages that were on the stack when navigation started
         foreach (var page in pagesToPop)
         {
@@ -141,7 +140,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         {
             pagesToPop.Add(navigation.NavigationStack[i]);
         }
-        
+
         // Pop only the pages that were on the stack when navigation started
         foreach (var page in pagesToPop)
         {

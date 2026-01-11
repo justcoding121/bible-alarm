@@ -1,7 +1,4 @@
 #nullable enable
-using Microsoft.Maui.Controls.Xaml;
-using Microsoft.Maui.Controls.PlatformConfiguration;
-
 namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]

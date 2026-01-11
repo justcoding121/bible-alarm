@@ -32,7 +32,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }
 
-    private void UnobserverdTaskException(object? sender, UnobservedTaskExceptionEventArgs e) => 
+    private void UnobserverdTaskException(object? sender, UnobservedTaskExceptionEventArgs e) =>
         logger.Error(e.Exception, "Unobserved task exception.");
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
@@ -67,13 +67,13 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
             logger.Fatal(ex, "base.FinishedLaunching threw exception.");
             throw;
         }
-        
+
         // Now that the window is created, do custom initialization
         try
         {
             // Initialize bootstrap for foreground launch (after window is created)
             MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: true);
-            
+
             SetupBackgroundTasks();
             SetupNotifications();
         }
@@ -82,7 +82,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
             logger.Error(e, "iOS application custom initialization failed.");
             // Don't throw - window is already created, just log the error
         }
-        
+
         return result;
     }
 
@@ -235,7 +235,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
                     logger.Error("Failed to reset badge count: {Error}", error.LocalizedDescription);
                 }
             });
-            
+
             // Extract schedule ID from notification and start playback
             if (userInfo != null && userInfo.TryGetValue(new NSString("ScheduleId"), out var scheduleIdValue))
             {
@@ -252,7 +252,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
             logger.Error(e, "Error handling iOS notification.");
         }
     }
-    
+
     /// <summary>
     /// Starts playback when user taps on a notification.
     /// Unlike Android, iOS doesn't support auto-playback from background - user must tap notification.
@@ -265,7 +265,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
             {
                 // Ensure bootstrap is complete before accessing services
                 await MauiProgram.WaitForBootstrapAsync();
-                
+
                 var playbackService = ServiceProviderManager.GetService<ISchedulePlaybackService>();
                 if (playbackService != null)
                 {

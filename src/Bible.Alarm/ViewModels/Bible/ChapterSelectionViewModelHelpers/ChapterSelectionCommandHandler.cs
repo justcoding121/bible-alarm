@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Bible;
@@ -8,7 +7,7 @@ using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Bible.TrackSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles command execution for TrackSelectionViewModel.

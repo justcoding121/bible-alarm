@@ -129,7 +129,7 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                         // This runs after core bootstrap to ensure platform setup regardless of entry point
                         await platformBootstrapService.InitializeAsync();
                     });
-                    
+
                     Log.Logger.Information("[BOOTSTRAP] Bootstrap tasks completed successfully");
                 }
                 catch (Exception ex)
@@ -143,11 +143,11 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                     // CRITICAL: Always mark bootstrap as completed, even on failure
                     // This prevents infinite polling loops in BootstrapReadyManager
                     servicesVerified = true;
-                    
+
                     // Set bootstrap completion flag so IsBootstrapCompleted() works correctly
                     // This ensures the flag is set regardless of success or failure
                     BootstrapHelper.MarkBootstrapCompleted();
-                    
+
 #if DEBUG
                     var dbOpsElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - dbOpsStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                     Log.Logger.Information("[BOOTSTRAP] Database and IO operations completed in {ElapsedMs:F2}ms", dbOpsElapsed);

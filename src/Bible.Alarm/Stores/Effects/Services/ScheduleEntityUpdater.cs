@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -121,7 +120,7 @@ public static class ScheduleEntityUpdater
             existing.Music.LanguageCode = dbSchedule.Music.LanguageCode;
             existing.Music.TrackNumber = dbSchedule.Music.TrackNumber;
             existing.Music.Repeat = dbSchedule.Music.Repeat;
-            
+
             // Update Id if it changed (e.g., when music type changes, MusicId might be reset)
             if (dbSchedule.Music.Id > 0)
             {

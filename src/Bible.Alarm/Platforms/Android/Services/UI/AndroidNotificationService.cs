@@ -1,4 +1,3 @@
-using System.Linq;
 using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
@@ -87,7 +86,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
     {
         var staticLogger = Log.ForContext<AndroidNotificationService>();
         staticLogger.Information("ShowLocalNotification called - ScheduleId={ScheduleId}, Title={Title}, Body={Body}", scheduleId, title, body);
-        
+
         try
         {
             var notificationManagerCompat = NotificationManagerCompat.From(AndroidApplication.Context);
@@ -112,7 +111,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
                     };
                     newChannel.EnableLights(true);
                     newChannel.EnableVibration(true);
-                    
+
                     // Use default notification sound (short message tone/alert) for tap-enabled alarms
                     var channelSoundUri = RingtoneManager.GetDefaultUri(RingtoneType.Notification);
                     var channelAttributes = new AudioAttributes.Builder()
@@ -120,13 +119,13 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
                         ?.SetContentType(AudioContentType.Sonification)
                         ?.Build();
                     newChannel.SetSound(channelSoundUri, channelAttributes);
-                    
+
                     // Allow notifications to bypass Do Not Disturb mode (Android 7.1+)
                     if (Build.VERSION.SdkInt >= BuildVersionCodes.NMr1)
                     {
                         newChannel.SetBypassDnd(true);
                     }
-                    
+
                     notificationManager?.CreateNotificationChannel(newChannel);
                     staticLogger.Information("Created notification channel {ChannelId} with sound and alarm audio attributes", ChannelId);
                 }
@@ -178,7 +177,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
             // Use default notification sound (short message tone/alert) for tap-enabled alarms
             // This ensures a short alert sound instead of a long ringtone
             var soundUri = RingtoneManager.GetDefaultUri(RingtoneType.Notification);
-            
+
             if (Build.VERSION.SdkInt < BuildVersionCodes.O)
             {
                 // For pre-O Android, explicitly set the notification sound and defaults
@@ -197,26 +196,26 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
             // Check if notifications are enabled for this app
             var areNotificationsEnabled = notificationManagerCompat.AreNotificationsEnabled();
             staticLogger.Information("Notifications enabled for app: {AreNotificationsEnabled}", areNotificationsEnabled);
-            
+
             if (!areNotificationsEnabled)
             {
                 staticLogger.Warning("Notifications are disabled for this app - notification will not be shown. User needs to enable notifications in system settings.");
             }
 
             var notification = builder.Build();
-            
+
             // Force heads-up notification by using a high-priority notification ID and ensuring it's not silent
             // On Android 13+, we need to explicitly request heads-up behavior
             notificationManagerCompat.Notify(scheduleId, notification);
-            
+
             // Verify notification was actually posted
             if (Build.VERSION.SdkInt >= BuildVersionCodes.M)
             {
                 var activeNotifications = notificationManagerCompat.ActiveNotifications;
                 var wasPosted = activeNotifications?.Any(n => n.Id == scheduleId) ?? false;
-                staticLogger.Information("Notification posted - ScheduleId={ScheduleId}, NotificationId={NotificationId}, WasActuallyPosted={WasPosted}, ActiveNotificationCount={Count}", 
+                staticLogger.Information("Notification posted - ScheduleId={ScheduleId}, NotificationId={NotificationId}, WasActuallyPosted={WasPosted}, ActiveNotificationCount={Count}",
                     scheduleId, scheduleId, wasPosted, activeNotifications?.Count ?? 0);
-                
+
                 if (!wasPosted)
                 {
                     staticLogger.Warning("Notification was not actually posted to system - may be blocked by system settings or app permissions");
@@ -295,7 +294,7 @@ public sealed class AndroidNotificationService(ILogger logger) : INotificationSe
                 staticLogger.Warning(ex, "Error checking if notification {ScheduleId} is active", scheduleId);
             }
         }
-        
+
         // For older Android versions or if check fails, assume notification doesn't exist
         // This is safe because worst case we'll show notification again (harmless)
         return Task.FromResult(false);

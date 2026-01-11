@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 
 #nullable enable
 using Bible.Alarm.Stores.Models;

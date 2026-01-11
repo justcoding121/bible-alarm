@@ -4,14 +4,10 @@ using Android.Content;
 using Android.Graphics;
 using Android.Graphics.Drawables;
 using Android.OS;
-using Android.Runtime;
 using Android.Support.V4.Media;
 using AndroidX.Core.Content;
-using Bible.Alarm.Common;
-using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Stores.Models;
 using Serilog;
-using System.Collections.Generic;
 using Color = Android.Graphics.Color;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;

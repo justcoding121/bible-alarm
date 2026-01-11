@@ -2,7 +2,6 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
-using Microsoft.Maui.Controls.Xaml;
 using Serilog;
 
 namespace Bible.Alarm.Views.General;

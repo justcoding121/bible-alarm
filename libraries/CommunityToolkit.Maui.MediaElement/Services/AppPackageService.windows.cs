@@ -1,6 +1,6 @@
 using Windows.ApplicationModel;
 
-namespace CommunityToolkit.Maui.Extensions;
+namespace CommunityToolkit.Maui.Services;
 
 // Since MediaElement can't access .NET MAUI internals we have to copy this code here
 // https://github.com/dotnet/maui/blob/main/src/Essentials/src/AppInfo/AppInfo.uwp.cs

@@ -5,7 +5,6 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
-using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
 
@@ -77,7 +76,7 @@ public sealed class ScheduleListItemStateHandler(
         var newSectionName = updatedScheduleItem.BiblePublicationSectionName;
 
         var daysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek;
-        
+
         // Log DaysOfWeek changes for debugging
         if (daysOfWeekChanged)
         {

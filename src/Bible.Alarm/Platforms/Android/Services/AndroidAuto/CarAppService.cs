@@ -1,27 +1,18 @@
 #nullable enable
-using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
-using Android.Graphics;
-using Android.Graphics.Drawables;
 using Android.Runtime;
 using Android.Support.V4.Media.Session;
 using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
 using AndroidX.Car.App.Validation;
-using AndroidX.Core.Content;
-using AndroidX.Core.Graphics.Drawable;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers;
 using Bible.Alarm.Platforms.Android.Services.Media;
-using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 using Action = AndroidX.Car.App.Model.Action;
-using Color = Android.Graphics.Color;
 using Object = Java.Lang.Object;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;

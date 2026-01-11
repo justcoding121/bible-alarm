@@ -4,7 +4,7 @@ using System.ComponentModel;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.SongBookSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles property management for SongPublicationSelectionViewModel.

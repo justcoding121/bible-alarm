@@ -1,12 +1,10 @@
 using System.IO.Compression;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Polly;
 using Polly.Retry;
@@ -289,7 +287,7 @@ public sealed class MediaIndexService(
             // Close MediaDbContext connections specifically to avoid affecting ScheduleDbContext
             // This prevents "file is being used by another process" errors
             CloseMediaDbContextConnections();
-            
+
             // Delete SQLite auxiliary files (WAL mode files) first - these can be safely deleted
             // even if the database is in use, as they'll be recreated if needed
             var walPath = mediaIndexDbPath + "-wal";
@@ -335,7 +333,7 @@ public sealed class MediaIndexService(
             // Create a scope to get MediaDbContext
             using var scope = serviceProvider.CreateScope();
             var mediaDbContext = scope.ServiceProvider.GetService<MediaDbContext>();
-            
+
             if (mediaDbContext != null)
             {
                 // Close the database connection explicitly
@@ -346,7 +344,7 @@ public sealed class MediaIndexService(
                     logger.Debug("Closed MediaDbContext connection to allow database file deletion");
                 }
             }
-            
+
             // Note: We don't call ClearAllPools() here to avoid affecting ScheduleDbContext connections.
             // The explicit connection.Close() above should be sufficient, and the retry policy will handle
             // any remaining file locks. If needed, ClearAllPools() is called as a last resort in the catch block.

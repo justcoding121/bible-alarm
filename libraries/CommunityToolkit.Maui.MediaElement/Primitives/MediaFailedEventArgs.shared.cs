@@ -1,4 +1,4 @@
-namespace CommunityToolkit.Maui.Core;
+namespace CommunityToolkit.Maui.Primitives;
 
 /// <summary>
 /// Represents event data for when media has failed loading or playing.

@@ -4,8 +4,6 @@ using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views.Shared;
 
@@ -51,33 +49,33 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
         {
             // Yield immediately to let spinner start animating
             await Task.Yield();
-            
+
             var songPublicationViewModel = ViewModel as SongPublicationSelectionViewModel;
-            
+
             // Hide CollectionView - overlay is already visible (no binding)
             // Skip on Windows to avoid access violation crash
             if (DeviceInfo.Platform != DevicePlatform.WinUI)
             {
                 LanguageCollectionView.Opacity = 0;
             }
-            
+
             // Another yield before starting data load
             await Task.Yield();
-            
+
             // Trigger data refresh
             if (songPublicationViewModel != null)
             {
                 await songPublicationViewModel.RefreshFromState();
             }
-            
+
             // Wait for IsBusy to become false (data loaded)
             await CollectionViewHelper.WaitForNotBusyAsync(
                 () => ViewModel?.IsBusy ?? false,
                 cancellationToken: cancellationTokenSource.Token);
-            
+
             // Delay for CollectionView to render
             await Task.Delay(150, cancellationTokenSource.Token);
-            
+
             // Scroll to selected item
             var selectedItem = songPublicationViewModel?.Languages?.FirstOrDefault(l => l.IsSelected);
             if (selectedItem != null)
@@ -87,10 +85,10 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
                     selectedItem,
                     animated: false,
                     cancellationToken: cancellationTokenSource.Token);
-                
+
                 await Task.Delay(50, cancellationTokenSource.Token);
             }
-            
+
             // Hide overlay and reveal list together
             await MainThread.InvokeOnMainThreadAsync(() =>
             {

@@ -3,7 +3,6 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -108,7 +107,7 @@ public sealed class PlaybackOperationHandler
             newPosition = maxSeekPosition;
         }
 
-        logger.Information("Seeking forward: {CurrentPosition} -> {NewPosition} (duration: {Duration})", 
+        logger.Information("Seeking forward: {CurrentPosition} -> {NewPosition} (duration: {Duration})",
             currentPosition.Value, newPosition, duration);
         await audioPlayer.SeekToAsync(newPosition);
     }
@@ -134,7 +133,7 @@ public sealed class PlaybackOperationHandler
             newPosition = TimeSpan.Zero;
         }
 
-        logger.Information("Seeking backward: {CurrentPosition} -> {NewPosition}", 
+        logger.Information("Seeking backward: {CurrentPosition} -> {NewPosition}",
             currentPosition.Value, newPosition);
         await audioPlayer.SeekToAsync(newPosition);
     }

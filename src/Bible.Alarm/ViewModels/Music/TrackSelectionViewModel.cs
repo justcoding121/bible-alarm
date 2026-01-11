@@ -85,7 +85,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         // Check current state immediately in case state is already set
         // Also check CurrentSchedule as fallback (source of truth for new schedules)
         var currentState = state.Value;
-        if (currentState.CurrentMusic != null || 
+        if (currentState.CurrentMusic != null ||
             (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue))
         {
             OnMusicInitialized(null, EventArgs.Empty);
@@ -197,7 +197,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
             busy => propertyManager.IsBusy = busy,
             async (lang, pub) => await Initialize(lang, pub),
             () => SetSelectedTrack());
-        
+
         // Ensure IsBusy is set to false after a short delay to allow async operations to complete
         // This handles cases where HandleMusicChanged returns early or async work completes quickly
         await Task.Delay(200);

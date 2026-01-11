@@ -1,14 +1,12 @@
 #nullable enable
 
 using System.Runtime.InteropServices;
-using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 using Bible.Alarm.Services.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Serilog;
-using Application = Microsoft.Maui.Controls.Application;
 using Window = Microsoft.UI.Xaml.Window;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI;

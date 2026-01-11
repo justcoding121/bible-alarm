@@ -1,14 +1,10 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Actions.Music;
-using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
-using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music.TrackSelectionViewModelHelpers;
 
@@ -128,7 +124,7 @@ public sealed class TrackStateManager(IMapper mapper)
 
                 // CollectionView needs a moment to render before setting selected track and hiding busy
                 await Task.Delay(100);
-                
+
                 // Set selected track after tracks are populated
                 await MainThread.InvokeOnMainThreadAsync(setSelectedTrack);
 

@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -82,16 +81,16 @@ public static class ScheduleCrudReducer
 
     public static ApplicationState OnDeleteSchedule(ApplicationState state, DeleteScheduleAction action)
     {
-        Log.Information("ScheduleCrudReducer: OnDeleteSchedule called - ScheduleId: {ScheduleId}, State.Schedules is null: {IsNull}", 
+        Log.Information("ScheduleCrudReducer: OnDeleteSchedule called - ScheduleId: {ScheduleId}, State.Schedules is null: {IsNull}",
             action.ScheduleId, state.Schedules == null);
-        
+
         if (state.Schedules == null)
         {
             Log.Warning("ScheduleCrudReducer: OnDeleteSchedule - State.Schedules is null, returning state unchanged");
             return state;
         }
 
-        Log.Information("ApplicationReducer: OnDeleteSchedule - ScheduleId: {ScheduleId}, Current schedule count: {Count}", 
+        Log.Information("ApplicationReducer: OnDeleteSchedule - ScheduleId: {ScheduleId}, Current schedule count: {Count}",
             action.ScheduleId, state.Schedules.Count);
 
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
@@ -241,7 +240,7 @@ public static class ScheduleCrudReducer
         // Create new Schedules collection to maintain immutability
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
         ScheduleStateItem? updatedScheduleItem = null;
-        
+
         if (state.Schedules != null)
         {
             foreach (var scheduleItem in state.Schedules)
@@ -252,13 +251,13 @@ public static class ScheduleCrudReducer
                     var oldMusicEnabled = scheduleItem.MusicEnabled;
                     var sourceSchedule = action.Schedule.DeepClone();
                     updatedScheduleItem = sourceSchedule; // Use the cloned schedule directly
-                    
+
                     Log.Debug("ApplicationReducer: Existing item BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', MusicEnabled: {MusicEnabled}",
                         scheduleItem.BiblePublicationLanguageName ?? "null", scheduleItem.BiblePublicationSectionName ?? "null", scheduleItem.MusicEnabled);
-                    
+
                     Log.Debug("ApplicationReducer: Updated schedule item (new instance) - MusicEnabled: {OldMusicEnabled} -> {NewMusicEnabled}, Name: '{OldName}' -> '{NewName}'",
                         oldMusicEnabled, updatedScheduleItem.MusicEnabled, updatedScheduleItem.Name, action.Schedule.Name);
-                    
+
                     newSchedules.Add(updatedScheduleItem);
                 }
                 else

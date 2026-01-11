@@ -1,7 +1,5 @@
 #nullable enable
 
-using System;
-using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
 using Android.Support.V4.Media;
@@ -23,7 +21,7 @@ public sealed class ForegroundServiceCoordinator
     private static readonly ILogger logger = Log.ForContext<ForegroundServiceCoordinator>();
     private static readonly Lock @lock = new(); // Reentrant lock - safe for nested calls
     private static readonly ForegroundServiceStateManager state = new();
-    
+
     /// <summary>
     /// Represents the current owner of the foreground service.
     /// </summary>
@@ -81,7 +79,7 @@ public sealed class ForegroundServiceCoordinator
         // The notification will be updated when metadata is set later.
         var hasMetadata = session.Controller?.Metadata != null &&
             !string.IsNullOrEmpty(session.Controller.Metadata.GetString(MediaMetadataCompat.MetadataKeyTitle));
-        
+
         if (hasMetadata)
         {
             logger.Information("Metadata available - starting Android Auto foreground service immediately");
@@ -90,7 +88,7 @@ public sealed class ForegroundServiceCoordinator
         {
             logger.Information("Android Auto connected but no metadata yet (early bootstrap) - starting foreground service with fallback notification");
         }
-        
+
         RequestForAndroidAuto(service, session);
     }
 
@@ -120,10 +118,10 @@ public sealed class ForegroundServiceCoordinator
             }
             else
             {
-                logger.Debug("Android Auto disconnected but was not the foreground service owner (current owner: {CurrentOwner}) - not stopping foreground service", 
+                logger.Debug("Android Auto disconnected but was not the foreground service owner (current owner: {CurrentOwner}) - not stopping foreground service",
                     state.CurrentOwner);
             }
-            
+
             state.ClearAndroidAutoService();
         }
     }
@@ -135,18 +133,18 @@ public sealed class ForegroundServiceCoordinator
     public static async Task OnPlaybackStarted()
     {
         bool needsDelay = false;
-        
+
         lock (@lock)
         {
             state.SetMediaElementPlaying(true);
-            
+
             if (state.CurrentOwner == ForegroundServiceOwner.MediaElement)
             {
                 logger.Debug("MediaElement already owns foreground service");
                 return;
             }
 
-            logger.Information("Playback started - MediaElement requesting foreground service ownership (current owner: {CurrentOwner})", 
+            logger.Information("Playback started - MediaElement requesting foreground service ownership (current owner: {CurrentOwner})",
                 state.CurrentOwner);
 
             if (state.CurrentOwner == ForegroundServiceOwner.AndroidAuto || state.CurrentOwner == ForegroundServiceOwner.Alarm)
@@ -155,14 +153,14 @@ public sealed class ForegroundServiceCoordinator
                 logger.Information("Stopping {OwnerType} foreground service before MediaElement starts", ownerType);
                 var serviceToStop = state.AndroidAutoService ?? state.AlarmService;
                 ForegroundServiceOperations.StopForeground(serviceToStop);
-                
+
                 // Clean up alarm service if it was used
                 if (state.AlarmService != null)
                 {
                     logger.Debug("Cleaning up alarm service after stopping foreground");
                     state.ClearAlarmService();
                 }
-                
+
                 needsDelay = true;
             }
 
@@ -190,7 +188,7 @@ public sealed class ForegroundServiceCoordinator
         lock (@lock)
         {
             state.SetMediaElementPlaying(false);
-            
+
             if (state.CurrentOwner != ForegroundServiceOwner.MediaElement)
             {
                 logger.Debug("MediaElement does not own foreground service (current owner: {CurrentOwner})", state.CurrentOwner);
@@ -199,7 +197,7 @@ public sealed class ForegroundServiceCoordinator
 
             logger.Information("Playback stopped - MediaElement releasing foreground service ownership (will wait for disposal before starting Android Auto foreground)");
             state.SetOwner(ForegroundServiceOwner.None);
-            
+
             // Clean up alarm service if it exists (alarm foreground service should have been stopped when playback started)
             if (state.AlarmService != null)
             {
@@ -223,7 +221,7 @@ public sealed class ForegroundServiceCoordinator
                 logger.Information("MediaElement disposed - releasing foreground service ownership");
                 state.SetOwner(ForegroundServiceOwner.None);
             }
-            
+
             logger.Debug("MediaElement disposal complete - Android Auto can now take ownership when metadata is set");
         }
     }
@@ -245,7 +243,7 @@ public sealed class ForegroundServiceCoordinator
                 logger.Debug("Cannot start Android Auto foreground service - no service instance available (Android Auto may not be connected yet)");
                 return false;
             }
-            
+
             return RequestForAndroidAuto(state.AndroidAutoService, mediaSession);
         }
     }
@@ -328,7 +326,7 @@ public sealed class ForegroundServiceCoordinator
     public static async Task OnAlarmTriggered(Context context, int scheduleId)
     {
         Intent? intent = null;
-        
+
         lock (@lock)
         {
             // Skip if app is already in foreground or has active foreground service
@@ -337,13 +335,13 @@ public sealed class ForegroundServiceCoordinator
                 logger.Information("Alarm triggered (schedule {ScheduleId}) but app is in foreground or has active foreground service - skipping foreground service start", scheduleId);
                 return;
             }
-            
+
             logger.Information("Alarm triggered (schedule {ScheduleId}) - starting foreground service to prevent OS kill", scheduleId);
         }
-        
+
         // Start the AlarmForegroundService (outside lock to avoid blocking)
         intent = new Intent(context, typeof(AlarmForegroundService));
-        
+
         try
         {
             if (OperatingSystem.IsAndroidVersionAtLeast(26))
@@ -354,7 +352,7 @@ public sealed class ForegroundServiceCoordinator
             {
                 context.StartService(intent);
             }
-            
+
             // Wait for service to be created and registered (thread-safe access via property)
             var maxWait = 10;
             var waitCount = 0;
@@ -363,7 +361,7 @@ public sealed class ForegroundServiceCoordinator
                 await Task.Delay(50);
                 waitCount++;
             }
-            
+
             var service = AlarmForegroundService.Instance;
             if (service == null)
             {
@@ -376,7 +374,7 @@ public sealed class ForegroundServiceCoordinator
             logger.Error(ex, "Failed to start AlarmForegroundService");
             return;
         }
-        
+
         // Get MediaSession and request foreground ownership (re-acquire lock)
         Service? serviceInstance = null;
         lock (@lock)
@@ -391,7 +389,7 @@ public sealed class ForegroundServiceCoordinator
                 }
                 return;
             }
-            
+
             // Get service instance once while holding lock to ensure consistency
             serviceInstance = AlarmForegroundService.Instance;
             if (serviceInstance == null)
@@ -404,7 +402,7 @@ public sealed class ForegroundServiceCoordinator
                 return;
             }
         }
-        
+
         // Get MediaSession and start foreground (service instance captured, safe to use outside lock for this operation)
         // MediaSession is created before bootstrap (in AlarmRingerReceiver), so it may not have metadata yet.
         // ForegroundNotificationHelper.CreateNotification handles alarm notifications with "Preparing playback..." message.
@@ -424,7 +422,7 @@ public sealed class ForegroundServiceCoordinator
                     }
                     return;
                 }
-                
+
                 state.SetAlarmService(serviceInstance);
                 ForegroundServiceOperations.StartForeground(serviceInstance, mediaSession, isAlarmNotification: true);
                 state.SetOwner(ForegroundServiceOwner.Alarm);
@@ -465,7 +463,7 @@ public sealed class ForegroundServiceCoordinator
                 state.ClearAlarmService();
             }
         }
-        
+
         // Stop the service itself (outside lock to avoid blocking)
         if (alarmServiceToStop != null)
         {

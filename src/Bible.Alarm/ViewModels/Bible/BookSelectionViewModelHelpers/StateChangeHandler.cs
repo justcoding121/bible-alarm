@@ -4,11 +4,9 @@ using System.Collections.ObjectModel;
 using AutoMapper;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Models;
-using Microsoft.Maui.Essentials;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Bible.SectionSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Bible.BookSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles state change logic for SectionSelectionViewModel.

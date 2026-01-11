@@ -3,8 +3,6 @@ using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views.Music;
 
@@ -31,8 +29,8 @@ public partial class SongPublicationSelectionModal : BaseContentPage, IDisposabl
             BusyOverlay,
             songPublicationsCollectionView,
             getSelectedItem: () => ViewModel?.SelectedSongPublication,
-            refreshAction: ViewModel != null 
-                ? async () => await ViewModel.RefreshFromState() 
+            refreshAction: ViewModel != null
+                ? async () => await ViewModel.RefreshFromState()
                 : null,
             cancellationToken: cancellationTokenSource.Token);
     }

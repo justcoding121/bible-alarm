@@ -1,4 +1,4 @@
-namespace CommunityToolkit.Maui.Media.Services;
+namespace CommunityToolkit.Maui.Services;
 
 /// <summary>
 /// Extension methods for System.Threading.Tasks.Task and System.Threading.Tasks.ValueTask

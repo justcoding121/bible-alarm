@@ -5,7 +5,6 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
-using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
 

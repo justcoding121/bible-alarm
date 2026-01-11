@@ -1,7 +1,6 @@
 #nullable enable
 using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
-using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 using Action = AndroidX.Car.App.Model.Action;
@@ -90,10 +89,10 @@ public sealed class CarScreenTemplateBuilder(ILogger logger)
 
         var mainCarScreen = screen as MainCarScreen;
         var rowBuilder = new Row.Builder();
-        
+
         // Start the chain with SetTitle
         var rowWithTitle = rowBuilder?.SetTitle(title);
-        
+
         // Conditionally add click listener
         if (rowWithTitle != null && mainCarScreen != null)
         {

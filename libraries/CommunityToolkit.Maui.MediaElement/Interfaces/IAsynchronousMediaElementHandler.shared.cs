@@ -1,4 +1,4 @@
-namespace CommunityToolkit.Maui.Core;
+namespace CommunityToolkit.Maui.Interfaces;
 
 /// <summary>
 /// Interface that allows asynchronous completion of .NET MAUI Handlers

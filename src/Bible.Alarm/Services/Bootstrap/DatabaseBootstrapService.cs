@@ -2,12 +2,10 @@
 
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.Services.Bootstrap;
@@ -118,48 +116,75 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
             // If GetPendingMigrationsAsync or MigrateAsync fails (e.g., database is corrupted, EF version incompatibility),
             // try to recover by copying the bundled database as a safety net
             Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to check/apply migrations, attempting recovery with bundled database");
-            
+
             try
             {
-                // Close the database connection before attempting to replace the file
+                // Close and dispose the database connection before attempting to replace the file
+                // This ensures the file is not locked when we try to delete it
                 await scheduleDb.Database.CloseConnectionAsync();
                 scheduleDb.Dispose();
-                
-                // Delete the corrupted database file and any WAL/SHM files
+                scheduleDb = null!; // Clear reference to help GC
+
+                // Force garbage collection to ensure connection is fully released
+                // SQLite connections can hold file locks even after Dispose()
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
+                // Delete the corrupted database file and any WAL/SHM files with retry logic
+                // SQLite may take a moment to fully release the file lock
                 if (System.IO.File.Exists(dbPath))
                 {
-                    try
+                    const int maxRetries = 5;
+                    const int retryDelayMs = 100;
+                    bool deleted = false;
+
+                    for (int attempt = 0; attempt < maxRetries && !deleted; attempt++)
                     {
-                        System.IO.File.Delete(dbPath);
-                        Log.Logger.Information("[BOOTSTRAP] Deleted corrupted Schedule database file");
-                    }
-                    catch (IOException deleteEx)
-                    {
-                        Log.Logger.Warning(deleteEx, "[BOOTSTRAP] Could not delete corrupted database file, may be locked");
+                        try
+                        {
+                            System.IO.File.Delete(dbPath);
+                            deleted = true;
+                            Log.Logger.Information("[BOOTSTRAP] Deleted corrupted Schedule database file");
+                        }
+                        catch (IOException deleteEx) when (attempt < maxRetries - 1)
+                        {
+                            Log.Logger.Debug(deleteEx, 
+                                "[BOOTSTRAP] Could not delete corrupted database file (attempt {Attempt}/{MaxRetries}), retrying...", 
+                                attempt + 1, maxRetries);
+                            await Task.Delay(retryDelayMs);
+                        }
+                        catch (IOException deleteEx)
+                        {
+                            Log.Logger.Warning(deleteEx, 
+                                "[BOOTSTRAP] Could not delete corrupted database file after {MaxRetries} attempts, may be locked", 
+                                maxRetries);
+                            throw; // Re-throw on final attempt
+                        }
                     }
                 }
-                
-                // Clean up WAL and SHM files if they exist
+
+                // Clean up WAL and SHM files if they exist (these are usually easier to delete)
                 var walPath = dbPath + "-wal";
                 var shmPath = dbPath + "-shm";
                 try { if (System.IO.File.Exists(walPath)) System.IO.File.Delete(walPath); } catch { }
                 try { if (System.IO.File.Exists(shmPath)) System.IO.File.Delete(shmPath); } catch { }
-                
+
                 // Copy the bundled database as a fresh start using existing logic
                 // Create a temporary context just for the copy operation
                 var tempScheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
                 await CopyScheduleDatabaseFromResourceIfNeededAsync(scope, tempScheduleDb, dbPath);
                 tempScheduleDb.Dispose();
-                
+
                 // Verify the database was copied successfully
                 if (!System.IO.File.Exists(dbPath))
                 {
                     throw new InvalidOperationException("Failed to copy bundled database during recovery");
                 }
-                
+
                 // Get a fresh DbContext instance for the new database
                 scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                
+
                 // Try to verify/apply migrations again with the fresh database
                 var pendingScheduleMigrationsAfterRecovery = await scheduleDb.Database.GetPendingMigrationsAsync();
                 if (pendingScheduleMigrationsAfterRecovery.Any())

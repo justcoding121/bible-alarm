@@ -8,7 +8,6 @@ using Android.Widget;
 using AndroidX.CoordinatorLayout.Widget;
 using AndroidX.Core.View;
 using AndroidX.Media3.UI;
-using CommunityToolkit.Maui.Views;
 using Color = Android.Graphics.Color;
 using View = Android.Views.View;
 using Window = Android.Views.Window;
@@ -18,7 +17,7 @@ using Window = Android.Views.Window;
 [assembly: UsesPermission(Manifest.Permission.MediaContentControl)]
 [assembly: UsesPermission(Manifest.Permission.PostNotifications)]
 
-namespace CommunityToolkit.Maui.Core.Views;
+namespace CommunityToolkit.Maui.Views;
 
 /// <summary>
 /// The user-interface element that represents the <see cref="MediaElement"/> on Android.

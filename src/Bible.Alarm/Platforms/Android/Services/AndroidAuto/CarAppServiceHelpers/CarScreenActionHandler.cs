@@ -1,7 +1,6 @@
 #nullable enable
 using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
-using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Serilog;
 using Action = AndroidX.Car.App.Model.Action;
 using Object = Java.Lang.Object;

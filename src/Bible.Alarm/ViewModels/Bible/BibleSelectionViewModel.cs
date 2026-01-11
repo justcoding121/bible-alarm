@@ -1,23 +1,17 @@
 #nullable enable
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Models.Media.Bible;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Actions.Bible;
-using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Fluxor;
-using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Microsoft.Extensions.DependencyInjection;
-using Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 
 namespace Bible.Alarm.ViewModels.Bible;
 

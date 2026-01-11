@@ -74,7 +74,7 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
         try
         {
             logger.Debug("LoadExistingScheduleAsync: Loading schedule {ScheduleId} from database", scheduleId);
-            
+
             // Load schedule from database with all includes
             var schedule = await alarmScheduleService.GetScheduleByIdAsync(
                 scheduleId,

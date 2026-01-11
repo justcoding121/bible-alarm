@@ -2,7 +2,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Bible.Alarm.ViewModels.Bible.TrackSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Bible.ChapterSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles property management for TrackSelectionViewModel.

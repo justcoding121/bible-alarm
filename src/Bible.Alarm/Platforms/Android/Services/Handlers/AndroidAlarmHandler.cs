@@ -30,19 +30,19 @@ public sealed class AndroidAlarmHandler(
         if (isAlarm && schedule.NotificationEnabled)
         {
             logger.Information("Alarm triggered with NotificationEnabled=true for schedule {ScheduleId} - stopping foreground service and showing tap notification", scheduleId);
-            
+
             // Stop foreground service and its sticky notification (we don't need it if user must tap)
             Platforms.Android.Services.Media.ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
-            
+
             logger.Debug("Removing any existing local notification for schedule {ScheduleId}", schedule.Id);
             AndroidNotificationService.RemoveLocalNotification(schedule.Id);
-            
+
             var notificationTitle = string.IsNullOrEmpty(schedule.Name) ? "Bible Alarm" : schedule.Name;
             logger.Information("Showing local notification for schedule {ScheduleId} - Title={Title}", schedule.Id, notificationTitle);
             AndroidNotificationService.ShowLocalNotification(schedule.Id,
                 notificationTitle,
                 "Press to start listening now.");
-            
+
             logger.Information("Local notification shown for schedule {ScheduleId} - waiting for user tap", schedule.Id);
             Dispose();
             return;
@@ -70,7 +70,7 @@ public sealed class AndroidAlarmHandler(
             // Remove any existing notifications since user is starting playback
             AndroidNotificationService.RemoveLocalNotification(schedule.Id);
             logger.Information("User-initiated playback for schedule {ScheduleId} - starting playback directly without notifications", scheduleId);
-            
+
             // For user-initiated playback, directly call PrepareAndPlayAsync without going through alarm handler logic
             // This ensures no foreground service calls or notification sounds
             await Task.Run(async () =>
@@ -85,7 +85,7 @@ public sealed class AndroidAlarmHandler(
                     Dispose();
                 }
             });
-            
+
             return;
         }
 

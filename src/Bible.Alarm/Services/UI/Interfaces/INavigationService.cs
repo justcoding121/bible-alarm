@@ -8,7 +8,7 @@ public interface INavigationService : IDisposable
 {
     Task NavigateToHomeAsync();
     Task NavigateToScheduleAsync();
-    
+
     /// <summary>
     /// Navigates to an existing schedule by ID. The schedule will be loaded from DB inside the navigation lock.
     /// </summary>

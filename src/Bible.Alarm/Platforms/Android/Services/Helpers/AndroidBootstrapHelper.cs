@@ -127,7 +127,7 @@ public class AndroidBootstrapHelper
         channel.EnableLights(true);
         channel.EnableVibration(true);
         channel.SetSound(soundUri, attributes);
-        
+
         // Allow notifications to bypass Do Not Disturb mode (Android 7.1+)
         // This ensures alarms can play even when DND is enabled
         if (Build.VERSION.SdkInt >= BuildVersionCodes.NMr1)

@@ -54,14 +54,14 @@ internal static class ForegroundServiceValidator
             logger.Debug("Skipping foreground service start - app is already in foreground");
             return true;
         }
-        
+
         // If MediaElement is active, it already has foreground service
         if (IsMediaElementActive(state))
         {
             logger.Debug("Skipping foreground service start - MediaElement is active and has foreground service");
             return true;
         }
-        
+
         // If Android Auto or Alarm already owns foreground service, we don't need to start another
         if (state.CurrentOwner == ForegroundServiceCoordinator.ForegroundServiceOwner.AndroidAuto ||
             state.CurrentOwner == ForegroundServiceCoordinator.ForegroundServiceOwner.Alarm)
@@ -69,7 +69,7 @@ internal static class ForegroundServiceValidator
             logger.Debug("Skipping foreground service start - {Owner} already owns foreground service", state.CurrentOwner);
             return true;
         }
-        
+
         return false;
     }
 }

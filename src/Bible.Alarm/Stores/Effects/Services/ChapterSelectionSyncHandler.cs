@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Common;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Schedule;

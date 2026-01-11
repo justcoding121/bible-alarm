@@ -1,7 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
 using Serilog;
@@ -22,7 +21,7 @@ public sealed class ScheduleStateManager
     private readonly ILogger logger;
     private readonly IScheduleInitializationService scheduleInitializationService;
     private readonly IDispatcher dispatcher;
-    
+
     private bool isInitializing;
 
     public ScheduleStateManager(
@@ -46,7 +45,7 @@ public sealed class ScheduleStateManager
     public void InitializeStateHandling(IState<ApplicationState> state, Action setBusy, Action setOverlayVisible)
     {
         setBusy();
-        
+
         // Show overlay immediately when page is created (via state action)
         dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = true });
         setOverlayVisible();
@@ -54,12 +53,12 @@ public sealed class ScheduleStateManager
         // Check navigation context first - this is set by NavigateToScheduleAsync(scheduleId, isEnabled)
         var scheduleIdToLoad = Services.UI.ScheduleNavigationContext.ScheduleIdToLoad;
         var isEnabledToLoad = Services.UI.ScheduleNavigationContext.IsEnabledToLoad;
-        
+
         // Clear context immediately after reading to prevent stale data
         Services.UI.ScheduleNavigationContext.Clear();
-        
+
         var currentSchedule = state.Value.CurrentSchedule;
-        
+
         if (scheduleIdToLoad.HasValue)
         {
             // View existing schedule flow: Load from DB on background thread
@@ -93,14 +92,14 @@ public sealed class ScheduleStateManager
             try
             {
                 var scheduleStateItem = await scheduleInitializationService.LoadExistingScheduleAsync(scheduleId, isEnabled);
-                
+
                 if (scheduleStateItem == null)
                 {
                     logger.Error("ScheduleStateManager: Failed to load schedule {ScheduleId} from database", scheduleId);
                     isInitializing = false;
                     return;
                 }
-                
+
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     logger.Debug("ScheduleStateManager: Dispatching ViewScheduleAction for loaded schedule {ScheduleId}", scheduleId);
@@ -130,7 +129,7 @@ public sealed class ScheduleStateManager
             try
             {
                 var scheduleStateItem = await scheduleInitializationService.InitializeNewScheduleAsync();
-                
+
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     logger.Debug("ScheduleStateManager: Dispatching ViewScheduleAction for new schedule");
@@ -157,10 +156,10 @@ public sealed class ScheduleStateManager
         Action<object?, EventArgs> onCurrentScheduleChanged)
     {
         var stateValue = state.Value;
-        
+
         // Sync overlay visibility with state
         setOverlayVisible(stateValue.IsSchedulePageOverlayVisible);
-        
+
         // Notify UI of property changes
         notifySchedulePropertiesChanged();
     }

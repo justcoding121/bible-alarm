@@ -1,7 +1,5 @@
 #nullable enable
 
-using Microsoft.Maui.Controls;
-
 namespace Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
 
 /// <summary>
@@ -62,7 +60,7 @@ public class VisibilityManager
             Serilog.Log.Debug("[MusicSelectionContainer] Setting initial state without animation");
 #endif
             animationManager.SetContentStateDirectly(isEnabled);
-            
+
             // If expanding (enabling), trigger scroll callback after a delay to allow layout to complete
             if (isEnabled && onExpandComplete != null)
             {

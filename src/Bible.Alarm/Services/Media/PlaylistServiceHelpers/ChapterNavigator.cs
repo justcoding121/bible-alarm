@@ -1,8 +1,6 @@
 #nullable enable
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media.Bible;
-using Serilog;
 
 namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 
@@ -20,9 +18,9 @@ public sealed class TrackNavigator(IMediaService mediaService)
         int sectionNumber,
         int track)
     {
-        var currentSection = await mediaService.GetBiblePublicationSection(languageCode, publicationCode, sectionNumber) 
+        var currentSection = await mediaService.GetBiblePublicationSection(languageCode, publicationCode, sectionNumber)
             ?? throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
-        
+
         var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
         var nextTrack = tracks.SkipWhile(kvp => kvp.Key <= track).FirstOrDefault();
 
@@ -56,9 +54,9 @@ public sealed class TrackNavigator(IMediaService mediaService)
         int sectionNumber,
         int track)
     {
-        var currentSection = await mediaService.GetBiblePublicationSection(languageCode, publicationCode, sectionNumber) 
+        var currentSection = await mediaService.GetBiblePublicationSection(languageCode, publicationCode, sectionNumber)
             ?? throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
-        
+
         var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
         var previousTrack = tracks.Reverse().SkipWhile(kvp => kvp.Key >= track).FirstOrDefault();
 

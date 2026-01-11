@@ -1,19 +1,16 @@
 #nullable enable
 using Android.OS;
-using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
-using Application = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 

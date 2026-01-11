@@ -145,7 +145,7 @@ public static class ApplicationReducer
         {
             return state;
         }
-        Log.Information("ApplicationReducer: OnDeleteSchedule REDUCER CALLED - ScheduleId: {ScheduleId}, Action type: {ActionType}", 
+        Log.Information("ApplicationReducer: OnDeleteSchedule REDUCER CALLED - ScheduleId: {ScheduleId}, Action type: {ActionType}",
             action.ScheduleId, action.GetType().FullName);
         return ScheduleCrudReducer.OnDeleteSchedule(state, action);
     }
@@ -418,10 +418,10 @@ public static class ApplicationReducer
     {
         // When showing overlay, reset container readiness to ensure fresh state
         // When hiding overlay, preserve container readiness (it may have been set to ready)
-        var containerReadiness = action.IsVisible 
-            ? Models.ContainerReadiness.NotReady 
+        var containerReadiness = action.IsVisible
+            ? Models.ContainerReadiness.NotReady
             : state.ContainerReadiness;
-        
+
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,

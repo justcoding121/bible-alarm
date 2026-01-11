@@ -1,7 +1,6 @@
 #nullable enable
 using Android.Content;
 using Android.Graphics;
-using Android.OS;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common.Helpers;

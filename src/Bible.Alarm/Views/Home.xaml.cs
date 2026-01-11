@@ -3,7 +3,6 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.ViewModels;
 using Serilog;
 using Syncfusion.Maui.Buttons;
-using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views;
 
@@ -154,13 +153,13 @@ public partial class Home : BaseContentPage, IDisposable
     private bool IsTapOnChild(View childView, Point tapPosition)
     {
         var childBounds = childView.Bounds;
-        
+
         // Skip if bounds aren't valid (layout not yet calculated)
         if (childBounds.Width <= 0 || childBounds.Height <= 0)
         {
             return false;
         }
-        
+
         if (!childBounds.Contains(tapPosition))
         {
             return false;
@@ -182,7 +181,7 @@ public partial class Home : BaseContentPage, IDisposable
         // Reset flag when page appears again (e.g., navigating back to it)
         hasHandledFirstLoad = false;
         Loaded += OnPageLoaded;
-        
+
         // Update floating button visibility based on permissions
         viewModel?.UpdateFloatingButtonVisibility();
     }

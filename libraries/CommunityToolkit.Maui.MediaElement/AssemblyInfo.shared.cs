@@ -6,7 +6,7 @@
 
 [assembly: Microsoft.Maui.Controls.XmlnsPrefix("http://schemas.microsoft.com/dotnet/2022/maui/toolkit", "toolkit")]
 
-namespace CommunityToolkit.Maui.Media;
+namespace CommunityToolkit.Maui;
 
 static class Constants
 {

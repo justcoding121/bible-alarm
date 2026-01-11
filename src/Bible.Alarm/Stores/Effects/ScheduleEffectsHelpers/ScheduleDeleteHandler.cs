@@ -2,7 +2,6 @@
 
 using AutoMapper;
 using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -10,7 +9,6 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.Services;
 using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.Messaging;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -48,21 +46,21 @@ public class ScheduleDeleteHandler
     {
         try
         {
-            Log.Information("ScheduleDeleteHandler: HandleAsync called - ScheduleId: {ScheduleId}, Action null: {IsNull}, Dispatcher null: {DispatcherNull}", 
+            Log.Information("ScheduleDeleteHandler: HandleAsync called - ScheduleId: {ScheduleId}, Action null: {IsNull}, Dispatcher null: {DispatcherNull}",
                 action?.ScheduleId ?? -1, action == null, dispatcher == null);
-            
+
             if (action == null)
             {
                 Log.Error("ScheduleDeleteHandler: HandleAsync - Action is null!");
                 return;
             }
-            
+
             if (dispatcher == null)
             {
                 Log.Error("ScheduleDeleteHandler: HandleAsync - Dispatcher is null!");
                 return;
             }
-            
+
             Log.Information("ScheduleEffects: HandleDeleteSchedule - ScheduleId: {ScheduleId}", action.ScheduleId);
 
             if (alarmScheduleService == null)
@@ -73,7 +71,7 @@ public class ScheduleDeleteHandler
             }
 
             // Check if this is the last schedule - prevent deletion if it is (on background thread)
-            var allSchedules = await Task.Run(async () => 
+            var allSchedules = await Task.Run(async () =>
                 await alarmScheduleService.GetAllSchedulesAsync(
                     includeMusic: false,
                     includeBiblePublication: false,
@@ -132,7 +130,7 @@ public class ScheduleDeleteHandler
             }
 
             // Delete from database (on background thread)
-            await Task.Run(async () => 
+            await Task.Run(async () =>
                 await alarmScheduleService.DeleteScheduleAsync(action.ScheduleId, CancellationToken.None));
 
             Log.Information("ScheduleEffects: HandleDeleteSchedule - Deleted from DB. ScheduleId: {ScheduleId}", action.ScheduleId);

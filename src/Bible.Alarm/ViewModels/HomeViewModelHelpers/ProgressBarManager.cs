@@ -1,7 +1,5 @@
 #nullable enable
 
-using Microsoft.Maui.Essentials;
-
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 
 /// <summary>
@@ -37,7 +35,7 @@ public class ProgressBarManager : IDisposable
     }
 
     public bool IsProgressBarHidden => progressBarOpacity == 0;
-    
+
     // These properties are kept for backwards compatibility but no longer used
     // Animation is now handled natively in AnimatedProgressBar control
     public double AnimatedProgressStart => 0.0;
@@ -65,7 +63,7 @@ public class ProgressBarManager : IDisposable
         const int fadeSteps = 10;
         const int fadeDurationMs = 200;
         const double stepDelay = fadeDurationMs / (double)fadeSteps;
-        
+
         // Fade from current opacity to 0 (not from 1.0)
         var startOpacity = progressBarOpacity;
         for (int i = fadeSteps; i >= 0; i--)

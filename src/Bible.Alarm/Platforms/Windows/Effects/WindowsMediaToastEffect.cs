@@ -26,7 +26,7 @@ public class WindowsMediaToastEffect(
         try
         {
             var currentState = playbackState.Value;
-            
+
             // Only show toast if playback is active (playing or paused)
             if (currentState.Status != PlayStatus.Playing && currentState.Status != PlayStatus.Paused)
             {
@@ -87,7 +87,7 @@ public class WindowsMediaToastEffect(
         try
         {
             var currentState = playbackState.Value;
-            
+
             // If playback is stopped/ended, dismiss the toast
             if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
             {

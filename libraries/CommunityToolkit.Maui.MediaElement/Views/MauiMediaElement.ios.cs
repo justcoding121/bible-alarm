@@ -2,13 +2,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using AVKit;
 using CommunityToolkit.Maui.Extensions;
-using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.Controls.Handlers.Items;
 using Microsoft.Maui.Controls.Handlers.Items2;
 using Microsoft.Maui.Handlers;
 using UIKit;
 
-namespace CommunityToolkit.Maui.Core.Views;
+namespace CommunityToolkit.Maui.Views;
 
 /// <summary>
 /// The user-interface element that represents the <see cref="MediaElement"/> on iOS and macOS.

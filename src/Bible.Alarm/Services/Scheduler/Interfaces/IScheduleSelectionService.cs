@@ -11,9 +11,9 @@ public interface IScheduleSelectionService : IDisposable
     /// instead of querying AlarmDB (since all data is already in CurrentSchedule from page load).
     /// Only queries media index DB for track lists, publications, etc.
     /// </summary>
-    AlarmMusic? LoadMusicForSelection(int scheduleId, bool isNewSchedule, AlarmMusic? currentMusic, 
+    AlarmMusic? LoadMusicForSelection(int scheduleId, bool isNewSchedule, AlarmMusic? currentMusic,
         MusicType? musicType, string? publicationCode, string? languageCode, int? trackNumber, bool? repeat);
-    
+
     /// <summary>
     /// Loads Bible reading for selection modal. For existing schedules, creates BiblePublicationSchedule from CurrentSchedule properties
     /// instead of querying AlarmDB (since all data is already in CurrentSchedule from page load).

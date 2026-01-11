@@ -1,7 +1,5 @@
 #nullable enable
-using Bible;
 using CommunityToolkit.Maui.Core.Handlers;
-using CommunityToolkit.Maui.Core.Views;
 using CommunityToolkit.Maui.Views;
 using Serilog;
 

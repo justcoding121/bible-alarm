@@ -13,12 +13,12 @@ public static class ScheduleNavigationContext
     /// The schedule ID to load from database. Null means create new schedule.
     /// </summary>
     public static int? ScheduleIdToLoad { get; set; }
-    
+
     /// <summary>
     /// The IsEnabled value for the schedule being loaded.
     /// </summary>
     public static bool IsEnabledToLoad { get; set; }
-    
+
     /// <summary>
     /// Clears the navigation context after use.
     /// </summary>

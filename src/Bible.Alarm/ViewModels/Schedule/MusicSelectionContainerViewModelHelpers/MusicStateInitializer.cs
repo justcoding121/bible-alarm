@@ -1,10 +1,8 @@
 #nullable enable
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using Fluxor;
-using Microsoft.Maui.ApplicationModel;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;

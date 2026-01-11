@@ -62,7 +62,7 @@ public class AlarmRingerReceiver : BroadcastReceiver, IDisposable
 
                 var scheduleId = intent.GetStringExtra("ScheduleId");
                 var isAlarm = intent.GetBooleanExtra("IsAlarm", true);
-                
+
                 // Always start foreground service immediately to prevent OS kill during bootstrap/download/play
                 // We'll stop it after bootstrap if NotificationEnabled is true
                 if (!string.IsNullOrEmpty(scheduleId) && isAlarm)

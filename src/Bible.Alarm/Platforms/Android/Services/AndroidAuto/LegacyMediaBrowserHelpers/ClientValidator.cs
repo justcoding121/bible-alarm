@@ -1,7 +1,5 @@
 #nullable enable
 using Android.OS;
-using Android.Support.V4.Media;
-using Android.Support.V4.Media.Session;
 using AndroidX.Media;
 using Serilog;
 

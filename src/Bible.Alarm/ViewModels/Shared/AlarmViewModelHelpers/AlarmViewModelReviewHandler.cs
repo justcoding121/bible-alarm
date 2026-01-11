@@ -1,8 +1,6 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Microsoft.Maui.Essentials;
 using Plugin.StoreReview;
 using Serilog;
 

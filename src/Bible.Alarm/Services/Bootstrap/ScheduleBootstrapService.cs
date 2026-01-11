@@ -1,7 +1,6 @@
 #nullable enable
 
 using AutoMapper;
-using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
@@ -11,13 +10,18 @@ using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
-using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Models;
+
+<<<<<<< TODO: Unmerged change from project 'Bible.Alarm (net10.0-ios)', Before:
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
+=======
 using Serilog;
+using IDispatcher = Fluxor.IDispatcher;
+>>>>>>> After
+using IDispatcher = Fluxor.IDispatcher;
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Effects;
 #endif
@@ -367,7 +371,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
             else
             {
                 Log.Logger.Debug("[BOOTSTRAP] Cache refresh - no differences detected, repopulating cache without UI update");
-                
+
                 // Repopulate cache even if no differences (ensures cache is valid)
                 // UI is NOT updated since data is identical
                 if (diskCacheService != null)

@@ -1,6 +1,5 @@
 #nullable enable
 
-using System;
 using Android.App;
 using Serilog;
 
@@ -13,7 +12,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 internal sealed class ForegroundServiceStateManager
 {
     private static readonly ILogger logger = Log.ForContext<ForegroundServiceStateManager>();
-    
+
     // All properties are accessed only within locks from ForegroundServiceCoordinator
     // No additional synchronization needed as long as coordinator methods use locks
     public ForegroundServiceCoordinator.ForegroundServiceOwner CurrentOwner { get; private set; } = ForegroundServiceCoordinator.ForegroundServiceOwner.None;
@@ -47,7 +46,7 @@ internal sealed class ForegroundServiceStateManager
             logger.Debug("Android Auto connection state changed: {OldState} -> {NewState}", IsAndroidAutoConnected, connected);
             IsAndroidAutoConnected = connected;
         }
-        
+
         AndroidAutoService = service;
     }
 

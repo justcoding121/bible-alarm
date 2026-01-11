@@ -3,14 +3,9 @@
 using System.Windows.Input;
 using Bible.Alarm.Services.Battery.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.ViewModels;
-using Bible.Alarm.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.Essentials;
 using Serilog;
-using System.Timers;
 
 namespace Bible.Alarm.ViewModels.General;
 
@@ -100,11 +95,11 @@ public sealed class BatteryOptimizationViewModel : ObservableObject, IDisposable
             {
                 var wasBatteryExcluded = IsBatteryOptimizationExcluded;
                 var wasDndGranted = IsDndAccessGranted;
-                
+
                 IsBatteryOptimizationExcluded = batteryService.IsIgnoringBatteryOptimizations();
                 IsDndAccessGranted = batteryService.IsNotificationPolicyAccessGranted();
-                
-                logger.Debug("Permission check completed - Battery Excluded: {IsExcluded} (was {WasExcluded}), DND Granted: {IsGranted} (was {WasGranted})", 
+
+                logger.Debug("Permission check completed - Battery Excluded: {IsExcluded} (was {WasExcluded}), DND Granted: {IsGranted} (was {WasGranted})",
                     IsBatteryOptimizationExcluded, wasBatteryExcluded, IsDndAccessGranted, wasDndGranted);
             }
             else

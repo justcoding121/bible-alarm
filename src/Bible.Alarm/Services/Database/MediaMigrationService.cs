@@ -1,4 +1,3 @@
-using System.IO;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;

@@ -1,7 +1,4 @@
 #nullable enable
-using Serilog;
-using Microsoft.Maui.Controls;
-
 namespace Bible.Alarm.Common.ViewHelpers;
 
 /// <summary>

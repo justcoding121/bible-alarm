@@ -2,8 +2,6 @@
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Bible;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Xaml;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -30,8 +28,8 @@ public partial class TrackSelectionModal : BaseContentPage, IDisposable
             BusyOverlay,
             trackCollectionView,
             getSelectedItem: () => ViewModel?.SelectedTrack,
-            refreshAction: ViewModel != null 
-                ? async () => await ViewModel.RefreshFromState() 
+            refreshAction: ViewModel != null
+                ? async () => await ViewModel.RefreshFromState()
                 : null,
             cancellationToken: cancellationTokenSource.Token);
     }

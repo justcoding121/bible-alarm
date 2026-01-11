@@ -1,9 +1,6 @@
 #nullable enable
-using System.Collections.ObjectModel;
-using System.Linq;
 using System.Windows.Input;
 using AutoMapper;
-using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -13,18 +10,10 @@ using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Actions;
-using Bible.Alarm.Stores.Actions.Bible;
-using Bible.Alarm.Stores.Actions.Music;
-using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
-using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -45,13 +34,13 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private readonly SchedulePropertyManager propertyManager;
     private readonly ScheduleContainerManager containerManager;
     private readonly ScheduleOverlayManager overlayManager;
-    
+
     // Track if content has been loaded
     private bool isContentLoaded;
-    
+
     // Track if we're in the middle of a save operation to prevent OnContentLoaded from hiding overlay
     private bool isSaving;
-    
+
     // Timeout task to hide overlay if containers don't signal ready
     private CancellationTokenSource? overlayTimeoutCancellation;
 
@@ -143,8 +132,8 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         // Initialize state handling and commands
         stateManager.InitializeStateHandling(
-            state, 
-            () => propertyManager.IsBusy = true, 
+            state,
+            () => propertyManager.IsBusy = true,
             () => overlayManager.ShowSchedulePageOverlay());
         commandExecutor.InitializeCommands(out var cancelCmd, out var saveCmd, out var deleteCmd);
         CancelCommand = cancelCmd;
@@ -171,7 +160,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         {
             return;
         }
-        
+
         _ = InitializeContainerViewModelsAsync();
     }
 
@@ -189,15 +178,15 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         {
             return;
         }
-        
+
         isInitializingContainers = true;
-        
+
         try
         {
             // Dispose any existing containers first to ensure clean state
             // This is important when page/ViewModel is reused on device
             DisposeContainers();
-            
+
             await containerManager.InitializeContainerViewModelsAsync((bible, music, tracks, details) =>
             {
                 propertyManager.BibleSelectionContainerViewModel = bible;
@@ -205,7 +194,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                 propertyManager.NumberOfTrackContainerViewModel = tracks;
                 propertyManager.ScheduleDetailsContainerViewModel = details;
             });
-            
+
             hasInitializedContainersOnce = true;
         }
         finally
@@ -213,7 +202,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             isInitializingContainers = false;
         }
     }
-    
+
     /// <summary>
     /// Disposes all container ViewModels and clears references.
     /// Called when initializing new containers or when disposing the ViewModel.
@@ -225,19 +214,19 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             bibleDisposable.Dispose();
         }
         propertyManager.BibleSelectionContainerViewModel = null;
-        
+
         if (propertyManager.MusicSelectionContainerViewModel is IDisposable musicDisposable)
         {
             musicDisposable.Dispose();
         }
         propertyManager.MusicSelectionContainerViewModel = null;
-        
+
         if (propertyManager.NumberOfTrackContainerViewModel is IDisposable tracksDisposable)
         {
             tracksDisposable.Dispose();
         }
         propertyManager.NumberOfTrackContainerViewModel = null;
-        
+
         if (propertyManager.ScheduleDetailsContainerViewModel is IDisposable detailsDisposable)
         {
             detailsDisposable.Dispose();
@@ -251,7 +240,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     private void OnStateChanged(object? sender, EventArgs e)
     {
         var stateValue = state.Value;
-        
+
         // Marshal property updates to UI thread to ensure PropertyChanged events are raised on the correct thread
         // This is important because OnStateChanged can be called from background threads when Fluxor actions
         // are dispatched from Task.Run or other background operations (e.g., InitializeNewScheduleAsync)
@@ -259,14 +248,14 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         {
             // Sync overlay visibility with state
             propertyManager.IsSchedulePageOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
-            
+
             // Update IsNewSchedule based on CurrentSchedule ID
             // This determines if the delete button should be visible
             // Always set it (not just when changed) to ensure it's initialized correctly
             var currentSchedule = stateValue.CurrentSchedule;
             var isNew = currentSchedule == null || currentSchedule.Id <= 0;
             propertyManager.IsNewSchedule = isNew;
-            
+
             // Notify UI of property changes when CurrentSchedule changes
             // Note: NotifySchedulePropertiesChanged also marshals to UI thread, but since we're already
             // on UI thread here, it will execute immediately (MainThread.BeginInvokeOnMainThread checks
@@ -416,15 +405,15 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     public void OnContentLoaded()
     {
         isContentLoaded = true;
-        
+
         // Don't hide overlay if we're in the middle of a save operation
         if (isSaving)
         {
             return;
         }
-        
+
         var stateValue = state.Value;
-        
+
         // Check if we should hide overlay: both containers ready AND content loaded
         if (stateValue.ContainerReadiness.AllReady && stateValue.IsSchedulePageOverlayVisible)
         {
@@ -437,7 +426,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             StartOverlayTimeout();
         }
     }
-    
+
     /// <summary>
     /// Starts a timeout task that will hide the overlay after 5 seconds if containers haven't signaled ready.
     /// This prevents the spinner from spinning forever if a container fails to signal ready.
@@ -446,16 +435,16 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     {
         // Cancel any existing timeout
         CancelOverlayTimeout();
-        
+
         overlayTimeoutCancellation = new CancellationTokenSource();
         var token = overlayTimeoutCancellation.Token;
-        
+
         Task.Run(async () =>
         {
             try
             {
                 await Task.Delay(5000, token); // Wait 5 seconds
-                
+
                 if (!token.IsCancellationRequested)
                 {
                     var stateValue = state.Value;
@@ -472,7 +461,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             }
         }, token);
     }
-    
+
     /// <summary>
     /// Cancels the overlay timeout task.
     /// </summary>
@@ -485,7 +474,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             overlayTimeoutCancellation = null;
         }
     }
-    
+
     /// <summary>
     /// Sets the saving flag to prevent OnContentLoaded from hiding the overlay during save operations.
     /// </summary>

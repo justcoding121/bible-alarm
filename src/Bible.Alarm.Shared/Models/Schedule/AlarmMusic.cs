@@ -3,10 +3,11 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Bible.Alarm.Models.Schedule;
+namespace Bible.Alarm.Shared.Models.Schedule;
 
 [Serializable]
 [Table("AlarmMusics")]

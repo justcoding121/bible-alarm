@@ -3,25 +3,15 @@
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Actions;
-using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
-using Bible.Alarm.ViewModels.Bible;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BibleSelection;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -114,7 +104,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
 
             // Batch property notifications to reduce UI thread work
             propertyNotifier.NotifyAllDisplayTextPropertiesChanged();
-            
+
             // Signal that this container is ready (initialized from CurrentSchedule)
             SignalContainerReady();
         }
@@ -125,16 +115,16 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
         // Check if already signaled or already marked ready in state
         // This check must happen first to prevent any duplicate work
         if (hasSignaledReady || state.Value.ContainerReadiness.BiblePublicationSelection) return;
-        
+
         // Check if action is already queued to prevent duplicate queued actions
         // This prevents multiple rapid calls from queuing multiple actions
         if (isReadyActionQueued) return;
-        
+
         // Atomically set both flags to prevent race conditions
         // If another thread/call checks between these lines, it will see isReadyActionQueued=true
         isReadyActionQueued = true;
         hasSignaledReady = true;
-        
+
         // Double-check state immediately after setting flags (before queuing)
         // This catches the case where state changed between the initial check and flag setting
         if (state.Value.ContainerReadiness.BiblePublicationSelection)
@@ -144,13 +134,13 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             hasSignaledReady = true;
             return;
         }
-        
+
         // Dispatch to state that this container is ready
         // Check state again inside the queued action to prevent duplicates from queued actions
         MainThread.BeginInvokeOnMainThread(() =>
         {
             isReadyActionQueued = false; // Reset flag when action executes
-            
+
             // Final check before dispatching - if state already shows we're ready, another action already handled it
             if (state.Value.ContainerReadiness.BiblePublicationSelection)
             {
@@ -238,10 +228,10 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             }
 
             ResetProgressIfNeeded(currentSchedule, changeInfo);
-            
+
             // Set scroll flag if section or track changed (user made a selection)
             var shouldScroll = changeInfo.NotifySection || changeInfo.NotifyTrack;
-            
+
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 propertyNotifier.NotifyPropertyChanges(changeInfo);
@@ -269,7 +259,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     private bool ShouldProcessStateChange(ScheduleStateItem? currentSchedule, out bool isInitialLoad)
     {
         isInitialLoad = false;
-        
+
         // If we don't have a scheduleId yet (initial state), always process when CurrentSchedule is set
         // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
         if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
@@ -277,19 +267,19 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             isInitialLoad = true;
             return true;
         }
-        
+
         // If CurrentSchedule is null, skip (unless we're waiting for it to be set)
         if (currentSchedule == null)
         {
             return false;
         }
-        
+
         // If schedule IDs don't match and we already have a scheduleId, skip
         if (scheduleId > 0 && currentSchedule.Id > 0 && currentSchedule.Id != scheduleId)
         {
             return false;
         }
-        
+
         return true;
     }
 

@@ -1,6 +1,5 @@
 #nullable enable
 using Android.OS;
-using Android.Support.V4.Media.Session;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;

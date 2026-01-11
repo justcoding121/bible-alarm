@@ -2,8 +2,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Media;
-using Serilog;
 using Application = Microsoft.Maui.Controls.Application;
 using Border = Microsoft.UI.Xaml.Controls.Border;
 using Colors = Microsoft.UI.Colors;

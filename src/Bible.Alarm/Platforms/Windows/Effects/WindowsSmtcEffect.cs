@@ -1,7 +1,6 @@
 #nullable enable
 
 using Bible.Alarm.Platforms.Windows.Services.Media;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -46,18 +45,18 @@ public class WindowsSmtcEffect(
         try
         {
             var currentState = playbackState.Value;
-            
+
             // Update SMTC button states based on navigation capabilities
             // Enable buttons when playback is active (playing or paused)
             var canPlayNext = (currentState.Status == PlayStatus.Playing || currentState.Status == PlayStatus.Paused)
                 ? action.CanPlayNext
                 : false;
-            
+
             // Previous button is always available when playing or paused (can restart current track)
             var canPlayPrevious = (currentState.Status == PlayStatus.Playing || currentState.Status == PlayStatus.Paused);
 
             smtcService.UpdateButtonStates(canPlayNext, canPlayPrevious);
-            
+
             logger.Debug("SMTC button states updated: CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
                 canPlayNext, canPlayPrevious);
         }
@@ -79,18 +78,18 @@ public class WindowsSmtcEffect(
         try
         {
             var currentState = playbackState.Value;
-            
+
             // Update button states when status changes
             // Enable buttons when playing or paused
             var canPlayNext = (action.Status == PlayStatus.Playing || action.Status == PlayStatus.Paused)
                 ? currentState.CanPlayNext
                 : false;
-            
+
             // Previous button is always available when playing or paused
             var canPlayPrevious = (action.Status == PlayStatus.Playing || action.Status == PlayStatus.Paused);
 
             smtcService.UpdateButtonStates(canPlayNext, canPlayPrevious);
-            
+
             logger.Debug("SMTC button states updated on status change: Status={Status}, CanPlayNext={CanPlayNext}, CanPlayPrevious={CanPlayPrevious}",
                 action.Status, canPlayNext, canPlayPrevious);
         }

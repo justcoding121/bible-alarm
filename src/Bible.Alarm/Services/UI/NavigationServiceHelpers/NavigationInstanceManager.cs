@@ -1,5 +1,4 @@
 #nullable enable
-using Microsoft.Maui.Controls;
 using Polly;
 using Polly.Retry;
 using Serilog;

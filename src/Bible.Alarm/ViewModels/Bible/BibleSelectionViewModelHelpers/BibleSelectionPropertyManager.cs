@@ -1,9 +1,7 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Fluxor;

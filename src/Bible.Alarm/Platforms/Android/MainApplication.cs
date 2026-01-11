@@ -1,7 +1,6 @@
 using Android.App;
 using Android.Runtime;
 using Bible.Alarm.Common;
-using Serilog;
 
 namespace Bible.Alarm.Platforms.Android;
 

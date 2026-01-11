@@ -1,9 +1,5 @@
 #nullable enable
-using System.Windows.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.Maui.Controls.Xaml;
 using Serilog;
-using Syncfusion.Maui.Core;
 
 namespace Bible.Alarm.Views.Shared;
 
@@ -32,7 +28,7 @@ public partial class BusyOverlay : ContentView
                 SetValue(IsVisibleProperty, value);
                 // Note: OnIsVisibleChanged will be called automatically by BindableProperty, which handles opacity/InputTransparent
                 // We only need to handle spinner start/stop here for immediate feedback
-                
+
                 // Force spinner to start/stop immediately when visibility changes
                 // This ensures smooth animation without binding delays
                 if (value)
@@ -70,7 +66,7 @@ public partial class BusyOverlay : ContentView
             {
                 // Set InputTransparent on the ContentView itself (this is critical - parent must allow input through)
                 overlay.InputTransparent = inputTransparent;
-                
+
                 if (overlay.overlayGrid != null)
                 {
                     overlay.overlayGrid.Opacity = opacity;

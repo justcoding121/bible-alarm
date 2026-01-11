@@ -19,7 +19,7 @@ public sealed class ProgressTracker
     private readonly IAudioPlayer audioPlayer;
     private readonly ILogger logger;
     private readonly Timer progressSaveTimer;
-    
+
     // Track if we've already marked the current music track as finished
     private int? lastMusicTrackIndex = null;
     private bool hasMarkedCurrentMusicTrackAsFinished = false;
@@ -48,14 +48,14 @@ public sealed class ProgressTracker
         }
 
         var track = playlist[currentTrackIndex];
-        
+
         // Reset music track finished flag when track changes
         if (lastMusicTrackIndex != currentTrackIndex)
         {
             hasMarkedCurrentMusicTrackAsFinished = false;
             lastMusicTrackIndex = currentTrackIndex;
         }
-        
+
         // Start timer for both Bible and Music tracks
         // For Bible tracks: saves progress periodically
         // For Music tracks: marks as finished on first progress update (only once due to hasMarkedCurrentMusicTrackAsFinished flag)
@@ -104,7 +104,7 @@ public sealed class ProgressTracker
                             track.PlayItem.Metadata.ScheduleId,
                             track.PlayItem.Metadata.TrackNumber,
                             currentPosition.Value);
-                        
+
                         await playlistService.MarkTrackAsFinished(track.PlayItem.Metadata);
                         hasMarkedCurrentMusicTrackAsFinished = true;
                     }

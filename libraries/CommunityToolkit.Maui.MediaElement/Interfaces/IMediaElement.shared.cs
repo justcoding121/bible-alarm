@@ -1,6 +1,7 @@
+using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
 
-namespace CommunityToolkit.Maui.Core;
+namespace CommunityToolkit.Maui.Interfaces;
 
 /// <summary>
 /// With MediaElement you can play multimedia inside your app (headless or with UI).

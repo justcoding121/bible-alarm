@@ -1,10 +1,7 @@
 #nullable enable
-using Bible;
 using Bible.Alarm.Stores.Actions.Bible;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
-using Fluxor;
-using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;

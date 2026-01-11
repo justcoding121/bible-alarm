@@ -1,9 +1,7 @@
 #nullable enable
 
-using System;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Shared.DataStructures;
-using Microsoft.Maui.Essentials;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
@@ -66,7 +64,7 @@ public class BootstrapReadyManager : IDisposable
                 // Wait for bootstrap to complete using the existing async mechanism
                 // This is more efficient than polling every 100ms
                 await BootstrapHelper.WaitForBootstrapAsync(timeoutMs: 10000);
-                
+
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     if (!IsBootstrapReady)
@@ -117,7 +115,7 @@ public class BootstrapReadyManager : IDisposable
         {
             var isComplete = BootstrapHelper.IsBootstrapCompleted();
             logger.Debug("UpdateBootstrapReadyState: IsBootstrapCompleted={IsComplete}, IsBootstrapReady={IsReady}", isComplete, IsBootstrapReady);
-            
+
             if (isComplete && !IsBootstrapReady)
             {
                 IsBootstrapReady = true;
@@ -145,7 +143,7 @@ public class BootstrapReadyManager : IDisposable
             waitCancellation?.Cancel();
             logger.Information("Schedules loaded - Bootstrap ready, Add button enabled");
         }
-        
+
         // Also check bootstrap status
         UpdateBootstrapReadyState();
     }

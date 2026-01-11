@@ -1,5 +1,4 @@
 #nullable enable
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;

@@ -1,7 +1,4 @@
 #nullable enable
-using Bible.Alarm.ViewModels.Schedule;
-using Microsoft.Maui.Controls.Xaml;
-
 namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
@@ -17,7 +14,7 @@ public partial class NumberOfTrackContainer : ContentView
     protected override void OnBindingContextChanged()
     {
         base.OnBindingContextChanged();
-        
+
         // Ensure container remains visible even if BindingContext is null
         // The container should always be visible on the schedule page
         IsVisible = true;

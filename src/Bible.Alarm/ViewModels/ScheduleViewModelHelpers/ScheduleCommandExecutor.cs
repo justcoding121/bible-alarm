@@ -2,18 +2,13 @@
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Models.Schedule;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
-using Bible.Alarm.Stores.Actions.Bible;
-using Bible.Alarm.Stores.Actions.Music;
-using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Schedule;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -135,7 +130,7 @@ public sealed class ScheduleCommandExecutor
 
                 var model = GetModel();
                 await scheduleCommandService.HandleSaveResultAsync(saved, scheduleId, GetIsEnabled(), model);
-                
+
                 // On successful save, keep isSaving=true so overlay stays visible until page is destroyed by navigation
                 // On failed save, HandleSaveResultAsync will handle hiding overlay, so clear the flag
                 if (!saved)
@@ -197,7 +192,7 @@ public sealed class ScheduleCommandExecutor
             // Only count saved schedules (Id > 0), not unsaved/new schedules
             var savedScheduleCount = state.Value.Schedules?.Count(s => s.Id > 0) ?? 0;
             var deleted = await scheduleCommandService.ExecuteDeleteAsync(isNewSchedule, scheduleId, savedScheduleCount);
-            
+
             // On successful delete, keep isSaving=true so overlay stays visible until page is destroyed by navigation
             // On failed delete (validation failure), clear the flag
             if (!deleted)

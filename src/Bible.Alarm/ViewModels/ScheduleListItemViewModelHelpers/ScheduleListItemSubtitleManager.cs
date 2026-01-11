@@ -1,8 +1,5 @@
 #nullable enable
-using Bible;
-using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Fluxor;

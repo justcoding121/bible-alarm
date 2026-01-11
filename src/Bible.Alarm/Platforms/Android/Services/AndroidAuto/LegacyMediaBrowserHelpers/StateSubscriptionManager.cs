@@ -1,9 +1,7 @@
 #nullable enable
 using Android.OS;
-using Android.Support.V4.Media;
 using AndroidX.Media;
 using Bible.Alarm.Common;
-using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
@@ -79,7 +77,7 @@ public sealed class StateSubscriptionManager(ILogger logger)
             }
 
             logger.Information("OnApplicationStateChanged: Detected {Count} schedule changes, notifying Android Auto", changes.Count);
-            
+
             if (mediaBrowserService != null)
             {
                 var options = CreateChangeNotificationOptions(changes);

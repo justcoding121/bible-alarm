@@ -18,7 +18,7 @@ public static class ContainerReadinessReducer
     public static ApplicationState OnContainerReady(ApplicationState state, ContainerReadyAction action)
     {
         var currentReadiness = state.ContainerReadiness;
-        
+
         // Check if container is already ready to prevent duplicate processing
         bool alreadyReady = action.ContainerName switch
         {
@@ -35,7 +35,7 @@ public static class ContainerReadinessReducer
             Logger.Debug("ContainerReadyAction: {ContainerName} already ready, ignoring duplicate action", action.ContainerName);
             return state; // Return same state to avoid unnecessary state change
         }
-        
+
         var updatedReadiness = action.ContainerName switch
         {
             "BiblePublicationSelection" => currentReadiness with { BiblePublicationSelection = true },

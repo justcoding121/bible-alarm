@@ -4,10 +4,8 @@ using AutoMapper;
 using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
-using Serilog;
 
 namespace Bible.Alarm.ViewModels.Bible.BibleSelectionViewModelHelpers;
 
@@ -95,7 +93,7 @@ public sealed class BiblePublicationSelectionStateHandler
             // Check if languages are already populated before setting IsBusy to true
             // This avoids unnecessary busy overlay toggling when languages are already loaded
             var needsLanguagePopulation = languages == null || languages.Count == 0;
-            
+
             // Only set IsBusy to true if we actually need to populate languages
             // This prevents the quick show/hide toggle when languages are already populated
             if (needsLanguagePopulation)

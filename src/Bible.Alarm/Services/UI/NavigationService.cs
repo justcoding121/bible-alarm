@@ -1,11 +1,8 @@
 #nullable enable
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Services.UI.NavigationServiceHelpers;
-using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Views;
-using Bible.Alarm.Views.Schedule;
-using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -24,7 +21,7 @@ public sealed class NavigationService(
     private readonly HomeNavigationHandler homeHandler = new(logger, serviceProvider);
     private readonly ModalNavigationHandler modalHandler = new(logger, serviceProvider);
     private readonly NavigationStackManager stackManager = new();
-    
+
     // Navigation lock to prevent concurrent page navigation operations (push/pop race conditions)
     private readonly SemaphoreSlim navigationLock = new(1, 1);
 
@@ -109,10 +106,10 @@ public sealed class NavigationService(
             // This is simpler than Fluxor state which can be cleared by ResetScheduleStateAction
             ScheduleNavigationContext.ScheduleIdToLoad = scheduleId;
             ScheduleNavigationContext.IsEnabledToLoad = isEnabled;
-            
+
             // Reset container readiness
             dispatcher.Dispatch(new ResetContainerReadinessAction());
-            
+
             var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
             var navigation = GetNavigation();
 

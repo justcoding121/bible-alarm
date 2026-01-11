@@ -1,5 +1,4 @@
 #nullable enable
-using Bible;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media.AndroidPlayerNotificationHelpers;

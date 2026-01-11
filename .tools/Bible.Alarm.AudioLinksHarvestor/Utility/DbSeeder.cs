@@ -15,9 +15,9 @@ using Serilog;
 using BiblePublicationSection = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BiblePublicationSection;
 using BiblePublicationTrack = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BiblePublicationTrack;
 using DramaTrack = Bible.Alarm.AudioLinksHarvestor.Models.Drama.DramaTrack;
-using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.Video.VideoEpisode;
 using MusicTrack = Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack;
 using Publication = Bible.Alarm.AudioLinksHarvestor.Models.Publication;
+using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.Video.VideoEpisode;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 
@@ -85,7 +85,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
     {
         // Normalize code to uppercase for consistent storage and comparison
         var normalizedCode = code.ToUpperInvariant();
-        
+
         // Case-insensitive lookup by code only (name may vary between sources)
         var language = await db.Languages.FirstOrDefaultAsync(x => x.Code.ToUpper() == normalizedCode);
         if (language == null)
@@ -107,7 +107,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
     {
         // Normalize code to uppercase for consistent storage and comparison
         var normalizedCode = code.ToUpperInvariant();
-        
+
         // Case-insensitive lookup by code only
         var language = await db.Languages.FirstOrDefaultAsync(x => x.Code.ToUpper() == normalizedCode);
         if (language == null)
@@ -256,7 +256,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
     {
         var (baseUrl, urlPath) = ExtractBaseUrlAndPath(fullUrl);
         var baseUrlEntity = await GetOrCreateBaseUrl(db, baseUrl);
-        
+
         return new AudioSource
         {
             BaseUrlEntity = baseUrlEntity,
@@ -309,7 +309,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         var newBaseUrl = new AudioSourceBaseUrl { BaseUrl = baseUrl };
         db.AudioSourceBaseUrls.Add(newBaseUrl);
         await db.SaveChangesAsync();
-        
+
         baseUrlCache[baseUrl] = newBaseUrl;
         return newBaseUrl;
     }

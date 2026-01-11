@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
 
@@ -8,7 +7,7 @@ namespace Bible.Alarm.Services.Schedule.Interfaces;
 public interface IScheduleInitializationService
 {
     Task<ScheduleStateItem> InitializeNewScheduleAsync();
-    
+
     /// <summary>
     /// Loads an existing schedule from the database and maps it to a ScheduleStateItem.
     /// </summary>
