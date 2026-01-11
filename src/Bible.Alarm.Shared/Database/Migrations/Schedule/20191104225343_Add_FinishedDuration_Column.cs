@@ -1,33 +1,34 @@
-using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
-namespace Bible.Alarm.Shared.Database.Migrations.Schedule;
-
-public partial class AddFinishedDurationColumn : Migration
+namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
-    protected override void Up(MigrationBuilder migrationBuilder)
+    public partial class Add_FinishedDuration_Column : Migration
     {
-        migrationBuilder.AddColumn<TimeSpan>(
-            name: "FinishedDuration",
-            table: "BiblePublicationSchedules",
-            nullable: false,
-            defaultValue: new TimeSpan(0, 0, 0, 0, 0));
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<TimeSpan>(
+                name: "FinishedDuration",
+                table: "BibleReadingSchedules",
+                nullable: false,
+                defaultValue: new TimeSpan(0, 0, 0, 0, 0));
 
-        migrationBuilder.AddColumn<bool>(
-            name: "AlwaysPlayFromStart",
-            table: "AlarmSchedules",
-            nullable: false,
-            defaultValue: false);
-    }
+            migrationBuilder.AddColumn<bool>(
+                name: "AlwaysPlayFromStart",
+                table: "AlarmSchedules",
+                nullable: false,
+                defaultValue: false);
+        }
 
-    protected override void Down(MigrationBuilder migrationBuilder)
-    {
-        migrationBuilder.DropColumn(
-            name: "FinishedDuration",
-            table: "BiblePublicationSchedules");
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "FinishedDuration",
+                table: "BibleReadingSchedules");
 
-        migrationBuilder.DropColumn(
-            name: "AlwaysPlayFromStart",
-            table: "AlarmSchedules");
+            migrationBuilder.DropColumn(
+                name: "AlwaysPlayFromStart",
+                table: "AlarmSchedules");
+        }
     }
 }

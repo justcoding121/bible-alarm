@@ -214,11 +214,17 @@ class Program
 
             var tempOptionsBuilder = new DbContextOptionsBuilder<ScheduleDbContext>();
             tempOptionsBuilder.UseSqlite(tempConnectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
+            tempOptionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 
             using (var tempContext = new ScheduleDbContext(tempOptionsBuilder.Options))
             {
                 // Apply all migrations to create the database with latest schema
                 Console.WriteLine("Applying all migrations...");
+                
+                // Get all available migrations
+                var migrationsAssembly = tempContext.Database.GetMigrations();
+                Console.WriteLine($"Found {migrationsAssembly.Count()} migrations in assembly");
+                
                 await tempContext.Database.MigrateAsync();
 
                 // Verify all migrations are applied
