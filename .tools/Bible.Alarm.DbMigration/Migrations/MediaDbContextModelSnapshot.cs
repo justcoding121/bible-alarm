@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Bible.Alarm.Shared.Database.Migrations.Media
+namespace Bible.Alarm.DbMigration.Migrations
 {
     [DbContext(typeof(MediaDbContext))]
     partial class MediaDbContextModelSnapshot : ModelSnapshot

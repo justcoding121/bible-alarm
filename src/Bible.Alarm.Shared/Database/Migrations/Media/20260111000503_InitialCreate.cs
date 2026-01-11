@@ -156,33 +156,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 });
 
             migrationBuilder.CreateTable(
-                name: "BiblePublicationTrack",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Number = table.Column<int>(type: "INTEGER", nullable: false),
-                    Title = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
-                    SourceId = table.Column<int>(type: "INTEGER", nullable: true),
-                    BiblePublicationId = table.Column<int>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BiblePublicationTrack", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_BiblePublicationTrack_AudioSource_SourceId",
-                        column: x => x.SourceId,
-                        principalTable: "AudioSource",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_BiblePublicationTrack_BiblePublication_BiblePublicationId",
-                        column: x => x.BiblePublicationId,
-                        principalTable: "BiblePublication",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "MusicTrack",
                 columns: table => new
                 {
@@ -221,8 +194,10 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Number = table.Column<int>(type: "INTEGER", nullable: false),
+                    Title = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
                     SourceId = table.Column<int>(type: "INTEGER", nullable: true),
-                    BiblePublicationSectionId = table.Column<int>(type: "INTEGER", nullable: false)
+                    BiblePublicationId = table.Column<int>(type: "INTEGER", nullable: false),
+                    BiblePublicationSectionId = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -236,6 +211,11 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         name: "FK_BiblePublicationTrack_BiblePublicationSection_BiblePublicationSectionId",
                         column: x => x.BiblePublicationSectionId,
                         principalTable: "BiblePublicationSection",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_BiblePublicationTrack_BiblePublication_BiblePublicationId",
+                        column: x => x.BiblePublicationId,
+                        principalTable: "BiblePublication",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -244,23 +224,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 name: "IX_AudioSource_BaseUrlId",
                 table: "AudioSource",
                 column: "BaseUrlId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BiblePublicationSection_BiblePublicationId_Number",
-                table: "BiblePublicationSection",
-                columns: new[] { "BiblePublicationId", "Number" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BiblePublicationTrack_BiblePublicationSectionId_Number",
-                table: "BiblePublicationTrack",
-                columns: new[] { "BiblePublicationSectionId", "Number" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BiblePublicationTrack_SourceId",
-                table: "BiblePublicationTrack",
-                column: "SourceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_BiblePublication_Code_LanguageId",
@@ -279,9 +242,21 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 column: "LanguageId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_BiblePublicationSection_BiblePublicationId_Number",
+                table: "BiblePublicationSection",
+                columns: new[] { "BiblePublicationId", "Number" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_BiblePublicationTrack_BiblePublicationId_Number",
                 table: "BiblePublicationTrack",
                 columns: new[] { "BiblePublicationId", "Number" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BiblePublicationTrack_BiblePublicationSectionId_Number",
+                table: "BiblePublicationTrack",
+                columns: new[] { "BiblePublicationSectionId", "Number" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -341,9 +316,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "BiblePublicationTrack");
-
             migrationBuilder.DropTable(
                 name: "BiblePublicationTrack");
 

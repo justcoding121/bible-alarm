@@ -25,8 +25,6 @@ public class TrackMetadata
     public int SectionNumber { get; set; }
     public int TrackNumber { get; set; }
 
-    public int TrackNumber { get; set; }
-
     public TimeSpan FinishedDuration { get; set; }
 
     public bool IsAlarmMusic => TrackNumber > 0;

@@ -8,11 +8,14 @@ using Microsoft.EntityFrameworkCore;
 namespace Bible.Alarm.Shared.Models.Media.Bible;
 
 /// <summary>
-/// Represents a track/episode for Drama or Video publications.
-/// Links directly to BiblePublication without an intermediate Section level.
+/// Represents a track for Bible publications.
+/// Can be either:
+/// - Section-based: Links to BiblePublicationSection (traditional Bible translations)
+/// - Publication-based: Links directly to BiblePublication (Drama/Video publications)
 /// </summary>
 [Table("BiblePublicationTrack")]
 [Index(nameof(BiblePublicationId), nameof(Number), IsUnique = true)]
+[Index(nameof(BiblePublicationSectionId), nameof(Number), IsUnique = true)]
 public sealed class BiblePublicationTrack : IComparable
 {
     [Key]
@@ -28,12 +31,30 @@ public sealed class BiblePublicationTrack : IComparable
 
     public AudioSource? Source { get; set; }
 
+    /// <summary>
+    /// Required foreign key to BiblePublication.
+    /// All tracks belong to a publication, whether section-based or publication-based.
+    /// </summary>
     [Required]
     [ForeignKey(nameof(Publication))]
     public int BiblePublicationId { get; set; }
 
     [Required]
     public BiblePublication Publication { get; set; } = null!;
+
+    /// <summary>
+    /// Optional foreign key to BiblePublicationSection.
+    /// Set for section-based tracks (traditional Bible translations).
+    /// Null for publication-based tracks (Drama/Video).
+    /// </summary>
+    [ForeignKey(nameof(Section))]
+    public int? BiblePublicationSectionId { get; set; }
+
+    /// <summary>
+    /// Optional navigation property to BiblePublicationSection.
+    /// Only set for section-based tracks.
+    /// </summary>
+    public BiblePublicationSection? Section { get; set; }
 
     public int CompareTo(object? obj)
     {

@@ -21,7 +21,6 @@ public class MediaDbContext : DbContext
     public DbSet<BiblePublication> BiblePublications { get; set; }
     public DbSet<BiblePublicationSection> BiblePublicationSections { get; set; }
     public DbSet<BiblePublicationTrack> BiblePublicationTracks { get; set; }
-    public DbSet<BiblePublicationTrack> BiblePublicationTracks { get; set; }
     public DbSet<MelodyMusic> MelodyMusic { get; set; }
     public DbSet<VocalMusic> VocalMusic { get; set; }
 
