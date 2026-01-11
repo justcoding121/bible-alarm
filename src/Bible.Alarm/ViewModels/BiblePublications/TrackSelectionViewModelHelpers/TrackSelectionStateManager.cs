@@ -1,5 +1,6 @@
 #nullable enable
 using AutoMapper;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Fluxor;
 

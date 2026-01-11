@@ -23,12 +23,12 @@ public sealed class SchedulePropertyManager : ObservableObject
     }
 
     // Container ViewModels
-    private BibleSelectionContainerViewModel? bibleSelectionContainerViewModel;
+    private BiblePublicationSelectionContainerViewModel? bibleSelectionContainerViewModel;
     private MusicSelectionContainerViewModel? musicSelectionContainerViewModel;
     private NumberOfTrackContainerViewModel? numberOfTrackContainerViewModel;
     private ScheduleDetailsContainerViewModel? scheduleDetailsContainerViewModel;
 
-    public BibleSelectionContainerViewModel? BibleSelectionContainerViewModel
+    public BiblePublicationSelectionContainerViewModel? BibleSelectionContainerViewModel
     {
         get => bibleSelectionContainerViewModel;
         set => SetProperty(ref bibleSelectionContainerViewModel, value);

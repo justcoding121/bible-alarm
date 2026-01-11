@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Shared.Services.Schedule.Interfaces;
 

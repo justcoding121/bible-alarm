@@ -1,5 +1,8 @@
 using AVFoundation;
 using AVKit;
+using CommunityToolkit.Maui.Interfaces;
+using CommunityToolkit.Maui.MediaSource;
+using CommunityToolkit.Maui.Primitives;
 using CoreFoundation;
 using CoreGraphics;
 using CoreMedia;

@@ -137,10 +137,10 @@ public sealed class NavigationService(
         await modalHandler.OpenSongPublicationSelectionModalAsync(navigation, bindingContext);
     }
 
-    public async Task OpenTrackSelectionModalAsync(object bindingContext)
+    public async Task OpenMusicTrackSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        await modalHandler.OpenTrackSelectionModalAsync(navigation, bindingContext);
+        await modalHandler.OpenMusicTrackSelectionModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenBibleSelectionModalAsync(object bindingContext)
@@ -155,10 +155,10 @@ public sealed class NavigationService(
         await modalHandler.OpenSectionSelectionModalAsync(navigation, bindingContext);
     }
 
-    public async Task OpenTrackSelectionModalAsync(object bindingContext)
+    public async Task OpenBiblePublicationTrackSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();
-        await modalHandler.OpenTrackSelectionModalAsync(navigation, bindingContext);
+        await modalHandler.OpenBiblePublicationTrackSelectionModalAsync(navigation, bindingContext);
     }
 
     public async Task OpenNumberOfTracksModalAsync(object bindingContext)

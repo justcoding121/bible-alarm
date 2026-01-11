@@ -1,3 +1,4 @@
+
 namespace Bible.Alarm.Views.Shared;
 
 /// <summary>

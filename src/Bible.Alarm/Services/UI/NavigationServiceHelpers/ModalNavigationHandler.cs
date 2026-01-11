@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.Views.Bible;
 using Bible.Alarm.Views.General;
@@ -28,9 +29,9 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task OpenTrackSelectionModalAsync(INavigation navigation, object bindingContext)
+    public async Task OpenMusicTrackSelectionModalAsync(INavigation navigation, object bindingContext)
     {
-        var modal = serviceProvider.GetRequiredService<TrackSelectionModal>();
+        var modal = serviceProvider.GetRequiredService<Views.Music.TrackSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
     }
@@ -49,9 +50,9 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task OpenTrackSelectionModalAsync(INavigation navigation, object bindingContext)
+    public async Task OpenBiblePublicationTrackSelectionModalAsync(INavigation navigation, object bindingContext)
     {
-        var modal = serviceProvider.GetRequiredService<TrackSelectionModal>();
+        var modal = serviceProvider.GetRequiredService<Views.Bible.TrackSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
     }

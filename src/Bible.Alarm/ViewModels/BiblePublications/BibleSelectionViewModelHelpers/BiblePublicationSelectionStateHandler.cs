@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Shared;
 using Fluxor;

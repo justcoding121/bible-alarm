@@ -4,6 +4,7 @@ using AndroidX.Media3.Common;
 using AndroidX.Media3.ExoPlayer;
 using AndroidX.Media3.ExoPlayer.Source;
 using Bible.Alarm.Common.Messenger;
+using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Core.Handlers;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;

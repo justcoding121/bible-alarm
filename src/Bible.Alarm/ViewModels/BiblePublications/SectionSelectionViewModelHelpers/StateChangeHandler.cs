@@ -2,6 +2,7 @@
 
 using System.Collections.ObjectModel;
 using AutoMapper;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Serilog;
 

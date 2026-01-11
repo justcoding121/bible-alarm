@@ -1,6 +1,7 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.iOS.Extensions;
 using Bible.Alarm.Platforms.iOS.Services.Handlers.Interfaces;
+using Bible.Alarm.Shared.Models.Schedule;
 using Serilog;
 using UserNotifications;
 

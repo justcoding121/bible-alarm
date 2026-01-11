@@ -181,7 +181,7 @@ public sealed class MediaBrowser(ILogger logger)
 
     private Drawable? GetSectionDrawable(Context context)
     {
-        var sectionDrawable = ContextCompat.GetDrawable(context, ResourceConstant.Drawable.ic_section_open);
+        var sectionDrawable = ContextCompat.GetDrawable(context, ResourceConstant.Drawable.ic_book_open);
         if (sectionDrawable == null)
         {
             logger.Warning("Could not get app drawable for section icon");

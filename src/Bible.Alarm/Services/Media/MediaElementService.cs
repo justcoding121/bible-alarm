@@ -1,7 +1,11 @@
 #nullable enable
 using System.Reflection;
 using Bible.Alarm.Services.Media.Interfaces;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Core.Handlers;
+using CommunityToolkit.Maui.Interfaces;
+using CommunityToolkit.Maui.Primitives;
 using Microsoft.Maui.Handlers;
 using Serilog;
 #if ANDROID

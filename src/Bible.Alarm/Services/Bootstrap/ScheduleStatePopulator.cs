@@ -5,6 +5,7 @@ using Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
 

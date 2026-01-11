@@ -1,3 +1,5 @@
+using Bible.Alarm.Shared.Models.Schedule;
+
 namespace Bible.Alarm.Services.Scheduler.Interfaces;
 
 public interface IAlarmService

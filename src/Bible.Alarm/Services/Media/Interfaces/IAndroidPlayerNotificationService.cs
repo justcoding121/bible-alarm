@@ -1,4 +1,6 @@
 #nullable enable
+using CommunityToolkit.Maui;
+
 namespace Bible.Alarm.Services.Media.Interfaces;
 
 /// <summary>

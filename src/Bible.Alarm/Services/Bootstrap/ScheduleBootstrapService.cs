@@ -1,7 +1,6 @@
 #nullable enable
 
 using AutoMapper;
-using Bible.Alarm.Models.Schedule;
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -14,14 +13,10 @@ using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Models;
 
-<<<<<<< TODO: Unmerged change from project 'Bible.Alarm (net10.0-ios)', Before:
-using Fluxor;
-using IDispatcher = Fluxor.IDispatcher;
-=======
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
->>>>>>> After
-using IDispatcher = Fluxor.IDispatcher;
+using Bible.Alarm.Shared.Models.Schedule;
+
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Effects;
 #endif

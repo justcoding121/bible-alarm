@@ -3,6 +3,7 @@
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores.Actions;
+using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -341,7 +342,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnTrackSelection(ApplicationState state, TrackSelectionAction action)
+    public static ApplicationState OnMusicTrackSelection(ApplicationState state, Actions.Music.TrackSelectionAction action)
     {
         return StateFactory.CreateUpdatedState(
             state,
@@ -351,7 +352,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnTrackSelected(ApplicationState state, TrackSelectedAction action)
+    public static ApplicationState OnMusicTrackSelected(ApplicationState state, Actions.Music.TrackSelectedAction action)
     {
         return StateFactory.CreateUpdatedState(
             state,
@@ -381,7 +382,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnTrackSelection(ApplicationState state, TrackSelectionAction action)
+    public static ApplicationState OnBiblePublicationTrackSelection(ApplicationState state, Actions.BiblePublications.TrackSelectionAction action)
     {
         return StateFactory.CreateUpdatedState(
             state,
@@ -391,7 +392,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnTrackSelected(ApplicationState state, TrackSelectedAction action)
+    public static ApplicationState OnBiblePublicationTrackSelected(ApplicationState state, Actions.BiblePublications.TrackSelectedAction action)
     {
         return StateFactory.CreateUpdatedState(
             state,

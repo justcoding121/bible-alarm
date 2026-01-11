@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 
 namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 

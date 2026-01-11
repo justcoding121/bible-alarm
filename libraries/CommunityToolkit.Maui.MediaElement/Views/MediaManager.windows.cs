@@ -1,4 +1,8 @@
 using System.Numerics;
+using CommunityToolkit.Maui.Interfaces;
+using CommunityToolkit.Maui.MediaSource;
+using CommunityToolkit.Maui.Primitives;
+using CommunityToolkit.Maui.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Media;
@@ -45,7 +49,7 @@ partial class MediaManager : IDisposable
     bool displayActiveRequested;
 
     /// <summary>
-    /// The <see cref="DisplayRequest"/> is used to enable the <see cref="Maui.Views.MediaElement.ShouldKeepScreenOn"/> functionality.
+    /// The <see cref="DisplayRequest"/> is used to enable the <see cref="MediaElement.ShouldKeepScreenOn"/> functionality.
     /// </summary>
     /// <remarks>
     /// Calls to <see cref="Windows.System.Display.DisplayRequest.RequestActive"/> and <see cref="DisplayRequest.RequestRelease"/> should be in balance.

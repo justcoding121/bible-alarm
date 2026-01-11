@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections;
+using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Shared;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 

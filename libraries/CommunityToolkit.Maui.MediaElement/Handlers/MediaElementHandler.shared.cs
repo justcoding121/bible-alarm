@@ -1,4 +1,6 @@
 using CommunityToolkit.Maui.Core.Views;
+using CommunityToolkit.Maui.Interfaces;
+using CommunityToolkit.Maui.Primitives;
 
 namespace CommunityToolkit.Maui.Core.Handlers;
 
@@ -95,7 +97,7 @@ public partial class MediaElementHandler
     }
 
     /// <summary>
-    /// Maps the <see cref="Core.IMediaElement.Speed"/> property between the abstract
+    /// Maps the <see cref="IMediaElement.Speed"/> property between the abstract
     /// <see cref="MediaElement"/> and platform counterpart.
     /// </summary>
     /// <param name="handler">The associated handler.</param>
@@ -118,7 +120,7 @@ public partial class MediaElementHandler
     }
 
     /// <summary>
-    /// Maps the <see cref="Core.IMediaElement.Volume"/> property between the abstract
+    /// Maps the <see cref="IMediaElement.Volume"/> property between the abstract
     /// <see cref="MediaElement"/> and platform counterpart.
     /// </summary>
     /// <param name="handler">The associated handler.</param>
@@ -129,7 +131,7 @@ public partial class MediaElementHandler
     }
 
     /// <summary>
-    /// Maps the <see cref="Core.IMediaElement.ShouldKeepScreenOn"/> property between the abstract
+    /// Maps the <see cref="IMediaElement.ShouldKeepScreenOn"/> property between the abstract
     /// <see cref="MediaElement"/> and platform counterpart.
     /// </summary>
     /// <param name="handler">The associated handler.</param>
@@ -140,7 +142,7 @@ public partial class MediaElementHandler
     }
 
     /// <summary>
-    /// Maps the <see cref="Core.IMediaElement.ShouldMute"/> property between the abstract
+    /// Maps the <see cref="IMediaElement.ShouldMute"/> property between the abstract
     /// <see cref="MediaElement"/> and platform counterpart.
     /// </summary>
     /// <param name="handler">The associated handler.</param>

@@ -1,4 +1,5 @@
 using AVFoundation;
+using CommunityToolkit.Maui.Interfaces;
 using CoreMedia;
 using Foundation;
 using MediaPlayer;

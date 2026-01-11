@@ -4,6 +4,9 @@ using Bible.Alarm.Services.Media.AudioPlayerHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Media;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Primitives;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 #if IOS

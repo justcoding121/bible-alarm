@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Globalization;
+using CommunityToolkit.Maui.MediaSource;
+using MediaSourceType = CommunityToolkit.Maui.MediaSource.MediaSource;
 
 namespace CommunityToolkit.Maui.Converters;
 
@@ -37,18 +39,18 @@ public sealed class MediaSourceConverter : TypeConverter
 
         if (valueAsStringLowercase.StartsWith(embeddedResourcePrefix))
         {
-            return MediaSource.FromResource(
+            return MediaSourceType.FromResource(
                 valueAsString[embeddedResourcePrefix.Length..]);
         }
 
         if (valueAsStringLowercase.StartsWith(fileSystemPrefix))
         {
-            return MediaSource.FromFile(valueAsString[fileSystemPrefix.Length..]);
+            return MediaSourceType.FromFile(valueAsString[fileSystemPrefix.Length..]);
         }
 
         return Uri.TryCreate(valueAsString, UriKind.Absolute, out var uri) && uri.Scheme != "file"
-            ? MediaSource.FromUri(uri)
-            : MediaSource.FromFile(valueAsString);
+            ? MediaSourceType.FromUri(uri)
+            : MediaSourceType.FromFile(valueAsString);
     }
 
     /// <inheritdoc/>
@@ -59,7 +61,7 @@ public sealed class MediaSourceConverter : TypeConverter
             UriMediaSource uriMediaSource => uriMediaSource.ToString(),
             FileMediaSource fileMediaSource => fileMediaSource.ToString(),
             ResourceMediaSource resourceMediaSource => resourceMediaSource.ToString(),
-            MediaSource => string.Empty,
+            MediaSourceType => string.Empty,
             _ => throw new ArgumentException("Invalid Media Source", nameof(value))
         };
     }

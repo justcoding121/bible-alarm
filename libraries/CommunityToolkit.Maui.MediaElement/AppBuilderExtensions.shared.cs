@@ -1,5 +1,8 @@
 using System.Runtime.Versioning;
 using CommunityToolkit.Maui.Core.Handlers;
+#if ANDROID
+using CommunityToolkit.Maui.Services;
+#endif
 
 namespace CommunityToolkit.Maui;
 

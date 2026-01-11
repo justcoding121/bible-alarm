@@ -1,6 +1,8 @@
 #nullable enable
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Services.Media.Playlist;
 

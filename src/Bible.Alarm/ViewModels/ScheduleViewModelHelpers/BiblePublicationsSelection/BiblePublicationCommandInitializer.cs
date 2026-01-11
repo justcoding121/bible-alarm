@@ -3,8 +3,11 @@ using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.BiblePublications;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
@@ -157,7 +160,7 @@ public sealed class BiblePublicationCommandInitializer
 
             // Create view model and open modal
             var trackSelectionViewModel = serviceProvider.GetRequiredService<TrackSelectionViewModel>();
-            await navigationService.OpenTrackSelectionModalAsync(trackSelectionViewModel);
+            await navigationService.OpenBiblePublicationTrackSelectionModalAsync(trackSelectionViewModel);
 
             // Map entities to DTOs before dispatching
             if (loadedBiblePublication != null)

@@ -1,17 +1,11 @@
 #nullable enable
 
-
-<<<<<<< TODO: Unmerged change from project 'Bible.Alarm (net10.0-windows10.0.19041.0)', Before:
-using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Services.Bootstrap.Interfaces;
-=======
-using Bible.Alarm.Common;
-using Bible.Alarm.Services.Bootstrap.Interfaces;
->>>>>>> After
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
+using Bible.Alarm.Common;
+
 
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Effects;

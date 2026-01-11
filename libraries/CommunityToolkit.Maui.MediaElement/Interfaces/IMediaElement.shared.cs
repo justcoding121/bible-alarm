@@ -1,3 +1,6 @@
+using CommunityToolkit.Maui.Primitives;
+using MediaSourceType = CommunityToolkit.Maui.MediaSource.MediaSource;
+
 namespace CommunityToolkit.Maui.Interfaces;
 
 /// <summary>
@@ -83,7 +86,7 @@ public interface IMediaElement : IAsynchronousMediaElementHandler
     /// <summary>
     /// Gets or sets the source of the media to play.
     /// </summary>
-    MediaSource? Source { get; set; }
+    MediaSourceType? Source { get; set; }
 
     /// <summary>
     /// Gets or sets the speed with which the media should be played.

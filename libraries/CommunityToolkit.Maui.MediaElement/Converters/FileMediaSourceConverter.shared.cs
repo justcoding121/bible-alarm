@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Globalization;
+using CommunityToolkit.Maui.MediaSource;
+using MediaSourceType = CommunityToolkit.Maui.MediaSource.MediaSource;
 
 namespace CommunityToolkit.Maui.Converters;
 
@@ -16,7 +18,7 @@ public sealed class FileMediaSourceConverter : TypeConverter
         var filePath = value.ToString() ?? string.Empty;
 
         return string.IsNullOrWhiteSpace(filePath)
-            ? (FileMediaSource)MediaSource.FromFile(filePath)
-            : throw new InvalidOperationException($"Cannot convert \"{value}\" into {typeof(FileMediaSource)}");
+            ? (CommunityToolkit.Maui.MediaSource.FileMediaSource)MediaSourceType.FromFile(filePath)
+            : throw new InvalidOperationException($"Cannot convert \"{value}\" into {typeof(CommunityToolkit.Maui.MediaSource.FileMediaSource)}");
     }
 }

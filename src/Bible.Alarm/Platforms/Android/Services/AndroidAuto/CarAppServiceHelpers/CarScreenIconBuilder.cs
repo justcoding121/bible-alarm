@@ -28,7 +28,7 @@ public sealed class CarScreenIconBuilder(Context context, ILogger logger)
             const int SectionOffset = SectionIconSize / 2 - 8;
             const int BitmapSize = SectionIconSize + SectionOffset;
 
-            var sectionDrawable = ContextCompat.GetDrawable(context, ResourceConstant.Drawable.ic_section_open);
+            var sectionDrawable = ContextCompat.GetDrawable(context, ResourceConstant.Drawable.ic_book_open);
             if (sectionDrawable == null)
             {
                 logger.Warning("Could not get app drawable for section icon");

@@ -12,6 +12,7 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.Android.Services.AndroidServices;
 using Bible.Alarm.Platforms.Android.Services.BroadcastReceivers;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Models.Schedule;
 using Java.Lang;
 using Serilog;
 using AndroidApplication = Android.App.Application;

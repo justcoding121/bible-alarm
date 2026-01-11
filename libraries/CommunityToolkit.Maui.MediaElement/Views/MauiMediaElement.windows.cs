@@ -14,6 +14,7 @@ using Page = Microsoft.Maui.Controls.Page;
 using ResourceDictionary = Microsoft.UI.Xaml.ResourceDictionary;
 using Style = Microsoft.UI.Xaml.Style;
 using VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment;
+using WinMediaSource = Windows.Media.Core.MediaSource;
 
 namespace CommunityToolkit.Maui.Core.Views;
 
@@ -173,7 +174,7 @@ public partial class MauiMediaElement : Grid, IDisposable
 
             mediaPlayerElement.MediaPlayer.Pause();
 
-            if (mediaPlayerElement.MediaPlayer.Source is MediaSource mediaSource)
+            if (mediaPlayerElement.MediaPlayer.Source is WinMediaSource mediaSource)
             {
                 // Dispose the MediaSource to release the resources
                 // https://learn.microsoft.com/en-us/windows/uwp/audio-video-camera/play-audio-and-video-with-mediaplayer Shows how to dispose the MediaSource

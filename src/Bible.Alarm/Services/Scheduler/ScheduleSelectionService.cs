@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Services.Scheduler;
 

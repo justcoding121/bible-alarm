@@ -1,4 +1,5 @@
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Models.Schedule;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media;

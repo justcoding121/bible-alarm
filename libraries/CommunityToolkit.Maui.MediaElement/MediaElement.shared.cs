@@ -1,28 +1,8 @@
 using System.ComponentModel;
-
-<<<<<<< TODO: Unmerged change from project 'CommunityToolkit.Maui.MediaElement (net10.0-ios)', Before:
 using CommunityToolkit.Maui.Converters;
-=======
-<<<<<<< TODO: Unmerged change from project 'CommunityToolkit.Maui.MediaElement (net10.0-windows10.0.19041.0)', Before:
-using CommunityToolkit.Maui.Converters;
-=======
-using CommunityToolkit;
-using CommunityToolkit.Maui;
-using CommunityToolkit.Maui;
-using CommunityToolkit.Maui.Converters;
->>>>>>> After
-
-<<<<<<< TODO: Unmerged change from project 'CommunityToolkit.Maui.MediaElement (net10.0-ios)', Before:
-using CommunityToolkit.Maui.Converters;
-=======
-using CommunityToolkit;
-using CommunityToolkit.Maui;
-using CommunityToolkit.Maui;
-using CommunityToolkit.Maui.Converters;
->>>>>>> After
-using CommunityToolkit.Maui.Converters;
-using CommunityToolkit.Maui.Core;
-using CommunityToolkit.Maui.Views;
+using CommunityToolkit.Maui.Interfaces;
+using CommunityToolkit.Maui.Primitives;
+using MediaSourceType = CommunityToolkit.Maui.MediaSource.MediaSource;
 
 namespace CommunityToolkit.Maui;
 
@@ -93,7 +73,7 @@ public class MediaElement : View, IMediaElement, IDisposable
     /// Backing store for the <see cref="Source"/> property.
     /// </summary>
     public static readonly BindableProperty SourceProperty =
-        BindableProperty.Create(nameof(Source), typeof(MediaSource), typeof(MediaElement),
+        BindableProperty.Create(nameof(Source), typeof(MediaSourceType), typeof(MediaElement),
             propertyChanging: OnSourcePropertyChanging, propertyChanged: OnSourcePropertyChanged);
 
     /// <summary>
@@ -308,9 +288,9 @@ public class MediaElement : View, IMediaElement, IDisposable
     /// This is a bindable property.
     /// </summary>
     [TypeConverter(typeof(MediaSourceConverter))]
-    public MediaSource? Source
+    public MediaSourceType? Source
     {
-        get => (MediaSource)GetValue(SourceProperty);
+        get => (MediaSourceType)GetValue(SourceProperty);
         set => SetValue(SourceProperty, value);
     }
 
@@ -549,12 +529,12 @@ public class MediaElement : View, IMediaElement, IDisposable
 
     static void OnSourcePropertyChanged(BindableObject bindable, object oldValue, object newValue)
     {
-        ((MediaElement)bindable).OnSourcePropertyChanged((MediaSource?)newValue);
+        ((MediaElement)bindable).OnSourcePropertyChanged((MediaSourceType?)newValue);
     }
 
     static void OnSourcePropertyChanging(BindableObject bindable, object oldValue, object newValue)
     {
-        ((MediaElement)bindable).OnSourcePropertyChanging((MediaSource?)oldValue);
+        ((MediaElement)bindable).OnSourcePropertyChanging((MediaSourceType?)oldValue);
     }
 
     static void OnCurrentStatePropertyChanged(BindableObject bindable, object oldValue, object newValue)
@@ -614,7 +594,7 @@ public class MediaElement : View, IMediaElement, IDisposable
         InvalidateMeasure();
     }
 
-    void OnSourcePropertyChanged(MediaSource? newValue)
+    void OnSourcePropertyChanged(MediaSourceType? newValue)
     {
         ClearTimer();
 
@@ -628,7 +608,7 @@ public class MediaElement : View, IMediaElement, IDisposable
         InitializeTimer();
     }
 
-    void OnSourcePropertyChanging(MediaSource? oldValue)
+    void OnSourcePropertyChanging(MediaSourceType? oldValue)
     {
         if (oldValue is null)
         {

@@ -1,3 +1,5 @@
+using Bible.Alarm.Shared.Models.Schedule;
+
 namespace Bible.Alarm.Common.Interfaces.UI;
 
 public interface INotificationService

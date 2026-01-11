@@ -54,7 +54,6 @@ public class ScheduleEffects(
         alarmScheduleService,
         alarmService);
     private readonly TrackSelectionSyncHandler trackSyncHandler = new(state);
-    private readonly TrackSelectionSyncHandler trackSyncHandler = new(state);
 
     // Effect handlers - initialized lazily when first accessed
     private ScheduleAddHandler? _addHandler;
@@ -244,7 +243,7 @@ public class ScheduleEffects(
     /// so the schedule page displays the changes immediately.
     /// </summary>
     [EffectMethod]
-    public async Task HandleTrackSelected(TrackSelectedAction action, IDispatcher dispatcher)
+    public async Task HandleBiblePublicationTrackSelected(Bible.Alarm.Stores.Actions.BiblePublications.TrackSelectedAction action, IDispatcher dispatcher)
     {
         await trackSyncHandler.HandleTrackSelected(action, dispatcher);
     }
@@ -255,7 +254,7 @@ public class ScheduleEffects(
     /// so the schedule page displays the changes immediately.
     /// </summary>
     [EffectMethod]
-    public async Task HandleTrackSelected(TrackSelectedAction action, IDispatcher dispatcher)
+    public async Task HandleMusicTrackSelected(Bible.Alarm.Stores.Actions.Music.TrackSelectedAction action, IDispatcher dispatcher)
     {
         await trackSyncHandler.HandleTrackSelected(action, dispatcher);
     }

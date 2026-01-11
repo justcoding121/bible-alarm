@@ -1,15 +1,6 @@
 #nullable enable
 
-<<<<<<< TODO: Unmerged change from project 'Bible.Alarm (net10.0-ios)', Before:
 using Bible.Alarm.ViewModels.Schedule;
-=======
-#nullable enable
-using Bible.Alarm.ViewModels.Schedule;
->>>>>>> After
-
-#nullable enable
-using Bible.Alarm.ViewModels.Schedule;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BibleSelection;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BiblePublicationsSelection;
 

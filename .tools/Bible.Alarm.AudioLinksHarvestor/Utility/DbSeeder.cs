@@ -8,11 +8,12 @@ using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Music;
+using BiblePublication = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-using BiblePublicationSection = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BiblePublicationSection;
-using BiblePublicationTrack = Bible.Alarm.AudioLinksHarvestor.Models.Bible.BiblePublicationTrack;
+using BiblePublicationSection = Bible.Alarm.AudioLinksHarvestor.Models.BiblePublications.BiblePublicationSection;
+using BiblePublicationTrack = Bible.Alarm.AudioLinksHarvestor.Models.BiblePublications.BiblePublicationTrack;
 using DramaTrack = Bible.Alarm.AudioLinksHarvestor.Models.Drama.DramaTrack;
 using MusicTrack = Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack;
 using Publication = Bible.Alarm.AudioLinksHarvestor.Models.Publication;
@@ -212,7 +213,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
     {
         foreach (var section in sections)
         {
-            var newSection = new Shared.Models.Media.Bible.BiblePublicationSection
+            var newSection = new Shared.Models.Media.BiblePublications.BiblePublicationSection
             {
                 Name = section.Value.Name,
                 Number = section.Value.Number
@@ -233,12 +234,12 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
     private async Task AddTracksToSection(
         MediaDbContext db,
         SortedDictionary<int, BiblePublicationTrack> tracks,
-        Shared.Models.Media.Bible.BiblePublicationSection newSection)
+        Shared.Models.Media.BiblePublications.BiblePublicationSection newSection)
     {
         foreach (var track in tracks)
         {
             var audioSource = await CreateAudioSource(db, track.Value.Url);
-            var newTrack = new Shared.Models.Media.Bible.BiblePublicationTrack
+            var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
             {
                 Number = track.Value.Number,
                 Source = audioSource
@@ -401,7 +402,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         foreach (var track in tracks)
         {
             var audioSource = await CreateAudioSource(db, track.Value.Url);
-            var newTrack = new Shared.Models.Media.Bible.BiblePublicationTrack
+            var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
             {
                 Number = track.Value.Number,
                 Title = track.Value.Title,
@@ -502,7 +503,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         foreach (var episode in episodes)
         {
             var audioSource = await CreateAudioSource(db, episode.Value.Url);
-            var newTrack = new Shared.Models.Media.Bible.BiblePublicationTrack
+            var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
             {
                 Number = episode.Value.Number,
                 Title = episode.Value.Title,

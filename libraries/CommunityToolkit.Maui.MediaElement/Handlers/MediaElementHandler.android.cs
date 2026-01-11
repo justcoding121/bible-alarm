@@ -1,5 +1,6 @@
 using System.Reflection;
 using CommunityToolkit.Maui.Core.Views;
+using CommunityToolkit.Maui.Primitives;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Maui.Handlers;
 #if ANDROID
@@ -10,7 +11,7 @@ namespace CommunityToolkit.Maui.Core.Handlers;
 public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaElement>, IDisposable
 {
     /// <summary>
-    /// Maps the <see cref="IMediaElement.ShouldLoopPlayback"/> property between the abstract
+    /// Maps the ShouldLoopPlayback property between the abstract
     /// <see cref="MediaElement"/> and platform counterpart.
     /// </summary>
     /// <param name="handler">The associated handler.</param>

@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.ViewModels.BiblePublications.TrackSelectionViewModelHelpers;
 

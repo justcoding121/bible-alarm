@@ -1,12 +1,14 @@
 #nullable enable
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.Models.Enums;
-using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+using BiblePublicationTrackSelectedAction = Bible.Alarm.Stores.Actions.BiblePublications.TrackSelectedAction;
+using MusicTrackSelectedAction = Bible.Alarm.Stores.Actions.Music.TrackSelectedAction;
 
 namespace Bible.Alarm.Stores.Effects.Services;
 
@@ -28,7 +30,7 @@ public sealed class TrackSelectionSyncHandler
     /// This ensures that when sub-pages update CurrentMusic, CurrentSchedule is also updated
     /// so the schedule page displays the changes immediately.
     /// </summary>
-    public async Task HandleTrackSelected(TrackSelectedAction action, IDispatcher dispatcher)
+    public async Task HandleTrackSelected(MusicTrackSelectedAction action, IDispatcher dispatcher)
     {
         try
         {
@@ -63,7 +65,49 @@ public sealed class TrackSelectionSyncHandler
         }
     }
 
-    private void LogTrackSelectedStart(TrackSelectedAction action)
+    /// <summary>
+    /// Effect: Sync CurrentBiblePublicationSchedule to CurrentSchedule when TrackSelectedAction is dispatched.
+    /// This ensures that when sub-pages update CurrentBiblePublicationSchedule, CurrentSchedule is also updated
+    /// so the schedule page displays the changes immediately.
+    /// </summary>
+    public async Task HandleTrackSelected(BiblePublicationTrackSelectedAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Received action. CurrentBiblePublicationSchedule: {CurrentBiblePublicationSchedule}",
+                action.CurrentBiblePublicationSchedule != null ? "not null" : "null");
+
+            var currentState = state?.Value;
+            if (currentState?.CurrentSchedule == null || action.CurrentBiblePublicationSchedule == null)
+            {
+                Log.Warning("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - CurrentSchedule or CurrentBiblePublicationSchedule is null.");
+                return;
+            }
+
+            var currentSchedule = currentState.CurrentSchedule;
+            var biblePub = action.CurrentBiblePublicationSchedule;
+
+            // Create updated schedule with Bible publication properties
+            var updatedSchedule = currentSchedule.DeepClone();
+            updatedSchedule.BiblePublicationScheduleId = biblePub.Id > 0 ? biblePub.Id : currentSchedule.BiblePublicationScheduleId;
+            updatedSchedule.BiblePublicationLanguageCode = biblePub.LanguageCode;
+            updatedSchedule.BiblePublicationCode = biblePub.PublicationCode;
+            updatedSchedule.BiblePublicationSectionNumber = biblePub.SectionNumber;
+            updatedSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
+            updatedSchedule.BiblePublicationFinishedDuration = biblePub.FinishedDuration;
+            updatedSchedule.BiblePublicationName = biblePub.TranslationName;
+
+            Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}",
+                updatedSchedule.Id);
+            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "TrackSelectionSyncHandler: Error syncing CurrentBiblePublicationSchedule to CurrentSchedule");
+        }
+    }
+
+    private void LogTrackSelectedStart(MusicTrackSelectedAction action)
     {
         Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, MusicType: {MusicType}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}",
             action.CurrentMusic != null ? "not null" : "null",
@@ -72,7 +116,7 @@ public sealed class TrackSelectionSyncHandler
             action.CurrentMusic?.TrackNumber ?? 0);
     }
 
-    private bool CanSyncTrackSelection(ApplicationState? currentState, TrackSelectedAction action)
+    private bool CanSyncTrackSelection(ApplicationState? currentState, MusicTrackSelectedAction action)
     {
         if (currentState?.CurrentSchedule == null || action.CurrentMusic == null)
         {
@@ -115,7 +159,7 @@ public sealed class TrackSelectionSyncHandler
         return true;
     }
 
-    private ScheduleStateItem CreateUpdatedScheduleFromTrackSelection(ScheduleStateItem currentSchedule, TrackSelectedAction action, bool musicTypeChanged)
+    private ScheduleStateItem CreateUpdatedScheduleFromTrackSelection(ScheduleStateItem currentSchedule, MusicTrackSelectedAction action, bool musicTypeChanged)
     {
         var updatedSchedule = CloneBasicScheduleProperties(currentSchedule);
         PreserveBiblePublicationProperties(updatedSchedule, currentSchedule);

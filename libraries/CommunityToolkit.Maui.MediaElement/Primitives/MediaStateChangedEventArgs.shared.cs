@@ -11,12 +11,12 @@ namespace CommunityToolkit.Maui.Primitives;
 public sealed class MediaStateChangedEventArgs(MediaElementState previousState, MediaElementState newState) : EventArgs
 {
     /// <summary>
-    /// Gets the previous state that the <see cref="IMediaElement"/> instance is transitioning from.
+    /// Gets the previous state that the MediaElement instance is transitioning from.
     /// </summary>
     public MediaElementState PreviousState { get; } = previousState;
 
     /// <summary>
-    /// Gets the new state that the <see cref="IMediaElement"/> instance is transitioning to.
+    /// Gets the new state that the MediaElement instance is transitioning to.
     /// </summary>
     public MediaElementState NewState { get; } = newState;
 }

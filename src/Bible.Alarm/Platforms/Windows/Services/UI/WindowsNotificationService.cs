@@ -6,6 +6,7 @@ using System.Text;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.Windows.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
+using Bible.Alarm.Shared.Models.Schedule;
 using Serilog;
 using Windows.ApplicationModel;
 using Windows.Data.Xml.Dom;

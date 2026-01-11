@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Plugin.StoreReview;
 using Serilog;
@@ -65,7 +66,7 @@ public class AlarmViewModelReviewHandler
             await CrossStoreReview.Current.RequestReview(false));
     }
 
-    private async Task IncrementDismissCount(Models.GeneralSettings? dismissCount)
+    private async Task IncrementDismissCount(GeneralSettings? dismissCount)
     {
         if (dismissCount?.Value != null)
         {

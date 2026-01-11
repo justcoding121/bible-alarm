@@ -1,4 +1,5 @@
 #nullable enable
+using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Core.Handlers;
 using Serilog;
 

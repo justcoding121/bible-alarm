@@ -4,6 +4,7 @@ using AutoMapper;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
@@ -167,7 +168,7 @@ public sealed class MusicCommandInitializer
 
             // Create view model and open modal
             var trackSelectionViewModel = serviceProvider.GetRequiredService<TrackSelectionViewModel>();
-            await navigationService.OpenTrackSelectionModalAsync(trackSelectionViewModel);
+            await navigationService.OpenMusicTrackSelectionModalAsync(trackSelectionViewModel);
 
             // Map entity to DTO before dispatching
             if (loadedMusic != null)

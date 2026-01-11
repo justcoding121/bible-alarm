@@ -15,10 +15,10 @@ public interface INavigationService : IDisposable
     Task NavigateToScheduleAsync(int scheduleId, bool isEnabled);
     Task OpenMusicSelectionModalAsync(object bindingContext);
     Task OpenSongPublicationSelectionModalAsync(object bindingContext);
-    Task OpenTrackSelectionModalAsync(object bindingContext);
+    Task OpenMusicTrackSelectionModalAsync(object bindingContext);
     Task OpenBibleSelectionModalAsync(object bindingContext);
     Task OpenSectionSelectionModalAsync(object bindingContext);
-    Task OpenTrackSelectionModalAsync(object bindingContext);
+    Task OpenBiblePublicationTrackSelectionModalAsync(object bindingContext);
     Task OpenNumberOfTracksModalAsync(object bindingContext);
     Task OpenLanguageModalAsync(object bindingContext);
     Task OpenAlarmModalAsync();

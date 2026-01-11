@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;

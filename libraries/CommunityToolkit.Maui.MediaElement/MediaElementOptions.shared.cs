@@ -1,3 +1,5 @@
+using CommunityToolkit.Maui.Primitives;
+
 namespace CommunityToolkit.Maui;
 
 /// <summary>

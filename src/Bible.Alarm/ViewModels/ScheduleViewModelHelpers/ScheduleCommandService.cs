@@ -12,6 +12,8 @@ using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+using Bible.Alarm.Shared.Models.Schedule;
+
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Services.Helpers;
 #endif
