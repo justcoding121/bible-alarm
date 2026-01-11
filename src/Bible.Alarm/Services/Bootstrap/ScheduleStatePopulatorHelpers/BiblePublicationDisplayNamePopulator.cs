@@ -48,12 +48,14 @@ internal sealed class BiblePublicationDisplayNamePopulator
         if (languagesDict.TryGetValue(languageCode, out var language))
         {
             scheduleStateItem.BiblePublicationLanguageName = language.Name;
-            Log.Logger.Debug("Set BiblePublicationLanguageName '{BiblePublicationLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
-                language.Name, schedule.Id, languageCode);
+            scheduleStateItem.BiblePublicationLanguageDirection = language.Direction;
+            Log.Logger.Debug("Set BiblePublicationLanguageName '{BiblePublicationLanguageName}' and Direction '{Direction}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                language.Name, language.Direction, schedule.Id, languageCode);
         }
         else
         {
             scheduleStateItem.BiblePublicationLanguageName = languageCode;
+            scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
             Log.Logger.Debug("Language not found for LanguageCode '{LanguageCode}', using code as BiblePublicationLanguageName for schedule {ScheduleId}",
                 languageCode, schedule.Id);
         }

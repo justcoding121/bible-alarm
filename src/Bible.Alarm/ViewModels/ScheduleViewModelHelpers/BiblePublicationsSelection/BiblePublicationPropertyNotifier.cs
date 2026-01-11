@@ -24,6 +24,7 @@ public sealed class BiblePublicationPropertyNotifier
     public void NotifyAllDisplayTextPropertiesChanged()
     {
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsSectionVisible));
+        onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.ContentFlowDirection));
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.LanguageDisplayText));
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.TranslationDisplayText));
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.SectionDisplayText));
@@ -35,9 +36,10 @@ public sealed class BiblePublicationPropertyNotifier
     /// </summary>
     public void NotifyPropertyChanges(BiblePublicationPropertyChangeDetector.PropertyChangeInfo changeInfo)
     {
-        // Language change cascades to all properties below
+        // Language change cascades to all properties below (including flow direction)
         if (changeInfo.NotifyLanguage)
         {
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.ContentFlowDirection));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.LanguageDisplayText));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.TranslationDisplayText));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsSectionVisible));

@@ -21,7 +21,8 @@
                     Opacity="0.3" />
         </Border.Shadow>
         <Grid RowSpacing="0"
-              Padding="0">
+              Padding="0"
+              FlowDirection="{Binding ContentFlowDirection}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />

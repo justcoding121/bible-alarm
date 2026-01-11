@@ -45,7 +45,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
 
     private async Task PopulateBiblePublicationDisplayNamesAsync(ScheduleStateItem scheduleStateItem, BiblePublicationSchedule biblePublicationSchedule)
     {
-        // Language name
+        // Language name and direction
         if (!string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) && BiblePublicationService != null)
         {
             try
@@ -55,16 +55,19 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 if (languagesDict.TryGetValue(biblePublicationSchedule.LanguageCode, out var language))
                 {
                     scheduleStateItem.BiblePublicationLanguageName = language.Name;
+                    scheduleStateItem.BiblePublicationLanguageDirection = language.Direction;
                 }
                 else
                 {
                     scheduleStateItem.BiblePublicationLanguageName = biblePublicationSchedule.LanguageCode;
+                    scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating BiblePublicationLanguageName");
                 scheduleStateItem.BiblePublicationLanguageName = biblePublicationSchedule.LanguageCode;
+                scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
             }
         }
 

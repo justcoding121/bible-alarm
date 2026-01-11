@@ -153,6 +153,20 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     public string LanguageSearchTerm { get => propertyManager.LanguageSearchTerm; set => propertyManager.LanguageSearchTerm = value; }
     public object? SelectedItem => propertyManager.SelectedItem;
 
+    /// <summary>
+    /// Gets the FlowDirection for content based on the selected language direction.
+    /// </summary>
+    public FlowDirection ContentFlowDirection
+    {
+        get
+        {
+            var direction = state.Value.CurrentSchedule?.BiblePublicationLanguageDirection ?? "ltr";
+            return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+                ? FlowDirection.RightToLeft
+                : FlowDirection.LeftToRight;
+        }
+    }
+
 
 
     public void Dispose()

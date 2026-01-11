@@ -63,6 +63,14 @@ public sealed class ScheduleStateItem : IComparable
     public string? BiblePublicationLanguageName { get; set; }
 
     /// <summary>
+    /// Bible reading language direction for RTL/LTR display.
+    /// Values: "ltr" (left-to-right) or "rtl" (right-to-left).
+    /// This is populated during bootstrap from language dictionary.
+    /// Not persisted to database.
+    /// </summary>
+    public string? BiblePublicationLanguageDirection { get; set; }
+
+    /// <summary>
     /// Bible reading publication name for display purposes.
     /// This is populated during bootstrap from Bible translation service.
     /// Not persisted to database.

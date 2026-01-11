@@ -316,6 +316,20 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         set => SetProperty(ref sections, value);
     }
 
+    /// <summary>
+    /// Gets the FlowDirection for content based on the selected language direction.
+    /// </summary>
+    public FlowDirection ContentFlowDirection
+    {
+        get
+        {
+            var direction = state.Value.CurrentSchedule?.BiblePublicationLanguageDirection ?? "ltr";
+            return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+                ? FlowDirection.RightToLeft
+                : FlowDirection.LeftToRight;
+        }
+    }
+
     private async Task Initialize(string languageCode, string publicationCode) => await PopulateSections(languageCode, publicationCode);
 
     private readonly Dictionary<int, BiblePublicationSectionListViewItemModel> sectionVMsMapping = [];

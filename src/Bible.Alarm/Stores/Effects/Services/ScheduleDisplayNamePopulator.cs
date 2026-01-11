@@ -51,12 +51,14 @@ public sealed class ScheduleDisplayNamePopulator
             if (languagesDict.TryGetValue(languageCode, out var language))
             {
                 scheduleStateItem.BiblePublicationLanguageName = language.Name;
-                Log.Debug("ScheduleEffects: Set BiblePublicationLanguageName '{BiblePublicationLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
-                    language.Name, schedule.Id, languageCode);
+                scheduleStateItem.BiblePublicationLanguageDirection = language.Direction;
+                Log.Debug("ScheduleEffects: Set BiblePublicationLanguageName '{BiblePublicationLanguageName}' and Direction '{Direction}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                    language.Name, language.Direction, schedule.Id, languageCode);
             }
             else
             {
                 scheduleStateItem.BiblePublicationLanguageName = languageCode;
+                scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
                 Log.Debug("ScheduleEffects: Language not found for LanguageCode '{LanguageCode}', using code as BiblePublicationLanguageName for schedule {ScheduleId}",
                     languageCode, schedule.Id);
             }
@@ -66,6 +68,7 @@ public sealed class ScheduleDisplayNamePopulator
             Log.Warning(ex, "ScheduleEffects: Error populating BiblePublicationLanguageName for schedule {ScheduleId}", schedule.Id);
             // Fallback to language code
             scheduleStateItem.BiblePublicationLanguageName = schedule.BiblePublicationSchedule.LanguageCode;
+            scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
         }
     }
 
@@ -85,12 +88,14 @@ public sealed class ScheduleDisplayNamePopulator
             if (languagesDict.TryGetValue(scheduleStateItem.BiblePublicationLanguageCode, out var language))
             {
                 scheduleStateItem.BiblePublicationLanguageName = language.Name;
-                Log.Debug("ScheduleEffects: Set BiblePublicationLanguageName '{BiblePublicationLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
-                    language.Name, scheduleStateItem.Id, scheduleStateItem.BiblePublicationLanguageCode);
+                scheduleStateItem.BiblePublicationLanguageDirection = language.Direction;
+                Log.Debug("ScheduleEffects: Set BiblePublicationLanguageName '{BiblePublicationLanguageName}' and Direction '{Direction}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                    language.Name, language.Direction, scheduleStateItem.Id, scheduleStateItem.BiblePublicationLanguageCode);
             }
             else
             {
                 scheduleStateItem.BiblePublicationLanguageName = scheduleStateItem.BiblePublicationLanguageCode;
+                scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
                 Log.Debug("ScheduleEffects: Language not found for LanguageCode '{LanguageCode}', using code as BiblePublicationLanguageName for schedule {ScheduleId}",
                     scheduleStateItem.BiblePublicationLanguageCode, scheduleStateItem.Id);
             }
@@ -100,6 +105,7 @@ public sealed class ScheduleDisplayNamePopulator
             Log.Warning(ex, "ScheduleEffects: Error populating BiblePublicationLanguageName for schedule {ScheduleId}", scheduleStateItem.Id);
             // Fallback to language code
             scheduleStateItem.BiblePublicationLanguageName = scheduleStateItem.BiblePublicationLanguageCode;
+            scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
         }
     }
 

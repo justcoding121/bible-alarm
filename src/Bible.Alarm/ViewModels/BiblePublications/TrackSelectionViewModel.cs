@@ -161,6 +161,20 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         set => propertyManager.Tracks = value;
     }
 
+    /// <summary>
+    /// Gets the FlowDirection for content based on the selected language direction.
+    /// </summary>
+    public FlowDirection ContentFlowDirection
+    {
+        get
+        {
+            var direction = state.Value.CurrentSchedule?.BiblePublicationLanguageDirection ?? "ltr";
+            return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+                ? FlowDirection.RightToLeft
+                : FlowDirection.LeftToRight;
+        }
+    }
+
     private async Task Initialize(string languageCode, string publicationCode, int sectionNumber)
     {
         await dataProvider.PopulateTracks(

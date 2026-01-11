@@ -22,7 +22,9 @@
         <!-- Theme-aware colors are inherited from BaseContentPage -->
     </ContentPage.Resources>
     <ContentPage.Content>
-        <Grid x:Name="MainContentGrid" BackgroundColor="{DynamicResource BackgroundColor}">
+        <Grid x:Name="MainContentGrid" 
+              BackgroundColor="{DynamicResource BackgroundColor}"
+              FlowDirection="{Binding ContentFlowDirection}">
             <!-- MAIN LIST -->
             <Grid x:Name="MainContentList"
                 Margin="0"

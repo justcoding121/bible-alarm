@@ -7,6 +7,7 @@ public sealed class LanguageListViewItemModel(Language language) : ObservableObj
 {
     public string Name { get; set; } = language.Name;
     public string Code { get; set; } = language.Code;
+    public string Direction { get; set; } = language.Direction;
 
     private bool isSelected;
 

@@ -2,6 +2,7 @@
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Fluxor;
+using Microsoft.Maui;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BiblePublicationsSelection;
@@ -34,6 +35,27 @@ public sealed class BiblePublicationDisplayTextProvider
         }
 
         return PublicationTypeHelper.HasSectionStructure(currentSchedule.BiblePublicationCode);
+    }
+
+    /// <summary>
+    /// Gets the language direction string ("ltr" or "rtl").
+    /// </summary>
+    public string GetLanguageDirection()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        return currentSchedule?.BiblePublicationLanguageDirection ?? "ltr";
+    }
+
+    /// <summary>
+    /// Gets the FlowDirection based on the selected language direction.
+    /// Returns RightToLeft for RTL languages, LeftToRight otherwise.
+    /// </summary>
+    public FlowDirection GetFlowDirection()
+    {
+        var direction = GetLanguageDirection();
+        return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+            ? FlowDirection.RightToLeft
+            : FlowDirection.LeftToRight;
     }
 
     public string GetLanguageDisplayText()
