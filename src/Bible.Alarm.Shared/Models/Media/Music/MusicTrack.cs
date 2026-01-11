@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Bible.Alarm.Shared.Models.Media.Music;
 
-[Table("MusicTrack")]
+[Table("MusicTracks")]
 public sealed class MusicTrack : IComparable
 {
     [Key]

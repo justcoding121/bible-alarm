@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bible.Alarm.Shared.Database.Migrations.Media
 {
     [DbContext(typeof(MediaDbContext))]
-    [Migration("20260111000503_InitialCreate")]
+    [Migration("20260111003123_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -37,7 +37,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 
                     b.HasIndex("BaseUrlId");
 
-                    b.ToTable("AudioSource");
+                    b.ToTable("AudioSources");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.AudioSourceBaseUrl", b =>
@@ -53,7 +53,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 
                     b.HasKey("Id");
 
-                    b.ToTable("AudioSourceBaseUrl");
+                    b.ToTable("AudioSourceBaseUrls");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BiblePublication", b =>
@@ -87,7 +87,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.HasIndex("Code", "LanguageId")
                         .IsUnique();
 
-                    b.ToTable("BiblePublication");
+                    b.ToTable("BiblePublications");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BiblePublicationSection", b =>
@@ -112,7 +112,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.HasIndex("BiblePublicationId", "Number")
                         .IsUnique();
 
-                    b.ToTable("BiblePublicationSection");
+                    b.ToTable("BiblePublicationSections");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Bible.BiblePublicationTrack", b =>
@@ -148,7 +148,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.HasIndex("BiblePublicationSectionId", "Number")
                         .IsUnique();
 
-                    b.ToTable("BiblePublicationTrack");
+                    b.ToTable("BiblePublicationTracks");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Language", b =>
@@ -201,7 +201,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 
                     b.HasIndex("DisplayLanguageId");
 
-                    b.ToTable("MelodyMusic");
+                    b.ToTable("MelodyMusics");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Music.MusicTrack", b =>
@@ -235,7 +235,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 
                     b.HasIndex("VocalMusicId");
 
-                    b.ToTable("MusicTrack");
+                    b.ToTable("MusicTracks");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Music.VocalMusic", b =>
@@ -269,7 +269,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.HasIndex("Code", "LanguageId")
                         .IsUnique();
 
-                    b.ToTable("VocalMusic");
+                    b.ToTable("VocalMusics");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.AudioSource", b =>

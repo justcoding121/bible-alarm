@@ -76,7 +76,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
                     b.HasIndex("PublicationCode", "LanguageCode");
 
-                    b.ToTable("AlarmMusic");
+                    b.ToTable("AlarmMusics");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Models.Schedule.AlarmNotification", b =>
@@ -179,15 +179,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.Property<int>("AlarmScheduleId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("SectionNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TrackNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<TimeSpan>("FinishedDuration")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -196,6 +187,15 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.Property<string>("PublicationCode")
                         .IsRequired()
                         .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("SectionNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TrackNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<TimeSpan>("FinishedDuration")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Bible.Alarm.Shared.Models.Media;
 
-[Table("AudioSource")]
+[Table("AudioSources")]
 public class AudioSource
 {
     [Key]

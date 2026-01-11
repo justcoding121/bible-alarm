@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Bible.Alarm.Models.Schedule;
 
 [Serializable]
-[Table("AlarmMusic")]
+[Table("AlarmMusics")]
 [Index(nameof(AlarmScheduleId), IsUnique = true)]
 [Index(nameof(PublicationCode), nameof(LanguageCode))]
 public class AlarmMusic

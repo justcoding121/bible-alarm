@@ -73,7 +73,7 @@ namespace Bible.Alarm.DbMigration.Migrations
 
                     b.HasIndex("PublicationCode", "LanguageCode");
 
-                    b.ToTable("AlarmMusic");
+                    b.ToTable("AlarmMusics");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Models.Schedule.AlarmNotification", b =>

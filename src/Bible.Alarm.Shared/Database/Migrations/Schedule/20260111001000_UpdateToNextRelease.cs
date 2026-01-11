@@ -41,6 +41,17 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 table: "AlarmSchedules",
                 newName: "NumberOfTracksToRead");
 
+            // Rename AlarmMusic table to AlarmMusics
+            migrationBuilder.RenameTable(
+                name: "AlarmMusic",
+                newName: "AlarmMusics");
+
+            // Rename existing index for AlarmMusics (only IX_AlarmMusic_AlarmScheduleId exists from InitialCreate)
+            migrationBuilder.RenameIndex(
+                name: "IX_AlarmMusic_AlarmScheduleId",
+                table: "AlarmMusics",
+                newName: "IX_AlarmMusics_AlarmScheduleId");
+
             // Add MaxLength constraints
             migrationBuilder.AlterColumn<string>(
                 name: "Name",
@@ -77,7 +88,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
             migrationBuilder.AlterColumn<string>(
                 name: "PublicationCode",
-                table: "AlarmMusic",
+                table: "AlarmMusics",
                 type: "TEXT",
                 maxLength: 50,
                 nullable: false,
@@ -88,7 +99,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
             migrationBuilder.AlterColumn<string>(
                 name: "LanguageCode",
-                table: "AlarmMusic",
+                table: "AlarmMusics",
                 type: "TEXT",
                 maxLength: 10,
                 nullable: true,
@@ -118,9 +129,10 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 table: "AlarmSchedules",
                 columns: new[] { "Hour", "Minute" });
 
+            // Create new index (this index didn't exist before, so we create it)
             migrationBuilder.CreateIndex(
-                name: "IX_AlarmMusic_PublicationCode_LanguageCode",
-                table: "AlarmMusic",
+                name: "IX_AlarmMusics_PublicationCode_LanguageCode",
+                table: "AlarmMusics",
                 columns: new[] { "PublicationCode", "LanguageCode" });
 
             migrationBuilder.CreateIndex(
@@ -166,8 +178,8 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 table: "AlarmNotifications");
 
             migrationBuilder.DropIndex(
-                name: "IX_AlarmMusic_PublicationCode_LanguageCode",
-                table: "AlarmMusic");
+                name: "IX_AlarmMusics_PublicationCode_LanguageCode",
+                table: "AlarmMusics");
 
             migrationBuilder.DropIndex(
                 name: "IX_AlarmSchedules_Hour_Minute",
@@ -190,7 +202,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
             migrationBuilder.AlterColumn<string>(
                 name: "LanguageCode",
-                table: "AlarmMusic",
+                table: "AlarmMusics",
                 type: "TEXT",
                 nullable: true,
                 oldClrType: typeof(string),
@@ -200,7 +212,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
             migrationBuilder.AlterColumn<string>(
                 name: "PublicationCode",
-                table: "AlarmMusic",
+                table: "AlarmMusics",
                 type: "TEXT",
                 nullable: true,
                 oldClrType: typeof(string),
@@ -237,6 +249,22 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 oldType: "TEXT",
                 oldMaxLength: 255,
                 oldNullable: false);
+
+            // Drop the index that was created in this migration
+            migrationBuilder.DropIndex(
+                name: "IX_AlarmMusics_PublicationCode_LanguageCode",
+                table: "AlarmMusics");
+
+            // Rename index back for AlarmMusic
+            migrationBuilder.RenameIndex(
+                name: "IX_AlarmMusics_AlarmScheduleId",
+                table: "AlarmMusics",
+                newName: "IX_AlarmMusic_AlarmScheduleId");
+
+            // Rename AlarmMusics table back to AlarmMusic
+            migrationBuilder.RenameTable(
+                name: "AlarmMusics",
+                newName: "AlarmMusic");
 
             // Rename columns back
             migrationBuilder.RenameColumn(

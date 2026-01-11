@@ -11,7 +11,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "AudioSourceBaseUrl",
+                name: "AudioSourceBaseUrls",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -20,7 +20,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AudioSourceBaseUrl", x => x.Id);
+                    table.PrimaryKey("PK_AudioSourceBaseUrls", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -38,7 +38,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 });
 
             migrationBuilder.CreateTable(
-                name: "AudioSource",
+                name: "AudioSources",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -48,17 +48,17 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AudioSource", x => x.Id);
+                    table.PrimaryKey("PK_AudioSources", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AudioSource_AudioSourceBaseUrl_BaseUrlId",
+                        name: "FK_AudioSources_AudioSourceBaseUrls_BaseUrlId",
                         column: x => x.BaseUrlId,
-                        principalTable: "AudioSourceBaseUrl",
+                        principalTable: "AudioSourceBaseUrls",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "BiblePublication",
+                name: "BiblePublications",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -70,15 +70,15 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_BiblePublication", x => x.Id);
+                    table.PrimaryKey("PK_BiblePublications", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_BiblePublication_Languages_DisplayLanguageId",
+                        name: "FK_BiblePublications_Languages_DisplayLanguageId",
                         column: x => x.DisplayLanguageId,
                         principalTable: "Languages",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_BiblePublication_Languages_LanguageId",
+                        name: "FK_BiblePublications_Languages_LanguageId",
                         column: x => x.LanguageId,
                         principalTable: "Languages",
                         principalColumn: "Id",
@@ -86,7 +86,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 });
 
             migrationBuilder.CreateTable(
-                name: "MelodyMusic",
+                name: "MelodyMusics",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -97,9 +97,9 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MelodyMusic", x => x.Id);
+                    table.PrimaryKey("PK_MelodyMusics", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MelodyMusic_Languages_DisplayLanguageId",
+                        name: "FK_MelodyMusics_Languages_DisplayLanguageId",
                         column: x => x.DisplayLanguageId,
                         principalTable: "Languages",
                         principalColumn: "Id",
@@ -107,7 +107,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 });
 
             migrationBuilder.CreateTable(
-                name: "VocalMusic",
+                name: "VocalMusics",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -119,15 +119,15 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_VocalMusic", x => x.Id);
+                    table.PrimaryKey("PK_VocalMusics", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_VocalMusic_Languages_DisplayLanguageId",
+                        name: "FK_VocalMusics_Languages_DisplayLanguageId",
                         column: x => x.DisplayLanguageId,
                         principalTable: "Languages",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_VocalMusic_Languages_LanguageId",
+                        name: "FK_VocalMusics_Languages_LanguageId",
                         column: x => x.LanguageId,
                         principalTable: "Languages",
                         principalColumn: "Id",
@@ -135,7 +135,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 });
 
             migrationBuilder.CreateTable(
-                name: "BiblePublicationSection",
+                name: "BiblePublicationSections",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -146,17 +146,17 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_BiblePublicationSection", x => x.Id);
+                    table.PrimaryKey("PK_BiblePublicationSections", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_BiblePublicationSection_BiblePublication_BiblePublicationId",
+                        name: "FK_BiblePublicationSections_BiblePublications_BiblePublicationId",
                         column: x => x.BiblePublicationId,
-                        principalTable: "BiblePublication",
+                        principalTable: "BiblePublications",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "MusicTrack",
+                name: "MusicTracks",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -169,26 +169,26 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MusicTrack", x => x.Id);
+                    table.PrimaryKey("PK_MusicTracks", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MusicTrack_AudioSource_SourceId",
+                        name: "FK_MusicTracks_AudioSources_SourceId",
                         column: x => x.SourceId,
-                        principalTable: "AudioSource",
+                        principalTable: "AudioSources",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_MusicTrack_MelodyMusic_MelodyMusicId",
+                        name: "FK_MusicTracks_MelodyMusics_MelodyMusicId",
                         column: x => x.MelodyMusicId,
-                        principalTable: "MelodyMusic",
+                        principalTable: "MelodyMusics",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_MusicTrack_VocalMusic_VocalMusicId",
+                        name: "FK_MusicTracks_VocalMusics_VocalMusicId",
                         column: x => x.VocalMusicId,
-                        principalTable: "VocalMusic",
+                        principalTable: "VocalMusics",
                         principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
-                name: "BiblePublicationTrack",
+                name: "BiblePublicationTracks",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -201,67 +201,67 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_BiblePublicationTrack", x => x.Id);
+                    table.PrimaryKey("PK_BiblePublicationTracks", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_BiblePublicationTrack_AudioSource_SourceId",
+                        name: "FK_BiblePublicationTracks_AudioSources_SourceId",
                         column: x => x.SourceId,
-                        principalTable: "AudioSource",
+                        principalTable: "AudioSources",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_BiblePublicationTrack_BiblePublicationSection_BiblePublicationSectionId",
+                        name: "FK_BiblePublicationTracks_BiblePublicationSections_BiblePublicationSectionId",
                         column: x => x.BiblePublicationSectionId,
-                        principalTable: "BiblePublicationSection",
+                        principalTable: "BiblePublicationSections",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_BiblePublicationTrack_BiblePublication_BiblePublicationId",
+                        name: "FK_BiblePublicationTracks_BiblePublications_BiblePublicationId",
                         column: x => x.BiblePublicationId,
-                        principalTable: "BiblePublication",
+                        principalTable: "BiblePublications",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_AudioSource_BaseUrlId",
-                table: "AudioSource",
+                name: "IX_AudioSources_BaseUrlId",
+                table: "AudioSources",
                 column: "BaseUrlId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BiblePublication_Code_LanguageId",
-                table: "BiblePublication",
+                name: "IX_BiblePublications_Code_LanguageId",
+                table: "BiblePublications",
                 columns: new[] { "Code", "LanguageId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_BiblePublication_DisplayLanguageId",
-                table: "BiblePublication",
+                name: "IX_BiblePublications_DisplayLanguageId",
+                table: "BiblePublications",
                 column: "DisplayLanguageId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BiblePublication_LanguageId",
-                table: "BiblePublication",
+                name: "IX_BiblePublications_LanguageId",
+                table: "BiblePublications",
                 column: "LanguageId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BiblePublicationSection_BiblePublicationId_Number",
-                table: "BiblePublicationSection",
+                name: "IX_BiblePublicationSections_BiblePublicationId_Number",
+                table: "BiblePublicationSections",
                 columns: new[] { "BiblePublicationId", "Number" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_BiblePublicationTrack_BiblePublicationId_Number",
-                table: "BiblePublicationTrack",
+                name: "IX_BiblePublicationTracks_BiblePublicationId_Number",
+                table: "BiblePublicationTracks",
                 columns: new[] { "BiblePublicationId", "Number" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_BiblePublicationTrack_BiblePublicationSectionId_Number",
-                table: "BiblePublicationTrack",
+                name: "IX_BiblePublicationTracks_BiblePublicationSectionId_Number",
+                table: "BiblePublicationTracks",
                 columns: new[] { "BiblePublicationSectionId", "Number" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_BiblePublicationTrack_SourceId",
-                table: "BiblePublicationTrack",
+                name: "IX_BiblePublicationTracks_SourceId",
+                table: "BiblePublicationTracks",
                 column: "SourceId");
 
             migrationBuilder.CreateIndex(
@@ -271,45 +271,45 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_MelodyMusic_Code",
-                table: "MelodyMusic",
+                name: "IX_MelodyMusics_Code",
+                table: "MelodyMusics",
                 column: "Code",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_MelodyMusic_DisplayLanguageId",
-                table: "MelodyMusic",
+                name: "IX_MelodyMusics_DisplayLanguageId",
+                table: "MelodyMusics",
                 column: "DisplayLanguageId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MusicTrack_MelodyMusicId",
-                table: "MusicTrack",
+                name: "IX_MusicTracks_MelodyMusicId",
+                table: "MusicTracks",
                 column: "MelodyMusicId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MusicTrack_SourceId",
-                table: "MusicTrack",
+                name: "IX_MusicTracks_SourceId",
+                table: "MusicTracks",
                 column: "SourceId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MusicTrack_VocalMusicId",
-                table: "MusicTrack",
+                name: "IX_MusicTracks_VocalMusicId",
+                table: "MusicTracks",
                 column: "VocalMusicId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_VocalMusic_Code_LanguageId",
-                table: "VocalMusic",
+                name: "IX_VocalMusics_Code_LanguageId",
+                table: "VocalMusics",
                 columns: new[] { "Code", "LanguageId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_VocalMusic_DisplayLanguageId",
-                table: "VocalMusic",
+                name: "IX_VocalMusics_DisplayLanguageId",
+                table: "VocalMusics",
                 column: "DisplayLanguageId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_VocalMusic_LanguageId",
-                table: "VocalMusic",
+                name: "IX_VocalMusics_LanguageId",
+                table: "VocalMusics",
                 column: "LanguageId");
         }
 
@@ -317,28 +317,28 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "BiblePublicationTrack");
+                name: "BiblePublicationTracks");
 
             migrationBuilder.DropTable(
-                name: "MusicTrack");
+                name: "MusicTracks");
 
             migrationBuilder.DropTable(
-                name: "BiblePublicationSection");
+                name: "BiblePublicationSections");
 
             migrationBuilder.DropTable(
-                name: "AudioSource");
+                name: "AudioSources");
 
             migrationBuilder.DropTable(
-                name: "MelodyMusic");
+                name: "MelodyMusics");
 
             migrationBuilder.DropTable(
-                name: "VocalMusic");
+                name: "VocalMusics");
 
             migrationBuilder.DropTable(
-                name: "BiblePublication");
+                name: "BiblePublications");
 
             migrationBuilder.DropTable(
-                name: "AudioSourceBaseUrl");
+                name: "AudioSourceBaseUrls");
 
             migrationBuilder.DropTable(
                 name: "Languages");

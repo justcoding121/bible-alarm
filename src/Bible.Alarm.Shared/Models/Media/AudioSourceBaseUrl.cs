@@ -7,7 +7,7 @@ namespace Bible.Alarm.Shared.Models.Media;
 /// Stores unique base URLs for audio sources to avoid redundant storage.
 /// Example: "https://cfp2.jw-cdn.org" which is shared across many audio sources.
 /// </summary>
-[Table("AudioSourceBaseUrl")]
+[Table("AudioSourceBaseUrls")]
 public class AudioSourceBaseUrl
 {
     [Key]
