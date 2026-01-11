@@ -139,8 +139,7 @@ namespace Bible.Alarm.DbMigration.Migrations
 
                     b.HasIndex("SourceId");
 
-                    b.HasIndex("BiblePublicationId", "Number")
-                        .IsUnique();
+                    b.HasIndex("BiblePublicationId", "Number");
 
                     b.HasIndex("BiblePublicationSectionId", "Number")
                         .IsUnique();
@@ -157,6 +156,11 @@ namespace Bible.Alarm.DbMigration.Migrations
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(3)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")

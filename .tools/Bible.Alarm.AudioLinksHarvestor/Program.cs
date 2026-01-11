@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -97,8 +99,11 @@ public class Program
             var bibleTasks = new List<Task>();
 
             // Use case-insensitive dictionaries for language codes
-            var languageCodeToNameMappings = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            // LanguageInfo contains both name and direction (ltr/rtl)
+            var languageCodeToInfoMappings = new ConcurrentDictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
             var languageCodeToEditionsMapping = new ConcurrentDictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+            IReadOnlyDictionary<(string LanguageCode, string PublicationCode), string>? localizedPublicationNames = null;
 
             await using (var harvesterScope = serviceProvider.CreateAsyncScope())
             {
@@ -107,7 +112,7 @@ public class Program
                 var dramaHarvester = harvesterScope.ServiceProvider.GetRequiredService<DramaHarvester>();
                 var videoHarvester = harvesterScope.ServiceProvider.GetRequiredService<VideoHarvester>();
 
-                bibleTasks.Add(bibleHarvester.HarvestBibleLinks(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToNameMappings, languageCodeToEditionsMapping, isTestRun));
+                bibleTasks.Add(bibleHarvester.HarvestBibleLinks(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToInfoMappings, languageCodeToEditionsMapping, isTestRun));
 
                 var musicTasks = new List<Task>
                 {
@@ -126,9 +131,12 @@ public class Program
                 };
 
                 await Task.WhenAll([.. bibleTasks, .. musicTasks, .. dramaTasks, .. videoTasks]);
+
+                // Capture localized publication names from Bible harvester
+                localizedPublicationNames = bibleHarvester.LocalizedPublicationNames;
             }
 
-            WriteBibleIndex(languageCodeToNameMappings, languageCodeToEditionsMapping);
+            WriteBibleIndex(languageCodeToInfoMappings, languageCodeToEditionsMapping, localizedPublicationNames);
 
             var index = new
             {
@@ -214,8 +222,10 @@ public class Program
         return 0;
     }
 
-    private static void WriteBibleIndex(ConcurrentDictionary<string, string> languageCodeToNameMappings,
-            ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping)
+    private static void WriteBibleIndex(
+        ConcurrentDictionary<string, LanguageInfo> languageCodeToInfoMappings,
+        ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping,
+        IReadOnlyDictionary<(string LanguageCode, string PublicationCode), string>? localizedPublicationNames)
     {
         if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible"))
         {
@@ -224,11 +234,14 @@ public class Program
 
         File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/languages.json", JsonSerializer.Serialize(
             languageCodeToEditionsMapping.Select(x =>
-            new Language
             {
-                Code = x.Key,
-                Name = languageCodeToNameMappings[x.Key]
-
+                var info = languageCodeToInfoMappings[x.Key];
+                return new Language
+                {
+                    Code = x.Key,
+                    Name = info.Name,
+                    Direction = info.Direction
+                };
             }).OrderBy(x => x.Code).ToList()));
 
         foreach (var languageEditionsMap in languageCodeToEditionsMapping)
@@ -239,11 +252,19 @@ public class Program
             }
 
             File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}/publications.json", JsonSerializer.Serialize(
-            languageEditionsMap.Value.Select(x =>
-            new Publication
+            languageEditionsMap.Value.Select(publicationCode =>
             {
-                Code = x,
-                Name = biblePublicationCodeToNameMappings[x]
+                // Use localized publication name if available, otherwise fall back to English name
+                var name = localizedPublicationNames != null &&
+                           localizedPublicationNames.TryGetValue((languageEditionsMap.Key, publicationCode), out var localizedName)
+                    ? localizedName
+                    : biblePublicationCodeToNameMappings[publicationCode];
+
+                return new Publication
+                {
+                    Code = publicationCode,
+                    Name = name
+                };
             }).OrderBy(x => x.Code)));
         }
 

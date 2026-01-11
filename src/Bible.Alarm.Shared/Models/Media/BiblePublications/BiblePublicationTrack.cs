@@ -14,7 +14,7 @@ namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
 /// - Publication-based: Links directly to BiblePublication (Drama/Video publications)
 /// </summary>
 [Table("BiblePublicationTracks")]
-[Index(nameof(BiblePublicationId), nameof(Number), IsUnique = true)]
+[Index(nameof(BiblePublicationId), nameof(Number))]
 [Index(nameof(BiblePublicationSectionId), nameof(Number), IsUnique = true)]
 public sealed class BiblePublicationTrack : IComparable
 {

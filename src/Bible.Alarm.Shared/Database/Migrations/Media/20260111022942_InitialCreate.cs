@@ -30,7 +30,8 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Code = table.Column<string>(type: "TEXT", maxLength: 10, nullable: false),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false)
+                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Direction = table.Column<string>(type: "TEXT", maxLength: 3, nullable: false, defaultValue: "ltr")
                 },
                 constraints: table =>
                 {
@@ -250,8 +251,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
             migrationBuilder.CreateIndex(
                 name: "IX_BiblePublicationTracks_BiblePublicationId_Number",
                 table: "BiblePublicationTracks",
-                columns: new[] { "BiblePublicationId", "Number" },
-                unique: true);
+                columns: new[] { "BiblePublicationId", "Number" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_BiblePublicationTracks_BiblePublicationSectionId_Number",

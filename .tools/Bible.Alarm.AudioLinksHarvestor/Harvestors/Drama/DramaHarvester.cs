@@ -22,13 +22,18 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
     private const int MaxConcurrentLanguageDownloads = 8;
 
     /// <summary>
-    /// Drama categories with their API category keys and display names.
+    /// Drama categories with their API category keys and display names (English fallback).
     /// These are fetched from the Mediator API as categories, not individual publications.
     /// </summary>
     private static readonly Dictionary<string, string> DramaCategoryToNameMappings = new([
         new KeyValuePair<string, string>("Dramas", "Audio Bible Dramas"),
         new KeyValuePair<string, string>("DramaticBibleReadings", "Dramatic Bible Readings")
     ]);
+
+    /// <summary>
+    /// Localized category names: (languageCode, categoryKey) -> localizedName
+    /// </summary>
+    private readonly ConcurrentDictionary<(string LanguageCode, string CategoryKey), string> localizedCategoryNames = new();
 
     private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY"];
 
@@ -182,11 +187,17 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
             return;
         }
 
-        var tracks = ParseCategoryTracks(jsonString, categoryKey, normalizedLanguageCode);
+        var (tracks, localizedCategoryName) = ParseCategoryTracks(jsonString, categoryKey, normalizedLanguageCode);
         if (tracks.Count == 0)
         {
             logger.Warning("No tracks found for category {CategoryKey} in language {LanguageCode}. Skipping.", categoryKey, normalizedLanguageCode);
             return;
+        }
+
+        // Store localized category name if available
+        if (!string.IsNullOrEmpty(localizedCategoryName))
+        {
+            localizedCategoryNames[(normalizedLanguageCode, categoryKey)] = localizedCategoryName;
         }
 
         // Track which categories are available for this language (case-insensitive dictionary handles normalization)
@@ -202,9 +213,10 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
         logger.Information("Saved {Count} tracks for {CategoryName} in {LanguageCode}", tracks.Count, categoryName, normalizedLanguageCode);
     }
 
-    private List<DramaTrack> ParseCategoryTracks(string jsonString, string categoryKey, string languageCode)
+    private (List<DramaTrack> Tracks, string? LocalizedCategoryName) ParseCategoryTracks(string jsonString, string categoryKey, string languageCode)
     {
         var tracks = new List<DramaTrack>();
+        string? localizedCategoryName = null;
 
         try
         {
@@ -213,12 +225,18 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
 
             if (!root.TryGetProperty("category", out var category))
             {
-                return tracks;
+                return (tracks, null);
+            }
+
+            // Extract localized category name
+            if (category.TryGetProperty("name", out var nameElement))
+            {
+                localizedCategoryName = nameElement.GetString();
             }
 
             if (!category.TryGetProperty("media", out var mediaArray))
             {
-                return tracks;
+                return (tracks, localizedCategoryName);
             }
 
             var trackNumber = 1;
@@ -237,7 +255,7 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
             logger.Error(ex, "Failed to parse category tracks from JSON");
         }
 
-        return tracks;
+        return (tracks, localizedCategoryName);
     }
 
     private DramaTrack? ParseMediaItem(JsonElement mediaItem, int trackNumber, string categoryKey, string languageCode)
@@ -336,16 +354,24 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
             }
 
             var publicationsJson = JsonSerializer.Serialize(
-                categories.Select(c => new Publication
+                categories.Select(categoryKey =>
                 {
-                    Code = c,
-                    Name = DramaCategoryToNameMappings.GetValueOrDefault(c, c)
+                    // Use localized category name if available, otherwise fall back to English
+                    var name = localizedCategoryNames.TryGetValue((languageCode, categoryKey), out var localizedName)
+                        ? localizedName
+                        : DramaCategoryToNameMappings.GetValueOrDefault(categoryKey, categoryKey);
+
+                    return new Publication
+                    {
+                        Code = categoryKey,
+                        Name = name
+                    };
                 }).OrderBy(x => x.Code));
 
             File.WriteAllText($"{languageDir}/publications.json", publicationsJson);
         }
 
-        // Save languages.json - store only codes, names will be looked up from Language table during seeding
+        // Save languages.json - store only codes, names and directions will be looked up from Language table during seeding
         var dramaDir = $"{DirectoryHelper.IndexDirectory}/media/Audio/Drama";
         if (!Directory.Exists(dramaDir))
         {
@@ -353,12 +379,13 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
 
         // Store just the language codes (normalized to uppercase)
-        // During DB seeding, names will be looked up from the existing Language table
+        // During DB seeding, names and directions will be looked up from the existing Language table
         var languagesJson = JsonSerializer.Serialize(
             languageCodeToCategories.Keys.Select(code => new Language
             {
                 Code = code.ToUpperInvariant(),
-                Name = code.ToUpperInvariant() // Placeholder - actual name comes from Language table during seeding
+                Name = code.ToUpperInvariant(), // Placeholder - actual name comes from Language table during seeding
+                Direction = "ltr" // Placeholder - actual direction comes from Language table during seeding
             }).OrderBy(x => x.Code));
 
         File.WriteAllText($"{dramaDir}/languages.json", languagesJson);

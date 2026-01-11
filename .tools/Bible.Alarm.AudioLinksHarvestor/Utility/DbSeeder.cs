@@ -4,7 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Music;
@@ -21,7 +23,7 @@ using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.Video.VideoEpisode;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 
-public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
+internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, DownloadUtility downloadUtility)
 {
     // Cache for base URLs to avoid duplicate lookups
     private readonly Dictionary<string, AudioSourceBaseUrl> baseUrlCache = new();
@@ -37,11 +39,14 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         var indexDir = DirectoryHelper.IndexDirectory;
         var mediaDir = Path.Combine(indexDir, "media");
+        
+        // Seed in order to maximize language table population before Drama
+        // Bible, Music, and Video all extract direction from their APIs
         await SeedBiblePublications(mediaDir);
-        await SeedDramas(mediaDir);
-        await SeedVideos(mediaDir);
         await SeedMelodies(mediaDir);
         await SeedVocals(mediaDir);
+        await SeedVideos(mediaDir);
+        await SeedDramas(mediaDir);  // Last - can rely on existing languages
     }
 
     private async Task SeedBiblePublications(string indexDir)
@@ -60,7 +65,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         foreach (var language in bibleLanguages)
         {
-            var newLanguage = await GetOrCreateLanguage(db, language.Value.Code, language.Value.Name);
+            var newLanguage = await GetOrCreateLanguage(db, language.Value.Code, language.Value.Name, language.Value.Direction);
             await SeedPublicationsForLanguage(db, mediaReader, language.Key, newLanguage, displayLanguage);
         }
     }
@@ -73,7 +78,8 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             displayLanguage = new Language
             {
                 Code = "E",
-                Name = "English"
+                Name = "English",
+                Direction = "ltr"
             };
             db.Languages.Add(displayLanguage);
             await db.SaveChangesAsync();
@@ -81,7 +87,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         return displayLanguage;
     }
 
-    private async Task<Language> GetOrCreateLanguage(MediaDbContext db, string code, string name)
+    private async Task<Language> GetOrCreateLanguage(MediaDbContext db, string code, string name, string direction = "ltr")
     {
         // Normalize code to uppercase for consistent storage and comparison
         var normalizedCode = code.ToUpperInvariant();
@@ -93,8 +99,14 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             language = new Language
             {
                 Code = normalizedCode,
-                Name = name
+                Name = name,
+                Direction = direction
             };
+        }
+        else if (language.Direction != direction && direction != "ltr")
+        {
+            // Update direction if it's explicitly set (non-default)
+            language.Direction = direction;
         }
         return language;
     }
@@ -112,16 +124,61 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
         var language = await db.Languages.FirstOrDefaultAsync(x => x.Code.ToUpper() == normalizedCode);
         if (language == null)
         {
-            // Create with code as name (fallback for languages only in drama, not in Bible/Music)
+            // Language not found - fetch direction from Mediator API
+            var (name, direction) = await FetchLanguageInfoFromApi(normalizedCode);
+            
             language = new Language
             {
                 Code = normalizedCode,
-                Name = normalizedCode // Use code as name - will be overwritten if found later
+                Name = name ?? normalizedCode, // Use fetched name or code as fallback
+                Direction = direction
             };
             db.Languages.Add(language);
             await db.SaveChangesAsync();
+            
+            logger.Information("Created new language {Code} with direction {Direction} from API", normalizedCode, direction);
         }
         return language;
+    }
+
+    /// <summary>
+    /// Fetches language name and direction from the Mediator API.
+    /// Uses the Dramas category as it's commonly available across languages.
+    /// </summary>
+    private async Task<(string? Name, string Direction)> FetchLanguageInfoFromApi(string languageCode)
+    {
+        try
+        {
+            // Use Dramas category to fetch language info
+            var url = $"{AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl}/categories/{languageCode}/Dramas?detailed=1";
+            var jsonString = await downloadUtility.GetAsync(url);
+
+            using var doc = JsonDocument.Parse(jsonString);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("language", out var langElement))
+            {
+                var direction = "ltr";
+                if (langElement.TryGetProperty("direction", out var dirElement))
+                {
+                    direction = dirElement.GetString() ?? "ltr";
+                }
+
+                string? name = null;
+                if (langElement.TryGetProperty("name", out var nameElement))
+                {
+                    name = nameElement.GetString();
+                }
+
+                return (name, direction);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to fetch language info for {LanguageCode} from API, using default ltr", languageCode);
+        }
+
+        return (null, "ltr");
     }
 
     private static async Task<T?> GetSafely<T>(Func<Task<T>> getter) where T : class
@@ -227,14 +284,15 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
                 continue;
             }
 
-            await AddTracksToSection(db, tracks, newSection);
+            await AddTracksToSection(db, tracks, newSection, biblePublication);
         }
     }
 
     private async Task AddTracksToSection(
         MediaDbContext db,
         SortedDictionary<int, BiblePublicationTrack> tracks,
-        Shared.Models.Media.BiblePublications.BiblePublicationSection newSection)
+        Shared.Models.Media.BiblePublications.BiblePublicationSection newSection,
+        BiblePublication biblePublication)
     {
         foreach (var track in tracks)
         {
@@ -242,7 +300,9 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
             var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
             {
                 Number = track.Value.Number,
-                Source = audioSource
+                Title = track.Value.Title, // Localized chapter title (e.g., "അധ്യായം 1" in Malayalam)
+                Source = audioSource,
+                Publication = biblePublication
             };
 
             newSection.Tracks.Add(newTrack);
@@ -603,7 +663,7 @@ public class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory)
 
         foreach (var language in melodyLanguages)
         {
-            var newLanguage = await GetOrCreateLanguage(db, language.Value.Code, language.Value.Name);
+            var newLanguage = await GetOrCreateLanguage(db, language.Value.Code, language.Value.Name, language.Value.Direction);
             await SeedVocalMusicReleasesForLanguage(db, mediaReader, language.Value.Code, newLanguage, displayLanguage);
         }
     }

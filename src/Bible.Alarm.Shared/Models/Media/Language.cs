@@ -20,5 +20,12 @@ public sealed class Language : IComparable
     [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Text direction: "ltr" (left-to-right) or "rtl" (right-to-left)
+    /// </summary>
+    [Required]
+    [MaxLength(3)]
+    public string Direction { get; set; } = "ltr";
+
     public int CompareTo(object obj) => Name.CompareTo((obj as Language).Name);
 }

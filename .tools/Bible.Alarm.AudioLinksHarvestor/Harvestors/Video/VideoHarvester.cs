@@ -25,11 +25,24 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         new KeyValuePair<string, string>("gnj", "The Good News According to Jesus")
     ]);
 
+    /// <summary>
+    /// Maps publication codes to Mediator API category keys for fetching localized names.
+    /// </summary>
+    private static readonly Dictionary<string, string> PublicationCodeToCategoryKey = new([
+        new KeyValuePair<string, string>("gnj", "DramasGoodNews")
+    ]);
+
+    /// <summary>
+    /// Localized publication names: (languageCode, publicationCode) -> localizedName
+    /// </summary>
+    private readonly Dictionary<(string LanguageCode, string PublicationCode), string> localizedPublicationNames = new();
+    private readonly object localizedNamesLock = new();
+
     private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY"];
 
     internal async Task HarvestVideoLinks(bool isTestRun = false)
     {
-        var languageCodeToNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var languageCodeToInfo = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
         var languageCodeToPublications = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var publication in VideoPublicationCodeToNameMappings)
@@ -44,14 +57,14 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
                 languageEntries,
                 publication.Key,
                 publication.Value,
-                languageCodeToNames,
+                languageCodeToInfo,
                 languageCodeToPublications);
         }
 
-        SaveVideoMetadata(languageCodeToPublications, languageCodeToNames);
+        SaveVideoMetadata(languageCodeToPublications, languageCodeToInfo);
     }
 
-    private async Task<List<(string Code, string Name)>?> GetLanguageEntries(
+    private async Task<List<(string Code, string Name, string Direction)>?> GetLanguageEntries(
         string publicationCode,
         string publicationName,
         bool isTestRun)
@@ -83,7 +96,7 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         return FilterLanguageEntriesForTestRun(languageEntries, isTestRun);
     }
 
-    private static List<(string Code, string Name)>? ParseLanguageEntries(string jsonString)
+    private static List<(string Code, string Name, string Direction)>? ParseLanguageEntries(string jsonString)
     {
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
@@ -93,7 +106,7 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
             return null;
         }
 
-        var languageEntries = new List<(string Code, string Name)>();
+        var languageEntries = new List<(string Code, string Name, string Direction)>();
         foreach (var item in languages.EnumerateObject())
         {
             if (!item.Value.TryGetProperty("name", out var nameElement))
@@ -107,15 +120,22 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
                 continue;
             }
 
+            // Extract direction (defaults to "ltr" if not present)
+            var direction = "ltr";
+            if (item.Value.TryGetProperty("direction", out var directionElement))
+            {
+                direction = directionElement.GetString() ?? "ltr";
+            }
+
             // Normalize language code to uppercase for consistent storage
-            languageEntries.Add((item.Name.ToUpperInvariant(), language));
+            languageEntries.Add((item.Name.ToUpperInvariant(), language, direction));
         }
 
         return languageEntries;
     }
 
-    private static List<(string Code, string Name)>? FilterLanguageEntriesForTestRun(
-        List<(string Code, string Name)> languageEntries,
+    private static List<(string Code, string Name, string Direction)>? FilterLanguageEntriesForTestRun(
+        List<(string Code, string Name, string Direction)> languageEntries,
         bool isTestRun)
     {
         if (!isTestRun)
@@ -128,10 +148,10 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
     }
 
     private async Task ProcessLanguageEntries(
-        List<(string Code, string Name)> languageEntries,
+        List<(string Code, string Name, string Direction)> languageEntries,
         string publicationCode,
         string publicationName,
-        Dictionary<string, string> languageCodeToNames,
+        Dictionary<string, LanguageInfo> languageCodeToInfo,
         Dictionary<string, List<string>> languageCodeToPublications)
     {
         using var semaphore = new SemaphoreSlim(MaxConcurrentLanguageDownloads, MaxConcurrentLanguageDownloads);
@@ -144,7 +164,7 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
                     entry,
                     publicationCode,
                     publicationName,
-                    languageCodeToNames,
+                    languageCodeToInfo,
                     languageCodeToPublications);
             }
             finally
@@ -157,13 +177,13 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
     }
 
     private async Task ProcessLanguageEntry(
-        (string Code, string Name) entry,
+        (string Code, string Name, string Direction) entry,
         string publicationCode,
         string publicationName,
-        Dictionary<string, string> languageCodeToNames,
+        Dictionary<string, LanguageInfo> languageCodeToInfo,
         Dictionary<string, List<string>> languageCodeToPublications)
     {
-        var (languageCode, language) = entry;
+        var (languageCode, language, direction) = entry;
         logger.Information("Harvesting Video episode links for {PublicationName} in {Language} language.",
             publicationName, language);
 
@@ -172,17 +192,55 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
             var success = await HarvestVideoEpisodes(publicationCode, languageCode);
             if (success)
             {
-                lock (languageCodeToNames)
+                lock (languageCodeToInfo)
                 {
-                    languageCodeToNames[languageCode] = language;
+                    languageCodeToInfo[languageCode] = new LanguageInfo(language, direction);
                 }
                 AddPublicationToLanguage(languageCode, publicationCode, languageCodeToPublications);
+
+                // Fetch localized publication name from Mediator API
+                await FetchLocalizedPublicationName(publicationCode, languageCode);
             }
         }
         catch (Exception e)
         {
             logger.Error(e, "Failed: Harvesting Video episode links for {PublicationName} in {Language} language.",
                 publicationName, language);
+        }
+    }
+
+    private async Task FetchLocalizedPublicationName(string publicationCode, string languageCode)
+    {
+        if (!PublicationCodeToCategoryKey.TryGetValue(publicationCode, out var categoryKey))
+        {
+            return;
+        }
+
+        try
+        {
+            var categoryUrl = $"{AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl}/categories/{languageCode}/{categoryKey}?detailed=1";
+            var jsonString = await downloadUtility.GetAsync(categoryUrl);
+
+            using var doc = JsonDocument.Parse(jsonString);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("category", out var category) &&
+                category.TryGetProperty("name", out var nameElement))
+            {
+                var localizedName = nameElement.GetString();
+                if (!string.IsNullOrEmpty(localizedName))
+                {
+                    lock (localizedNamesLock)
+                    {
+                        localizedPublicationNames[(languageCode.ToUpperInvariant(), publicationCode)] = localizedName;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to fetch localized name for {PublicationCode} in {LanguageCode}",
+                publicationCode, languageCode);
         }
     }
 
@@ -361,7 +419,7 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
 
     private void SaveVideoMetadata(
         Dictionary<string, List<string>> languageCodeToPublications,
-        Dictionary<string, string> languageCodeToNames)
+        Dictionary<string, LanguageInfo> languageCodeToInfo)
     {
         var videoDir = $"{DirectoryHelper.IndexDirectory}/media/Video";
         if (!Directory.Exists(videoDir))
@@ -371,27 +429,41 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         foreach (var languagePublication in languageCodeToPublications)
         {
-            var languageDir = $"{videoDir}/{languagePublication.Key}";
+            var languageCode = languagePublication.Key;
+            var languageDir = $"{videoDir}/{languageCode}";
             if (!Directory.Exists(languageDir))
             {
                 Directory.CreateDirectory(languageDir);
             }
 
             var publicationsJson = JsonSerializer.Serialize(
-                languagePublication.Value.Select(x => new Publication
+                languagePublication.Value.Select(pubCode =>
                 {
-                    Code = x,
-                    Name = VideoPublicationCodeToNameMappings[x]
+                    // Use localized name if available, otherwise fall back to English
+                    var name = localizedPublicationNames.TryGetValue((languageCode, pubCode), out var localizedName)
+                        ? localizedName
+                        : VideoPublicationCodeToNameMappings.GetValueOrDefault(pubCode, pubCode);
+
+                    return new Publication
+                    {
+                        Code = pubCode,
+                        Name = name
+                    };
                 }).OrderBy(x => x.Code));
 
             File.WriteAllText($"{languageDir}/publications.json", publicationsJson);
         }
 
         var languagesJson = JsonSerializer.Serialize(
-            languageCodeToPublications.Select(x => new Language
+            languageCodeToPublications.Select(x =>
             {
-                Code = x.Key,
-                Name = languageCodeToNames[x.Key]
+                var info = languageCodeToInfo[x.Key];
+                return new Language
+                {
+                    Code = x.Key,
+                    Name = info.Name,
+                    Direction = info.Direction
+                };
             }).OrderBy(x => x.Code));
 
         File.WriteAllText($"{videoDir}/languages.json", languagesJson);

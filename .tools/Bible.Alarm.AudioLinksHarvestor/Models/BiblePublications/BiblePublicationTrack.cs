@@ -1,15 +1,12 @@
 using System;
-using System.Text.Json.Serialization;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Models.BiblePublications;
 
 public class BiblePublicationTrack : IComparable
 {
     public int Number { get; set; }
-    public string Url { get; set; }
+    public string Url { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
 
-    [JsonIgnore]
-    public string Title => $"Track {Number}";
-
-    public int CompareTo(object obj) => Number.CompareTo((obj as BiblePublicationTrack).Number);
+    public int CompareTo(object obj) => Number.CompareTo((obj as BiblePublicationTrack)?.Number ?? 0);
 }

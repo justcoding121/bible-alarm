@@ -142,8 +142,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 
                     b.HasIndex("SourceId");
 
-                    b.HasIndex("BiblePublicationId", "Number")
-                        .IsUnique();
+                    b.HasIndex("BiblePublicationId", "Number");
 
                     b.HasIndex("BiblePublicationSectionId", "Number")
                         .IsUnique();
@@ -161,6 +160,13 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("ltr");
 
                     b.Property<string>("Name")
                         .IsRequired()

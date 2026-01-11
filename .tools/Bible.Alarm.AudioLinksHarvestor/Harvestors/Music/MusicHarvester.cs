@@ -20,7 +20,10 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 {
     private const int MaxConcurrentLanguageDownloads = 8;
 
-    private static Dictionary<string, string> vocalsPublicationCodeToNameMappings = new([
+    /// <summary>
+    /// Default English names for vocal music publications (fallback if API doesn't return localized name)
+    /// </summary>
+    private static readonly Dictionary<string, string> vocalsPublicationCodeToNameMappings = new([
         new KeyValuePair<string, string>("osg","Original Songs"),
         new KeyValuePair<string, string>("sjjc","\"Sing Out Joyfully\" to Jehovah (2016)"),
         new KeyValuePair<string, string>("sjji","\"Sing Out Joyfully\" to Jehovah—Instrumental"),
@@ -28,9 +31,14 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         new KeyValuePair<string, string>("pksjj","Children's Songs")
     ]);
 
+    /// <summary>
+    /// Localized publication names: (languageCode, publicationCode) -> localizedName
+    /// </summary>
+    private readonly Dictionary<(string LanguageCode, string PublicationCode), string> localizedVocalNames = new();
+
     internal async Task HarvestVocalMusicLinks(bool isTestRun = false)
     {
-        var languageCodeToNames = new Dictionary<string, string>();
+        var languageCodeToInfo = new Dictionary<string, LanguageInfo>();
         var languageCodeToPublications = new Dictionary<string, List<string>>();
 
         foreach (var publication in vocalsPublicationCodeToNameMappings)
@@ -45,19 +53,19 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
                 languageEntries,
                 publication.Key,
                 publication.Value,
-                languageCodeToNames,
+                languageCodeToInfo,
                 languageCodeToPublications);
         }
 
-        SaveVocalMusicMetadata(languageCodeToPublications, languageCodeToNames);
+        SaveVocalMusicMetadata(languageCodeToPublications, languageCodeToInfo);
     }
 
-    private async Task<List<(string Code, string Name)>?> GetLanguageEntries(string publicationCode, string publicationName, bool isTestRun)
+    private async Task<List<(string Code, string Name, string Direction)>?> GetLanguageEntries(string publicationCode, string publicationName, bool isTestRun)
     {
         string jsonString;
         try
         {
-            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?sectionnum=0&output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
+            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?booknum=0&output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
             jsonString = await downloadUtility.GetAsync(harvestLink);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
@@ -79,7 +87,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         return FilterLanguageEntriesForTestRun(languageEntries, publicationCode, isTestRun);
     }
 
-    private static List<(string Code, string Name)>? ParseLanguageEntries(string jsonString)
+    private static List<(string Code, string Name, string Direction)>? ParseLanguageEntries(string jsonString)
     {
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
@@ -89,7 +97,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
             return null;
         }
 
-        var languageEntries = new List<(string Code, string Name)>();
+        var languageEntries = new List<(string Code, string Name, string Direction)>();
         foreach (var item in languages.EnumerateObject())
         {
             if (!item.Value.TryGetProperty("name", out var nameElement))
@@ -103,8 +111,15 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
                 continue;
             }
 
+            // Extract direction (defaults to "ltr" if not present)
+            var direction = "ltr";
+            if (item.Value.TryGetProperty("direction", out var directionElement))
+            {
+                direction = directionElement.GetString() ?? "ltr";
+            }
+
             // Normalize language code to uppercase for consistent storage
-            languageEntries.Add((item.Name.ToUpperInvariant(), language));
+            languageEntries.Add((item.Name.ToUpperInvariant(), language, direction));
         }
 
         return languageEntries;
@@ -112,8 +127,8 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 
     private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY"];
 
-    private static List<(string Code, string Name)>? FilterLanguageEntriesForTestRun(
-        List<(string Code, string Name)> languageEntries,
+    private static List<(string Code, string Name, string Direction)>? FilterLanguageEntriesForTestRun(
+        List<(string Code, string Name, string Direction)> languageEntries,
         string publicationCode,
         bool isTestRun)
     {
@@ -127,10 +142,10 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
     }
 
     private async Task ProcessLanguageEntries(
-        List<(string Code, string Name)> languageEntries,
+        List<(string Code, string Name, string Direction)> languageEntries,
         string publicationCode,
         string publicationName,
-        Dictionary<string, string> languageCodeToNames,
+        Dictionary<string, LanguageInfo> languageCodeToInfo,
         Dictionary<string, List<string>> languageCodeToPublications)
     {
         using var semaphore = new SemaphoreSlim(MaxConcurrentLanguageDownloads, MaxConcurrentLanguageDownloads);
@@ -143,7 +158,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
                     entry,
                     publicationCode,
                     publicationName,
-                    languageCodeToNames,
+                    languageCodeToInfo,
                     languageCodeToPublications);
             }
             finally
@@ -156,19 +171,19 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
     }
 
     private async Task ProcessLanguageEntry(
-        (string Code, string Name) entry,
+        (string Code, string Name, string Direction) entry,
         string publicationCode,
         string publicationName,
-        Dictionary<string, string> languageCodeToNames,
+        Dictionary<string, LanguageInfo> languageCodeToInfo,
         Dictionary<string, List<string>> languageCodeToPublications)
     {
-        var (languageCode, language) = entry;
+        var (languageCode, language, direction) = entry;
         logger.Information("Harvesting Music track links for {PublicationName} of {Language} language.", publicationName, language);
 
         try
         {
             await HarvestMusicLinks(publicationCode, [publicationCode], languageCode);
-            languageCodeToNames[languageCode] = language;
+            languageCodeToInfo[languageCode] = new LanguageInfo(language, direction);
             AddPublicationToLanguage(languageCode, publicationCode, languageCodeToPublications);
         }
         catch (Exception e)
@@ -201,31 +216,45 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 
     private void SaveVocalMusicMetadata(
         Dictionary<string, List<string>> languageCodeToPublications,
-        Dictionary<string, string> languageCodeToNames)
+        Dictionary<string, LanguageInfo> languageCodeToInfo)
     {
         foreach (var languagePublication in languageCodeToPublications)
         {
-            var languageDir = $"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languagePublication.Key}";
+            var languageCode = languagePublication.Key;
+            var languageDir = $"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languageCode}";
             if (!Directory.Exists(languageDir))
             {
                 Directory.CreateDirectory(languageDir);
             }
 
             var publicationsJson = JsonSerializer.Serialize(
-                languagePublication.Value.Select(x => new Publication
+                languagePublication.Value.Select(publicationCode =>
                 {
-                    Code = x,
-                    Name = vocalsPublicationCodeToNameMappings[x]
+                    // Use localized publication name if available, otherwise fall back to English
+                    var name = localizedVocalNames.TryGetValue((languageCode, publicationCode), out var localizedName)
+                        ? localizedName
+                        : vocalsPublicationCodeToNameMappings[publicationCode];
+
+                    return new Publication
+                    {
+                        Code = publicationCode,
+                        Name = name
+                    };
                 }).OrderBy(x => x.Code));
 
             File.WriteAllText($"{languageDir}/publications.json", publicationsJson);
         }
 
         var languagesJson = JsonSerializer.Serialize(
-            languageCodeToPublications.Select(x => new Language
+            languageCodeToPublications.Select(x =>
             {
-                Code = x.Key,
-                Name = languageCodeToNames[x.Key]
+                var info = languageCodeToInfo[x.Key];
+                return new Language
+                {
+                    Code = x.Key,
+                    Name = info.Name,
+                    Direction = info.Direction
+                };
             }).OrderBy(x => x.Code));
 
         File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/languages.json", languagesJson);
@@ -280,15 +309,32 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         var trackNumber = 1;
         var musicTracks = new List<MusicTrack>();
+        string? localizedPubName = null;
 
         foreach (var publicationDownloadCode in publicationDownloadCodes)
         {
-            trackNumber = await FetchAndProcessMusicFiles(publicationDownloadCode, languageCode, trackNumber, musicTracks);
+            var result = await FetchAndProcessMusicFiles(publicationDownloadCode, publicationCode, languageCode, trackNumber, musicTracks);
+            trackNumber = result.TrackNumber;
+
+            // Capture localized publication name (only need it once per publication/language combo)
+            if (localizedPubName == null && result.LocalizedPubName != null)
+            {
+                localizedPubName = result.LocalizedPubName;
+            }
         }
 
         if (musicTracks.Count == 0)
         {
             return false;
+        }
+
+        // Store localized publication name for vocal music
+        if (languageCode != null && !string.IsNullOrEmpty(localizedPubName))
+        {
+            lock (localizedVocalNames)
+            {
+                localizedVocalNames[(languageCode, publicationCode)] = localizedPubName;
+            }
         }
 
         SaveMusicTracks(dir, file, musicTracks);
@@ -302,8 +348,9 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
             : $"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languageCode}/{publicationCode}";
     }
 
-    private async Task<int> FetchAndProcessMusicFiles(
+    private async Task<(int TrackNumber, string? LocalizedPubName)> FetchAndProcessMusicFiles(
         string publicationDownloadCode,
+        string publicationCode,
         string? languageCode,
         int trackNumber,
         List<MusicTrack> musicTracks)
@@ -316,12 +363,12 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
         {
-            return trackNumber;
+            return (trackNumber, null);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Failed to fetch tracks for publication {PublicationCode}. Skipping.", publicationDownloadCode);
-            return trackNumber;
+            return (trackNumber, null);
         }
 
         // Parse and process within the same scope to keep JsonDocument alive
@@ -330,23 +377,33 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
         {
-            return trackNumber;
+            return (trackNumber, null);
         }
 
         var lc = languageCode ?? "E";
         if (!filesElement.TryGetProperty(lc, out var languageFiles) ||
             !languageFiles.TryGetProperty("MP3", out var musicFiles))
         {
-            return trackNumber;
+            return (trackNumber, null);
         }
 
-        return ProcessMusicFiles(musicFiles, publicationDownloadCode, languageCode, trackNumber, musicTracks);
+        // Extract localized publication name from pubName field
+        string? localizedPubName = null;
+        if (root.TryGetProperty("pubName", out var pubNameElement))
+        {
+            localizedPubName = pubNameElement.GetString();
+        }
+
+        var newTrackNumber = ProcessMusicFiles(musicFiles, publicationDownloadCode, languageCode, trackNumber, musicTracks);
+        return (newTrackNumber, localizedPubName);
     }
 
     private static string BuildMusicHarvestLink(string publicationDownloadCode, string? languageCode)
     {
         var langParam = languageCode == null ? "&langwritten=E" : $"&langwritten={languageCode}";
-        return $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationDownloadCode}&fileformat=MP3&alllangs=0{langParam}&txtCMSLang=E";
+        // Use txtCMSLang={languageCode} to get localized publication names and track titles
+        var cmsLang = languageCode ?? "E";
+        return $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationDownloadCode}&fileformat=MP3&alllangs=0{langParam}&txtCMSLang={cmsLang}";
     }
 
     private static int ProcessMusicFiles(
