@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Media.Music;
 
-[Table("VocalMusics")]
+[Table("VocalMusic")]
 [Index(nameof(Code), nameof(LanguageId), IsUnique = true)]
 public sealed class VocalMusic : TranslatedPublication
 {

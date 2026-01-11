@@ -76,7 +76,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
                     b.HasIndex("PublicationCode", "LanguageCode");
 
-                    b.ToTable("AlarmMusics");
+                    b.ToTable("AlarmMusic");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Models.Schedule.AlarmNotification", b =>

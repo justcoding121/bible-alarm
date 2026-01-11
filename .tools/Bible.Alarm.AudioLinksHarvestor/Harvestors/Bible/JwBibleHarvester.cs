@@ -165,7 +165,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
     {
         // Use case-insensitive dictionary to avoid duplicates from case differences
         var discoveredLanguages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&sectionnum=1&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
+        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum=1&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
         var jsonString = await downloadUtility.GetAsync(harvestLink);
         using var doc = JsonDocument.Parse(jsonString);
@@ -212,7 +212,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         var sectionNumberTrackMap = new Dictionary<int, Dictionary<int, BiblePublicationTrack>>();
 
         var sectionNumber = 1;
-        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&sectionnum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
 
         while (sectionNumber <= 66)
         {
@@ -368,7 +368,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         track = trackElement.GetInt32();
 
-        if (!sectionFile.TryGetProperty("sectionnum", out var sectionNumElement))
+        if (!sectionFile.TryGetProperty("booknum", out var sectionNumElement))
         {
             return false;
         }
@@ -489,7 +489,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
     private static void AdvanceToNextSection(ref int sectionNumber, ref string harvestLink, string publicationCode, string languageCode)
     {
         sectionNumber++;
-        harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&sectionnum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
+        harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang=E";
     }
 
     private static void SaveSectionsAndTracks(

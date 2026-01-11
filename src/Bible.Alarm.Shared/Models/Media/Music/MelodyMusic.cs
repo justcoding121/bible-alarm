@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Media.Music;
 
-[Table("MelodyMusics")]
+[Table("MelodyMusic")]
 [Index(nameof(Code), IsUnique = true)]
 public sealed class MelodyMusic : Publication
 {
