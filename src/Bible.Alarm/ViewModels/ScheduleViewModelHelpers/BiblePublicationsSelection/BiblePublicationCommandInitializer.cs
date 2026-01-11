@@ -47,19 +47,6 @@ public sealed class BiblePublicationCommandInitializer
         this.serviceProvider = serviceProvider;
     }
 
-    public ICommand CreateSelectBibleTypeCommand()
-    {
-        return new AsyncRelayCommand(async () =>
-        {
-            logger.Information("BibleSelectionContainerViewModel: SelectBibleTypeCommand - Opening Bible type selection modal");
-            // TODO: Implement BibleTypeSelectionModal similar to MusicSelectionModal
-            // For now, this is a placeholder that logs the action
-            // The modal will allow selecting between BiblePublication, BibleDrama, and DramaticReading
-            await Task.CompletedTask;
-            logger.Debug("BibleSelectionContainerViewModel: SelectBibleTypeCommand - Bible type selection not yet implemented");
-        });
-    }
-
     public ICommand CreateSelectLanguageCommand()
     {
         return new AsyncRelayCommand(async () =>

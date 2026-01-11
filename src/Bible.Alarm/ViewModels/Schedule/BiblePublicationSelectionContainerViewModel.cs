@@ -154,7 +154,6 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
 
     private void InitializeCommands()
     {
-        SelectBibleTypeCommand = commandInitializer.CreateSelectBibleTypeCommand();
         SelectLanguageCommand = commandInitializer.CreateSelectLanguageCommand();
         SelectBibleCommand = commandInitializer.CreateSelectBibleCommand(
             () => biblePublicationSchedule, b => biblePublicationSchedule = b, scheduleId, isNewSchedule, biblePublicationUpdated);
@@ -337,12 +336,10 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
 
 
     public ICommand SelectLanguageCommand { get; private set; } = null!;
-    public ICommand SelectBibleTypeCommand { get; private set; } = null!;
     public ICommand SelectBibleCommand { get; private set; } = null!;
     public ICommand SelectSectionCommand { get; private set; } = null!;
     public ICommand SelectTrackCommand { get; private set; } = null!;
 
-    public string BibleTypeDisplayText => displayTextProvider.GetBibleTypeDisplayText();
     public bool IsSectionVisible => displayTextProvider.GetIsSectionVisible();
     public string LanguageDisplayText => displayTextProvider.GetLanguageDisplayText();
     public string TranslationDisplayText => displayTextProvider.GetTranslationDisplayText();

@@ -22,20 +22,6 @@ public sealed class BiblePublicationDisplayTextProvider
     }
 
     /// <summary>
-    /// Gets the display text for the content type (Bible Reading or Drama type).
-    /// </summary>
-    public string GetBibleTypeDisplayText()
-    {
-        var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
-        {
-            return "Bible Reading";
-        }
-
-        return PublicationTypeHelper.GetContentTypeDisplayName(currentSchedule.BiblePublicationCode);
-    }
-
-    /// <summary>
     /// Determines if the section selection row should be visible.
     /// Returns false for dramas which don't have section selection.
     /// </summary>

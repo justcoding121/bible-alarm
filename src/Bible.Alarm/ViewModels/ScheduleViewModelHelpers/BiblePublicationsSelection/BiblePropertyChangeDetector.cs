@@ -13,7 +13,6 @@ public sealed class BiblePublicationPropertyChangeDetector
     private readonly BiblePublicationDisplayTextProvider displayTextProvider;
 
     // Track last values to prevent unnecessary PropertyChanged notifications
-    private string? lastBibleTypeDisplayText;
     private string? lastLanguageDisplayText;
     private string? lastTranslationDisplayText;
     private string? lastSectionDisplayText;
@@ -41,7 +40,6 @@ public sealed class BiblePublicationPropertyChangeDetector
         lastPublicationCode = publicationCode;
         lastSectionNumber = sectionNumber;
         lastTrackNumber = trackNumber;
-        lastBibleTypeDisplayText = displayTextProvider.GetBibleTypeDisplayText();
         lastLanguageDisplayText = displayTextProvider.GetLanguageDisplayText();
         lastTranslationDisplayText = displayTextProvider.GetTranslationDisplayText();
         lastSectionDisplayText = displayTextProvider.GetSectionDisplayText();
@@ -61,39 +59,36 @@ public sealed class BiblePublicationPropertyChangeDetector
         var sectionNumberChanged = currentSectionNumber != lastSectionNumber;
         var trackNumberChanged = currentTrackNumber != lastTrackNumber;
 
-        // Content type changes when publication code changes to/from a drama type
-        var contentTypeChanged = publicationCodeChanged &&
+        // Section visibility changes when publication code changes to/from a drama type
+        var sectionVisibilityTypeChanged = publicationCodeChanged &&
             PublicationTypeHelper.IsDrama(currentPublicationCode) != PublicationTypeHelper.IsDrama(lastPublicationCode);
 
-        var newBibleTypeDisplayText = displayTextProvider.GetBibleTypeDisplayText();
         var newLanguageDisplayText = displayTextProvider.GetLanguageDisplayText();
         var newTranslationDisplayText = displayTextProvider.GetTranslationDisplayText();
         var newSectionDisplayText = displayTextProvider.GetSectionDisplayText();
         var newTrackDisplayText = displayTextProvider.GetTrackDisplayText();
         var newIsSectionVisible = displayTextProvider.GetIsSectionVisible();
 
-        var bibleTypeDisplayChanged = newBibleTypeDisplayText != lastBibleTypeDisplayText;
         var languageDisplayChanged = newLanguageDisplayText != lastLanguageDisplayText;
         var translationDisplayChanged = newTranslationDisplayText != lastTranslationDisplayText;
         var sectionDisplayChanged = newSectionDisplayText != lastSectionDisplayText;
         var trackDisplayChanged = newTrackDisplayText != lastTrackDisplayText;
         var isSectionVisibleChanged = newIsSectionVisible != lastIsSectionVisible;
 
-        // Content type change (publication code changed to/from drama) cascades to all properties below
-        var notifyBibleType = contentTypeChanged;
-        var notifyLanguage = contentTypeChanged || languageCodeChanged;
-        var notifyTranslation = contentTypeChanged || languageCodeChanged || publicationCodeChanged;
-        var notifySection = contentTypeChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged;
-        var notifyTrack = contentTypeChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged;
-        var notifyIsSectionVisible = contentTypeChanged || isSectionVisibleChanged;
+        // Cascade logic: Language → Translation → Section → Track
+        // IsSectionVisible changes when publication type changes (to/from drama)
+        var notifyLanguage = languageCodeChanged;
+        var notifyTranslation = languageCodeChanged || publicationCodeChanged;
+        var notifySection = languageCodeChanged || publicationCodeChanged || sectionNumberChanged;
+        var notifyTrack = languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged;
+        var notifyIsSectionVisible = sectionVisibilityTypeChanged || isSectionVisibleChanged;
 
-        var displayTextOnlyChanged = (bibleTypeDisplayChanged && !contentTypeChanged) ||
-                                    (languageDisplayChanged && !contentTypeChanged && !languageCodeChanged) ||
-                                    (translationDisplayChanged && !contentTypeChanged && !languageCodeChanged && !publicationCodeChanged) ||
-                                    (sectionDisplayChanged && !contentTypeChanged && !languageCodeChanged && !publicationCodeChanged && !sectionNumberChanged) ||
-                                    (trackDisplayChanged && !contentTypeChanged && !languageCodeChanged && !publicationCodeChanged && !sectionNumberChanged && !trackNumberChanged);
+        var displayTextOnlyChanged = (languageDisplayChanged && !languageCodeChanged) ||
+                                    (translationDisplayChanged && !languageCodeChanged && !publicationCodeChanged) ||
+                                    (sectionDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !sectionNumberChanged) ||
+                                    (trackDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !sectionNumberChanged && !trackNumberChanged);
 
-        var cascadeChangeOccurred = contentTypeChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged;
+        var cascadeChangeOccurred = languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged;
 
         var changeInfo = new PropertyChangeInfo
         {
@@ -101,13 +96,11 @@ public sealed class BiblePublicationPropertyChangeDetector
             CurrentPublicationCode = currentPublicationCode,
             CurrentSectionNumber = currentSectionNumber,
             CurrentTrackNumber = currentTrackNumber,
-            NewBibleTypeDisplayText = newBibleTypeDisplayText,
             NewLanguageDisplayText = newLanguageDisplayText,
             NewTranslationDisplayText = newTranslationDisplayText,
             NewSectionDisplayText = newSectionDisplayText,
             NewTrackDisplayText = newTrackDisplayText,
             NewIsSectionVisible = newIsSectionVisible,
-            NotifyBibleType = notifyBibleType,
             NotifyLanguage = notifyLanguage,
             NotifyTranslation = notifyTranslation,
             NotifySection = notifySection,
@@ -115,12 +108,11 @@ public sealed class BiblePublicationPropertyChangeDetector
             NotifyIsSectionVisible = notifyIsSectionVisible,
             DisplayTextOnlyChanged = displayTextOnlyChanged,
             CascadeChangeOccurred = cascadeChangeOccurred,
-            BibleTypeDisplayChanged = bibleTypeDisplayChanged,
             LanguageDisplayChanged = languageDisplayChanged,
             TranslationDisplayChanged = translationDisplayChanged,
             SectionDisplayChanged = sectionDisplayChanged,
             TrackDisplayChanged = trackDisplayChanged,
-            HasChanges = notifyBibleType || notifyLanguage || notifyTranslation || notifySection || notifyTrack || notifyIsSectionVisible || displayTextOnlyChanged
+            HasChanges = notifyLanguage || notifyTranslation || notifySection || notifyTrack || notifyIsSectionVisible || displayTextOnlyChanged
         };
 
         // Update last values
@@ -128,7 +120,6 @@ public sealed class BiblePublicationPropertyChangeDetector
         lastPublicationCode = currentPublicationCode;
         lastSectionNumber = currentSectionNumber;
         lastTrackNumber = currentTrackNumber;
-        lastBibleTypeDisplayText = newBibleTypeDisplayText;
         lastLanguageDisplayText = newLanguageDisplayText;
         lastTranslationDisplayText = newTranslationDisplayText;
         lastSectionDisplayText = newSectionDisplayText;
@@ -144,13 +135,11 @@ public sealed class BiblePublicationPropertyChangeDetector
         public string? CurrentPublicationCode { get; init; }
         public int? CurrentSectionNumber { get; init; }
         public int? CurrentTrackNumber { get; init; }
-        public string NewBibleTypeDisplayText { get; init; } = string.Empty;
         public string NewLanguageDisplayText { get; init; } = string.Empty;
         public string NewTranslationDisplayText { get; init; } = string.Empty;
         public string NewSectionDisplayText { get; init; } = string.Empty;
         public string NewTrackDisplayText { get; init; } = string.Empty;
         public bool NewIsSectionVisible { get; init; }
-        public bool NotifyBibleType { get; init; }
         public bool NotifyLanguage { get; init; }
         public bool NotifyTranslation { get; init; }
         public bool NotifySection { get; init; }
@@ -158,7 +147,6 @@ public sealed class BiblePublicationPropertyChangeDetector
         public bool NotifyIsSectionVisible { get; init; }
         public bool DisplayTextOnlyChanged { get; init; }
         public bool CascadeChangeOccurred { get; init; }
-        public bool BibleTypeDisplayChanged { get; init; }
         public bool LanguageDisplayChanged { get; init; }
         public bool TranslationDisplayChanged { get; init; }
         public bool SectionDisplayChanged { get; init; }
