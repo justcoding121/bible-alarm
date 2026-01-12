@@ -105,11 +105,11 @@
                                             Grid.Column="1"
                                             IsVisible="{Binding IsSelected}"
                                             BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                            HeightRequest="36"
+                                            HeightRequest="{DynamicResource IconSmallContainerSize}"
                                             HorizontalOptions="End"
                                             StrokeThickness="0"
                                             VerticalOptions="Center"
-                                            WidthRequest="36">
+                                            WidthRequest="{DynamicResource IconSmallContainerSize}">
                                             <Border.StrokeShape>
                                                 <RoundRectangle CornerRadius="18" />
                                             </Border.StrokeShape>
@@ -120,7 +120,7 @@
                                                 Command="{Binding ToggleRepeatCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                                 FontSize="{DynamicResource LargeFontSize}"
-                                                MinimumWidthRequest="36"
+                                                MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
                                                 Padding="0"
                                                 Text="{x:Static fn:GlyphNames.Repeat}"
                                                 TextColor="{Binding Repeat, Converter={StaticResource repeatColorConverter}}"

@@ -136,8 +136,20 @@ public sealed class BiblePublicationSelectionItemSelector
             var (sectionNumber, firstTrackNumber, sectionName, firstTrackTitle) = 
                 await GetFirstSectionAndTrackFromSectionsAsync(language.Code, publicationCode, sections);
 
-            Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Sectioned result: sectionNumber={SectionNumber}, trackNumber={TrackNumber}",
-                sectionNumber, firstTrackNumber);
+            Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Sectioned result: sectionNumber={SectionNumber}, sectionName={SectionName}, trackNumber={TrackNumber}, trackTitle={TrackTitle}",
+                sectionNumber, sectionName, firstTrackNumber, firstTrackTitle);
+
+            // Warn if names are empty but numbers are valid
+            if (sectionNumber > 0 && string.IsNullOrWhiteSpace(sectionName))
+            {
+                Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: SectionName is empty for sectionNumber={SectionNumber}", 
+                    sectionNumber);
+            }
+            if (firstTrackNumber > 0 && string.IsNullOrWhiteSpace(firstTrackTitle))
+            {
+                Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: TrackTitle is empty for trackNumber={TrackNumber}", 
+                    firstTrackNumber);
+            }
 
             return (publicationCode, sectionNumber, firstTrackNumber, sectionName, publicationName, firstTrackTitle);
         }

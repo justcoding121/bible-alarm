@@ -47,7 +47,7 @@
                 <Label
                     FontSize="{DynamicResource HeaderFontSize}"
                     FontAttributes="Bold"
-                    HeightRequest="56"
+                    MinimumHeightRequest="56"
                     Text="Select Track"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
@@ -158,7 +158,7 @@
                     FontSize="{DynamicResource LargeFontSize}"
                     FontAttributes="Bold"
                     HorizontalOptions="Fill"
-                    HeightRequest="50"
+                    MinimumHeightRequest="50"
                     Padding="20,0"
                     Text="CLOSE"
                     TextColor="{DynamicResource PrimaryTextColor}"

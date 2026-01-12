@@ -132,6 +132,20 @@ public sealed class TrackSelectionSyncHandler
                 updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
                 updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
                 updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
+                
+                // Warn if section/track names are empty for a publication change - this may cause empty UI rows
+                if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationSectionName) && biblePub.SectionNumber > 0)
+                {
+                    Log.Warning("TrackSelectionSyncHandler: SectionName is empty after publication change but SectionNumber={SectionNumber} is valid. " +
+                        "Publication={PublicationCode}. This may cause empty section row in UI.",
+                        biblePub.SectionNumber, biblePub.PublicationCode);
+                }
+                if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationTrackTitle) && biblePub.TrackNumber > 0)
+                {
+                    Log.Warning("TrackSelectionSyncHandler: TrackTitle is empty after publication change but TrackNumber={TrackNumber} is valid. " +
+                        "Publication={PublicationCode}. This may cause empty track row in UI.",
+                        biblePub.TrackNumber, biblePub.PublicationCode);
+                }
             }
             else
             {

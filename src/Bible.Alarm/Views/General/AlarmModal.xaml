@@ -111,16 +111,16 @@
                             <Grid Grid.Row="2"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center"
-                                HeightRequest="40"
-                                WidthRequest="40"
+                                HeightRequest="{DynamicResource IconStandardContainerSize}"
+                                WidthRequest="{DynamicResource IconStandardContainerSize}"
                                 Margin="0,8,0,0">
                                 <core:SfBusyIndicator
                                     IsRunning="{Binding ShowPreparingProgress}"
                                     AnimationType="DoubleCircle"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    HeightRequest="40"
-                                    WidthRequest="40"
+                                    HeightRequest="{DynamicResource IconStandardContainerSize}"
+                                    WidthRequest="{DynamicResource IconStandardContainerSize}"
                                     IndicatorColor="{StaticResource PrimaryColor}" />
                             </Grid>
                         </Grid>
@@ -222,15 +222,15 @@
                                 IsVisible="{Binding IsArtworkLoading}"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center"
-                                HeightRequest="50"
-                                WidthRequest="50">
+                                HeightRequest="{DynamicResource IconLargeContainerSize}"
+                                WidthRequest="{DynamicResource IconLargeContainerSize}">
                                 <core:SfBusyIndicator
                                     IsRunning="{Binding IsArtworkLoading}"
                                     AnimationType="DoubleCircle"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    HeightRequest="50"
-                                    WidthRequest="50"
+                                    HeightRequest="{DynamicResource IconLargeContainerSize}"
+                                    WidthRequest="{DynamicResource IconLargeContainerSize}"
                                     IndicatorColor="{StaticResource PrimaryColor}" />
                             </Grid>
                             
@@ -381,9 +381,9 @@
                         VerticalOptions="Center"
                         IsEnabled="{Binding AreControlsEnabled}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="50" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="50" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Label
                             Grid.Column="0"

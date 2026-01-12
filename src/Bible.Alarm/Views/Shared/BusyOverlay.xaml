@@ -28,8 +28,8 @@
             AnimationType="DoubleCircle"
             HorizontalOptions="Center"
             VerticalOptions="Center"
-            HeightRequest="60"
-            WidthRequest="60"
+            HeightRequest="{DynamicResource IconLargeContainerSize}"
+            WidthRequest="{DynamicResource IconLargeContainerSize}"
             IndicatorColor="{StaticResource PrimaryColor}" />
     </Grid>
 </ContentView>

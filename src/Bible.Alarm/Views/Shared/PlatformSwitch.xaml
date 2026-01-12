@@ -13,7 +13,7 @@
                 <Border
                     x:Name="WinUIBorder"
                     VerticalOptions="Center"
-                    WidthRequest="50"
+                    MinimumWidthRequest="50"
                     HorizontalOptions="{Binding HorizontalOptions, Source={RelativeSource AncestorType={x:Type ContentView}}}">
                     <Switch
                         x:Name="WinUISwitch"

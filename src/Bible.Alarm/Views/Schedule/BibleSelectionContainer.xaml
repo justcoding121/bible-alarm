@@ -68,12 +68,12 @@
                 <!-- Language Icon -->
                 <Border Grid.Column="1"
                         BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                        HeightRequest="32"
+                        HeightRequest="{DynamicResource IconSmallContainerSize}"
                         HorizontalOptions="End"
                         Margin="12,0,0,0"
                         StrokeThickness="0"
                         VerticalOptions="Center"
-                        WidthRequest="32">
+                        WidthRequest="{DynamicResource IconSmallContainerSize}">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="16" />
                     </Border.StrokeShape>
@@ -127,12 +127,12 @@
                 <!-- Arrow Indicator -->
                 <Border Grid.Column="1"
                         BackgroundColor="Transparent"
-                        HeightRequest="24"
+                        MinimumHeightRequest="24"
                         HorizontalOptions="End"
                         Margin="8,0,0,0"
                         StrokeThickness="0"
                         VerticalOptions="Center"
-                        WidthRequest="24">
+                        MinimumWidthRequest="24">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{DynamicResource IconSmallFontSize}"
@@ -185,12 +185,12 @@
                 <!-- Arrow Indicator -->
                 <Border Grid.Column="1"
                         BackgroundColor="Transparent"
-                        HeightRequest="24"
+                        MinimumHeightRequest="24"
                         HorizontalOptions="End"
                         Margin="8,0,0,0"
                         StrokeThickness="0"
                         VerticalOptions="Center"
-                        WidthRequest="24">
+                        MinimumWidthRequest="24">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{DynamicResource IconSmallFontSize}"
@@ -241,12 +241,12 @@
                 <!-- Arrow Indicator -->
                 <Border Grid.Column="1"
                         BackgroundColor="Transparent"
-                        HeightRequest="24"
+                        MinimumHeightRequest="24"
                         HorizontalOptions="End"
                         Margin="8,0,0,0"
                         StrokeThickness="0"
                         VerticalOptions="Center"
-                        WidthRequest="24">
+                        MinimumWidthRequest="24">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{DynamicResource IconSmallFontSize}"
