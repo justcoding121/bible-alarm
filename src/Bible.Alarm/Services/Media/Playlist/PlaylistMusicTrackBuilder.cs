@@ -74,7 +74,7 @@ public class PlaylistMusicTrackBuilder
         return currentTrackNumber;
     }
 
-    private static void ValidateTrackSource(AudioSource? source, int trackIndex, string trackType)
+    private static void ValidateTrackSource(Source? source, int trackIndex, string trackType)
     {
         if (source == null)
         {

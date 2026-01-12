@@ -4,11 +4,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Bible.Alarm.Shared.Models.Media;
 
 /// <summary>
-/// Stores unique base URLs for audio sources to avoid redundant storage.
-/// Example: "https://cfp2.jw-cdn.org" which is shared across many audio sources.
+/// Stores unique base URLs for sources to avoid redundant storage.
+/// Example: "https://cfp2.jw-cdn.org" which is shared across many sources.
 /// </summary>
-[Table("AudioSourceBaseUrls")]
-public class AudioSourceBaseUrl
+[Table("SourceBaseUrls")]
+public class SourceBaseUrl
 {
     [Key]
     public int Id { get; set; }

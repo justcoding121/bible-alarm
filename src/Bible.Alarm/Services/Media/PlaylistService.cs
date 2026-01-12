@@ -398,7 +398,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         return trackIndex;
     }
 
-    private static void ValidateTrackSource(AudioSource? source, int trackIndex, string trackType)
+    private static void ValidateTrackSource(Source? source, int trackIndex, string trackType)
     {
         if (source == null)
         {

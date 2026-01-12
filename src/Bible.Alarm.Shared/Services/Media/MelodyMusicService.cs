@@ -124,7 +124,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 // Update BaseUrl if it changed (rare, but handle it)
                 if (track.Source.BaseUrlEntity.BaseUrl != baseUrl)
                 {
-                    var existingBaseUrl = await dbContext.AudioSourceBaseUrls
+                    var existingBaseUrl = await dbContext.SourceBaseUrls
                         .FirstOrDefaultAsync(x => x.BaseUrl == baseUrl, cancellationToken);
                     if (existingBaseUrl != null)
                     {
@@ -132,7 +132,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                     }
                     else
                     {
-                        track.Source.BaseUrlEntity = new AudioSourceBaseUrl { BaseUrl = baseUrl };
+                        track.Source.BaseUrlEntity = new SourceBaseUrl { BaseUrl = baseUrl };
                     }
                 }
 

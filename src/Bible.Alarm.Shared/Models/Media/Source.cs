@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Bible.Alarm.Shared.Models.Media;
 
-[Table("AudioSources")]
-public class AudioSource
+[Table("Sources")]
+public class Source
 {
     [Key]
     public int Id { get; set; }
@@ -20,7 +20,7 @@ public class AudioSource
     /// Navigation property to the base URL entity.
     /// </summary>
     [Required]
-    public AudioSourceBaseUrl BaseUrlEntity { get; set; } = null!;
+    public SourceBaseUrl BaseUrlEntity { get; set; } = null!;
 
     /// <summary>
     /// The URL path (excluding the base URL), e.g., "/a/64c70d/1/o/osg_MY_098.mp3"

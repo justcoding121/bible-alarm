@@ -16,43 +16,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
 
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.AudioSource", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BaseUrlId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("UrlPath")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BaseUrlId");
-
-                    b.ToTable("AudioSources");
-                });
-
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.AudioSourceBaseUrl", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("BaseUrl")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AudioSourceBaseUrls");
-                });
-
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication", b =>
                 {
                     b.Property<int>("Id")
@@ -258,15 +221,41 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.ToTable("VocalMusic");
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.AudioSource", b =>
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Source", b =>
                 {
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.AudioSourceBaseUrl", "BaseUrlEntity")
-                        .WithMany()
-                        .HasForeignKey("BaseUrlId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
 
-                    b.Navigation("BaseUrlEntity");
+                    b.Property<int>("BaseUrlId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UrlPath")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BaseUrlId");
+
+                    b.ToTable("Sources");
+                });
+
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.SourceBaseUrl", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BaseUrl")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SourceBaseUrls");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication", b =>
@@ -303,7 +292,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .WithMany("Tracks")
                         .HasForeignKey("BiblePublicationSectionId");
 
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.AudioSource", "Source")
+                    b.HasOne("Bible.Alarm.Shared.Models.Media.Source", "Source")
                         .WithMany()
                         .HasForeignKey("SourceId");
 
@@ -320,7 +309,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .WithMany("Tracks")
                         .HasForeignKey("MelodyMusicId");
 
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.AudioSource", "Source")
+                    b.HasOne("Bible.Alarm.Shared.Models.Media.Source", "Source")
                         .WithMany()
                         .HasForeignKey("SourceId");
 
@@ -340,6 +329,17 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .IsRequired();
 
                     b.Navigation("Language");
+                });
+
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Source", b =>
+                {
+                    b.HasOne("Bible.Alarm.Shared.Models.Media.SourceBaseUrl", "BaseUrlEntity")
+                        .WithMany()
+                        .HasForeignKey("BaseUrlId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BaseUrlEntity");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication", b =>

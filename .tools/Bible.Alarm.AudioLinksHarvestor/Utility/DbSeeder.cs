@@ -27,7 +27,7 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, DownloadUtility downloadUtility)
 {
     // Cache for base URLs to avoid duplicate lookups
-    private readonly Dictionary<string, AudioSourceBaseUrl> baseUrlCache = new();
+    private readonly Dictionary<string, SourceBaseUrl> baseUrlCache = new();
 
     public async Task Seed()
     {
@@ -279,12 +279,12 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     {
         foreach (var track in tracks)
         {
-            var audioSource = await CreateAudioSource(db, track.Value.Url);
+            var source = await CreateSource(db, track.Value.Url);
             var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
             {
                 Number = track.Value.Number,
                 Title = track.Value.Title, // Localized chapter title (e.g., "അധ്യായം 1" in Malayalam)
-                Source = audioSource,
+                Source = source,
                 Publication = biblePublication
             };
 
@@ -293,14 +293,14 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     }
 
     /// <summary>
-    /// Creates an AudioSource by extracting and caching the base URL.
+    /// Creates a Source by extracting and caching the base URL.
     /// </summary>
-    private async Task<AudioSource> CreateAudioSource(MediaDbContext db, string fullUrl)
+    private async Task<Source> CreateSource(MediaDbContext db, string fullUrl)
     {
         var (baseUrl, urlPath) = ExtractBaseUrlAndPath(fullUrl);
         var baseUrlEntity = await GetOrCreateBaseUrl(db, baseUrl);
 
-        return new AudioSource
+        return new Source
         {
             BaseUrlEntity = baseUrlEntity,
             BaseUrlId = baseUrlEntity.Id,
@@ -336,11 +336,11 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     /// Gets an existing base URL or creates a new one.
     /// Always checks the current database context first to ensure entities are tracked correctly.
     /// </summary>
-    private async Task<AudioSourceBaseUrl> GetOrCreateBaseUrl(MediaDbContext db, string baseUrl)
+    private async Task<SourceBaseUrl> GetOrCreateBaseUrl(MediaDbContext db, string baseUrl)
     {
         // Always check database first in current context to ensure entity is tracked by this context
         // Don't use cached entities directly as they may be from a different DbContext scope
-        var existing = await db.AudioSourceBaseUrls.FirstOrDefaultAsync(x => x.BaseUrl == baseUrl);
+        var existing = await db.SourceBaseUrls.FirstOrDefaultAsync(x => x.BaseUrl == baseUrl);
         if (existing != null)
         {
             // Update cache with entity from current context
@@ -349,8 +349,8 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         }
 
         // Create new
-        var newBaseUrl = new AudioSourceBaseUrl { BaseUrl = baseUrl };
-        db.AudioSourceBaseUrls.Add(newBaseUrl);
+        var newBaseUrl = new SourceBaseUrl { BaseUrl = baseUrl };
+        db.SourceBaseUrls.Add(newBaseUrl);
         await db.SaveChangesAsync();
 
         baseUrlCache[baseUrl] = newBaseUrl;
@@ -441,12 +441,12 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     {
         foreach (var track in tracks)
         {
-            var audioSource = await CreateAudioSource(db, track.Value.Url);
+            var source = await CreateSource(db, track.Value.Url);
             var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
             {
                 Number = track.Value.Number,
                 Title = track.Value.Title,
-                Source = audioSource
+                Source = source
             };
 
             publication.Tracks.Add(newTrack);
@@ -539,12 +539,12 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     {
         foreach (var episode in episodes)
         {
-            var audioSource = await CreateAudioSource(db, episode.Value.Url);
+            var source = await CreateSource(db, episode.Value.Url);
             var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
             {
                 Number = episode.Value.Number,
                 Title = episode.Value.Title,
-                Source = audioSource
+                Source = source
             };
 
             publication.Tracks.Add(newTrack);
@@ -610,12 +610,12 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     {
         foreach (var track in tracks)
         {
-            var audioSource = await CreateAudioSource(db, track.Value.Url);
+            var source = await CreateSource(db, track.Value.Url);
             var newTrack = new Shared.Models.Media.Music.MusicTrack
             {
                 Number = track.Value.Number,
                 Title = track.Value.Title,
-                Source = audioSource
+                Source = source
             };
 
             newMelodyMusic.Tracks.Add(newTrack);
@@ -702,12 +702,12 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     {
         foreach (var track in tracks)
         {
-            var audioSource = await CreateAudioSource(db, track.Value.Url);
+            var source = await CreateSource(db, track.Value.Url);
             var newTrack = new Shared.Models.Media.Music.MusicTrack
             {
                 Number = track.Value.Number,
                 Title = track.Value.Title,
-                Source = audioSource
+                Source = source
             };
 
             newVocalMusic.Tracks.Add(newTrack);

@@ -3,6 +3,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Bible.Alarm.Shared.Models.Media;
 
 namespace Bible.Alarm.Shared.Models.Media.Music;
 
@@ -20,7 +21,7 @@ public sealed class MusicTrack : IComparable
     [MaxLength(255)]
     public string Title { get; set; } = string.Empty;
 
-    public AudioSource? Source { get; set; }
+    public Source? Source { get; set; }
 
     public int CompareTo(object? obj)
     {
