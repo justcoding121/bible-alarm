@@ -14,6 +14,7 @@ namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
 public sealed class SongPublicationSelectionDataProvider(IMediaService mediaService)
 {
     private readonly Dictionary<string, PublicationListViewItemModel> songPublicationVMsMapping = [];
+    private readonly SemaphoreSlim languagePopulationLock = new(1, 1);
 
     public Dictionary<string, PublicationListViewItemModel> SongPublicationVMsMapping => songPublicationVMsMapping;
 
@@ -23,56 +24,65 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
         Action<LanguageListViewItemModel?> setCurrentLanguage,
         string? searchTerm = null)
     {
-        // Do ALL processing on background thread to avoid blocking spinner animation
-        var (languageVMs, selectedLanguage) = await Task.Run(async () =>
+        // Prevent concurrent population which can cause duplicates
+        await languagePopulationLock.WaitAsync();
+        try
         {
-            var languagesFromDb = await mediaService.GetVocalMusicLanguages();
-            var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
-
-            var vms = new List<LanguageListViewItemModel>();
-            LanguageListViewItemModel? selected = null;
-
-            foreach (var language in languagesFromDb.Values
-                         .Where(x => trimmedSearchTerm == null
-                                     || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
-                         .OrderBy(x => x.Name))
+            // Do ALL processing on background thread to avoid blocking spinner animation
+            var (languageVMs, selectedLanguage) = await Task.Run(async () =>
             {
-                var languageVm = new LanguageListViewItemModel(language);
-                vms.Add(languageVm);
+                var languagesFromDb = await mediaService.GetVocalMusicLanguages();
+                var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
-                if (current != null && languageVm.Code == current.LanguageCode)
+                var vms = new List<LanguageListViewItemModel>();
+                LanguageListViewItemModel? selected = null;
+
+                foreach (var language in languagesFromDb.Values
+                             .Where(x => trimmedSearchTerm == null
+                                         || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
+                             .OrderBy(x => x.Name))
                 {
-                    languageVm.IsSelected = true;
-                    selected = languageVm;
+                    var languageVm = new LanguageListViewItemModel(language);
+                    vms.Add(languageVm);
+
+                    if (current != null && languageVm.Code == current.LanguageCode)
+                    {
+                        languageVm.IsSelected = true;
+                        selected = languageVm;
+                    }
                 }
-            }
 
-            return (vms, selected);
-        });
-
-        // Add items in small batches with frequent yields for smooth spinner animation
-        const int batchSize = 15;
-        await MainThread.InvokeOnMainThreadAsync(() => languages.Clear());
-        await Task.Yield(); // Let spinner animate after clear
-
-        for (int i = 0; i < languageVMs.Count; i += batchSize)
-        {
-            var batch = languageVMs.Skip(i).Take(batchSize).ToList();
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                foreach (var lang in batch)
-                {
-                    languages.Add(lang);
-                }
+                return (vms, selected);
             });
 
-            // Yield after every batch for smooth animation
-            await Task.Yield();
-        }
+            // Add items in small batches with frequent yields for smooth spinner animation
+            const int batchSize = 15;
+            await MainThread.InvokeOnMainThreadAsync(() => languages.Clear());
+            await Task.Yield(); // Let spinner animate after clear
 
-        if (selectedLanguage != null)
+            for (int i = 0; i < languageVMs.Count; i += batchSize)
+            {
+                var batch = languageVMs.Skip(i).Take(batchSize).ToList();
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    foreach (var lang in batch)
+                    {
+                        languages.Add(lang);
+                    }
+                });
+
+                // Yield after every batch for smooth animation
+                await Task.Yield();
+            }
+
+            if (selectedLanguage != null)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => setCurrentLanguage(selectedLanguage));
+            }
+        }
+        finally
         {
-            await MainThread.InvokeOnMainThreadAsync(() => setCurrentLanguage(selectedLanguage));
+            languagePopulationLock.Release();
         }
     }
 
