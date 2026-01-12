@@ -245,7 +245,7 @@
                                         Margin="{OnPlatform Default='0,0,12,0',
                                                             iOS='0,0,12,0',
                                                             WinUI='0,0,8,0'}"
-                                        HorizontalOptions="Start"
+                                        HorizontalOptions="Fill"
                                         VerticalOptions="Fill">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
@@ -354,7 +354,7 @@
                                         </Border>
                                     </Grid>
                                     <Grid Grid.Row="1" 
-                                          HorizontalOptions="Start"
+                                          HorizontalOptions="Fill"
                                           VerticalOptions="Start"
                                           RowSpacing="4">
                                         <Grid.RowDefinitions>
@@ -371,7 +371,7 @@
                                                TextColor="{DynamicResource TextPrimaryColor}" />
                                         <Label Grid.Row="1"
                                                Margin="0"
-                                               HorizontalOptions="Start"
+                                               HorizontalOptions="Fill"
                                                HorizontalTextAlignment="Start"
                                                FontSize="14"
                                                Text="{Binding SubTitle}"

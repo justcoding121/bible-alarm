@@ -106,14 +106,21 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var tracks = await dbContext.VocalMusic
+            // Use Include chain before navigation to properly load nested navigation properties
+            var publication = await dbContext.VocalMusic
                 .AsNoTracking()
+                .Include(x => x.Tracks)
+                    .ThenInclude(t => t.Source)
+                        .ThenInclude(src => src!.BaseUrlEntity)
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
-                .SelectMany(x => x.Tracks)
-                .Include(x => x.Source)
-                .OrderBy(x => x.Number)
-                .ToListAsync(cancellationToken);
+                .FirstOrDefaultAsync(cancellationToken);
 
+            if (publication == null)
+            {
+                return new SortedDictionary<int, MusicTrack>();
+            }
+
+            var tracks = publication.Tracks.OrderBy(t => t.Number).ToList();
             return new SortedDictionary<int, MusicTrack>(tracks.ToDictionary(x => x.Number, x => x));
         }
         catch (Exception ex)

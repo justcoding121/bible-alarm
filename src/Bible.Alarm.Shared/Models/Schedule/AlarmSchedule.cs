@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -162,18 +163,61 @@ public sealed class AlarmSchedule : IComparable
             throw new InvalidOperationException("No Bible publications found in database");
         }
 
-        // Use first available language
-        var bibleLanguageCode = bibleLanguages.FirstOrDefault().Key;
-        var biblePublications = await biblePublicationService.GetByLanguageCodeAsync(bibleLanguageCode);
-
-        if (biblePublications == null || biblePublications.Count == 0)
+        // Default to English, fallback to first available language with a sectioned publication
+        const string DefaultLanguageCode = "E";
+        string? bibleLanguageCode = null;
+        string? biblePublicationCode = null;
+        
+        // Try English first
+        if (bibleLanguages.ContainsKey(DefaultLanguageCode))
         {
-            throw new InvalidOperationException($"No Bible publications found for language {bibleLanguageCode}");
+            var englishPublications = await biblePublicationService.GetByLanguageCodeAsync(DefaultLanguageCode);
+            if (englishPublications != null)
+            {
+                foreach (var pub in englishPublications)
+                {
+                    if (PublicationTypeHelper.HasSectionStructure(pub.Key))
+                    {
+                        bibleLanguageCode = DefaultLanguageCode;
+                        biblePublicationCode = pub.Key;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Fallback: find any language with a sectioned publication
+        if (bibleLanguageCode == null)
+        {
+            foreach (var lang in bibleLanguages)
+            {
+                var publications = await biblePublicationService.GetByLanguageCodeAsync(lang.Key);
+                if (publications == null || publications.Count == 0)
+                {
+                    continue;
+                }
+                
+                foreach (var pub in publications)
+                {
+                    if (PublicationTypeHelper.HasSectionStructure(pub.Key))
+                    {
+                        bibleLanguageCode = lang.Key;
+                        biblePublicationCode = pub.Key;
+                        break;
+                    }
+                }
+                
+                if (bibleLanguageCode != null)
+                {
+                    break;
+                }
+            }
         }
 
-        // Use first available publication
-        var firstBiblePublication = biblePublications.FirstOrDefault();
-        var biblePublicationCode = firstBiblePublication.Key;
+        if (bibleLanguageCode == null || biblePublicationCode == null)
+        {
+            throw new InvalidOperationException("No sectioned Bible publication found in database for sample schedule");
+        }
 
         // Get first available melody music from database
         var melodyQueryStart = DateTime.UtcNow;
@@ -223,6 +267,11 @@ public sealed class AlarmSchedule : IComparable
         if (bible == null)
         {
             throw new InvalidOperationException("Bible publication not found for sample schedule");
+        }
+
+        if (bible.Sections == null || bible.Sections.Count == 0)
+        {
+            throw new InvalidOperationException($"No sections found for Bible publication {biblePublicationCode}");
         }
 
         // Use Random.Shared for thread-safe random number generation

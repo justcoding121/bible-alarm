@@ -207,35 +207,21 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
 
         var biblePublicationSchedule = schedule.BiblePublicationSchedule ?? throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {scheduleId}");
-        var sectionNumber = biblePublicationSchedule.SectionNumber ?? throw new InvalidOperationException($"SectionNumber is null for schedule {scheduleId}");
-        var track = biblePublicationSchedule.TrackNumber;
-
-        var trackDetail = await mediaService.GetBiblePublicationTrack(biblePublicationSchedule.LanguageCode,
-            biblePublicationSchedule.PublicationCode, sectionNumber, track);
-
-        if (trackDetail == null)
-        {
-            logger.Error(
-                $"Track: ${track}, section: {sectionNumber}, language: {biblePublicationSchedule.LanguageCode}, pub code: {biblePublicationSchedule.PublicationCode} not in lookup. ");
-            throw new InvalidOperationException($"Track not found: {track}, section: {sectionNumber}");
-        }
-
-        var publicationCode = biblePublicationSchedule.PublicationCode;
-        var languageCode = biblePublicationSchedule.LanguageCode;
-        var url = trackDetail.Source?.Url ?? string.Empty;
-
-        // LookUpPath is now computed from LanguageCode, PublicationCode, SectionNumber, TrackNumber
+        
+        // Use the biblePublicationTrackBuilder which correctly handles both sectioned and non-sectioned publications
+        var trackInfo = await biblePublicationTrackBuilder.GetInitialTrackInfo(biblePublicationSchedule);
+        
         var trackMetadata = new TrackMetadata
         {
             ScheduleId = scheduleId,
-            PublicationCode = publicationCode,
-            LanguageCode = languageCode,
-            SectionNumber = sectionNumber,
-            TrackNumber = track,
+            PublicationCode = biblePublicationSchedule.PublicationCode,
+            LanguageCode = biblePublicationSchedule.LanguageCode,
+            SectionNumber = trackInfo.SectionNumber,
+            TrackNumber = trackInfo.Track.Number,
             IsLastTrack = false
         };
 
-        return new PlayItem(trackMetadata, url);
+        return new PlayItem(trackMetadata, trackInfo.Url);
     }
 
     public async Task<List<PlayItem>> NextTracks(int scheduleId)

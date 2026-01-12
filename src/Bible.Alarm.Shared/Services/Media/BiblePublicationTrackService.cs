@@ -30,16 +30,28 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var tracks = await dbContext.BiblePublications
+            // Use Include chain before SelectMany to properly load nested navigation properties
+            var publication = await dbContext.BiblePublications
                 .AsNoTracking()
+                .Include(p => p.Sections.Where(s => s.Number == sectionNumber))
+                    .ThenInclude(s => s.Tracks)
+                        .ThenInclude(t => t.Source)
+                            .ThenInclude(src => src!.BaseUrlEntity)
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
-                .SelectMany(x => x.Sections)
-                .Where(x => x.Number == sectionNumber)
-                .SelectMany(x => x.Tracks)
-                .Include(x => x.Source)
-                .OrderBy(x => x.Number)
-                .ToListAsync(cancellationToken);
+                .FirstOrDefaultAsync(cancellationToken);
 
+            if (publication == null)
+            {
+                return new SortedDictionary<int, BiblePublicationTrack>();
+            }
+
+            var section = publication.Sections.FirstOrDefault(s => s.Number == sectionNumber);
+            if (section == null)
+            {
+                return new SortedDictionary<int, BiblePublicationTrack>();
+            }
+
+            var tracks = section.Tracks.OrderBy(t => t.Number).ToList();
             return new SortedDictionary<int, BiblePublicationTrack>(tracks.ToDictionary(x => x.Number, x => x));
         }
         catch (Exception ex)
@@ -57,15 +69,19 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.BiblePublications
+            // Use Include chain before SelectMany to properly load nested navigation properties
+            var publication = await dbContext.BiblePublications
                 .AsNoTracking()
+                .Include(p => p.Sections.Where(s => s.Number == sectionNumber))
+                    .ThenInclude(s => s.Tracks.Where(t => t.Number == trackNumber))
+                        .ThenInclude(t => t.Source)
+                            .ThenInclude(src => src!.BaseUrlEntity)
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
-                .SelectMany(x => x.Sections)
-                .Where(x => x.Number == sectionNumber)
-                .SelectMany(x => x.Tracks)
-                .Include(x => x.Source)
-                .Where(x => x.Number == trackNumber)
                 .FirstOrDefaultAsync(cancellationToken);
+
+            return publication?.Sections
+                .FirstOrDefault(s => s.Number == sectionNumber)?
+                .Tracks.FirstOrDefault(t => t.Number == trackNumber);
         }
         catch (Exception ex)
         {

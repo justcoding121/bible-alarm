@@ -155,14 +155,17 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         scheduleStateItem.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;
         scheduleStateItem.BiblePublicationName = currentSchedule.BiblePublicationName;
         
-        // For non-sectioned publications, clear the section name (e.g., dramas, videos)
+        // For non-sectioned publications, clear the section name and use track title (e.g., dramas, videos)
         if (!PublicationTypeHelper.HasSectionStructure(currentSchedule.BiblePublicationCode))
         {
             scheduleStateItem.BiblePublicationSectionName = null;
+            // For dramas/videos, the track title is used as subtitle instead of section name
+            scheduleStateItem.BiblePublicationTrackTitle = currentSchedule.BiblePublicationTrackTitle;
         }
         else
         {
             scheduleStateItem.BiblePublicationSectionName = currentSchedule.BiblePublicationSectionName;
+            scheduleStateItem.BiblePublicationTrackTitle = currentSchedule.BiblePublicationTrackTitle;
         }
         
         scheduleStateItem.MusicLanguageName = currentSchedule.MusicLanguageName;
