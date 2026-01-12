@@ -89,7 +89,7 @@
                                         <!-- Track Title -->
                                         <Label
                                             Grid.Column="0"
-                                            FontSize="16"
+                                            FontSize="{DynamicResource LargeFontSize}"
                                             HorizontalOptions="Fill"
                                             HorizontalTextAlignment="Start"
                                             InputTransparent="True"
@@ -119,7 +119,7 @@
                                                 BorderColor="Transparent"
                                                 Command="{Binding ToggleRepeatCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="16"
+                                                FontSize="{DynamicResource LargeFontSize}"
                                                 MinimumWidthRequest="36"
                                                 Padding="0"
                                                 Text="{x:Static fn:GlyphNames.Repeat}"

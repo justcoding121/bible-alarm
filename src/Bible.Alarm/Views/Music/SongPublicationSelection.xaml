@@ -120,7 +120,7 @@
                                         <!-- Song Section Name -->
                                         <Label
                                             Grid.Column="0"
-                                            FontSize="16"
+                                            FontSize="{DynamicResource LargeFontSize}"
                                             HorizontalOptions="Fill"
                                             HorizontalTextAlignment="Start"
                                             LineBreakMode="WordWrap"

@@ -43,7 +43,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Label Grid.Column="0"
-                       FontSize="16"
+                       FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -109,7 +109,7 @@
                     </Grid.ColumnDefinitions>
                     <Label x:Name="MusicTypeLabel"
                            Grid.Column="0"
-                           FontSize="16"
+                           FontSize="{DynamicResource LargeFontSize}"
                            FontAttributes="None"
                            HorizontalOptions="Fill"
                            HorizontalTextAlignment="Start"
@@ -129,7 +129,7 @@
                             WidthRequest="24">
                         <Label
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="14"
+                            FontSize="{DynamicResource IconSmallFontSize}"
                             HorizontalOptions="Center"
                             HorizontalTextAlignment="Center"
                             InputTransparent="True"
@@ -165,7 +165,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Label Grid.Column="0"
-                           FontSize="16"
+                           FontSize="{DynamicResource LargeFontSize}"
                            FontAttributes="None"
                            HorizontalOptions="Fill"
                            HorizontalTextAlignment="Start"
@@ -185,7 +185,7 @@
                             WidthRequest="24">
                         <Label
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="14"
+                            FontSize="{DynamicResource IconSmallFontSize}"
                             HorizontalOptions="Center"
                             HorizontalTextAlignment="Center"
                             InputTransparent="True"
@@ -221,7 +221,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Label Grid.Column="0"
-                           FontSize="16"
+                           FontSize="{DynamicResource LargeFontSize}"
                            FontAttributes="None"
                            HorizontalOptions="Fill"
                            HorizontalTextAlignment="Start"
@@ -241,7 +241,7 @@
                             WidthRequest="24">
                         <Label
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="14"
+                            FontSize="{DynamicResource IconSmallFontSize}"
                             HorizontalOptions="Center"
                             HorizontalTextAlignment="Center"
                             InputTransparent="True"
@@ -275,7 +275,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Label Grid.Column="0"
-                           FontSize="16"
+                           FontSize="{DynamicResource LargeFontSize}"
                            FontAttributes="None"
                            HorizontalOptions="Fill"
                            HorizontalTextAlignment="Start"
@@ -311,7 +311,7 @@
                                 BorderColor="Transparent"
                                 Command="{Binding ToggleRepeatCommand}"
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="16"
+                                FontSize="{DynamicResource LargeFontSize}"
                                 MinimumWidthRequest="36"
                                 Padding="0"
                                 Text="{x:Static fn:GlyphNames.Repeat}"
@@ -330,7 +330,7 @@
                             WidthRequest="24">
                             <Label
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="14"
+                                FontSize="{DynamicResource IconSmallFontSize}"
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
                                 InputTransparent="True"

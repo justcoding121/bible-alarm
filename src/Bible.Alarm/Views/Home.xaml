@@ -47,11 +47,9 @@
                     Command="{Binding AddScheduleCommand}"
                     IsEnabled="{Binding IsBootstrapReady}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="20"
+                    FontSize="{DynamicResource IconStandardFontSize}"
                     HorizontalOptions="Fill"
-                    HeightRequest="{OnPlatform Default='50',
-                                               WinUI='45',
-                                               iOS='50'}"
+                    HeightRequest="{DynamicResource IconStandardContainerSize}"
                     Padding="0"
                     Text="{x:Static fn:GlyphNames.Plus}"
                     TextColor="White">
@@ -168,19 +166,16 @@
                                           Margin="0,0,0,8"
                                           HorizontalOptions="Center"
                                           VerticalOptions="Center"
-                                          HeightRequest="{OnPlatform iOS='56',
-                                                                    WinUI='48',
-                                                                    Default='56'}"
-                                          WidthRequest="{OnPlatform iOS='56',
-                                                                   WinUI='48',
-                                                                   Default='56'}">
+                                          HeightRequest="{DynamicResource IconLargeContainerSize}"
+                                          WidthRequest="{DynamicResource IconLargeContainerSize}">
                                         <Border
                                                 BackgroundColor="{StaticResource PrimaryColor}"
                                                 StrokeThickness="0"
                                                 HorizontalOptions="Fill"
                                                 VerticalOptions="Fill">
                                             <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="{OnPlatform iOS='28', WinUI='24', Default='28'}" />
+                                                <!-- Large CornerRadius is clipped to create circle regardless of container size -->
+                                                <RoundRectangle CornerRadius="100" />
                                             </Border.StrokeShape>
                                             <Border.Shadow>
                                                 <Shadow Brush="#60000000" 
@@ -193,7 +188,7 @@
                                             </Border.GestureRecognizers>
                                             <Label
                                                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                    FontSize="24"
+                                                    FontSize="{DynamicResource IconLargeFontSize}"
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center"
                                                     Text="{x:Static fn:GlyphNames.Play}"
@@ -224,7 +219,7 @@
                                         </Grid.ColumnDefinitions>
                                         <Label Grid.Column="0"
                                                Padding="0"
-                                               FontSize="{StaticResource AlarmTimeFontSize}"
+                                               FontSize="{DynamicResource AlarmTimeFontSize}"
                                                FontAttributes="Bold"
                                                Text="{Binding TimeText}"
                                                VerticalOptions="Center"
@@ -233,7 +228,7 @@
                                         <Label Grid.Column="1"
                                                Margin="0"
                                                Padding="0"
-                                               FontSize="{StaticResource AlarmMeridianFontSize}"
+                                               FontSize="{DynamicResource AlarmMeridianFontSize}"
                                                Text="{Binding MeridianText}"
                                                VerticalOptions="Center"
                                                TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
@@ -276,7 +271,7 @@
                                                 StrokeShape="RoundRectangle 4,4,4,4">
                                             <Label
                                                     FontAttributes="Bold"
-                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    FontSize="{DynamicResource SmallFontSize}"
                                                     Text="S"
                                                     TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Sunday'}" />
                                         </Border>
@@ -288,7 +283,7 @@
                                                 StrokeShape="RoundRectangle 4,4,4,4">
                                             <Label
                                                     FontAttributes="Bold"
-                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    FontSize="{DynamicResource SmallFontSize}"
                                                     Text="M"
                                                     TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Monday'}" />
                                         </Border>
@@ -300,7 +295,7 @@
                                                 StrokeShape="RoundRectangle 4,4,4,4">
                                             <Label
                                                     FontAttributes="Bold"
-                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    FontSize="{DynamicResource SmallFontSize}"
                                                     Text="T"
                                                     TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Tuesday'}" />
                                         </Border>
@@ -312,7 +307,7 @@
                                                 StrokeShape="RoundRectangle 4,4,4,4">
                                             <Label
                                                     FontAttributes="Bold"
-                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    FontSize="{DynamicResource SmallFontSize}"
                                                     Text="W"
                                                     TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Wednesday'}" />
                                         </Border>
@@ -324,7 +319,7 @@
                                                 StrokeShape="RoundRectangle 4,4,4,4">
                                             <Label
                                                     FontAttributes="Bold"
-                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    FontSize="{DynamicResource SmallFontSize}"
                                                     Text="T"
                                                     TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Thursday'}" />
                                         </Border>
@@ -336,7 +331,7 @@
                                                 StrokeShape="RoundRectangle 4,4,4,4">
                                             <Label
                                                     FontAttributes="Bold"
-                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    FontSize="{DynamicResource SmallFontSize}"
                                                     Text="F"
                                                     TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Friday'}" />
                                         </Border>
@@ -348,7 +343,7 @@
                                                 StrokeShape="RoundRectangle 4,4,4,4">
                                             <Label
                                                     FontAttributes="Bold"
-                                                    FontSize="{OnPlatform WinUI='11', Default={StaticResource SmallFontSize}}"
+                                                    FontSize="{DynamicResource SmallFontSize}"
                                                     Text="S"
                                                     TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Saturday'}" />
                                         </Border>
@@ -360,7 +355,7 @@
                                         <Label Margin="0,0,0,0"
                                                HorizontalOptions="Fill"
                                                HorizontalTextAlignment="Start"
-                                               FontSize="16"
+                                               FontSize="{DynamicResource LargeFontSize}"
                                                FontAttributes="Bold"
                                                Text="{Binding Name}"
                                                TextColor="{DynamicResource TextPrimaryColor}"
@@ -369,10 +364,11 @@
                                         <Label Margin="0"
                                                HorizontalOptions="Fill"
                                                HorizontalTextAlignment="Start"
-                                               FontSize="14"
+                                               FontSize="{DynamicResource MediumFontSize}"
                                                Text="{Binding SubTitle}"
                                                TextColor="{DynamicResource PrimaryTextColor}"
-                                               LineBreakMode="WordWrap" />
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="2" />
                                     </VerticalStackLayout>
                                     <Grid Grid.Row="2"
                                           Grid.Column="0"
@@ -390,7 +386,7 @@
                                                 CornerRadius="6"
                                                 Command="{Binding PreviousCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="20"
+                                                FontSize="{DynamicResource IconStandardFontSize}"
                                                 HorizontalOptions="Start"
                                                 HeightRequest="36"
                                                 WidthRequest="36"
@@ -403,7 +399,7 @@
                                                 CornerRadius="6"
                                                 Command="{Binding NextCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="20"
+                                                FontSize="{DynamicResource IconStandardFontSize}"
                                                 HeightRequest="36"
                                                 WidthRequest="36"
                                                 HorizontalOptions="Start"
@@ -426,12 +422,12 @@
                                             Margin="0,0,0,8"
                                             Padding="0"
                                             BackgroundColor="{StaticResource ErrorColor}"
-                                            CornerRadius="16"
+                                            CornerRadius="100"
                                             Command="{Binding DeleteCommand}"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="14"
-                                            HeightRequest="32"
-                                            WidthRequest="32"
+                                            FontSize="{DynamicResource IconSmallFontSize}"
+                                            HeightRequest="{DynamicResource IconSmallContainerSize}"
+                                            WidthRequest="{DynamicResource IconSmallContainerSize}"
                                             HorizontalOptions="Center"
                                             VerticalOptions="Center"
                                             Text="{x:Static fn:GlyphNames.Trash}"
@@ -464,7 +460,7 @@
                                     <Label Grid.Column="0"
                                             HorizontalOptions="End"
                                             HorizontalTextAlignment="End"
-                                            FontSize="12"
+                                            FontSize="{DynamicResource StandardFontSize}"
                                             Text="{Binding Language}"
                                             TextColor="{DynamicResource PrimaryTextColor}"
                                             IsVisible="{Binding Language, Converter={StaticResource isStringNotEmptyConverter}}"
@@ -473,7 +469,7 @@
                                             HorizontalOptions="End"
                                             VerticalOptions="Center"
                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="12"
+                                            FontSize="{DynamicResource StandardFontSize}"
                                             Text="{x:Static fn:GlyphNames.Music}"
                                             TextColor="{DynamicResource PrimaryTextColor}"
                                             Opacity="0.8"
@@ -494,11 +490,11 @@
         <Button
             AutomationId="AlarmSettingsFloatingButton"
             BackgroundColor="{StaticResource PrimaryColor}"
-            CornerRadius="28"
+            CornerRadius="100"
             Command="{Binding OpenAlarmSettingsCommand}"
             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-            FontSize="20"
-            HeightRequest="56"
+            FontSize="{DynamicResource IconStandardFontSize}"
+            HeightRequest="{DynamicResource IconLargeContainerSize}"
             HorizontalOptions="End"
             IsVisible="{Binding IsFloatingButtonVisible}"
             Margin="0,0,16,16"
@@ -506,7 +502,7 @@
             Padding="0"
             Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
             VerticalOptions="End"
-            WidthRequest="56"
+            WidthRequest="{DynamicResource IconLargeContainerSize}"
             ZIndex="100">
             <Button.Shadow>
                 <Shadow Brush="#40000000" 

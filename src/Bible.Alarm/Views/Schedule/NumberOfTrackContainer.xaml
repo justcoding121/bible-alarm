@@ -52,7 +52,7 @@
                                           NumberOfTapsRequired="1" />
                 </Grid.GestureRecognizers>
                 <Label Grid.Column="0"
-                       FontSize="16"
+                       FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -62,7 +62,7 @@
                        VerticalTextAlignment="Center"
                        IsVisible="True" />
                 <Label Grid.Column="1"
-                       FontSize="16"
+                       FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="End"
                        Text="{Binding CurrentNumberOfTracksText, TargetNullValue=''}"
@@ -94,7 +94,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Label Grid.Column="0"
-                       FontSize="16"
+                       FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -152,7 +152,7 @@
                                           NumberOfTapsRequired="1" />
                 </Grid.GestureRecognizers>
                 <Label Grid.Column="0"
-                       FontSize="16"
+                       FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"

@@ -1,15 +1,16 @@
 #nullable enable
 using System.ComponentModel;
+using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
 /// <summary>
-/// Service for managing scalable font sizes based on device metrics.
+/// Service for managing scalable font sizes based on device metrics and OS accessibility settings.
 /// Uses screen width in density-independent pixels (dp) to determine device category,
-/// then applies density scaling with appropriate caps for optimal readability.
-/// Automatically recalculates when screen size/orientation changes.
+/// then applies both density scaling and OS accessibility font scale for optimal readability.
+/// Automatically recalculates when screen size/orientation changes or OS font scale changes.
 /// </summary>
 public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposable
 {
@@ -24,17 +25,32 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
     private double alarmTimeFontSize;
     private double alarmMeridianFontSize;
     private double alarmBellIconFontSize;
+    private double iconSmallFontSize;
+    private double iconStandardFontSize;
+    private double iconLargeFontSize;
+    private double iconSmallContainerSize;
+    private double iconStandardContainerSize;
+    private double iconLargeContainerSize;
 
-    public FontService()
+    private readonly IAccessibilityFontScaleService accessibilityFontScaleService;
+
+    public FontService(IAccessibilityFontScaleService accessibilityFontScaleService)
     {
+        this.accessibilityFontScaleService = accessibilityFontScaleService;
+
         // Listen for screen size/orientation changes
         DeviceDisplay.MainDisplayInfoChanged += OnDisplayInfoChanged;
+
+        // Listen for OS accessibility font scale changes
+        accessibilityFontScaleService.FontScaleChanged += OnFontScaleChanged;
 
         // Initial calculation
         Recalculate();
     }
 
     private void OnDisplayInfoChanged(object? sender, DisplayInfoChangedEventArgs e) => Recalculate();
+
+    private void OnFontScaleChanged(object? sender, double newScale) => Recalculate();
 
     private void Recalculate()
     {
@@ -86,22 +102,39 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
 
     private void SetWindowsDesktopFallbackFontSizes(double androidAlarmReduction)
     {
-        standardFontSize = 14.0;
-        headerFontSize = 20.0;
-        smallFontSize = 12.0;
-        mediumFontSize = 16.0;
-        largeFontSize = 18.0;
-        titleFontSize = 22.0;
+        // Apply accessibility scale factor even to fallback sizes
+        double accessibilityScale = accessibilityFontScaleService.FontScale;
 
-        alarmTimeFontSize = 30.0;
-        alarmMeridianFontSize = 16.0;
-        alarmBellIconFontSize = 80.0;
+        standardFontSize = 14.0 * accessibilityScale;
+        headerFontSize = 20.0 * accessibilityScale;
+        smallFontSize = 12.0 * accessibilityScale;
+        mediumFontSize = 16.0 * accessibilityScale;
+        largeFontSize = 18.0 * accessibilityScale;
+        titleFontSize = 22.0 * accessibilityScale;
 
-        Log.Logger.Debug("Using Windows desktop fallback fixed font sizes (display info not available)");
+        alarmTimeFontSize = 30.0 * accessibilityScale;
+        alarmMeridianFontSize = 16.0 * accessibilityScale;
+        alarmBellIconFontSize = 80.0 * accessibilityScale;
+
+        // Icon font sizes
+        iconSmallFontSize = 14.0 * accessibilityScale;
+        iconStandardFontSize = 20.0 * accessibilityScale;
+        iconLargeFontSize = 28.0 * accessibilityScale;
+
+        // Icon container sizes
+        iconSmallContainerSize = 32.0 * accessibilityScale;
+        iconStandardContainerSize = 48.0 * accessibilityScale;
+        iconLargeContainerSize = 56.0 * accessibilityScale;
+
+        Log.Logger.Debug("Using Windows desktop fallback font sizes with accessibility scale {AccessibilityScale:F2}",
+            accessibilityScale);
     }
 
     private void SetOtherPlatformFallbackFontSizes(bool isAndroid, double androidAlarmReduction)
     {
+        // Apply accessibility scale factor even to fallback sizes
+        double accessibilityScale = accessibilityFontScaleService.FontScale;
+
         const double BaseStandardSize = 12.0;
         const double BaseHeaderSize = 18.0;
         const double BaseSmallSize = 10.0;
@@ -109,24 +142,36 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         const double BaseLargeSize = 16.0;
         const double BaseTitleSize = 20.0;
 
-        standardFontSize = BaseStandardSize;
-        headerFontSize = BaseHeaderSize;
-        smallFontSize = BaseSmallSize;
-        mediumFontSize = BaseMediumSize;
-        largeFontSize = BaseLargeSize;
-        titleFontSize = BaseTitleSize;
+        standardFontSize = BaseStandardSize * accessibilityScale;
+        headerFontSize = BaseHeaderSize * accessibilityScale;
+        smallFontSize = BaseSmallSize * accessibilityScale;
+        mediumFontSize = BaseMediumSize * accessibilityScale;
+        largeFontSize = BaseLargeSize * accessibilityScale;
+        titleFontSize = BaseTitleSize * accessibilityScale;
+
+        // Icon font sizes
+        iconSmallFontSize = 14.0 * accessibilityScale;
+        iconStandardFontSize = 20.0 * accessibilityScale;
+        iconLargeFontSize = 28.0 * accessibilityScale;
+
+        // Icon container sizes
+        iconSmallContainerSize = 32.0 * accessibilityScale;
+        iconStandardContainerSize = 48.0 * accessibilityScale;
+        iconLargeContainerSize = 56.0 * accessibilityScale;
 
         double baseAlarmTimeSize = 32.0 * androidAlarmReduction;
         double baseAlarmMeridianSize = 18.0 * androidAlarmReduction;
         const double BaseAlarmBellIconSize = 80.0;
 
-        double fallbackMaxTime = isAndroid ? 30.0 : 40.0;
-        double fallbackMaxMeridian = isAndroid ? 16.0 : 22.0;
-        alarmTimeFontSize = Math.Min(baseAlarmTimeSize, fallbackMaxTime);
-        alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize, fallbackMaxMeridian);
-        alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize, 100.0);
+        double accessibilityCap = Math.Max(1.0, accessibilityScale);
+        double fallbackMaxTime = (isAndroid ? 30.0 : 40.0) * accessibilityCap;
+        double fallbackMaxMeridian = (isAndroid ? 16.0 : 22.0) * accessibilityCap;
+        alarmTimeFontSize = Math.Min(baseAlarmTimeSize * accessibilityScale, fallbackMaxTime);
+        alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * accessibilityScale, fallbackMaxMeridian);
+        alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * accessibilityScale, 100.0 * accessibilityCap);
 
-        Log.Logger.Warning("Invalid display info detected on non-Windows platform, using base font sizes as fallback");
+        Log.Logger.Warning("Invalid display info detected on non-Windows platform, using fallback font sizes with accessibility scale {AccessibilityScale:F2}",
+            accessibilityScale);
     }
 
     private void SetScaledFontSizes(DisplayInfo mainDisplayInfo, bool isAndroid, double androidAlarmReduction)
@@ -134,12 +179,18 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         double density = mainDisplayInfo.Density;
         double widthDp = mainDisplayInfo.Width / density;
 
-        double scale = CalculateScaleFactor(widthDp, density);
-        SetStandardFontSizes(scale);
-        SetAlarmFontSizes(scale, widthDp, isAndroid, androidAlarmReduction);
+        // Get the OS accessibility font scale (1.0 = normal, >1.0 = larger for accessibility)
+        double accessibilityScale = accessibilityFontScaleService.FontScale;
+
+        double densityScale = CalculateDensityScaleFactor(widthDp, density);
+        SetStandardFontSizes(densityScale, accessibilityScale);
+        SetAlarmFontSizes(densityScale, accessibilityScale, widthDp, isAndroid, androidAlarmReduction);
+
+        Log.Logger.Debug("Font sizes updated with density scale {DensityScale:F2} and accessibility scale {AccessibilityScale:F2}",
+            densityScale, accessibilityScale);
     }
 
-    private static double CalculateScaleFactor(double widthDp, double density)
+    private static double CalculateDensityScaleFactor(double widthDp, double density)
     {
         bool isPhone = widthDp < 600;
         bool isTablet = widthDp is >= 600 and < 960;
@@ -149,7 +200,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
                Math.Min(density, 2.2);
     }
 
-    private void SetStandardFontSizes(double scale)
+    private void SetStandardFontSizes(double densityScale, double accessibilityScale)
     {
         const double BaseStandardSize = 12.0;
         const double BaseHeaderSize = 18.0;
@@ -158,37 +209,65 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         const double BaseLargeSize = 16.0;
         const double BaseTitleSize = 20.0;
 
-        standardFontSize = Math.Min(BaseStandardSize * scale, 17.0);
-        headerFontSize = Math.Min(BaseHeaderSize * scale, 26.0);
-        smallFontSize = Math.Min(BaseSmallSize * scale, 14.0);
-        mediumFontSize = Math.Min(BaseMediumSize * scale, 19.0);
-        largeFontSize = Math.Min(BaseLargeSize * scale, 22.0);
-        titleFontSize = Math.Min(BaseTitleSize * scale, 30.0);
+        // Icon font sizes (for Font Awesome icons etc.)
+        const double BaseIconSmallSize = 14.0;
+        const double BaseIconStandardSize = 20.0;
+        const double BaseIconLargeSize = 28.0;
+
+        // Apply both density scaling and accessibility scaling
+        // Max caps are also scaled by accessibility factor to allow larger fonts for accessibility
+        double accessibilityCap = Math.Max(1.0, accessibilityScale);
+
+        standardFontSize = Math.Min(BaseStandardSize * densityScale * accessibilityScale, 17.0 * accessibilityCap);
+        headerFontSize = Math.Min(BaseHeaderSize * densityScale * accessibilityScale, 26.0 * accessibilityCap);
+        smallFontSize = Math.Min(BaseSmallSize * densityScale * accessibilityScale, 14.0 * accessibilityCap);
+        mediumFontSize = Math.Min(BaseMediumSize * densityScale * accessibilityScale, 19.0 * accessibilityCap);
+        largeFontSize = Math.Min(BaseLargeSize * densityScale * accessibilityScale, 22.0 * accessibilityCap);
+        titleFontSize = Math.Min(BaseTitleSize * densityScale * accessibilityScale, 30.0 * accessibilityCap);
+
+        // Icon fonts also scale with accessibility - icons should be legible at larger sizes
+        iconSmallFontSize = Math.Min(BaseIconSmallSize * accessibilityScale, 20.0 * accessibilityCap);
+        iconStandardFontSize = Math.Min(BaseIconStandardSize * accessibilityScale, 28.0 * accessibilityCap);
+        iconLargeFontSize = Math.Min(BaseIconLargeSize * accessibilityScale, 40.0 * accessibilityCap);
+
+        // Icon container sizes scale with accessibility so containers grow with icons
+        // Container should be approximately 2x the icon size for proper padding
+        const double BaseIconSmallContainerSize = 32.0;
+        const double BaseIconStandardContainerSize = 48.0;
+        const double BaseIconLargeContainerSize = 56.0;
+
+        iconSmallContainerSize = Math.Min(BaseIconSmallContainerSize * accessibilityScale, 48.0 * accessibilityCap);
+        iconStandardContainerSize = Math.Min(BaseIconStandardContainerSize * accessibilityScale, 72.0 * accessibilityCap);
+        iconLargeContainerSize = Math.Min(BaseIconLargeContainerSize * accessibilityScale, 84.0 * accessibilityCap);
     }
 
-    private void SetAlarmFontSizes(double scale, double widthDp, bool isAndroid, double androidAlarmReduction)
+    private void SetAlarmFontSizes(double densityScale, double accessibilityScale, double widthDp, bool isAndroid, double androidAlarmReduction)
     {
         double baseAlarmTimeSize = 32.0 * androidAlarmReduction;
         double baseAlarmMeridianSize = 18.0 * androidAlarmReduction;
         const double BaseAlarmBellIconSize = 80.0;
 
         bool isPhone = widthDp < 600;
-        var maxSizes = GetAlarmMaxSizes(isPhone, isAndroid);
+        var maxSizes = GetAlarmMaxSizes(isPhone, isAndroid, accessibilityScale);
 
-        alarmTimeFontSize = Math.Min(baseAlarmTimeSize * scale, maxSizes.MaxTime);
-        alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * scale, maxSizes.MaxMeridian);
-        alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * scale, maxSizes.MaxBellIcon);
+        // Apply both density scaling and accessibility scaling to alarm fonts
+        alarmTimeFontSize = Math.Min(baseAlarmTimeSize * densityScale * accessibilityScale, maxSizes.MaxTime);
+        alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * densityScale * accessibilityScale, maxSizes.MaxMeridian);
+        alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * densityScale * accessibilityScale, maxSizes.MaxBellIcon);
     }
 
-    private static (double MaxTime, double MaxMeridian, double MaxBellIcon) GetAlarmMaxSizes(bool isPhone, bool isAndroid)
+    private static (double MaxTime, double MaxMeridian, double MaxBellIcon) GetAlarmMaxSizes(bool isPhone, bool isAndroid, double accessibilityScale)
     {
-        double maxAlarmTimeSize = isPhone
+        // Scale the max sizes by accessibility factor to allow larger fonts when user needs them
+        double accessibilityCap = Math.Max(1.0, accessibilityScale);
+
+        double maxAlarmTimeSize = (isPhone
             ? (isAndroid ? 30.0 : 28.0)
-            : (isAndroid ? 38.0 : 50.0);
-        double maxAlarmMeridianSize = isPhone
+            : (isAndroid ? 38.0 : 50.0)) * accessibilityCap;
+        double maxAlarmMeridianSize = (isPhone
             ? (isAndroid ? 16.0 : 18.0)
-            : (isAndroid ? 21.0 : 28.0);
-        double maxAlarmBellIconSize = isPhone ? 100.0 : 130.0;
+            : (isAndroid ? 21.0 : 28.0)) * accessibilityCap;
+        double maxAlarmBellIconSize = (isPhone ? 100.0 : 130.0) * accessibilityCap;
 
         return (maxAlarmTimeSize, maxAlarmMeridianSize, maxAlarmBellIconSize);
     }
@@ -211,7 +290,8 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         // Unsubscribe from display info changes
         DeviceDisplay.MainDisplayInfoChanged -= OnDisplayInfoChanged;
 
-        // No injected services to dispose (this service has no dependencies)
+        // Unsubscribe from accessibility font scale changes
+        accessibilityFontScaleService.FontScaleChanged -= OnFontScaleChanged;
     }
 
     // Properties (not fields) so bindings work correctly and PropertyChanged can fire
@@ -225,6 +305,12 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
     public double AlarmTimeFontSize => alarmTimeFontSize;
     public double AlarmMeridianFontSize => alarmMeridianFontSize;
     public double AlarmBellIconFontSize => alarmBellIconFontSize;
+    public double IconSmallFontSize => iconSmallFontSize;
+    public double IconStandardFontSize => iconStandardFontSize;
+    public double IconLargeFontSize => iconLargeFontSize;
+    public double IconSmallContainerSize => iconSmallContainerSize;
+    public double IconStandardContainerSize => iconStandardContainerSize;
+    public double IconLargeContainerSize => iconLargeContainerSize;
 
     public double GetScaledFontSize(double baseSizeInPoints)
     {

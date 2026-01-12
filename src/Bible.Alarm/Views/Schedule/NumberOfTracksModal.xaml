@@ -56,7 +56,7 @@
                             Radius="8" />
                 </Border.Shadow>
                 <Label
-                    FontSize="18"
+                    FontSize="{DynamicResource HeaderFontSize}"
                     FontAttributes="Bold"
                     HeightRequest="56"
                     Text="Select Number of Tracks"
@@ -117,7 +117,7 @@
                                         <TapGestureRecognizer Tapped="OnTrackItemTapped" />
                                     </Grid.GestureRecognizers>
                                     <Label
-                                        FontSize="16"
+                                        FontSize="{DynamicResource LargeFontSize}"
                                         HorizontalOptions="Start"
                                         HorizontalTextAlignment="Start"
                                         InputTransparent="True"
@@ -155,7 +155,7 @@
                     BorderColor="Transparent"
                     Command="{Binding CloseModalCommand}"
                     CornerRadius="12"
-                    FontSize="16"
+                    FontSize="{DynamicResource LargeFontSize}"
                     FontAttributes="Bold"
                     HorizontalOptions="Fill"
                     HeightRequest="50"

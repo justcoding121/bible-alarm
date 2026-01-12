@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
@@ -13,6 +14,17 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
     private static readonly ILogger logger = Log.ForContext<WindowSetupService>();
     private bool isDisposed;
 
+    // Base window dimensions (phone-like portrait layout)
+    // Must accommodate content across all pages:
+    // - Home: margins(32) + time(80) + play(56) + days(140) + nav(80) = 388px
+    // - Schedule details: margins(32) + 7 day buttons(7×48=336) + spacing(24) = 392px  
+    // - Alarm modal: margins(48) + 5 media buttons(48+48+64+48+48=256) + spacing(60) = 364px
+    // - Selection pages: margins(32) + text(200) + icon(40) = 272px
+    // Widest is ~400px, add padding for comfort = 450px base
+    private const double BaseWidth = 450;
+    private const double BaseHeight = 850;
+    private const double AspectRatio = BaseHeight / BaseWidth; // ~1.9:1 aspect ratio (phone-like)
+
     public Window CreateWindow(IActivationState? activationState)
     {
         var navigationPage = serviceProvider.GetRequiredService<NavigationPage>();
@@ -22,11 +34,12 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
         var window = new Window(navigationPage);
 
 #if WINDOWS
-        window.Width = 400;
-        window.Height = 800;
+        var (width, height, minWidth, minHeight) = CalculateWindowSize();
+        window.Width = width;
+        window.Height = height;
 #if !DEBUG
-        window.MinimumWidth = 400;
-        window.MinimumHeight = 800;
+        window.MinimumWidth = minWidth;
+        window.MinimumHeight = minHeight;
 #endif
 #endif
 
@@ -148,4 +161,94 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
             });
         }
     }
+
+#if WINDOWS
+    /// <summary>
+    /// Calculates optimal window size based on screen dimensions and accessibility settings.
+    /// Creates a phone-like portrait window that scales with OS font size and fits on screen.
+    /// Considers content requirements across all pages:
+    /// - Home: time, play button, 7 day indicators, nav buttons
+    /// - Schedule details: 7 day selector buttons
+    /// - Alarm modal: 5 media control buttons
+    /// </summary>
+    private (double Width, double Height, double MinWidth, double MinHeight) CalculateWindowSize()
+    {
+        try
+        {
+            // Get OS accessibility font scale factor
+            var accessibilityService = serviceProvider.GetService<IAccessibilityFontScaleService>();
+            double fontScale = accessibilityService?.FontScale ?? 1.0;
+
+            // Get screen dimensions
+            var displayInfo = DeviceDisplay.MainDisplayInfo;
+            double screenWidth = displayInfo.Width / displayInfo.Density;
+            double screenHeight = displayInfo.Height / displayInfo.Density;
+
+            // Calculate minimum width needed based on font scale
+            // Consider widest content across all pages:
+            //
+            // Home page schedule items:
+            //   Margins(32) + Time(80) + Play(56) + Days(140) + Nav(80) + Spacing(50)
+            //
+            // Schedule details page (7 day selector buttons):
+            //   Margins(32) + 7 buttons(7×48=336) + Spacing(24)
+            //
+            // Alarm modal (5 media control buttons):
+            //   Margins(48) + 5 buttons(256) + Spacing(60)
+            //
+            double homePageWidth = 32 + (80 + 56 + 140 + 80) * fontScale + 50;
+            double scheduleDetailsWidth = 32 + (48 * 7) * fontScale + 24;
+            double alarmModalWidth = 48 + (48 + 48 + 64 + 48 + 48) * fontScale + 60;
+            
+            double contentBasedMinWidth = Math.Max(homePageWidth, Math.Max(scheduleDetailsWidth, alarmModalWidth));
+            
+            // Use the larger of base width or content-based minimum
+            double effectiveMinWidth = Math.Max(BaseWidth, contentBasedMinWidth);
+            double effectiveMinHeight = effectiveMinWidth * AspectRatio;
+
+            // Scale target dimensions by accessibility factor
+            double scaledWidth = BaseWidth * fontScale;
+            double scaledHeight = BaseHeight * fontScale;
+
+            // Use the larger of scaled size or effective minimum
+            scaledWidth = Math.Max(scaledWidth, effectiveMinWidth);
+            scaledHeight = Math.Max(scaledHeight, effectiveMinHeight);
+
+            // Reserve space for taskbar and window chrome (approx 100px vertical, 50px horizontal)
+            double maxUsableHeight = screenHeight - 100;
+            double maxUsableWidth = screenWidth - 50;
+
+            // Constrain to fit on screen while maintaining aspect ratio
+            if (scaledHeight > maxUsableHeight)
+            {
+                scaledHeight = maxUsableHeight;
+                scaledWidth = scaledHeight / AspectRatio;
+            }
+
+            if (scaledWidth > maxUsableWidth)
+            {
+                scaledWidth = maxUsableWidth;
+                scaledHeight = scaledWidth * AspectRatio;
+            }
+
+            // Final dimensions
+            double width = scaledWidth;
+            double height = scaledHeight;
+
+            // Minimum dimensions also scale with font size to prevent content clipping
+            double minWidth = Math.Min(effectiveMinWidth, maxUsableWidth);
+            double minHeight = Math.Min(effectiveMinHeight, maxUsableHeight);
+
+            logger.Debug("Window size calculated: {Width:F0}x{Height:F0}, min: {MinWidth:F0}x{MinHeight:F0} (screen: {ScreenWidth:F0}x{ScreenHeight:F0}, fontScale: {FontScale:F2})",
+                width, height, minWidth, minHeight, screenWidth, screenHeight, fontScale);
+
+            return (width, height, minWidth, minHeight);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error calculating window size, using defaults");
+            return (BaseWidth, BaseHeight, BaseWidth, BaseHeight);
+        }
+    }
+#endif
 }

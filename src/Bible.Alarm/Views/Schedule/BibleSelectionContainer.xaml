@@ -52,7 +52,7 @@
                 
                 <!-- Language Name -->
                 <Label Grid.Column="0"
-                       FontSize="16"
+                       FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -76,7 +76,7 @@
                     </Border.StrokeShape>
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="16"
+                        FontSize="{DynamicResource IconStandardFontSize}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
@@ -111,7 +111,7 @@
                 </Grid.ColumnDefinitions>
                 
                 <Label Grid.Column="0"
-                       FontSize="16"
+                       FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -131,7 +131,7 @@
                         WidthRequest="24">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="14"
+                        FontSize="{DynamicResource IconSmallFontSize}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
@@ -168,7 +168,7 @@
                 </Grid.ColumnDefinitions>
                 
                 <Label Grid.Column="0"
-                       FontSize="16"
+                       FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -188,7 +188,7 @@
                         WidthRequest="24">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="14"
+                        FontSize="{DynamicResource IconSmallFontSize}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
@@ -223,7 +223,7 @@
                 </Grid.ColumnDefinitions>
                 
                 <Label Grid.Column="0"
-                       FontSize="16"
+                       FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -243,7 +243,7 @@
                         WidthRequest="24">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="14"
+                        FontSize="{DynamicResource IconSmallFontSize}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"

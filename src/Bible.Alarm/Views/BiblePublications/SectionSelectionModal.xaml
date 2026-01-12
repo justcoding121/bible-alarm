@@ -45,7 +45,7 @@
                             Radius="8" />
                 </Border.Shadow>
                 <Label
-                    FontSize="18"
+                    FontSize="{DynamicResource HeaderFontSize}"
                     FontAttributes="Bold"
                     HeightRequest="56"
                     Text="Select Section"
@@ -114,7 +114,7 @@
                                     
                                     <Label
                                         Grid.Column="0"
-                                        FontSize="16"
+                                        FontSize="{DynamicResource LargeFontSize}"
                                         HorizontalOptions="Fill"
                                         HorizontalTextAlignment="Start"
                                         InputTransparent="True"
@@ -153,7 +153,7 @@
                     BorderColor="Transparent"
                     Command="{Binding CloseModalCommand}"
                     CornerRadius="12"
-                    FontSize="16"
+                    FontSize="{DynamicResource LargeFontSize}"
                     FontAttributes="Bold"
                     HorizontalOptions="Fill"
                     HeightRequest="50"

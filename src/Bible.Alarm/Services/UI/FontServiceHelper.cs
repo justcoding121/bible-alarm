@@ -1,7 +1,18 @@
 #nullable enable
+using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Services.UI.Interfaces;
 
 namespace Bible.Alarm.Services.UI;
+
+/// <summary>
+/// Fallback implementation of IAccessibilityFontScaleService that returns default scale (1.0).
+/// Used only for hot reload compatibility when the real service isn't yet initialized.
+/// </summary>
+internal sealed class FallbackAccessibilityFontScaleService : IAccessibilityFontScaleService
+{
+    public double FontScale => 1.0;
+    public event EventHandler<double>? FontScaleChanged;
+}
 
 /// <summary>
 /// Static helper class to expose FontService properties for XAML binding via x:Static
@@ -40,7 +51,8 @@ public static class FontServiceHelper
         {
             if (fontService == null)
             {
-                fontService = new FontService();
+                // Create with a fallback accessibility service for hot reload scenarios
+                fontService = new FontService(new FallbackAccessibilityFontScaleService());
             }
             return fontService;
         }

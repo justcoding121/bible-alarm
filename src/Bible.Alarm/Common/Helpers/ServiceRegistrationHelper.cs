@@ -161,6 +161,16 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IMediaElementService, MediaElementService>();
         services.AddSingleton<IAudioPlayer, AudioPlayer>();
         services.AddSingleton<IPlaybackService, PlaybackService>();
+
+        // Register platform-specific accessibility font scale service (required by FontService)
+#if ANDROID
+        services.AddSingleton<IAccessibilityFontScaleService, AndroidAccessibilityFontScaleService>();
+#elif IOS
+        services.AddSingleton<IAccessibilityFontScaleService, iOSAccessibilityFontScaleService>();
+#elif WINDOWS
+        services.AddSingleton<IAccessibilityFontScaleService, WindowsAccessibilityFontScaleService>();
+#endif
+
         services.AddSingleton<IFontService, FontService>();
         services.AddSingleton<ISchedulerService, SchedulerService>();
         services.AddSingleton<IDatabaseSeedService, DatabaseSeedService>();

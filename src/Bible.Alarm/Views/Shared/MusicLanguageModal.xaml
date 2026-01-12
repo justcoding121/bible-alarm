@@ -49,7 +49,7 @@
                             Radius="8" />
                 </Border.Shadow>
                 <Label
-                    FontSize="18"
+                    FontSize="{DynamicResource HeaderFontSize}"
                     FontAttributes="Bold"
                     HeightRequest="56"
                     Text="Select Language"
@@ -71,6 +71,7 @@
                 Placeholder="Search languages"
                 Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
                 TextColor="{DynamicResource TextPrimaryColor}"
+                FontSize="{DynamicResource LargeFontSize}"
                 CancelButtonColor="Transparent"
                 IsVisible="{OnPlatform iOS='True', Default='False'}" />
             <!-- Non-iOS: SearchBar with Border wrapper for styling -->
@@ -100,6 +101,7 @@
                     Placeholder="Search languages"
                     Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
                     TextColor="{DynamicResource TextPrimaryColor}"
+                    FontSize="{DynamicResource LargeFontSize}"
                     CancelButtonColor="{DynamicResource TextPrimaryColor}" />
             </Border>
             
@@ -160,7 +162,7 @@
                                         <TapGestureRecognizer Tapped="OnLanguageItemTapped" />
                                     </Grid.GestureRecognizers>
                                     <Label
-                                        FontSize="16"
+                                        FontSize="{DynamicResource LargeFontSize}"
                                         HorizontalOptions="Start"
                                         HorizontalTextAlignment="Start"
                                         InputTransparent="True"
@@ -199,7 +201,7 @@
                     BorderColor="Transparent"
                     Command="{Binding CloseModalCommand}"
                     CornerRadius="12"
-                    FontSize="16"
+                    FontSize="{DynamicResource LargeFontSize}"
                     FontAttributes="Bold"
                     HorizontalOptions="Fill"
                     HeightRequest="50"
