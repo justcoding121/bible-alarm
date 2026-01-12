@@ -74,8 +74,15 @@ public sealed class TrackSelectionSyncHandler
     {
         try
         {
-            Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Received action. CurrentBiblePublicationSchedule: {CurrentBiblePublicationSchedule}",
-                action.CurrentBiblePublicationSchedule != null ? "not null" : "null");
+            var actionPub = action.CurrentBiblePublicationSchedule;
+            Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Received action. " +
+                "CurrentBiblePublicationSchedule: {CurrentBiblePublicationSchedule}, TrackNumber={TrackNumber}, TrackTitle={TrackTitle}, " +
+                "SectionNumber={SectionNumber}, PublicationCode={PublicationCode}",
+                actionPub != null ? "not null" : "null",
+                actionPub?.TrackNumber ?? -1,
+                actionPub?.TrackTitle ?? "(null)",
+                actionPub?.SectionNumber ?? -1,
+                actionPub?.PublicationCode ?? "(null)");
 
             var currentState = state?.Value;
             if (currentState?.CurrentSchedule == null || action.CurrentBiblePublicationSchedule == null)
@@ -146,8 +153,9 @@ public sealed class TrackSelectionSyncHandler
                     : currentSchedule.BiblePublicationTrackTitle;
             }
 
-            Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}",
-                updatedSchedule.Id);
+            Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Dispatching UpdateScheduleFromViewModelAction. " +
+                "ScheduleId: {ScheduleId}, TrackNumber={TrackNumber}, TrackTitle={TrackTitle}, SectionNumber={SectionNumber}",
+                updatedSchedule.Id, updatedSchedule.BiblePublicationTrackNumber, updatedSchedule.BiblePublicationTrackTitle, updatedSchedule.BiblePublicationSectionNumber);
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
         }
         catch (Exception ex)

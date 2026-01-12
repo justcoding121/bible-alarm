@@ -3,6 +3,7 @@ using AutoMapper;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Fluxor;
+using Serilog;
 
 namespace Bible.Alarm.ViewModels.BiblePublications.TrackSelectionViewModelHelpers;
 
@@ -48,15 +49,23 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         var newPublicationCode = currentSchedule.BiblePublicationCode;
         var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
 
-        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
+        // For non-sectioned publications, sectionNumber is 0 or null - that's valid
+        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
+            Log.Debug("TrackSelectionStateManager.HandleBiblePublicationInitialized: Missing language or publication code, returning");
             return;
         }
+
+        // Use 0 for non-sectioned publications
+        var effectiveSectionNumber = newSectionNumber ?? 0;
+
+        Log.Debug("TrackSelectionStateManager.HandleBiblePublicationInitialized: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionNumber={SectionNumber}",
+            newLanguageCode, newPublicationCode, effectiveSectionNumber);
 
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        lastSectionNumber = newSectionNumber.Value;
+        lastSectionNumber = effectiveSectionNumber;
 
         // Update current if we have CurrentBiblePublicationSchedule
         if (stateValue.CurrentBiblePublicationSchedule != null)
@@ -71,7 +80,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionNumber = newSectionNumber.Value,
+                SectionNumber = effectiveSectionNumber,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
@@ -81,7 +90,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-            await initialize(newLanguageCode, newPublicationCode, newSectionNumber.Value);
+            await initialize(newLanguageCode, newPublicationCode, effectiveSectionNumber);
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
         });
@@ -105,15 +114,19 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         var newPublicationCode = currentSchedule.BiblePublicationCode;
         var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
 
-        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
+        // For non-sectioned publications, sectionNumber is 0 or null - that's valid
+        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
             return;
         }
 
+        // Use 0 for non-sectioned publications
+        var effectiveSectionNumber = newSectionNumber ?? 0;
+
         // Check if language, publication code, or section number changed
         var languageChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
-        var sectionNumberChanged = lastSectionNumber != newSectionNumber.Value;
+        var sectionNumberChanged = lastSectionNumber != effectiveSectionNumber;
         var needsRepopulation = languageChanged || publicationCodeChanged || sectionNumberChanged;
 
         if (!needsRepopulation && initComplete)
@@ -124,7 +137,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        lastSectionNumber = newSectionNumber.Value;
+        lastSectionNumber = effectiveSectionNumber;
 
         // Update current if we have CurrentBiblePublicationSchedule
         if (stateValue.CurrentBiblePublicationSchedule != null)
@@ -139,7 +152,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionNumber = newSectionNumber.Value,
+                SectionNumber = effectiveSectionNumber,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
@@ -151,7 +164,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                await initialize(newLanguageCode, newPublicationCode, newSectionNumber.Value);
+                await initialize(newLanguageCode, newPublicationCode, effectiveSectionNumber);
                 await Task.Delay(100);
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
             });
@@ -199,6 +212,55 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = newSectionNumber.Value,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
+            };
+        }
+        lastCurrent = current;
+    }
+
+    /// <summary>
+    /// Updates state from CurrentSchedule, allowing section number 0 for non-sectioned publications.
+    /// </summary>
+    public void UpdateFromStateForNonSectioned(IState<ApplicationState> state, IMapper mapper)
+    {
+        var stateValue = state.Value;
+
+        if (stateValue.CurrentSchedule == null)
+        {
+            return;
+        }
+
+        var currentSchedule = stateValue.CurrentSchedule;
+        var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+        var newPublicationCode = currentSchedule.BiblePublicationCode;
+        var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
+
+        // For non-sectioned publications, sectionNumber is 0 or null - that's valid
+        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
+        {
+            return;
+        }
+
+        // Use 0 for non-sectioned publications
+        var effectiveSectionNumber = newSectionNumber ?? 0;
+
+        // Update tracking variables
+        lastLanguageCode = newLanguageCode;
+        lastPublicationCode = newPublicationCode;
+        lastSectionNumber = effectiveSectionNumber;
+
+        // Update current from CurrentSchedule
+        if (stateValue.CurrentBiblePublicationSchedule != null)
+        {
+            current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
+        }
+        else
+        {
+            current = new BiblePublicationSchedule
+            {
+                LanguageCode = newLanguageCode,
+                PublicationCode = newPublicationCode,
+                SectionNumber = effectiveSectionNumber,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
         }

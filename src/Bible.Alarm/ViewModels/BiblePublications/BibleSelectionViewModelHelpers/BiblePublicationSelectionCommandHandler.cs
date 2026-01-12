@@ -53,8 +53,12 @@ public sealed class BiblePublicationSelectionCommandHandler
     {
         return new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
+            Log.Debug("CreateSectionSelectionCommand: Starting for publication={PublicationCode}, biblePublicationService={HasService}",
+                x?.Code ?? "(null)", biblePublicationService != null);
+
             if (x == null)
             {
+                Log.Warning("CreateSectionSelectionCommand: Publication is null, returning");
                 return;
             }
 
@@ -62,12 +66,14 @@ public sealed class BiblePublicationSelectionCommandHandler
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
+                Log.Warning("CreateSectionSelectionCommand: CurrentSchedule is null, returning");
                 return;
             }
 
             var languageCode = currentSchedule.BiblePublicationLanguageCode;
             if (string.IsNullOrEmpty(languageCode))
             {
+                Log.Warning("CreateSectionSelectionCommand: LanguageCode is empty, returning");
                 return;
             }
 
@@ -89,15 +95,26 @@ public sealed class BiblePublicationSelectionCommandHandler
                 });
             }
 
+            Log.Debug("CreateSectionSelectionCommand: Calling GetSectionAndTrackForPublicationAsync for publication={PublicationCode}, language={LanguageCode}",
+                x.Code, currentLanguage.Code);
+
             var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService);
             var (sectionNumber, trackNumber, sectionName, trackTitle) = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage);
 
-            if (sectionNumber == 0)
+            Log.Debug("CreateSectionSelectionCommand: Result sectionNumber={SectionNumber}, trackNumber={TrackNumber}, trackTitle={TrackTitle}",
+                sectionNumber, trackNumber, trackTitle);
+
+            // trackNumber must be valid; sectionNumber can be 0 for non-sectioned publications (dramas)
+            if (trackNumber <= 0)
             {
+                Log.Warning("CreateSectionSelectionCommand: Invalid trackNumber={TrackNumber}, returning", trackNumber);
                 return;
             }
 
             var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionNumber, trackNumber, sectionName, trackTitle, currentLanguage, currentSchedule);
+
+            Log.Information("CreateSectionSelectionCommand: Dispatching selection for publication={PublicationCode}, section={SectionNumber}, track={TrackNumber}",
+                x.Code, sectionNumber, trackNumber);
 
             var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);

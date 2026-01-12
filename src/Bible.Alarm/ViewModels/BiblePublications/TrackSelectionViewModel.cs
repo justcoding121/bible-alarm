@@ -5,6 +5,7 @@ using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.BiblePublications.TrackSelectionViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -40,7 +41,8 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         IMediaUrlRefreshService urlRefreshService,
         IState<ApplicationState> state,
         IDispatcher dispatcher,
-        IMapper mapper)
+        IMapper mapper,
+        IBiblePublicationService? biblePublicationService = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
@@ -50,7 +52,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
         // Initialize helper classes
         stateManager = new TrackSelectionStateManager(mapper);
-        dataProvider = new TrackSelectionDataProvider(mediaService);
+        dataProvider = new TrackSelectionDataProvider(mediaService, biblePublicationService);
         commandHandler = new TrackSelectionCommandHandler(logger, state, dispatcher, navigationService);
         propertyManager = new TrackSelectionPropertyManager();
 
@@ -114,19 +116,28 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         var newPublicationCode = currentSchedule.BiblePublicationCode;
         var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
 
-        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
+        // For non-sectioned publications (dramas/videos), sectionNumber is 0 or null - that's valid
+        // We only need language and publication codes
+        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
+            Log.Debug("TrackSelectionViewModel.RefreshFromState: Missing language or publication code, returning");
             return;
         }
 
-        stateManager.UpdateFromState(state, mapper);
+        // Use 0 as section number for non-sectioned publications
+        var effectiveSectionNumber = newSectionNumber ?? 0;
+
+        Log.Debug("TrackSelectionViewModel.RefreshFromState: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionNumber={SectionNumber}",
+            newLanguageCode, newPublicationCode, effectiveSectionNumber);
+
+        stateManager.UpdateFromStateForNonSectioned(state, mapper);
 
         // Ensure tracks are populated if not already initialized
         if (!stateManager.InitComplete || propertyManager.Tracks == null || propertyManager.Tracks.Count == 0)
         {
             stateManager.SetInitComplete(true);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
-            await Initialize(newLanguageCode, newPublicationCode, newSectionNumber.Value);
+            await Initialize(newLanguageCode, newPublicationCode, effectiveSectionNumber);
             // Set selected track after tracks are populated
             SetSelectedTrack();
             await Task.Delay(100);
@@ -177,6 +188,9 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private async Task Initialize(string languageCode, string publicationCode, int sectionNumber)
     {
+        Log.Debug("TrackSelectionViewModel.Initialize: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionNumber={SectionNumber}, current.TrackNumber={CurrentTrackNumber}",
+            languageCode, publicationCode, sectionNumber, stateManager.Current?.TrackNumber ?? -1);
+
         await dataProvider.PopulateTracks(
             languageCode,
             publicationCode,

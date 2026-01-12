@@ -76,7 +76,7 @@ public partial class AnimatedProgressBar : ContentView
         animationCts = null;
 
         // Reset to start position
-        AnimatedSegment.PublicationX = 0;
+        AnimatedSegment.TranslationX = 0;
     }
 
     private async Task AnimateAsync(CancellationToken cancellationToken)
@@ -95,7 +95,7 @@ public partial class AnimatedProgressBar : ContentView
                 }
 
                 // Animate from left to right
-                await AnimatedSegment.TranslateTo(maxPublication, 0, AnimationDurationMs, Easing.SinInOut);
+                await AnimatedSegment.TranslateToAsync(maxPublication, 0, AnimationDurationMs, Easing.SinInOut);
 
                 if (cancellationToken.IsCancellationRequested || !isAnimating)
                 {
@@ -103,7 +103,7 @@ public partial class AnimatedProgressBar : ContentView
                 }
 
                 // Animate from right to left
-                await AnimatedSegment.TranslateTo(0, 0, AnimationDurationMs, Easing.SinInOut);
+                await AnimatedSegment.TranslateToAsync(0, 0, AnimationDurationMs, Easing.SinInOut);
             }
         }
         catch (TaskCanceledException)

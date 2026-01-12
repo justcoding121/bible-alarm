@@ -25,7 +25,7 @@
             VerticalOptions="Center"
             HorizontalOptions="Start"
             WidthRequest="120"
-            PublicationX="0" />
+            TranslationX="0" />
     </Grid>
 </ContentView>
 

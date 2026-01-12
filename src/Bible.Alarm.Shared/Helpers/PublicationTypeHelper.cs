@@ -14,7 +14,8 @@ public static class PublicationTypeHelper
     private static readonly HashSet<string> DramaPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
         "Dramas",
-        "DramaticBibleReadings"
+        "DramaticBibleReadings",
+        "gnj" // Good News According to Jesus (video)
     };
 
     /// <summary>
@@ -66,6 +67,7 @@ public static class PublicationTypeHelper
         {
             "dramas" => "Audio Bible Dramas",
             "dramaticbiblereadings" => "Dramatic Bible Readings",
+            "gnj" => "Good News According to Jesus",
             _ => "Bible Reading"
         };
     }

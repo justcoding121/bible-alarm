@@ -5,6 +5,7 @@ using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
@@ -39,7 +40,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         IDispatcher dispatcher,
         INavigationService navigationService,
         IMapper mapper,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IBiblePublicationService? biblePublicationService = null)
     {
         this.state = state;
         this.mapper = mapper;
@@ -48,7 +50,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         // Initialize services
         dataProvider = new BiblePublicationSelectionDataProvider(mediaService, state, dispatcher);
         stateHandler = new BiblePublicationSelectionStateHandler(mediaService, state, mapper, dataProvider);
-        commandHandler = new BiblePublicationSelectionCommandHandler(mediaService, state, dispatcher, navigationService, mapper);
+        commandHandler = new BiblePublicationSelectionCommandHandler(mediaService, state, dispatcher, navigationService, mapper, biblePublicationService);
         propertyManager = new BiblePublicationSelectionPropertyManager(state, dataProvider, stateHandler);
 
         // Initialize current from state if available (map DTO to entity)

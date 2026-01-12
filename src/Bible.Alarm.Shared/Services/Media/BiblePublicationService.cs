@@ -51,11 +51,17 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.BiblePublications
+            // Load publication with only non-sectioned tracks (tracks directly under publication, not under a section)
+            var publication = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Tracks)
+                .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .Where(x => x.Code == publicationCode && x.Language.Code == languageCode)
                 .FirstOrDefaultAsync(cancellationToken);
+
+            logger.Debug("GetByLanguageAndCodeWithTracksAsync: Loaded publication={PublicationName}, TracksCount={TracksCount} for language={LanguageCode}, code={PublicationCode}",
+                publication?.Name ?? "(null)", publication?.Tracks?.Count ?? 0, languageCode, publicationCode);
+
+            return publication;
         }
         catch (Exception ex)
         {
@@ -77,10 +83,15 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .Where(x => x.Language.Code == languageCode)
                 .ToListAsync(cancellationToken);
 
+            logger.Debug("GetByLanguageCodeAsync: Found {PublicationCount} publications for language={LanguageCode}",
+                publicationsList.Count, languageCode);
+
             // Handle potential duplicates gracefully - use first occurrence
             var result = new Dictionary<string, BiblePublication>();
             foreach (var publication in publicationsList)
             {
+                logger.Debug("GetByLanguageCodeAsync: Publication code={Code}, name={Name}",
+                    publication.Code, publication.Name);
                 if (!result.ContainsKey(publication.Code))
                 {
                     result[publication.Code] = publication;
@@ -113,8 +124,8 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            logger.Information("BiblePublicationService.GetDistinctLanguagesAsync: Found {PublicationCount} Bible publications across {LanguageCount} distinct languages",
-                biblePublicationsCount, distinctLanguages.Count);
+            logger.Information("BiblePublicationService.GetDistinctLanguagesAsync: Found {PublicationCount} Bible publications across {LanguageCount} distinct languages: {LanguageCodes}",
+                biblePublicationsCount, distinctLanguages.Count, string.Join(", ", distinctLanguages.Select(l => $"{l.Code}:{l.Name}")));
 
             return distinctLanguages.ToDictionary(x => x.Code, x => x);
         }
