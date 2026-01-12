@@ -156,7 +156,7 @@ internal static class ForegroundNotificationHelper
         if (mediaSession?.SessionToken is { } sessionToken)
         {
             var mediaStyle = new MediaStyle()
-                .SetMediaSession(sessionToken)
+                .SetMediaSession(sessionToken)!
                 .SetShowActionsInCompactView(0); // Show first action (play) in compact view
 
             // MediaStyle fluent API always returns non-null, but compiler doesn't know this

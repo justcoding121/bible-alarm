@@ -46,17 +46,20 @@ public sealed class ForegroundServiceCoordinator
             if (state.IsAndroidAutoConnected)
             {
                 logger.Debug("Android Auto already marked as connected");
+                // Update service reference in case it changed
                 state.SetAndroidAutoConnected(true, service);
                 return;
             }
 
             state.SetAndroidAutoConnected(true, service);
-            logger.Information("Android Auto connected - will start foreground service if metadata is available and app is not in foreground");
+            logger.Information("Android Auto connected - will start foreground service if metadata is available and MediaElement is not active");
 
-            // Skip foreground service if app is already in foreground or has active foreground service
-            if (ForegroundServiceValidator.ShouldSkipForegroundServiceStart(state))
+            // Check if MediaElement is active - if so, don't start Android Auto foreground service
+            // NOTE: Do NOT check App.IsInForeground here - the old working code never had this check!
+            // Android Auto foreground service is needed for the notification/media session.
+            if (ForegroundServiceValidator.IsMediaElementActive(state))
             {
-                logger.Information("Android Auto connected but app is in foreground or has active foreground service - skipping foreground service start");
+                logger.Information("Android Auto connected but MediaElement is active - will start foreground service when MediaElement stops");
                 return;
             }
 
@@ -66,6 +69,11 @@ public sealed class ForegroundServiceCoordinator
 
     private static void TryStartForegroundWithMetadata(Service service)
     {
+        // ALWAYS start foreground service when Android Auto connects
+        // This prevents Android from killing the process before bootstrap completes.
+        // If real metadata isn't available yet, we use placeholder metadata ("Bible Alarm" / "Ready to play")
+        // which is handled by ForegroundNotificationHelper.CreateNotification().
+        // The notification will be updated with real metadata when SetDefaultScheduleMetadataAction is dispatched.
         var session = MediaSessionHelper.Create();
         if (session == null)
         {
@@ -73,10 +81,6 @@ public sealed class ForegroundServiceCoordinator
             return;
         }
 
-        // MediaSession is created before bootstrap, so it may not have metadata yet.
-        // ForegroundNotificationHelper.CreateNotification handles missing metadata with fallbacks
-        // ("Bible Alarm" / "Ready to play"), so we can start the foreground service immediately.
-        // The notification will be updated when metadata is set later.
         var hasMetadata = session.Controller?.Metadata != null &&
             !string.IsNullOrEmpty(session.Controller.Metadata.GetString(MediaMetadataCompat.MetadataKeyTitle));
 
@@ -86,9 +90,10 @@ public sealed class ForegroundServiceCoordinator
         }
         else
         {
-            logger.Information("Android Auto connected but no metadata yet (early bootstrap) - starting foreground service with fallback notification");
+            logger.Information("Android Auto connected - starting foreground service with placeholder metadata to prevent process kill");
         }
 
+        // Always start foreground - notification helper will use fallback text if no metadata
         RequestForAndroidAuto(service, session);
     }
 
@@ -265,12 +270,10 @@ public sealed class ForegroundServiceCoordinator
                 return false;
             }
 
-            // Skip if app is already in foreground or has active foreground service
-            if (ForegroundServiceValidator.ShouldSkipForegroundServiceStart(state))
-            {
-                logger.Information("Skipping Android Auto foreground service start - app is in foreground or has active foreground service");
-                return false;
-            }
+            // NOTE: Do NOT check App.IsInForeground here!
+            // The old working code never checked if the app was in foreground.
+            // Android Auto foreground service is needed for the notification/media session,
+            // not just for keeping the app alive. It should ALWAYS start when Android Auto connects.
 
             if (ForegroundServiceValidator.ShouldUpdateAndroidAutoForeground(state))
             {

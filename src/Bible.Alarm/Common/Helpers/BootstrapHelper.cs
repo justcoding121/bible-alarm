@@ -305,35 +305,21 @@ public static class BootstrapHelper
 
     private static async Task ExecuteBootstrapWithErrorHandlingAsync(IServiceProvider services, bool isForeground, string context)
     {
-#if DEBUG
-        var bootstrapStartTime = bootstrapStopwatch.ElapsedMilliseconds;
-#endif
         try
         {
 #if DEBUG
+            var bootstrapStartTime = bootstrapStopwatch.ElapsedMilliseconds;
             Log.Logger.Information("[BOOTSTRAP] Bootstrap starting {Context} at {ElapsedMs}ms", context, bootstrapStartTime);
 #endif
             await RunBootstrap(services, isForeground);
+            bootstrapCompleted = true;
 
 #if DEBUG
             var bootstrapElapsed = bootstrapStopwatch.ElapsedMilliseconds - bootstrapStartTime;
             Log.Logger.Information("[BOOTSTRAP] Bootstrap completed {Context} in {ElapsedMs}ms (total: {TotalMs}ms)", context, bootstrapElapsed, bootstrapStopwatch.ElapsedMilliseconds);
 #endif
 
-            Log.Logger.Information("Bootstrap completed {Context}", context);
-        }
-        catch (Exception ex)
-        {
-            Log.Logger.Error(ex, "Error in bootstrap initialization {Context} - continuing anyway", context);
-            // Don't re-throw - allow app to continue even if bootstrap fails
-        }
-        finally
-        {
-            // CRITICAL: Always mark bootstrap as completed, even on failure
-            // This prevents infinite polling loops in BootstrapReadyManager
-            bootstrapCompleted = true;
-
-            // Signal waiting tasks that bootstrap is complete (even on failure)
+            // Signal waiting tasks that bootstrap is complete
             // CRITICAL: Always ensure completion source exists and is set, even if no one was waiting
             // This prevents issues where WaitForBootstrap() is called after bootstrap completes
             lock (bootstrapWaitLock)
@@ -350,10 +336,25 @@ public static class BootstrapHelper
                 }
             }
 
-#if DEBUG
-            var totalElapsed = bootstrapStopwatch.ElapsedMilliseconds - bootstrapStartTime;
-            Log.Logger.Information("[BOOTSTRAP] Bootstrap finalized {Context} in {ElapsedMs}ms (total: {TotalMs}ms)", context, totalElapsed, bootstrapStopwatch.ElapsedMilliseconds);
-#endif
+            Log.Logger.Information("Bootstrap completed {Context}", context);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Error(ex, "Error in bootstrap initialization {Context}", context);
+
+            // Signal failure to waiting tasks
+            lock (bootstrapWaitLock)
+            {
+                if (bootstrapCompletionSource == null)
+                {
+                    bootstrapCompletionSource = new TaskCompletionSource<bool>();
+                    bootstrapCompletionSource.TrySetException(ex);
+                }
+                else if (!bootstrapCompletionSource.Task.IsCompleted)
+                {
+                    bootstrapCompletionSource.TrySetException(ex);
+                }
+            }
         }
     }
 

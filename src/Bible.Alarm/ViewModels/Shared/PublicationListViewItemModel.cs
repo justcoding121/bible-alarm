@@ -15,7 +15,7 @@ public sealed class PublicationListViewItemModel(Publication publication) : Obse
     }
 
     /// <summary>
-    /// Gets the publication name with HTML entities decoded (e.g., &nbsp; → space) and non-breaking spaces replaced with regular spaces.
+    /// Gets the publication name with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
     /// </summary>
     public string Name => WebUtility.HtmlDecode(publication.Name).Replace('\u00A0', ' ');
     public string Code => publication.Code;

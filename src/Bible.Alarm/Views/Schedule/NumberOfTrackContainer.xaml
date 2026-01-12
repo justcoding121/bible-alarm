@@ -62,10 +62,11 @@
                        IsVisible="True" />
                 <Label Grid.Column="1"
                        FontSize="{DynamicResource LargeFontSize}"
-                       FontAttributes="None"
+                       FontAttributes="Bold"
                        HorizontalOptions="End"
+                       Margin="12,0,0,0"
                        Text="{Binding CurrentNumberOfTracksText, TargetNullValue=''}"
-                       TextColor="{DynamicResource TextPrimaryColor}"
+                       TextColor="{StaticResource PrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center"
                        IsVisible="True" />

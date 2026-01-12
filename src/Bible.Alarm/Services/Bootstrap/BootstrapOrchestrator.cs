@@ -3,6 +3,7 @@
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Bootstrap.Interfaces;
+using Bible.Alarm.Services.Database.Interfaces;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
@@ -21,19 +22,22 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
     private readonly IResourceBootstrapService resourceBootstrapService;
     private readonly IScheduleBootstrapService scheduleBootstrapService;
     private readonly IPlatformBootstrapService platformBootstrapService;
+    private readonly IDatabaseSeedService databaseSeedService;
 
     public BootstrapOrchestrator(
         IDatabaseBootstrapService databaseBootstrapService,
         IFluxorBootstrapService fluxorBootstrapService,
         IResourceBootstrapService resourceBootstrapService,
         IScheduleBootstrapService scheduleBootstrapService,
-        IPlatformBootstrapService platformBootstrapService)
+        IPlatformBootstrapService platformBootstrapService,
+        IDatabaseSeedService databaseSeedService)
     {
         this.databaseBootstrapService = databaseBootstrapService;
         this.fluxorBootstrapService = fluxorBootstrapService;
         this.resourceBootstrapService = resourceBootstrapService;
         this.scheduleBootstrapService = scheduleBootstrapService;
         this.platformBootstrapService = platformBootstrapService;
+        this.databaseSeedService = databaseSeedService;
     }
 
     public async Task VerifyServicesAsync(bool initializeUi = false)
@@ -77,40 +81,54 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                 // Track if we should send early navigation (only for UI initialization)
                 shouldSendEarlyNav = initializeUi;
 
-                try
+                // Run database and IO operations off UI thread
+                await Task.Run(async () =>
                 {
-                    // Run database and IO operations off UI thread
-                    await Task.Run(async () =>
+#if DEBUG
+                    var verifyMediaStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
+                    // Run all bootstrap tasks in parallel
+                    var task1 = databaseBootstrapService.InitializeAsync();
+                    var task2 = fluxorBootstrapService.InitializeAsync();
+                    var task3 = resourceBootstrapService.CopyResourcesAsync();
+
+                    await Task.WhenAll(task1, task2, task3);
+#if DEBUG
+                    var verifyMediaElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - verifyMediaStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                    Log.Logger.Information("[BOOTSTRAP] Media index verification/copy completed in {ElapsedMs:F2}ms", verifyMediaElapsed);
+#endif
+
+                    // EARLY SEEDING: Seed default schedule immediately after database is ready
+                    // This ensures Preferences has metadata for Android Auto even before full bootstrap completes.
+                    // The seeding also saves basic metadata to Preferences for early MediaSession setup.
+                    try
+                    {
+                        await databaseSeedService.SeedDefaultAlarmAsync();
+                        Log.Logger.Debug("[BOOTSTRAP] Early seeding completed - Preferences should now have metadata");
+                    }
+                    catch (Exception seedEx)
+                    {
+                        Log.Logger.Warning(seedEx, "[BOOTSTRAP] Early seeding failed, continuing bootstrap");
+                    }
+
+                    // Send InitializedMessage early (after database/Fluxor are ready) to show UI with loading state
+                    // This improves perceived performance - user sees the home page while schedules are being populated
+                    if (shouldSendEarlyNav)
                     {
 #if DEBUG
-                        var verifyMediaStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+                        var earlyNavStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+                        Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage early (before schedule population)");
 #endif
-                        // Run all bootstrap tasks in parallel
-                        var task1 = databaseBootstrapService.InitializeAsync();
-                        var task2 = fluxorBootstrapService.InitializeAsync();
-                        var task3 = resourceBootstrapService.CopyResourcesAsync();
-
-                        await Task.WhenAll(task1, task2, task3);
-#if DEBUG
-                        var verifyMediaElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - verifyMediaStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                        Log.Logger.Information("[BOOTSTRAP] Media index verification/copy completed in {ElapsedMs:F2}ms", verifyMediaElapsed);
-#endif
-
-                        // Send InitializedMessage early (after database/Fluxor are ready) to show UI with loading state
-                        // Use fire-and-forget to not block bootstrap - Home page creation runs in parallel with schedule loading
-                        // This ensures the progress bar animation gets UI thread time to run smoothly
-                        if (shouldSendEarlyNav)
+                        try
                         {
-#if DEBUG
-                            Log.Logger.Information("[BOOTSTRAP] Sending InitializedMessage early (fire-and-forget, before schedule population)");
-#endif
                             MainThread.BeginInvokeOnMainThread(() =>
                             {
                                 try
                                 {
                                     WeakReferenceMessenger.Default.Send(new InitializedMessage());
 #if DEBUG
-                                    Log.Logger.Information("[BOOTSTRAP] Early InitializedMessage sent - Navigation triggered");
+                                    var earlyNavElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - earlyNavStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                                    Log.Logger.Information("[BOOTSTRAP] Early InitializedMessage sent - Navigation triggered in {ElapsedMs:F2}ms", earlyNavElapsed);
 #endif
                                 }
                                 catch (Exception ex)
@@ -119,40 +137,31 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                                 }
                             });
                         }
+                        catch (Exception ex)
+                        {
+                            Log.Logger.Error(ex, "Error invoking MainThread for early InitializedMessage");
+                        }
+                    }
 
-                        // Load schedules in parallel with Home page creation
-                        // HomeViewModel will read state.Value on construction - if schedules are already loaded, it shows them immediately
-                        // If schedules aren't loaded yet, HomeViewModel shows progress bar and updates when InitializeAction arrives
-                        await scheduleBootstrapService.InitializeAsync();
+                    // After database and Fluxor store are initialized, load schedules into state
+                    // This ensures schedules are available for both Android Auto services and main UI
+                    // UI is already showing (via early InitializedMessage), so user sees loading state
+                    await scheduleBootstrapService.InitializeAsync();
 
-                        // Initialize platform-specific services (notification channels, background jobs)
-                        // This runs after core bootstrap to ensure platform setup regardless of entry point
-                        await platformBootstrapService.InitializeAsync();
-                    });
-
-                    Log.Logger.Information("[BOOTSTRAP] Bootstrap tasks completed successfully");
-                }
-                catch (Exception ex)
-                {
-                    // Log the error but don't re-throw - allow app to continue
-                    // Bootstrap failure is recoverable in most cases
-                    Log.Logger.Error(ex, "[BOOTSTRAP] Error during bootstrap initialization - continuing anyway");
-                }
-                finally
-                {
-                    // CRITICAL: Always mark bootstrap as completed, even on failure
-                    // This prevents infinite polling loops in BootstrapReadyManager
-                    servicesVerified = true;
-
-                    // Set bootstrap completion flag so IsBootstrapCompleted() works correctly
-                    // This ensures the flag is set regardless of success or failure
-                    BootstrapHelper.MarkBootstrapCompleted();
-
+                    // Initialize platform-specific services (notification channels, background jobs)
+                    // This runs after core bootstrap to ensure platform setup regardless of entry point
+                    await platformBootstrapService.InitializeAsync();
+                });
+                servicesVerified = true;
+                
+                // Set bootstrap completion flag so IsBootstrapCompleted() works correctly
+                // This ensures the flag is set regardless of which bootstrap path is taken
+                BootstrapHelper.MarkBootstrapCompleted();
+                
 #if DEBUG
-                    var dbOpsElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - dbOpsStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                    Log.Logger.Information("[BOOTSTRAP] Database and IO operations completed in {ElapsedMs:F2}ms", dbOpsElapsed);
+                var dbOpsElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - dbOpsStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                Log.Logger.Information("[BOOTSTRAP] Database and IO operations completed in {ElapsedMs:F2}ms", dbOpsElapsed);
 #endif
-                }
             }
         });
 

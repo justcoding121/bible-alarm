@@ -31,7 +31,7 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
     public int Number => track.Number;
 
     /// <summary>
-    /// Gets the track title with HTML entities decoded (e.g., &nbsp; → space) and non-breaking spaces replaced with regular spaces.
+    /// Gets the track title with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
     /// </summary>
     public string Title => isMelody ? $"Melody Number(s) {WebUtility.HtmlDecode(track.Title).Replace('\u00A0', ' ')}" : WebUtility.HtmlDecode(track.Title).Replace('\u00A0', ' ');
     public string Url => track.Source?.Url ?? string.Empty;

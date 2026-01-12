@@ -1,3 +1,4 @@
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -29,10 +30,90 @@ public sealed class DatabaseSeedService(
             logger.Information("Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}",
                 schedule.Id, schedule.Name);
 
+            // Save basic metadata to Preferences for early MediaSession setup
+            // This ensures Android Auto can show metadata even before full bootstrap completes
+            // Full metadata (with publication names) will be set later by SetCarPlayScreenAction
+            SaveSeedMetadataToPreferences(schedule);
+
             return true; // Schedule was seeded
+        }
+        else
+        {
+            // Database has schedules but Preferences might be empty (e.g., app data cleared but DB retained)
+            // Ensure Preferences has metadata for Android Auto
+            await EnsurePreferencesHasMetadataAsync();
         }
 
         return false; // No seeding occurred
+    }
+
+    /// <summary>
+    /// Saves basic metadata from seeded schedule to Preferences for early MediaSession setup.
+    /// </summary>
+    private void SaveSeedMetadataToPreferences(AlarmSchedule schedule)
+    {
+        try
+        {
+            // Save basic metadata - Android Auto will show this until full bootstrap completes
+            LastPlayedMetadataHelper.SaveLastPlayedMetadata(
+                title: schedule.Name,
+                artist: "Ready to play",
+                album: null,
+                artworkUrl: null,
+                scheduleId: schedule.Id);
+
+            logger.Debug("Saved seeded schedule metadata to Preferences for Android Auto. ScheduleId={ScheduleId}, Title={Title}",
+                schedule.Id, schedule.Name);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to save seeded schedule metadata to Preferences");
+        }
+    }
+
+    /// <summary>
+    /// Ensures Preferences has metadata if schedules exist but Preferences is empty.
+    /// This handles the case where Preferences was cleared but database was retained.
+    /// </summary>
+    private async Task EnsurePreferencesHasMetadataAsync()
+    {
+        try
+        {
+            // Check if Preferences already has metadata
+            var existingMetadata = LastPlayedMetadataHelper.GetLastPlayedMetadata();
+            if (existingMetadata != null)
+            {
+                return; // Already has metadata
+            }
+
+            // Get first schedule from database
+            var schedules = await alarmScheduleService.GetAllSchedulesAsync(
+                includeMusic: false,
+                includeBiblePublication: false,
+                cancellationToken: cancellationTokenSource.Token);
+
+            if (schedules == null || schedules.Count == 0)
+            {
+                return;
+            }
+
+            var firstSchedule = schedules.First();
+
+            // Save basic metadata
+            LastPlayedMetadataHelper.SaveLastPlayedMetadata(
+                title: firstSchedule.Name,
+                artist: "Ready to play",
+                album: null,
+                artworkUrl: null,
+                scheduleId: firstSchedule.Id);
+
+            logger.Debug("Saved existing schedule metadata to Preferences for Android Auto. ScheduleId={ScheduleId}, Title={Title}",
+                firstSchedule.Id, firstSchedule.Name);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to ensure Preferences has metadata");
+        }
     }
 
     public void Dispose()

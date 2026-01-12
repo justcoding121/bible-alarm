@@ -409,7 +409,7 @@ public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSec
     }
 
     /// <summary>
-    /// Gets the section name with HTML entities decoded (e.g., &nbsp; → space) and non-breaking spaces replaced with regular spaces.
+    /// Gets the section name with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
     /// </summary>
     public string Name => System.Net.WebUtility.HtmlDecode(section.Name).Replace('\u00A0', ' ');
     public int Number => section.Number;

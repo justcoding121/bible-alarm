@@ -1,3 +1,4 @@
+#nullable enable
 using System.Globalization;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
