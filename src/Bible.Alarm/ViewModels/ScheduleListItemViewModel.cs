@@ -141,6 +141,7 @@ public sealed class ScheduleListItemViewModel(
         {
             stateHandler.LastKnownBiblePublicationLanguageName = scheduleStateItem.BiblePublicationLanguageName;
             stateHandler.LastKnownSectionName = scheduleStateItem.BiblePublicationSectionName;
+            stateHandler.LastKnownTrackTitle = scheduleStateItem.BiblePublicationTrackTitle;
         }
 
         // Subscribe to PlaybackState changes to manage IsBusy
@@ -411,12 +412,13 @@ public sealed class ScheduleListItemViewModel(
         propertyManager.IsEnabled = updatedSchedule.IsEnabled;
 
         var subtitleChanged = changeInfo.TrackChanged || changeInfo.SectionNumberChanged || changeInfo.TrackNumberChanged ||
-                             changeInfo.BiblePublicationLanguageNameChanged || changeInfo.SectionNameChanged;
+                             changeInfo.BiblePublicationLanguageNameChanged || changeInfo.SectionNameChanged || changeInfo.TrackTitleChanged;
 
         if (subtitleChanged)
         {
             stateHandler.LastKnownBiblePublicationLanguageName = changeInfo.NewBiblePublicationLanguageName;
             stateHandler.LastKnownSectionName = changeInfo.NewSectionName;
+            stateHandler.LastKnownTrackTitle = changeInfo.NewTrackTitle;
             // Refresh subtitle from state
             var updatedScheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == updatedSchedule.Id);
             RefreshSubTitleFromState(updatedScheduleItem);

@@ -2,6 +2,7 @@
 using AutoMapper;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -137,7 +138,17 @@ public sealed class ScheduleUpdateProcessor
 
         scheduleStateItem.BiblePublicationLanguageName = actionSchedule.BiblePublicationLanguageName;
         scheduleStateItem.BiblePublicationName = actionSchedule.BiblePublicationName;
-        scheduleStateItem.BiblePublicationSectionName = actionSchedule.BiblePublicationSectionName;
+        
+        // For non-sectioned publications, clear the section name (e.g., dramas, videos)
+        if (!PublicationTypeHelper.HasSectionStructure(actionSchedule.BiblePublicationCode))
+        {
+            scheduleStateItem.BiblePublicationSectionName = null;
+        }
+        else
+        {
+            scheduleStateItem.BiblePublicationSectionName = actionSchedule.BiblePublicationSectionName;
+        }
+        
         scheduleStateItem.MusicLanguageName = actionSchedule.MusicLanguageName;
         scheduleStateItem.MusicPublicationName = actionSchedule.MusicPublicationName;
         scheduleStateItem.MusicTrackName = actionSchedule.MusicTrackName;

@@ -16,10 +16,10 @@ public interface IPlaylistService : IDisposable
     Task MoveToNextBiblePublicationTrack(int scheduleId);
     Task MoveToPreviousBiblePublicationTrack(int scheduleId);
 
-    Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetNextBiblePublicationTrack(string languageCode, string publicationCode,
+    Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextBiblePublicationTrack(string languageCode, string publicationCode,
         int sectionNumber, int track);
 
-    Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(string languageCode, string publicationCode,
+    Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(string languageCode, string publicationCode,
         int sectionNumber, int track);
 
     Task<KeyValuePair<int, BiblePublicationSection>>

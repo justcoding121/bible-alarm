@@ -1,6 +1,7 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Models;
 using Serilog;
@@ -153,7 +154,17 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         // Preserve all display names from CurrentSchedule state
         scheduleStateItem.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;
         scheduleStateItem.BiblePublicationName = currentSchedule.BiblePublicationName;
-        scheduleStateItem.BiblePublicationSectionName = currentSchedule.BiblePublicationSectionName;
+        
+        // For non-sectioned publications, clear the section name (e.g., dramas, videos)
+        if (!PublicationTypeHelper.HasSectionStructure(currentSchedule.BiblePublicationCode))
+        {
+            scheduleStateItem.BiblePublicationSectionName = null;
+        }
+        else
+        {
+            scheduleStateItem.BiblePublicationSectionName = currentSchedule.BiblePublicationSectionName;
+        }
+        
         scheduleStateItem.MusicLanguageName = currentSchedule.MusicLanguageName;
         scheduleStateItem.MusicPublicationName = currentSchedule.MusicPublicationName;
         scheduleStateItem.MusicTrackName = currentSchedule.MusicTrackName;

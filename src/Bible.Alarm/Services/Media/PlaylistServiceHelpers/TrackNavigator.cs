@@ -1,23 +1,33 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 
 namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 
 /// <summary>
 /// Handles Bible track and section navigation.
 /// </summary>
-public sealed class TrackNavigator(IMediaService mediaService)
+public sealed class TrackNavigator(IMediaService mediaService, IBiblePublicationService biblePublicationService)
 {
     /// <summary>
     /// Gets the next Bible track.
+    /// For non-sectioned publications (sectionNumber == 0), navigates through tracks directly.
+    /// For sectioned publications, navigates through tracks within sections.
     /// </summary>
-    public async Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetNextBiblePublicationTrack(
+    public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextBiblePublicationTrack(
         string languageCode,
         string publicationCode,
         int sectionNumber,
         int track)
     {
+        // Handle non-sectioned publications (dramas, videos)
+        if (sectionNumber == 0)
+        {
+            return await GetNextNonSectionedTrack(languageCode, publicationCode, track);
+        }
+
+        // Sectioned publication logic
         var currentSection = await mediaService.GetBiblePublicationSection(languageCode, publicationCode, sectionNumber)
             ?? throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
 
@@ -26,7 +36,7 @@ public sealed class TrackNavigator(IMediaService mediaService)
 
         if (!nextTrack.Equals(default(KeyValuePair<int, BiblePublicationTrack>)))
         {
-            return new KeyValuePair<BiblePublicationSection, BiblePublicationTrack>(currentSection, nextTrack.Value);
+            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, nextTrack.Value);
         }
 
         var nextSection = await GetNextBiblePublicationSection(languageCode, publicationCode, sectionNumber);
@@ -42,18 +52,27 @@ public sealed class TrackNavigator(IMediaService mediaService)
         }
 
         // Start at the first track of the next section (index 0)
-        return new KeyValuePair<BiblePublicationSection, BiblePublicationTrack>(nextSection.Value, tracks.ElementAt(0).Value);
+        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(nextSection.Value, tracks.ElementAt(0).Value);
     }
 
     /// <summary>
     /// Gets the previous Bible track.
+    /// For non-sectioned publications (sectionNumber == 0), navigates through tracks directly.
+    /// For sectioned publications, navigates through tracks within sections.
     /// </summary>
-    public async Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(
+    public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(
         string languageCode,
         string publicationCode,
         int sectionNumber,
         int track)
     {
+        // Handle non-sectioned publications (dramas, videos)
+        if (sectionNumber == 0)
+        {
+            return await GetPreviousNonSectionedTrack(languageCode, publicationCode, track);
+        }
+
+        // Sectioned publication logic
         var currentSection = await mediaService.GetBiblePublicationSection(languageCode, publicationCode, sectionNumber)
             ?? throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
 
@@ -62,7 +81,7 @@ public sealed class TrackNavigator(IMediaService mediaService)
 
         if (!previousTrack.Equals(default(KeyValuePair<int, BiblePublicationTrack>)))
         {
-            return new KeyValuePair<BiblePublicationSection, BiblePublicationTrack>(currentSection, previousTrack.Value);
+            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, previousTrack.Value);
         }
 
         var previousSection = await GetPreviousBiblePublicationSection(languageCode, publicationCode, sectionNumber);
@@ -77,7 +96,67 @@ public sealed class TrackNavigator(IMediaService mediaService)
             throw new InvalidOperationException($"No tracks in previous section: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={previousSection.Key}");
         }
 
-        return new KeyValuePair<BiblePublicationSection, BiblePublicationTrack>(previousSection.Value, tracks.ElementAt(tracks.Count - 1).Value);
+        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(previousSection.Value, tracks.ElementAt(tracks.Count - 1).Value);
+    }
+
+    /// <summary>
+    /// Gets the next track for a non-sectioned publication (dramas, videos).
+    /// Wraps around to the first track when at the end.
+    /// </summary>
+    private async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextNonSectionedTrack(
+        string languageCode,
+        string publicationCode,
+        int currentTrackNumber)
+    {
+        var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode)
+            ?? throw new InvalidOperationException($"Publication not found: languageCode={languageCode}, publicationCode={publicationCode}");
+
+        if (publication.Tracks == null || publication.Tracks.Count == 0)
+        {
+            throw new InvalidOperationException($"No tracks found for non-sectioned publication: languageCode={languageCode}, publicationCode={publicationCode}");
+        }
+
+        // Find the next track
+        var orderedTracks = publication.Tracks.OrderBy(t => t.Number).ToList();
+        var nextTrack = orderedTracks.FirstOrDefault(t => t.Number > currentTrackNumber);
+
+        if (nextTrack != null)
+        {
+            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, nextTrack);
+        }
+
+        // Wrap around to the first track
+        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, orderedTracks.First());
+    }
+
+    /// <summary>
+    /// Gets the previous track for a non-sectioned publication (dramas, videos).
+    /// Wraps around to the last track when at the beginning.
+    /// </summary>
+    private async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousNonSectionedTrack(
+        string languageCode,
+        string publicationCode,
+        int currentTrackNumber)
+    {
+        var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode)
+            ?? throw new InvalidOperationException($"Publication not found: languageCode={languageCode}, publicationCode={publicationCode}");
+
+        if (publication.Tracks == null || publication.Tracks.Count == 0)
+        {
+            throw new InvalidOperationException($"No tracks found for non-sectioned publication: languageCode={languageCode}, publicationCode={publicationCode}");
+        }
+
+        // Find the previous track
+        var orderedTracks = publication.Tracks.OrderBy(t => t.Number).ToList();
+        var previousTrack = orderedTracks.LastOrDefault(t => t.Number < currentTrackNumber);
+
+        if (previousTrack != null)
+        {
+            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, previousTrack);
+        }
+
+        // Wrap around to the last track
+        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, orderedTracks.Last());
     }
 
     /// <summary>

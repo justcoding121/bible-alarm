@@ -52,11 +52,37 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             // Load publication with only non-sectioned tracks (tracks directly under publication, not under a section)
+            // Use separate Include chains to avoid issues with filtered includes + ThenInclude
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
+                    .ThenInclude(t => t.Source!)
+                        .ThenInclude(s => s.BaseUrlEntity)
                 .Where(x => x.Code == publicationCode && x.Language.Code == languageCode)
                 .FirstOrDefaultAsync(cancellationToken);
+            
+            // Log Source status for debugging
+            if (publication?.Tracks != null)
+            {
+                foreach (var track in publication.Tracks)
+                {
+                    if (track.Source == null)
+                    {
+                        logger.Warning("Track {TrackNumber} '{TrackTitle}' has null Source for publication {PublicationCode}",
+                            track.Number, track.Title, publicationCode);
+                    }
+                    else if (track.Source.BaseUrlEntity == null)
+                    {
+                        logger.Warning("Track {TrackNumber} '{TrackTitle}' has null BaseUrlEntity. UrlPath={UrlPath}",
+                            track.Number, track.Title, track.Source.UrlPath);
+                    }
+                    else
+                    {
+                        logger.Debug("Track {TrackNumber} '{TrackTitle}' has URL={Url}",
+                            track.Number, track.Title, track.Source.Url);
+                    }
+                }
+            }
 
             logger.Debug("GetByLanguageAndCodeWithTracksAsync: Loaded publication={PublicationName}, TracksCount={TracksCount} for language={LanguageCode}, code={PublicationCode}",
                 publication?.Name ?? "(null)", publication?.Tracks?.Count ?? 0, languageCode, publicationCode);

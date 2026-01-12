@@ -95,15 +95,19 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             }
         }
 
-        // Section name
-        if (biblePublicationSchedule.SectionNumber > 0 &&
+        // Section name - for non-sectioned publications (SectionNumber is null or 0), clear the section name
+        if (!biblePublicationSchedule.SectionNumber.HasValue || biblePublicationSchedule.SectionNumber == 0)
+        {
+            // Non-sectioned publication - clear section name
+            scheduleStateItem.BiblePublicationSectionName = null;
+        }
+        else if (biblePublicationSchedule.SectionNumber > 0 &&
             !string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
             !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode))
         {
             try
             {
                 var biblePublicationSectionService = serviceProvider.GetRequiredService<IBiblePublicationSectionService>();
-                if (!biblePublicationSchedule.SectionNumber.HasValue) return;
                 var sectionName = await Task.Run(async () =>
                     await biblePublicationSectionService.GetSectionNameAsync(
                         biblePublicationSchedule.LanguageCode,

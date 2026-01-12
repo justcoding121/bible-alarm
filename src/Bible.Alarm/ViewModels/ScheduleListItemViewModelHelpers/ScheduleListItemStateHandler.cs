@@ -19,6 +19,7 @@ public sealed class ScheduleListItemStateHandler(
     private AlarmSchedule? lastKnownSchedule;
     private string? lastKnownBiblePublicationLanguageName;
     private string? lastKnownSectionName;
+    private string? lastKnownTrackTitle;
 
     public AlarmSchedule? LastKnownSchedule
     {
@@ -36,6 +37,12 @@ public sealed class ScheduleListItemStateHandler(
     {
         get => lastKnownSectionName;
         set => lastKnownSectionName = value;
+    }
+
+    public string? LastKnownTrackTitle
+    {
+        get => lastKnownTrackTitle;
+        set => lastKnownTrackTitle = value;
     }
 
     /// <summary>
@@ -74,6 +81,7 @@ public sealed class ScheduleListItemStateHandler(
         var trackChanged = DetectTrackChange(updatedSchedule, currentSchedule);
         var newBiblePublicationLanguageName = updatedScheduleItem.BiblePublicationLanguageName;
         var newSectionName = updatedScheduleItem.BiblePublicationSectionName;
+        var newTrackTitle = updatedScheduleItem.BiblePublicationTrackTitle;
 
         var daysOfWeekChanged = oldDaysOfWeek != updatedSchedule.DaysOfWeek;
 
@@ -92,13 +100,15 @@ public sealed class ScheduleListItemStateHandler(
             TrackNumberChanged = oldTrackNumber != updatedSchedule.BiblePublicationSchedule?.TrackNumber,
             BiblePublicationLanguageNameChanged = lastKnownBiblePublicationLanguageName != newBiblePublicationLanguageName,
             SectionNameChanged = lastKnownSectionName != newSectionName,
+            TrackTitleChanged = lastKnownTrackTitle != newTrackTitle,
             DaysOfWeekChanged = daysOfWeekChanged,
             IsEnabledChanged = oldIsEnabled != updatedSchedule.IsEnabled,
             NameChanged = oldName != updatedSchedule.Name,
             TimeChanged = oldHour != updatedSchedule.Hour || oldMinute != updatedSchedule.Minute,
             MusicEnabledChanged = oldMusicEnabled != updatedSchedule.MusicEnabled,
             NewBiblePublicationLanguageName = newBiblePublicationLanguageName,
-            NewSectionName = newSectionName
+            NewSectionName = newSectionName,
+            NewTrackTitle = newTrackTitle
         };
     }
 
@@ -126,6 +136,7 @@ public sealed class ScheduleListItemStateHandler(
         public bool TrackNumberChanged { get; init; }
         public bool BiblePublicationLanguageNameChanged { get; init; }
         public bool SectionNameChanged { get; init; }
+        public bool TrackTitleChanged { get; init; }
         public bool DaysOfWeekChanged { get; init; }
         public bool IsEnabledChanged { get; init; }
         public bool NameChanged { get; init; }
@@ -133,5 +144,6 @@ public sealed class ScheduleListItemStateHandler(
         public bool MusicEnabledChanged { get; init; }
         public string? NewBiblePublicationLanguageName { get; init; }
         public string? NewSectionName { get; init; }
+        public string? NewTrackTitle { get; init; }
     }
 }

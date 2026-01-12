@@ -62,10 +62,10 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         this.BiblePublicationService = BiblePublicationService;
         this.melodyMusicService = melodyMusicService;
         this.diskCacheService = diskCacheService;
-        biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, mediaService);
+        biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, mediaService, BiblePublicationService);
         musicTrackBuilder = new PlaylistMusicTrackBuilder(logger, mediaService, melodyMusicService);
         trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);
-        trackNavigator = new TrackNavigator(mediaService);
+        trackNavigator = new TrackNavigator(mediaService, BiblePublicationService);
         scheduleUpdater = new ScheduleUpdater(alarmScheduleService, cancellationTokenSource.Token);
     }
 
@@ -195,7 +195,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     }
 
 
-    private record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BiblePublicationSection, BiblePublicationTrack>? NextTrack);
+    private record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>? NextTrack);
 
     public async Task<PlayItem> NextTrack(int scheduleId)
     {
@@ -264,14 +264,18 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     public async Task MoveToNextBiblePublicationTrack(int scheduleId)
     {
         var schedule = await scheduleUpdater.GetScheduleWithBiblePublicationAsync(scheduleId);
-        if (schedule.BiblePublicationSchedule == null || !schedule.BiblePublicationSchedule.SectionNumber.HasValue)
+        if (schedule.BiblePublicationSchedule == null)
         {
             return;
         }
+
+        // Use 0 for non-sectioned publications (sectionNumber is null or 0)
+        var sectionNumber = schedule.BiblePublicationSchedule.SectionNumber ?? 0;
+
         var next = await trackNavigator.GetNextBiblePublicationTrack(
             schedule.BiblePublicationSchedule.LanguageCode,
             schedule.BiblePublicationSchedule.PublicationCode,
-            schedule.BiblePublicationSchedule.SectionNumber.Value,
+            sectionNumber,
             schedule.BiblePublicationSchedule.TrackNumber);
 
         var updatedSchedule = await scheduleUpdater.UpdateScheduleToNextTrackAsync(scheduleId, next);
@@ -281,32 +285,37 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     public async Task MoveToPreviousBiblePublicationTrack(int scheduleId)
     {
         var schedule = await scheduleUpdater.GetScheduleWithBiblePublicationAsync(scheduleId);
-        if (schedule.BiblePublicationSchedule == null || !schedule.BiblePublicationSchedule.SectionNumber.HasValue)
+        if (schedule.BiblePublicationSchedule == null)
         {
             return;
         }
+
+        // Use 0 for non-sectioned publications (sectionNumber is null or 0)
+        var sectionNumber = schedule.BiblePublicationSchedule.SectionNumber ?? 0;
+
         var previous = await trackNavigator.GetPreviousBiblePublicationTrack(
             schedule.BiblePublicationSchedule.LanguageCode,
             schedule.BiblePublicationSchedule.PublicationCode,
-            schedule.BiblePublicationSchedule.SectionNumber.Value,
+            sectionNumber,
             schedule.BiblePublicationSchedule.TrackNumber);
 
-        if (previous.Key == null || previous.Value == null)
+        // For non-sectioned publications, Key (section) will be null
+        if (previous.Value == null)
         {
-            throw new InvalidOperationException("Previous track Key or Value is null");
+            throw new InvalidOperationException("Previous track Value is null");
         }
 
         var updatedSchedule = await scheduleUpdater.UpdateScheduleToPreviousTrackAsync(scheduleId, previous);
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
-    public async Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetNextBiblePublicationTrack(string languageCode,
+    public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextBiblePublicationTrack(string languageCode,
         string publicationCode, int sectionNumber, int track)
     {
         return await trackNavigator.GetNextBiblePublicationTrack(languageCode, publicationCode, sectionNumber, track);
     }
 
-    public async Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(string languageCode,
+    public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(string languageCode,
         string publicationCode, int sectionNumber, int track)
     {
         return await trackNavigator.GetPreviousBiblePublicationTrack(languageCode, publicationCode, sectionNumber, track);

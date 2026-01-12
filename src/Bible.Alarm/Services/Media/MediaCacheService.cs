@@ -37,6 +37,19 @@ public sealed class MediaCacheService(
 
     public string GetCacheFileName(string url)
     {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            throw new ArgumentException("URL cannot be null or empty", nameof(url));
+        }
+        
+        // Check if URL looks valid before attempting to parse
+        if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
+            !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.Warning("Invalid URL format (missing scheme): {Url}", url);
+            throw new UriFormatException($"Invalid URL format: {url}");
+        }
+        
         var uri = new Uri(url);
 
         var plainTextBytes = Encoding.UTF8.GetBytes(uri.PathAndQuery);

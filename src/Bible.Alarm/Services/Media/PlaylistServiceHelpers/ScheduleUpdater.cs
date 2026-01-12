@@ -14,15 +14,17 @@ public sealed class ScheduleUpdater(
 {
     /// <summary>
     /// Updates schedule to the next track.
+    /// For non-sectioned publications, section will be null.
     /// </summary>
-    public async Task<AlarmSchedule> UpdateScheduleToNextTrackAsync(int scheduleId, KeyValuePair<BiblePublicationSection, BiblePublicationTrack> next)
+    public async Task<AlarmSchedule> UpdateScheduleToNextTrackAsync(int scheduleId, KeyValuePair<BiblePublicationSection?, BiblePublicationTrack> next)
     {
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
             s =>
             {
                 var brs = s.BiblePublicationSchedule ?? throw new ArgumentException($"BiblePublicationSchedule is null for schedule {scheduleId}");
-                brs.SectionNumber = next.Key.Number;
+                // For non-sectioned publications, keep section as null or 0
+                brs.SectionNumber = next.Key?.Number;
                 brs.TrackNumber = next.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
             },
@@ -31,15 +33,17 @@ public sealed class ScheduleUpdater(
 
     /// <summary>
     /// Updates schedule to the previous track.
+    /// For non-sectioned publications, section will be null.
     /// </summary>
-    public async Task<AlarmSchedule> UpdateScheduleToPreviousTrackAsync(int scheduleId, KeyValuePair<BiblePublicationSection, BiblePublicationTrack> previous)
+    public async Task<AlarmSchedule> UpdateScheduleToPreviousTrackAsync(int scheduleId, KeyValuePair<BiblePublicationSection?, BiblePublicationTrack> previous)
     {
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             scheduleId,
             s =>
             {
                 var brs = s.BiblePublicationSchedule ?? throw new ArgumentException($"BiblePublicationSchedule is null for schedule {scheduleId}");
-                brs.SectionNumber = previous.Key.Number;
+                // For non-sectioned publications, keep section as null or 0
+                brs.SectionNumber = previous.Key?.Number;
                 brs.TrackNumber = previous.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
             },

@@ -3,13 +3,15 @@ using Bible.Alarm.Platforms.iOS.Services.CarPlay;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
 using Serilog;
+using BiblePublicationTrackSelectedAction = Bible.Alarm.Stores.Actions.BiblePublications.TrackSelectedAction;
+using MusicTrackSelectedAction = Bible.Alarm.Stores.Actions.Music.TrackSelectedAction;
 using FluxorDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Platforms.iOS.Effects;
 
 /// <summary>
 /// Fluxor effect that refreshes the CarPlay schedule list when schedules change.
-/// Listens for schedule create, update, and delete success actions.
+/// Listens for schedule create, update, delete, and track selection actions.
 /// </summary>
 public class CarPlayScheduleListEffect
 {
@@ -42,6 +44,26 @@ public class CarPlayScheduleListEffect
     public Task HandleRemoveScheduleSuccess(RemoveScheduleSuccessAction action, FluxorDispatcher dispatcher)
     {
         RefreshCarPlayScheduleList("RemoveScheduleSuccess");
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Handles Bible publication track selection - refresh CarPlay list.
+    /// </summary>
+    [EffectMethod]
+    public Task HandleBiblePublicationTrackSelected(BiblePublicationTrackSelectedAction action, FluxorDispatcher dispatcher)
+    {
+        RefreshCarPlayScheduleList("BiblePublicationTrackSelected");
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Handles music track selection - refresh CarPlay list.
+    /// </summary>
+    [EffectMethod]
+    public Task HandleMusicTrackSelected(MusicTrackSelectedAction action, FluxorDispatcher dispatcher)
+    {
+        RefreshCarPlayScheduleList("MusicTrackSelected");
         return Task.CompletedTask;
     }
 

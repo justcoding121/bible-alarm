@@ -153,8 +153,9 @@ public class AndroidAutoScheduleChangeTracker
             // Include MusicEnabled since it affects the icon shown in Android Auto
             // Include music track properties (MusicType, MusicPublicationCode, MusicLanguageCode, MusicTrackNumber)
             // so that track navigation (next/prev) triggers a refresh
+            // Include BiblePublicationTrackTitle for dramas/videos where track title is shown
             // NOTE: IsEnabled is intentionally excluded - enabling/disabling schedules should NOT refresh Android Auto
-            var signature = $"{schedule.Name}|{schedule.BiblePublicationSectionNumber}|{schedule.BiblePublicationTrackNumber}|{schedule.BiblePublicationLanguageName}|{schedule.BiblePublicationSectionName}|{schedule.MusicEnabled}|{schedule.MusicType}|{schedule.MusicPublicationCode}|{schedule.MusicLanguageCode}|{schedule.MusicTrackNumber}";
+            var signature = $"{schedule.Name}|{schedule.BiblePublicationSectionNumber}|{schedule.BiblePublicationTrackNumber}|{schedule.BiblePublicationLanguageName}|{schedule.BiblePublicationSectionName}|{schedule.BiblePublicationTrackTitle}|{schedule.MusicEnabled}|{schedule.MusicType}|{schedule.MusicPublicationCode}|{schedule.MusicLanguageCode}|{schedule.MusicTrackNumber}";
             signatures[schedule.Id] = signature;
         }
 

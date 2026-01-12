@@ -43,17 +43,18 @@ public static class PlaylistTrackUpdater
     public static void UpdateBiblePublicationTrackForFinished(
         AlarmSchedule schedule,
         TrackMetadata trackMetadata,
-        KeyValuePair<BiblePublicationSection, BiblePublicationTrack>? nextTrack)
+        KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>? nextTrack)
     {
         var biblePublicationSchedule = schedule.BiblePublicationSchedule ??
             throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {schedule.Id}");
 
-        if (nextTrack == null || nextTrack.Value.Key == null || nextTrack.Value.Value == null)
+        if (nextTrack == null || nextTrack.Value.Value == null)
         {
-            throw new InvalidOperationException("Next track Key or Value is null");
+            throw new InvalidOperationException("Next track Value is null");
         }
 
-        biblePublicationSchedule.SectionNumber = nextTrack.Value.Key.Number;
+        // For non-sectioned publications, Key (section) will be null
+        biblePublicationSchedule.SectionNumber = nextTrack.Value.Key?.Number;
         biblePublicationSchedule.TrackNumber = nextTrack.Value.Value.Number;
         biblePublicationSchedule.LanguageCode = trackMetadata.LanguageCode;
         biblePublicationSchedule.PublicationCode = trackMetadata.PublicationCode;

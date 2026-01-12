@@ -19,7 +19,7 @@ public sealed class TrackMarker(
     IDispatcher dispatcher,
     CancellationToken cancellationToken)
 {
-    public record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BiblePublicationSection, BiblePublicationTrack>? NextTrack);
+    public record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>? NextTrack);
 
     /// <summary>
     /// Marks a track as played.

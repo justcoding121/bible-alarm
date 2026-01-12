@@ -3,6 +3,7 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playlist;
@@ -15,11 +16,13 @@ public class PlaylistBiblePublicationTrackBuilder
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
+    private readonly IBiblePublicationService? biblePublicationService;
 
-    public PlaylistBiblePublicationTrackBuilder(ILogger logger, IMediaService mediaService)
+    public PlaylistBiblePublicationTrackBuilder(ILogger logger, IMediaService mediaService, IBiblePublicationService? biblePublicationService = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
+        this.biblePublicationService = biblePublicationService;
     }
 
     public record TrackInfo(int SectionNumber, BiblePublicationTrack Track, string Url);
@@ -28,7 +31,7 @@ public class PlaylistBiblePublicationTrackBuilder
         int scheduleId,
         AlarmSchedule schedule,
         BiblePublicationSchedule biblePublicationSchedule,
-        Func<string, string, int, int, Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>>> getNextBiblePublicationTrackAsync)
+        Func<string, string, int, int, Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>>> getNextBiblePublicationTrackAsync)
     {
         var initialTrackInfo = await GetInitialTrackInfo(biblePublicationSchedule);
         var result = new List<PlayItem>();
@@ -67,7 +70,14 @@ public class PlaylistBiblePublicationTrackBuilder
 
     public async Task<TrackInfo> GetInitialTrackInfo(BiblePublicationSchedule biblePublicationSchedule)
     {
-        var sectionNumber = biblePublicationSchedule.SectionNumber ?? throw new InvalidOperationException("SectionNumber is null");
+        // Use 0 for non-sectioned publications
+        var sectionNumber = biblePublicationSchedule.SectionNumber ?? 0;
+
+        // For non-sectioned publications, get tracks directly from publication
+        if (sectionNumber == 0)
+        {
+            return await GetInitialTrackInfoForNonSectionedPublication(biblePublicationSchedule);
+        }
 
         var tracks = await mediaService.GetBiblePublicationTracks(
             biblePublicationSchedule.LanguageCode,
@@ -90,6 +100,49 @@ public class PlaylistBiblePublicationTrackBuilder
             sectionNumber,
             trackDetail,
             trackDetail.Source.Url);
+    }
+
+    private async Task<TrackInfo> GetInitialTrackInfoForNonSectionedPublication(BiblePublicationSchedule biblePublicationSchedule)
+    {
+        if (biblePublicationService == null)
+        {
+            throw new InvalidOperationException("IBiblePublicationService is required for non-sectioned publications");
+        }
+
+        var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(
+            biblePublicationSchedule.LanguageCode,
+            biblePublicationSchedule.PublicationCode);
+
+        if (publication == null || publication.Tracks == null || publication.Tracks.Count == 0)
+        {
+            throw new InvalidOperationException($"No tracks found for non-sectioned publication: {biblePublicationSchedule.LanguageCode}/{biblePublicationSchedule.PublicationCode}");
+        }
+
+        var track = publication.Tracks.FirstOrDefault(t => t.Number == biblePublicationSchedule.TrackNumber);
+        if (track == null)
+        {
+            logger.Error("Track: {TrackNumber}, language: {LanguageCode}, pub code: {PublicationCode} not found in non-sectioned publication.",
+                biblePublicationSchedule.TrackNumber, biblePublicationSchedule.LanguageCode, biblePublicationSchedule.PublicationCode);
+            throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} not found in non-sectioned publication");
+        }
+
+        if (track.Source == null)
+        {
+            throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} Source is null in non-sectioned publication");
+        }
+
+        var url = track.Source.Url;
+        if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.Error("Track {TrackNumber} has invalid URL: '{Url}'. BaseUrlEntity may not be loaded. UrlPath={UrlPath}",
+                track.Number, url, track.Source.UrlPath);
+            throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} has invalid URL in non-sectioned publication. URL: {url}");
+        }
+
+        return new TrackInfo(
+            0, // No section for non-sectioned publications
+            track,
+            url);
     }
 
     private TrackMetadata CreateTrackMetadata(
@@ -148,7 +201,7 @@ public class PlaylistBiblePublicationTrackBuilder
         BiblePublicationSchedule biblePublicationSchedule,
         int currentSectionNumber,
         int currentTrackNumber,
-        Func<string, string, int, int, Task<KeyValuePair<BiblePublicationSection, BiblePublicationTrack>>> getNextBiblePublicationTrackAsync)
+        Func<string, string, int, int, Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>>> getNextBiblePublicationTrackAsync)
     {
         var next = await getNextBiblePublicationTrackAsync(
             biblePublicationSchedule.LanguageCode,
@@ -156,9 +209,9 @@ public class PlaylistBiblePublicationTrackBuilder
             currentSectionNumber,
             currentTrackNumber);
 
-        if (next.Key == null || next.Value == null)
+        if (next.Value == null)
         {
-            throw new InvalidOperationException("Next track Key or Value is null");
+            throw new InvalidOperationException("Next track Value is null");
         }
 
         if (next.Value.Source == null)
@@ -166,8 +219,9 @@ public class PlaylistBiblePublicationTrackBuilder
             throw new InvalidOperationException("Next track Source is null");
         }
 
+        // For non-sectioned publications, Key (section) will be null, use 0
         return new TrackInfo(
-            next.Key.Number,
+            next.Key?.Number ?? 0,
             next.Value,
             next.Value.Source.Url);
     }
