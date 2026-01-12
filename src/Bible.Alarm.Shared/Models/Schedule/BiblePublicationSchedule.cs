@@ -23,11 +23,10 @@ public class BiblePublicationSchedule
     public string PublicationCode { get; set; } = string.Empty;
 
     /// <summary>
-    /// Section number for traditional Bible readings (1-66).
-    /// Null for drama publications which don't have sections.
-    /// Use PublicationTypeHelper.HasSectionStructure() to check if this applies.
+    /// Section number for publications with sections.
+    /// Null for publications without sections (e.g., dramas, videos).
     /// </summary>
-    [Range(1, 66)]
+    [Range(1, 500)]
     public int? SectionNumber { get; set; }
 
     /// <summary>

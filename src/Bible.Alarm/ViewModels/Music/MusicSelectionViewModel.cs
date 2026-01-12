@@ -279,8 +279,13 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
             return (null, null!, string.Empty, null!);
         }
 
-        var languageCode = languages.ContainsKey("E") ? "E" : languages.FirstOrDefault().Key ?? "E";
-        var language = languages[languageCode];
+        // Default to English ("E") for Vocals, fallback to first available if English not present
+        var languageCode = languages.ContainsKey("E") ? "E" : languages.FirstOrDefault().Key;
+
+        if (string.IsNullOrEmpty(languageCode) || !languages.TryGetValue(languageCode, out var language))
+        {
+            return (null, null!, string.Empty, null!);
+        }
 
         var songPublications = await Task.Run(async () =>
             await mediaService.GetVocalMusicReleases(languageCode));
@@ -344,16 +349,46 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
     private async Task HandleMelodiesSelectionAsync(ScheduleStateItem? currentSchedule, bool isSameMusicType)
     {
+        // Get melody publications from database instead of hard-coding
+        var melodyReleases = await Task.Run(async () =>
+            await mediaService.GetMelodyMusicReleases());
+
+        if (melodyReleases == null || melodyReleases.Count == 0)
+        {
+            return;
+        }
+
+        // Use current schedule's publication if available and valid, otherwise use first available
+        string publicationCode;
+        MelodyMusic melodyPublication;
+        if (isSameMusicType &&
+            currentSchedule?.MusicPublicationCode != null &&
+            melodyReleases.TryGetValue(currentSchedule.MusicPublicationCode, out var existingMelody))
+        {
+            publicationCode = currentSchedule.MusicPublicationCode;
+            melodyPublication = existingMelody;
+        }
+        else
+        {
+            var firstMelody = melodyReleases.FirstOrDefault();
+            if (firstMelody.Value == null)
+            {
+                return;
+            }
+            publicationCode = firstMelody.Key;
+            melodyPublication = firstMelody.Value;
+        }
+
         var tracks = await Task.Run(async () =>
-            await mediaService.GetMelodyMusicTracks("iam"));
+            await mediaService.GetMelodyMusicTracks(publicationCode));
 
         if (tracks == null || tracks.Count == 0)
         {
             return;
         }
 
-        var (trackNumber, trackName) = GetTrackForMelodies(currentSchedule, isSameMusicType, tracks);
-        var trackSelectedItem = CreateMelodiesMusicStateItem(currentSchedule, trackNumber, trackName);
+        var (trackNumber, trackName) = GetTrackForMelodies(currentSchedule, isSameMusicType, publicationCode, tracks);
+        var trackSelectedItem = CreateMelodiesMusicStateItem(currentSchedule, publicationCode, melodyPublication.Name, trackNumber, trackName);
 
         this.dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
         await navigationService.PopModalAsync();
@@ -362,10 +397,11 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
     private static (int TrackNumber, string TrackName) GetTrackForMelodies(
         ScheduleStateItem? currentSchedule,
         bool isSameMusicType,
+        string publicationCode,
         SortedDictionary<int, MusicTrack> tracks)
     {
         if (isSameMusicType &&
-            currentSchedule?.MusicPublicationCode == "iam" &&
+            currentSchedule?.MusicPublicationCode == publicationCode &&
             currentSchedule.MusicTrackNumber.HasValue &&
             tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
         {
@@ -377,13 +413,19 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         return (randomTrack.Number, $"Melody Number(s) {randomTrack.Title}");
     }
 
-    private static MusicStateItem CreateMelodiesMusicStateItem(ScheduleStateItem? currentSchedule, int trackNumber, string trackName)
+    private static MusicStateItem CreateMelodiesMusicStateItem(
+        ScheduleStateItem? currentSchedule,
+        string publicationCode,
+        string publicationName,
+        int trackNumber,
+        string trackName)
     {
         return new MusicStateItem
         {
             Repeat = currentSchedule?.MusicRepeat ?? false,
             MusicType = MusicType.Melodies,
-            PublicationCode = "iam",
+            PublicationCode = publicationCode,
+            PublicationName = publicationName,
             TrackNumber = trackNumber,
             TrackName = trackName
         };

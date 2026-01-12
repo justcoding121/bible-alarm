@@ -13,7 +13,7 @@ public sealed class MusicTrack : IComparable
     public int Id { get; set; }
 
     [Required]
-    [Range(1, int.MaxValue)]
+    [Range(1, 500)]
     public int Number { get; set; }
 
     [Required]

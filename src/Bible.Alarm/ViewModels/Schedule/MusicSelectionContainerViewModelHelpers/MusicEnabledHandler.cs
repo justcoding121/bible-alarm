@@ -115,11 +115,27 @@ public class MusicEnabledHandler
                 {
                     try
                     {
-                        const string DefaultPublicationCode = "iam";
                         var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
 
+                        // Get all melody music publications from database and use the first one
+                        var melodyReleases = await melodyMusicService.GetAllAsync();
+                        if (melodyReleases == null || melodyReleases.Count == 0)
+                        {
+                            logger.Warning("MusicEnabled: No melody music publications found in database");
+                            return;
+                        }
+
+                        var firstMelody = melodyReleases.FirstOrDefault();
+                        if (firstMelody.Value == null)
+                        {
+                            return;
+                        }
+
+                        var defaultPublicationCode = firstMelody.Key;
+                        var defaultPublicationName = firstMelody.Value.Name;
+
                         // Get default music from DB (same as sample schedule)
-                        var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(DefaultPublicationCode);
+                        var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
 
                         if (melodyMusic != null && melodyMusic.Tracks != null && melodyMusic.Tracks.Count > 0)
                         {
@@ -136,7 +152,7 @@ public class MusicEnabledHandler
                             // Check if music properties are already set to what we want to set
                             // This prevents redundant dispatches if the state was already updated
                             if (latestSchedule.MusicType == MusicType.Melodies &&
-                                latestSchedule.MusicPublicationCode == DefaultPublicationCode &&
+                                latestSchedule.MusicPublicationCode == defaultPublicationCode &&
                                 latestSchedule.MusicTrackNumber == randomTrack.Number &&
                                 latestSchedule.MusicEnabled == true)
                             {
@@ -150,7 +166,8 @@ public class MusicEnabledHandler
                             // MusicEnabled should already be true from the first dispatch, but ensure it's set
                             clonedSchedule.MusicEnabled = true;
                             clonedSchedule.MusicType = MusicType.Melodies;
-                            clonedSchedule.MusicPublicationCode = DefaultPublicationCode;
+                            clonedSchedule.MusicPublicationCode = defaultPublicationCode;
+                            clonedSchedule.MusicPublicationName = defaultPublicationName;
                             clonedSchedule.MusicLanguageCode = null;
                             clonedSchedule.MusicTrackNumber = randomTrack.Number;
                             clonedSchedule.MusicRepeat = false;

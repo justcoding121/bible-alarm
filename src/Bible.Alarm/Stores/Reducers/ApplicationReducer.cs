@@ -358,9 +358,30 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnMusicTrackSelected(ApplicationState state, Actions.Music.TrackSelectedAction action)
     {
+        // IMPORTANT: Update CurrentSchedule synchronously here to ensure schedule page shows
+        // the new track immediately when modal closes. The async effect runs too late.
+        var updatedCurrentSchedule = state.CurrentSchedule;
+        if (updatedCurrentSchedule != null && action.CurrentMusic != null)
+        {
+            var music = action.CurrentMusic;
+            updatedCurrentSchedule = updatedCurrentSchedule.DeepClone();
+            updatedCurrentSchedule.MusicType = music.MusicType;
+            updatedCurrentSchedule.MusicLanguageCode = music.LanguageCode;
+            updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
+            updatedCurrentSchedule.MusicTrackNumber = music.TrackNumber;
+            updatedCurrentSchedule.MusicRepeat = music.Repeat;
+            // Also update display names
+            updatedCurrentSchedule.MusicLanguageName = music.LanguageName;
+            updatedCurrentSchedule.MusicPublicationName = music.PublicationName;
+            updatedCurrentSchedule.MusicTrackName = music.TrackName;
+
+            Log.Debug("ApplicationReducer.OnMusicTrackSelected: Updated CurrentSchedule with MusicType={MusicType}, TrackNumber={TrackNumber}, TrackName={TrackName}",
+                music.MusicType, music.TrackNumber, music.TrackName);
+        }
+
         return StateFactory.CreateUpdatedState(
             state,
-            state.CurrentSchedule,
+            updatedCurrentSchedule,
             action.CurrentMusic,
             state.CurrentBiblePublicationSchedule);
     }

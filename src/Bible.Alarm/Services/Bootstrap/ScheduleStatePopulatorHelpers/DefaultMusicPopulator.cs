@@ -43,14 +43,30 @@ internal sealed class DefaultMusicPopulator
 
         try
         {
-            const string defaultPublicationCode = "iam";
-
             if (melodyMusicService == null)
             {
                 return;
             }
 
-            // Load default music once for all schedules
+            // Get all melody music publications from database and use the first one
+            var melodyReleases = await melodyMusicService.GetAllAsync();
+            if (melodyReleases == null || melodyReleases.Count == 0)
+            {
+                Log.Logger.Warning("No melody music publications found in database - cannot populate default music for {Count} schedules",
+                    schedulesNeedingMusic.Count);
+                return;
+            }
+
+            var firstMelody = melodyReleases.FirstOrDefault();
+            if (firstMelody.Value == null)
+            {
+                return;
+            }
+
+            var defaultPublicationCode = firstMelody.Key;
+            var defaultPublicationName = firstMelody.Value.Name;
+
+            // Load tracks for the default melody music
             var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
 
             if (melodyMusic?.Tracks == null || melodyMusic.Tracks.Count == 0)
@@ -68,6 +84,7 @@ internal sealed class DefaultMusicPopulator
 
                 stateItem.MusicType = MusicType.Melodies;
                 stateItem.MusicPublicationCode = defaultPublicationCode;
+                stateItem.MusicPublicationName = defaultPublicationName;
                 stateItem.MusicLanguageCode = null;
                 stateItem.MusicTrackNumber = randomTrack.Number;
                 stateItem.MusicRepeat = false;

@@ -215,7 +215,12 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         if (languageCode == null)
         {
             var languages = await mediaService.GetVocalMusicLanguages();
-            languageCode = languages.ContainsKey("E") ? "E" : languages.FirstOrDefault().Key ?? "E";
+            // Default to English ("E") for Vocals, fallback to first available if English not present
+            languageCode = languages.ContainsKey("E") ? "E" : languages.FirstOrDefault().Key;
+            if (string.IsNullOrEmpty(languageCode))
+            {
+                return;
+            }
             current.LanguageCode = languageCode;
         }
 
@@ -342,7 +347,8 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
             // If no language from schedule, default to English
             if (languageToSelect == null)
             {
-                languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == "E");
+                languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == "E")
+                    ?? propertyManager.Languages.FirstOrDefault();
             }
 
             if (languageToSelect != null)

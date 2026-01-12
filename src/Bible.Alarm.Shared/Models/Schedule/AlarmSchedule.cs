@@ -147,10 +147,46 @@ public sealed class AlarmSchedule : IComparable
         return Id.CompareTo(other.Id);
     }
 
-    public static async Task<AlarmSchedule> GetSampleSchedule(bool isNew, IBiblePublicationService BiblePublicationService, IMelodyMusicService melodyMusicService)
+    public static async Task<AlarmSchedule> GetSampleSchedule(bool isNew, IBiblePublicationService biblePublicationService, IMelodyMusicService melodyMusicService)
     {
         var startTime = DateTime.UtcNow;
         Log.Information("[PERF] GetSampleSchedule: Started at {StartTime}", startTime);
+
+        // Get first available Bible language and publication from database
+        var languagesQueryStart = DateTime.UtcNow;
+        var bibleLanguages = await biblePublicationService.GetDistinctLanguagesAsync();
+        Log.Information("[PERF] GetSampleSchedule: Bible languages query took {ElapsedMs}ms", (DateTime.UtcNow - languagesQueryStart).TotalMilliseconds);
+
+        if (bibleLanguages == null || bibleLanguages.Count == 0)
+        {
+            throw new InvalidOperationException("No Bible publications found in database");
+        }
+
+        // Use first available language
+        var bibleLanguageCode = bibleLanguages.FirstOrDefault().Key;
+        var biblePublications = await biblePublicationService.GetByLanguageCodeAsync(bibleLanguageCode);
+
+        if (biblePublications == null || biblePublications.Count == 0)
+        {
+            throw new InvalidOperationException($"No Bible publications found for language {bibleLanguageCode}");
+        }
+
+        // Use first available publication
+        var firstBiblePublication = biblePublications.FirstOrDefault();
+        var biblePublicationCode = firstBiblePublication.Key;
+
+        // Get first available melody music from database
+        var melodyQueryStart = DateTime.UtcNow;
+        var melodyReleases = await melodyMusicService.GetAllAsync();
+        Log.Information("[PERF] GetSampleSchedule: Melody releases query took {ElapsedMs}ms", (DateTime.UtcNow - melodyQueryStart).TotalMilliseconds);
+
+        if (melodyReleases == null || melodyReleases.Count == 0)
+        {
+            throw new InvalidOperationException("No melody music found in database");
+        }
+
+        var firstMelody = melodyReleases.FirstOrDefault();
+        var melodyPublicationCode = firstMelody.Key;
 
         // Create sample schedule disabled by default - user must explicitly enable it
         var sample = new AlarmSchedule
@@ -165,24 +201,24 @@ public sealed class AlarmSchedule : IComparable
             Music = new AlarmMusic
             {
                 MusicType = MusicType.Melodies,
-                PublicationCode = "iam",
+                PublicationCode = melodyPublicationCode,
                 LanguageCode = null
             },
             BiblePublicationSchedule = new BiblePublicationSchedule
             {
                 TrackNumber = 1,
-                LanguageCode = "E",
-                PublicationCode = "nwt", // NWT 2013 (not 1984 - use "bi12" for 1984)
+                LanguageCode = bibleLanguageCode,
+                PublicationCode = biblePublicationCode,
                 SectionNumber = 1 // Will be updated below with a random section
             }
         };
 
         var bibleQueryStartTime = DateTime.UtcNow;
-        var bible = await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+        var bible = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
             sample.BiblePublicationSchedule.LanguageCode,
             sample.BiblePublicationSchedule.PublicationCode);
         var bibleQueryElapsed = (DateTime.UtcNow - bibleQueryStartTime).TotalMilliseconds;
-        Log.Information("[PERF] GetSampleSchedule: Bible query took {ElapsedMs}ms", bibleQueryElapsed);
+        Log.Information("[PERF] GetSampleSchedule: Bible sections query took {ElapsedMs}ms", bibleQueryElapsed);
 
         if (bible == null)
         {
@@ -207,7 +243,7 @@ public sealed class AlarmSchedule : IComparable
         var musicQueryStartTime = DateTime.UtcNow;
         var music = await melodyMusicService.GetByCodeWithTracksAsync(sample.Music.PublicationCode);
         var musicQueryElapsed = (DateTime.UtcNow - musicQueryStartTime).TotalMilliseconds;
-        Log.Information("[PERF] GetSampleSchedule: Music query took {ElapsedMs}ms", musicQueryElapsed);
+        Log.Information("[PERF] GetSampleSchedule: Music tracks query took {ElapsedMs}ms", musicQueryElapsed);
 
         if (music == null)
         {

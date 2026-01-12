@@ -18,7 +18,7 @@ public sealed class BiblePublicationSection : IComparable
     public string Name { get; set; } = string.Empty;
 
     [Required]
-    [Range(1, 66)]
+    [Range(1, 500)]
     public int Number { get; set; }
 
     [Required]
