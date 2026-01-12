@@ -23,7 +23,7 @@
     NavigationPage.HasNavigationBar="False">
     <!-- Converters moved to App.xaml for better performance - shared across all pages -->
     <!-- Theme-aware colors are inherited from BaseContentPage and available via StaticResource -->
-    <Grid AutomationId="HomePage" BackgroundColor="{DynamicResource PageBackgroundColor}">
+    <Grid AutomationId="HomePage" BackgroundColor="{DynamicResource PageBackgroundColor}" HorizontalOptions="Fill" VerticalOptions="Fill">
         <Grid
             Grid.Row="0"
             Margin="{OnPlatform Default='0', iOS='0,20,0,0', Android='0,24,0,0'}"

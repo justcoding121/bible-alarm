@@ -10,20 +10,24 @@
              NavigationPage.HasBackButton="False"
              NavigationPage.HasNavigationBar="False">
     <ContentPage.Content>
-        <Grid AutomationId="SchedulePage"
-              BackgroundColor="{DynamicResource PageBackgroundColor}">
+        <AbsoluteLayout AutomationId="SchedulePage"
+                       BackgroundColor="{DynamicResource PageBackgroundColor}"
+                       HorizontalOptions="Fill"
+                       VerticalOptions="Fill">
+            
             <!-- Content container - will be populated asynchronously after page loads -->
             <ContentView x:Name="contentContainer"
-                         Grid.ZIndex="1"
+                         AbsoluteLayout.LayoutBounds="0,0,1,1"
+                         AbsoluteLayout.LayoutFlags="All"
                          Opacity="0" />
             
-            <!-- Overlay with busy indicator - shown immediately -->
+            <!-- Overlay with busy indicator - shown immediately, overlays content -->
+            <!-- Uses absolute positioning to ensure stable centering regardless of content -->
             <!-- Binding removed to prevent conflicts - controlled entirely from code-behind -->
             <shared:BusyOverlay x:Name="scheduleBusyOverlay"
-                                Grid.ZIndex="2"
-                                HorizontalOptions="Fill"
-                                VerticalOptions="Fill"
+                                AbsoluteLayout.LayoutBounds="0,0,1,1"
+                                AbsoluteLayout.LayoutFlags="All"
                                 IsVisible="True" />
-        </Grid>
+        </AbsoluteLayout>
     </ContentPage.Content>
 </views:BaseContentPage>

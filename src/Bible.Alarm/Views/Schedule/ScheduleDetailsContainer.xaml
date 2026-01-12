@@ -71,8 +71,8 @@
                     StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Sunday}">
                         <Binding Path="DaysOfWeek" />
@@ -92,8 +92,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                         <On Platform="Default">
                             <Button Padding="0"
@@ -106,8 +106,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -118,8 +118,8 @@
                     StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Monday}">
                         <Binding Path="DaysOfWeek" />
@@ -139,8 +139,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                         <On Platform="Default">
                             <Button Padding="0"
@@ -153,8 +153,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -165,8 +165,8 @@
                     StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Tuesday}">
                         <Binding Path="DaysOfWeek" />
@@ -186,8 +186,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                         <On Platform="Default">
                             <Button Padding="0"
@@ -200,8 +200,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -212,8 +212,8 @@
                     StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Wednesday}">
                         <Binding Path="DaysOfWeek" />
@@ -233,8 +233,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                         <On Platform="Default">
                             <Button Padding="0"
@@ -247,8 +247,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -259,8 +259,8 @@
                     StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Thursday}">
                         <Binding Path="DaysOfWeek" />
@@ -280,8 +280,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                         <On Platform="Default">
                             <Button Padding="0"
@@ -294,8 +294,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -306,8 +306,8 @@
                     StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Friday}">
                         <Binding Path="DaysOfWeek" />
@@ -327,8 +327,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                         <On Platform="Default">
                             <Button Padding="0"
@@ -341,8 +341,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -353,8 +353,8 @@
                     StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}">
+                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Saturday}">
                         <Binding Path="DaysOfWeek" />
@@ -374,8 +374,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                         <On Platform="Default">
                             <Button Padding="0"
@@ -388,8 +388,8 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    MinimumWidthRequest="{OnPlatform Android='32', Default='36'}"
-                                    MinimumHeightRequest="{OnPlatform Android='32', Default='36'}" />
+                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
+                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>

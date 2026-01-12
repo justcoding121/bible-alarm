@@ -111,7 +111,7 @@
                     </Grid.ColumnDefinitions>
                     <shared:PlatformSwitch
                         Grid.Column="0"
-                        Margin="0,0,12,0"
+                        Margin="0"
                         HorizontalOptions="End"
                         IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />
@@ -169,7 +169,7 @@
                     </Grid.ColumnDefinitions>
                     <shared:PlatformSwitch
                         Grid.Column="0"
-                        Margin="0,0,12,0"
+                        Margin="0"
                         HorizontalOptions="End"
                         IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />

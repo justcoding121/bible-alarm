@@ -7,11 +7,15 @@
              xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
              xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
              xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
-             x:DataType="vm:ScheduleViewModel">
+             x:DataType="vm:ScheduleViewModel"
+             HorizontalOptions="Fill"
+             VerticalOptions="Fill">
     <!-- Converters moved to App.xaml for better performance - shared across all pages -->
     <!-- Theme-aware colors are inherited from BaseContentPage -->
     <Grid x:Name="MainGrid"
-          RowSpacing="0">
+          RowSpacing="0"
+          HorizontalOptions="Fill"
+          VerticalOptions="Fill">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition Height="*" />
@@ -33,6 +37,7 @@
                     BackgroundColor="{DynamicResource DividerColor}"
                     CornerRadius="8"
                     Command="{Binding CancelCommand}"
+                    FontSize="{DynamicResource LargeFontSize}"
                     FontAttributes="Bold"
                     HorizontalOptions="Fill"
                     Text="CANCEL"
@@ -52,6 +57,7 @@
                     BackgroundColor="{StaticResource PrimaryColor}"
                     CornerRadius="8"
                     Command="{Binding SaveCommand}"
+                    FontSize="{DynamicResource LargeFontSize}"
                     FontAttributes="Bold"
                     HorizontalOptions="Fill"
                     Text="SAVE"
@@ -91,6 +97,7 @@
                         BackgroundColor="{StaticResource ErrorColor}"
                         CornerRadius="8"
                         Command="{Binding DeleteCommand}"
+                        FontSize="{DynamicResource LargeFontSize}"
                         FontAttributes="Bold"
                         HorizontalOptions="Fill"
                         Text="DELETE"

@@ -18,8 +18,8 @@
         <!-- Theme-aware colors are inherited from BaseContentPage -->
     </ContentPage.Resources>
     <ContentPage.Content>
-        <ScrollView>
-            <Grid BackgroundColor="{DynamicResource BackgroundColor}" Padding="20,20,20,20">
+        <ScrollView HorizontalOptions="Fill" VerticalOptions="Fill">
+            <Grid BackgroundColor="{DynamicResource BackgroundColor}" Padding="20,20,20,20" HorizontalOptions="Fill" VerticalOptions="Fill">
                 <Border
                     BackgroundColor="{DynamicResource CardBackgroundColor}"
                     StrokeThickness="0"

@@ -33,6 +33,8 @@
             x:Name="MainGrid"
             BackgroundColor="{DynamicResource BackgroundColor}"
             ColumnSpacing="0"
+            HorizontalOptions="Fill"
+            VerticalOptions="Fill"
             RowSpacing="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />

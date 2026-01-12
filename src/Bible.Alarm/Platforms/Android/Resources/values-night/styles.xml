@@ -8,6 +8,24 @@
         <item name="colorPrimary">#6B46C1</item>
         <item name="colorPrimaryDark">#512BD4</item>
         <item name="colorAccent">#6B46C1</item>
+        <!-- Use custom time picker dialog theme with larger button text -->
+        <item name="android:timePickerDialogTheme">@style/TimePickerDialogTheme</item>
+    </style>
+    
+    <!-- Time picker dialog theme with larger button text to match OS font size -->
+    <style name="TimePickerDialogTheme" parent="@style/ThemeOverlay.Material3.MaterialTimePicker">
+        <item name="colorPrimary">#6B46C1</item>
+        <item name="colorAccent">#6B46C1</item>
+        <!-- Style for dialog buttons (Ok/Cancel) -->
+        <item name="buttonBarPositiveButtonStyle">@style/TimePickerDialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/TimePickerDialogButton</item>
+    </style>
+    
+    <!-- Dialog button style with larger text -->
+    <style name="TimePickerDialogButton" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">#6B46C1</item>
+        <item name="android:minHeight">48dp</item>
     </style>
     
 </resources>

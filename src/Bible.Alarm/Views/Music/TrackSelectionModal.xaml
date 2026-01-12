@@ -24,7 +24,9 @@
             Margin="{OnPlatform Default='0', iOS='0,20,0,0', Android='0,24,0,0'}"
             BackgroundColor="{DynamicResource BackgroundColor}"
             ColumnSpacing="0"
-            RowSpacing="0">
+            RowSpacing="0"
+            HorizontalOptions="Fill"
+            VerticalOptions="Fill">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="*" />
