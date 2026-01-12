@@ -144,14 +144,14 @@
                                             x:Name="ScheduleItemGrid"
                                     ColumnSpacing="{OnPlatform iOS='0'}"
                                     HorizontalOptions="Fill"
-                                    VerticalOptions="Center">
+                                    VerticalOptions="Start">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="auto" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="{OnPlatform WinUI='50', Default='auto'}" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid VerticalOptions="Center"
                                       Grid.Column="0"
@@ -249,7 +249,7 @@
                                         VerticalOptions="Fill">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>

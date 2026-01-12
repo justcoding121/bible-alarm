@@ -4,13 +4,14 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
 using File = TagLib.File;
 using IPicture = TagLib.IPicture;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaService) : IDisplayMetadataService
+public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaService, IBiblePublicationService? biblePublicationService = null) : IDisplayMetadataService
 {
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
@@ -41,6 +42,7 @@ public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaSe
 
     private async Task SetBibleMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri)
     {
+        // Try to get section info first (for sectioned publications)
         var section = await mediaService.GetBiblePublicationSection(
             trackMetadata.LanguageCode,
             trackMetadata.PublicationCode,
@@ -52,10 +54,52 @@ public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaSe
         }
         else
         {
-            meta.Title = $"Section {trackMetadata.SectionNumber} Track {trackMetadata.TrackNumber}";
+            // No section found - try to get track info directly from publication
+            await SetBiblePublicationTrackMetadataAsync(trackMetadata, meta);
         }
 
+        // Try to extract artwork from file - works for both MP3 and MP4
         await TryExtractArtworkFromFileAsync(meta, uri, "Bible file");
+    }
+    
+    private async Task SetBiblePublicationTrackMetadataAsync(TrackMetadata trackMetadata, MetaData meta)
+    {
+        // Get track info directly from publication (for publications without sections or when section lookup fails)
+        if (biblePublicationService != null)
+        {
+            var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(
+                trackMetadata.LanguageCode,
+                trackMetadata.PublicationCode);
+            
+            if (publication != null)
+            {
+                // Title: Track title from database
+                var track = publication.Tracks?.FirstOrDefault(t => t.Number == trackMetadata.TrackNumber);
+                if (track != null && !string.IsNullOrWhiteSpace(track.Title))
+                {
+                    meta.Title = track.Title;
+                }
+                else
+                {
+                    meta.Title = $"Track {trackMetadata.TrackNumber}";
+                }
+                
+                // Artist: Publication name + (jw.org)
+                meta.Artist = $"{publication.Name} (jw.org)";
+                
+                // Album: Language name
+                var languages = await mediaService.GetBiblePublicationLanguages();
+                if (languages.TryGetValue(trackMetadata.LanguageCode, out var language))
+                {
+                    meta.Album = language.Name;
+                }
+                
+                return;
+            }
+        }
+        
+        // Fallback if no publication found
+        meta.Title = $"Track {trackMetadata.TrackNumber}";
     }
 
     private async Task SetBiblePublicationSectionMetadataAsync(TrackMetadata trackMetadata, MetaData meta, BiblePublicationSection section)

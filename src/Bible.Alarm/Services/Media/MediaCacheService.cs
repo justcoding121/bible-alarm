@@ -53,7 +53,33 @@ public sealed class MediaCacheService(
         var uri = new Uri(url);
 
         var plainTextBytes = Encoding.UTF8.GetBytes(uri.PathAndQuery);
-        return Convert.ToBase64String(plainTextBytes) + AppConstants.Media.MediaFileExtension;
+        var base64Name = Convert.ToBase64String(plainTextBytes);
+        
+        // Preserve the original file extension from the URL to ensure proper metadata extraction
+        // TagLib and other libraries use file extension to determine the file format
+        var extension = GetFileExtensionFromUrl(uri);
+        
+        return base64Name + extension;
+    }
+    
+    private static string GetFileExtensionFromUrl(Uri uri)
+    {
+        // Get extension from the URL path (without query string)
+        var path = uri.AbsolutePath;
+        var extension = Path.GetExtension(path);
+        
+        // If we got a valid extension, use it; otherwise fall back to default
+        if (!string.IsNullOrEmpty(extension) && 
+            (extension.Equals(".mp3", StringComparison.OrdinalIgnoreCase) ||
+             extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase) ||
+             extension.Equals(".m4a", StringComparison.OrdinalIgnoreCase) ||
+             extension.Equals(".aac", StringComparison.OrdinalIgnoreCase)))
+        {
+            return extension.ToLowerInvariant();
+        }
+        
+        // Default to mp3 for backwards compatibility
+        return AppConstants.Media.MediaFileExtension;
     }
 
     public string GetCacheFilePath(string url) => Path.Combine(cacheRoot, GetCacheFileName(url));

@@ -9,7 +9,18 @@ public class TrackMetadata
     public long ScheduleId { get; set; }
     public DateTimeOffset NotificationTime { get; set; }
 
-    public PlayType PlayType => SectionNumber > 0 ? PlayType.Bible : PlayType.Music;
+    /// <summary>
+    /// Explicitly set to true for Bible publication content (both sectioned and non-sectioned).
+    /// Set at creation time by PlaylistBibleTrackBuilder.
+    /// Music tracks leave this as false (default).
+    /// </summary>
+    public bool IsBibleContent { get; set; }
+
+    /// <summary>
+    /// Determines the play type based on IsBibleContent flag.
+    /// This flag is set explicitly when creating the TrackMetadata.
+    /// </summary>
+    public PlayType PlayType => IsBibleContent ? PlayType.Bible : PlayType.Music;
 
     public string LanguageCode { get; set; } = string.Empty;
     public string PublicationCode { get; set; } = string.Empty;
@@ -28,7 +39,6 @@ public class TrackMetadata
     public TimeSpan FinishedDuration { get; set; }
 
     public bool IsAlarmMusic => TrackNumber > 0;
-    public bool IsBiblePublication => TrackNumber > 0;
 
     public bool IsLastTrack { get; set; }
 }

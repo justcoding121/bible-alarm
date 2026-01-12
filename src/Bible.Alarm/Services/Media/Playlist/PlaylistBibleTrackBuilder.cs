@@ -157,6 +157,7 @@ public class PlaylistBiblePublicationTrackBuilder
         var trackMetadata = new TrackMetadata
         {
             ScheduleId = scheduleId,
+            IsBibleContent = true,
             PublicationCode = biblePublicationSchedule.PublicationCode,
             LanguageCode = biblePublicationSchedule.LanguageCode,
             // LookUpPath is now computed from LanguageCode, PublicationCode, SectionNumber, TrackNumber

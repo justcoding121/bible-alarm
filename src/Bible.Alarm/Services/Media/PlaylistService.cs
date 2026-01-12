@@ -214,6 +214,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var trackMetadata = new TrackMetadata
         {
             ScheduleId = scheduleId,
+            IsBibleContent = true,
             PublicationCode = biblePublicationSchedule.PublicationCode,
             LanguageCode = biblePublicationSchedule.LanguageCode,
             SectionNumber = trackInfo.SectionNumber,
