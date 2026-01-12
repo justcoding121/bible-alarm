@@ -38,6 +38,23 @@ public class PlaylistBiblePublicationTrackBuilder
         var numberOfTracksToRead = schedule.NumberOfTracksToRead;
         var markedSeekTrack = false;
 
+        // For non-sectioned publications, limit to available tracks to prevent wrapping/duplicates
+        var sectionNumber = biblePublicationSchedule.SectionNumber ?? 0;
+        if (sectionNumber == 0)
+        {
+            var availableTracksCount = await GetAvailableTracksCountForNonSectionedPublication(
+                biblePublicationSchedule.LanguageCode,
+                biblePublicationSchedule.PublicationCode,
+                biblePublicationSchedule.TrackNumber);
+
+            if (availableTracksCount < numberOfTracksToRead)
+            {
+                logger.Debug("[PlaylistBuild] Limiting tracks from {Requested} to {Available} for non-sectioned publication",
+                    numberOfTracksToRead, availableTracksCount);
+                numberOfTracksToRead = availableTracksCount;
+            }
+        }
+
         var currentSectionNumber = initialTrackInfo.SectionNumber;
         var currentTrack = initialTrackInfo.Track;
         var currentUrl = initialTrackInfo.Url;
@@ -66,6 +83,34 @@ public class PlaylistBiblePublicationTrackBuilder
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Gets the number of remaining tracks available from the current track to the end of a non-sectioned publication.
+    /// This prevents the progress from showing more tracks than actually available.
+    /// </summary>
+    private async Task<int> GetAvailableTracksCountForNonSectionedPublication(
+        string languageCode,
+        string publicationCode,
+        int currentTrackNumber)
+    {
+        if (biblePublicationService == null)
+        {
+            throw new InvalidOperationException("IBiblePublicationService is required for non-sectioned publications");
+        }
+
+        var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
+
+        if (publication?.Tracks == null || publication.Tracks.Count == 0)
+        {
+            return 0;
+        }
+
+        // Count tracks from current track number to the end (inclusive of current)
+        var orderedTracks = publication.Tracks.OrderBy(t => t.Number).ToList();
+        var remainingTracks = orderedTracks.Count(t => t.Number >= currentTrackNumber);
+
+        return remainingTracks > 0 ? remainingTracks : orderedTracks.Count;
     }
 
     public async Task<TrackInfo> GetInitialTrackInfo(BiblePublicationSchedule biblePublicationSchedule)
