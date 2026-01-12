@@ -148,6 +148,11 @@ public sealed class MediaCacheService(
 
     public async Task<string?> GetOrDownloadTrackUriAsync(PlayItem playItem, CancellationToken cancellationToken = default)
     {
+        return await GetOrDownloadTrackUriWithProgressAsync(playItem, null, cancellationToken);
+    }
+
+    public async Task<string?> GetOrDownloadTrackUriWithProgressAsync(PlayItem playItem, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
+    {
         // Check for cancellation
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -156,6 +161,8 @@ public sealed class MediaCacheService(
         {
             var cachedFilePath = GetCacheFilePath(playItem.Url);
             logger.Debug("Using cached file for track: {Url}, Path: {CachedPath}", playItem.Url, cachedFilePath);
+            // Report as complete for cached files
+            progressCallback?.Invoke(1, 1);
             // On iOS, MediaElement needs the file path directly instead of file:// URI
             if (DeviceInfo.Platform == DevicePlatform.iOS)
             {
@@ -171,9 +178,9 @@ public sealed class MediaCacheService(
             return null;
         }
 
-        // Download and cache the file
+        // Download and cache the file with progress reporting
         logger.Information("Downloading track (not in cache): {Url}", playItem.Url);
-        var cachedUrl = await DownloadAndCacheTrackAsync(playItem, cancellationToken);
+        var cachedUrl = await DownloadAndCacheTrackWithProgressAsync(playItem, progressCallback, cancellationToken);
         if (cachedUrl == null)
         {
             logger.Error("Failed to download and cache track: {Url}", playItem.Url);
@@ -192,12 +199,17 @@ public sealed class MediaCacheService(
 
     private async Task<string?> DownloadAndCacheTrackAsync(PlayItem playItem, CancellationToken cancellationToken = default)
     {
+        return await DownloadAndCacheTrackWithProgressAsync(playItem, null, cancellationToken);
+    }
+
+    private async Task<string?> DownloadAndCacheTrackWithProgressAsync(PlayItem playItem, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
+    {
         try
         {
             // Check for cancellation before downloading
             cancellationToken.ThrowIfCancellationRequested();
 
-            var bytes = await downloadService.DownloadAsync(playItem.Url, cancellationToken: cancellationToken);
+            var bytes = await downloadService.DownloadWithProgressAsync(playItem.Url, progressCallback, cancellationToken);
 
             if (bytes != null && bytes.Length > 0)
             {

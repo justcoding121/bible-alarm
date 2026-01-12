@@ -38,21 +38,19 @@ public class PlaylistBiblePublicationTrackBuilder
         var numberOfTracksToRead = schedule.NumberOfTracksToRead;
         var markedSeekTrack = false;
 
-        // For non-sectioned publications, limit to available tracks to prevent wrapping/duplicates
+        // Limit to available tracks to prevent wrapping/duplicates for both sectioned and non-sectioned publications
         var sectionNumber = biblePublicationSchedule.SectionNumber ?? 0;
-        if (sectionNumber == 0)
-        {
-            var availableTracksCount = await GetAvailableTracksCountForNonSectionedPublication(
-                biblePublicationSchedule.LanguageCode,
-                biblePublicationSchedule.PublicationCode,
-                biblePublicationSchedule.TrackNumber);
+        var availableTracksCount = await GetAvailableTracksCount(
+            biblePublicationSchedule.LanguageCode,
+            biblePublicationSchedule.PublicationCode,
+            sectionNumber,
+            biblePublicationSchedule.TrackNumber);
 
-            if (availableTracksCount < numberOfTracksToRead)
-            {
-                logger.Debug("[PlaylistBuild] Limiting tracks from {Requested} to {Available} for non-sectioned publication",
-                    numberOfTracksToRead, availableTracksCount);
-                numberOfTracksToRead = availableTracksCount;
-            }
+        if (availableTracksCount < numberOfTracksToRead)
+        {
+            logger.Debug("[PlaylistBuild] Limiting tracks from {Requested} to {Available} for publication (sectionNumber={Section})",
+                numberOfTracksToRead, availableTracksCount, sectionNumber);
+            numberOfTracksToRead = availableTracksCount;
         }
 
         var currentSectionNumber = initialTrackInfo.SectionNumber;
@@ -86,10 +84,28 @@ public class PlaylistBiblePublicationTrackBuilder
     }
 
     /// <summary>
-    /// Gets the number of remaining tracks available from the current track to the end of a non-sectioned publication.
+    /// Gets the number of remaining tracks available from the current track to the end of the publication.
+    /// For non-sectioned publications: counts from current track to last track.
+    /// For sectioned publications: counts from current track to last track in current section, then adds all tracks in subsequent sections.
     /// This prevents the progress from showing more tracks than actually available.
     /// </summary>
-    private async Task<int> GetAvailableTracksCountForNonSectionedPublication(
+    private async Task<int> GetAvailableTracksCount(
+        string languageCode,
+        string publicationCode,
+        int sectionNumber,
+        int currentTrackNumber)
+    {
+        // Non-sectioned publication
+        if (sectionNumber == 0)
+        {
+            return await GetAvailableTracksCountForNonSectioned(languageCode, publicationCode, currentTrackNumber);
+        }
+
+        // Sectioned publication
+        return await GetAvailableTracksCountForSectioned(languageCode, publicationCode, sectionNumber, currentTrackNumber);
+    }
+
+    private async Task<int> GetAvailableTracksCountForNonSectioned(
         string languageCode,
         string publicationCode,
         int currentTrackNumber)
@@ -111,6 +127,36 @@ public class PlaylistBiblePublicationTrackBuilder
         var remainingTracks = orderedTracks.Count(t => t.Number >= currentTrackNumber);
 
         return remainingTracks > 0 ? remainingTracks : orderedTracks.Count;
+    }
+
+    private async Task<int> GetAvailableTracksCountForSectioned(
+        string languageCode,
+        string publicationCode,
+        int sectionNumber,
+        int currentTrackNumber)
+    {
+        var totalCount = 0;
+
+        // Get all sections for this publication
+        var sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
+        if (sections.Count == 0)
+        {
+            return 0;
+        }
+
+        // Get tracks in current section from current track onwards
+        var currentSectionTracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
+        var remainingInCurrentSection = currentSectionTracks.Count(kvp => kvp.Key >= currentTrackNumber);
+        totalCount += remainingInCurrentSection;
+
+        // Add all tracks from subsequent sections
+        foreach (var section in sections.Where(s => s.Key > sectionNumber))
+        {
+            var sectionTracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, section.Key);
+            totalCount += sectionTracks.Count;
+        }
+
+        return totalCount;
     }
 
     public async Task<TrackInfo> GetInitialTrackInfo(BiblePublicationSchedule biblePublicationSchedule)

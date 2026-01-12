@@ -76,6 +76,11 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
 
     public async Task<byte[]> DownloadAsync(string url, string? alternativeUrl = null, CancellationToken cancellationToken = default)
     {
+        return await DownloadWithProgressAsync(url, null, cancellationToken);
+    }
+
+    public async Task<byte[]> DownloadWithProgressAsync(string url, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
+    {
         // Combine the service's cancellation token with the provided one
         using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token, cancellationToken);
 
@@ -86,7 +91,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
 
             try
             {
-                return await DownloadWithStallTimeoutAsync(url, combinedCts.Token);
+                return await DownloadWithStallTimeoutAsync(url, combinedCts.Token, progressCallback);
             }
             catch (OperationCanceledException)
             {
@@ -99,29 +104,8 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                 combinedCts.Token.ThrowIfCancellationRequested();
 
                 logger.Warning(ex, "Failed to download from primary URL: {Url}", url);
-
-                if (alternativeUrl == null)
-                {
-                    logger.Error(ex, "No alternative URL provided for failed download: {Url}", url);
-                    throw;
-                }
-
-                logger.Information("Attempting to download from alternative URL: {AlternativeUrl}", alternativeUrl);
-
-                try
-                {
-                    return await DownloadWithStallTimeoutAsync(alternativeUrl, combinedCts.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    logger.Information("Download cancelled for alternative URL: {AlternativeUrl}", alternativeUrl);
-                    throw; // Re-throw cancellation immediately - Polly won't retry due to Handle condition
-                }
-                catch (Exception altEx)
-                {
-                    logger.Error(altEx, "Failed to download from alternative URL: {AlternativeUrl}", alternativeUrl);
-                    throw;
-                }
+                logger.Error(ex, "No alternative URL provided for failed download: {Url}", url);
+                throw;
             }
         }, combinedCts.Token);
     }
@@ -130,7 +114,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
     /// Downloads a file with a stall timeout - only times out if no data is received for X seconds.
     /// This prevents canceling slow but active downloads while still detecting stalled connections.
     /// </summary>
-    private async Task<byte[]> DownloadWithStallTimeoutAsync(string url, CancellationToken cancellationToken)
+    private async Task<byte[]> DownloadWithStallTimeoutAsync(string url, CancellationToken cancellationToken, Action<long, long?>? progressCallback = null)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd(UserAgent);
@@ -147,12 +131,21 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, connectionTimeoutCts.Token);
         response.EnsureSuccessStatusCode();
 
+        // Get content length if available for progress reporting
+        var totalBytes = response.Content.Headers.ContentLength;
+
         // Stream the content with stall detection
         await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var memoryStream = new MemoryStream();
 
         var buffer = new byte[8192];
         int bytesRead;
+        long totalBytesRead = 0;
+        var lastProgressReport = DateTime.MinValue;
+        const int ProgressReportIntervalMs = 100; // Throttle progress reports
+
+        // Report initial progress
+        progressCallback?.Invoke(0, totalBytes);
 
         while (true)
         {
@@ -178,7 +171,19 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
             }
 
             memoryStream.Write(buffer, 0, bytesRead);
+            totalBytesRead += bytesRead;
+
+            // Report progress with throttling to avoid flooding UI
+            var now = DateTime.UtcNow;
+            if (progressCallback != null && (now - lastProgressReport).TotalMilliseconds >= ProgressReportIntervalMs)
+            {
+                progressCallback.Invoke(totalBytesRead, totalBytes);
+                lastProgressReport = now;
+            }
         }
+
+        // Report final progress
+        progressCallback?.Invoke(totalBytesRead, totalBytes);
 
         return memoryStream.ToArray();
     }

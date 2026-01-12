@@ -60,33 +60,34 @@
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
             
-            <!-- Main Content Area -->
-            <ScrollView
+            <!-- Main Content Area - No scrolling, content sized to fit -->
+            <Grid
+                x:Name="MainContentArea"
                 Grid.Row="0"
-                VerticalScrollBarVisibility="Never">
-                <Grid
-                    Padding="24,40,24,24"
-                    RowSpacing="32"
-                    VerticalOptions="Center">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                Padding="24,40,24,24"
+                RowSpacing="24"
+                VerticalOptions="Fill">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
                     
                     <!-- Progress indicator when preparing tracks -->
                     <Border Grid.Row="0"
                         IsVisible="{Binding ShowPreparingProgress}"
                         BackgroundColor="{DynamicResource CardBackgroundColor}"
                         StrokeThickness="0"
-                        Padding="24,20">
+                        Padding="24,20"
+                        MinimumWidthRequest="280">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="16" />
                         </Border.StrokeShape>
                         <Grid
                             HorizontalOptions="Center"
                             VerticalOptions="Center"
-                            RowSpacing="12">
+                            RowSpacing="12"
+                            WidthRequest="240">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -95,18 +96,19 @@
                             <Label Grid.Row="0"
                                 FontSize="16"
                                 FontAttributes="Bold"
-                                HorizontalOptions="Center"
+                                HorizontalOptions="Fill"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding ProgressText}"
-                                TextColor="{DynamicResource TextPrimaryColor}" />
+                                TextColor="{DynamicResource TextPrimaryColor}"
+                                MinimumHeightRequest="48" />
                             <ProgressBar Grid.Row="1"
                                 Margin="10,5"
-                                MinimumWidthRequest="200"
+                                WidthRequest="200"
+                                HorizontalOptions="Center"
                                 Progress="{Binding PreparationProgress}"
                                 ProgressColor="{StaticResource PrimaryColor}" />
                             <!-- Busy Indicator below progress bar -->
                             <Grid Grid.Row="2"
-                                IsVisible="{Binding ShowPreparingProgress}"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center"
                                 HeightRequest="40"
@@ -199,39 +201,48 @@
                     <Grid Grid.Row="2"
                         AutomationId="AlarmModal"
                         IsVisible="{Binding ShowMainPlayerContent}"
-                        RowSpacing="32"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center">
+                        RowSpacing="16"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
+                            <!-- Artwork takes remaining space -->
+                            <RowDefinition Height="*" />
+                            <!-- Metadata has fixed height -->
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         
-                        <!-- Album Artwork -->
+                        <!-- Album Artwork - fixed size, centered -->
                         <Grid Grid.Row="0"
                             HorizontalOptions="Center"
-                            VerticalOptions="Center">
-                            <!-- Activity Indicator for loading artwork -->
-                            <ActivityIndicator
+                            VerticalOptions="Center"
+                            WidthRequest="280"
+                            HeightRequest="280">
+                            <!-- Busy Indicator for loading artwork -->
+                            <Grid
                                 IsVisible="{Binding IsArtworkLoading}"
-                                IsRunning="{Binding IsArtworkLoading}"
-                                Color="{StaticResource PrimaryColor}"
-                                HeightRequest="280"
-                                WidthRequest="280"
                                 HorizontalOptions="Center"
-                                VerticalOptions="Center" />
+                                VerticalOptions="Center"
+                                HeightRequest="50"
+                                WidthRequest="50">
+                                <core:SfBusyIndicator
+                                    IsRunning="{Binding IsArtworkLoading}"
+                                    AnimationType="DoubleCircle"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Fill"
+                                    HeightRequest="50"
+                                    WidthRequest="50"
+                                    IndicatorColor="{StaticResource PrimaryColor}" />
+                            </Grid>
                             
                             <!-- Album Artwork or Bell Icon -->
                             <Border
                                 IsVisible="{Binding IsArtworkLoading, Converter={StaticResource negateBooleanConverter}}"
                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                HeightRequest="280"
-                                WidthRequest="280"
                                 StrokeThickness="0"
-                                HorizontalOptions="Center"
-                                VerticalOptions="Center">
+                                HorizontalOptions="Fill"
+                                VerticalOptions="Fill">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="0" />
+                                    <RoundRectangle CornerRadius="8" />
                                 </Border.StrokeShape>
                                 <Border.Shadow>
                                     <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
@@ -243,12 +254,10 @@
                                     <!-- Album Artwork Image -->
                                     <Image
                                         Aspect="AspectFill"
-                                        HeightRequest="280"
                                         HorizontalOptions="Fill"
                                         IsVisible="{Binding HasArtwork}"
                                         Source="{Binding ArtworkSource}"
-                                        VerticalOptions="Fill"
-                                        WidthRequest="280" />
+                                        VerticalOptions="Fill" />
                                     <!-- Fallback Bell Icon when no artwork -->
                                     <Label
                                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -263,41 +272,44 @@
                             </Border>
                         </Grid>
                         
-                        <!-- Track Metadata -->
+                        <!-- Track Metadata - fixed height, truncated text -->
                         <Grid Grid.Row="1"
-                            RowSpacing="8"
-                            HorizontalOptions="Center">
+                            RowSpacing="4"
+                            Padding="16,0"
+                            HorizontalOptions="Fill">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Label Grid.Row="0"
-                                FontSize="24"
+                                FontSize="20"
                                 FontAttributes="Bold"
-                                HorizontalOptions="Center"
+                                HorizontalOptions="Fill"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding Title}"
                                 TextColor="{DynamicResource TextPrimaryColor}"
-                                LineBreakMode="WordWrap" />
+                                LineBreakMode="TailTruncation"
+                                MaxLines="2" />
                             <Label Grid.Row="1"
-                                FontSize="18"
-                                HorizontalOptions="Center"
+                                FontSize="16"
+                                HorizontalOptions="Fill"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding SubTitle}"
                                 TextColor="{DynamicResource TextSecondaryColor}"
-                                LineBreakMode="WordWrap" />
+                                LineBreakMode="TailTruncation"
+                                MaxLines="2" />
                             <Label Grid.Row="2"
                                 FontSize="14"
-                                HorizontalOptions="Center"
+                                HorizontalOptions="Fill"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding Description}"
                                 TextColor="{DynamicResource TextSecondaryColor}"
-                                LineBreakMode="WordWrap" />
+                                LineBreakMode="TailTruncation"
+                                MaxLines="1" />
                         </Grid>
                     </Grid>
-                </Grid>
-            </ScrollView>
+            </Grid>
             
             <!-- Bottom Controls Panel -->
             <Border

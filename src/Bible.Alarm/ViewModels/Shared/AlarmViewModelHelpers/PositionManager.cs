@@ -69,7 +69,21 @@ public sealed class PositionManager()
         // Use BeginInvokeOnMainThread to queue on UI thread without blocking
         var loadedTracks = message.LoadedTracks;
         var totalTracks = message.TotalTracks;
-        var preparationProgress = totalTracks > 0 ? loadedTracks / (double)totalTracks : 0.0;
+        
+        // Calculate progress including current track's download progress for smoother progress bar
+        // Each completed track contributes (1/totalTracks), and current track contributes partial progress
+        double preparationProgress;
+        if (totalTracks > 0)
+        {
+            var completedTrackProgress = loadedTracks / (double)totalTracks;
+            var currentTrackContribution = message.CurrentTrackProgress / totalTracks;
+            preparationProgress = completedTrackProgress + currentTrackContribution;
+        }
+        else
+        {
+            preparationProgress = 0.0;
+        }
+        
         var isPreparing = totalTracks > 0 && loadedTracks < totalTracks;
 
         updatePreparationState(loadedTracks, totalTracks, preparationProgress, isPreparing);

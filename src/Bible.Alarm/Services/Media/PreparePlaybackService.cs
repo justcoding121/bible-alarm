@@ -21,18 +21,26 @@ public sealed class PreparePlaybackService(
         var loadedTracks = 0;
 
         // Send initial progress message with total count
-        WeakReferenceMessenger.Default.Send(new PlaybackPreparationProgressMessage
-        {
-            LoadedTracks = 0,
-            TotalTracks = totalTracks
-        });
+        SendProgressMessage(loadedTracks, totalTracks, 0, 0, null);
 
         foreach (var playItem in playItems)
         {
             // Check for cancellation before processing each track
             cancellationToken.ThrowIfCancellationRequested();
 
-            var audioPlayerTrack = await PrepareSingleTrackAsync(playItem, cancellationToken);
+            // Capture current track index for progress callback
+            var currentTrackIndex = loadedTracks;
+
+            // Progress callback for download bytes
+            void DownloadProgressCallback(long bytesDownloaded, long? totalBytes)
+            {
+                var trackProgress = totalBytes.HasValue && totalBytes.Value > 0
+                    ? (double)bytesDownloaded / totalBytes.Value
+                    : 0.0;
+                SendProgressMessage(currentTrackIndex, totalTracks, trackProgress, bytesDownloaded, totalBytes);
+            }
+
+            var audioPlayerTrack = await PrepareSingleTrackWithProgressAsync(playItem, DownloadProgressCallback, cancellationToken);
 
             if (audioPlayerTrack == null)
             {
@@ -44,11 +52,7 @@ public sealed class PreparePlaybackService(
 
             // Send progress update message after each track is prepared
             loadedTracks++;
-            WeakReferenceMessenger.Default.Send(new PlaybackPreparationProgressMessage
-            {
-                LoadedTracks = loadedTracks,
-                TotalTracks = totalTracks
-            });
+            SendProgressMessage(loadedTracks, totalTracks, 1.0, 0, null);
 
             // Add delay to ensure each progress state (1/3, 2/3, 3/3) is visible on UI
             // Use cancellation token for delay
@@ -61,13 +65,30 @@ public sealed class PreparePlaybackService(
         return preparedTracks;
     }
 
+    private static void SendProgressMessage(int loadedTracks, int totalTracks, double currentTrackProgress, long bytesDownloaded, long? totalBytes)
+    {
+        WeakReferenceMessenger.Default.Send(new PlaybackPreparationProgressMessage
+        {
+            LoadedTracks = loadedTracks,
+            TotalTracks = totalTracks,
+            CurrentTrackProgress = currentTrackProgress,
+            BytesDownloaded = bytesDownloaded,
+            TotalBytes = totalBytes
+        });
+    }
+
     /// <summary>
     /// Prepares a single track by downloading it and creating an AudioPlayerTrack.
     /// Used for getting metadata for a single track without preparing the entire playlist.
     /// </summary>
     public async Task<AudioPlayerTrack?> PrepareSingleTrackAsync(PlayItem playItem, CancellationToken cancellationToken = default)
     {
-        var uri = await cacheService.GetOrDownloadTrackUriAsync(playItem, cancellationToken);
+        return await PrepareSingleTrackWithProgressAsync(playItem, null, cancellationToken);
+    }
+
+    private async Task<AudioPlayerTrack?> PrepareSingleTrackWithProgressAsync(PlayItem playItem, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
+    {
+        var uri = await cacheService.GetOrDownloadTrackUriWithProgressAsync(playItem, progressCallback, cancellationToken);
 
         if (uri == null)
         {
@@ -83,4 +104,5 @@ public sealed class PreparePlaybackService(
     }
 
 }
+
 

@@ -353,20 +353,11 @@
                                                     TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Saturday'}" />
                                         </Border>
                                     </Grid>
-                                    <Grid Grid.Row="1" 
+                                    <VerticalStackLayout Grid.Row="1" 
                                           HorizontalOptions="Fill"
                                           VerticalOptions="Start"
-                                          RowSpacing="4">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <Label Grid.Row="0"
-                                               Grid.Column="0"
-                                               Margin="0,0,0,4"
+                                          Spacing="4">
+                                        <Label Margin="0,0,0,0"
                                                HorizontalOptions="Fill"
                                                HorizontalTextAlignment="Start"
                                                FontSize="16"
@@ -375,17 +366,14 @@
                                                TextColor="{DynamicResource TextPrimaryColor}"
                                                LineBreakMode="TailTruncation"
                                                MaxLines="1" />
-                                        <Label Grid.Row="1"
-                                               Grid.Column="0"
-                                               Margin="0"
+                                        <Label Margin="0"
                                                HorizontalOptions="Fill"
                                                HorizontalTextAlignment="Start"
                                                FontSize="14"
                                                Text="{Binding SubTitle}"
                                                TextColor="{DynamicResource PrimaryTextColor}"
-                                               LineBreakMode="WordWrap"
-                                               MaxLines="2" />
-                                    </Grid>
+                                               LineBreakMode="WordWrap" />
+                                    </VerticalStackLayout>
                                     <Grid Grid.Row="2"
                                           Grid.Column="0"
                                           HorizontalOptions="Start"

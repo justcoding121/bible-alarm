@@ -343,6 +343,9 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     private bool isPreparing;
     private int loadedTracks;
     private int totalTracks;
+    private long bytesDownloaded;
+    private long? totalBytes;
+    private double currentTrackProgress;
 
     public bool IsPreparing
     {
@@ -359,12 +362,13 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     }
 
     /// <summary>
-    /// Show preparing progress only when preparing and there's no error
+    /// Show preparing progress when preparing tracks.
     /// </summary>
     public bool ShowPreparingProgress => IsPreparing && !HasError;
 
     /// <summary>
-    /// Show main music player content only when not preparing and there's no error
+    /// Show main music player content when not preparing and there's no error.
+    /// Bell fallback shows immediately if no artwork; actual artwork shows when loaded.
     /// </summary>
     public bool ShowMainPlayerContent => !IsPreparing && !HasError;
 
@@ -383,7 +387,53 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     /// </summary>
     public bool IsStopButtonEnabled => true;
 
-    public string ProgressText => $"Preparing tracks {(totalTracks > 0 ? $"{loadedTracks}/{totalTracks}" : "")}..";
+    public string ProgressText
+    {
+        get
+        {
+            if (totalTracks <= 0)
+            {
+                return "Preparing..\n ";
+            }
+
+            // Always use two lines to prevent layout jumps when text changes
+            // Line 1: Track progress
+            // Line 2: Download bytes (or empty placeholder)
+            
+            if (loadedTracks < totalTracks)
+            {
+                // Still downloading/preparing
+                var downloadInfo = " "; // Placeholder to maintain height
+                if (bytesDownloaded > 0)
+                {
+                    downloadInfo = FormatBytes(bytesDownloaded);
+                    if (totalBytes.HasValue && totalBytes.Value > 0)
+                    {
+                        downloadInfo += $" / {FormatBytes(totalBytes.Value)}";
+                    }
+                }
+                return $"Downloading track {loadedTracks + 1}/{totalTracks}\n{downloadInfo}";
+            }
+
+            // All tracks prepared
+            return $"Prepared {totalTracks} tracks\n ";
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        // Use consistent formatting width to prevent layout jumps
+        // Always show 2 decimal places for MB, 0 for KB
+        if (bytes >= 1024 * 1024)
+        {
+            return $"{bytes / (1024.0 * 1024.0),6:F2} MB";
+        }
+        if (bytes >= 1024)
+        {
+            return $"{bytes / 1024.0,4:F0} KB";
+        }
+        return $"{bytes,4} B";
+    }
 
     public double PreparationProgress { get; private set; }
 
@@ -447,6 +497,11 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
         // Use BeginInvokeOnMainThread to queue on UI thread without blocking
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            // Update download progress fields
+            bytesDownloaded = message.BytesDownloaded;
+            totalBytes = message.TotalBytes;
+            currentTrackProgress = message.CurrentTrackProgress;
+
             messageHandler.HandlePreparationProgressMessage(
                 message,
                 (loaded, total, progress, preparing) =>
@@ -454,6 +509,15 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
                     loadedTracks = loaded;
                     totalTracks = total;
                     PreparationProgress = progress;
+                    
+                    // When preparation is about to finish, set artwork loading to true
+                    // This ensures the loading indicator shows instead of the bell placeholder
+                    // until actual artwork or metadata arrives
+                    if (isPreparing && !preparing)
+                    {
+                        IsArtworkLoading = true;
+                    }
+                    
                     IsPreparing = preparing;
                 },
                 () =>

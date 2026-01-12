@@ -32,6 +32,22 @@ public class PlaybackPreparationProgressMessage
 {
     public int LoadedTracks { get; init; }
     public int TotalTracks { get; init; }
+    
+    /// <summary>
+    /// Current track download progress (0.0 to 1.0).
+    /// When downloading, this shows byte-level progress for the current track.
+    /// </summary>
+    public double CurrentTrackProgress { get; init; }
+    
+    /// <summary>
+    /// Bytes downloaded for the current track.
+    /// </summary>
+    public long BytesDownloaded { get; init; }
+    
+    /// <summary>
+    /// Total bytes expected for the current track (if known).
+    /// </summary>
+    public long? TotalBytes { get; init; }
 }
 
 /// <summary>

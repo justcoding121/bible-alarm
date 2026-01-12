@@ -23,6 +23,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 
         // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
+        
     }
 
     private async void OnPageLoaded(object? sender, EventArgs e)
