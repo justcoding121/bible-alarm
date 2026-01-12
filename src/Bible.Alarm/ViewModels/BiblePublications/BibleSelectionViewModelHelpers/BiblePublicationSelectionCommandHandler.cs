@@ -86,14 +86,14 @@ public sealed class BiblePublicationSelectionCommandHandler
             }
 
             var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state);
-            var (sectionNumber, trackNumber, sectionName) = await itemSelector.GetSectionAndTrackForTranslationAsync(x, currentLanguage);
+            var (sectionNumber, trackNumber, sectionName, trackTitle) = await itemSelector.GetSectionAndTrackForTranslationAsync(x, currentLanguage);
 
             if (sectionNumber == 0)
             {
                 return;
             }
 
-            var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionNumber, trackNumber, sectionName, currentLanguage, currentSchedule);
+            var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionNumber, trackNumber, sectionName, trackTitle, currentLanguage, currentSchedule);
 
             var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);
@@ -133,7 +133,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             await navigationService.PopModalAsync();
 
             var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state);
-            var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName) =
+            var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle) =
                 await itemSelector.GetTranslationSectionAndTrackForLanguageAsync(x);
 
             if (publicationCode == null)
@@ -149,7 +149,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             }
 
             var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(
-                x, publicationCode, sectionNumber, trackNumber, sectionName, publicationName, currentSchedule);
+                x, publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle, currentSchedule);
             var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchLanguageSelectionActions(biblePublicationItem, x);
         });
@@ -160,6 +160,7 @@ public sealed class BiblePublicationSelectionCommandHandler
         int sectionNumber,
         int trackNumber,
         string sectionName,
+        string trackTitle,
         LanguageListViewItemModel language,
         ScheduleStateItem currentSchedule)
     {
@@ -172,8 +173,10 @@ public sealed class BiblePublicationSelectionCommandHandler
             SectionNumber = sectionNumber,
             TrackNumber = trackNumber,
             LanguageName = language.Name,
+            LanguageDirection = language.Direction,
             PublicationName = publication.Name,
-            SectionName = sectionName
+            SectionName = sectionName,
+            TrackTitle = trackTitle
         };
     }
 
@@ -184,6 +187,7 @@ public sealed class BiblePublicationSelectionCommandHandler
         int trackNumber,
         string sectionName,
         string publicationName,
+        string trackTitle,
         ScheduleStateItem currentSchedule)
     {
         // Match the pattern used in SectionSelectionViewModel and TrackSelectionCommandHandler
@@ -195,8 +199,10 @@ public sealed class BiblePublicationSelectionCommandHandler
             SectionNumber = sectionNumber,
             TrackNumber = trackNumber,
             LanguageName = language.Name,
+            LanguageDirection = language.Direction,
             PublicationName = publicationName,
-            SectionName = sectionName
+            SectionName = sectionName,
+            TrackTitle = trackTitle
         };
     }
 }

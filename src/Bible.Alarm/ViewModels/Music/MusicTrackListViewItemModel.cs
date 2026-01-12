@@ -1,4 +1,5 @@
 #nullable enable
+using System.Net;
 using Bible.Alarm.Shared.Models.Media.Music;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -29,7 +30,10 @@ public sealed class MusicTrackListViewItemModel : ObservableObject, IComparable
     // LookUpPath is no longer stored in the database - it's computed at runtime by TrackMetadata
     public int Number => track.Number;
 
-    public string Title => isMelody ? $"Melody Number(s) {track.Title}" : track.Title;
+    /// <summary>
+    /// Gets the track title with HTML entities decoded (e.g., &nbsp; → space) and non-breaking spaces replaced with regular spaces.
+    /// </summary>
+    public string Title => isMelody ? $"Melody Number(s) {WebUtility.HtmlDecode(track.Title).Replace('\u00A0', ' ')}" : WebUtility.HtmlDecode(track.Title).Replace('\u00A0', ' ');
     public string Url => track.Source?.Url ?? string.Empty;
 
     private bool repeat;

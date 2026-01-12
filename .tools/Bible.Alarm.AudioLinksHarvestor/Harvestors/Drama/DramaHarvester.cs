@@ -233,8 +233,8 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
             if (category.TryGetProperty("name", out var nameElement))
             {
                 var rawName = nameElement.GetString();
-                // Decode HTML entities like &nbsp; to proper characters
-                localizedCategoryName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
+                // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
+                localizedCategoryName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
             }
 
             if (!category.TryGetProperty("media", out var mediaArray))
@@ -269,8 +269,8 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
             return null;
         }
         var rawTitle = titleElement.GetString();
-        // Decode HTML entities like &nbsp; to proper characters
-        var title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle) : "Unknown";
+        // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
+        var title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
 
         // Skip audio descriptions
         if (title.Contains("audio descriptions", StringComparison.OrdinalIgnoreCase))

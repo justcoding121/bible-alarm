@@ -231,8 +231,8 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
                 category.TryGetProperty("name", out var nameElement))
             {
                 var rawName = nameElement.GetString();
-                // Decode HTML entities like &nbsp; to proper characters
-                var localizedName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
+                // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
+                var localizedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
                 if (!string.IsNullOrEmpty(localizedName))
                 {
                     lock (localizedNamesLock)
@@ -391,8 +391,8 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         if (fileElement.TryGetProperty("title", out var titleElement))
         {
             var rawTitle = titleElement.GetString();
-            // Decode HTML entities like &nbsp; to proper characters
-            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle) : "Unknown";
+            // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
+            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
         }
 
         double duration = 0;

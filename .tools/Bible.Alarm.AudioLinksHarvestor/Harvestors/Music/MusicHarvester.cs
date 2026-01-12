@@ -395,8 +395,8 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         if (root.TryGetProperty("pubName", out var pubNameElement))
         {
             var rawName = pubNameElement.GetString();
-            // Decode HTML entities like &nbsp; to proper characters
-            localizedPubName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
+            // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
+            localizedPubName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
         }
 
         var newTrackNumber = ProcessMusicFiles(musicFiles, publicationDownloadCode, languageCode, trackNumber, musicTracks);
@@ -466,8 +466,8 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         if (musicFile.TryGetProperty("title", out var titleElement))
         {
             var rawTitle = titleElement.ValueKind != JsonValueKind.Undefined ? titleElement.GetString() : null;
-            // Decode HTML entities like &nbsp; to proper characters
-            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle) : "Unknown";
+            // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
+            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
         }
 
         return true;

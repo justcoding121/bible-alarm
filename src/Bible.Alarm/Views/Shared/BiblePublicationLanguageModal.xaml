@@ -113,7 +113,7 @@
                 HorizontalOptions="Fill"
                 IsVisible="True"
                 ItemsSource="{Binding Languages}"
-                MinimumHeightRequest="300">
+                MinimumHeightRequest="300"
                 MinimumWidthRequest="250"
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>

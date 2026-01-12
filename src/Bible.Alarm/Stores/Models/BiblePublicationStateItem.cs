@@ -26,18 +26,18 @@ public sealed class BiblePublicationStateItem : IComparable
     public int AlarmScheduleId { get; set; }
 
     /// <summary>
-    /// Translation name (language name) for display purposes.
-    /// This is populated during bootstrap from language dictionary.
-    /// Not persisted to database.
-    /// </summary>
-    public string? TranslationName { get; set; }
-
-    /// <summary>
     /// Language name for display purposes.
     /// This is populated from the list item when user selects a language.
     /// Not persisted to database.
     /// </summary>
     public string? LanguageName { get; set; }
+
+    /// <summary>
+    /// Language direction ("ltr" or "rtl") for display purposes.
+    /// This is populated from the list item when user selects a language.
+    /// Not persisted to database.
+    /// </summary>
+    public string? LanguageDirection { get; set; }
 
     /// <summary>
     /// Publication name (translation name) for display purposes.
@@ -52,6 +52,13 @@ public sealed class BiblePublicationStateItem : IComparable
     /// Not persisted to database.
     /// </summary>
     public string? SectionName { get; set; }
+
+    /// <summary>
+    /// Track title for display purposes (used for drama publications).
+    /// This is populated from the list item when user selects a track.
+    /// Not persisted to database.
+    /// </summary>
+    public string? TrackTitle { get; set; }
 
     /// <summary>
     /// Compare by ID for ObservableHashSet ordering.

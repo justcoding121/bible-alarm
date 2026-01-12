@@ -43,10 +43,12 @@ public sealed class TrackSelectionCommandHandler(
             PublicationCode = currentSchedule.BiblePublicationCode,
             SectionNumber = currentSchedule.BiblePublicationSectionNumber.Value,
             TrackNumber = track.Number,
-            // Store display names from current state
+            // Store display names from current state and list item
             LanguageName = currentSchedule.BiblePublicationLanguageName,
+            LanguageDirection = currentSchedule.BiblePublicationLanguageDirection,
             PublicationName = currentSchedule.BiblePublicationName,
-            SectionName = currentSchedule.BiblePublicationSectionName
+            SectionName = currentSchedule.BiblePublicationSectionName,
+            TrackTitle = track.Title
         };
 
 

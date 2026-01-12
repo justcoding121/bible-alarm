@@ -224,7 +224,10 @@ public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, I
     // LookUpPath is no longer stored in the database - it's computed at runtime by TrackMetadata
     public int Number => track.Number;
 
-    public string Title => track.Title;
+    /// <summary>
+    /// Gets the track title with HTML entities decoded (e.g., &nbsp; → space) and non-breaking spaces replaced with regular spaces.
+    /// </summary>
+    public string Title => System.Net.WebUtility.HtmlDecode(track.Title).Replace('\u00A0', ' ');
     public string Url => track.Source?.Url ?? string.Empty;
 
     public int CompareTo(object? obj) => Number.CompareTo((obj as BiblePublicationTrackListViewItemModel)?.Number);

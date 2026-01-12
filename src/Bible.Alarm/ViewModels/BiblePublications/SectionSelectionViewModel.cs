@@ -95,24 +95,30 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             // If it's the same section, preserve the current track number (if valid)
             // Otherwise, use the first track
             int trackNumber;
+            string? trackTitle = null;
             if (isSameSection && currentSchedule.BiblePublicationTrackNumber.HasValue)
             {
                 var currentTrackNumber = currentSchedule.BiblePublicationTrackNumber.Value;
                 // Verify the current track exists in the tracks list
-                if (tracks.ContainsKey(currentTrackNumber))
+                if (tracks.TryGetValue(currentTrackNumber, out var existingTrack))
                 {
                     trackNumber = currentTrackNumber;
+                    trackTitle = existingTrack.Title;
                 }
                 else
                 {
                     // Current track doesn't exist in this section, use first track
-                    trackNumber = tracks.Values.First().Number;
+                    var firstTrack = tracks.Values.First();
+                    trackNumber = firstTrack.Number;
+                    trackTitle = firstTrack.Title;
                 }
             }
             else
             {
                 // Different section selected, use first track
-                trackNumber = tracks.Values.First().Number;
+                var firstTrack = tracks.Values.First();
+                trackNumber = firstTrack.Number;
+                trackTitle = firstTrack.Title;
             }
 
             // Create BiblePublicationStateItem with selected section and track
@@ -126,8 +132,10 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 TrackNumber = trackNumber,
                 // Store display names from list items and current state
                 LanguageName = currentSchedule.BiblePublicationLanguageName,
+                LanguageDirection = currentSchedule.BiblePublicationLanguageDirection,
                 PublicationName = currentSchedule.BiblePublicationName,
-                SectionName = x.Name
+                SectionName = x.Name,
+                TrackTitle = trackTitle
             };
 
             // Dispatch TrackSelectedAction to update CurrentBiblePublicationSchedule
@@ -400,7 +408,10 @@ public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSec
         set => SetProperty(ref isSelected, value);
     }
 
-    public string Name => section.Name;
+    /// <summary>
+    /// Gets the section name with HTML entities decoded (e.g., &nbsp; → space) and non-breaking spaces replaced with regular spaces.
+    /// </summary>
+    public string Name => System.Net.WebUtility.HtmlDecode(section.Name).Replace('\u00A0', ' ');
     public int Number => section.Number;
 
     public int CompareTo(object? obj) => obj is not BiblePublicationSectionListViewItemModel other ? 1 : Number.CompareTo(other.Number);

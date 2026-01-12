@@ -95,7 +95,23 @@ public sealed class TrackSelectionSyncHandler
             updatedSchedule.BiblePublicationSectionNumber = biblePub.SectionNumber;
             updatedSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
             updatedSchedule.BiblePublicationFinishedDuration = biblePub.FinishedDuration;
-            updatedSchedule.BiblePublicationName = biblePub.TranslationName;
+            
+            // Copy display names from the action (populated from list items when user tapped)
+            updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
+                ? biblePub.LanguageName 
+                : currentSchedule.BiblePublicationLanguageName;
+            updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
+                ? biblePub.LanguageDirection 
+                : currentSchedule.BiblePublicationLanguageDirection;
+            updatedSchedule.BiblePublicationName = !string.IsNullOrEmpty(biblePub.PublicationName) 
+                ? biblePub.PublicationName 
+                : currentSchedule.BiblePublicationName;
+            updatedSchedule.BiblePublicationSectionName = !string.IsNullOrEmpty(biblePub.SectionName) 
+                ? biblePub.SectionName 
+                : currentSchedule.BiblePublicationSectionName;
+            updatedSchedule.BiblePublicationTrackTitle = !string.IsNullOrEmpty(biblePub.TrackTitle) 
+                ? biblePub.TrackTitle 
+                : currentSchedule.BiblePublicationTrackTitle;
 
             Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}",
                 updatedSchedule.Id);

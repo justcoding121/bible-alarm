@@ -245,7 +245,11 @@ public static class ApplicationReducer
                 TrackNumber = action.SelectedSchedule.BiblePublicationTrackNumber ?? 1,
                 FinishedDuration = action.SelectedSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = action.SelectedSchedule.Id,
-                TranslationName = action.SelectedSchedule.BiblePublicationName ?? string.Empty
+                LanguageName = action.SelectedSchedule.BiblePublicationLanguageName,
+                LanguageDirection = action.SelectedSchedule.BiblePublicationLanguageDirection,
+                PublicationName = action.SelectedSchedule.BiblePublicationName,
+                SectionName = action.SelectedSchedule.BiblePublicationSectionName,
+                TrackTitle = action.SelectedSchedule.BiblePublicationTrackTitle
             };
         }
 

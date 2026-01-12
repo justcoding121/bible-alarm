@@ -93,7 +93,11 @@ public static class ScheduleStateSyncHelper
             TrackNumber = updatedCurrentSchedule.BiblePublicationTrackNumber.Value,
             FinishedDuration = updatedCurrentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
             AlarmScheduleId = updatedCurrentSchedule.Id,
-            TranslationName = updatedCurrentSchedule.BiblePublicationName ?? string.Empty
+            LanguageName = updatedCurrentSchedule.BiblePublicationLanguageName,
+            LanguageDirection = updatedCurrentSchedule.BiblePublicationLanguageDirection,
+            PublicationName = updatedCurrentSchedule.BiblePublicationName,
+            SectionName = updatedCurrentSchedule.BiblePublicationSectionName,
+            TrackTitle = updatedCurrentSchedule.BiblePublicationTrackTitle
         };
     }
 

@@ -310,8 +310,8 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                 if (doc.RootElement.TryGetProperty("pubName", out var pubNameElement))
                 {
                     var rawName = pubNameElement.GetString();
-                    // Decode HTML entities like &nbsp; to proper characters
-                    sectionName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
+                    // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
+                    sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
                 }
 
                 // Extract localized publication name from parentPubName field (e.g., "വിശുദ്ധ തിരുവെഴുത്തുകള്‍—പുതിയ ലോക ഭാഷാന്തരം" in Malayalam)
@@ -319,8 +319,8 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                 if (localizedPublicationName == null && doc.RootElement.TryGetProperty("parentPubName", out var parentPubNameElement))
                 {
                     var rawName = parentPubNameElement.GetString();
-                    // Decode HTML entities like &nbsp; to proper characters
-                    localizedPublicationName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
+                    // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
+                    localizedPublicationName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
                 }
 
                 ProcessSectionFiles(sectionFiles, doc.RootElement, sectionNumberSectionMap, sectionNumberTrackMap, ref sectionNumber, languageCode, sectionName);
@@ -423,8 +423,8 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         if (sectionFile.TryGetProperty("title", out var titleElement))
         {
             var rawTitle = titleElement.GetString();
-            // Decode HTML entities like &nbsp; to proper characters
-            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle) : string.Empty;
+            // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
+            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : string.Empty;
         }
 
         return true;
@@ -449,8 +449,8 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             if (root.TryGetProperty("pubName", out var pubNameElement))
             {
                 var rawName = pubNameElement.GetString();
-                // Decode HTML entities like &nbsp; to proper characters
-                sectionName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
+                // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
+                sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
             }
         }
 
@@ -466,8 +466,8 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                 if (firstFile.TryGetProperty("title", out var titleElement))
                 {
                     var rawTitle = titleElement.GetString();
-                    // Decode HTML entities and extract section name
-                    var decodedTitle = rawTitle != null ? WebUtility.HtmlDecode(rawTitle) : null;
+                    // Decode HTML entities and replace non-breaking spaces with regular spaces, then extract section name
+                    var decodedTitle = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : null;
                     sectionName = decodedTitle != null ? GetSectionNameFromTitle(decodedTitle, languageCode, sectionNumber) : null;
                 }
             }

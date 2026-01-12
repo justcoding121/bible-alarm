@@ -1,3 +1,4 @@
+using System.Net;
 using Bible.Alarm.Shared.Models.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -13,7 +14,10 @@ public sealed class PublicationListViewItemModel(Publication publication) : Obse
         set => SetProperty(ref isSelected, value);
     }
 
-    public string Name => publication.Name;
+    /// <summary>
+    /// Gets the publication name with HTML entities decoded (e.g., &nbsp; → space) and non-breaking spaces replaced with regular spaces.
+    /// </summary>
+    public string Name => WebUtility.HtmlDecode(publication.Name).Replace('\u00A0', ' ');
     public string Code => publication.Code;
 
     public int CompareTo(object obj) => string.Compare(Name, (obj as PublicationListViewItemModel)?.Name, StringComparison.Ordinal);

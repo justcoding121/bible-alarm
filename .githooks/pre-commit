@@ -1,0 +1,31 @@
+#!/bin/sh
+# Pre-commit hook to prevent committing AppSettings.cs with real license key
+
+APPSETTINGS_FILE="src/Bible.Alarm/AppSettings.cs"
+PLACEHOLDER="{{SYNCFUSION_LICENSE_KEY}}"
+
+# Check if AppSettings.cs is being committed
+if git diff --cached --name-only | grep -q "$APPSETTINGS_FILE"; then
+    # Get the staged version of the file
+    STAGED_CONTENT=$(git show :"$APPSETTINGS_FILE" 2>/dev/null)
+    
+    if [ -n "$STAGED_CONTENT" ]; then
+        # Check if the file contains the placeholder
+        if echo "$STAGED_CONTENT" | grep -q "$PLACEHOLDER"; then
+            echo "✓ AppSettings.cs contains placeholder - OK to commit"
+        else
+            # Check if it contains what looks like a real license key (not placeholder)
+            if echo "$STAGED_CONTENT" | grep -q "SyncfusionLicenseKey"; then
+                echo "✗ ERROR: AppSettings.cs contains a real license key, not the placeholder!"
+                echo "   The file must contain '{{SYNCFUSION_LICENSE_KEY}}' placeholder."
+                echo "   Please restore the placeholder before committing."
+                echo ""
+                echo "   To restore the placeholder, run:"
+                echo "   git checkout -- src/Bible.Alarm/AppSettings.cs"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+exit 0

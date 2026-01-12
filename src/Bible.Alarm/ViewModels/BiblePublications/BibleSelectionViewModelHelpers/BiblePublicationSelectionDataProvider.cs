@@ -113,6 +113,7 @@ public sealed class BiblePublicationSelectionDataProvider
         var stateValue = state.Value;
         var currentPublicationCode = stateValue.CurrentSchedule?.BiblePublicationCode;
         var currentLanguageName = stateValue.CurrentSchedule?.BiblePublicationLanguageName;
+        var currentLanguageDirection = stateValue.CurrentSchedule?.BiblePublicationLanguageDirection;
 
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (translationVMs, newMapping, defaultTranslation) = await Task.Run(async () =>
@@ -174,7 +175,7 @@ public sealed class BiblePublicationSelectionDataProvider
             if (!alreadyMatches)
             {
                 // Fire and forget the dispatch (already on background thread)
-                _ = DispatchDefaultTranslationAsync(languageCode, defaultTranslation, currentLanguageName);
+                _ = DispatchDefaultTranslationAsync(languageCode, defaultTranslation, currentLanguageName, currentLanguageDirection);
             }
         }
 
@@ -192,7 +193,8 @@ public sealed class BiblePublicationSelectionDataProvider
     private async Task DispatchDefaultTranslationAsync(
         string languageCode,
         PublicationListViewItemModel defaultTranslation,
-        string? languageName)
+        string? languageName,
+        string? languageDirection)
     {
         try
         {
@@ -211,8 +213,10 @@ public sealed class BiblePublicationSelectionDataProvider
                 SectionNumber = firstSection.Number,
                 TrackNumber = firstTrack.Number,
                 LanguageName = languageName,
+                LanguageDirection = languageDirection,
                 PublicationName = defaultTranslation.Name,
-                SectionName = firstSection.Name
+                SectionName = firstSection.Name,
+                TrackTitle = firstTrack.Title
             };
             dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
         }

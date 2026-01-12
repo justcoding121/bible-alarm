@@ -49,7 +49,7 @@ public class ScheduleUpdateHandler
             // (Note: This is for UpdateScheduleAction which doesn't go through the optimistic reducer)
             if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
             {
-                await displayNamePopulator.PopulateTranslationNameAsync(scheduleStateItem, action.Schedule);
+                await displayNamePopulator.PopulatePublicationNameAsync(scheduleStateItem, action.Schedule);
             }
             if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
             {

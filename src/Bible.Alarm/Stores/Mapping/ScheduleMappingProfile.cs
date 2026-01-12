@@ -67,8 +67,7 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore()); // Not stored in state
 
         // Map BiblePublicationSchedule to BiblePublicationStateItem
-        CreateMap<BiblePublicationSchedule, BiblePublicationStateItem>()
-            .ForMember(dest => dest.TranslationName, opt => opt.Ignore()); // Set manually during bootstrap
+        CreateMap<BiblePublicationSchedule, BiblePublicationStateItem>();
 
         // Map BiblePublicationStateItem back to BiblePublicationSchedule
         CreateMap<BiblePublicationStateItem, BiblePublicationSchedule>()

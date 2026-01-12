@@ -24,6 +24,16 @@
 - **Android Store**: [Get it on Google Play](https://play.google.com/store/apps/details?id=com.jthomas.info.Bible.Alarm)
 - **Windows Store**: [Get it from Microsoft Store](https://apps.microsoft.com/detail/9nhzhb85v6r4)
 
+## Development Setup
+
+After cloning the repository, configure Git to use the project's hooks:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+This enables a pre-commit hook that prevents accidentally committing the Syncfusion license key.
+
 ## License
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.

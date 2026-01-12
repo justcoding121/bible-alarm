@@ -115,12 +115,31 @@ public sealed class BiblePublicationDisplayTextProvider
     public string GetTrackDisplayText()
     {
         var currentSchedule = state.Value.CurrentSchedule;
+        var biblePublication = state.Value.CurrentBiblePublicationSchedule;
 
-        // Determine the label based on publication type
+        // For non-sectioned publications (dramas), show the track title from DB if available
+        if (!PublicationTypeHelper.HasSectionStructure(currentSchedule?.BiblePublicationCode))
+        {
+            // Use track title from schedule state (populated from DB)
+            if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationTrackTitle))
+            {
+                return currentSchedule.BiblePublicationTrackTitle;
+            }
+
+            // Fallback to "Part X" if no title
+            var trackNumber = biblePublication?.TrackNumber ?? currentSchedule?.BiblePublicationTrackNumber ?? 0;
+            if (trackNumber > 0)
+            {
+                return $"Part {trackNumber}";
+            }
+
+            return string.Empty;
+        }
+
+        // For sectioned publications (traditional Bible), show "Track X"
         var label = PublicationTypeHelper.GetTrackLabel(currentSchedule?.BiblePublicationCode);
 
         // Read directly from CurrentBiblePublicationSchedule so it updates immediately when track changes
-        var biblePublication = state.Value.CurrentBiblePublicationSchedule;
         if (biblePublication != null && biblePublication.TrackNumber > 0)
         {
             return $"{label} {biblePublication.TrackNumber}";

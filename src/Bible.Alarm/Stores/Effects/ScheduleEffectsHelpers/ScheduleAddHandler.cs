@@ -40,7 +40,7 @@ public class ScheduleAddHandler
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
 
             // Populate BiblePublicationLanguageName, BiblePublicationName, BiblePublicationSectionName, and TrackTitle if BiblePublicationSchedule exists
-            await displayNamePopulator.PopulateTranslationNameAsync(scheduleStateItem, action.Schedule);
+            await displayNamePopulator.PopulatePublicationNameAsync(scheduleStateItem, action.Schedule);
             await displayNamePopulator.PopulatePublicationNameAsync(scheduleStateItem, action.Schedule);
             await displayNamePopulator.PopulateSectionNameAsync(scheduleStateItem, action.Schedule);
             await displayNamePopulator.PopulateTrackTitleAsync(scheduleStateItem, action.Schedule);

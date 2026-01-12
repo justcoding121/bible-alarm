@@ -33,7 +33,7 @@ public sealed class ScheduleDisplayNamePopulator
     /// <summary>
     /// Populate BiblePublicationLanguageName from language dictionary if BiblePublicationSchedule exists.
     /// </summary>
-    public async Task PopulateTranslationNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
+    public async Task PopulatePublicationNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
         if (schedule.BiblePublicationSchedule == null || BiblePublicationService == null)
         {
@@ -76,7 +76,7 @@ public sealed class ScheduleDisplayNamePopulator
     /// <summary>
     /// Populate BiblePublicationLanguageName from language dictionary using language code from ScheduleStateItem.
     /// </summary>
-    public async Task PopulateTranslationNameAsync(ScheduleStateItem scheduleStateItem)
+    public async Task PopulatePublicationNameAsync(ScheduleStateItem scheduleStateItem)
     {
         if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageCode) || BiblePublicationService == null)
         {
