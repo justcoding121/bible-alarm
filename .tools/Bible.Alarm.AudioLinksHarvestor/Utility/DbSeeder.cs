@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
@@ -167,7 +168,9 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
                 string? name = null;
                 if (langElement.TryGetProperty("name", out var nameElement))
                 {
-                    name = nameElement.GetString();
+                    var rawName = nameElement.GetString();
+                    // Decode HTML entities like &nbsp; to proper characters
+                    name = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
                 }
 
                 return (name, direction);

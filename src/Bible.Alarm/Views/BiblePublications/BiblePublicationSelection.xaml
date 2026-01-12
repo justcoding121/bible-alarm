@@ -91,7 +91,7 @@
                                             FontSize="16"
                                             HorizontalOptions="Fill"
                                             HorizontalTextAlignment="Start"
-                                            LineBreakMode="TailTruncation"
+                                            LineBreakMode="WordWrap"
                                             Text="{Binding Name}"
                                             TextColor="{DynamicResource TextPrimaryColor}"
                                             VerticalOptions="Center"

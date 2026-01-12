@@ -164,6 +164,7 @@
                                         HorizontalOptions="Start"
                                         HorizontalTextAlignment="Start"
                                         InputTransparent="True"
+                                        LineBreakMode="WordWrap"
                                         Text="{Binding Name}"
                                         TextColor="{DynamicResource TextPrimaryColor}"
                                         VerticalOptions="Center"

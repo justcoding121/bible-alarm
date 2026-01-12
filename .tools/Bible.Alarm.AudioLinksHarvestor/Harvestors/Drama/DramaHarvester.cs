@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -35,7 +36,7 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
     /// </summary>
     private readonly ConcurrentDictionary<(string LanguageCode, string CategoryKey), string> localizedCategoryNames = new();
 
-    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY"];
+    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY", "A"]; // A = Arabic, not AR (Bambara)
 
     internal async Task HarvestDramaLinks(bool isTestRun = false)
     {
@@ -231,7 +232,9 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
             // Extract localized category name
             if (category.TryGetProperty("name", out var nameElement))
             {
-                localizedCategoryName = nameElement.GetString();
+                var rawName = nameElement.GetString();
+                // Decode HTML entities like &nbsp; to proper characters
+                localizedCategoryName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
             }
 
             if (!category.TryGetProperty("media", out var mediaArray))
@@ -265,7 +268,9 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
         {
             return null;
         }
-        var title = titleElement.GetString() ?? "Unknown";
+        var rawTitle = titleElement.GetString();
+        // Decode HTML entities like &nbsp; to proper characters
+        var title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle) : "Unknown";
 
         // Skip audio descriptions
         if (title.Contains("audio descriptions", StringComparison.OrdinalIgnoreCase))

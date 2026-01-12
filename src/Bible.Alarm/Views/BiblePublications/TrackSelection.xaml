@@ -93,7 +93,7 @@
                                             HorizontalOptions="Fill"
                                             HorizontalTextAlignment="Start"
                                             InputTransparent="True"
-                                            LineBreakMode="TailTruncation"
+                                            LineBreakMode="WordWrap"
                                             Text="{Binding Title}"
                                             TextColor="{DynamicResource TextPrimaryColor}"
                                             VerticalOptions="Center"

@@ -279,24 +279,21 @@
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding Title}"
                                 TextColor="{DynamicResource TextPrimaryColor}"
-                                LineBreakMode="TailTruncation"
-                                MaxLines="2" />
+                                LineBreakMode="WordWrap" />
                             <Label Grid.Row="1"
                                 FontSize="18"
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding SubTitle}"
                                 TextColor="{DynamicResource TextSecondaryColor}"
-                                LineBreakMode="TailTruncation"
-                                MaxLines="1" />
+                                LineBreakMode="WordWrap" />
                             <Label Grid.Row="2"
                                 FontSize="14"
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding Description}"
                                 TextColor="{DynamicResource TextSecondaryColor}"
-                                LineBreakMode="TailTruncation"
-                                MaxLines="1" />
+                                LineBreakMode="WordWrap" />
                         </Grid>
                     </Grid>
                 </Grid>

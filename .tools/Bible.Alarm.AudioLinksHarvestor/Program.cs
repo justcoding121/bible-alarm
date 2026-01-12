@@ -82,11 +82,13 @@ public class Program
         await using var serviceProvider = services.BuildServiceProvider();
         var logger = serviceProvider.GetRequiredService<ILogger>();
 
-        bool isTestRun = args.Contains("--TestRun", StringComparer.OrdinalIgnoreCase);
+        bool isTestRun = args.Contains("--test-run", StringComparer.OrdinalIgnoreCase) || 
+                         args.Contains("--test-mode", StringComparer.OrdinalIgnoreCase) ||
+                         args.Contains("--TestRun", StringComparer.OrdinalIgnoreCase);
 
         if (isTestRun)
         {
-            logger.Information("=== TEST RUN MODE: Processing English (E) and Malayalam (MY) languages per publication ===");
+            logger.Information("=== TEST RUN MODE: Processing English (E), Malayalam (MY), and Arabic (A) languages per publication ===");
         }
 
         try

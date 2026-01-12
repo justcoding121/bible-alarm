@@ -116,7 +116,7 @@
                                         HorizontalOptions="Fill"
                                         HorizontalTextAlignment="Start"
                                         InputTransparent="True"
-                                        LineBreakMode="TailTruncation"
+                                        LineBreakMode="WordWrap"
                                         Text="{Binding Name}"
                                         TextColor="{DynamicResource TextPrimaryColor}"
                                         VerticalOptions="Center"

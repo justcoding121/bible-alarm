@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -20,7 +21,7 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible;
 internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 {
     private const int MaxConcurrentLanguageDownloads = 8;
-    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY"];
+    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY", "A"]; // A = Arabic, not AR (Bambara)
 
     /// <summary>
     /// Dictionary to store localized publication names: (languageCode, publicationCode) -> localizedName
@@ -204,7 +205,9 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                 continue;
             }
 
-            var language = nameElement.GetString();
+            var rawLanguage = nameElement.GetString();
+            // Decode HTML entities like &nbsp; to proper characters
+            var language = rawLanguage != null ? WebUtility.HtmlDecode(rawLanguage) : null;
             if (string.IsNullOrEmpty(language))
             {
                 continue;
@@ -306,14 +309,18 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                 string? sectionName = null;
                 if (doc.RootElement.TryGetProperty("pubName", out var pubNameElement))
                 {
-                    sectionName = pubNameElement.GetString();
+                    var rawName = pubNameElement.GetString();
+                    // Decode HTML entities like &nbsp; to proper characters
+                    sectionName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
                 }
 
                 // Extract localized publication name from parentPubName field (e.g., "വിശുദ്ധ തിരുവെഴുത്തുകള്‍—പുതിയ ലോക ഭാഷാന്തരം" in Malayalam)
                 // Only capture it once per language/publication combination
                 if (localizedPublicationName == null && doc.RootElement.TryGetProperty("parentPubName", out var parentPubNameElement))
                 {
-                    localizedPublicationName = parentPubNameElement.GetString();
+                    var rawName = parentPubNameElement.GetString();
+                    // Decode HTML entities like &nbsp; to proper characters
+                    localizedPublicationName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
                 }
 
                 ProcessSectionFiles(sectionFiles, doc.RootElement, sectionNumberSectionMap, sectionNumberTrackMap, ref sectionNumber, languageCode, sectionName);
@@ -415,7 +422,9 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         // Extract localized track title (e.g., "Chapter 1" in English, "അധ്യായം 1" in Malayalam)
         if (sectionFile.TryGetProperty("title", out var titleElement))
         {
-            title = titleElement.GetString() ?? string.Empty;
+            var rawTitle = titleElement.GetString();
+            // Decode HTML entities like &nbsp; to proper characters
+            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle) : string.Empty;
         }
 
         return true;
@@ -439,7 +448,9 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             // Fallback: try to get from root pubName field
             if (root.TryGetProperty("pubName", out var pubNameElement))
             {
-                sectionName = pubNameElement.GetString();
+                var rawName = pubNameElement.GetString();
+                // Decode HTML entities like &nbsp; to proper characters
+                sectionName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
             }
         }
 
@@ -454,7 +465,10 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
                 var firstFile = sectionFiles[0];
                 if (firstFile.TryGetProperty("title", out var titleElement))
                 {
-                    sectionName = GetSectionNameFromTitle(titleElement.GetString()!, languageCode, sectionNumber);
+                    var rawTitle = titleElement.GetString();
+                    // Decode HTML entities and extract section name
+                    var decodedTitle = rawTitle != null ? WebUtility.HtmlDecode(rawTitle) : null;
+                    sectionName = decodedTitle != null ? GetSectionNameFromTitle(decodedTitle, languageCode, sectionNumber) : null;
                 }
             }
         }

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -38,7 +39,7 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
     private readonly Dictionary<(string LanguageCode, string PublicationCode), string> localizedPublicationNames = new();
     private readonly object localizedNamesLock = new();
 
-    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY"];
+    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY", "A"]; // A = Arabic, not AR (Bambara)
 
     internal async Task HarvestVideoLinks(bool isTestRun = false)
     {
@@ -114,7 +115,9 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
                 continue;
             }
 
-            var language = nameElement.GetString();
+            var rawLanguage = nameElement.GetString();
+            // Decode HTML entities like &nbsp; to proper characters
+            var language = rawLanguage != null ? WebUtility.HtmlDecode(rawLanguage) : null;
             if (string.IsNullOrEmpty(language))
             {
                 continue;
@@ -227,7 +230,9 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
             if (root.TryGetProperty("category", out var category) &&
                 category.TryGetProperty("name", out var nameElement))
             {
-                var localizedName = nameElement.GetString();
+                var rawName = nameElement.GetString();
+                // Decode HTML entities like &nbsp; to proper characters
+                var localizedName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
                 if (!string.IsNullOrEmpty(localizedName))
                 {
                     lock (localizedNamesLock)
@@ -385,7 +390,9 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         var title = "Unknown";
         if (fileElement.TryGetProperty("title", out var titleElement))
         {
-            title = titleElement.GetString() ?? "Unknown";
+            var rawTitle = titleElement.GetString();
+            // Decode HTML entities like &nbsp; to proper characters
+            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle) : "Unknown";
         }
 
         double duration = 0;

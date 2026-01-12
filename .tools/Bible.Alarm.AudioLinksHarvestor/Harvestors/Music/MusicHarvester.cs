@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -105,7 +106,9 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
                 continue;
             }
 
-            var language = nameElement.GetString();
+            var rawLanguage = nameElement.GetString();
+            // Decode HTML entities like &nbsp; to proper characters
+            var language = rawLanguage != null ? WebUtility.HtmlDecode(rawLanguage) : null;
             if (string.IsNullOrEmpty(language))
             {
                 continue;
@@ -125,7 +128,7 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         return languageEntries;
     }
 
-    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY"];
+    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY", "A"]; // A = Arabic, not AR (Bambara)
 
     private static List<(string Code, string Name, string Direction)>? FilterLanguageEntriesForTestRun(
         List<(string Code, string Name, string Direction)> languageEntries,
@@ -391,7 +394,9 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         string? localizedPubName = null;
         if (root.TryGetProperty("pubName", out var pubNameElement))
         {
-            localizedPubName = pubNameElement.GetString();
+            var rawName = pubNameElement.GetString();
+            // Decode HTML entities like &nbsp; to proper characters
+            localizedPubName = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
         }
 
         var newTrackNumber = ProcessMusicFiles(musicFiles, publicationDownloadCode, languageCode, trackNumber, musicTracks);
@@ -460,7 +465,9 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         if (musicFile.TryGetProperty("title", out var titleElement))
         {
-            title = titleElement.ValueKind != JsonValueKind.Undefined ? titleElement.GetString()! : "Unknown";
+            var rawTitle = titleElement.ValueKind != JsonValueKind.Undefined ? titleElement.GetString() : null;
+            // Decode HTML entities like &nbsp; to proper characters
+            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle) : "Unknown";
         }
 
         return true;
