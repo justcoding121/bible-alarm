@@ -38,9 +38,9 @@ public partial class BiblePublicationSelection : BaseContentPage, IDisposable
         {
             await Task.Delay(200, cancellationTokenSource.Token);
 
-            if (ViewModel.SelectedTranslation != null && translationsCollectionView != null)
+            if (ViewModel.SelectedPublication != null && publicationsCollectionView != null)
             {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(translationsCollectionView, ViewModel.SelectedTranslation, animated: false, cancellationToken: cancellationTokenSource.Token);
+                await CollectionViewHelper.ScrollToWhenReadyAsync(publicationsCollectionView, ViewModel.SelectedPublication, animated: false, cancellationToken: cancellationTokenSource.Token);
             }
         }
     }
@@ -78,7 +78,7 @@ public partial class BiblePublicationSelection : BaseContentPage, IDisposable
         }
     }
 
-    private async void OnTranslationItemTapped(object? sender, TappedEventArgs e)
+    private async void OnPublicationItemTapped(object? sender, TappedEventArgs e)
     {
         if (sender is Grid grid && grid.BindingContext is PublicationListViewItemModel publicationItem)
         {

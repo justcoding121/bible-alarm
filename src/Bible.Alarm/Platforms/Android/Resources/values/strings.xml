@@ -3,7 +3,7 @@
 <resources>
 	<!-- Notificaiton Channel -->
 	<string name="notification_channel">Now Playing</string>
-	<string name="notification_channel_description">New World Translation</string>
+	<string name="notification_channel_description">New World Publication</string>
 
 	<string name="media_route_menu_title">Cast</string>
 </resources>

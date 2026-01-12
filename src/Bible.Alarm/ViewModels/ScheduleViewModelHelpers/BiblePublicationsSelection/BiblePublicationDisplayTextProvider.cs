@@ -74,7 +74,7 @@ public sealed class BiblePublicationDisplayTextProvider
         return string.Empty;
     }
 
-    public string GetTranslationDisplayText()
+    public string GetPublicationDisplayText()
     {
         var currentSchedule = state.Value.CurrentSchedule;
 

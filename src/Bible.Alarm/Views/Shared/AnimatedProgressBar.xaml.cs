@@ -76,7 +76,7 @@ public partial class AnimatedProgressBar : ContentView
         animationCts = null;
 
         // Reset to start position
-        AnimatedSegment.TranslationX = 0;
+        AnimatedSegment.PublicationX = 0;
     }
 
     private async Task AnimateAsync(CancellationToken cancellationToken)
@@ -85,17 +85,17 @@ public partial class AnimatedProgressBar : ContentView
         {
             while (!cancellationToken.IsCancellationRequested && isAnimating)
             {
-                // Calculate the max translation (from left edge to right edge)
+                // Calculate the max publication (from left edge to right edge)
                 var containerWidth = Width > 0 ? Width - 32 : 300; // Account for margins, use fallback
-                var maxTranslation = containerWidth - SegmentWidth;
+                var maxPublication = containerWidth - SegmentWidth;
 
-                if (maxTranslation <= 0)
+                if (maxPublication <= 0)
                 {
-                    maxTranslation = 200; // Fallback if container width not available
+                    maxPublication = 200; // Fallback if container width not available
                 }
 
                 // Animate from left to right
-                await AnimatedSegment.TranslateTo(maxTranslation, 0, AnimationDurationMs, Easing.SinInOut);
+                await AnimatedSegment.TranslateTo(maxPublication, 0, AnimationDurationMs, Easing.SinInOut);
 
                 if (cancellationToken.IsCancellationRequested || !isAnimating)
                 {

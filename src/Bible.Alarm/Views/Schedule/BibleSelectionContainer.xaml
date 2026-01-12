@@ -92,8 +92,8 @@
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />
-            <!-- Translation Name with right arrow -->
-            <Grid x:Name="BibleTranslationButton"
+            <!-- Publication Name with right arrow -->
+            <Grid x:Name="BiblePublicationButton"
                   Grid.Row="2"
                   Margin="0"
                   Padding="16,16"
@@ -116,7 +116,7 @@
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
-                       Text="{Binding TranslationDisplayText}"
+                       Text="{Binding PublicationDisplayText}"
                        TextColor="{DynamicResource PrimaryTextColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />

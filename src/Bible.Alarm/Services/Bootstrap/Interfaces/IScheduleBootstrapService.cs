@@ -22,7 +22,7 @@ public interface IScheduleBootstrapService
     Task InitializeAsync();
 
     /// <summary>
-    /// Loads languages dictionary for translation name lookup.
+    /// Loads languages dictionary for publication name lookup.
     /// </summary>
     Task<Dictionary<string, Language>?> LoadLanguagesDictionaryAsync();
 

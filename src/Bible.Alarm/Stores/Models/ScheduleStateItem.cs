@@ -72,7 +72,7 @@ public sealed class ScheduleStateItem : IComparable
 
     /// <summary>
     /// Bible reading publication name for display purposes.
-    /// This is populated during bootstrap from Bible translation service.
+    /// This is populated during bootstrap from Bible publication service.
     /// Not persisted to database.
     /// </summary>
     public string? BiblePublicationName { get; set; }

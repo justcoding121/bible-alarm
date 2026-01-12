@@ -77,7 +77,7 @@ public static class AndroidAutoScheduleHelper
                 string? title = null;
                 if (sectionName != null && trackNumber != null)
                 {
-                    title = $"{sectionName} - {trackNumber}";
+                    title = $"{sectionName} {trackNumber}";
                 }
                 else if (sectionName != null)
                 {

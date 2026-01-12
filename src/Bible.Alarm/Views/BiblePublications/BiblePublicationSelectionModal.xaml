@@ -57,7 +57,7 @@
             
             <!-- Collection View -->
             <CollectionView
-                x:Name="translationsCollectionView"
+                x:Name="publicationsCollectionView"
                 Grid.Row="1"
                 Margin="0,8,0,0"
                 BackgroundColor="Transparent"
@@ -65,7 +65,7 @@
                 HorizontalOptions="Fill"
                 InputTransparent="False"
                 IsVisible="True"
-                ItemsSource="{Binding Translations}"
+                ItemsSource="{Binding Publications}"
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical">
@@ -109,7 +109,7 @@
                                     BackgroundColor="Transparent"
                                     InputTransparent="False">
                                     <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnTranslationItemTapped" />
+                                        <TapGestureRecognizer Tapped="OnPublicationItemTapped" />
                                     </Grid.GestureRecognizers>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />

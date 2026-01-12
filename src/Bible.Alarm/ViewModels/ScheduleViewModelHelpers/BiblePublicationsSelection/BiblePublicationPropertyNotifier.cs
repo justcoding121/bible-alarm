@@ -26,7 +26,7 @@ public sealed class BiblePublicationPropertyNotifier
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsSectionVisible));
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.ContentFlowDirection));
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.LanguageDisplayText));
-        onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.TranslationDisplayText));
+        onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.PublicationDisplayText));
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.SectionDisplayText));
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.TrackDisplayText));
     }
@@ -41,14 +41,14 @@ public sealed class BiblePublicationPropertyNotifier
         {
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.ContentFlowDirection));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.LanguageDisplayText));
-            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.TranslationDisplayText));
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.PublicationDisplayText));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsSectionVisible));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.SectionDisplayText));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.TrackDisplayText));
         }
-        else if (changeInfo.NotifyTranslation)
+        else if (changeInfo.NotifyPublication)
         {
-            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.TranslationDisplayText));
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.PublicationDisplayText));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsSectionVisible));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.SectionDisplayText));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.TrackDisplayText));
@@ -68,7 +68,7 @@ public sealed class BiblePublicationPropertyNotifier
         }
 
         // Handle IsSectionVisible separately if it changed but wasn't already notified
-        if (changeInfo.NotifyIsSectionVisible && !changeInfo.NotifyLanguage && !changeInfo.NotifyTranslation)
+        if (changeInfo.NotifyIsSectionVisible && !changeInfo.NotifyLanguage && !changeInfo.NotifyPublication)
         {
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsSectionVisible));
         }
@@ -80,9 +80,9 @@ public sealed class BiblePublicationPropertyNotifier
         {
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.LanguageDisplayText));
         }
-        if (changeInfo.TranslationDisplayChanged)
+        if (changeInfo.PublicationDisplayChanged)
         {
-            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.TranslationDisplayText));
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.PublicationDisplayText));
         }
         if (changeInfo.SectionDisplayChanged)
         {

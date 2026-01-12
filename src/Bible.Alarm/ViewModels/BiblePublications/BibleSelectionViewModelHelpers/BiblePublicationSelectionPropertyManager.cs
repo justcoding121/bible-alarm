@@ -17,7 +17,7 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
     private readonly BiblePublicationSelectionDataProvider dataProvider;
     private readonly BiblePublicationSelectionStateHandler stateHandler;
 
-    private ObservableCollection<PublicationListViewItemModel>? translations;
+    private ObservableCollection<PublicationListViewItemModel>? publications;
     private ObservableCollection<LanguageListViewItemModel>? languages;
     private LanguageListViewItemModel? currentLanguage;
     private bool isBusy = true;
@@ -35,10 +35,10 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
         this.stateHandler = stateHandler;
     }
 
-    public ObservableCollection<PublicationListViewItemModel> Translations
+    public ObservableCollection<PublicationListViewItemModel> Publications
     {
-        get => translations ??= [];
-        set => SetProperty(ref translations, value);
+        get => publications ??= [];
+        set => SetProperty(ref publications, value);
     }
 
     public ObservableCollection<LanguageListViewItemModel> Languages
@@ -47,7 +47,7 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
         set => SetProperty(ref languages, value);
     }
 
-    public PublicationListViewItemModel? SelectedTranslation { get; set; }
+    public PublicationListViewItemModel? SelectedPublication { get; set; }
 
     public LanguageListViewItemModel? CurrentLanguage
     {
@@ -132,7 +132,7 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
         CurrentLanguage!.IsSelected = true;
     }
 
-    public void SetSelectedTranslation()
+    public void SetSelectedPublication()
     {
         // Use CurrentSchedule as the source of truth for publication code
         var stateValue = state.Value;
@@ -147,18 +147,18 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
             return;
         }
 
-        if (SelectedTranslation != null)
+        if (SelectedPublication != null)
         {
-            SelectedTranslation.IsSelected = false;
+            SelectedPublication.IsSelected = false;
         }
 
-        if (!dataProvider.GetTranslationVMsMapping().TryGetValue(publicationCode, out var translation))
+        if (!dataProvider.GetPublicationVMsMapping().TryGetValue(publicationCode, out var publication))
         {
             return;
         }
 
-        SelectedTranslation = translation;
-        SelectedTranslation!.IsSelected = true;
+        SelectedPublication = publication;
+        SelectedPublication!.IsSelected = true;
     }
 
     public void Cleanup()

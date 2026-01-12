@@ -40,8 +40,8 @@ public sealed class BiblePublicationStateItem : IComparable
     public string? LanguageDirection { get; set; }
 
     /// <summary>
-    /// Publication name (translation name) for display purposes.
-    /// This is populated from the list item when user selects a translation.
+    /// Publication name (publication name) for display purposes.
+    /// This is populated from the list item when user selects a publication.
     /// Not persisted to database.
     /// </summary>
     public string? PublicationName { get; set; }

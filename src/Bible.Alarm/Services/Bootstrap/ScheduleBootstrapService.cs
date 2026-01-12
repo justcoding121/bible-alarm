@@ -248,12 +248,12 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         try
         {
             var languagesDict = await BiblePublicationService.GetDistinctLanguagesAsync();
-            Log.Logger.Information("Loaded {Count} languages for translation name lookup", languagesDict.Count);
+            Log.Logger.Information("Loaded {Count} languages for publication name lookup", languagesDict.Count);
             return languagesDict;
         }
         catch (Exception langEx)
         {
-            Log.Logger.Warning(langEx, "Error loading languages - translation names will not be populated");
+            Log.Logger.Warning(langEx, "Error loading languages - publication names will not be populated");
             return null;
         }
     }

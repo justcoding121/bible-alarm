@@ -27,8 +27,8 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
         await ModalScrollHelper.HandleModalAppearingAsync(
             () => ViewModel?.IsBusy ?? false,
             BusyOverlay,
-            translationsCollectionView,
-            getSelectedItem: () => ViewModel?.SelectedTranslation,
+            publicationsCollectionView,
+            getSelectedItem: () => ViewModel?.SelectedPublication,
             refreshAction: ViewModel != null
                 ? async () => await ViewModel.RefreshFromState()
                 : null,
@@ -44,7 +44,7 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
         }
     }
 
-    private async void OnTranslationItemTapped(object? sender, TappedEventArgs e)
+    private async void OnPublicationItemTapped(object? sender, TappedEventArgs e)
     {
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
 
 /// <summary>
-/// Represents a Bible-related publication including traditional Bible translations,
+/// Represents a Bible-related publication including traditional Bible publications,
 /// Audio Bible Dramas, Dramatic Bible Readings, and Video publications.
 /// </summary>
 [Table("BiblePublications")]
@@ -17,7 +17,7 @@ public sealed class BiblePublication : TranslatedPublication
     public int Id { get; set; }
 
     /// <summary>
-    /// Sections for traditional Bible translations (Section → Track structure).
+    /// Sections for traditional Bible publications (Section → Track structure).
     /// Empty for Drama/Video publications.
     /// </summary>
     [Required]
@@ -25,7 +25,7 @@ public sealed class BiblePublication : TranslatedPublication
 
     /// <summary>
     /// Tracks for Drama/Video publications (flat structure).
-    /// Empty for traditional Bible translations.
+    /// Empty for traditional Bible publications.
     /// </summary>
     [Required]
     public List<BiblePublicationTrack> Tracks { get; set; } = [];

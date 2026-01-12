@@ -12,7 +12,7 @@ using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles data population for bible selection (languages and translations).
+/// Handles data population for bible selection (languages and publications).
 /// </summary>
 public sealed class BiblePublicationSelectionDataProvider
 {
@@ -21,7 +21,7 @@ public sealed class BiblePublicationSelectionDataProvider
     private readonly IDispatcher dispatcher;
     private readonly SemaphoreSlim languagePopulationLock = new(1, 1);
 
-    public readonly Dictionary<string, PublicationListViewItemModel> translationVMsMapping = [];
+    public readonly Dictionary<string, PublicationListViewItemModel> publicationVMsMapping = [];
 
     public BiblePublicationSelectionDataProvider(
         IMediaService mediaService,
@@ -33,9 +33,9 @@ public sealed class BiblePublicationSelectionDataProvider
         this.dispatcher = dispatcher;
     }
 
-    public void ClearTranslationVMsMapping()
+    public void ClearPublicationVMsMapping()
     {
-        translationVMsMapping.Clear();
+        publicationVMsMapping.Clear();
     }
 
     public async Task PopulateLanguagesAsync(
@@ -102,12 +102,12 @@ public sealed class BiblePublicationSelectionDataProvider
         }
     }
 
-    public async Task PopulateTranslationsAsync(
+    public async Task PopulatePublicationsAsync(
         string languageCode,
-        ObservableCollection<PublicationListViewItemModel>? translations,
+        ObservableCollection<PublicationListViewItemModel>? publications,
         bool languageChanged)
     {
-        if (translations == null) return;
+        if (publications == null) return;
 
         // Capture state values before Task.Run to avoid state access issues
         var stateValue = state.Value;
@@ -116,105 +116,105 @@ public sealed class BiblePublicationSelectionDataProvider
         var currentLanguageDirection = stateValue.CurrentSchedule?.BiblePublicationLanguageDirection;
 
         // Do ALL processing on background thread to avoid blocking spinner animation
-        var (translationVMs, newMapping, defaultTranslation) = await Task.Run(async () =>
+        var (publicationVMs, newMapping, defaultPublication) = await Task.Run(async () =>
         {
-            var translationsData = await mediaService.GetBiblePublications(languageCode);
+            var publicationsData = await mediaService.GetBiblePublications(languageCode);
             var vms = new List<PublicationListViewItemModel>();
             var mapping = new Dictionary<string, PublicationListViewItemModel>();
-            PublicationListViewItemModel? lastTranslation = null;
+            PublicationListViewItemModel? lastPublication = null;
 
-            foreach (var translation in translationsData.Values)
+            foreach (var publication in publicationsData.Values)
             {
                 // Skip duplicates - if code already exists, use the existing one
-                if (mapping.TryGetValue(translation.Code, out var existingVm))
+                if (mapping.TryGetValue(publication.Code, out var existingVm))
                 {
-                    if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == translation.Code)
+                    if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == publication.Code)
                     {
                         existingVm.IsSelected = true;
                     }
                     continue;
                 }
 
-                var translationVm = new PublicationListViewItemModel(translation);
-                vms.Add(translationVm);
-                mapping[translationVm.Code] = translationVm;
+                var publicationVm = new PublicationListViewItemModel(publication);
+                vms.Add(publicationVm);
+                mapping[publicationVm.Code] = publicationVm;
 
-                // Store the last translation as default
-                lastTranslation = translationVm;
+                // Store the last publication as default
+                lastPublication = publicationVm;
 
-                // Check if this translation matches the current publication code
-                if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == translation.Code)
+                // Check if this publication matches the current publication code
+                if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == publication.Code)
                 {
-                    translationVm.IsSelected = true;
+                    publicationVm.IsSelected = true;
                 }
             }
 
-            return (vms, mapping, lastTranslation);
+            return (vms, mapping, lastPublication);
         });
 
         // Update mapping
-        translationVMsMapping.Clear();
+        publicationVMsMapping.Clear();
         foreach (var kvp in newMapping)
         {
-            translationVMsMapping[kvp.Key] = kvp.Value;
+            publicationVMsMapping[kvp.Key] = kvp.Value;
         }
 
         // Handle language change default selection
-        if (languageChanged && defaultTranslation != null)
+        if (languageChanged && defaultPublication != null)
         {
-            defaultTranslation.IsSelected = true;
+            defaultPublication.IsSelected = true;
 
             // Check if state already matches what we're about to dispatch
             var currentSchedule = state.Value.CurrentSchedule;
             var alreadyMatches = currentSchedule != null &&
                                 currentSchedule.BiblePublicationLanguageCode == languageCode &&
-                                currentSchedule.BiblePublicationCode == defaultTranslation.Code &&
+                                currentSchedule.BiblePublicationCode == defaultPublication.Code &&
                                 currentSchedule.BiblePublicationSectionNumber == 1 &&
                                 currentSchedule.BiblePublicationTrackNumber == 1;
 
             if (!alreadyMatches)
             {
                 // Fire and forget the dispatch (already on background thread)
-                _ = DispatchDefaultTranslationAsync(languageCode, defaultTranslation, currentLanguageName, currentLanguageDirection);
+                _ = DispatchDefaultPublicationAsync(languageCode, defaultPublication, currentLanguageName, currentLanguageDirection);
             }
         }
 
         // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            translations.Clear();
-            foreach (var trans in translationVMs)
+            publications.Clear();
+            foreach (var trans in publicationVMs)
             {
-                translations.Add(trans);
+                publications.Add(trans);
             }
         });
     }
 
-    private async Task DispatchDefaultTranslationAsync(
+    private async Task DispatchDefaultPublicationAsync(
         string languageCode,
-        PublicationListViewItemModel defaultTranslation,
+        PublicationListViewItemModel defaultPublication,
         string? languageName,
         string? languageDirection)
     {
         try
         {
-            var sections = await mediaService.GetBiblePublicationSections(languageCode, defaultTranslation.Code);
+            var sections = await mediaService.GetBiblePublicationSections(languageCode, defaultPublication.Code);
             if (sections == null || sections.Count == 0) return;
 
             var firstSection = sections.Values.First();
-            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, defaultTranslation.Code, firstSection.Number);
+            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, defaultPublication.Code, firstSection.Number);
             if (tracks == null || tracks.Count == 0) return;
 
             var firstTrack = tracks.Values.First();
             var biblePublicationItem = new BiblePublicationStateItem
             {
                 LanguageCode = languageCode,
-                PublicationCode = defaultTranslation.Code,
+                PublicationCode = defaultPublication.Code,
                 SectionNumber = firstSection.Number,
                 TrackNumber = firstTrack.Number,
                 LanguageName = languageName,
                 LanguageDirection = languageDirection,
-                PublicationName = defaultTranslation.Name,
+                PublicationName = defaultPublication.Name,
                 SectionName = firstSection.Name,
                 TrackTitle = firstTrack.Title
             };
@@ -222,12 +222,12 @@ public sealed class BiblePublicationSelectionDataProvider
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "BibleSelectionDataProvider: Error dispatching default translation selection");
+            Log.Warning(ex, "BibleSelectionDataProvider: Error dispatching default publication selection");
         }
     }
 
-    public Dictionary<string, PublicationListViewItemModel> GetTranslationVMsMapping()
+    public Dictionary<string, PublicationListViewItemModel> GetPublicationVMsMapping()
     {
-        return translationVMsMapping;
+        return publicationVMsMapping;
     }
 }

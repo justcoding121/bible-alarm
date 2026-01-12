@@ -11,7 +11,7 @@ internal sealed class LookupDataCollector
 {
     public LookupKeys CollectKeys(List<AlarmSchedule> alarmSchedules)
     {
-        var translationKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
+        var publicationKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, int SectionNumber)>();
         var vocalMusicLanguageCodes = new HashSet<string>();
         var vocalMusicKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
@@ -26,7 +26,7 @@ internal sealed class LookupDataCollector
                 var br = schedule.BiblePublicationSchedule;
                 if (!string.IsNullOrWhiteSpace(br.LanguageCode) && !string.IsNullOrWhiteSpace(br.PublicationCode))
                 {
-                    translationKeys.Add((br.LanguageCode, br.PublicationCode));
+                    publicationKeys.Add((br.LanguageCode, br.PublicationCode));
                     if (br.SectionNumber.HasValue && br.SectionNumber.Value > 0)
                     {
                         sectionKeys.Add((br.LanguageCode, br.PublicationCode, br.SectionNumber.Value));
@@ -64,7 +64,7 @@ internal sealed class LookupDataCollector
         }
 
         return new LookupKeys(
-            TranslationKeys: translationKeys,
+            PublicationKeys: publicationKeys,
             SectionKeys: sectionKeys,
             VocalMusicLanguageCodes: vocalMusicLanguageCodes,
             VocalMusicKeys: vocalMusicKeys,
@@ -73,7 +73,7 @@ internal sealed class LookupDataCollector
     }
 
     public sealed record LookupKeys(
-        HashSet<(string LanguageCode, string PublicationCode)> TranslationKeys,
+        HashSet<(string LanguageCode, string PublicationCode)> PublicationKeys,
         HashSet<(string LanguageCode, string PublicationCode, int SectionNumber)> SectionKeys,
         HashSet<string> VocalMusicLanguageCodes,
         HashSet<(string LanguageCode, string PublicationCode)> VocalMusicKeys,

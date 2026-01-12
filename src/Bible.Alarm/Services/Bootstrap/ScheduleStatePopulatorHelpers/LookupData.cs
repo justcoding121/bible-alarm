@@ -32,27 +32,27 @@ internal sealed class LookupDataLoader
     {
         // Load all data in parallel
         // For drama/video publications (non-sectioned), load tracks instead of sections
-        var translationTasks = keys.TranslationKeys.Select(async key =>
+        var publicationTasks = keys.PublicationKeys.Select(async key =>
         {
             try
             {
-                BiblePublication? translation = null;
+                BiblePublication? publication = null;
                 if (BiblePublicationService != null)
                 {
                     // Use GetByLanguageAndCodeWithTracksAsync for drama/video publications
                     // Use GetByLanguageAndCodeWithSectionsAsync for traditional Bible (sectioned)
                     var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(key.PublicationCode);
-                    translation = hasSectionStructure
+                    publication = hasSectionStructure
                         ? await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(key.LanguageCode, key.PublicationCode)
                         : await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(key.LanguageCode, key.PublicationCode);
                 }
-                return (Key: key, Translation: translation);
+                return (Key: key, Publication: publication);
             }
             catch (Exception ex)
             {
-                Log.Logger.Warning(ex, "Error loading translation {LanguageCode}/{PublicationCode}",
+                Log.Logger.Warning(ex, "Error loading publication {LanguageCode}/{PublicationCode}",
                     key.LanguageCode, key.PublicationCode);
-                return (Key: key, Translation: (BiblePublication?)null);
+                return (Key: key, Publication: (BiblePublication?)null);
             }
         }).ToList();
 
@@ -129,7 +129,7 @@ internal sealed class LookupDataLoader
 
         // Wait for all batch loads to complete in parallel
         await Task.WhenAll(
-            Task.WhenAll(translationTasks),
+            Task.WhenAll(publicationTasks),
             Task.WhenAll(sectionTasks),
             vocalLanguagesTask,
             Task.WhenAll(vocalReleasesTasks),
@@ -137,9 +137,9 @@ internal sealed class LookupDataLoader
             Task.WhenAll(melodyTracksTasks));
 
         // Build lookup dictionaries
-        var translationsDict = translationTasks
-            .Where(t => t.Result.Translation != null)
-            .ToDictionary(t => t.Result.Key, t => t.Result.Translation!);
+        var publicationsDict = publicationTasks
+            .Where(t => t.Result.Publication != null)
+            .ToDictionary(t => t.Result.Key, t => t.Result.Publication!);
 
         var sectionsDict = sectionTasks
             .Where(t => !string.IsNullOrWhiteSpace(t.Result.SectionName))
@@ -158,7 +158,7 @@ internal sealed class LookupDataLoader
             .ToDictionary(t => t.PublicationCode, t => t.Tracks);
 
         return new LookupData(
-            Translations: translationsDict,
+            Publications: publicationsDict,
             Sections: sectionsDict,
             VocalLanguages: vocalLanguagesDict,
             VocalReleases: vocalReleasesDict,
@@ -167,7 +167,7 @@ internal sealed class LookupDataLoader
     }
 
     public sealed record LookupData(
-        Dictionary<(string LanguageCode, string PublicationCode), BiblePublication> Translations,
+        Dictionary<(string LanguageCode, string PublicationCode), BiblePublication> Publications,
         Dictionary<(string LanguageCode, string PublicationCode, int SectionNumber), string> Sections,
         Dictionary<string, Language> VocalLanguages,
         Dictionary<(string LanguageCode, string PublicationCode), VocalMusic> VocalReleases,

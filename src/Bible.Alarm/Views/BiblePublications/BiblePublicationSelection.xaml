@@ -15,7 +15,7 @@
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:DataType="bible:BiblePublicationSelectionViewModel"
-    Title="Select Translation"
+    Title="Select Publication"
     BackgroundColor="{DynamicResource BackgroundColor}">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
@@ -31,12 +31,12 @@
                 RowSpacing="0">
                 <!-- Enhanced Collection View with Card Layout -->
                 <CollectionView
-                    x:Name="translationsCollectionView"
+                    x:Name="publicationsCollectionView"
                     Margin="0,8,0,0"
                     BackgroundColor="Transparent"
                     Footer="{OnPlatform iOS=''}"
                     HorizontalOptions="Fill"
-                    ItemsSource="{Binding Translations}"
+                    ItemsSource="{Binding Publications}"
                     SelectionMode="None">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical">
@@ -79,13 +79,13 @@
                                         MinimumHeightRequest="56"
                                         BackgroundColor="Transparent">
                                         <Grid.GestureRecognizers>
-                                            <TapGestureRecognizer Tapped="OnTranslationItemTapped" />
+                                            <TapGestureRecognizer Tapped="OnPublicationItemTapped" />
                                         </Grid.GestureRecognizers>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         
-                                        <!-- Bible Translation Name -->
+                                        <!-- Bible Publication Name -->
                                         <Label
                                             Grid.Column="0"
                                             FontSize="16"

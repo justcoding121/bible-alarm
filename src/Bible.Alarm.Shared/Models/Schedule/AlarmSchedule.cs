@@ -186,7 +186,7 @@ public sealed class AlarmSchedule : IComparable
 
         if (bible == null)
         {
-            throw new InvalidOperationException("Bible translation not found for sample schedule");
+            throw new InvalidOperationException("Bible publication not found for sample schedule");
         }
 
         // Use Random.Shared for thread-safe random number generation

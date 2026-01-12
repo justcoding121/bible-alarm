@@ -6,6 +6,7 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
@@ -22,6 +23,7 @@ namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelper
 public sealed class BiblePublicationSelectionCommandHandler
 {
     private readonly IMediaService mediaService;
+    private readonly IBiblePublicationService? biblePublicationService;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
@@ -32,9 +34,11 @@ public sealed class BiblePublicationSelectionCommandHandler
         IState<ApplicationState> state,
         IDispatcher dispatcher,
         INavigationService navigationService,
-        IMapper mapper)
+        IMapper mapper,
+        IBiblePublicationService? biblePublicationService = null)
     {
         this.mediaService = mediaService;
+        this.biblePublicationService = biblePublicationService;
         this.state = state;
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
@@ -43,8 +47,8 @@ public sealed class BiblePublicationSelectionCommandHandler
 
     public ICommand CreateSectionSelectionCommand(
         Func<LanguageListViewItemModel?> getCurrentLanguage,
-        Func<ObservableCollection<PublicationListViewItemModel>> getTranslations,
-        Func<Dictionary<string, PublicationListViewItemModel>> getTranslationVMsMapping,
+        Func<ObservableCollection<PublicationListViewItemModel>> getPublications,
+        Func<Dictionary<string, PublicationListViewItemModel>> getPublicationVMsMapping,
         Func<BiblePublicationSchedule?> getCurrent)
     {
         return new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
@@ -85,8 +89,8 @@ public sealed class BiblePublicationSelectionCommandHandler
                 });
             }
 
-            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state);
-            var (sectionNumber, trackNumber, sectionName, trackTitle) = await itemSelector.GetSectionAndTrackForTranslationAsync(x, currentLanguage);
+            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService);
+            var (sectionNumber, trackNumber, sectionName, trackTitle) = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage);
 
             if (sectionNumber == 0)
             {
@@ -119,7 +123,7 @@ public sealed class BiblePublicationSelectionCommandHandler
 
     public ICommand CreateSelectLanguageCommand(
         Func<ObservableCollection<LanguageListViewItemModel>> getLanguages,
-        Func<Dictionary<string, PublicationListViewItemModel>> getTranslationVMsMapping,
+        Func<Dictionary<string, PublicationListViewItemModel>> getPublicationVMsMapping,
         Action<LanguageListViewItemModel> updateSelectedLanguage)
     {
         return new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
@@ -132,22 +136,22 @@ public sealed class BiblePublicationSelectionCommandHandler
             updateSelectedLanguage(x);
             await navigationService.PopModalAsync();
 
-            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state);
+            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService);
             var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle) =
-                await itemSelector.GetTranslationSectionAndTrackForLanguageAsync(x);
+                await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x);
 
-            // Check for both null and empty string - GetTranslationSectionAndTrackForLanguageAsync returns empty string on failure
+            // Check for both null and empty string - GetPublicationSectionAndTrackForLanguageAsync returns empty string on failure
             if (string.IsNullOrEmpty(publicationCode))
             {
                 Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - No publications found for language {LanguageCode}", x.Code);
                 return;
             }
 
-            // Validate that we have valid section and track numbers
-            if (sectionNumber <= 0 || trackNumber <= 0)
+            // Validate that we have valid track number (sectionNumber can be 0 for non-sectioned publications like dramas)
+            if (trackNumber <= 0)
             {
-                Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid section ({SectionNumber}) or track ({TrackNumber}) for language {LanguageCode}", 
-                    sectionNumber, trackNumber, x.Code);
+                Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid track ({TrackNumber}) for language {LanguageCode}", 
+                    trackNumber, x.Code);
                 return;
             }
 

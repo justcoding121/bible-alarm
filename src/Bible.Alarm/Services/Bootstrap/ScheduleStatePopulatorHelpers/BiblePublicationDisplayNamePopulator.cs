@@ -72,13 +72,13 @@ internal sealed class BiblePublicationDisplayNamePopulator
         if (!string.IsNullOrWhiteSpace(biblePublication.LanguageCode) &&
             !string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
         {
-            var translationKey = (biblePublication.LanguageCode, biblePublication.PublicationCode);
-            if (lookupData.Translations.TryGetValue(translationKey, out var translation) &&
-                !string.IsNullOrWhiteSpace(translation.Name))
+            var publicationKey = (biblePublication.LanguageCode, biblePublication.PublicationCode);
+            if (lookupData.Publications.TryGetValue(publicationKey, out var publication) &&
+                !string.IsNullOrWhiteSpace(publication.Name))
             {
-                scheduleStateItem.BiblePublicationName = translation.Name;
+                scheduleStateItem.BiblePublicationName = publication.Name;
                 Log.Logger.Debug("Set BiblePublicationName '{BiblePublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                    translation.Name, schedule.Id, biblePublication.PublicationCode);
+                    publication.Name, schedule.Id, biblePublication.PublicationCode);
             }
         }
     }
@@ -122,10 +122,10 @@ internal sealed class BiblePublicationDisplayNamePopulator
             return;
         }
 
-        var translationKey = (biblePublication.LanguageCode, biblePublication.PublicationCode);
-        if (lookupData.Translations.TryGetValue(translationKey, out var translation))
+        var publicationKey = (biblePublication.LanguageCode, biblePublication.PublicationCode);
+        if (lookupData.Publications.TryGetValue(publicationKey, out var publication))
         {
-            var track = translation.Tracks.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
+            var track = publication.Tracks.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
             if (track != null && !string.IsNullOrWhiteSpace(track.Title))
             {
                 scheduleStateItem.BiblePublicationTrackTitle = track.Title;

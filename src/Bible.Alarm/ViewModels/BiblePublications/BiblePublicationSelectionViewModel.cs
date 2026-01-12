@@ -83,8 +83,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         // Initialize commands
         SectionSelectionCommand = commandHandler.CreateSectionSelectionCommand(
             () => propertyManager.CurrentLanguage,
-            () => propertyManager.Translations,
-            () => dataProvider.GetTranslationVMsMapping(),
+            () => propertyManager.Publications,
+            () => dataProvider.GetPublicationVMsMapping(),
             () => stateHandler.Current);
 
         BackCommand = commandHandler.CreateBackCommand();
@@ -92,7 +92,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
         SelectLanguageCommand = commandHandler.CreateSelectLanguageCommand(
             () => propertyManager.Languages,
-            () => dataProvider.GetTranslationVMsMapping(),
+            () => dataProvider.GetPublicationVMsMapping(),
             language => propertyManager.UpdateSelectedLanguage(language));
 
         // Always trigger initialization, even if CurrentBiblePublicationSchedule is null
@@ -115,7 +115,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
     /// <summary>
     /// Refreshes the ViewModel from the latest state when the modal appears.
-    /// This ensures languages and translations are populated and current is initialized from CurrentSchedule.
+    /// This ensures languages and publications are populated and current is initialized from CurrentSchedule.
     /// </summary>
     public async Task RefreshFromState()
     {
@@ -126,12 +126,12 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             state.Value.CurrentSchedule?.BiblePublicationLanguageCode,
             () => propertyManager.UpdateCurrentLanguageFromLanguages());
 
-        // Only populate translations if we have a current language (for full Bible selection, not language modal)
+        // Only populate publications if we have a current language (for full Bible selection, not language modal)
         if (!string.IsNullOrEmpty(state.Value.CurrentSchedule?.BiblePublicationLanguageCode))
         {
             await stateHandler.RefreshFromStateAsync(
                 busy => propertyManager.IsBusy = busy,
-                propertyManager.Translations);
+                propertyManager.Publications);
         }
     }
 
@@ -139,14 +139,14 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     {
         await stateHandler.HandleBiblePublicationChangedAsync(
             busy => propertyManager.IsBusy = busy,
-            () => propertyManager.SetSelectedTranslation(),
-            propertyManager.Translations);
+            () => propertyManager.SetSelectedPublication(),
+            propertyManager.Publications);
     }
 
     // Properties delegated to property manager
-    public ObservableCollection<PublicationListViewItemModel> Translations => propertyManager.Translations;
+    public ObservableCollection<PublicationListViewItemModel> Publications => propertyManager.Publications;
     public ObservableCollection<LanguageListViewItemModel> Languages => propertyManager.Languages;
-    public PublicationListViewItemModel? SelectedTranslation { get => propertyManager.SelectedTranslation; set => propertyManager.SelectedTranslation = value; }
+    public PublicationListViewItemModel? SelectedPublication { get => propertyManager.SelectedPublication; set => propertyManager.SelectedPublication = value; }
     public LanguageListViewItemModel? CurrentLanguage { get => propertyManager.CurrentLanguage; set => propertyManager.CurrentLanguage = value; }
     public bool IsBusy { get => propertyManager.IsBusy; set => propertyManager.IsBusy = value; }
     public string PublicationCode { get => propertyManager.PublicationCode; set => propertyManager.PublicationCode = value; }

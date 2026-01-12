@@ -72,21 +72,21 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             }
         }
 
-        // Translation name
+        // Publication name
         if (!string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
             !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode) &&
             BiblePublicationService != null)
         {
             try
             {
-                var translation = await Task.Run(async () =>
+                var publication = await Task.Run(async () =>
                     await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
                         biblePublicationSchedule.LanguageCode,
                         biblePublicationSchedule.PublicationCode));
 
-                if (translation != null && !string.IsNullOrWhiteSpace(translation.Name))
+                if (publication != null && !string.IsNullOrWhiteSpace(publication.Name))
                 {
-                    scheduleStateItem.BiblePublicationName = translation.Name;
+                    scheduleStateItem.BiblePublicationName = publication.Name;
                 }
             }
             catch (Exception ex)
@@ -121,27 +121,48 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             }
         }
 
-        // Track title for drama/video publications (non-sectioned)
-        if (!PublicationTypeHelper.HasSectionStructure(biblePublicationSchedule.PublicationCode) &&
-            biblePublicationSchedule.TrackNumber > 0 &&
+        // Track title
+        if (biblePublicationSchedule.TrackNumber > 0 &&
             !string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
-            !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode) &&
-            BiblePublicationService != null)
+            !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode))
         {
             try
             {
-                // Use GetByLanguageAndCodeWithTracksAsync to load tracks for drama/video publications
-                var translation = await Task.Run(async () =>
-                    await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(
-                        biblePublicationSchedule.LanguageCode,
-                        biblePublicationSchedule.PublicationCode));
-
-                if (translation != null)
+                if (PublicationTypeHelper.HasSectionStructure(biblePublicationSchedule.PublicationCode))
                 {
-                    var track = translation.Tracks.FirstOrDefault(t => t.Number == biblePublicationSchedule.TrackNumber);
-                    if (track != null && !string.IsNullOrWhiteSpace(track.Title))
+                    // Sectioned publications (traditional Bible) - load track from section
+                    if (biblePublicationSchedule.SectionNumber.HasValue)
                     {
-                        scheduleStateItem.BiblePublicationTrackTitle = track.Title;
+                        var tracks = await Task.Run(async () =>
+                            await mediaService.GetBiblePublicationTracks(
+                                biblePublicationSchedule.LanguageCode,
+                                biblePublicationSchedule.PublicationCode,
+                                biblePublicationSchedule.SectionNumber.Value));
+
+                        if (tracks != null && tracks.TryGetValue(biblePublicationSchedule.TrackNumber, out var track))
+                        {
+                            if (!string.IsNullOrWhiteSpace(track.Title))
+                            {
+                                scheduleStateItem.BiblePublicationTrackTitle = track.Title;
+                            }
+                        }
+                    }
+                }
+                else if (BiblePublicationService != null)
+                {
+                    // Non-sectioned publications (drama/video) - load track directly from publication
+                    var publication = await Task.Run(async () =>
+                        await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(
+                            biblePublicationSchedule.LanguageCode,
+                            biblePublicationSchedule.PublicationCode));
+
+                    if (publication != null)
+                    {
+                        var track = publication.Tracks.FirstOrDefault(t => t.Number == biblePublicationSchedule.TrackNumber);
+                        if (track != null && !string.IsNullOrWhiteSpace(track.Title))
+                        {
+                            scheduleStateItem.BiblePublicationTrackTitle = track.Title;
+                        }
                     }
                 }
             }

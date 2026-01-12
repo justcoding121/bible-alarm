@@ -104,12 +104,12 @@ public sealed class BiblePublicationSelectionStateHandler
             if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
             {
                 // Initialize with current language code if we have a current schedule
-                // Note: translations collection is not available here, will be populated in RefreshFromStateAsync
+                // Note: publications collection is not available here, will be populated in RefreshFromStateAsync
                 await InitializeAsync(current.LanguageCode, languages, null);
             }
             else
             {
-                // For language modal use case, just populate languages without translations
+                // For language modal use case, just populate languages without publications
                 // Pass the languages collection so it gets populated and displayed
                 // Ensure languages collection is not null - it should be initialized by property manager
                 if (languages == null)
@@ -174,7 +174,7 @@ public sealed class BiblePublicationSelectionStateHandler
         }
     }
 
-    public async Task HandleBiblePublicationChangedAsync(Action<bool> setIsBusy, Action setSelectedTranslation, ObservableCollection<PublicationListViewItemModel>? translations)
+    public async Task HandleBiblePublicationChangedAsync(Action<bool> setIsBusy, Action setSelectedPublication, ObservableCollection<PublicationListViewItemModel>? publications)
     {
         var stateValue = state.Value;
 
@@ -192,7 +192,7 @@ public sealed class BiblePublicationSelectionStateHandler
             return;
         }
 
-        // Check if language code changed (need to repopulate translations)
+        // Check if language code changed (need to repopulate publications)
         var languageChanged = lastLanguageCode != newLanguageCode;
 
         // If no changes detected and we're already initialized, skip
@@ -223,7 +223,7 @@ public sealed class BiblePublicationSelectionStateHandler
             lastCurrent = current;
         }
 
-        // If language changed, repopulate translations
+        // If language changed, repopulate publications
         if (languageChanged && initComplete)
         {
             await Task.Run(async () =>
@@ -232,9 +232,9 @@ public sealed class BiblePublicationSelectionStateHandler
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
                     // Clear the mapping dictionary before repopulating
-                    dataProvider.ClearTranslationVMsMapping();
-                    // Pass languageChanged flag to PopulateTranslations so it can select default translation
-                    await dataProvider.PopulateTranslationsAsync(newLanguageCode, translations, languageChanged);
+                    dataProvider.ClearPublicationVMsMapping();
+                    // Pass languageChanged flag to PopulatePublications so it can select default publication
+                    await dataProvider.PopulatePublicationsAsync(newLanguageCode, publications, languageChanged);
                     await Task.Delay(100);
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
@@ -246,12 +246,12 @@ public sealed class BiblePublicationSelectionStateHandler
         }
         else
         {
-            // Update selected translation when state changes (e.g., after navigating back)
-            MainThread.BeginInvokeOnMainThread(setSelectedTranslation);
+            // Update selected publication when state changes (e.g., after navigating back)
+            MainThread.BeginInvokeOnMainThread(setSelectedPublication);
         }
     }
 
-    public async Task RefreshFromStateAsync(Action<bool> setIsBusy, ObservableCollection<PublicationListViewItemModel>? translations)
+    public async Task RefreshFromStateAsync(Action<bool> setIsBusy, ObservableCollection<PublicationListViewItemModel>? publications)
     {
         // Wait for state to be updated (in case language was just changed)
         // This handles the race condition where the modal opens before state is fully updated
@@ -299,7 +299,7 @@ public sealed class BiblePublicationSelectionStateHandler
         var finalStateValue = state.Value;
         var currentSchedule = finalStateValue.CurrentSchedule!;
 
-        // Check if language code changed (need to repopulate translations)
+        // Check if language code changed (need to repopulate publications)
         var languageChanged = lastLanguageCode != newLanguageCode;
 
         // Update tracking variable
@@ -321,11 +321,11 @@ public sealed class BiblePublicationSelectionStateHandler
             };
         }
 
-        // Always repopulate translations if:
+        // Always repopulate publications if:
         // 1. Not initialized yet
-        // 2. Translations collection is null or empty
+        // 2. Publications collection is null or empty
         // 3. Language code changed (cascade effect)
-        if (!initComplete || translations == null || translations.Count == 0 || languageChanged)
+        if (!initComplete || publications == null || publications.Count == 0 || languageChanged)
         {
             initComplete = true;
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
@@ -334,9 +334,9 @@ public sealed class BiblePublicationSelectionStateHandler
                 // Clear the mapping dictionary before repopulating if language changed
                 if (languageChanged)
                 {
-                    dataProvider.ClearTranslationVMsMapping();
+                    dataProvider.ClearPublicationVMsMapping();
                 }
-                await dataProvider.PopulateTranslationsAsync(current.LanguageCode, translations, languageChanged);
+                await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged);
             }
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
@@ -345,9 +345,9 @@ public sealed class BiblePublicationSelectionStateHandler
 
     public BiblePublicationSchedule? Current => current;
 
-    private async Task InitializeAsync(string languageCode, ObservableCollection<LanguageListViewItemModel>? languages, ObservableCollection<PublicationListViewItemModel>? translations)
+    private async Task InitializeAsync(string languageCode, ObservableCollection<LanguageListViewItemModel>? languages, ObservableCollection<PublicationListViewItemModel>? publications)
     {
         await dataProvider.PopulateLanguagesAsync(null, languages);
-        await dataProvider.PopulateTranslationsAsync(languageCode, translations, false);
+        await dataProvider.PopulatePublicationsAsync(languageCode, publications, false);
     }
 }

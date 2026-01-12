@@ -10,7 +10,7 @@ namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
 /// <summary>
 /// Represents a track for Bible publications.
 /// Can be either:
-/// - Section-based: Links to BiblePublicationSection (traditional Bible translations)
+/// - Section-based: Links to BiblePublicationSection (traditional Bible publications)
 /// - Publication-based: Links directly to BiblePublication (Drama/Video publications)
 /// </summary>
 [Table("BiblePublicationTracks")]
@@ -44,7 +44,7 @@ public sealed class BiblePublicationTrack : IComparable
 
     /// <summary>
     /// Optional foreign key to BiblePublicationSection.
-    /// Set for section-based tracks (traditional Bible translations).
+    /// Set for section-based tracks (traditional Bible publications).
     /// Null for publication-based tracks (Drama/Video).
     /// </summary>
     [ForeignKey(nameof(Section))]

@@ -111,7 +111,7 @@ public sealed class ScheduleListItemSubtitleManager(
 
         if (hasSectionStructure)
         {
-            // Traditional Bible: Show "Book Name - Chapter Number" (e.g., "Genesis - 1")
+            // Traditional Bible: Show "Book Name Chapter Number" (e.g., "Genesis 1")
             var sectionName = !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName)
                 ? scheduleStateItem.BiblePublicationSectionName
                 : null;
@@ -122,7 +122,7 @@ public sealed class ScheduleListItemSubtitleManager(
 
             if (sectionName != null && trackNumber != null)
             {
-                return $"{sectionName} - {trackNumber}";
+                return $"{sectionName} {trackNumber}";
             }
             else if (sectionName != null)
             {

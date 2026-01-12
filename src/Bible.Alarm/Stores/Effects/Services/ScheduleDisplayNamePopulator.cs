@@ -129,15 +129,15 @@ public sealed class ScheduleDisplayNamePopulator
                 return;
             }
 
-            var translation = await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+            var publication = await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
                 biblePublication.LanguageCode,
                 biblePublication.PublicationCode);
 
-            if (translation != null && !string.IsNullOrWhiteSpace(translation.Name))
+            if (publication != null && !string.IsNullOrWhiteSpace(publication.Name))
             {
-                scheduleStateItem.BiblePublicationName = translation.Name;
+                scheduleStateItem.BiblePublicationName = publication.Name;
                 Log.Debug("ScheduleEffects: Set BiblePublicationName '{BiblePublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                    translation.Name, schedule.Id, biblePublication.PublicationCode);
+                    publication.Name, schedule.Id, biblePublication.PublicationCode);
             }
         }
         catch (Exception ex)
@@ -256,13 +256,13 @@ public sealed class ScheduleDisplayNamePopulator
         int scheduleId)
     {
         // Use GetByLanguageAndCodeWithTracksAsync to load tracks for drama/video publications
-        var translation = await BiblePublicationService!.GetByLanguageAndCodeWithTracksAsync(
+        var publication = await BiblePublicationService!.GetByLanguageAndCodeWithTracksAsync(
             biblePublication.LanguageCode,
             biblePublication.PublicationCode);
 
-        if (translation != null)
+        if (publication != null)
         {
-            var track = translation.Tracks.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
+            var track = publication.Tracks.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
             if (track != null && !string.IsNullOrWhiteSpace(track.Title))
             {
                 scheduleStateItem.BiblePublicationTrackTitle = track.Title;
