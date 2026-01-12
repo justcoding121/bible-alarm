@@ -53,7 +53,7 @@ public class ScheduleUpdateHandler
             }
             if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
             {
-                await displayNamePopulator.PopulatePublicationNameAsync(scheduleStateItem, action.Schedule);
+                await displayNamePopulator.PopulateBiblePublicationNameAsync(scheduleStateItem, action.Schedule);
             }
             if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
             {

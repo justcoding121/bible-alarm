@@ -136,8 +136,18 @@ public sealed class BiblePublicationSelectionCommandHandler
             var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle) =
                 await itemSelector.GetTranslationSectionAndTrackForLanguageAsync(x);
 
-            if (publicationCode == null)
+            // Check for both null and empty string - GetTranslationSectionAndTrackForLanguageAsync returns empty string on failure
+            if (string.IsNullOrEmpty(publicationCode))
             {
+                Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - No publications found for language {LanguageCode}", x.Code);
+                return;
+            }
+
+            // Validate that we have valid section and track numbers
+            if (sectionNumber <= 0 || trackNumber <= 0)
+            {
+                Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid section ({SectionNumber}) or track ({TrackNumber}) for language {LanguageCode}", 
+                    sectionNumber, trackNumber, x.Code);
                 return;
             }
 
@@ -147,6 +157,9 @@ public sealed class BiblePublicationSelectionCommandHandler
                 Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - CurrentSchedule is null");
                 return;
             }
+
+            Log.Information("BibleSelectionCommandHandler: SelectLanguageCommand - Creating item for language {LanguageCode}, publication {PublicationCode}, section {SectionNumber}, track {TrackNumber}",
+                x.Code, publicationCode, sectionNumber, trackNumber);
 
             var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(
                 x, publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle, currentSchedule);

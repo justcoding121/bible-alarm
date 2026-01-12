@@ -87,6 +87,12 @@ public sealed class TrackSelectionSyncHandler
             var currentSchedule = currentState.CurrentSchedule;
             var biblePub = action.CurrentBiblePublicationSchedule;
 
+            // Detect if language or publication changed - if so, we should NOT preserve old names
+            var languageChanged = !string.IsNullOrEmpty(biblePub.LanguageCode) && 
+                                  biblePub.LanguageCode != currentSchedule.BiblePublicationLanguageCode;
+            var publicationChanged = !string.IsNullOrEmpty(biblePub.PublicationCode) && 
+                                     biblePub.PublicationCode != currentSchedule.BiblePublicationCode;
+
             // Create updated schedule with Bible publication properties
             var updatedSchedule = currentSchedule.DeepClone();
             updatedSchedule.BiblePublicationScheduleId = biblePub.Id > 0 ? biblePub.Id : currentSchedule.BiblePublicationScheduleId;
@@ -97,21 +103,48 @@ public sealed class TrackSelectionSyncHandler
             updatedSchedule.BiblePublicationFinishedDuration = biblePub.FinishedDuration;
             
             // Copy display names from the action (populated from list items when user tapped)
-            updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
-                ? biblePub.LanguageName 
-                : currentSchedule.BiblePublicationLanguageName;
-            updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
-                ? biblePub.LanguageDirection 
-                : currentSchedule.BiblePublicationLanguageDirection;
-            updatedSchedule.BiblePublicationName = !string.IsNullOrEmpty(biblePub.PublicationName) 
-                ? biblePub.PublicationName 
-                : currentSchedule.BiblePublicationName;
-            updatedSchedule.BiblePublicationSectionName = !string.IsNullOrEmpty(biblePub.SectionName) 
-                ? biblePub.SectionName 
-                : currentSchedule.BiblePublicationSectionName;
-            updatedSchedule.BiblePublicationTrackTitle = !string.IsNullOrEmpty(biblePub.TrackTitle) 
-                ? biblePub.TrackTitle 
-                : currentSchedule.BiblePublicationTrackTitle;
+            // When language or publication changes, always use new values (or clear if empty)
+            if (languageChanged)
+            {
+                // Language changed - always use new values, don't preserve old ones
+                updatedSchedule.BiblePublicationLanguageName = biblePub.LanguageName ?? string.Empty;
+                updatedSchedule.BiblePublicationLanguageDirection = biblePub.LanguageDirection ?? "ltr";
+                updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
+                updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
+                updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
+            }
+            else if (publicationChanged)
+            {
+                // Publication changed - preserve language name, update rest
+                updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
+                    ? biblePub.LanguageName 
+                    : currentSchedule.BiblePublicationLanguageName;
+                updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
+                    ? biblePub.LanguageDirection 
+                    : currentSchedule.BiblePublicationLanguageDirection;
+                updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
+                updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
+                updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
+            }
+            else
+            {
+                // Same language and publication - preserve if new value is empty
+                updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
+                    ? biblePub.LanguageName 
+                    : currentSchedule.BiblePublicationLanguageName;
+                updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
+                    ? biblePub.LanguageDirection 
+                    : currentSchedule.BiblePublicationLanguageDirection;
+                updatedSchedule.BiblePublicationName = !string.IsNullOrEmpty(biblePub.PublicationName) 
+                    ? biblePub.PublicationName 
+                    : currentSchedule.BiblePublicationName;
+                updatedSchedule.BiblePublicationSectionName = !string.IsNullOrEmpty(biblePub.SectionName) 
+                    ? biblePub.SectionName 
+                    : currentSchedule.BiblePublicationSectionName;
+                updatedSchedule.BiblePublicationTrackTitle = !string.IsNullOrEmpty(biblePub.TrackTitle) 
+                    ? biblePub.TrackTitle 
+                    : currentSchedule.BiblePublicationTrackTitle;
+            }
 
             Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}",
                 updatedSchedule.Id);

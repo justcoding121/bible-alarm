@@ -173,6 +173,9 @@ public sealed class MusicStateChangeHandler
         }
     }
 
+    // Debounce flag to prevent multiple rapid notifications
+    private bool isPropertyChangeScheduled;
+
     private void HandleMusicPropertyChanges(
         ScheduleStateItem currentSchedule,
         Action<bool> setShouldScrollToBottom,
@@ -189,21 +192,32 @@ public sealed class MusicStateChangeHandler
 
         if (notifyMusicType || notifyLanguage || notifySongPublication || notifyTrack || repeatChanged)
         {
-            // Update last values
+            // Update last values immediately to prevent duplicate detection
             stateTracker.UpdateFromSchedule(currentSchedule);
 
-            // Trigger property change notifications with cascading logic
+            // Prevent duplicate scheduled notifications
+            if (isPropertyChangeScheduled)
+            {
+                return;
+            }
+            isPropertyChangeScheduled = true;
+
+            // Capture values for the closure
+            var capturedMusicType = currentSchedule.MusicType;
+            var capturedMusicEnabled = currentSchedule.MusicEnabled;
+
+            // Trigger property change notifications with cascading logic (single batched call)
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                var currentSchedule = state.Value.CurrentSchedule;
+                isPropertyChangeScheduled = false;
                 propertyNotifier.NotifyPropertiesChanged(
                     notifyMusicType,
                     notifyLanguage,
                     notifySongPublication,
                     notifyTrack,
                     repeatChanged,
-                    currentSchedule?.MusicType,
-                    shouldScroll => { if (currentSchedule?.MusicEnabled == true) setShouldScrollToBottom(shouldScroll); });
+                    capturedMusicType,
+                    shouldScroll => { if (capturedMusicEnabled) setShouldScrollToBottom(shouldScroll); });
             });
         }
     }

@@ -18,6 +18,9 @@ public class VisibilityManager
         this.onExpandComplete = onExpandComplete;
     }
 
+    // Track last requested state to prevent duplicate calls
+    private bool? lastRequestedState;
+
     public void UpdateCollapsibleContentVisibility(bool isEnabled, bool animate)
     {
 #if DEBUG
@@ -32,13 +35,16 @@ public class VisibilityManager
             return;
         }
 
-        if (animationManager.IsAnimating)
+        // Prevent duplicate calls with the same state
+        if (lastRequestedState == isEnabled && animationManager.IsAnimating)
         {
 #if DEBUG
-            Serilog.Log.Debug("[MusicSelectionContainer] Already animating, returning");
+            Serilog.Log.Debug("[MusicSelectionContainer] Same state already requested and animating, returning");
 #endif
             return;
         }
+
+        lastRequestedState = isEnabled;
 
         if (animate)
         {

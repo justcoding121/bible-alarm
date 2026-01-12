@@ -41,7 +41,7 @@ public class ScheduleAddHandler
 
             // Populate BiblePublicationLanguageName, BiblePublicationName, BiblePublicationSectionName, and TrackTitle if BiblePublicationSchedule exists
             await displayNamePopulator.PopulatePublicationNameAsync(scheduleStateItem, action.Schedule);
-            await displayNamePopulator.PopulatePublicationNameAsync(scheduleStateItem, action.Schedule);
+            await displayNamePopulator.PopulateBiblePublicationNameAsync(scheduleStateItem, action.Schedule);
             await displayNamePopulator.PopulateSectionNameAsync(scheduleStateItem, action.Schedule);
             await displayNamePopulator.PopulateTrackTitleAsync(scheduleStateItem, action.Schedule);
 

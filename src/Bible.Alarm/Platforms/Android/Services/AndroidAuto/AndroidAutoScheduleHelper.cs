@@ -53,7 +53,7 @@ public static class AndroidAutoScheduleHelper
 
     /// <summary>
     /// Builds the display title for a schedule state item.
-    /// Format for sectioned Bible: SectionName Track Number (e.g., "Joshua 22")
+    /// Format for sectioned Bible: "Section Name - Track Number" (e.g., "Genesis - 1")
     /// Format for drama/video: Track Title (e.g., "Adam and Eve in the Garden of Eden")
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
@@ -65,26 +65,31 @@ public static class AndroidAutoScheduleHelper
 
             if (hasSectionStructure)
             {
-                // Traditional Bible: "SectionName TrackNumber" (e.g., "Joshua 22")
-                var titleParts = new List<string>();
+                // Traditional Bible: "Section Name - Track Number" (e.g., "Genesis - 1")
+                var sectionName = !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName)
+                    ? scheduleItem.BiblePublicationSectionName
+                    : null;
 
-                if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
+                var trackNumber = scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0
+                    ? scheduleItem.BiblePublicationTrackNumber.Value.ToString()
+                    : null;
+
+                string? title = null;
+                if (sectionName != null && trackNumber != null)
                 {
-                    titleParts.Add(scheduleItem.BiblePublicationSectionName);
+                    title = $"{sectionName} - {trackNumber}";
                 }
-                else if (scheduleItem.BiblePublicationSectionNumber.HasValue && scheduleItem.BiblePublicationSectionNumber.Value > 0)
+                else if (sectionName != null)
                 {
-                    titleParts.Add($"Section {scheduleItem.BiblePublicationSectionNumber.Value}");
+                    title = sectionName;
+                }
+                else if (trackNumber != null)
+                {
+                    title = trackNumber;
                 }
 
-                if (scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0)
+                if (title != null)
                 {
-                    titleParts.Add(scheduleItem.BiblePublicationTrackNumber.Value.ToString());
-                }
-
-                if (titleParts.Count > 0)
-                {
-                    var title = string.Join(" ", titleParts);
                     return isRtl ? $"{RightToLeftMark}{title}" : title;
                 }
             }
@@ -95,12 +100,6 @@ public static class AndroidAutoScheduleHelper
                 {
                     var title = scheduleItem.BiblePublicationTrackTitle;
                     return isRtl ? $"{RightToLeftMark}{title}" : title;
-                }
-                else if (scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0)
-                {
-                    // Fallback to "Part X" if track title not available
-                    var trackLabel = PublicationTypeHelper.GetTrackLabel(scheduleItem.BiblePublicationCode);
-                    return $"{trackLabel} {scheduleItem.BiblePublicationTrackNumber.Value}";
                 }
             }
         }

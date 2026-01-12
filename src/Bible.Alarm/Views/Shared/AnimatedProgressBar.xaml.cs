@@ -1,3 +1,4 @@
+#nullable enable
 
 namespace Bible.Alarm.Views.Shared;
 

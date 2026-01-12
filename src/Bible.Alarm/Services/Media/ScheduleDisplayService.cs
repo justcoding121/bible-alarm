@@ -1,4 +1,6 @@
+#nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -12,7 +14,8 @@ public sealed class ScheduleDisplayService(
     ILogger logger,
     IState<PlaybackState> playbackState,
     IAlarmScheduleService alarmScheduleService,
-    IBiblePublicationSectionService biblePublicationSectionService)
+    IBiblePublicationSectionService biblePublicationSectionService,
+    IBiblePublicationService biblePublicationService)
     : IScheduleDisplayService, IDisposable
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
@@ -20,7 +23,7 @@ public sealed class ScheduleDisplayService(
 
     public async Task<string> GetTrackDisplayNameAsync(int scheduleId, bool force = false) => await GetTrackDisplayNameForBiblePublicationAsync(scheduleId, null, force);
 
-    public async Task<string> GetTrackDisplayNameForBiblePublicationAsync(int scheduleId, BiblePublicationSchedule biblePublicationSchedule, bool force = false)
+    public async Task<string> GetTrackDisplayNameForBiblePublicationAsync(int scheduleId, BiblePublicationSchedule? biblePublicationSchedule, bool force = false)
     {
         try
         {
@@ -48,23 +51,53 @@ public sealed class ScheduleDisplayService(
                 scheduleToUse = schedule.BiblePublicationSchedule;
             }
 
-            if (scheduleToUse == null || !scheduleToUse.SectionNumber.HasValue)
+            if (scheduleToUse == null)
             {
                 return string.Empty;
             }
 
-            var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
-                scheduleToUse.LanguageCode,
-                scheduleToUse.PublicationCode,
-                scheduleToUse.SectionNumber.Value,
-                cancellationTokenSource.Token);
+            var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleToUse.PublicationCode);
 
-            if (sectionName == null)
+            if (hasSectionStructure)
             {
+                // Traditional Bible: "Section Name - Track Number" (e.g., "Genesis - 1")
+                if (!scheduleToUse.SectionNumber.HasValue)
+                {
+                    return string.Empty;
+                }
+
+                var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
+                    scheduleToUse.LanguageCode,
+                    scheduleToUse.PublicationCode,
+                    scheduleToUse.SectionNumber.Value,
+                    cancellationTokenSource.Token);
+
+                if (sectionName == null)
+                {
+                    return string.Empty;
+                }
+
+                return $"{sectionName} - {scheduleToUse.TrackNumber}";
+            }
+            else
+            {
+                // Drama/Video: Just the track title
+                var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(
+                    scheduleToUse.LanguageCode,
+                    scheduleToUse.PublicationCode,
+                    cancellationTokenSource.Token);
+
+                if (publication != null)
+                {
+                    var track = publication.Tracks.FirstOrDefault(t => t.Number == scheduleToUse.TrackNumber);
+                    if (track != null)
+                    {
+                        return track.Title ?? string.Empty;
+                    }
+                }
+
                 return string.Empty;
             }
-
-            return $"{sectionName} {scheduleToUse.TrackNumber}";
         }
         catch (Exception e)
         {

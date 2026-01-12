@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -31,11 +31,25 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .Annotation("Sqlite:Autoincrement", true),
                     Code = table.Column<string>(type: "TEXT", maxLength: 10, nullable: false),
                     Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    Direction = table.Column<string>(type: "TEXT", maxLength: 3, nullable: false, defaultValue: "ltr")
+                    Direction = table.Column<string>(type: "TEXT", maxLength: 3, nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Languages", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MelodyMusic",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
+                    Code = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MelodyMusic", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -66,42 +80,14 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
                     Code = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    DisplayLanguageId = table.Column<int>(type: "INTEGER", nullable: false),
                     LanguageId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_BiblePublications", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_BiblePublications_Languages_DisplayLanguageId",
-                        column: x => x.DisplayLanguageId,
-                        principalTable: "Languages",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_BiblePublications_Languages_LanguageId",
                         column: x => x.LanguageId,
-                        principalTable: "Languages",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "MelodyMusic",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
-                    Code = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    DisplayLanguageId = table.Column<int>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MelodyMusic", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_MelodyMusic_Languages_DisplayLanguageId",
-                        column: x => x.DisplayLanguageId,
                         principalTable: "Languages",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -115,18 +101,11 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
                     Code = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    DisplayLanguageId = table.Column<int>(type: "INTEGER", nullable: false),
                     LanguageId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_VocalMusic", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_VocalMusic_Languages_DisplayLanguageId",
-                        column: x => x.DisplayLanguageId,
-                        principalTable: "Languages",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_VocalMusic_Languages_LanguageId",
                         column: x => x.LanguageId,
@@ -233,11 +212,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_BiblePublications_DisplayLanguageId",
-                table: "BiblePublications",
-                column: "DisplayLanguageId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_BiblePublications_LanguageId",
                 table: "BiblePublications",
                 column: "LanguageId");
@@ -277,11 +251,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_MelodyMusic_DisplayLanguageId",
-                table: "MelodyMusic",
-                column: "DisplayLanguageId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_MusicTracks_MelodyMusicId",
                 table: "MusicTracks",
                 column: "MelodyMusicId");
@@ -301,11 +270,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 table: "VocalMusic",
                 columns: new[] { "Code", "LanguageId" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_VocalMusic_DisplayLanguageId",
-                table: "VocalMusic",
-                column: "DisplayLanguageId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_VocalMusic_LanguageId",

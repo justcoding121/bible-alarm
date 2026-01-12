@@ -99,6 +99,7 @@ public class ScheduleDeleteHandler
                         {
                             var mapped = mapper.Map<ScheduleStateItem>(scheduleFromDb);
                             await displayNamePopulator.PopulatePublicationNameAsync(mapped, scheduleFromDb);
+                            await displayNamePopulator.PopulateBiblePublicationNameAsync(mapped, scheduleFromDb);
                             await displayNamePopulator.PopulateSectionNameAsync(mapped, scheduleFromDb);
                             await displayNamePopulator.PopulateTrackTitleAsync(mapped, scheduleFromDb);
                             return mapped;

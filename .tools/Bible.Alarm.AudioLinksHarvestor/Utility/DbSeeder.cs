@@ -55,7 +55,6 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        var displayLanguage = await GetOrCreateDisplayLanguage(db);
         var mediaReader = new MediaReader(indexDir);
 
         var bibleLanguages = await GetBibleLanguagesSafely(mediaReader);
@@ -67,25 +66,8 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         foreach (var language in bibleLanguages)
         {
             var newLanguage = await GetOrCreateLanguage(db, language.Value.Code, language.Value.Name, language.Value.Direction);
-            await SeedPublicationsForLanguage(db, mediaReader, language.Key, newLanguage, displayLanguage);
+            await SeedPublicationsForLanguage(db, mediaReader, language.Key, newLanguage);
         }
-    }
-
-    private async Task<Language> GetOrCreateDisplayLanguage(MediaDbContext db)
-    {
-        var displayLanguage = await db.Languages.FirstOrDefaultAsync(x => x.Name == "English" && x.Code == "E");
-        if (displayLanguage == null)
-        {
-            displayLanguage = new Language
-            {
-                Code = "E",
-                Name = "English",
-                Direction = "ltr"
-            };
-            db.Languages.Add(displayLanguage);
-            await db.SaveChangesAsync();
-        }
-        return displayLanguage;
     }
 
     private async Task<Language> GetOrCreateLanguage(MediaDbContext db, string code, string name, string direction = "ltr")
@@ -209,8 +191,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         MediaDbContext db,
         MediaReader mediaReader,
         string languageKey,
-        Language newLanguage,
-        Language displayLanguage)
+        Language newLanguage)
     {
         var publications = await GetSafely(() => mediaReader.GetBiblePublications(languageKey));
         if (publications == null || publications.Count == 0)
@@ -244,7 +225,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
                 continue;
             }
 
-            var biblePublication = CreateBiblePublication(publication.Value, newLanguage, displayLanguage);
+            var biblePublication = CreateBiblePublication(publication.Value, newLanguage);
             await SeedSectionsForPublication(db, mediaReader, languageKey, publication.Key, sections, biblePublication);
 
             await db.BiblePublications.AddAsync(biblePublication);
@@ -252,14 +233,13 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         }
     }
 
-    private static BiblePublication CreateBiblePublication(Publication publication, Language newLanguage, Language displayLanguage)
+    private static BiblePublication CreateBiblePublication(Publication publication, Language newLanguage)
     {
         return new BiblePublication
         {
             Name = publication.Name,
             Code = publication.Code,
-            Language = newLanguage,
-            DisplayLanguage = displayLanguage
+            Language = newLanguage
         };
     }
 
@@ -384,7 +364,6 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        var displayLanguage = await GetOrCreateDisplayLanguage(db);
         var mediaReader = new MediaReader(indexDir);
 
         var dramaLanguages = await GetSafely(() => mediaReader.GetDramaLanguages());
@@ -399,7 +378,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         foreach (var language in dramaLanguages)
         {
             var newLanguage = await GetOrCreateLanguageByCode(db, language.Value.Code);
-            await SeedDramaPublicationsForLanguage(db, mediaReader, language.Key, newLanguage, displayLanguage);
+            await SeedDramaPublicationsForLanguage(db, mediaReader, language.Key, newLanguage);
         }
     }
 
@@ -407,8 +386,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         MediaDbContext db,
         MediaReader mediaReader,
         string languageCode,
-        Language language,
-        Language displayLanguage)
+        Language language)
     {
         var dramaPublications = await GetSafely(() => mediaReader.GetDramaPublications(languageCode));
         if (dramaPublications == null || dramaPublications.Count == 0)
@@ -446,8 +424,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
             {
                 Name = publication.Value.Name,
                 Code = publication.Value.Code,
-                Language = language,
-                DisplayLanguage = displayLanguage
+                Language = language
             };
 
             await AddTracksToPublication(db, tracks, newPublication);
@@ -485,7 +462,6 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        var displayLanguage = await GetOrCreateDisplayLanguage(db);
         var mediaReader = new MediaReader(indexDir);
 
         var videoLanguages = await GetSafely(() => mediaReader.GetVideoLanguages());
@@ -500,7 +476,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         foreach (var language in videoLanguages)
         {
             var newLanguage = await GetOrCreateLanguageByCode(db, language.Value.Code);
-            await SeedVideoPublicationsForLanguage(db, mediaReader, language.Key, newLanguage, displayLanguage);
+            await SeedVideoPublicationsForLanguage(db, mediaReader, language.Key, newLanguage);
         }
     }
 
@@ -508,8 +484,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         MediaDbContext db,
         MediaReader mediaReader,
         string languageCode,
-        Language language,
-        Language displayLanguage)
+        Language language)
     {
         var videoPublications = await GetSafely(() => mediaReader.GetVideoPublications(languageCode));
         if (videoPublications == null || videoPublications.Count == 0)
@@ -547,8 +522,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
             {
                 Name = publication.Value.Name,
                 Code = publication.Value.Code,
-                Language = language,
-                DisplayLanguage = displayLanguage
+                Language = language
             };
 
             await AddEpisodesToPublication(db, episodes, newPublication);
@@ -584,7 +558,6 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        var displayLanguage = await GetOrCreateDisplayLanguage(db);
         var mediaReader = new MediaReader(indexDir);
 
         var melodyMusicReleases = await GetSafely(() => mediaReader.GetMelodyMusicReleases());
@@ -616,7 +589,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
                 continue;
             }
 
-            var newMelodyMusic = CreateMelodyMusic(melodyMusicRelease.Value, displayLanguage);
+            var newMelodyMusic = CreateMelodyMusic(melodyMusicRelease.Value);
             await AddTracksToMelodyMusic(db, tracks, newMelodyMusic);
 
             await db.MelodyMusic.AddAsync(newMelodyMusic);
@@ -624,13 +597,12 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         }
     }
 
-    private static MelodyMusic CreateMelodyMusic(Publication melodyMusicRelease, Language displayLanguage)
+    private static MelodyMusic CreateMelodyMusic(Publication melodyMusicRelease)
     {
         return new MelodyMusic
         {
             Code = melodyMusicRelease.Code,
-            Name = melodyMusicRelease.Name,
-            DisplayLanguage = displayLanguage
+            Name = melodyMusicRelease.Name
         };
     }
 
@@ -655,7 +627,6 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        var displayLanguage = await GetOrCreateDisplayLanguage(db);
         var mediaReader = new MediaReader(indexDir);
 
         var melodyLanguages = await GetSafely(() => mediaReader.GetVocalMusicLanguages());
@@ -667,7 +638,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         foreach (var language in melodyLanguages)
         {
             var newLanguage = await GetOrCreateLanguage(db, language.Value.Code, language.Value.Name, language.Value.Direction);
-            await SeedVocalMusicReleasesForLanguage(db, mediaReader, language.Value.Code, newLanguage, displayLanguage);
+            await SeedVocalMusicReleasesForLanguage(db, mediaReader, language.Value.Code, newLanguage);
         }
     }
 
@@ -675,8 +646,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         MediaDbContext db,
         MediaReader mediaReader,
         string languageCode,
-        Language newLanguage,
-        Language displayLanguage)
+        Language newLanguage)
     {
         var vocalMusicReleases = await GetSafely(() => mediaReader.GetVocalMusicReleases(languageCode));
         if (vocalMusicReleases == null || vocalMusicReleases.Count == 0)
@@ -710,7 +680,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
                 continue;
             }
 
-            var newVocalMusic = CreateVocalMusic(vocalMusicRelease.Value, newLanguage, displayLanguage);
+            var newVocalMusic = CreateVocalMusic(vocalMusicRelease.Value, newLanguage);
             await AddTracksToVocalMusic(db, tracks, newVocalMusic);
 
             await db.VocalMusic.AddAsync(newVocalMusic);
@@ -718,13 +688,12 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         }
     }
 
-    private static VocalMusic CreateVocalMusic(Publication vocalMusicRelease, Language newLanguage, Language displayLanguage)
+    private static VocalMusic CreateVocalMusic(Publication vocalMusicRelease, Language newLanguage)
     {
         return new VocalMusic
         {
             Code = vocalMusicRelease.Code,
             Name = vocalMusicRelease.Name,
-            DisplayLanguage = displayLanguage,
             Language = newLanguage
         };
     }

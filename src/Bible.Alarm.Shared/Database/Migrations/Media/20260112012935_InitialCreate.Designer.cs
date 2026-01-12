@@ -2,16 +2,19 @@
 using Bible.Alarm.Shared.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Bible.Alarm.DbMigration.Migrations
+namespace Bible.Alarm.Shared.Database.Migrations.Media
 {
     [DbContext(typeof(MediaDbContext))]
-    partial class MediaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260112012935_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
@@ -64,9 +67,6 @@ namespace Bible.Alarm.DbMigration.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("DisplayLanguageId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("LanguageId")
                         .HasColumnType("INTEGER");
 
@@ -76,8 +76,6 @@ namespace Bible.Alarm.DbMigration.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("DisplayLanguageId");
 
                     b.HasIndex("LanguageId");
 
@@ -187,9 +185,6 @@ namespace Bible.Alarm.DbMigration.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("DisplayLanguageId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -199,8 +194,6 @@ namespace Bible.Alarm.DbMigration.Migrations
 
                     b.HasIndex("Code")
                         .IsUnique();
-
-                    b.HasIndex("DisplayLanguageId");
 
                     b.ToTable("MelodyMusic");
                 });
@@ -250,9 +243,6 @@ namespace Bible.Alarm.DbMigration.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("DisplayLanguageId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("LanguageId")
                         .HasColumnType("INTEGER");
 
@@ -262,8 +252,6 @@ namespace Bible.Alarm.DbMigration.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("DisplayLanguageId");
 
                     b.HasIndex("LanguageId");
 
@@ -286,19 +274,11 @@ namespace Bible.Alarm.DbMigration.Migrations
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication", b =>
                 {
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.Language", "DisplayLanguage")
-                        .WithMany()
-                        .HasForeignKey("DisplayLanguageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Bible.Alarm.Shared.Models.Media.Language", "Language")
                         .WithMany()
                         .HasForeignKey("LanguageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("DisplayLanguage");
 
                     b.Navigation("Language");
                 });
@@ -337,17 +317,6 @@ namespace Bible.Alarm.DbMigration.Migrations
                     b.Navigation("Source");
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Music.MelodyMusic", b =>
-                {
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.Language", "DisplayLanguage")
-                        .WithMany()
-                        .HasForeignKey("DisplayLanguageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DisplayLanguage");
-                });
-
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Music.MusicTrack", b =>
                 {
                     b.HasOne("Bible.Alarm.Shared.Models.Media.Music.MelodyMusic", null)
@@ -367,19 +336,11 @@ namespace Bible.Alarm.DbMigration.Migrations
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Music.VocalMusic", b =>
                 {
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.Language", "DisplayLanguage")
-                        .WithMany()
-                        .HasForeignKey("DisplayLanguageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Bible.Alarm.Shared.Models.Media.Language", "Language")
                         .WithMany()
                         .HasForeignKey("LanguageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("DisplayLanguage");
 
                     b.Navigation("Language");
                 });

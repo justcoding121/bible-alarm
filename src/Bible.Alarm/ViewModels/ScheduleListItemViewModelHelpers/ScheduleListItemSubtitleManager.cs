@@ -107,42 +107,42 @@ public sealed class ScheduleListItemSubtitleManager(
 
     private static string BuildSubtitleFromState(ScheduleStateItem scheduleStateItem)
     {
-        var subtitleParts = new List<string>();
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode);
 
         if (hasSectionStructure)
         {
-            // Traditional Bible: Show section name/number and track number
-            if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
-            {
-                subtitleParts.Add(scheduleStateItem.BiblePublicationSectionName);
-            }
-            else if (scheduleStateItem.BiblePublicationSectionNumber.HasValue && scheduleStateItem.BiblePublicationSectionNumber.Value > 0)
-            {
-                subtitleParts.Add($"Section {scheduleStateItem.BiblePublicationSectionNumber.Value}");
-            }
+            // Traditional Bible: Show "Book Name - Chapter Number" (e.g., "Genesis - 1")
+            var sectionName = !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName)
+                ? scheduleStateItem.BiblePublicationSectionName
+                : null;
 
-            if (scheduleStateItem.BiblePublicationTrackNumber.HasValue && scheduleStateItem.BiblePublicationTrackNumber.Value > 0)
+            var trackNumber = scheduleStateItem.BiblePublicationTrackNumber.HasValue && scheduleStateItem.BiblePublicationTrackNumber.Value > 0
+                ? scheduleStateItem.BiblePublicationTrackNumber.Value.ToString()
+                : null;
+
+            if (sectionName != null && trackNumber != null)
             {
-                subtitleParts.Add(scheduleStateItem.BiblePublicationTrackNumber.Value.ToString());
+                return $"{sectionName} - {trackNumber}";
             }
+            else if (sectionName != null)
+            {
+                return sectionName;
+            }
+            else if (trackNumber != null)
+            {
+                return trackNumber;
+            }
+            return string.Empty;
         }
         else
         {
-            // Drama/Video: Show track title (e.g., "Adam and Eve in the Garden of Eden")
+            // Drama/Video: Show just the track title
             if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
             {
-                subtitleParts.Add(scheduleStateItem.BiblePublicationTrackTitle);
+                return scheduleStateItem.BiblePublicationTrackTitle;
             }
-            else if (scheduleStateItem.BiblePublicationTrackNumber.HasValue && scheduleStateItem.BiblePublicationTrackNumber.Value > 0)
-            {
-                // Fallback to "Part X" if track title not available
-                var trackLabel = PublicationTypeHelper.GetTrackLabel(scheduleStateItem.BiblePublicationCode);
-                subtitleParts.Add($"{trackLabel} {scheduleStateItem.BiblePublicationTrackNumber.Value}");
-            }
+            return string.Empty;
         }
-
-        return subtitleParts.Count > 0 ? string.Join(" ", subtitleParts) : string.Empty;
     }
 
     private static void ClearLanguage(Action<string> setLanguage, Action<FlowDirection> setFlowDirection, Action<string> onPropertyChanged)

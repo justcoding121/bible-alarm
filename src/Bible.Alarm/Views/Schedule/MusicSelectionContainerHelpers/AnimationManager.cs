@@ -33,13 +33,30 @@ public class AnimationManager
         set => cachedHeight = value;
     }
 
+    // Track the last requested state to handle rapid toggles
+    private bool? lastRequestedState;
+
     public async Task AnimateCollapsibleContent(bool isEnabled, Action<bool, bool>? onAnimationComplete = null)
     {
-        if (collapsibleContent == null || isAnimating || container.Handler == null)
+        if (collapsibleContent == null || container.Handler == null)
         {
             return;
         }
 
+        // If already animating, check if the requested state is the same
+        if (isAnimating)
+        {
+            // If same state requested, ignore the duplicate call
+            if (lastRequestedState == isEnabled)
+            {
+                return;
+            }
+            // Different state requested - abort current animation and start new one
+            AbortExistingAnimations();
+            isAnimating = false;
+        }
+
+        lastRequestedState = isEnabled;
         isAnimating = true;
 
         try

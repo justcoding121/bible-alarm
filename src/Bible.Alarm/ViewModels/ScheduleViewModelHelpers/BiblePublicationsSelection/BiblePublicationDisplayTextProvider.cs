@@ -115,42 +115,11 @@ public sealed class BiblePublicationDisplayTextProvider
     public string GetTrackDisplayText()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        var biblePublication = state.Value.CurrentBiblePublicationSchedule;
 
-        // For non-sectioned publications (dramas), show the track title from DB if available
-        if (!PublicationTypeHelper.HasSectionStructure(currentSchedule?.BiblePublicationCode))
+        // Always show the track title from DB (populated during bootstrap/selection)
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationTrackTitle))
         {
-            // Use track title from schedule state (populated from DB)
-            if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationTrackTitle))
-            {
-                return currentSchedule.BiblePublicationTrackTitle;
-            }
-
-            // Fallback to "Part X" if no title
-            var trackNumber = biblePublication?.TrackNumber ?? currentSchedule?.BiblePublicationTrackNumber ?? 0;
-            if (trackNumber > 0)
-            {
-                return $"Part {trackNumber}";
-            }
-
-            return string.Empty;
-        }
-
-        // For sectioned publications (traditional Bible), show "Track X"
-        var label = PublicationTypeHelper.GetTrackLabel(currentSchedule?.BiblePublicationCode);
-
-        // Read directly from CurrentBiblePublicationSchedule so it updates immediately when track changes
-        if (biblePublication != null && biblePublication.TrackNumber > 0)
-        {
-            return $"{label} {biblePublication.TrackNumber}";
-        }
-
-        // Fallback to CurrentSchedule if CurrentBiblePublicationSchedule is not set (e.g., new schedule)
-        if (currentSchedule != null &&
-            currentSchedule.BiblePublicationTrackNumber.HasValue &&
-            currentSchedule.BiblePublicationTrackNumber.Value > 0)
-        {
-            return $"{label} {currentSchedule.BiblePublicationTrackNumber.Value}";
+            return currentSchedule.BiblePublicationTrackTitle;
         }
 
         return string.Empty;

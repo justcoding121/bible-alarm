@@ -14,13 +14,6 @@ public class Publication : IComparable
     [MaxLength(50)]
     public string Code { get; set; } = string.Empty;
 
-    [Required]
-    [ForeignKey(nameof(DisplayLanguage))]
-    public int DisplayLanguageId { get; set; }
-
-    [Required]
-    public virtual Language DisplayLanguage { get; set; } = null!;
-
     public int CompareTo(object obj) => Name.CompareTo((obj as Publication).Name);
 }
 
