@@ -239,7 +239,7 @@ public sealed class AlarmSchedule : IComparable
             MusicEnabled = false,
             NotificationEnabled = false, // Disabled by default - user must explicitly enable tap-to-play
             DaysOfWeek = DaysOfWeek.All,
-            Name = $"{(isNew ? "New schedule" : "Initial schedule")}",
+            Name = $"{(isNew ? "New schedule" : "Schedule Name")}",
             Hour = 6,
             Minute = 0,
             Music = new AlarmMusic

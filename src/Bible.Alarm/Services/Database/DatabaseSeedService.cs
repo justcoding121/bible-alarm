@@ -22,20 +22,31 @@ public sealed class DatabaseSeedService(
         // Seed if schedules are empty
         if (!await alarmScheduleService.AnySchedulesExistAsync(cancellationTokenSource.Token))
         {
-            // Create sample schedule with IsEnabled = false (disabled by default)
-            var schedule = await AlarmSchedule.GetSampleSchedule(false, BiblePublicationService, melodyMusicService);
+            try
+            {
+                // Create sample schedule with IsEnabled = false (disabled by default)
+                var schedule = await AlarmSchedule.GetSampleSchedule(false, BiblePublicationService, melodyMusicService);
 
-            await alarmScheduleService.AddScheduleAsync(schedule, cancellationTokenSource.Token);
+                await alarmScheduleService.AddScheduleAsync(schedule, cancellationTokenSource.Token);
 
-            logger.Information("Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}",
-                schedule.Id, schedule.Name);
+                logger.Information("Seeded default alarm schedule. ScheduleId={ScheduleId}, Name={Name}",
+                    schedule.Id, schedule.Name);
 
-            // Save basic metadata to Preferences for early MediaSession setup
-            // This ensures Android Auto can show metadata even before full bootstrap completes
-            // Full metadata (with publication names) will be set later by SetCarPlayScreenAction
-            SaveSeedMetadataToPreferences(schedule);
+                // Save basic metadata to Preferences for early MediaSession setup
+                // This ensures Android Auto can show metadata even before full bootstrap completes
+                // Full metadata (with publication names) will be set later by SetCarPlayScreenAction
+                SaveSeedMetadataToPreferences(schedule);
 
-            return true; // Schedule was seeded
+                return true; // Schedule was seeded
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("No Bible publications found"))
+            {
+                // Bible publications not yet available (Media database may still be initializing)
+                // This is expected during early bootstrap - the schedule will be seeded later when publications are available
+                logger.Warning("Cannot seed default alarm schedule yet - Bible publications not available. " +
+                    "This is normal during early bootstrap. Schedule will be created when publications are loaded.");
+                return false; // No seeding occurred, will retry later
+            }
         }
         else
         {

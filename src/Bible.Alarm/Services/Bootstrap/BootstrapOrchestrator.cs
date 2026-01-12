@@ -98,19 +98,6 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                     Log.Logger.Information("[BOOTSTRAP] Media index verification/copy completed in {ElapsedMs:F2}ms", verifyMediaElapsed);
 #endif
 
-                    // EARLY SEEDING: Seed default schedule immediately after database is ready
-                    // This ensures Preferences has metadata for Android Auto even before full bootstrap completes.
-                    // The seeding also saves basic metadata to Preferences for early MediaSession setup.
-                    try
-                    {
-                        await databaseSeedService.SeedDefaultAlarmAsync();
-                        Log.Logger.Debug("[BOOTSTRAP] Early seeding completed - Preferences should now have metadata");
-                    }
-                    catch (Exception seedEx)
-                    {
-                        Log.Logger.Warning(seedEx, "[BOOTSTRAP] Early seeding failed, continuing bootstrap");
-                    }
-
                     // Send InitializedMessage early (after database/Fluxor are ready) to show UI with loading state
                     // This improves perceived performance - user sees the home page while schedules are being populated
                     if (shouldSendEarlyNav)

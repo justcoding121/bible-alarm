@@ -63,7 +63,7 @@ public class BootstrapReadyManager : IDisposable
             {
                 // Wait for bootstrap to complete using the existing async mechanism
                 // This is more efficient than polling every 100ms
-                await BootstrapHelper.WaitForBootstrapAsync(timeoutMs: 10000);
+                await BootstrapHelper.WaitForBootstrapAsync(timeoutMs: 30000);
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
