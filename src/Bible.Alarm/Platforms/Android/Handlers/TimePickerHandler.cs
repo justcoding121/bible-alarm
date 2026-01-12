@@ -17,6 +17,7 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
 {
     private TimePickerDialog? currentDialog;
     private INotifyPropertyChanged? fontServiceNotifier;
+    private bool isShowingDialog;
 
     protected override MauiTimePicker CreatePlatformView()
     {
@@ -28,7 +29,12 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
 
     protected override void ConnectHandler(MauiTimePicker platformView)
     {
+        // Set up our click handler BEFORE calling base to ensure it's registered first
+        platformView.Click -= OnPlatformViewClick;
+        platformView.Click += OnPlatformViewClick;
+        
         base.ConnectHandler(platformView);
+        
         // Ensure underline is removed
         platformView.BackgroundTintList = ColorStateList.ValueOf(Color.Transparent);
         
@@ -40,17 +46,23 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
             fontServiceNotifier.PropertyChanged += OnFontSizeChanged;
         }
         
-        // Override the click handler to show a custom dialog with proper font sizing
+        // Re-apply our click handler after base.ConnectHandler (in case base overwrote it)
         platformView.Click -= OnPlatformViewClick;
         platformView.Click += OnPlatformViewClick;
         
-        // Also override FocusableInTouchMode to ensure our click handler is called
+        // Make it focusable and clickable - this ensures first tap works immediately
+        platformView.Focusable = true;
         platformView.FocusableInTouchMode = true;
+        platformView.Clickable = true;
+        
+        // Also handle touch events to ensure immediate response
+        platformView.Touch += OnPlatformViewTouch;
     }
 
     protected override void DisconnectHandler(MauiTimePicker platformView)
     {
         platformView.Click -= OnPlatformViewClick;
+        platformView.Touch -= OnPlatformViewTouch;
         
         // Unsubscribe from font size changes
         if (fontServiceNotifier != null)
@@ -65,20 +77,27 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
         base.DisconnectHandler(platformView);
     }
 
-    private void OnFontSizeChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnPlatformViewTouch(object? sender, global::Android.Views.View.TouchEventArgs e)
     {
-        // Update dialog buttons and AM/PM if dialog is currently open and font size changed
-        if (currentDialog != null && (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName == nameof(IFontService.TitleFontSize)))
+        // If it's a down action, immediately show the dialog to avoid double-tap
+        // This ensures the dialog opens on first tap without needing focus first
+        if (e.Event?.Action == global::Android.Views.MotionEventActions.Down && 
+            VirtualView != null && 
+            PlatformView?.Context != null)
         {
-            var fontSize = FontServiceHelper.TitleFontSize;
-            ApplyDialogFontSizesDelayed(currentDialog, fontSize);
+            // Show dialog immediately on touch down
+            ShowTimePickerDialog();
+            e.Handled = true;
         }
     }
 
-    private void OnPlatformViewClick(object? sender, EventArgs e)
+    private void ShowTimePickerDialog()
     {
-        if (VirtualView == null || PlatformView?.Context == null)
+        // Prevent showing dialog multiple times if both touch and click events fire
+        if (isShowingDialog || VirtualView == null || PlatformView?.Context == null)
             return;
+
+        isShowingDialog = true;
 
         var context = PlatformView.Context;
         var currentTime = VirtualView.Time ?? TimeSpan.Zero;
@@ -113,6 +132,7 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
         dialog.DismissEvent += (sender, args) =>
         {
             currentDialog = null;
+            isShowingDialog = false;
         };
         
         dialog.Show();
@@ -120,6 +140,22 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
         // Apply font size to buttons and AM/PM text after dialog is shown
         // Use multiple attempts to ensure views are available
         ApplyDialogFontSizesDelayed(dialog, fontSize);
+    }
+
+    private void OnFontSizeChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Update dialog buttons and AM/PM if dialog is currently open and font size changed
+        if (currentDialog != null && (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName == nameof(IFontService.TitleFontSize)))
+        {
+            var fontSize = FontServiceHelper.TitleFontSize;
+            ApplyDialogFontSizesDelayed(currentDialog, fontSize);
+        }
+    }
+
+    private void OnPlatformViewClick(object? sender, EventArgs e)
+    {
+        // Show dialog on click (fallback if touch handler doesn't fire)
+        ShowTimePickerDialog();
     }
 
     private static void ApplyDialogFontSizesDelayed(TimePickerDialog dialog, double fontSize)

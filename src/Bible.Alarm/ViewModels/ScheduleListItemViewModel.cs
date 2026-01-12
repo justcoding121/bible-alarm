@@ -142,6 +142,7 @@ public sealed class ScheduleListItemViewModel(
             stateHandler.LastKnownBiblePublicationLanguageName = scheduleStateItem.BiblePublicationLanguageName;
             stateHandler.LastKnownSectionName = scheduleStateItem.BiblePublicationSectionName;
             stateHandler.LastKnownTrackTitle = scheduleStateItem.BiblePublicationTrackTitle;
+            stateHandler.LastKnownBiblePublicationCode = scheduleStateItem.BiblePublicationCode;
         }
 
         // Subscribe to PlaybackState changes to manage IsBusy
@@ -411,17 +412,40 @@ public sealed class ScheduleListItemViewModel(
         stateHandler.LastKnownSchedule = updatedSchedule;
         propertyManager.IsEnabled = updatedSchedule.IsEnabled;
 
-        var subtitleChanged = changeInfo.TrackChanged || changeInfo.SectionNumberChanged || changeInfo.TrackNumberChanged ||
-                             changeInfo.BiblePublicationLanguageNameChanged || changeInfo.SectionNameChanged || changeInfo.TrackTitleChanged;
+        // Refresh subtitle if ANY bible schedule property changed
+        var subtitleChanged = changeInfo.AnyBibleSchedulePropertyChanged;
 
         if (subtitleChanged)
         {
             stateHandler.LastKnownBiblePublicationLanguageName = changeInfo.NewBiblePublicationLanguageName;
             stateHandler.LastKnownSectionName = changeInfo.NewSectionName;
             stateHandler.LastKnownTrackTitle = changeInfo.NewTrackTitle;
-            // Refresh subtitle from state
-            var updatedScheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == updatedSchedule.Id);
-            RefreshSubTitleFromState(updatedScheduleItem);
+            // Refresh subtitle from state on UI thread to ensure proper updates
+            // Also schedule a delayed refresh in case display names are populated asynchronously
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                var updatedScheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == updatedSchedule.Id);
+                // Update tracked publication code if it changed
+                if (changeInfo.BiblePublicationCodeChanged && updatedScheduleItem != null)
+                {
+                    stateHandler.LastKnownBiblePublicationCode = updatedScheduleItem.BiblePublicationCode;
+                }
+                RefreshSubTitleFromState(updatedScheduleItem);
+                
+                // Schedule a delayed refresh in case display names are populated asynchronously
+                // This handles the case where bootstrap service populates display names after state update
+                Task.Delay(500).ContinueWith(_ =>
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        var delayedScheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == updatedSchedule.Id);
+                        if (delayedScheduleItem != null)
+                        {
+                            RefreshSubTitleFromState(delayedScheduleItem);
+                        }
+                    });
+                });
+            });
         }
     }
 
@@ -457,6 +481,14 @@ public sealed class ScheduleListItemViewModel(
             if (changeInfo.MusicEnabledChanged)
             {
                 OnPropertyChanged(nameof(MusicEnabled));
+            }
+            // Always notify SubTitle if any bible schedule property changed to ensure UI updates
+            if (changeInfo.AnyBibleSchedulePropertyChanged)
+            {
+                logger.Debug("ScheduleListItemViewModel: NotifyPropertyChanges - Bible schedule property changed, notifying SubTitle for schedule {ScheduleId}",
+                    ScheduleId);
+                OnPropertyChanged(nameof(SubTitle));
+                OnPropertyChanged(nameof(Language));
             }
         });
     }

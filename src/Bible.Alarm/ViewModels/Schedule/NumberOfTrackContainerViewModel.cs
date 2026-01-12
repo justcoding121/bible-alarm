@@ -224,27 +224,15 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                     OnPropertyChanged(nameof(ModalHeaderText));
                     OnPropertyChanged(nameof(RestartLabelText));
 
-                    // Update list item labels (chapter/episode)
-                    UpdateListItemLabels();
-
                     // Set appropriate default: 3 for chapters (sectioned), 1 for episodes (non-sectioned)
                     var newDefault = nowHasSectionStructure ? 3 : 1;
-                    if (CurrentNumberOfTracks?.Value != newDefault)
-                    {
-                        var newSelection = NumberOfTracksList.FirstOrDefault(t => t.Value == newDefault);
-                        if (newSelection != null)
-                        {
-                            if (CurrentNumberOfTracks != null)
-                            {
-                                CurrentNumberOfTracks.IsSelected = false;
-                            }
-                            CurrentNumberOfTracks = newSelection;
-                            CurrentNumberOfTracks.IsSelected = true;
-
-                            // Dispatch update to state
-                            DispatchScheduleUpdate(s => s.NumberOfTracksToRead = newDefault);
-                        }
-                    }
+                    
+                    // Repopulate the list to update max for non-sectioned publications
+                    // Pass the new default as forced selection so it's selected when list is populated
+                    PopulateNumberOfTracksListView(newDefault);
+                    
+                    // Dispatch update to state
+                    DispatchScheduleUpdate(s => s.NumberOfTracksToRead = newDefault);
                 }
             }
             lastPublicationCode = newPublicationCode;
@@ -385,20 +373,51 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         }
     }
 
-    private void PopulateNumberOfTracksListView()
+    private async void PopulateNumberOfTracksListView(int? forceSelection = null)
     {
-        // Preserve the current selection if user has made one
-        var preservedSelection = CurrentNumberOfTracks?.Value;
+        // Preserve the current selection if user has made one, or use forced selection
+        var preservedSelection = forceSelection ?? CurrentNumberOfTracks?.Value;
         var currentSchedule = state.Value.CurrentSchedule;
         var hasSectionStructure = HasSectionStructure;
 
         // Default: 3 for chapters (sectioned), 1 for episodes (non-sectioned)
         var defaultTracks = hasSectionStructure ? 3 : 1;
-        var numberOfTracks = currentSchedule?.NumberOfTracksToRead ?? defaultTracks;
+        var numberOfTracks = preservedSelection ?? currentSchedule?.NumberOfTracksToRead ?? defaultTracks;
+
+        // Determine maximum number of tracks to show
+        int maxTracks = 21; // Default for sectioned publications
+        
+        // For non-sectioned publications, get the actual number of episodes
+        if (!hasSectionStructure && currentSchedule != null)
+        {
+            try
+            {
+                var biblePublicationService = serviceProvider.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationService>();
+                if (biblePublicationService != null && 
+                    !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode) &&
+                    !string.IsNullOrEmpty(currentSchedule.BiblePublicationCode))
+                {
+                    var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(
+                        currentSchedule.BiblePublicationLanguageCode,
+                        currentSchedule.BiblePublicationCode);
+                    
+                    if (publication?.Tracks != null && publication.Tracks.Count > 0)
+                    {
+                        maxTracks = publication.Tracks.Count;
+                        logger.Debug("PopulateNumberOfTracksListView: Non-sectioned publication has {TrackCount} episodes, setting max to {MaxTracks}",
+                            publication.Tracks.Count, maxTracks);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "PopulateNumberOfTracksListView: Failed to get track count for non-sectioned publication, using default max of 21");
+            }
+        }
 
         var trackVMs = new ObservableCollection<NumberOfTracksListViewItemModel>();
 
-        for (var i = 1; i <= 21; i++)
+        for (var i = 1; i <= maxTracks; i++)
         {
             var tracksVm = new NumberOfTracksListViewItemModel(i, hasSectionStructure);
 
@@ -417,6 +436,9 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         }
 
         NumberOfTracksList = trackVMs;
+        
+        // Notify that the list has been updated (in case selection needs to be reapplied)
+        OnPropertyChanged(nameof(NumberOfTracksList));
     }
 
     /// <summary>

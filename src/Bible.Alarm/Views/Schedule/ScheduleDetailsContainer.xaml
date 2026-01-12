@@ -60,7 +60,7 @@
               HorizontalOptions="Center"
               VerticalOptions="Center"
               HeightRequest="{DynamicResource IconStandardContainerSize}"
-              MaximumWidthRequest="{OnPlatform Android='350', iOS='350', WinUI='350', Default='350'}"
+              MaximumWidthRequest="{OnPlatform Android='350', iOS='350', WinUI='400', Default='350'}"
               ColumnSpacing="4"
               RowSpacing="0">
             <Grid.ColumnDefinitions>

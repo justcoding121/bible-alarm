@@ -32,6 +32,11 @@ public sealed class MediaCacheService(
     // Use StorageRoot instead of CacheRoot to ensure media cache is in a permanent location
     // that the OS won't delete. We manage the cache ourselves.
     private readonly string cacheRoot = Path.Combine(storageService.StorageRoot, AppConstants.FilePaths.MediaCacheDirectoryName);
+    
+    /// <summary>
+    /// Gets the cache folder path for a specific schedule.
+    /// </summary>
+    private string GetScheduleCacheFolder(int scheduleId) => Path.Combine(cacheRoot, scheduleId.ToString());
 
     private static readonly ConcurrentDictionary<long, SemaphoreSlim> lockStore = new();
 
@@ -83,10 +88,24 @@ public sealed class MediaCacheService(
     }
 
     public string GetCacheFilePath(string url) => Path.Combine(cacheRoot, GetCacheFileName(url));
+    
+    /// <summary>
+    /// Gets the cache file path for a URL within a specific schedule's folder.
+    /// </summary>
+    private string GetCacheFilePath(string url, int scheduleId) => Path.Combine(GetScheduleCacheFolder(scheduleId), GetCacheFileName(url));
 
     public async Task<bool> ExistsAsync(string url)
     {
         var cachePath = Path.Combine(cacheRoot, GetCacheFileName(url));
+        return await storageService.FileExists(cachePath);
+    }
+    
+    /// <summary>
+    /// Checks if a file exists in a schedule's cache folder.
+    /// </summary>
+    private async Task<bool> ExistsAsync(string url, int scheduleId)
+    {
+        var cachePath = GetCacheFilePath(url, scheduleId);
         return await storageService.FileExists(cachePath);
     }
 
@@ -112,7 +131,7 @@ public sealed class MediaCacheService(
                 }
 
                 var playlist = await mediaPlayService.NextTracks(alarmScheduleId);
-                downloaded = await ProcessPlaylistAsync(playlist);
+                downloaded = await ProcessPlaylistAsync(playlist, alarmScheduleId);
             }
             catch (Exception e)
             {
@@ -123,20 +142,20 @@ public sealed class MediaCacheService(
         return downloaded;
     }
 
-    private async Task<bool> ProcessPlaylistAsync(List<PlayItem> playlist)
+    private async Task<bool> ProcessPlaylistAsync(List<PlayItem> playlist, int scheduleId)
     {
         var downloaded = false;
 
         foreach (var playItem in playlist)
         {
-            if (await ExistsAsync(playItem.Url))
+            if (await ExistsAsync(playItem.Url, scheduleId))
             {
                 continue;
             }
 
             downloaded = true;
 
-            var cachedUrl = await DownloadAndCacheTrackAsync(playItem);
+            var cachedUrl = await DownloadAndCacheTrackAsync(playItem, scheduleId);
             if (cachedUrl == null)
             {
                 break;
@@ -155,11 +174,19 @@ public sealed class MediaCacheService(
     {
         // Check for cancellation
         cancellationToken.ThrowIfCancellationRequested();
-
-        // Check if file exists in cache
-        if (await ExistsAsync(playItem.Url))
+        
+        // Get schedule ID from playItem metadata
+        var scheduleId = (int)playItem.Metadata.ScheduleId;
+        if (scheduleId <= 0)
         {
-            var cachedFilePath = GetCacheFilePath(playItem.Url);
+            logger.Warning("Invalid schedule ID in PlayItem metadata: {ScheduleId}", scheduleId);
+            return null;
+        }
+
+        // Check if file exists in schedule's cache folder
+        if (await ExistsAsync(playItem.Url, scheduleId))
+        {
+            var cachedFilePath = GetCacheFilePath(playItem.Url, scheduleId);
             logger.Debug("Using cached file for track: {Url}, Path: {CachedPath}", playItem.Url, cachedFilePath);
             // Report as complete for cached files
             progressCallback?.Invoke(1, 1);
@@ -180,14 +207,14 @@ public sealed class MediaCacheService(
 
         // Download and cache the file with progress reporting
         logger.Information("Downloading track (not in cache): {Url}", playItem.Url);
-        var cachedUrl = await DownloadAndCacheTrackWithProgressAsync(playItem, progressCallback, cancellationToken);
+        var cachedUrl = await DownloadAndCacheTrackWithProgressAsync(playItem, scheduleId, progressCallback, cancellationToken);
         if (cachedUrl == null)
         {
             logger.Error("Failed to download and cache track: {Url}", playItem.Url);
             return null;
         }
 
-        var downloadedFilePath = GetCacheFilePath(cachedUrl);
+        var downloadedFilePath = GetCacheFilePath(cachedUrl, scheduleId);
         logger.Information("Successfully downloaded and cached track: {Url}, Path: {CachedPath}", playItem.Url, downloadedFilePath);
         // On iOS, MediaElement may need the file path directly instead of file:// URI
         if (DeviceInfo.Platform == DevicePlatform.iOS)
@@ -197,12 +224,12 @@ public sealed class MediaCacheService(
         return new Uri(downloadedFilePath).AbsoluteUri;
     }
 
-    private async Task<string?> DownloadAndCacheTrackAsync(PlayItem playItem, CancellationToken cancellationToken = default)
+    private async Task<string?> DownloadAndCacheTrackAsync(PlayItem playItem, int scheduleId, CancellationToken cancellationToken = default)
     {
-        return await DownloadAndCacheTrackWithProgressAsync(playItem, null, cancellationToken);
+        return await DownloadAndCacheTrackWithProgressAsync(playItem, scheduleId, null, cancellationToken);
     }
 
-    private async Task<string?> DownloadAndCacheTrackWithProgressAsync(PlayItem playItem, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
+    private async Task<string?> DownloadAndCacheTrackWithProgressAsync(PlayItem playItem, int scheduleId, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -213,13 +240,15 @@ public sealed class MediaCacheService(
 
             if (bytes != null && bytes.Length > 0)
             {
-                await storageService.SaveFile(cacheRoot, GetCacheFileName(playItem.Url), bytes);
-                logger.Debug("Successfully downloaded and saved track: {Url}, Size: {Size} bytes", playItem.Url, bytes.Length);
+                var scheduleCacheFolder = GetScheduleCacheFolder(scheduleId);
+                await storageService.SaveFile(scheduleCacheFolder, GetCacheFileName(playItem.Url), bytes);
+                logger.Debug("Successfully downloaded and saved track: {Url}, Size: {Size} bytes, ScheduleId: {ScheduleId}", 
+                    playItem.Url, bytes.Length, scheduleId);
                 return playItem.Url;
             }
 
             logger.Warning("Download returned null or empty bytes for: {Url}, attempting URL refresh", playItem.Url);
-            return await RefreshUrlAndRetryDownloadAsync(playItem, cancellationToken);
+            return await RefreshUrlAndRetryDownloadAsync(playItem, scheduleId, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -233,7 +262,7 @@ public sealed class MediaCacheService(
             // Try refreshing URL and retrying
             try
             {
-                return await RefreshUrlAndRetryDownloadAsync(playItem, cancellationToken);
+                return await RefreshUrlAndRetryDownloadAsync(playItem, scheduleId, cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -248,7 +277,7 @@ public sealed class MediaCacheService(
         }
     }
 
-    private async Task<string?> RefreshUrlAndRetryDownloadAsync(PlayItem playItem, CancellationToken cancellationToken = default)
+    private async Task<string?> RefreshUrlAndRetryDownloadAsync(PlayItem playItem, int scheduleId, CancellationToken cancellationToken = default)
     {
         // Check for cancellation
         cancellationToken.ThrowIfCancellationRequested();
@@ -270,8 +299,9 @@ public sealed class MediaCacheService(
             return null;
         }
 
-        await storageService.SaveFile(cacheRoot, GetCacheFileName(refreshedUrl), bytes);
-        logger.Warning($"Downloaded using updated URL {refreshedUrl} for {playItem}");
+        var scheduleCacheFolder = GetScheduleCacheFolder(scheduleId);
+        await storageService.SaveFile(scheduleCacheFolder, GetCacheFileName(refreshedUrl), bytes);
+        logger.Warning("Downloaded using updated URL {RefreshedUrl} for {PlayItem}, ScheduleId: {ScheduleId}", refreshedUrl, playItem, scheduleId);
         return refreshedUrl;
     }
 
@@ -287,18 +317,49 @@ public sealed class MediaCacheService(
 
     private async Task<HashSet<string>> GetUnusedCacheFilesAsync(List<AlarmSchedule> schedules)
     {
-        var filePathsToDelete = new HashSet<string>(await storageService.GetAllFiles(cacheRoot));
-
+        var filePathsToDelete = new HashSet<string>();
+        var scheduleIdsToKeep = new HashSet<int>(schedules.Select(s => s.Id));
+        
+        // For each schedule, check for unused files in its folder
         foreach (var schedule in schedules)
         {
-            var playlist = await mediaPlayService.NextTracks(schedule.Id);
-            var filePaths = playlist.Select(x => GetCacheFilePath(x.Url)).ToList();
-
-            foreach (var filePath in filePaths)
+            var scheduleCacheFolder = GetScheduleCacheFolder(schedule.Id);
+            
+            // Check if folder exists
+            if (!await storageService.DirectoryExists(scheduleCacheFolder))
             {
-                filePathsToDelete.Remove(filePath);
+                continue;
+            }
+            
+            var playlist = await mediaPlayService.NextTracks(schedule.Id);
+            var allFiles = await storageService.GetAllFiles(scheduleCacheFolder);
+            
+            foreach (var filePath in allFiles)
+            {
+                var fileName = Path.GetFileName(filePath);
+                bool shouldKeep = false;
+                
+                // Check if this file matches any URL in the current playlist
+                foreach (var playItem in playlist)
+                {
+                    var expectedFileName = GetCacheFileName(playItem.Url);
+                    if (fileName.Equals(expectedFileName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        shouldKeep = true;
+                        break;
+                    }
+                }
+                
+                if (!shouldKeep)
+                {
+                    filePathsToDelete.Add(filePath);
+                }
             }
         }
+        
+        // Note: We don't delete entire schedule folders for deleted schedules here
+        // as that would require enumerating all directories. The folder will be cleaned up
+        // when the schedule is explicitly deleted via DeleteScheduleCacheAsync.
 
         return filePathsToDelete;
     }
@@ -330,26 +391,73 @@ public sealed class MediaCacheService(
 
         try
         {
-            var playlist = await mediaPlayService.NextTracks(scheduleId);
-            var filePathsToDelete = new HashSet<string>();
-
-            foreach (var playItem in playlist)
+            var scheduleCacheFolder = GetScheduleCacheFolder(scheduleId);
+            
+            // Check if schedule still exists in database
+            var scheduleExists = await alarmScheduleService.GetScheduleByIdAsync(
+                scheduleId, false, false, cancellationTokenSource.Token) != null;
+            
+            if (!scheduleExists)
             {
-                var cacheFilePath = GetCacheFilePath(playItem.Url);
-                if (await storageService.FileExists(cacheFilePath))
+                // Schedule was deleted - delete entire folder
+                if (await storageService.DirectoryExists(scheduleCacheFolder))
                 {
-                    filePathsToDelete.Add(cacheFilePath);
+                    var filesToDelete = await storageService.GetAllFiles(scheduleCacheFolder);
+                    await DeleteFilesAsync(new HashSet<string>(filesToDelete));
+                    await storageService.DeleteDirectory(scheduleCacheFolder);
+                    logger.Information("Deleted entire cache folder for deleted schedule {ScheduleId} ({Count} files)", 
+                        scheduleId, filesToDelete.Count);
+                }
+                return;
+            }
+            
+            // Schedule exists - update cache by deleting files that don't match new configuration
+            // Get the new schedule's playlist to determine which files should be kept
+            var newPlaylist = await mediaPlayService.NextTracks(scheduleId);
+            
+            // Get all files in the schedule's cache folder
+            if (!await storageService.DirectoryExists(scheduleCacheFolder))
+            {
+                logger.Debug("Cache folder does not exist for schedule {ScheduleId}, nothing to clean up", scheduleId);
+                return;
+            }
+            
+            var allFiles = await storageService.GetAllFiles(scheduleCacheFolder);
+            
+            // Delete files that don't match the new schedule's URLs
+            var filePathsToDelete = new HashSet<string>();
+            foreach (var filePath in allFiles)
+            {
+                var fileName = Path.GetFileName(filePath);
+                
+                // Check all URLs to see if this file matches any of them
+                bool shouldKeep = false;
+                foreach (var playItem in newPlaylist)
+                {
+                    var expectedFileName = GetCacheFileName(playItem.Url);
+                    if (fileName.Equals(expectedFileName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        shouldKeep = true;
+                        break;
+                    }
+                }
+                
+                if (!shouldKeep)
+                {
+                    filePathsToDelete.Add(filePath);
                 }
             }
 
             await DeleteFilesAsync(filePathsToDelete);
-            logger.Information($"Deleted {filePathsToDelete.Count} cache files for schedule {scheduleId}");
+            logger.Information("Deleted {Count} cache files for schedule {ScheduleId} (kept {KeptCount} files)", 
+                filePathsToDelete.Count, scheduleId, allFiles.Count - filePathsToDelete.Count);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, $"Error deleting cache files for schedule {scheduleId}");
+            logger.Error(ex, "Error deleting cache files for schedule {ScheduleId}", scheduleId);
         }
     }
+
 
     public void Dispose()
     {

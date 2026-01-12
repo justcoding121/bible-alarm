@@ -125,6 +125,8 @@ public sealed class ScheduleCommandExecutor
 
                 if (saved)
                 {
+                    // Setup media cache - DeleteScheduleCacheAsync will automatically
+                    // compute the new schedule's URLs and delete only files that don't match
                     scheduleMediaCacheService.SetupMediaCache(scheduleId, isUpdate: !isNewSchedule);
                 }
 
