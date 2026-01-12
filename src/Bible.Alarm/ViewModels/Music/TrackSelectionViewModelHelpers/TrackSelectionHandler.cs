@@ -66,6 +66,7 @@ public sealed class TrackSelectionHandler(
             Repeat = track.Repeat,
             // Store display names from list items and current state
             LanguageName = currentSchedule.MusicLanguageName,
+            LanguageDirection = currentSchedule.MusicLanguageDirection,
             PublicationName = currentSchedule.MusicPublicationName,
             TrackName = track.Title
         };

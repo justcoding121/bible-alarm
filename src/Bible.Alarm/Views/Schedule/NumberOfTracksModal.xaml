@@ -59,7 +59,7 @@
                     FontSize="{DynamicResource HeaderFontSize}"
                     FontAttributes="Bold"
                     HeightRequest="56"
-                    Text="Select Number of Tracks"
+                    Text="{Binding ModalHeaderText}"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />

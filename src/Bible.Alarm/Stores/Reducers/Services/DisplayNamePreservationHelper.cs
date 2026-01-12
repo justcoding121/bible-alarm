@@ -52,6 +52,11 @@ public static class DisplayNamePreservationHelper
             actionSchedule.MusicLanguageName = existingScheduleItem.MusicLanguageName;
         }
 
+        if (string.IsNullOrWhiteSpace(actionSchedule.MusicLanguageDirection) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicLanguageDirection))
+        {
+            actionSchedule.MusicLanguageDirection = existingScheduleItem.MusicLanguageDirection;
+        }
+
         if (string.IsNullOrWhiteSpace(actionSchedule.MusicPublicationName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicPublicationName))
         {
             actionSchedule.MusicPublicationName = existingScheduleItem.MusicPublicationName;

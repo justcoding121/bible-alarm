@@ -101,8 +101,8 @@ public sealed class BiblePublicationSelectionCommandHandler
             var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService);
             var (sectionNumber, trackNumber, sectionName, trackTitle) = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage);
 
-            Log.Debug("CreateSectionSelectionCommand: Result sectionNumber={SectionNumber}, trackNumber={TrackNumber}, trackTitle={TrackTitle}",
-                sectionNumber, trackNumber, trackTitle);
+            Log.Debug("CreateSectionSelectionCommand: Result sectionNumber={SectionNumber}, trackNumber={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
+                sectionNumber, trackNumber, sectionName, trackTitle);
 
             // trackNumber must be valid; sectionNumber can be 0 for non-sectioned publications (dramas)
             if (trackNumber <= 0)
@@ -111,10 +111,22 @@ public sealed class BiblePublicationSelectionCommandHandler
                 return;
             }
 
+            // Warn if names are empty - this could cause empty rows in the UI
+            if (sectionNumber > 0 && string.IsNullOrWhiteSpace(sectionName))
+            {
+                Log.Warning("CreateSectionSelectionCommand: SectionName is empty for sectionNumber={SectionNumber}, publication={PublicationCode}. This may cause empty section row in UI.",
+                    sectionNumber, x.Code);
+            }
+            if (string.IsNullOrWhiteSpace(trackTitle))
+            {
+                Log.Warning("CreateSectionSelectionCommand: TrackTitle is empty for trackNumber={TrackNumber}, publication={PublicationCode}. This may cause empty track row in UI.",
+                    trackNumber, x.Code);
+            }
+
             var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionNumber, trackNumber, sectionName, trackTitle, currentLanguage, currentSchedule);
 
-            Log.Information("CreateSectionSelectionCommand: Dispatching selection for publication={PublicationCode}, section={SectionNumber}, track={TrackNumber}",
-                x.Code, sectionNumber, trackNumber);
+            Log.Information("CreateSectionSelectionCommand: Dispatching selection for publication={PublicationCode}, section={SectionNumber}, track={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
+                x.Code, sectionNumber, trackNumber, sectionName, trackTitle);
 
             var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
             actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);

@@ -100,6 +100,14 @@ public sealed class ScheduleStateItem : IComparable
     public string? MusicLanguageName { get; set; }
 
     /// <summary>
+    /// Music language direction for RTL/LTR display (for vocals only).
+    /// Values: "ltr" (left-to-right) or "rtl" (right-to-left).
+    /// This is populated during bootstrap from language dictionary.
+    /// Not persisted to database.
+    /// </summary>
+    public string? MusicLanguageDirection { get; set; }
+
+    /// <summary>
     /// Music publication name (song section name) for display purposes (for vocals only).
     /// This is populated during bootstrap from vocal music service.
     /// Not persisted to database.

@@ -34,6 +34,16 @@ public sealed class MusicPropertyNotifier
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsRepeatEnabled));
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.HasTrackSelected));
+        onPropertyChanged(nameof(MusicSelectionContainerViewModel.ContentFlowDirection));
+    }
+
+    /// <summary>
+    /// Notifies that the ContentFlowDirection property has changed.
+    /// Called when the music's language direction changes.
+    /// </summary>
+    public void NotifyFlowDirectionChanged()
+    {
+        onPropertyChanged(nameof(MusicSelectionContainerViewModel.ContentFlowDirection));
     }
 
     /// <summary>
@@ -54,12 +64,13 @@ public sealed class MusicPropertyNotifier
         var notifySongPublication = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
         var notifyTrack = musicTypeChanged || languageCodeChanged || publicationCodeChanged || trackNumberChanged;
 
-        // Music type change cascades to all below
+        // Music type change cascades to all below (including flow direction for RTL support)
         if (notifyMusicType)
         {
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicTypeDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsMusicLanguageVisible));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsSongPublicationVisible));
+            onPropertyChanged(nameof(MusicSelectionContainerViewModel.ContentFlowDirection));
 
             // Clear cached values when music type changes
             displayTextProvider.ClearCaches();
@@ -76,9 +87,10 @@ public sealed class MusicPropertyNotifier
             }
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
         }
-        // Language change (vocals only) cascades to song section and track
+        // Language change (vocals only) cascades to song section, track, and flow direction
         else if (notifyLanguage && musicType == MusicType.Vocals)
         {
+            onPropertyChanged(nameof(MusicSelectionContainerViewModel.ContentFlowDirection));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicLanguageDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));

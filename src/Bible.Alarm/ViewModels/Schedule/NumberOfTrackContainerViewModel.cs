@@ -3,6 +3,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -31,6 +32,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     private bool alwaysPlayFromStart;
     private bool hasSignaledReady;
     private bool isReadyActionQueued;
+    private string? lastPublicationCode;
 
     private ObservableCollection<NumberOfTracksListViewItemModel> numberOfTracksList = new();
     private NumberOfTracksListViewItemModel? currentNumberOfTracks;
@@ -104,11 +106,16 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             scheduleId = currentSchedule.Id;
             notificationEnabled = currentSchedule.NotificationEnabled;
             alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
+            lastPublicationCode = currentSchedule.BiblePublicationCode;
 
             PopulateNumberOfTracksListView();
 
             OnPropertyChanged(nameof(NotificationEnabled));
             OnPropertyChanged(nameof(AlwaysPlayFromStart));
+            OnPropertyChanged(nameof(HasSectionStructure));
+            OnPropertyChanged(nameof(TrackLabelText));
+            OnPropertyChanged(nameof(ModalHeaderText));
+            OnPropertyChanged(nameof(RestartLabelText));
 
             // Signal that this container is ready (initialized from CurrentSchedule)
             SignalContainerReady();
@@ -201,6 +208,46 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                 alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
                 OnPropertyChanged(nameof(AlwaysPlayFromStart));
             }
+
+            // Check if publication code changed (switched between sectioned and non-sectioned)
+            var newPublicationCode = currentSchedule.BiblePublicationCode;
+            if (lastPublicationCode != null && lastPublicationCode != newPublicationCode)
+            {
+                var wasHasSectionStructure = PublicationTypeHelper.HasSectionStructure(lastPublicationCode);
+                var nowHasSectionStructure = PublicationTypeHelper.HasSectionStructure(newPublicationCode);
+
+                if (wasHasSectionStructure != nowHasSectionStructure)
+                {
+                    // Update label text properties
+                    OnPropertyChanged(nameof(HasSectionStructure));
+                    OnPropertyChanged(nameof(TrackLabelText));
+                    OnPropertyChanged(nameof(ModalHeaderText));
+                    OnPropertyChanged(nameof(RestartLabelText));
+
+                    // Update list item labels (chapter/episode)
+                    UpdateListItemLabels();
+
+                    // Set appropriate default: 3 for chapters (sectioned), 1 for episodes (non-sectioned)
+                    var newDefault = nowHasSectionStructure ? 3 : 1;
+                    if (CurrentNumberOfTracks?.Value != newDefault)
+                    {
+                        var newSelection = NumberOfTracksList.FirstOrDefault(t => t.Value == newDefault);
+                        if (newSelection != null)
+                        {
+                            if (CurrentNumberOfTracks != null)
+                            {
+                                CurrentNumberOfTracks.IsSelected = false;
+                            }
+                            CurrentNumberOfTracks = newSelection;
+                            CurrentNumberOfTracks.IsSelected = true;
+
+                            // Dispatch update to state
+                            DispatchScheduleUpdate(s => s.NumberOfTracksToRead = newDefault);
+                        }
+                    }
+                }
+            }
+            lastPublicationCode = newPublicationCode;
         }
     }
 
@@ -234,6 +281,42 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     /// This ensures the UI updates when CurrentNumberOfTracks changes.
     /// </summary>
     public string CurrentNumberOfTracksText => CurrentNumberOfTracks?.Text ?? string.Empty;
+
+    /// <summary>
+    /// Gets whether the current publication has section structure (traditional Bible with chapters).
+    /// Non-sectioned publications are dramas/videos with episodes.
+    /// </summary>
+    public bool HasSectionStructure
+    {
+        get
+        {
+            var publicationCode = state.Value.CurrentSchedule?.BiblePublicationCode;
+            return PublicationTypeHelper.HasSectionStructure(publicationCode);
+        }
+    }
+
+    /// <summary>
+    /// Gets the label text for the tracks selection row.
+    /// Returns "Chapters to play each time" for sectioned publications (Bible),
+    /// or "Episodes to play each time" for non-sectioned publications (dramas).
+    /// </summary>
+    public string TrackLabelText => HasSectionStructure ? "Chapters to play each time" : "Episodes to play each time";
+
+    /// <summary>
+    /// Gets the header text for the tracks selection modal.
+    /// Returns "Select Number of Chapters" for sectioned publications,
+    /// or "Select Number of Episodes" for non-sectioned publications.
+    /// </summary>
+    public string ModalHeaderText => HasSectionStructure ? "Select Number of Chapters" : "Select Number of Episodes";
+
+    /// <summary>
+    /// Gets the label text for the "restart incomplete" toggle.
+    /// Returns "Restart incomplete chapters from the beginning?" for sectioned publications,
+    /// or "Restart incomplete episodes from the beginning?" for non-sectioned publications.
+    /// </summary>
+    public string RestartLabelText => HasSectionStructure 
+        ? "Restart incomplete chapters from the beginning?" 
+        : "Restart incomplete episodes from the beginning?";
 
     public bool NotificationEnabled
     {
@@ -307,13 +390,17 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         // Preserve the current selection if user has made one
         var preservedSelection = CurrentNumberOfTracks?.Value;
         var currentSchedule = state.Value.CurrentSchedule;
-        var numberOfTracks = currentSchedule?.NumberOfTracksToRead ?? 3;
+        var hasSectionStructure = HasSectionStructure;
+
+        // Default: 3 for chapters (sectioned), 1 for episodes (non-sectioned)
+        var defaultTracks = hasSectionStructure ? 3 : 1;
+        var numberOfTracks = currentSchedule?.NumberOfTracksToRead ?? defaultTracks;
 
         var trackVMs = new ObservableCollection<NumberOfTracksListViewItemModel>();
 
         for (var i = 1; i <= 21; i++)
         {
-            var tracksVm = new NumberOfTracksListViewItemModel(i);
+            var tracksVm = new NumberOfTracksListViewItemModel(i, hasSectionStructure);
 
             // If user has made a selection, use that; otherwise use the state's value
             var shouldSelect = preservedSelection.HasValue
@@ -330,6 +417,19 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         }
 
         NumberOfTracksList = trackVMs;
+    }
+
+    /// <summary>
+    /// Updates the unit labels on all list items when publication type changes.
+    /// </summary>
+    private void UpdateListItemLabels()
+    {
+        var hasSectionStructure = HasSectionStructure;
+        foreach (var item in NumberOfTracksList)
+        {
+            item.UpdateUnitLabels(hasSectionStructure);
+        }
+        OnPropertyChanged(nameof(CurrentNumberOfTracksText));
     }
 
     private void DispatchScheduleUpdate(Action<ScheduleStateItem> updateAction)

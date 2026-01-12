@@ -4,11 +4,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Schedule;assembly=Bible.Alarm"
              xmlns:fn="clr-namespace:Bible.Alarm.Views"
+             xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
              x:DataType="vm:BiblePublicationSelectionContainerViewModel">
+    <ContentView.Resources>
+        <converters:FlowDirectionToArrowConverter x:Key="flowDirectionToArrowConverter" />
+    </ContentView.Resources>
     <Border Margin="0"
             Padding="0"
             StrokeThickness="2"
-            Stroke="{StaticResource PrimaryColor}"
+            Stroke="{DynamicResource TextPrimaryColor}"
             BackgroundColor="{DynamicResource CardBackgroundColor}"
             HorizontalOptions="Fill">
         <Border.StrokeShape>
@@ -21,8 +25,7 @@
                     Opacity="0.3" />
         </Border.Shadow>
         <Grid RowSpacing="0"
-              Padding="0"
-              FlowDirection="{Binding ContentFlowDirection}">
+              Padding="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -58,7 +61,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding LanguageDisplayText}"
-                       TextColor="{DynamicResource PrimaryTextColor}"
+                       TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 
@@ -81,7 +84,7 @@
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
                         Text="{x:Static fn:GlyphNames.Language}"
-                        TextColor="{DynamicResource PrimaryColor}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
                 </Border>
@@ -100,7 +103,8 @@
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
                   MinimumHeightRequest="56"
                   HorizontalOptions="Fill"
-                  VerticalOptions="Fill">
+                  VerticalOptions="Fill"
+                  FlowDirection="{Binding ContentFlowDirection}">
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectBibleCommand}"
                                           NumberOfTapsRequired="1" />
@@ -117,7 +121,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding PublicationDisplayText}"
-                       TextColor="{DynamicResource PrimaryTextColor}"
+                       TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 <!-- Arrow Indicator -->
@@ -135,8 +139,8 @@
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
-                        Text="{x:Static fn:GlyphNames.Right}"
-                        TextColor="{StaticResource PrimaryColor}"
+                        Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
                 </Border>
@@ -157,7 +161,8 @@
                   MinimumHeightRequest="56"
                   HorizontalOptions="Fill"
                   VerticalOptions="Fill"
-                  IsVisible="{Binding IsSectionVisible}">
+                  IsVisible="{Binding IsSectionVisible}"
+                  FlowDirection="{Binding ContentFlowDirection}">
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectSectionCommand}"
                                           NumberOfTapsRequired="1" />
@@ -174,7 +179,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding SectionDisplayText}"
-                       TextColor="{DynamicResource PrimaryTextColor}"
+                       TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 <!-- Arrow Indicator -->
@@ -192,8 +197,8 @@
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
-                        Text="{x:Static fn:GlyphNames.Right}"
-                        TextColor="{StaticResource PrimaryColor}"
+                        Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
                 </Border>
@@ -212,7 +217,8 @@
                   BackgroundColor="{DynamicResource ControlBackgroundColor}"
                   MinimumHeightRequest="56"
                   HorizontalOptions="Fill"
-                  VerticalOptions="Fill">
+                  VerticalOptions="Fill"
+                  FlowDirection="{Binding ContentFlowDirection}">
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
                                           NumberOfTapsRequired="1" />
@@ -229,7 +235,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding TrackDisplayText}"
-                       TextColor="{DynamicResource PrimaryTextColor}"
+                       TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 <!-- Arrow Indicator -->
@@ -247,8 +253,8 @@
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
-                        Text="{x:Static fn:GlyphNames.Right}"
-                        TextColor="{StaticResource PrimaryColor}"
+                        Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
                 </Border>

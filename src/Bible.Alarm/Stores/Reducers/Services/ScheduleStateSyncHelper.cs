@@ -143,6 +143,7 @@ public static class ScheduleStateSyncHelper
             Repeat = updatedCurrentSchedule.MusicRepeat ?? false,
             AlarmScheduleId = updatedCurrentSchedule.Id,
             LanguageName = updatedCurrentSchedule.MusicLanguageName,
+            LanguageDirection = updatedCurrentSchedule.MusicLanguageDirection,
             PublicationName = updatedCurrentSchedule.MusicPublicationName,
             TrackName = updatedCurrentSchedule.MusicTrackName
         };

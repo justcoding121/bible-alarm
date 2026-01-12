@@ -342,6 +342,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
             PublicationCode = publicationCode,
             TrackNumber = trackNumber,
             LanguageName = language.Name,
+            LanguageDirection = language.Direction,
             PublicationName = firstSongPublication.Name,
             TrackName = trackName
         };

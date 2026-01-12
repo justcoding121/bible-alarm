@@ -56,7 +56,7 @@
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
-                       Text="Number of tracks to play"
+                       Text="{Binding TrackLabelText}"
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center"
@@ -98,11 +98,10 @@
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
+                       Text="{Binding RestartLabelText}"
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
-                       VerticalTextAlignment="Center">
-                    Restart incomplete tracks from the beginning?
-                </Label>
+                       VerticalTextAlignment="Center" />
                 <Grid Grid.Column="1"
                       HorizontalOptions="End"
                       VerticalOptions="Center"

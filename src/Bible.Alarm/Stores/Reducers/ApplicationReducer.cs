@@ -370,8 +370,9 @@ public static class ApplicationReducer
             updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
             updatedCurrentSchedule.MusicTrackNumber = music.TrackNumber;
             updatedCurrentSchedule.MusicRepeat = music.Repeat;
-            // Also update display names
+            // Also update display names and language direction
             updatedCurrentSchedule.MusicLanguageName = music.LanguageName;
+            updatedCurrentSchedule.MusicLanguageDirection = music.LanguageDirection;
             updatedCurrentSchedule.MusicPublicationName = music.PublicationName;
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
 

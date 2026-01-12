@@ -273,6 +273,7 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.MusicRepeat = actionMusic.Repeat;
         // Preserve music display names from current schedule (will be repopulated if needed)
         updatedSchedule.MusicLanguageName = currentSchedule.MusicLanguageName;
+        updatedSchedule.MusicLanguageDirection = currentSchedule.MusicLanguageDirection;
         updatedSchedule.MusicPublicationName = currentSchedule.MusicPublicationName;
         updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
     }
@@ -282,6 +283,7 @@ public sealed class TrackSelectionSyncHandler
         // IMPORTANT: Use display names from the action (populated from list items when user tapped).
         // Do NOT query the database - display names are already available from the selection.
         updatedSchedule.MusicLanguageName = actionMusic.LanguageName;
+        updatedSchedule.MusicLanguageDirection = actionMusic.LanguageDirection;
         updatedSchedule.MusicPublicationName = actionMusic.PublicationName;
         updatedSchedule.MusicTrackName = actionMusic.TrackName;
 

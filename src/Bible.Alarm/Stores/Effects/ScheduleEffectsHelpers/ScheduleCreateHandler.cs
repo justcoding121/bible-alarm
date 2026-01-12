@@ -94,6 +94,7 @@ public class ScheduleCreateHandler
                     mapped.BiblePublicationName = action.Schedule.BiblePublicationName;
                     mapped.BiblePublicationSectionName = action.Schedule.BiblePublicationSectionName;
                     mapped.MusicLanguageName = action.Schedule.MusicLanguageName;
+                    mapped.MusicLanguageDirection = action.Schedule.MusicLanguageDirection;
                     mapped.MusicPublicationName = action.Schedule.MusicPublicationName;
                     mapped.MusicTrackName = action.Schedule.MusicTrackName;
                 }

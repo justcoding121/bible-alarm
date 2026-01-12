@@ -108,6 +108,24 @@ public sealed class BiblePublicationSelectionDataProvider
         }
     }
 
+    // Priority codes for Bible publications (lower = higher priority)
+    private static readonly string[] PriorityPublicationCodes = ["nwt", "bi12"];
+
+    /// <summary>
+    /// Gets the sort priority for a publication code.
+    /// nwt (2013 NWT) = 0, bi12 (1984 NWT) = 1, others = 2
+    /// </summary>
+    private static int GetPublicationSortPriority(string code)
+    {
+        var lowerCode = code.ToLowerInvariant();
+        for (int i = 0; i < PriorityPublicationCodes.Length; i++)
+        {
+            if (lowerCode == PriorityPublicationCodes[i])
+                return i;
+        }
+        return PriorityPublicationCodes.Length; // Others come after priority publications
+    }
+
     public async Task PopulatePublicationsAsync(
         string languageCode,
         ObservableCollection<PublicationListViewItemModel>? publications,
@@ -127,7 +145,6 @@ public sealed class BiblePublicationSelectionDataProvider
             var publicationsData = await mediaService.GetBiblePublications(languageCode);
             var vms = new List<PublicationListViewItemModel>();
             var mapping = new Dictionary<string, PublicationListViewItemModel>();
-            PublicationListViewItemModel? lastPublication = null;
 
             foreach (var publication in publicationsData.Values)
             {
@@ -145,9 +162,6 @@ public sealed class BiblePublicationSelectionDataProvider
                 vms.Add(publicationVm);
                 mapping[publicationVm.Code] = publicationVm;
 
-                // Store the last publication as default
-                lastPublication = publicationVm;
-
                 // Check if this publication matches the current publication code
                 if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == publication.Code)
                 {
@@ -155,7 +169,26 @@ public sealed class BiblePublicationSelectionDataProvider
                 }
             }
 
-            return (vms, mapping, lastPublication);
+            // Sort publications: nwt first, then bi12, then others by name
+            vms = vms
+                .OrderBy(p => GetPublicationSortPriority(p.Code))
+                .ThenBy(p => p.Name)
+                .ToList();
+
+            // Determine default publication: prefer nwt, then bi12, then first available
+            PublicationListViewItemModel? preferredDefault = null;
+            foreach (var priorityCode in PriorityPublicationCodes)
+            {
+                if (mapping.TryGetValue(priorityCode, out var priorityPub))
+                {
+                    preferredDefault = priorityPub;
+                    break;
+                }
+            }
+            // Fall back to first publication if no priority publications found
+            preferredDefault ??= vms.FirstOrDefault();
+
+            return (vms, mapping, preferredDefault);
         });
 
         // Update mapping
@@ -204,14 +237,33 @@ public sealed class BiblePublicationSelectionDataProvider
     {
         try
         {
+            Log.Debug("DispatchDefaultPublicationAsync: Starting for language={LanguageCode}, publication={PublicationCode}",
+                languageCode, defaultPublication.Code);
+
             var sections = await mediaService.GetBiblePublicationSections(languageCode, defaultPublication.Code);
-            if (sections == null || sections.Count == 0) return;
+            if (sections == null || sections.Count == 0)
+            {
+                Log.Warning("DispatchDefaultPublicationAsync: No sections found for language={LanguageCode}, publication={PublicationCode}. This publication may not have section data.",
+                    languageCode, defaultPublication.Code);
+                return;
+            }
 
             var firstSection = sections.Values.First();
+            Log.Debug("DispatchDefaultPublicationAsync: First section number={SectionNumber}, name={SectionName}",
+                firstSection.Number, firstSection.Name);
+
             var tracks = await mediaService.GetBiblePublicationTracks(languageCode, defaultPublication.Code, firstSection.Number);
-            if (tracks == null || tracks.Count == 0) return;
+            if (tracks == null || tracks.Count == 0)
+            {
+                Log.Warning("DispatchDefaultPublicationAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, section={SectionNumber}",
+                    languageCode, defaultPublication.Code, firstSection.Number);
+                return;
+            }
 
             var firstTrack = tracks.Values.First();
+            Log.Debug("DispatchDefaultPublicationAsync: First track number={TrackNumber}, title={TrackTitle}",
+                firstTrack.Number, firstTrack.Title);
+
             var biblePublicationItem = new BiblePublicationStateItem
             {
                 LanguageCode = languageCode,
@@ -224,11 +276,16 @@ public sealed class BiblePublicationSelectionDataProvider
                 SectionName = firstSection.Name,
                 TrackTitle = firstTrack.Title
             };
+
+            Log.Information("DispatchDefaultPublicationAsync: Dispatching TrackSelectedAction for publication={PublicationCode}, section={SectionNumber}/{SectionName}, track={TrackNumber}/{TrackTitle}",
+                defaultPublication.Code, firstSection.Number, firstSection.Name, firstTrack.Number, firstTrack.Title);
+            
             dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "BibleSelectionDataProvider: Error dispatching default publication selection");
+            Log.Warning(ex, "BibleSelectionDataProvider: Error dispatching default publication selection for language={LanguageCode}, publication={PublicationCode}",
+                languageCode, defaultPublication.Code);
         }
     }
 

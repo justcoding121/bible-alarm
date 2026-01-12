@@ -90,6 +90,7 @@ public sealed class SongPublicationSelectionCommandHandler(
             PublicationCode = songPublication.Code,
             TrackNumber = trackNumber,
             LanguageName = currentLanguage?.Name,
+            LanguageDirection = currentLanguage?.Direction,
             PublicationName = songPublication.Name,
             TrackName = trackName
         };
@@ -111,6 +112,7 @@ public sealed class SongPublicationSelectionCommandHandler(
             PublicationCode = publicationCode,
             TrackNumber = trackNumber,
             LanguageName = language.Name,
+            LanguageDirection = language.Direction,
             PublicationName = publicationName,
             TrackName = trackName
         };

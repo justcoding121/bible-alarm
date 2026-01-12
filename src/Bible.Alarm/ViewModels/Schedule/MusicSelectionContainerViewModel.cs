@@ -222,6 +222,12 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     public bool IsRepeatEnabled => displayTextProvider.GetIsRepeatEnabled();
     public bool HasTrackSelected => displayTextProvider.GetHasTrackSelected();
 
+    /// <summary>
+    /// Gets the FlowDirection for the music container based on the music's selected language direction.
+    /// Used for song publication and track rows which display RTL content (e.g., Arabic song titles).
+    /// </summary>
+    public FlowDirection ContentFlowDirection => displayTextProvider.GetFlowDirection();
+
     public void Dispose()
     {
         state.StateChanged -= OnStateChanged;

@@ -17,6 +17,8 @@ public sealed class MusicStateTracker
     private string? lastScheduleMusicLanguageCode;
     private bool lastScheduleMusicRepeat;
     private bool? lastMusicEnabled;
+    private string? lastBibleLanguageDirection;
+    private string? lastMusicLanguageDirection;
 
     public MusicType? LastScheduleMusicType => lastScheduleMusicType;
     public int? LastScheduleMusicTrackNumber => lastScheduleMusicTrackNumber;
@@ -24,6 +26,8 @@ public sealed class MusicStateTracker
     public string? LastScheduleMusicLanguageCode => lastScheduleMusicLanguageCode;
     public bool LastScheduleMusicRepeat => lastScheduleMusicRepeat;
     public bool? LastMusicEnabled => lastMusicEnabled;
+    public string? LastBibleLanguageDirection => lastBibleLanguageDirection;
+    public string? LastMusicLanguageDirection => lastMusicLanguageDirection;
 
     /// <summary>
     /// Initializes tracking values from CurrentSchedule.
@@ -41,6 +45,8 @@ public sealed class MusicStateTracker
         lastScheduleMusicLanguageCode = currentSchedule.MusicLanguageCode;
         lastScheduleMusicRepeat = currentSchedule.MusicRepeat ?? false;
         lastMusicEnabled = currentSchedule.MusicEnabled;
+        lastBibleLanguageDirection = currentSchedule.BiblePublicationLanguageDirection;
+        lastMusicLanguageDirection = currentSchedule.MusicLanguageDirection;
     }
 
     /// <summary>
@@ -59,6 +65,8 @@ public sealed class MusicStateTracker
         lastScheduleMusicLanguageCode = currentSchedule.MusicLanguageCode;
         lastScheduleMusicRepeat = currentSchedule.MusicRepeat ?? false;
         lastMusicEnabled = currentSchedule.MusicEnabled;
+        lastBibleLanguageDirection = currentSchedule.BiblePublicationLanguageDirection;
+        lastMusicLanguageDirection = currentSchedule.MusicLanguageDirection;
     }
 
     /// <summary>
@@ -99,5 +107,47 @@ public sealed class MusicStateTracker
     public void UpdateMusicEnabled(bool? value)
     {
         lastMusicEnabled = value;
+    }
+
+    /// <summary>
+    /// Checks if Bible language direction changed (affects RTL/LTR layout).
+    /// </summary>
+    public bool HasBibleLanguageDirectionChanged(ScheduleStateItem? currentSchedule)
+    {
+        if (currentSchedule == null)
+        {
+            return false;
+        }
+
+        return lastBibleLanguageDirection != currentSchedule.BiblePublicationLanguageDirection;
+    }
+
+    /// <summary>
+    /// Updates only the Bible language direction tracking value.
+    /// </summary>
+    public void UpdateBibleLanguageDirection(string? value)
+    {
+        lastBibleLanguageDirection = value;
+    }
+
+    /// <summary>
+    /// Checks if Music language direction changed (affects RTL/LTR layout for music rows).
+    /// </summary>
+    public bool HasMusicLanguageDirectionChanged(ScheduleStateItem? currentSchedule)
+    {
+        if (currentSchedule == null)
+        {
+            return false;
+        }
+
+        return lastMusicLanguageDirection != currentSchedule.MusicLanguageDirection;
+    }
+
+    /// <summary>
+    /// Updates only the Music language direction tracking value.
+    /// </summary>
+    public void UpdateMusicLanguageDirection(string? value)
+    {
+        lastMusicLanguageDirection = value;
     }
 }

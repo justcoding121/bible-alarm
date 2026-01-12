@@ -26,6 +26,14 @@ public sealed class MusicStateItem : IComparable
     public string? LanguageName { get; set; }
 
     /// <summary>
+    /// Language direction for RTL/LTR display (for vocals only).
+    /// Values: "ltr" (left-to-right) or "rtl" (right-to-left).
+    /// This is populated from the list item when user selects a language.
+    /// Not persisted to database.
+    /// </summary>
+    public string? LanguageDirection { get; set; }
+
+    /// <summary>
     /// Publication name (song section name) for display purposes (for vocals only).
     /// This is populated from the list item when user selects a song section.
     /// Not persisted to database.

@@ -42,7 +42,7 @@
                                     FontSize="{DynamicResource TitleFontSize}"
                                     HorizontalOptions="Center"
                                     Margin="0"
-                                    TextColor="{DynamicResource PrimaryTextColor}"
+                                    TextColor="{DynamicResource TextPrimaryColor}"
                                     Time="{Binding Time, Mode=TwoWay}">
                             <TimePicker.Format>hh:mm tt</TimePicker.Format>
                         </TimePicker>

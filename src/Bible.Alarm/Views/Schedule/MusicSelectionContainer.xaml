@@ -23,6 +23,7 @@
         </Border.Shadow>
         <Border.Resources>
             <converters:RepeatColorConverter x:Key="repeatColorConverter" />
+            <converters:FlowDirectionToArrowConverter x:Key="flowDirectionToArrowConverter" />
         </Border.Resources>
         <Grid RowSpacing="0"
               Padding="0">
@@ -51,7 +52,7 @@
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center">
-                    Play a music track before Bible audio
+                    Play music before Bible audio
                 </Label>
                 <Grid Grid.Column="1"
                       ColumnSpacing="0"
@@ -211,7 +212,8 @@
                       MinimumHeightRequest="56"
                       HorizontalOptions="Fill"
                       VerticalOptions="Fill"
-                      IsVisible="{Binding IsSongPublicationVisible}">
+                      IsVisible="{Binding IsSongPublicationVisible}"
+                      FlowDirection="{Binding ContentFlowDirection}">
                     <Grid.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectSongPublicationCommand}"
                                               NumberOfTapsRequired="1" />
@@ -245,7 +247,7 @@
                             HorizontalOptions="Center"
                             HorizontalTextAlignment="Center"
                             InputTransparent="True"
-                            Text="{x:Static fn:GlyphNames.Right}"
+                            Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
                             TextColor="{DynamicResource TextSecondaryColor}"
                             VerticalOptions="Center"
                             VerticalTextAlignment="Center" />
@@ -265,7 +267,8 @@
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
                       MinimumHeightRequest="56"
                       HorizontalOptions="Fill"
-                      VerticalOptions="Fill">
+                      VerticalOptions="Fill"
+                      FlowDirection="{Binding ContentFlowDirection}">
                     <Grid.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
                                               NumberOfTapsRequired="1" />
@@ -334,7 +337,7 @@
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
                                 InputTransparent="True"
-                                Text="{x:Static fn:GlyphNames.Right}"
+                                Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
                                 TextColor="{DynamicResource TextSecondaryColor}"
                                 VerticalOptions="Center"
                                 VerticalTextAlignment="Center" />

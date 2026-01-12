@@ -2,6 +2,7 @@
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Fluxor;
+using Microsoft.Maui;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 
@@ -265,6 +266,20 @@ public sealed class MusicDisplayTextProvider
                currentSchedule.MusicType.HasValue &&
                currentSchedule.MusicTrackNumber.HasValue &&
                currentSchedule.MusicTrackNumber.Value > 0;
+    }
+
+    /// <summary>
+    /// Gets the FlowDirection based on the Music's selected language direction.
+    /// Used for song publication and track rows which display RTL content.
+    /// Returns RightToLeft for RTL languages, LeftToRight otherwise.
+    /// </summary>
+    public FlowDirection GetFlowDirection()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        var direction = currentSchedule?.MusicLanguageDirection ?? "ltr";
+        return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+            ? FlowDirection.RightToLeft
+            : FlowDirection.LeftToRight;
     }
 }
 

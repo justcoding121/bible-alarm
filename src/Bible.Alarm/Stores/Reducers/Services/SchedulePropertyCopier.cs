@@ -51,9 +51,11 @@ public static class SchedulePropertyCopier
 
         // Display name properties
         target.BiblePublicationLanguageName = source.BiblePublicationLanguageName;
+        target.BiblePublicationLanguageDirection = source.BiblePublicationLanguageDirection;
         target.BiblePublicationName = source.BiblePublicationName;
         target.BiblePublicationSectionName = source.BiblePublicationSectionName;
         target.MusicLanguageName = source.MusicLanguageName;
+        target.MusicLanguageDirection = source.MusicLanguageDirection;
         target.MusicPublicationName = source.MusicPublicationName;
         target.MusicTrackName = source.MusicTrackName;
     }

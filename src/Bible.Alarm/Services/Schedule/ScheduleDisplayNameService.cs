@@ -179,7 +179,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
 
     private async Task PopulateMusicDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music)
     {
-        // Music language name (for vocals)
+        // Music language name and direction (for vocals)
         if (music.MusicType == MusicType.Vocals &&
             !string.IsNullOrWhiteSpace(music.LanguageCode))
         {
@@ -190,15 +190,18 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 if (languagesDict.TryGetValue(music.LanguageCode, out var language))
                 {
                     scheduleStateItem.MusicLanguageName = language.Name;
+                    scheduleStateItem.MusicLanguageDirection = language.Direction;
                 }
                 else
                 {
                     scheduleStateItem.MusicLanguageName = music.LanguageCode;
+                    scheduleStateItem.MusicLanguageDirection = "ltr"; // Default to LTR if language not found
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating MusicLanguageName");
+                scheduleStateItem.MusicLanguageDirection = "ltr"; // Default to LTR on error
             }
         }
 

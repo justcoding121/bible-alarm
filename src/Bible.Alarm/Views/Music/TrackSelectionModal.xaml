@@ -66,7 +66,8 @@
                 HorizontalOptions="Fill"
                 IsVisible="True"
                 ItemsSource="{Binding Tracks}"
-                SelectionMode="None">
+                SelectionMode="None"
+                FlowDirection="{Binding ContentFlowDirection}">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical">
                         <LinearItemsLayout.ItemSpacing>

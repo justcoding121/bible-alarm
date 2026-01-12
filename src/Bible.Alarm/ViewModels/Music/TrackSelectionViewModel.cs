@@ -218,6 +218,22 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
     public ICommand CloseModalCommand { get; set; }
     public ICommand SetTrackCommand { get; set; }
 
+    /// <summary>
+    /// Gets the FlowDirection based on the Music's selected language direction.
+    /// Used for list items that display RTL content like track names.
+    /// </summary>
+    public FlowDirection ContentFlowDirection
+    {
+        get
+        {
+            var currentSchedule = state.Value.CurrentSchedule;
+            var direction = currentSchedule?.MusicLanguageDirection ?? "ltr";
+            return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+                ? FlowDirection.RightToLeft
+                : FlowDirection.LeftToRight;
+        }
+    }
+
     public bool IsBusy
     {
         get => propertyManager.IsBusy;

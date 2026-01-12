@@ -45,12 +45,14 @@ internal sealed class MusicDisplayNamePopulator
             if (lookupData.VocalLanguages.TryGetValue(music.LanguageCode, out var vocalLanguage))
             {
                 scheduleStateItem.MusicLanguageName = vocalLanguage.Name;
-                Log.Logger.Debug("Set MusicLanguageName '{MusicLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
-                    vocalLanguage.Name, schedule.Id, music.LanguageCode);
+                scheduleStateItem.MusicLanguageDirection = vocalLanguage.Direction;
+                Log.Logger.Debug("Set MusicLanguageName '{MusicLanguageName}' and MusicLanguageDirection '{MusicLanguageDirection}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                    vocalLanguage.Name, vocalLanguage.Direction, schedule.Id, music.LanguageCode);
             }
             else
             {
                 scheduleStateItem.MusicLanguageName = music.LanguageCode;
+                scheduleStateItem.MusicLanguageDirection = "ltr"; // Default to LTR if language not found
             }
         }
 

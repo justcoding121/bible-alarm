@@ -20,6 +20,9 @@ public sealed class BiblePublicationSelectionItemSelector
     private readonly IBiblePublicationService? biblePublicationService;
     private readonly IState<ApplicationState> state;
 
+    // Priority codes for Bible publications: nwt (2013 NWT), bi12 (1984 NWT)
+    private static readonly string[] PriorityPublicationCodes = ["nwt", "bi12"];
+
     public BiblePublicationSelectionItemSelector(
         IMediaService mediaService,
         IState<ApplicationState> state,
@@ -52,8 +55,21 @@ public sealed class BiblePublicationSelectionItemSelector
             Log.Debug("GetSectionAndTrackForPublicationAsync: Found {SectionCount} sections, using sectioned flow",
                 sections.Count);
             var sectionedResult = await GetFirstSectionAndTrackFromSectionsAsync(language.Code, publication.Code, sections);
-            Log.Debug("GetSectionAndTrackForPublicationAsync: Sectioned result: sectionNumber={SectionNumber}, trackNumber={TrackNumber}",
-                sectionedResult.SectionNumber, sectionedResult.TrackNumber);
+            Log.Debug("GetSectionAndTrackForPublicationAsync: Sectioned result: sectionNumber={SectionNumber}, trackNumber={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
+                sectionedResult.SectionNumber, sectionedResult.TrackNumber, sectionedResult.SectionName, sectionedResult.TrackTitle);
+            
+            // Warn if names are empty but numbers are valid
+            if (sectionedResult.SectionNumber > 0 && string.IsNullOrWhiteSpace(sectionedResult.SectionName))
+            {
+                Log.Warning("GetSectionAndTrackForPublicationAsync: SectionName is empty for sectionNumber={SectionNumber}", 
+                    sectionedResult.SectionNumber);
+            }
+            if (sectionedResult.TrackNumber > 0 && string.IsNullOrWhiteSpace(sectionedResult.TrackTitle))
+            {
+                Log.Warning("GetSectionAndTrackForPublicationAsync: TrackTitle is empty for trackNumber={TrackNumber}", 
+                    sectionedResult.TrackNumber);
+            }
+            
             return sectionedResult;
         }
 
@@ -87,12 +103,26 @@ public sealed class BiblePublicationSelectionItemSelector
             return (null, 0, 0, string.Empty, string.Empty, string.Empty);
         }
 
-        // Get first publication
-        var firstPublication = publications.First();
-        var publicationCode = firstPublication.Key;
-        var publicationName = firstPublication.Value.Name;
+        // Select preferred publication: nwt first, then bi12, then first available
+        string publicationCode;
+        string publicationName;
+        KeyValuePair<string, BiblePublication>? preferredPublication = null;
 
-        Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: First publication code={PublicationCode}, name={PublicationName}",
+        foreach (var priorityCode in PriorityPublicationCodes)
+        {
+            if (publications.TryGetValue(priorityCode, out var pub))
+            {
+                preferredPublication = new KeyValuePair<string, BiblePublication>(priorityCode, pub);
+                break;
+            }
+        }
+
+        // Fall back to first publication if no priority publications found
+        var selectedPublication = preferredPublication ?? publications.First();
+        publicationCode = selectedPublication.Key;
+        publicationName = selectedPublication.Value.Name;
+
+        Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Selected publication code={PublicationCode}, name={PublicationName}",
             publicationCode, publicationName);
 
         // Try to get sections to determine if publication is sectioned or not
@@ -144,16 +174,22 @@ public sealed class BiblePublicationSelectionItemSelector
         GetFirstSectionAndTrackFromSectionsAsync(string languageCode, string publicationCode, SortedDictionary<int, BiblePublicationSection> sections)
     {
         var firstSection = sections.Values.First();
+        Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First section number={SectionNumber}, name={SectionName}",
+            firstSection.Number, firstSection.Name);
 
         var tracks = await Task.Run(async () =>
             await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSection.Number));
 
         if (tracks == null || tracks.Count == 0)
         {
+            Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, section={SectionNumber}",
+                languageCode, publicationCode, firstSection.Number);
             return (0, 0, string.Empty, string.Empty);
         }
 
         var firstTrack = tracks.Values.First();
+        Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First track number={TrackNumber}, title={TrackTitle}",
+            firstTrack.Number, firstTrack.Title);
         return (firstSection.Number, firstTrack.Number, firstSection.Name, firstTrack.Title);
     }
 

@@ -153,6 +153,7 @@ public sealed class ScheduleUpdateProcessor
         }
         
         scheduleStateItem.MusicLanguageName = actionSchedule.MusicLanguageName;
+        scheduleStateItem.MusicLanguageDirection = actionSchedule.MusicLanguageDirection;
         scheduleStateItem.MusicPublicationName = actionSchedule.MusicPublicationName;
         scheduleStateItem.MusicTrackName = actionSchedule.MusicTrackName;
     }

@@ -130,8 +130,7 @@
                                         Padding="16,16,16,16"
                                         BackgroundColor="{DynamicResource CardBackgroundColor}"
                                         StrokeThickness="0"
-                                        StrokeShape="RoundRectangle 12,12,12,12"
-                                        FlowDirection="{Binding ContentFlowDirection}">
+                                        StrokeShape="RoundRectangle 12,12,12,12">
                                     <Border.Shadow>
                                         <Shadow Brush="#20000000" 
                                                     Offset="0,2" 
@@ -368,7 +367,8 @@
                                                Text="{Binding SubTitle}"
                                                TextColor="{DynamicResource PrimaryTextColor}"
                                                LineBreakMode="TailTruncation"
-                                               MaxLines="2" />
+                                               MaxLines="2"
+                                               FlowDirection="{Binding ContentFlowDirection}" />
                                     </VerticalStackLayout>
                                     <Grid Grid.Row="2"
                                           Grid.Column="0"

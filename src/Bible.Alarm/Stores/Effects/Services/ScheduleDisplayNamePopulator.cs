@@ -296,12 +296,14 @@ public sealed class ScheduleDisplayNamePopulator
             if (languagesDict.TryGetValue(music.LanguageCode, out var language))
             {
                 scheduleStateItem.MusicLanguageName = language.Name;
-                Log.Debug("ScheduleEffects: Set MusicLanguageName '{MusicLanguageName}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
-                    language.Name, schedule.Id, music.LanguageCode);
+                scheduleStateItem.MusicLanguageDirection = language.Direction;
+                Log.Debug("ScheduleEffects: Set MusicLanguageName '{MusicLanguageName}' and MusicLanguageDirection '{MusicLanguageDirection}' for schedule {ScheduleId} (LanguageCode: {LanguageCode})",
+                    language.Name, language.Direction, schedule.Id, music.LanguageCode);
             }
             else
             {
                 scheduleStateItem.MusicLanguageName = music.LanguageCode;
+                scheduleStateItem.MusicLanguageDirection = "ltr"; // Default to LTR if language not found
                 Log.Debug("ScheduleEffects: Language not found for LanguageCode '{LanguageCode}', using code as MusicLanguageName for schedule {ScheduleId}",
                     music.LanguageCode, schedule.Id);
             }
@@ -312,6 +314,7 @@ public sealed class ScheduleDisplayNamePopulator
             if (schedule.Music != null)
             {
                 scheduleStateItem.MusicLanguageName = schedule.Music.LanguageCode;
+                scheduleStateItem.MusicLanguageDirection = "ltr"; // Default to LTR on error
             }
         }
     }

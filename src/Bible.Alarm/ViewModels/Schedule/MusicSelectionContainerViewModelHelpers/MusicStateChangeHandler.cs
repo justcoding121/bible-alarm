@@ -78,6 +78,18 @@ public sealed class MusicStateChangeHandler
                 onPropertyChanged);
         }
 
+        // Check if Bible language direction changed (affects RTL/LTR layout)
+        if (currentSchedule != null)
+        {
+            HandleBibleLanguageDirectionChange(currentSchedule);
+        }
+
+        // Check if Music language direction changed (affects RTL/LTR layout for music rows)
+        if (currentSchedule != null)
+        {
+            HandleMusicLanguageDirectionChange(currentSchedule);
+        }
+
         // Check if CurrentMusic changed
         if (stateValue.CurrentMusic != null)
         {
@@ -218,6 +230,30 @@ public sealed class MusicStateChangeHandler
                     repeatChanged,
                     capturedMusicType,
                     shouldScroll => { if (capturedMusicEnabled) setShouldScrollToBottom(shouldScroll); });
+            });
+        }
+    }
+
+    private void HandleBibleLanguageDirectionChange(ScheduleStateItem currentSchedule)
+    {
+        if (stateTracker.HasBibleLanguageDirectionChanged(currentSchedule))
+        {
+            stateTracker.UpdateBibleLanguageDirection(currentSchedule.BiblePublicationLanguageDirection);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                propertyNotifier.NotifyFlowDirectionChanged();
+            });
+        }
+    }
+
+    private void HandleMusicLanguageDirectionChange(ScheduleStateItem currentSchedule)
+    {
+        if (stateTracker.HasMusicLanguageDirectionChanged(currentSchedule))
+        {
+            stateTracker.UpdateMusicLanguageDirection(currentSchedule.MusicLanguageDirection);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                propertyNotifier.NotifyFlowDirectionChanged();
             });
         }
     }
