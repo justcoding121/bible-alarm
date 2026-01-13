@@ -141,17 +141,21 @@ public sealed class DefaultScheduleService(
                 // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
                 // AppDataDirectory is more persistent and won't be cleared by the OS
                 var artworkDir = Path.Combine(FileSystem.AppDataDirectory, "Artwork");
-                Directory.CreateDirectory(artworkDir); // Ensure directory exists
                 
                 // Use timestamp for unique filename to avoid file locking issues
                 // This prevents conflicts when multiple threads try to write simultaneously
                 // or when the file is locked by the OS/media system
                 var artworkPath = Path.Combine(artworkDir, $"default_schedule_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg");
                 
-                // Clean up old default schedule artwork files to prevent accumulation
-                CleanupOldDefaultScheduleArtworkFiles(artworkDir);
+                // Use concurrency helper to prevent concurrent access to artwork directory operations
+                await ConcurrencyHelper.ExecuteAsync(ArtworkHelper.ArtworkLock, async () =>
+                {
+                    Directory.CreateDirectory(artworkDir); // Ensure directory exists
+                    // Clean up old default schedule artwork files to prevent accumulation
+                    CleanupOldDefaultScheduleArtworkFiles(artworkDir);
+                    await File.WriteAllBytesAsync(artworkPath, metadata.ArtworkBytes);
+                });
                 
-                await File.WriteAllBytesAsync(artworkPath, metadata.ArtworkBytes);
                 artworkUrl = artworkPath;
                 logger.Debug("Saved default schedule artwork to {ArtworkPath}, size: {Size} bytes", artworkPath, metadata.ArtworkBytes.Length);
             }

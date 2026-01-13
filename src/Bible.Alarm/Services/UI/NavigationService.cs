@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Services.UI.NavigationServiceHelpers;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -37,16 +38,11 @@ public sealed class NavigationService(
     public async Task NavigateToHomeAsync()
     {
         // Use lock to prevent race conditions with concurrent navigation (e.g., Cancel then Add quickly)
-        await navigationLock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
         {
             var navigation = GetNavigation();
             await homeHandler.NavigateToHomeAsync(navigation);
-        }
-        finally
-        {
-            navigationLock.Release();
-        }
+        });
     }
 
     /// <summary>
@@ -78,8 +74,7 @@ public sealed class NavigationService(
     public async Task NavigateToScheduleAsync()
     {
         // Use lock to prevent race conditions with concurrent navigation (e.g., Cancel then Add quickly)
-        await navigationLock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
         {
             var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
             var navigation = GetNavigation();
@@ -89,18 +84,13 @@ public sealed class NavigationService(
 
             // Push the page without animation for instant navigation
             await navigation.PushAsync(page, animated: false);
-        }
-        finally
-        {
-            navigationLock.Release();
-        }
+        });
     }
 
     public async Task NavigateToScheduleAsync(int scheduleId, bool isEnabled)
     {
         // Use lock to prevent race conditions with concurrent navigation
-        await navigationLock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
         {
             // Set navigation context BEFORE creating page - ScheduleStateManager will read this
             // This is simpler than Fluxor state which can be cleared by ResetScheduleStateAction
@@ -118,11 +108,7 @@ public sealed class NavigationService(
 
             // Push the page without animation for instant navigation
             await navigation.PushAsync(page, animated: false);
-        }
-        finally
-        {
-            navigationLock.Release();
-        }
+        });
     }
 
     public async Task OpenMusicSelectionModalAsync(object bindingContext)

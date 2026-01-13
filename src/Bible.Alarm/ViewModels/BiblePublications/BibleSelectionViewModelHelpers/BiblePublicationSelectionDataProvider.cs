@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
@@ -45,8 +46,7 @@ public sealed class BiblePublicationSelectionDataProvider
         if (languages == null) return;
 
         // Prevent concurrent population which can cause duplicates
-        await languagePopulationLock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(languagePopulationLock, async () =>
         {
             // Capture current language code before Task.Run to avoid state access issues
             var currentLanguageCode = state.Value.CurrentSchedule?.BiblePublicationLanguageCode;
@@ -101,11 +101,7 @@ public sealed class BiblePublicationSelectionDataProvider
                 // Yield after every batch for smooth animation
                 await Task.Yield();
             }
-        }
-        finally
-        {
-            languagePopulationLock.Release();
-        }
+        });
     }
 
     // Priority codes for Bible publications (lower = higher priority)

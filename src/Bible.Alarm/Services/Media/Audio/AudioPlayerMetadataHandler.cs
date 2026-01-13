@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Media;
@@ -35,7 +36,7 @@ public class AudioPlayerMetadataHandler
         {
             var metadata = await displayMetadataService.GetDisplayMetadataAsync(currentTrack);
             await ApplyMetadataToMediaElement(metadata, mediaElement);
-            SendMetadataMessage(metadata);
+            await SendMetadataMessageAsync(metadata);
         }
         catch (Exception ex)
         {
@@ -46,13 +47,13 @@ public class AudioPlayerMetadataHandler
                 Artist = "Unknown Artist"
             };
             await ApplyMetadataToMediaElement(fallbackMeta, mediaElement);
-            SendMetadataMessage(fallbackMeta);
+            await SendMetadataMessageAsync(fallbackMeta);
         }
     }
 
     private async Task ApplyMetadataToMediaElement(MetaData meta, MediaElement mediaElement)
     {
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
             mediaElement.MetadataTitle = meta.Title ?? "";
             mediaElement.MetadataArtist = meta.Artist ?? "";
@@ -63,11 +64,17 @@ public class AudioPlayerMetadataHandler
                 // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
                 // AppDataDirectory is more persistent and won't be cleared by the OS
                 var artworkDir = Path.Combine(FileSystem.AppDataDirectory, "Artwork");
-                Directory.CreateDirectory(artworkDir); // Ensure directory exists
                 // Use timestamp for unique filename - ensures artwork updates are detected
                 var artworkPath = Path.Combine(artworkDir, $"media_element_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg");
-                CleanupOldMediaElementArtworkFiles(artworkDir);
-                File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
+                
+                // Use concurrency helper to prevent concurrent access to artwork directory operations
+                await ConcurrencyHelper.ExecuteAsync(ArtworkHelper.ArtworkLock, async () =>
+                {
+                    Directory.CreateDirectory(artworkDir); // Ensure directory exists
+                    CleanupOldMediaElementArtworkFiles(artworkDir);
+                    await File.WriteAllBytesAsync(artworkPath, meta.ArtworkBytes);
+                });
+                
                 mediaElement.MetadataArtworkUrl = artworkPath;
             }
             else if (!string.IsNullOrEmpty(meta.ArtworkUrl))
@@ -107,7 +114,7 @@ public class AudioPlayerMetadataHandler
         }
     }
 
-    private void SendMetadataMessage(MetaData meta)
+    private async Task SendMetadataMessageAsync(MetaData meta)
     {
         string? artworkUrl = meta.ArtworkUrl;
 
@@ -122,15 +129,19 @@ public class AudioPlayerMetadataHandler
                 // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
                 // AppDataDirectory is more persistent and won't be cleared by the OS
                 var artworkDir = Path.Combine(FileSystem.AppDataDirectory, "Artwork");
-                Directory.CreateDirectory(artworkDir); // Ensure directory exists
                 // Use a unique filename with timestamp to ensure iOS lock screen detects the change
                 // The iOSNowPlayingInfoManager caches by URL, so same URL = same cached artwork
                 var artworkPath = Path.Combine(artworkDir, $"playing_track_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg");
 
-                // Clean up old artwork files to prevent accumulation
-                CleanupOldArtworkFiles(artworkDir);
-
-                File.WriteAllBytes(artworkPath, meta.ArtworkBytes);
+                // Use concurrency helper to prevent concurrent access to artwork directory operations
+                await ConcurrencyHelper.ExecuteAsync(ArtworkHelper.ArtworkLock, async () =>
+                {
+                    Directory.CreateDirectory(artworkDir); // Ensure directory exists
+                    // Clean up old artwork files to prevent accumulation
+                    CleanupOldArtworkFiles(artworkDir);
+                    await File.WriteAllBytesAsync(artworkPath, meta.ArtworkBytes);
+                });
+                
                 artworkUrl = artworkPath; // Always use local file path for iOS lock screen
             }
             catch (Exception ex)

@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -25,8 +26,7 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
         string? searchTerm = null)
     {
         // Prevent concurrent population which can cause duplicates
-        await languagePopulationLock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(languagePopulationLock, async () =>
         {
             // Do ALL processing on background thread to avoid blocking spinner animation
             var (languageVMs, selectedLanguage) = await Task.Run(async () =>
@@ -79,11 +79,7 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setCurrentLanguage(selectedLanguage));
             }
-        }
-        finally
-        {
-            languagePopulationLock.Release();
-        }
+        });
     }
 
     public async Task PopulateSongPublications(

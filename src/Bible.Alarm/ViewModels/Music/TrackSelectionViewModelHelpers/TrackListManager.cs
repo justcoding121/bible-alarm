@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
@@ -20,56 +21,54 @@ public sealed class TrackListManager(
 
     public async Task PopulateTracks(MusicType musicType, string? languageCode, string publicationCode, ObservableCollection<MusicTrackListViewItemModel> tracks)
     {
-        await @lock.WaitAsync();
-        try
+        await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
-            tracks.Clear();
-
-            // Run database operations off UI thread
-            SortedDictionary<int, MusicTrack> tracksFromDb;
-            if (musicType == MusicType.Melodies)
-            {
-                tracksFromDb = await Task.Run(async () =>
-                    await mediaService.GetMelodyMusicTracks(publicationCode));
-            }
-            else
-            {
-                if (string.IsNullOrEmpty(languageCode))
-                {
-                    return;
-                }
-                tracksFromDb = await Task.Run(async () =>
-                    await mediaService.GetVocalMusicTracks(languageCode, publicationCode));
-            }
-
-            var trackVMs = new ObservableCollection<MusicTrackListViewItemModel>();
-            var isMelody = musicType == MusicType.Melodies;
-
-            foreach (var track in tracksFromDb.Select(x => x.Value))
-            {
-                var trackVm = new MusicTrackListViewItemModel(track, isMelody);
-                trackVMs.Add(trackVm);
-            }
-
-            // Assign collection on main thread to ensure UI updates
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            try
             {
                 tracks.Clear();
-                foreach (var track in trackVMs)
+
+                // Run database operations off UI thread
+                SortedDictionary<int, MusicTrack> tracksFromDb;
+                if (musicType == MusicType.Melodies)
                 {
-                    tracks.Add(track);
+                    tracksFromDb = await Task.Run(async () =>
+                        await mediaService.GetMelodyMusicTracks(publicationCode));
                 }
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error populating tracks for languageCode: {LanguageCode}, publicationCode: {PublicationCode}",
-                languageCode, publicationCode);
-        }
-        finally
-        {
-            @lock.Release();
-        }
+                else
+                {
+                    if (string.IsNullOrEmpty(languageCode))
+                    {
+                        return;
+                    }
+                    tracksFromDb = await Task.Run(async () =>
+                        await mediaService.GetVocalMusicTracks(languageCode, publicationCode));
+                }
+
+                var trackVMs = new ObservableCollection<MusicTrackListViewItemModel>();
+                var isMelody = musicType == MusicType.Melodies;
+
+                foreach (var track in tracksFromDb.Select(x => x.Value))
+                {
+                    var trackVm = new MusicTrackListViewItemModel(track, isMelody);
+                    trackVMs.Add(trackVm);
+                }
+
+                // Assign collection on main thread to ensure UI updates
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    tracks.Clear();
+                    foreach (var track in trackVMs)
+                    {
+                        tracks.Add(track);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error populating tracks for languageCode: {LanguageCode}, publicationCode: {PublicationCode}",
+                    languageCode, publicationCode);
+            }
+        });
     }
 
     public void SubscribeToTrackEvents(MusicTrackListViewItemModel track, ObservableCollection<MusicTrackListViewItemModel> tracks)

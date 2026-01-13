@@ -1,5 +1,6 @@
 #nullable enable
 
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Storage;
 using Serilog;
 
@@ -271,128 +272,114 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
 
     public async Task<string> GetAsync(string key, string defaultValue = "", string? sharedName = null, CancellationToken cancellationToken = default)
     {
-        await preferencesLock.WaitAsync(cancellationToken);
-        try
+        return await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {
-            return Preferences.Get(key, defaultValue, sharedName);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
-            return defaultValue;
-        }
-        finally
-        {
-            preferencesLock.Release();
-        }
+            try
+            {
+                return Preferences.Get(key, defaultValue, sharedName);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+                return defaultValue;
+            }
+        }, cancellationToken) ?? defaultValue;
     }
 
     public async Task<int> GetAsync(string key, int defaultValue = 0, string? sharedName = null, CancellationToken cancellationToken = default)
     {
-        await preferencesLock.WaitAsync(cancellationToken);
-        try
+        return await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {
-            return Preferences.Get(key, defaultValue, sharedName);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
-            return defaultValue;
-        }
-        finally
-        {
-            preferencesLock.Release();
-        }
+            try
+            {
+                return Preferences.Get(key, defaultValue, sharedName);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+                return defaultValue;
+            }
+        }, cancellationToken) ?? defaultValue;
     }
 
     public async Task<bool> GetAsync(string key, bool defaultValue = false, string? sharedName = null, CancellationToken cancellationToken = default)
     {
-        await preferencesLock.WaitAsync(cancellationToken);
-        try
+        return await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {
-            return Preferences.Get(key, defaultValue, sharedName);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
-            return defaultValue;
-        }
-        finally
-        {
-            preferencesLock.Release();
-        }
+            try
+            {
+                return Preferences.Get(key, defaultValue, sharedName);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+                return defaultValue;
+            }
+        }, cancellationToken) ?? defaultValue;
     }
 
     public async Task<double> GetAsync(string key, double defaultValue = 0.0, string? sharedName = null, CancellationToken cancellationToken = default)
     {
-        await preferencesLock.WaitAsync(cancellationToken);
-        try
+        return await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {
-            return Preferences.Get(key, defaultValue, sharedName);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
-            return defaultValue;
-        }
-        finally
-        {
-            preferencesLock.Release();
-        }
+            try
+            {
+                return Preferences.Get(key, defaultValue, sharedName);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+                return defaultValue;
+            }
+        }, cancellationToken) ?? defaultValue;
     }
 
     public async Task<float> GetAsync(string key, float defaultValue = 0f, string? sharedName = null, CancellationToken cancellationToken = default)
     {
-        await preferencesLock.WaitAsync(cancellationToken);
-        try
+        return await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {
-            return Preferences.Get(key, defaultValue, sharedName);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
-            return defaultValue;
-        }
-        finally
-        {
-            preferencesLock.Release();
-        }
+            try
+            {
+                return Preferences.Get(key, defaultValue, sharedName);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+                return defaultValue;
+            }
+        }, cancellationToken) ?? defaultValue;
     }
 
     public async Task<long> GetAsync(string key, long defaultValue = 0L, string? sharedName = null, CancellationToken cancellationToken = default)
     {
-        await preferencesLock.WaitAsync(cancellationToken);
-        try
+        return await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {
-            return Preferences.Get(key, defaultValue, sharedName);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
-            return defaultValue;
-        }
-        finally
-        {
-            preferencesLock.Release();
-        }
+            try
+            {
+                return Preferences.Get(key, defaultValue, sharedName);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+                return defaultValue;
+            }
+        }, cancellationToken) ?? defaultValue;
     }
 
     public async Task<DateTime> GetAsync(string key, DateTime defaultValue, string? sharedName = null, CancellationToken cancellationToken = default)
     {
-        await preferencesLock.WaitAsync(cancellationToken);
-        try
+        return await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {
-            return Preferences.Get(key, defaultValue, sharedName);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
-            return defaultValue;
-        }
-        finally
-        {
-            preferencesLock.Release();
-        }
+            try
+            {
+                return Preferences.Get(key, defaultValue, sharedName);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+                return defaultValue;
+            }
+        }, cancellationToken) ?? defaultValue;
     }
 
     public async Task SetAsync(string key, string value, string? sharedName = null, CancellationToken cancellationToken = default)
@@ -432,8 +419,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
 
     private async Task SetAsyncInternal<T>(string key, T value, string? sharedName, CancellationToken cancellationToken)
     {
-        await preferencesLock.WaitAsync(cancellationToken);
-        try
+        await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {
             // Retry logic for Preferences.Set() which can throw IOException if file is locked on Windows
             const int maxRetries = 5;
@@ -454,33 +440,22 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
                     await Task.Delay(delayMs, cancellationToken);
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error writing to Preferences for key: {Key}", key);
-            throw;
-        }
-        finally
-        {
-            preferencesLock.Release();
-        }
+        }, cancellationToken);
     }
 
     public async Task RemoveAsync(string key, string? sharedName = null, CancellationToken cancellationToken = default)
     {
-        await preferencesLock.WaitAsync(cancellationToken);
-        try
+        await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {
-            Preferences.Remove(key, sharedName);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error removing key from Preferences: {Key}", key);
-            throw;
-        }
-        finally
-        {
-            preferencesLock.Release();
-        }
+            try
+            {
+                Preferences.Remove(key, sharedName);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error removing key from Preferences: {Key}", key);
+                throw;
+            }
+        }, cancellationToken);
     }
 }
