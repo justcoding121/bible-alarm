@@ -313,6 +313,9 @@ public sealed class MediaCacheService(
 
         var filePathsToDelete = await GetUnusedCacheFilesAsync(schedules);
         await DeleteFilesAsync(filePathsToDelete);
+
+        // Clean up orphaned folders (folders without corresponding schedules in database)
+        await CleanUpOrphanedFoldersAsync(schedules);
     }
 
     private async Task<HashSet<string>> GetUnusedCacheFilesAsync(List<AlarmSchedule> schedules)
@@ -357,11 +360,93 @@ public sealed class MediaCacheService(
             }
         }
         
-        // Note: We don't delete entire schedule folders for deleted schedules here
-        // as that would require enumerating all directories. The folder will be cleaned up
-        // when the schedule is explicitly deleted via DeleteScheduleCacheAsync.
-
         return filePathsToDelete;
+    }
+
+    /// <summary>
+    /// Cleans up orphaned cache folders that don't have corresponding schedules in the database.
+    /// </summary>
+    private async Task CleanUpOrphanedFoldersAsync(List<AlarmSchedule> schedules)
+    {
+        try
+        {
+            // Check if cache root directory exists
+            if (!await storageService.DirectoryExists(cacheRoot))
+            {
+                return;
+            }
+
+            // Get all schedule IDs that exist in the database
+            var validScheduleIds = new HashSet<int>(schedules.Select(s => s.Id));
+
+            // Enumerate all directories in the cache root
+            string[] allDirectories;
+            try
+            {
+                allDirectories = Directory.GetDirectories(cacheRoot);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Failed to enumerate directories in cache root: {CacheRoot}", cacheRoot);
+                return;
+            }
+
+            var orphanedFolders = new List<string>();
+
+            foreach (var directoryPath in allDirectories)
+            {
+                var directoryName = Path.GetFileName(directoryPath);
+                
+                // Try to parse directory name as schedule ID
+                if (!int.TryParse(directoryName, out var scheduleId))
+                {
+                    // Directory name is not a valid schedule ID - could be orphaned or invalid
+                    logger.Warning("Found directory with invalid schedule ID name: {DirectoryName} in {CacheRoot}", 
+                        directoryName, cacheRoot);
+                    orphanedFolders.Add(directoryPath);
+                    continue;
+                }
+
+                // Check if this schedule ID exists in the database
+                if (!validScheduleIds.Contains(scheduleId))
+                {
+                    // This folder belongs to a schedule that no longer exists
+                    orphanedFolders.Add(directoryPath);
+                    logger.Debug("Found orphaned cache folder for deleted schedule {ScheduleId}: {FolderPath}", 
+                        scheduleId, directoryPath);
+                }
+            }
+
+            // Delete orphaned folders
+            if (orphanedFolders.Count > 0)
+            {
+                logger.Information("Cleaning up {Count} orphaned cache folder(s)", orphanedFolders.Count);
+                
+                foreach (var folderPath in orphanedFolders)
+                {
+                    try
+                    {
+                        // Delete all files in the folder first
+                        var filesInFolder = await storageService.GetAllFiles(folderPath);
+                        await DeleteFilesAsync(new HashSet<string>(filesInFolder));
+                        
+                        // Delete the folder itself
+                        await storageService.DeleteDirectory(folderPath);
+                        
+                        logger.Information("Deleted orphaned cache folder: {FolderPath} ({FileCount} files)", 
+                            folderPath, filesInFolder.Count);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "Failed to delete orphaned cache folder: {FolderPath}", folderPath);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error cleaning up orphaned cache folders");
+        }
     }
 
     private Task DeleteFilesAsync(HashSet<string> filePathsToDelete)
