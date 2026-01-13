@@ -81,15 +81,14 @@ public sealed class PreparePlaybackService(
 
                         // Calculate overall progress
                         var totalBytesDownloaded = trackProgress.Values.Sum();
-                        var currentTrackProgress = totalBytes.HasValue && totalBytes.Value > 0
-                            ? (double)bytesDownloaded / totalBytes.Value
-                            : 0.0;
 
                         // Send progress message with overall stats
+                        // Note: currentTrackProgress, bytesDownloaded, and totalBytes are only used as fallback
+                        // Since we always have overall progress from Phase 1, these can be simplified
                         SendProgressMessage(
                             loadedTracks,
                             totalTracks,
-                            currentTrackProgress,
+                            0.0, // Not used when overall progress is available
                             bytesDownloaded,
                             totalBytes,
                             totalBytesDownloaded,
@@ -124,7 +123,7 @@ public sealed class PreparePlaybackService(
                     SendProgressMessage(
                         loadedTracks,
                         totalTracks,
-                        1.0,
+                        0.0, // Not used when overall progress is available
                         trackSizes[index] ?? trackProgress.GetValueOrDefault(index, 0),
                         trackSizes[index],
                         totalBytesDownloaded,

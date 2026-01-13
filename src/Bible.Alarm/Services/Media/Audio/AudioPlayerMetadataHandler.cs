@@ -62,7 +62,8 @@ public class AudioPlayerMetadataHandler
                 // Use AppDataDirectory instead of CacheDirectory for artwork
                 // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
                 // AppDataDirectory is more persistent and won't be cleared by the OS
-                var artworkDir = FileSystem.AppDataDirectory;
+                var artworkDir = Path.Combine(FileSystem.AppDataDirectory, "Artwork");
+                Directory.CreateDirectory(artworkDir); // Ensure directory exists
                 // Use timestamp for unique filename - ensures artwork updates are detected
                 var artworkPath = Path.Combine(artworkDir, $"media_element_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg");
                 CleanupOldMediaElementArtworkFiles(artworkDir);
@@ -120,7 +121,8 @@ public class AudioPlayerMetadataHandler
                 // Use AppDataDirectory instead of CacheDirectory for artwork
                 // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
                 // AppDataDirectory is more persistent and won't be cleared by the OS
-                var artworkDir = FileSystem.AppDataDirectory;
+                var artworkDir = Path.Combine(FileSystem.AppDataDirectory, "Artwork");
+                Directory.CreateDirectory(artworkDir); // Ensure directory exists
                 // Use a unique filename with timestamp to ensure iOS lock screen detects the change
                 // The iOSNowPlayingInfoManager caches by URL, so same URL = same cached artwork
                 var artworkPath = Path.Combine(artworkDir, $"playing_track_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg");

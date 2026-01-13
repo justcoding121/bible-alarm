@@ -343,9 +343,6 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     private bool isPreparing;
     private int loadedTracks;
     private int totalTracks;
-    private long bytesDownloaded;
-    private long? totalBytes;
-    private double currentTrackProgress;
     private long totalBytesDownloaded;
     private long? totalBytesExpected;
 
@@ -477,9 +474,6 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
         MainThread.BeginInvokeOnMainThread(() =>
         {
             // Update download progress fields
-            bytesDownloaded = message.BytesDownloaded;
-            totalBytes = message.TotalBytes;
-            currentTrackProgress = message.CurrentTrackProgress;
             totalBytesDownloaded = message.TotalBytesDownloaded;
             totalBytesExpected = message.TotalBytesExpected;
 

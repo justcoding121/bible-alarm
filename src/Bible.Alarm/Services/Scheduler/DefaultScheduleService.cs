@@ -140,7 +140,17 @@ public sealed class DefaultScheduleService(
                 // Use AppDataDirectory instead of CacheDirectory for artwork
                 // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
                 // AppDataDirectory is more persistent and won't be cleared by the OS
-                var artworkPath = Path.Combine(FileSystem.AppDataDirectory, "default_schedule_artwork.jpg");
+                var artworkDir = Path.Combine(FileSystem.AppDataDirectory, "Artwork");
+                Directory.CreateDirectory(artworkDir); // Ensure directory exists
+                
+                // Use timestamp for unique filename to avoid file locking issues
+                // This prevents conflicts when multiple threads try to write simultaneously
+                // or when the file is locked by the OS/media system
+                var artworkPath = Path.Combine(artworkDir, $"default_schedule_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg");
+                
+                // Clean up old default schedule artwork files to prevent accumulation
+                CleanupOldDefaultScheduleArtworkFiles(artworkDir);
+                
                 await File.WriteAllBytesAsync(artworkPath, metadata.ArtworkBytes);
                 artworkUrl = artworkPath;
                 logger.Debug("Saved default schedule artwork to {ArtworkPath}, size: {Size} bytes", artworkPath, metadata.ArtworkBytes.Length);
@@ -225,6 +235,37 @@ public sealed class DefaultScheduleService(
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Cleans up old default schedule artwork files to prevent accumulation.
+    /// Removes files older than 1 minute.
+    /// </summary>
+    private void CleanupOldDefaultScheduleArtworkFiles(string artworkDir)
+    {
+        try
+        {
+            var artworkFiles = Directory.GetFiles(artworkDir, "default_schedule_artwork_*.jpg")
+                .Select(f => new FileInfo(f))
+                .Where(f => f.LastWriteTimeUtc < DateTime.UtcNow.AddMinutes(-1))
+                .ToList();
+
+            foreach (var file in artworkFiles)
+            {
+                try
+                {
+                    file.Delete();
+                }
+                catch
+                {
+                    // Ignore deletion errors - file might be in use
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to cleanup old default schedule artwork files");
+        }
     }
 }
 
