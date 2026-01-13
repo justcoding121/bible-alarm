@@ -44,7 +44,7 @@ public sealed class DiskCacheService : IDiskCacheService
             // Try to get from cache first
             if (preferencesService.ContainsKey(cacheKey))
             {
-                var json = preferencesService.Get(cacheKey, (string?)null);
+                var json = preferencesService.Get(cacheKey, "");
                 if (!string.IsNullOrEmpty(json))
                 {
                     try
@@ -115,7 +115,7 @@ public sealed class DiskCacheService : IDiskCacheService
                 return Task.FromResult<T?>(default);
             }
 
-            var json = preferencesService.Get(cacheKey, (string?)null);
+            var json = preferencesService.Get(cacheKey, "");
             if (string.IsNullOrEmpty(json))
             {
                 return Task.FromResult<T?>(default);

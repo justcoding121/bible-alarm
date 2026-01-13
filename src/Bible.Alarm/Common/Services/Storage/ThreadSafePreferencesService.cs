@@ -18,7 +18,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
     // Initial count of 1 ensures only one operation at a time
     private static readonly SemaphoreSlim preferencesLock = new(1, 1);
 
-    public T? Get<T>(string key, T? defaultValue = default, string? sharedName = null)
+    public string Get(string key, string defaultValue = "", string? sharedName = null)
     {
         preferencesLock.Wait();
         try
@@ -36,7 +36,150 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         }
     }
 
-    public void Set<T>(string key, T? value, string? sharedName = null)
+    public int Get(string key, int defaultValue = 0, string? sharedName = null)
+    {
+        preferencesLock.Wait();
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public bool Get(string key, bool defaultValue = false, string? sharedName = null)
+    {
+        preferencesLock.Wait();
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public double Get(string key, double defaultValue = 0.0, string? sharedName = null)
+    {
+        preferencesLock.Wait();
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public float Get(string key, float defaultValue = 0f, string? sharedName = null)
+    {
+        preferencesLock.Wait();
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public long Get(string key, long defaultValue = 0L, string? sharedName = null)
+    {
+        preferencesLock.Wait();
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public DateTime Get(string key, DateTime defaultValue, string? sharedName = null)
+    {
+        preferencesLock.Wait();
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public void Set(string key, string value, string? sharedName = null)
+    {
+        SetInternal(key, value, sharedName);
+    }
+
+    public void Set(string key, int value, string? sharedName = null)
+    {
+        SetInternal(key, value, sharedName);
+    }
+
+    public void Set(string key, bool value, string? sharedName = null)
+    {
+        SetInternal(key, value, sharedName);
+    }
+
+    public void Set(string key, double value, string? sharedName = null)
+    {
+        SetInternal(key, value, sharedName);
+    }
+
+    public void Set(string key, float value, string? sharedName = null)
+    {
+        SetInternal(key, value, sharedName);
+    }
+
+    public void Set(string key, long value, string? sharedName = null)
+    {
+        SetInternal(key, value, sharedName);
+    }
+
+    public void Set(string key, DateTime value, string? sharedName = null)
+    {
+        SetInternal(key, value, sharedName);
+    }
+
+    private void SetInternal<T>(string key, T value, string? sharedName)
     {
         preferencesLock.Wait();
         try
@@ -47,7 +190,9 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
             {
                 try
                 {
-                    Preferences.Set(key, value, sharedName);
+                    // Use dynamic to call the appropriate Preferences.Set overload
+                    // Value is guaranteed to be non-null since all public Set methods take non-nullable parameters
+                    Preferences.Set(key, (dynamic)value!, sharedName);
                     return;
                 }
                 catch (IOException ioEx) when (attempt < maxRetries)
@@ -124,7 +269,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         }
     }
 
-    public async Task<T?> GetAsync<T>(string key, T? defaultValue = default, string? sharedName = null, CancellationToken cancellationToken = default)
+    public async Task<string> GetAsync(string key, string defaultValue = "", string? sharedName = null, CancellationToken cancellationToken = default)
     {
         await preferencesLock.WaitAsync(cancellationToken);
         try
@@ -142,7 +287,150 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         }
     }
 
-    public async Task SetAsync<T>(string key, T? value, string? sharedName = null, CancellationToken cancellationToken = default)
+    public async Task<int> GetAsync(string key, int defaultValue = 0, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await preferencesLock.WaitAsync(cancellationToken);
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public async Task<bool> GetAsync(string key, bool defaultValue = false, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await preferencesLock.WaitAsync(cancellationToken);
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public async Task<double> GetAsync(string key, double defaultValue = 0.0, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await preferencesLock.WaitAsync(cancellationToken);
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public async Task<float> GetAsync(string key, float defaultValue = 0f, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await preferencesLock.WaitAsync(cancellationToken);
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public async Task<long> GetAsync(string key, long defaultValue = 0L, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await preferencesLock.WaitAsync(cancellationToken);
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public async Task<DateTime> GetAsync(string key, DateTime defaultValue, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await preferencesLock.WaitAsync(cancellationToken);
+        try
+        {
+            return Preferences.Get(key, defaultValue, sharedName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
+            return defaultValue;
+        }
+        finally
+        {
+            preferencesLock.Release();
+        }
+    }
+
+    public async Task SetAsync(string key, string value, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await SetAsyncInternal(key, value, sharedName, cancellationToken);
+    }
+
+    public async Task SetAsync(string key, int value, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await SetAsyncInternal(key, value, sharedName, cancellationToken);
+    }
+
+    public async Task SetAsync(string key, bool value, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await SetAsyncInternal(key, value, sharedName, cancellationToken);
+    }
+
+    public async Task SetAsync(string key, double value, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await SetAsyncInternal(key, value, sharedName, cancellationToken);
+    }
+
+    public async Task SetAsync(string key, float value, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await SetAsyncInternal(key, value, sharedName, cancellationToken);
+    }
+
+    public async Task SetAsync(string key, long value, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await SetAsyncInternal(key, value, sharedName, cancellationToken);
+    }
+
+    public async Task SetAsync(string key, DateTime value, string? sharedName = null, CancellationToken cancellationToken = default)
+    {
+        await SetAsyncInternal(key, value, sharedName, cancellationToken);
+    }
+
+    private async Task SetAsyncInternal<T>(string key, T value, string? sharedName, CancellationToken cancellationToken)
     {
         await preferencesLock.WaitAsync(cancellationToken);
         try
@@ -153,7 +441,9 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
             {
                 try
                 {
-                    Preferences.Set(key, value, sharedName);
+                    // Use dynamic to call the appropriate Preferences.Set overload
+                    // Value is guaranteed to be non-null since all public Set methods take non-nullable parameters
+                    Preferences.Set(key, (dynamic)value!, sharedName);
                     return;
                 }
                 catch (IOException ioEx) when (attempt < maxRetries)

@@ -45,7 +45,7 @@ public sealed class MediaIndexVersionService(
         // Try Preferences first (new method)
         if (preferencesService.ContainsKey(VersionPreferenceKey))
         {
-            var version = preferencesService.Get(VersionPreferenceKey, (string?)null);
+            var version = preferencesService.Get(VersionPreferenceKey, "");
             if (!string.IsNullOrEmpty(version))
             {
                 return version;

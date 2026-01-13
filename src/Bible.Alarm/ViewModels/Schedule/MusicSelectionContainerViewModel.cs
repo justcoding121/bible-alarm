@@ -34,6 +34,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
     private int scheduleId;
     private bool isNewSchedule;
+    private bool isProcessingStateChange;
     private bool? initialMusicEnabledOnPageLoad; // Track MusicEnabled state when schedule page was first opened
 
     // State holder for mutable state (allows use in lambdas without ref parameters)

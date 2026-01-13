@@ -106,10 +106,10 @@ public static class LastPlayedMetadataHelper
             var scheduleId = prefs.Get(LastPlayedScheduleIdKey, -1);
 
             return (
-                Title: title,
-                Artist: artist,
-                Album: album,
-                ArtworkUrl: artworkUrl,
+                Title: title ?? "",
+                Artist: artist ?? "",
+                Album: album ?? "",
+                ArtworkUrl: artworkUrl ?? "",
                 ScheduleId: scheduleId >= 0 ? scheduleId : null
             );
         }

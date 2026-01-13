@@ -30,7 +30,7 @@ public sealed class ScheduleDatabaseVersionService(
                 return Task.FromResult(false);
             }
 
-            var storedVersion = preferencesService.Get(VersionPreferenceKey, (string?)null);
+            var storedVersion = preferencesService.Get(VersionPreferenceKey, "");
             if (string.IsNullOrEmpty(storedVersion))
             {
                 return Task.FromResult(false);

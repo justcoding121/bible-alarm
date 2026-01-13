@@ -39,6 +39,7 @@ public sealed class ScheduleListItemViewModel(
     private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, displayService, applicationState);
 
     private bool isBusy;
+    private bool isProcessingStateChange;
     private Action? onPlayStarted;
     private Action? onPlaybackStarted;
 
@@ -372,6 +373,13 @@ public sealed class ScheduleListItemViewModel(
             return;
         }
 
+        // Prevent re-entrant calls to avoid cycles
+        if (isProcessingStateChange)
+        {
+            logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - Already processing state change for schedule {ScheduleId}, skipping", schedule.Id);
+            return;
+        }
+
         logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - ScheduleId: {ScheduleId}, CurrentPublicationCode: {PublicationCode}, CurrentSectionNumber: {SectionNumber}, CurrentTrackNumber: {TrackNumber}",
             schedule.Id,
             schedule.BiblePublicationSchedule?.PublicationCode ?? "null",
@@ -385,6 +393,21 @@ public sealed class ScheduleListItemViewModel(
             return;
         }
 
+        // Check if there are any actual changes before processing
+        var hasAnyChanges = changeInfo.AnyBibleSchedulePropertyChanged ||
+                           changeInfo.DaysOfWeekChanged ||
+                           changeInfo.IsEnabledChanged ||
+                           changeInfo.NameChanged ||
+                           changeInfo.TimeChanged ||
+                           changeInfo.MusicEnabledChanged ||
+                           changeInfo.TrackChanged;
+
+        if (!hasAnyChanges)
+        {
+            logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - No actual changes detected for schedule {ScheduleId}, skipping update", schedule.Id);
+            return;
+        }
+
         logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - ScheduleId: {ScheduleId}, AnyBibleSchedulePropertyChanged: {AnyBibleSchedulePropertyChanged}, TrackTitleChanged: {TrackTitleChanged}, SectionNameChanged: {SectionNameChanged}, NewTrackTitle: '{NewTrackTitle}', NewSectionName: '{NewSectionName}'",
             schedule.Id, changeInfo.AnyBibleSchedulePropertyChanged,
             changeInfo.TrackTitleChanged, changeInfo.SectionNameChanged,
@@ -393,8 +416,16 @@ public sealed class ScheduleListItemViewModel(
         // Store old DaysOfWeek before updating to ensure we can detect changes
         var oldDaysOfWeek = schedule.DaysOfWeek;
 
-        UpdateScheduleFromState(changeInfo);
-        NotifyPropertyChanges(changeInfo);
+        isProcessingStateChange = true;
+        try
+        {
+            UpdateScheduleFromState(changeInfo);
+            NotifyPropertyChanges(changeInfo);
+        }
+        finally
+        {
+            isProcessingStateChange = false;
+        }
 
         // Double-check DaysOfWeek change after update (in case comparison missed it)
         // This handles edge cases where the schedule was already updated but DaysOfWeek changed
