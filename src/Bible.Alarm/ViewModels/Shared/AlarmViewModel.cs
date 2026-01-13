@@ -398,19 +398,16 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
 
             // Always use two lines to prevent layout jumps when text changes
             // Line 1: Track progress
-            // Line 2: Download bytes (or empty placeholder)
+            // Line 2: Download percentage (or empty placeholder)
             
             if (loadedTracks < totalTracks)
             {
                 // Still downloading/preparing
                 var downloadInfo = " "; // Placeholder to maintain height
-                if (bytesDownloaded > 0)
+                if (bytesDownloaded > 0 && totalBytes.HasValue && totalBytes.Value > 0)
                 {
-                    downloadInfo = FormatBytes(bytesDownloaded);
-                    if (totalBytes.HasValue && totalBytes.Value > 0)
-                    {
-                        downloadInfo += $" / {FormatBytes(totalBytes.Value)}";
-                    }
+                    var percentage = (bytesDownloaded * 100.0) / totalBytes.Value;
+                    downloadInfo = $"{percentage:F1}%";
                 }
                 return $"Downloading track {loadedTracks + 1}/{totalTracks}\n{downloadInfo}";
             }
@@ -418,21 +415,6 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
             // All tracks prepared
             return $"Prepared {totalTracks} tracks\n ";
         }
-    }
-
-    private static string FormatBytes(long bytes)
-    {
-        // Use consistent formatting width to prevent layout jumps
-        // Always show 2 decimal places for MB, 0 for KB
-        if (bytes >= 1024 * 1024)
-        {
-            return $"{bytes / (1024.0 * 1024.0),6:F2} MB";
-        }
-        if (bytes >= 1024)
-        {
-            return $"{bytes / 1024.0,4:F0} KB";
-        }
-        return $"{bytes,4} B";
     }
 
     public double PreparationProgress { get; private set; }

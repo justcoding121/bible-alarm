@@ -134,49 +134,63 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        var stateValue = state.Value;
-        var currentSchedule = stateValue.CurrentSchedule;
-
-        // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
-        // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
-        if (stateInitializer.ShouldReinitialize())
+        // Prevent re-entrant calls to avoid cycles
+        if (isProcessingStateChange)
         {
-            stateInitializer.ResetReadyFlags();
-            // Re-initialize and signal ready again
-            InitializeFromState();
             return;
         }
 
-        // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
-        // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
-        if (scheduleId == 0 && currentSchedule != null && !stateInitializer.HasSignaledReady)
+        isProcessingStateChange = true;
+        try
         {
-            // Reset initial MusicEnabled tracking when a new schedule is opened
-            initialMusicEnabledOnPageLoad = null;
-            InitializeFromState();
-            // Recreate commands with updated scheduleId and isNewSchedule
-            InitializeCommands();
-            return;
-        }
+            var stateValue = state.Value;
+            var currentSchedule = stateValue.CurrentSchedule;
 
-        // Initialize if schedule ID changed (new schedule opened)
-        if (currentSchedule != null && currentSchedule.Id != scheduleId)
+            // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
+            // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
+            if (stateInitializer.ShouldReinitialize())
+            {
+                stateInitializer.ResetReadyFlags();
+                // Re-initialize and signal ready again
+                InitializeFromState();
+                return;
+            }
+
+            // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
+            // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
+            if (scheduleId == 0 && currentSchedule != null && !stateInitializer.HasSignaledReady)
+            {
+                // Reset initial MusicEnabled tracking when a new schedule is opened
+                initialMusicEnabledOnPageLoad = null;
+                InitializeFromState();
+                // Recreate commands with updated scheduleId and isNewSchedule
+                InitializeCommands();
+                return;
+            }
+
+            // Initialize if schedule ID changed (new schedule opened)
+            if (currentSchedule != null && currentSchedule.Id != scheduleId)
+            {
+                // Reset initial MusicEnabled tracking when a new schedule is opened
+                initialMusicEnabledOnPageLoad = null;
+                stateInitializer.ResetReadyFlags();
+                InitializeFromState();
+                // Recreate commands with updated scheduleId and isNewSchedule
+                InitializeCommands();
+            }
+
+            // Handle state changes using helper
+            stateChangeHandler.HandleStateChanged(
+                scheduleId,
+                stateHolder,
+                initialMusicEnabledOnPageLoad,
+                (val) => ShouldScrollToBottom = val,
+                (propertyName) => OnPropertyChanged(propertyName));
+        }
+        finally
         {
-            // Reset initial MusicEnabled tracking when a new schedule is opened
-            initialMusicEnabledOnPageLoad = null;
-            stateInitializer.ResetReadyFlags();
-            InitializeFromState();
-            // Recreate commands with updated scheduleId and isNewSchedule
-            InitializeCommands();
+            isProcessingStateChange = false;
         }
-
-        // Handle state changes using helper
-        stateChangeHandler.HandleStateChanged(
-            scheduleId,
-            stateHolder,
-            initialMusicEnabledOnPageLoad,
-            (val) => ShouldScrollToBottom = val,
-            (propertyName) => OnPropertyChanged(propertyName));
     }
 
     public ICommand SelectMusicCommand { get; private set; } = null!;

@@ -30,6 +30,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     private int scheduleId;
     private bool notificationEnabled;
     private bool alwaysPlayFromStart;
+    private bool isProcessingStateChange;
     private bool hasSignaledReady;
     private bool isReadyActionQueued;
     private string? lastPublicationCode;
@@ -166,76 +167,90 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        var stateValue = state.Value;
-        var currentSchedule = stateValue.CurrentSchedule;
-
-        // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
-        // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
-        if (hasSignaledReady && !stateValue.ContainerReadiness.NumberOfTrack && currentSchedule != null)
+        // Prevent re-entrant calls to avoid cycles
+        if (isProcessingStateChange)
         {
-            hasSignaledReady = false;
-            isReadyActionQueued = false; // Reset queued flag as well
-            // Re-initialize and signal ready again
-            InitializeFromState();
             return;
         }
 
-        // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
-        // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
-        if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
+        isProcessingStateChange = true;
+        try
         {
-            InitializeFromState();
-            return;
-        }
+            var stateValue = state.Value;
+            var currentSchedule = stateValue.CurrentSchedule;
 
-        // Initialize if schedule ID changed to a different positive ID (existing schedule opened)
-        if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
-        {
-            hasSignaledReady = false; // Reset for new schedule
-            isReadyActionQueued = false; // Reset queued flag as well
-            InitializeFromState();
-        }
-        else if (currentSchedule != null)
-        {
-            // Update properties if schedule changed
-            if (notificationEnabled != currentSchedule.NotificationEnabled)
+            // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
+            // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
+            if (hasSignaledReady && !stateValue.ContainerReadiness.NumberOfTrack && currentSchedule != null)
             {
-                notificationEnabled = currentSchedule.NotificationEnabled;
-                OnPropertyChanged(nameof(NotificationEnabled));
-            }
-            if (alwaysPlayFromStart != currentSchedule.AlwaysPlayFromStart)
-            {
-                alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
-                OnPropertyChanged(nameof(AlwaysPlayFromStart));
+                hasSignaledReady = false;
+                isReadyActionQueued = false; // Reset queued flag as well
+                // Re-initialize and signal ready again
+                InitializeFromState();
+                return;
             }
 
-            // Check if publication code changed (switched between sectioned and non-sectioned)
-            var newPublicationCode = currentSchedule.BiblePublicationCode;
-            if (lastPublicationCode != null && lastPublicationCode != newPublicationCode)
+            // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
+            // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
+            if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
             {
-                var wasHasSectionStructure = PublicationTypeHelper.HasSectionStructure(lastPublicationCode);
-                var nowHasSectionStructure = PublicationTypeHelper.HasSectionStructure(newPublicationCode);
+                InitializeFromState();
+                return;
+            }
 
-                if (wasHasSectionStructure != nowHasSectionStructure)
+            // Initialize if schedule ID changed to a different positive ID (existing schedule opened)
+            if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
+            {
+                hasSignaledReady = false; // Reset for new schedule
+                isReadyActionQueued = false; // Reset queued flag as well
+                InitializeFromState();
+            }
+            else if (currentSchedule != null)
+            {
+                // Update properties if schedule changed
+                if (notificationEnabled != currentSchedule.NotificationEnabled)
                 {
-                    // Update label text properties
-                    OnPropertyChanged(nameof(HasSectionStructure));
-                    OnPropertyChanged(nameof(TrackLabelText));
-                    OnPropertyChanged(nameof(ModalHeaderText));
-                    OnPropertyChanged(nameof(RestartLabelText));
-
-                    // Set appropriate default: 3 for chapters (sectioned), 1 for episodes (non-sectioned)
-                    var newDefault = nowHasSectionStructure ? 3 : 1;
-                    
-                    // Repopulate the list to update max for non-sectioned publications
-                    // Pass the new default as forced selection so it's selected when list is populated
-                    PopulateNumberOfTracksListView(newDefault);
-                    
-                    // Dispatch update to state
-                    DispatchScheduleUpdate(s => s.NumberOfTracksToRead = newDefault);
+                    notificationEnabled = currentSchedule.NotificationEnabled;
+                    OnPropertyChanged(nameof(NotificationEnabled));
                 }
+                if (alwaysPlayFromStart != currentSchedule.AlwaysPlayFromStart)
+                {
+                    alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
+                    OnPropertyChanged(nameof(AlwaysPlayFromStart));
+                }
+
+                // Check if publication code changed (switched between sectioned and non-sectioned)
+                var newPublicationCode = currentSchedule.BiblePublicationCode;
+                if (lastPublicationCode != null && lastPublicationCode != newPublicationCode)
+                {
+                    var wasHasSectionStructure = PublicationTypeHelper.HasSectionStructure(lastPublicationCode);
+                    var nowHasSectionStructure = PublicationTypeHelper.HasSectionStructure(newPublicationCode);
+
+                    if (wasHasSectionStructure != nowHasSectionStructure)
+                    {
+                        // Update label text properties
+                        OnPropertyChanged(nameof(HasSectionStructure));
+                        OnPropertyChanged(nameof(TrackLabelText));
+                        OnPropertyChanged(nameof(ModalHeaderText));
+                        OnPropertyChanged(nameof(RestartLabelText));
+
+                        // Set appropriate default: 3 for chapters (sectioned), 1 for episodes (non-sectioned)
+                        var newDefault = nowHasSectionStructure ? 3 : 1;
+                        
+                        // Repopulate the list to update max for non-sectioned publications
+                        // Pass the new default as forced selection so it's selected when list is populated
+                        PopulateNumberOfTracksListView(newDefault);
+                        
+                        // Dispatch update to state
+                        DispatchScheduleUpdate(s => s.NumberOfTracksToRead = newDefault);
+                    }
+                }
+                lastPublicationCode = newPublicationCode;
             }
-            lastPublicationCode = newPublicationCode;
+        }
+        finally
+        {
+            isProcessingStateChange = false;
         }
     }
 

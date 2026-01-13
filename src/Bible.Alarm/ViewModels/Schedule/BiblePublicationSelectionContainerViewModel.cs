@@ -32,6 +32,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
 
     private int scheduleId;
     private bool isNewSchedule;
+    private bool isProcessingStateChange;
     private bool biblePublicationUpdated;
     private BiblePublicationSchedule? biblePublicationSchedule;
     private bool hasSignaledReady;
@@ -171,87 +172,101 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        var stateValue = state.Value;
-        var currentSchedule = stateValue.CurrentSchedule;
-        var currentBiblePublication = stateValue.CurrentBiblePublicationSchedule;
-
-        // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
-        // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
-        if (hasSignaledReady && !stateValue.ContainerReadiness.BiblePublicationSelection && currentSchedule != null)
-        {
-            hasSignaledReady = false;
-            isReadyActionQueued = false; // Reset queued flag as well
-            // Re-initialize and signal ready again
-            InitializeFromState();
-            return;
-        }
-
-        if (!ShouldProcessStateChange(currentSchedule, out var isInitialLoad))
+        // Prevent re-entrant calls to avoid cycles
+        if (isProcessingStateChange)
         {
             return;
         }
 
-        // For initial load (scheduleId was 0), call InitializeFromState to set up and signal ready
-        if (isInitialLoad)
+        isProcessingStateChange = true;
+        try
         {
-            InitializeFromState();
-            return;
-        }
+            var stateValue = state.Value;
+            var currentSchedule = stateValue.CurrentSchedule;
+            var currentBiblePublication = stateValue.CurrentBiblePublicationSchedule;
 
-        // Early exit if we've already processed this exact state
-        // Also check display names (language name, publication name, section name) to ensure display text updates when they change
-        if (currentSchedule != null &&
-            currentSchedule.Id == lastProcessedScheduleId &&
-            currentSchedule.BiblePublicationLanguageCode == lastProcessedLanguageCode &&
-            currentSchedule.BiblePublicationLanguageName == lastProcessedLanguageName &&
-            (currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode) == lastProcessedPublicationCode &&
-            currentSchedule.BiblePublicationName == lastProcessedPublicationName &&
-            (currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber) == lastProcessedSectionNumber &&
-            currentSchedule.BiblePublicationSectionName == lastProcessedSectionName &&
-            (currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber) == lastProcessedTrackNumber)
-        {
-            return;
-        }
-
-        LogStateChange(currentSchedule, currentBiblePublication);
-        HandleScheduleIdChange(currentSchedule);
-        UpdateBiblePublicationUpdatedFlag(currentSchedule);
-
-        var changeInfo = propertyChangeDetector.DetectPropertyChanges(currentSchedule, currentBiblePublication);
-        if (changeInfo.HasChanges)
-        {
-            // Reset the flag when a new cascade change is detected (before updating last values)
-            if (changeInfo.CascadeChangeOccurred)
+            // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
+            // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
+            if (hasSignaledReady && !stateValue.ContainerReadiness.BiblePublicationSelection && currentSchedule != null)
             {
-                progressResetForCurrentCascade = false;
+                hasSignaledReady = false;
+                isReadyActionQueued = false; // Reset queued flag as well
+                // Re-initialize and signal ready again
+                InitializeFromState();
+                return;
             }
 
-            ResetProgressIfNeeded(currentSchedule, changeInfo);
-
-            // Set scroll flag if section or track changed (user made a selection)
-            var shouldScroll = changeInfo.NotifySection || changeInfo.NotifyTrack;
-
-            MainThread.BeginInvokeOnMainThread(() =>
+            if (!ShouldProcessStateChange(currentSchedule, out var isInitialLoad))
             {
-                propertyNotifier.NotifyPropertyChanges(changeInfo);
-                if (shouldScroll)
-                {
-                    ShouldScrollToContainer = true;
-                }
-            });
-        }
+                return;
+            }
 
-        // Update last processed state after handling changes
-        if (currentSchedule != null)
+            // For initial load (scheduleId was 0), call InitializeFromState to set up and signal ready
+            if (isInitialLoad)
+            {
+                InitializeFromState();
+                return;
+            }
+
+            // Early exit if we've already processed this exact state
+            // Also check display names (language name, publication name, section name) to ensure display text updates when they change
+            if (currentSchedule != null &&
+                currentSchedule.Id == lastProcessedScheduleId &&
+                currentSchedule.BiblePublicationLanguageCode == lastProcessedLanguageCode &&
+                currentSchedule.BiblePublicationLanguageName == lastProcessedLanguageName &&
+                (currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode) == lastProcessedPublicationCode &&
+                currentSchedule.BiblePublicationName == lastProcessedPublicationName &&
+                (currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber) == lastProcessedSectionNumber &&
+                currentSchedule.BiblePublicationSectionName == lastProcessedSectionName &&
+                (currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber) == lastProcessedTrackNumber)
+            {
+                return;
+            }
+
+            LogStateChange(currentSchedule, currentBiblePublication);
+            HandleScheduleIdChange(currentSchedule);
+            UpdateBiblePublicationUpdatedFlag(currentSchedule);
+
+            var changeInfo = propertyChangeDetector.DetectPropertyChanges(currentSchedule, currentBiblePublication);
+            if (changeInfo.HasChanges)
+            {
+                // Reset the flag when a new cascade change is detected (before updating last values)
+                if (changeInfo.CascadeChangeOccurred)
+                {
+                    progressResetForCurrentCascade = false;
+                }
+
+                ResetProgressIfNeeded(currentSchedule, changeInfo);
+
+                // Set scroll flag if section or track changed (user made a selection)
+                var shouldScroll = changeInfo.NotifySection || changeInfo.NotifyTrack;
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    propertyNotifier.NotifyPropertyChanges(changeInfo);
+                    if (shouldScroll)
+                    {
+                        ShouldScrollToContainer = true;
+                    }
+                });
+            }
+
+            // Update last processed state after handling changes
+            if (currentSchedule != null)
+            {
+                lastProcessedScheduleId = currentSchedule.Id;
+                lastProcessedLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+                lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
+                lastProcessedPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode;
+                lastProcessedPublicationName = currentSchedule.BiblePublicationName;
+                lastProcessedSectionNumber = currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber;
+                lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
+                lastProcessedTrackNumber = currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber;
+            }
+        }
+        finally
         {
-            lastProcessedScheduleId = currentSchedule.Id;
-            lastProcessedLanguageCode = currentSchedule.BiblePublicationLanguageCode;
-            lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
-            lastProcessedPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode;
-            lastProcessedPublicationName = currentSchedule.BiblePublicationName;
-            lastProcessedSectionNumber = currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber;
-            lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
-            lastProcessedTrackNumber = currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber;
+            isProcessingStateChange = false;
         }
     }
 

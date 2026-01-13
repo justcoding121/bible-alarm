@@ -73,7 +73,10 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 
     protected override bool OnBackButtonPressed()
     {
-        ViewModel?.DismissCommand.Execute(null);
+        if (!isDisposed && ViewModel?.DismissCommand != null)
+        {
+            ViewModel.DismissCommand.Execute(null);
+        }
         return true;
     }
 
@@ -136,7 +139,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 
     private void OnSliderValueChanged(object? sender, ValueChangedEventArgs e)
     {
-        if (ViewModel == null)
+        if (isDisposed || ViewModel == null)
         {
             return;
         }
@@ -197,16 +200,36 @@ public partial class AlarmModal : BaseContentPage, IDisposable
             seekDebounceTimer = null;
 
             // User has stopped interacting - perform seek
-            this.Dispatcher.Dispatch(() =>
+            // Check if disposed before accessing Dispatcher or ViewModel
+            if (isDisposed)
             {
-                if (pendingSeekValue.HasValue && ViewModel != null)
+                return;
+            }
+
+            try
+            {
+                this.Dispatcher.Dispatch(() =>
                 {
+                    // Double-check disposed state and ViewModel availability
+                    if (isDisposed || ViewModel == null || !pendingSeekValue.HasValue)
+                    {
+                        return;
+                    }
+
                     var value = pendingSeekValue.Value;
                     pendingSeekValue = null;
                     isDragging = false;
                     ViewModel.OnSliderDragCompleted(value);
-                }
-            });
+                });
+            }
+            catch (ObjectDisposedException)
+            {
+                // Modal was disposed, ignore
+            }
+            catch (InvalidOperationException)
+            {
+                // Dispatcher is no longer available, ignore
+            }
         };
         seekDebounceTimer.AutoReset = false;
         seekDebounceTimer.Start();
@@ -214,6 +237,11 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 
     private void OnSliderDragStarted(object? sender, EventArgs e)
     {
+        if (isDisposed)
+        {
+            return;
+        }
+
         // Stop any timer-based detection
         seekDebounceTimer?.Stop();
         seekDebounceTimer?.Dispose();
@@ -225,6 +253,11 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 
     private void OnSliderDragCompleted(object? sender, EventArgs e)
     {
+        if (isDisposed)
+        {
+            return;
+        }
+
         // Stop any timer-based detection
         seekDebounceTimer?.Stop();
         seekDebounceTimer?.Dispose();
@@ -242,7 +275,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 #if IOS
     private void OnSliderTapped(object? sender, TappedEventArgs e)
     {
-        if (ViewModel == null || sender is not Slider slider)
+        if (isDisposed || ViewModel == null || sender is not Slider slider)
         {
             return;
         }
@@ -282,10 +315,30 @@ public partial class AlarmModal : BaseContentPage, IDisposable
             // Reset flag after a short delay to allow ValueChanged to process normally for drags
             Task.Delay(100).ContinueWith(_ =>
             {
-                this.Dispatcher.Dispatch(() =>
+                // Check if disposed before accessing Dispatcher
+                if (isDisposed)
                 {
-                    isHandlingTap = false;
-                });
+                    return;
+                }
+
+                try
+                {
+                    this.Dispatcher.Dispatch(() =>
+                    {
+                        if (!isDisposed)
+                        {
+                            isHandlingTap = false;
+                        }
+                    });
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Modal was disposed, ignore
+                }
+                catch (InvalidOperationException)
+                {
+                    // Dispatcher is no longer available, ignore
+                }
             });
         }
     }
@@ -295,19 +348,41 @@ public partial class AlarmModal : BaseContentPage, IDisposable
     {
         if (!isDisposed)
         {
-            // Clean up timer
-            seekDebounceTimer?.Stop();
-            seekDebounceTimer?.Dispose();
-            seekDebounceTimer = null;
+            isDisposed = true;
+
+            // Clean up timer first to prevent callbacks from accessing disposed objects
+            try
+            {
+                seekDebounceTimer?.Stop();
+                seekDebounceTimer?.Dispose();
+            }
+            catch
+            {
+                // Ignore errors during timer cleanup
+            }
+            finally
+            {
+                seekDebounceTimer = null;
+            }
+
+            // Clear pending seek value
+            pendingSeekValue = null;
 
             // ViewModel was injected via constructor, so dispose it
-            if (viewModel is IDisposable disposable)
+            try
             {
-                disposable.Dispose();
+                if (viewModel is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
             }
+            catch
+            {
+                // Ignore errors during ViewModel disposal
+            }
+
             // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
-            isDisposed = true;
         }
     }
 }
