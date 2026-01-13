@@ -1,3 +1,11 @@
+/* CARPLAY MEDIA LISTING DISABLED - Requires Apple MFi approval
+ * Commented out to avoid App Store rejection for CarPlay Audio entitlement.
+ * This helper provides methods for loading schedules and formatting display information.
+ * 
+ * To re-enable after Apple approval, uncomment this file.
+ */
+
+/*
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Shared.Helpers;
@@ -154,4 +162,15 @@ public static class CarPlayScheduleHelper
         var timeText = scheduleItem.TimeText;
         return $"{statusText} • {timeText}";
     }
+}
+*/
+
+// Placeholder class to prevent compilation errors
+namespace Bible.Alarm.Platforms.iOS.Services.CarPlay;
+
+public static class CarPlayScheduleHelper
+{
+    public static List<object> LoadScheduleStateItemsFromState() => new();
+    public static string BuildScheduleTitle(object scheduleItem) => string.Empty;
+    public static string BuildScheduleSubtitle(object scheduleItem) => string.Empty;
 }

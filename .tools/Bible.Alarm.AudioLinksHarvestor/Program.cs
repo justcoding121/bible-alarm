@@ -25,6 +25,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using Serilog.Events;
 using DirectoryHelper = Bible.Alarm.AudioLinksHarvestor.Utility.DirectoryHelper;
 using ILogger = Serilog.ILogger;
 
@@ -39,8 +40,17 @@ public class Program
 
     public static async Task<int> Main(string[] args)
     {
+        // Check for verbose logging flag
+        bool verboseLogging = args.Contains("--verbose", StringComparer.OrdinalIgnoreCase) || 
+                             args.Contains("-v", StringComparer.OrdinalIgnoreCase);
+        
+        // Set minimum log level: Warning by default (for cleaner CI/CD logs), Information if verbose
+        var minimumLevel = verboseLogging ? LogEventLevel.Information : LogEventLevel.Warning;
+        
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.Is(minimumLevel)
+            // Override to always show Information level for important messages
+            .MinimumLevel.Override("Bible.Alarm.AudioLinksHarvestor.Program", LogEventLevel.Information)
             .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 
@@ -48,6 +58,7 @@ public class Program
         services.AddLogging(builder =>
         {
             builder.AddSerilog(Log.Logger);
+            // Entity Framework Core logs only show warnings and errors
             builder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
         });
         services.AddSingleton(_ => Log.Logger);

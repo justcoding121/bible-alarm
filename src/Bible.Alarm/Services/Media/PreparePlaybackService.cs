@@ -55,7 +55,7 @@ public sealed class PreparePlaybackService(
         // Calculate total expected bytes
         var totalBytesExpected = trackSizes.Values
             .Where(v => v.HasValue)
-            .Sum(v => v.Value);
+            .Sum(v => v!.Value);
 
         // Phase 2: Download tracks in parallel with concurrency limit
         var preparedTracks = new AudioPlayerTrack?[totalTracks]; // Use array to maintain order
@@ -116,7 +116,7 @@ public sealed class PreparePlaybackService(
                     // Set final size for this track (use actual size if known, otherwise keep current progress)
                     if (trackSizes[index].HasValue)
                     {
-                        trackProgress[index] = trackSizes[index].Value;
+                        trackProgress[index] = trackSizes[index]!.Value;
                     }
                     
                     var totalBytesDownloaded = trackProgress.Values.Sum();

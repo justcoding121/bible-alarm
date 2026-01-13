@@ -1,3 +1,16 @@
+/* CARPLAY MEDIA LISTING DISABLED - Requires Apple MFi approval
+ * Commented out to avoid App Store rejection for CarPlay Audio entitlement.
+ * Now Playing (current playback display) remains active via iOSNowPlayingInfoManager.
+ * 
+ * To re-enable after Apple approval:
+ * 1. Uncomment this entire file
+ * 2. Add com.apple.developer.carplay-audio entitlement in Entitlements.plist
+ * 3. Uncomment CarPlayScheduleListEffect.cs
+ * 4. Uncomment CarPlayScheduleHelper.cs
+ * 5. Uncomment CarPlayPlaybackHandler.cs
+ */
+
+/*
 #nullable enable
 using CarPlay;
 using Foundation;
@@ -231,4 +244,16 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             logger.Error(ex, "[CarPlay] Error refreshing schedule list");
         }
     }
+}
+*/
+
+// Placeholder class to prevent compilation errors
+#nullable enable
+namespace Bible.Alarm.Platforms.iOS.Services.CarPlay;
+
+public class CarPlaySceneDelegate
+{
+    public static bool IsCarPlayConnected { get; private set; } = false;
+    public static CarPlaySceneDelegate? Current { get; private set; } = null;
+    public void RefreshScheduleList() { }
 }

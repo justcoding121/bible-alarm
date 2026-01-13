@@ -1,3 +1,11 @@
+/* CARPLAY MEDIA LISTING DISABLED - Requires Apple MFi approval
+ * Commented out to avoid App Store rejection for CarPlay Audio entitlement.
+ * This handler processes playback actions when schedule items are clicked from the CarPlay list.
+ * 
+ * To re-enable after Apple approval, uncomment this file.
+ */
+
+/*
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -51,5 +59,17 @@ public sealed class CarPlayPlaybackHandler
                 logger.Error(ex, "[CarPlay] Error playing schedule {ScheduleId}", scheduleId);
             }
         });
+    }
+}
+*/
+
+// Placeholder class to prevent compilation errors
+namespace Bible.Alarm.Platforms.iOS.Services.CarPlay;
+
+public sealed class CarPlayPlaybackHandler
+{
+    public static void HandleScheduleItemClicked(int scheduleId)
+    {
+        // CarPlay listing disabled - no action
     }
 }

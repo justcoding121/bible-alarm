@@ -18,4 +18,6 @@ public class TestPathService : IPathService
     public string GetIosInfoPlistPath() => Path.Combine(testResourcesPath, "Info.plist");
 
     public string GetWindowsManifestPath() => Path.Combine(testResourcesPath, "Package.appxmanifest");
+
+    public string GetCsprojPath() => Path.Combine(testResourcesPath, "Bible.Alarm.csproj");
 }
