@@ -24,6 +24,9 @@ jobs:
       with:
         dotnet-version: '10.0.x'
         
+    - name: Restore workloads
+      run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
+        
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       

@@ -23,6 +23,9 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '10.0.x'
+        
+    - name: Restore workloads
+      run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
 
     # Decode and install the code signing certificate
     - name: Install Certificate

@@ -683,6 +683,8 @@ public partial class MediaManager : Object, IPlayerListener
             {
                 // Serilog may not be initialized in static context, ignore
             }
+#else
+            _ = e; // Suppress unused variable warning in Release builds
 #endif
             return [];
         }

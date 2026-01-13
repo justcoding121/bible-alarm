@@ -221,6 +221,8 @@ public class SerilogSetup
         {
 #if DEBUG
             Log.Logger.Debug(ex, "Failed to get version name from version finder, using fallback");
+#else
+            _ = ex; // Suppress unused variable warning in Release builds
 #endif
             return "AssemblyVersionNotFound";
         }
