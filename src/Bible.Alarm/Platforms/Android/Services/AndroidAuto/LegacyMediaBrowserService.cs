@@ -53,6 +53,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
     {
         // Create MediaSession as the very first thing - even before MAUI services are registered
         // This ensures MediaSession is available immediately on process start
+        // MediaSessionHelper.Create() also loads last played metadata from Preferences (no DI needed)
         try
         {
             Platforms.Android.Services.Media.MediaSessionHelper.Create();
@@ -63,8 +64,17 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         }
 
         base.OnCreate();
-        logger.Information("LegacyMediaBrowserService.OnCreate() called - Ensuring MauiApp is created");
+        logger.Information("LegacyMediaBrowserService.OnCreate() called");
 
+        // CRITICAL: Start foreground service IMMEDIATELY - BEFORE DI initialization!
+        // This minimizes the delay between service creation and foreground start (~20-50ms vs ~300-500ms).
+        // On Android 12+, background services must call startForeground() within 5 seconds.
+        // MediaSession is already created above with last played metadata from Preferences (or fallback).
+        // The notification will show saved metadata if available, or "Bible Alarm" / "Ready to play" fallback.
+        logger.Information("LegacyMediaBrowserService.OnCreate: Starting foreground service immediately (pre-DI)");
+        ForegroundServiceCoordinator.OnAndroidAutoConnected(this);
+
+        // Now initialize DI and bootstrap (slower, runs after foreground is started)
         mediaSessionInitializer.InitializeMediaSession();
         mediaSessionInitializer.InitializeBootstrapInBackground();
 

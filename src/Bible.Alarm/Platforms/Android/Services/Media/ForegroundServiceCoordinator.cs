@@ -34,25 +34,29 @@ public sealed class ForegroundServiceCoordinator
     }
 
     /// <summary>
-    /// Called when Android Auto connects (OnGetRoot or OnBind for LegacyMediaBrowserService, 
-    /// or OnCreateSession for CarAppService).
+    /// Called when Android Auto connects (OnCreate, OnGetRoot or OnBind for LegacyMediaBrowserService, 
+    /// or OnCreate/OnCreateSession for CarAppService).
     /// Only starts foreground service if MediaElement is not active.
+    /// 
+    /// IMPORTANT: This method is idempotent and safe to call multiple times.
+    /// It will retry starting foreground if the previous call didn't start it (e.g., due to MediaElement being active).
     /// </summary>
     /// <param name="service">The Android Auto service instance</param>
     public static void OnAndroidAutoConnected(Service service)
     {
         lock (@lock)
         {
-            if (state.IsAndroidAutoConnected)
+            // Always update the service reference (may have changed)
+            state.SetAndroidAutoConnected(true, service);
+
+            // If already connected but foreground is already owned by Android Auto, nothing more to do
+            if (state.CurrentOwner == ForegroundServiceOwner.AndroidAuto)
             {
-                logger.Debug("Android Auto already marked as connected");
-                // Update service reference in case it changed
-                state.SetAndroidAutoConnected(true, service);
+                logger.Debug("Android Auto already owns foreground service - no action needed");
                 return;
             }
 
-            state.SetAndroidAutoConnected(true, service);
-            logger.Information("Android Auto connected - will start foreground service if metadata is available and MediaElement is not active");
+            logger.Information("Android Auto connected - will start foreground service if MediaElement is not active (current owner: {Owner})", state.CurrentOwner);
 
             // Check if MediaElement is active - if so, don't start Android Auto foreground service
             // NOTE: Do NOT check App.IsInForeground here - the old working code never had this check!
@@ -280,6 +284,17 @@ public sealed class ForegroundServiceCoordinator
                 logger.Debug("Android Auto already owns foreground service - updating notification");
                 ForegroundServiceOperations.UpdateForeground(service, mediaSession);
                 return true;
+            }
+
+            // If Alarm currently owns foreground, stop it first before Android Auto takes over.
+            // Both use notification ID 2, so this ensures clean state transition.
+            // Without this, AlarmForegroundService would remain in foreground state (orphaned)
+            // even though its notification was replaced by Android Auto's notification.
+            if (state.CurrentOwner == ForegroundServiceOwner.Alarm && state.AlarmService != null)
+            {
+                logger.Information("Stopping Alarm foreground service before Android Auto takes over (same notification ID 2)");
+                ForegroundServiceOperations.StopForeground(state.AlarmService);
+                state.ClearAlarmService();
             }
 
             logger.Information("Android Auto requesting foreground service ownership (Android Auto is connected)");

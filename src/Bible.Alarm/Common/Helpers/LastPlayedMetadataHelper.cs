@@ -7,24 +7,37 @@ namespace Bible.Alarm.Common.Helpers;
 /// <summary>
 /// Static helper for saving and retrieving the last played track metadata to/from Preferences.
 /// Used to persist metadata across app restarts for all platforms.
-/// Uses IThreadSafePreferencesService for centralized, thread-safe Preferences access.
+/// Uses IThreadSafePreferencesService for centralized, thread-safe Preferences access when available.
+/// Falls back to direct Preferences access when DI is not available (e.g., during early Android Auto startup).
 /// </summary>
 public static class LastPlayedMetadataHelper
 {
     private static readonly ILogger logger = Log.ForContext(typeof(LastPlayedMetadataHelper));
     
-    private static IThreadSafePreferencesService GetPreferencesService()
+    /// <summary>
+    /// Tries to get the DI-managed preferences service. Returns null if DI is not available yet.
+    /// </summary>
+    private static IThreadSafePreferencesService? TryGetPreferencesService()
     {
         try
         {
             return Common.ServiceProviderManager.GetService<IThreadSafePreferencesService>();
         }
-        catch (Exception ex)
+        catch
         {
-            logger.Warning(ex, "Failed to get IThreadSafePreferencesService, falling back to direct Preferences access");
-            // Fallback to direct Preferences access if service is not available (shouldn't happen in normal operation)
-            throw;
+            // DI not available yet (e.g., during early Android Auto startup before MauiApp is created)
+            return null;
         }
+    }
+
+    /// <summary>
+    /// Gets the DI-managed preferences service. Throws if DI is not available.
+    /// Use TryGetPreferencesService() for pre-DI scenarios.
+    /// </summary>
+    private static IThreadSafePreferencesService GetPreferencesService()
+    {
+        return TryGetPreferencesService() 
+            ?? throw new InvalidOperationException("IThreadSafePreferencesService not available - DI may not be initialized yet");
     }
 
     // Preference keys
@@ -85,25 +98,45 @@ public static class LastPlayedMetadataHelper
 
     /// <summary>
     /// Retrieves the last played track metadata from Preferences.
+    /// Uses DI-managed service when available, falls back to direct Preferences access for pre-DI scenarios.
     /// </summary>
     /// <returns>A tuple containing (Title, Artist, Album, ArtworkUrl, ScheduleId) or null if not found</returns>
     public static (string Title, string Artist, string Album, string ArtworkUrl, int? ScheduleId)? GetLastPlayedMetadata()
     {
         try
         {
-            var prefs = GetPreferencesService();
-            var title = prefs.Get(LastPlayedTitleKey, "");
-            var artist = prefs.Get(LastPlayedArtistKey, "");
+            var prefs = TryGetPreferencesService();
+            
+            // Use DI service if available, otherwise fall back to direct Preferences access
+            // Direct access is needed during early Android Auto startup before MauiApp is created
+            string title, artist, album, artworkUrl;
+            int scheduleId;
+            
+            if (prefs != null)
+            {
+                title = prefs.Get(LastPlayedTitleKey, "");
+                artist = prefs.Get(LastPlayedArtistKey, "");
+                album = prefs.Get(LastPlayedAlbumKey, "");
+                artworkUrl = prefs.Get(LastPlayedArtworkUrlKey, "");
+                scheduleId = prefs.Get(LastPlayedScheduleIdKey, -1);
+            }
+            else
+            {
+                // Fallback to direct Preferences access (pre-DI scenario)
+                // This is safe for reads - MAUI Preferences is thread-safe for simple operations
+                logger.Debug("Using direct Preferences access (DI not available yet)");
+                title = Preferences.Get(LastPlayedTitleKey, "");
+                artist = Preferences.Get(LastPlayedArtistKey, "");
+                album = Preferences.Get(LastPlayedAlbumKey, "");
+                artworkUrl = Preferences.Get(LastPlayedArtworkUrlKey, "");
+                scheduleId = Preferences.Get(LastPlayedScheduleIdKey, -1);
+            }
 
             // Return null if no valid metadata exists
             if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(artist))
             {
                 return null;
             }
-
-            var album = prefs.Get(LastPlayedAlbumKey, "");
-            var artworkUrl = prefs.Get(LastPlayedArtworkUrlKey, "");
-            var scheduleId = prefs.Get(LastPlayedScheduleIdKey, -1);
 
             return (
                 Title: title ?? "",

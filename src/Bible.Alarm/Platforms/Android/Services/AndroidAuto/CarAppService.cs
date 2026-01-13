@@ -49,8 +49,29 @@ public class CarAppService : AndroidX.Car.App.CarAppService
     public override void OnCreate()
     {
         base.OnCreate();
-        logger.Information("CarAppService.OnCreate() called - Ensuring MauiApp is created");
+        logger.Information("CarAppService.OnCreate() called");
 
+        // Create MediaSession as the very first thing - even before MAUI services are registered
+        // This ensures MediaSession is available immediately on process start
+        // MediaSessionHelper.Create() also loads last played metadata from Preferences (no DI needed)
+        try
+        {
+            Media.MediaSessionHelper.Create();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "CarAppService.OnCreate: failed to create MediaSession");
+        }
+
+        // CRITICAL: Start foreground service IMMEDIATELY - BEFORE DI initialization!
+        // This minimizes the delay between service creation and foreground start (~20-50ms vs ~300-500ms).
+        // On Android 12+, background services must call startForeground() within 5 seconds.
+        // MediaSession is already created above with last played metadata from Preferences (or fallback).
+        // Modern Android Automotive OS (Polestar, Volvo, GM, Rivian, Ford 2024+) uses CarAppService.
+        logger.Information("CarAppService.OnCreate: Starting foreground service immediately (pre-DI)");
+        ForegroundServiceCoordinator.OnAndroidAutoConnected(this);
+
+        // Now initialize DI and bootstrap (slower, runs after foreground is started)
         initializer.InitializeMediaSession();
         initializer.InitializeBootstrapInBackground();
     }
