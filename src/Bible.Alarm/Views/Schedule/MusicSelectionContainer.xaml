@@ -135,7 +135,7 @@
                            LineBreakMode="WordWrap"
                            MinimumHeightRequest="24"
                            Text="{Binding MusicTypeDisplayText, Mode=OneWay}"
-                           TextColor="{DynamicResource TextPrimaryColor}"
+                           TextColor="{StaticResource PrimaryColor}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
                     <Border Grid.Column="1"
@@ -198,7 +198,7 @@
                            LineBreakMode="WordWrap"
                            MinimumHeightRequest="24"
                            Text="{Binding MusicLanguageDisplayText}"
-                           TextColor="{DynamicResource TextPrimaryColor}"
+                           TextColor="{StaticResource PrimaryColor}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
                     <Border Grid.Column="1"
@@ -262,7 +262,7 @@
                            LineBreakMode="WordWrap"
                            MinimumHeightRequest="24"
                            Text="{Binding SongPublicationDisplayText}"
-                           TextColor="{DynamicResource TextPrimaryColor}"
+                           TextColor="{StaticResource PrimaryColor}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
                     <Border Grid.Column="1"
@@ -324,7 +324,7 @@
                            LineBreakMode="WordWrap"
                            MinimumHeightRequest="24"
                            Text="{Binding TrackDisplayText}"
-                           TextColor="{DynamicResource TextPrimaryColor}"
+                           TextColor="{StaticResource PrimaryColor}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
                     <Grid Grid.Column="1"

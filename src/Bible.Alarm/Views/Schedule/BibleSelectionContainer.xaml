@@ -68,7 +68,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding LanguageDisplayText}"
-                       TextColor="{DynamicResource TextPrimaryColor}"
+                       TextColor="{StaticResource PrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 
@@ -200,7 +200,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding SectionDisplayText}"
-                       TextColor="{DynamicResource TextPrimaryColor}"
+                       TextColor="{StaticResource PrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 <!-- Arrow Indicator -->
@@ -263,7 +263,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding TrackDisplayText}"
-                       TextColor="{DynamicResource TextPrimaryColor}"
+                       TextColor="{StaticResource PrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 <!-- Arrow Indicator -->
