@@ -52,20 +52,14 @@ public class SerilogSetup
             .Enrich.WithProperty("Platform", CurrentDevice.RuntimePlatform);
 
 #if DEBUG
-        // DEBUG mode: Write to both console and file with all levels
+        // DEBUG mode: Write to Debug sink and file with all levels
         loggerConfig.MinimumLevel.Debug(); // All levels in DEBUG mode
         loggerConfig.Enrich.WithProperty("Environment", AppConstants.Logging.DebugEnvironment);
-
-        // Configure console sink for standard output (where available)
-        // This works on platforms that support console output
-        loggerConfig.WriteTo.Console(
-            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);
 
         // Configure debug sink for Visual Studio Output window
         // Serilog's Debug sink writes to the Visual Studio Output window
         // Works on Windows, Android, and iOS when debugging in Visual Studio
         // Make sure to select "Debug" in the Output window's "Show output from:" dropdown
-        // This also serves as a fallback if file logging fails
         loggerConfig.WriteTo.Debug(
             outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);
 
@@ -112,7 +106,7 @@ public class SerilogSetup
             }
         }
 #else
-        // RELEASE mode: File logging only, Error and Fatal levels only, no console
+        // RELEASE mode: File logging only, Error level and above only
         loggerConfig.MinimumLevel.Error(); // Only Error and Fatal in RELEASE mode
 
         // Configure file logging (RELEASE mode only)
@@ -140,19 +134,10 @@ public class SerilogSetup
             }
             catch (Exception ex)
             {
-                // File logging failed - create a minimal logger with Debug sink as fallback
-                try
-                {
-                    var fallbackLogger = loggerConfig
-                        .WriteTo.Debug(outputTemplate: AppConstants.Logging.ConsoleOutputTemplate)
-                        .CreateLogger();
-                    fallbackLogger.Error(ex, "Failed to configure file logging");
-                }
-                catch
-                {
-                    // If even fallback logger creation fails, silently continue
-                    // This should never happen, but prevents cascading failures
-                }
+                // File logging failed - in release mode, if file logging fails, we don't want any logging output
+                // Don't add any sinks, so the logger will be created with no output (silent failure)
+                // The enrichment properties are already set, so we just continue without adding sinks
+                _ = ex; // Suppress unused variable warning
             }
         }
 #endif

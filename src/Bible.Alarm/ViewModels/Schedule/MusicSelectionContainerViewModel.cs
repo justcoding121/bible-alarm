@@ -9,6 +9,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -120,6 +121,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         SelectMusicLanguageCommand = commandInitializer.CreateSelectMusicLanguageCommand(
             () => stateHolder.Music, m => stateHolder.Music = m, scheduleId, isNewSchedule, stateHolder.MusicUpdated);
         ToggleRepeatCommand = commandInitializer.CreateToggleRepeatCommand();
+        ToggleMusicEnabledCommand = new RelayCommand(() => MusicEnabled = !MusicEnabled);
     }
 
     public void SetMusicUpdated(bool musicUpdated)
@@ -199,6 +201,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     public ICommand SelectSongPublicationCommand { get; private set; } = null!;
     public ICommand SelectTrackCommand { get; private set; } = null!;
     public ICommand ToggleRepeatCommand { get; private set; } = null!;
+    public ICommand ToggleMusicEnabledCommand { get; private set; } = null!;
 
     public bool MusicEnabled
     {

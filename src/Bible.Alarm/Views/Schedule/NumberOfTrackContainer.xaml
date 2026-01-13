@@ -4,6 +4,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Schedule;assembly=Bible.Alarm"
              xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
+             xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
              x:DataType="vm:NumberOfTrackContainerViewModel"
              IsVisible="True">
     <Border Margin="0"
@@ -33,23 +34,29 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Grid x:Name="TracksButton"
-                  Grid.Row="0"
-                  Margin="0"
-                  Padding="16,16"
-                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                  MinimumHeightRequest="56"
-                  HorizontalOptions="Fill"
-                  VerticalOptions="Fill"
-                  IsVisible="True">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Grid.GestureRecognizers>
+            <core:SfEffectsView Grid.Row="0"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False">
+                <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding OpenModalCommand}"
                                           NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="TracksButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill"
+                      IsVisible="True">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                 <Label Grid.Column="0"
                        FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
@@ -70,25 +77,32 @@
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center"
                        IsVisible="True" />
-            </Grid>
+                </Grid>
+            </core:SfEffectsView>
             <!-- Divider -->
             <BoxView Grid.Row="1"
                      HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />
-            <Grid x:Name="AlwaysPlayFromStartButton"
-                  Grid.Row="2"
-                  Margin="0"
-                  Padding="16,16"
-                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                  MinimumHeightRequest="56"
-                  HorizontalOptions="Fill"
-                  VerticalOptions="Fill">
-                <Grid.GestureRecognizers>
+            <core:SfEffectsView Grid.Row="2"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False">
+                <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding ToggleAlwaysPlayFromStartCommand}"
                                           NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="AlwaysPlayFromStartButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -116,7 +130,8 @@
                         IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />
                 </Grid>
-            </Grid>
+                </Grid>
+            </core:SfEffectsView>
             <!-- Divider -->
             <BoxView Grid.Row="3"
                      HeightRequest="1"
@@ -129,27 +144,33 @@
                     </OnPlatform>
                 </BoxView.IsVisible>
             </BoxView>
-            <Grid x:Name="ShowNotificationButton"
-                  Grid.Row="4"
-                  Margin="0"
-                  Padding="16,16"
-                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                  MinimumHeightRequest="56"
-                  HorizontalOptions="Fill"
-                  VerticalOptions="Fill">
-                <Grid.IsVisible>
+            <core:SfEffectsView Grid.Row="4"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False">
+                <core:SfEffectsView.IsVisible>
                     <OnPlatform x:TypeArguments="x:Boolean" Default="false">
                         <On Platform="Android" Value="true" />
                     </OnPlatform>
-                </Grid.IsVisible>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Grid.GestureRecognizers>
+                </core:SfEffectsView.IsVisible>
+                <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding NotificationEnabledCommand}"
                                           NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="ShowNotificationButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                 <Label Grid.Column="0"
                        FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
@@ -174,7 +195,8 @@
                         IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />
                 </Grid>
-            </Grid>
+                </Grid>
+            </core:SfEffectsView>
         </Grid>
     </Border>
 </ContentView>

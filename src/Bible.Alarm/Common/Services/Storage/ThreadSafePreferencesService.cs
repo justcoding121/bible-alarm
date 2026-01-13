@@ -299,7 +299,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
                 logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
                 return defaultValue;
             }
-        }, cancellationToken) ?? defaultValue;
+        }, cancellationToken);
     }
 
     public async Task<bool> GetAsync(string key, bool defaultValue = false, string? sharedName = null, CancellationToken cancellationToken = default)
@@ -315,7 +315,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
                 logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
                 return defaultValue;
             }
-        }, cancellationToken) ?? defaultValue;
+        }, cancellationToken);
     }
 
     public async Task<double> GetAsync(string key, double defaultValue = 0.0, string? sharedName = null, CancellationToken cancellationToken = default)
@@ -331,7 +331,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
                 logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
                 return defaultValue;
             }
-        }, cancellationToken) ?? defaultValue;
+        }, cancellationToken);
     }
 
     public async Task<float> GetAsync(string key, float defaultValue = 0f, string? sharedName = null, CancellationToken cancellationToken = default)
@@ -347,7 +347,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
                 logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
                 return defaultValue;
             }
-        }, cancellationToken) ?? defaultValue;
+        }, cancellationToken);
     }
 
     public async Task<long> GetAsync(string key, long defaultValue = 0L, string? sharedName = null, CancellationToken cancellationToken = default)
@@ -363,7 +363,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
                 logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
                 return defaultValue;
             }
-        }, cancellationToken) ?? defaultValue;
+        }, cancellationToken);
     }
 
     public async Task<DateTime> GetAsync(string key, DateTime defaultValue, string? sharedName = null, CancellationToken cancellationToken = default)
@@ -379,7 +379,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
                 logger.Warning(ex, "Error reading from Preferences for key: {Key}", key);
                 return defaultValue;
             }
-        }, cancellationToken) ?? defaultValue;
+        }, cancellationToken);
     }
 
     public async Task SetAsync(string key, string value, string? sharedName = null, CancellationToken cancellationToken = default)

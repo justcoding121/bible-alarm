@@ -105,6 +105,8 @@
                         <On Platform="Default">
                             <Button Padding="0"
                                     BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Sunday}"
                                     FontAttributes="Bold"
@@ -152,6 +154,8 @@
                         <On Platform="Default">
                             <Button Padding="0"
                                     BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Monday}"
                                     FontAttributes="Bold"
@@ -199,6 +203,8 @@
                         <On Platform="Default">
                             <Button Padding="0"
                                     BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Tuesday}"
                                     FontAttributes="Bold"
@@ -246,6 +252,8 @@
                         <On Platform="Default">
                             <Button Padding="0"
                                     BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Wednesday}"
                                     FontAttributes="Bold"
@@ -293,6 +301,8 @@
                         <On Platform="Default">
                             <Button Padding="0"
                                     BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Thursday}"
                                     FontAttributes="Bold"
@@ -340,6 +350,8 @@
                         <On Platform="Default">
                             <Button Padding="0"
                                     BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Friday}"
                                     FontAttributes="Bold"
@@ -387,6 +399,8 @@
                         <On Platform="Default">
                             <Button Padding="0"
                                     BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Saturday}"
                                     FontAttributes="Bold"

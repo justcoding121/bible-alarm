@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Views;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI.NavigationServiceHelpers;
@@ -96,6 +97,19 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
                 }
             }
         }
+
+        // Check if playback is active and hide home page if so
+        // This prevents visual flash when app starts cold from Android Auto while playing
+        if (ShouldHideHomePageOnStart())
+        {
+            existingHome.Opacity = 0.0;
+            Logger.Information("Existing home page opacity set to 0.0 after pop (playback active)");
+        }
+        else
+        {
+            // Ensure home page is visible if playback is not active
+            existingHome.Opacity = 1.0;
+        }
     }
 
     private async Task PopToRootAndPushNewHomeAsync(INavigation navigation)
@@ -120,6 +134,15 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
 #endif
 
         ConfigureHomePageNavigation(homePage);
+
+        // Check if playback is active and hide home page immediately if so
+        // This prevents visual flash when app starts cold from Android Auto while playing
+        // We check MediaSession directly as PlaybackState might not be initialized yet
+        if (ShouldHideHomePageOnStart())
+        {
+            homePage.Opacity = 0.0;
+            Logger.Information("Home page opacity set to 0.0 immediately after creation (playback active)");
+        }
 
 #if DEBUG
         var pushStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -190,11 +213,53 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
             return;
         }
 
-        MainThread.BeginInvokeOnMainThread(() =>
+        // Set opacity immediately if already on main thread, otherwise invoke on main thread
+        // This prevents visual flash when hiding the home page during cold start from Android Auto
+        if (MainThread.IsMainThread)
         {
             // If playback is active, hide Home page to prevent flash before modal appears
             // Home will be shown when modal appears or playback stops
             homePage.Opacity = isPlaybackActive ? 0.0 : 1.0;
-        });
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                // If playback is active, hide Home page to prevent flash before modal appears
+                // Home will be shown when modal appears or playback stops
+                homePage.Opacity = isPlaybackActive ? 0.0 : 1.0;
+            });
+        }
+    }
+
+    /// <summary>
+    /// Checks if home page should be hidden on start (when playback is active).
+    /// Checks MediaSession directly as PlaybackState Fluxor store might not be initialized yet during cold start.
+    /// </summary>
+    private bool ShouldHideHomePageOnStart()
+    {
+#if ANDROID
+        try
+        {
+            var mediaSession = Platforms.Android.Services.Media.MediaSessionHelper.Create();
+            var playbackState = mediaSession?.Controller?.PlaybackState;
+            
+            if (playbackState != null)
+            {
+                // Check if playback state indicates active playback (Playing, Buffering, or Paused)
+                var isActive = playbackState.State is 
+                    Android.Support.V4.Media.Session.PlaybackStateCompat.StatePlaying or
+                    Android.Support.V4.Media.Session.PlaybackStateCompat.StateBuffering or
+                    Android.Support.V4.Media.Session.PlaybackStateCompat.StatePaused;
+                
+                return isActive;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Failed to check MediaSession playback state in ShouldHideHomePageOnStart");
+        }
+#endif
+        return false;
     }
 }

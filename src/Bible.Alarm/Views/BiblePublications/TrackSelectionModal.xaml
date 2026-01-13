@@ -157,7 +157,7 @@
                     BorderColor="Transparent"
                     Command="{Binding CloseModalCommand}"
                     CornerRadius="12"
-                    FontSize="{DynamicResource LargeFontSize}"
+                    FontSize="{DynamicResource ButtonFontSize}"
                     FontAttributes="Bold"
                     HorizontalOptions="Fill"
                     MinimumHeightRequest="50"

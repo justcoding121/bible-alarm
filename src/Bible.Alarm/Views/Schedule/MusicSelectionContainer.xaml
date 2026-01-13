@@ -6,6 +6,7 @@
              xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
              xmlns:fn="clr-namespace:Bible.Alarm.Views"
              xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
+             xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
              x:DataType="vm:MusicSelectionContainerViewModel">
     <Border Margin="0"
             Padding="0"
@@ -31,18 +32,28 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Grid x:Name="MusicButton"
-                  Grid.Row="0"
-                  Margin="0"
-                  Padding="16,16"
-                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                  MinimumHeightRequest="56"
-                  HorizontalOptions="Fill"
-                  VerticalOptions="Fill">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+            <core:SfEffectsView Grid.Row="0"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False">
+                <core:SfEffectsView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ToggleMusicEnabledCommand}"
+                                          NumberOfTapsRequired="1" />
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="MusicButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                 <Label Grid.Column="0"
                        FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
@@ -68,7 +79,8 @@
                         IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />
                 </Grid>
-            </Grid>
+                </Grid>
+            </core:SfEffectsView>
             <!-- Collapsible Content Container -->
             <Grid x:Name="CollapsibleContent"
                   Grid.Row="1"
@@ -92,19 +104,25 @@
                          Margin="0"
                          HorizontalOptions="Fill" />
                 <!-- Music Type Row -->
-                <Grid x:Name="MusicTypeButton"
-                      Grid.Row="1"
-                      Margin="0"
-                      Padding="16,16"
-                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                      MinimumHeightRequest="56"
-                      HorizontalOptions="Fill"
-                      VerticalOptions="Fill">
-                    <Grid.GestureRecognizers>
+                <core:SfEffectsView Grid.Row="1"
+                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                     TouchUpEffects="None"
+                                     RippleBackground="{StaticResource PrimaryColor}"
+                                     HighlightBackground="{StaticResource PrimaryLightColor}"
+                                     RippleAnimationDuration="200"
+                                     ShouldIgnoreTouches="False">
+                    <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectMusicTypeCommand}"
                                               NumberOfTapsRequired="1" />
-                    </Grid.GestureRecognizers>
-                    <Grid.ColumnDefinitions>
+                    </core:SfEffectsView.GestureRecognizers>
+                    <Grid x:Name="MusicTypeButton"
+                          Margin="0"
+                          Padding="16,16"
+                          BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                          MinimumHeightRequest="56"
+                          HorizontalOptions="Fill"
+                          VerticalOptions="Fill">
+                        <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
@@ -139,7 +157,8 @@
                             VerticalOptions="Center"
                             VerticalTextAlignment="Center" />
                     </Border>
-                </Grid>
+                    </Grid>
+                </core:SfEffectsView>
                 <!-- Divider -->
                 <BoxView Grid.Row="2"
                          HeightRequest="1"
@@ -148,20 +167,26 @@
                          HorizontalOptions="Fill"
                          IsVisible="{Binding IsMusicLanguageVisible}" />
                 <!-- Music Language Row (only visible when Music Type is Vocals) -->
-                <Grid x:Name="MusicLanguageButton"
-                      Grid.Row="3"
-                      Margin="0"
-                      Padding="16,16"
-                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                      MinimumHeightRequest="56"
-                      HorizontalOptions="Fill"
-                      VerticalOptions="Fill"
-                      IsVisible="{Binding IsMusicLanguageVisible}">
-                    <Grid.GestureRecognizers>
+                <core:SfEffectsView Grid.Row="3"
+                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                     TouchUpEffects="None"
+                                     RippleBackground="{StaticResource PrimaryColor}"
+                                     HighlightBackground="{StaticResource PrimaryLightColor}"
+                                     RippleAnimationDuration="200"
+                                     ShouldIgnoreTouches="False"
+                                     IsVisible="{Binding IsMusicLanguageVisible}">
+                    <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectMusicLanguageCommand}"
                                               NumberOfTapsRequired="1" />
-                    </Grid.GestureRecognizers>
-                    <Grid.ColumnDefinitions>
+                    </core:SfEffectsView.GestureRecognizers>
+                    <Grid x:Name="MusicLanguageButton"
+                          Margin="0"
+                          Padding="16,16"
+                          BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                          MinimumHeightRequest="56"
+                          HorizontalOptions="Fill"
+                          VerticalOptions="Fill">
+                        <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
@@ -195,7 +220,8 @@
                             VerticalOptions="Center"
                             VerticalTextAlignment="Center" />
                     </Border>
-                </Grid>
+                    </Grid>
+                </core:SfEffectsView>
                 <!-- Divider -->
                 <BoxView Grid.Row="4"
                          HeightRequest="1"
@@ -204,21 +230,27 @@
                          HorizontalOptions="Fill"
                          IsVisible="{Binding IsSongPublicationVisible}" />
                 <!-- Song Section Row (only visible when Music Type is Vocals) -->
-                <Grid x:Name="SongPublicationButton"
-                      Grid.Row="5"
-                      Margin="0"
-                      Padding="16,16"
-                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                      MinimumHeightRequest="56"
-                      HorizontalOptions="Fill"
-                      VerticalOptions="Fill"
-                      IsVisible="{Binding IsSongPublicationVisible}"
-                      FlowDirection="{Binding ContentFlowDirection}">
-                    <Grid.GestureRecognizers>
+                <core:SfEffectsView Grid.Row="5"
+                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                     TouchUpEffects="None"
+                                     RippleBackground="{StaticResource PrimaryColor}"
+                                     HighlightBackground="{StaticResource PrimaryLightColor}"
+                                     RippleAnimationDuration="200"
+                                     ShouldIgnoreTouches="False"
+                                     IsVisible="{Binding IsSongPublicationVisible}"
+                                     FlowDirection="{Binding ContentFlowDirection}">
+                    <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectSongPublicationCommand}"
                                               NumberOfTapsRequired="1" />
-                    </Grid.GestureRecognizers>
-                    <Grid.ColumnDefinitions>
+                    </core:SfEffectsView.GestureRecognizers>
+                    <Grid x:Name="SongPublicationButton"
+                          Margin="0"
+                          Padding="16,16"
+                          BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                          MinimumHeightRequest="56"
+                          HorizontalOptions="Fill"
+                          VerticalOptions="Fill">
+                        <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
@@ -253,6 +285,8 @@
                             VerticalTextAlignment="Center" />
                     </Border>
                 </Grid>
+                    </Grid>
+                </core:SfEffectsView>
                 <!-- Divider -->
                 <BoxView Grid.Row="6"
                          HeightRequest="1"
@@ -260,20 +294,26 @@
                          Margin="0"
                          HorizontalOptions="Fill" />
                 <!-- Track Name Row -->
-                <Grid x:Name="TrackButton"
-                      Grid.Row="7"
-                      Margin="0"
-                      Padding="16,16"
-                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                      MinimumHeightRequest="56"
-                      HorizontalOptions="Fill"
-                      VerticalOptions="Fill"
-                      FlowDirection="{Binding ContentFlowDirection}">
-                    <Grid.GestureRecognizers>
+                <core:SfEffectsView Grid.Row="7"
+                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                     TouchUpEffects="None"
+                                     RippleBackground="{StaticResource PrimaryColor}"
+                                     HighlightBackground="{StaticResource PrimaryLightColor}"
+                                     RippleAnimationDuration="200"
+                                     ShouldIgnoreTouches="False"
+                                     FlowDirection="{Binding ContentFlowDirection}">
+                    <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
                                               NumberOfTapsRequired="1" />
-                    </Grid.GestureRecognizers>
-                    <Grid.ColumnDefinitions>
+                    </core:SfEffectsView.GestureRecognizers>
+                    <Grid x:Name="TrackButton"
+                          Margin="0"
+                          Padding="16,16"
+                          BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                          MinimumHeightRequest="56"
+                          HorizontalOptions="Fill"
+                          VerticalOptions="Fill">
+                        <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
@@ -344,6 +384,8 @@
                         </Border>
                     </Grid>
                 </Grid>
+                    </Grid>
+                </core:SfEffectsView>
             </Grid>
         </Grid>
     </Border>

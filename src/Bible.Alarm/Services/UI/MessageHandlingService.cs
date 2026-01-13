@@ -61,17 +61,20 @@ public sealed class MessageHandlingService(
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "Failed to access PlaybackState (Fluxor may not be initialized yet), assuming playback is not active");
-                    isPlaybackActive = false;
+                    logger.Warning(ex, "Failed to access PlaybackState (Fluxor may not be initialized yet), checking MediaSession as fallback");
+                    // On Android, check MediaSession directly as fallback when PlaybackState isn't ready yet
+                    // This is critical for cold starts from Android Auto where playback is active
+                    isPlaybackActive = CheckMediaSessionPlaybackState();
                 }
 
                 // Navigate to the initialized home page (this creates a new Home instance)
                 await navigationService.NavigateToHomeAsync();
 
-                // If playback is active, hide Home page to prevent visual flash before modal appears
+                // Immediately hide Home page if playback is active to prevent visual flash before modal appears
+                // This must happen synchronously right after navigation to prevent the page from being visible
                 if (isPlaybackActive)
                 {
-                    logger.Information("Playback is active - hiding Home page before opening AlarmModal");
+                    logger.Information("Playback is active - hiding Home page immediately to prevent flash before AlarmModal");
                     navigationService.SetHomePageVisibility(isPlaybackActive: true);
                 }
 
@@ -109,6 +112,41 @@ public sealed class MessageHandlingService(
                 logger.Error(e, "An error happened while showing HomePage after initialization.");
             }
         });
+    }
+
+    /// <summary>
+    /// Checks MediaSession directly to determine if playback is active.
+    /// Used as a fallback when PlaybackState Fluxor store isn't initialized yet (e.g., cold start from Android Auto).
+    /// </summary>
+    private bool CheckMediaSessionPlaybackState()
+    {
+#if ANDROID
+        try
+        {
+            var mediaSession = Platforms.Android.Services.Media.MediaSessionHelper.Create();
+            var playbackState = mediaSession?.Controller?.PlaybackState;
+            
+            if (playbackState != null)
+            {
+                // Check if playback state indicates active playback (Playing, Buffering, or Paused)
+                // Paused is included because it means playback was active and can be resumed
+                var isActive = playbackState.State is 
+                    Android.Support.V4.Media.Session.PlaybackStateCompat.StatePlaying or
+                    Android.Support.V4.Media.Session.PlaybackStateCompat.StateBuffering or
+                    Android.Support.V4.Media.Session.PlaybackStateCompat.StatePaused;
+                
+                logger.Information("MediaSession playback state check: State={State}, IsActive={IsActive}", 
+                    playbackState.State, isActive);
+                
+                return isActive;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to check MediaSession playback state, assuming playback is not active");
+        }
+#endif
+        return false;
     }
 
     public void Dispose()

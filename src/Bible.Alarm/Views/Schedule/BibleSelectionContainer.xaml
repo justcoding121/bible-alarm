@@ -5,6 +5,7 @@
              xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Schedule;assembly=Bible.Alarm"
              xmlns:fn="clr-namespace:Bible.Alarm.Views"
              xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
+             xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
              x:DataType="vm:BiblePublicationSelectionContainerViewModel">
     <ContentView.Resources>
         <converters:FlowDirectionToArrowConverter x:Key="flowDirectionToArrowConverter" />
@@ -36,19 +37,25 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <!-- Language Name with icon -->
-            <Grid x:Name="BibleLanguageButton"
-                  Grid.Row="0"
-                  Margin="0"
-                  Padding="16,16"
-                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                  MinimumHeightRequest="56"
-                  HorizontalOptions="Fill"
-                  VerticalOptions="Fill">
-                <Grid.GestureRecognizers>
+            <core:SfEffectsView Grid.Row="0"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False">
+                <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectLanguageCommand}"
                                           NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
-                <Grid.ColumnDefinitions>
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="BibleLanguageButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -88,7 +95,8 @@
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
                 </Border>
-            </Grid>
+                </Grid>
+            </core:SfEffectsView>
             <!-- Divider -->
             <BoxView Grid.Row="1"
                      HeightRequest="1"
@@ -96,20 +104,26 @@
                      Margin="0"
                      HorizontalOptions="Fill" />
             <!-- Publication Name with right arrow -->
-            <Grid x:Name="BiblePublicationButton"
-                  Grid.Row="2"
-                  Margin="0"
-                  Padding="16,16"
-                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                  MinimumHeightRequest="56"
-                  HorizontalOptions="Fill"
-                  VerticalOptions="Fill"
-                  FlowDirection="{Binding ContentFlowDirection}">
-                <Grid.GestureRecognizers>
+            <core:SfEffectsView Grid.Row="2"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False"
+                                 FlowDirection="{Binding ContentFlowDirection}">
+                <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectBibleCommand}"
                                           NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
-                <Grid.ColumnDefinitions>
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="BiblePublicationButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -144,7 +158,8 @@
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
                 </Border>
-            </Grid>
+                </Grid>
+            </core:SfEffectsView>
             <!-- Divider for Section (only visible when Section is visible) -->
             <BoxView Grid.Row="3"
                      HeightRequest="1"
@@ -153,21 +168,27 @@
                      HorizontalOptions="Fill"
                      IsVisible="{Binding IsSectionVisible}" />
             <!-- Section Selection (only visible for traditional Bible reading) -->
-            <Grid x:Name="BiblePublicationSectionButton"
-                  Grid.Row="4"
-                  Margin="0"
-                  Padding="16,16"
-                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                  MinimumHeightRequest="56"
-                  HorizontalOptions="Fill"
-                  VerticalOptions="Fill"
-                  IsVisible="{Binding IsSectionVisible}"
-                  FlowDirection="{Binding ContentFlowDirection}">
-                <Grid.GestureRecognizers>
+            <core:SfEffectsView Grid.Row="4"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False"
+                                 IsVisible="{Binding IsSectionVisible}"
+                                 FlowDirection="{Binding ContentFlowDirection}">
+                <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectSectionCommand}"
                                           NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
-                <Grid.ColumnDefinitions>
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="BiblePublicationSectionButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -202,7 +223,8 @@
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
                 </Border>
-            </Grid>
+                </Grid>
+            </core:SfEffectsView>
             <!-- Divider -->
             <BoxView Grid.Row="5"
                      HeightRequest="1"
@@ -210,20 +232,26 @@
                      Margin="0"
                      HorizontalOptions="Fill" />
             <!-- Track/Part Selection -->
-            <Grid x:Name="BiblePublicationTrackButton"
-                  Grid.Row="6"
-                  Margin="0"
-                  Padding="16,16"
-                  BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                  MinimumHeightRequest="56"
-                  HorizontalOptions="Fill"
-                  VerticalOptions="Fill"
-                  FlowDirection="{Binding ContentFlowDirection}">
-                <Grid.GestureRecognizers>
+            <core:SfEffectsView Grid.Row="6"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False"
+                                 FlowDirection="{Binding ContentFlowDirection}">
+                <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
                                           NumberOfTapsRequired="1" />
-                </Grid.GestureRecognizers>
-                <Grid.ColumnDefinitions>
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="BiblePublicationTrackButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -258,7 +286,8 @@
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
                 </Border>
-            </Grid>
+                </Grid>
+            </core:SfEffectsView>
         </Grid>
     </Border>
 </ContentView>

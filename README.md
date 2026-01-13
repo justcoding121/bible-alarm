@@ -16,17 +16,17 @@
 
 ## Code Quality
 
-[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=coverage)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
-[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=bugs)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
-[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
-[![Duplicated Lines](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
-[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=alert_status)](https://sonarcloud.io/summary?id=justcoding121_bible-alarm)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=coverage)](https://sonarcloud.io/summary?id=justcoding121_bible-alarm)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=ncloc)](https://sonarcloud.io/summary?id=justcoding121_bible-alarm)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=bugs)](https://sonarcloud.io/summary?id=justcoding121_bible-alarm)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=vulnerabilities)](https://sonarcloud.io/summary?id=justcoding121_bible-alarm)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=code_smells)](https://sonarcloud.io/summary?id=justcoding121_bible-alarm)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=security_rating)](https://sonarcloud.io/summary?id=justcoding121_bible-alarm)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=reliability_rating)](https://sonarcloud.io/summary?id=justcoding121_bible-alarm)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=sqale_rating)](https://sonarcloud.io/summary?id=justcoding121_bible-alarm)
+[![Duplicated Lines](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=duplicated_lines_density)](https://sonarcloud.io/summary?id=justcoding121_bible-alarm)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=sqale_index)](https://sonarcloud.io/summary?id=justcoding121_bible-alarm)
 
 ## Download
 
