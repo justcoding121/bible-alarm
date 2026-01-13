@@ -16,10 +16,6 @@ public static class AndroidAutoScheduleHelper
 {
     private static readonly ILogger logger = Log.ForContext(typeof(AndroidAutoScheduleHelper));
 
-    // Unicode directional control characters for RTL support
-    private const char RightToLeftMark = '\u200F';
-    private const char LeftToRightMark = '\u200E';
-
     /// <summary>
     /// Loads schedule state items from Fluxor ApplicationState.
     /// Returns empty list if state is not initialized or no schedules are available.
@@ -60,7 +56,6 @@ public static class AndroidAutoScheduleHelper
     {
         if (scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            var isRtl = string.Equals(scheduleItem.BiblePublicationLanguageDirection, "rtl", StringComparison.OrdinalIgnoreCase);
             var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
 
             if (hasSectionStructure)
@@ -90,7 +85,7 @@ public static class AndroidAutoScheduleHelper
 
                 if (title != null)
                 {
-                    return isRtl ? $"{RightToLeftMark}{title}" : title;
+                    return title;
                 }
             }
             else
@@ -98,8 +93,7 @@ public static class AndroidAutoScheduleHelper
                 // Drama/Video: Show track title
                 if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
                 {
-                    var title = scheduleItem.BiblePublicationTrackTitle;
-                    return isRtl ? $"{RightToLeftMark}{title}" : title;
+                    return scheduleItem.BiblePublicationTrackTitle;
                 }
             }
         }
@@ -117,7 +111,6 @@ public static class AndroidAutoScheduleHelper
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
         var subtitleParts = new List<string>();
-        var isRtl = string.Equals(scheduleItem.BiblePublicationLanguageDirection, "rtl", StringComparison.OrdinalIgnoreCase);
 
         // Add schedule name with bullet points only if not empty
         if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
@@ -136,23 +129,18 @@ public static class AndroidAutoScheduleHelper
 
             if (!string.IsNullOrWhiteSpace(languageName))
             {
-                // Apply RTL marker to the language name if needed
-                var rtlLanguageName = isRtl ? $"{RightToLeftMark}{languageName}" : languageName;
-
                 // Add music note emoji (🎵) to the right of language text if music is enabled
                 // Using emoji instead of single note symbol for larger, more visible appearance
                 var languageText = scheduleItem.MusicEnabled
-                    ? $"{rtlLanguageName} 🎵"
-                    : rtlLanguageName;
+                    ? $"{languageName} 🎵"
+                    : languageName;
                 subtitleParts.Add(languageText);
             }
         }
 
         if (subtitleParts.Count > 0)
         {
-            var subtitle = string.Join(" ", subtitleParts);
-            // Apply RTL marker to the entire subtitle if RTL
-            return isRtl ? $"{RightToLeftMark}{subtitle}" : subtitle;
+            return string.Join(" ", subtitleParts);
         }
 
         // Fallback: show status and time if no Bible reading schedule

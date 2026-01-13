@@ -18,7 +18,6 @@ public sealed class ScheduleListItemSubtitleManager(
 {
     private string subtitle = string.Empty;
     private string language = string.Empty;
-    private FlowDirection flowDirection = FlowDirection.LeftToRight;
 
     public string SubTitle
     {
@@ -32,17 +31,11 @@ public sealed class ScheduleListItemSubtitleManager(
         set => language = value;
     }
 
-    public FlowDirection FlowDirection
-    {
-        get => flowDirection;
-        set => flowDirection = value;
-    }
-
     /// <summary>
     /// Refreshes subtitle from ScheduleStateItem in state (uses pre-populated SectionName).
     /// Falls back to async database lookup if SectionName is not available in state.
     /// </summary>
-    public void RefreshSubTitleFromState(int scheduleId, ScheduleStateItem? providedScheduleStateItem, Action<string> setSubTitle, Action<string> setLanguage, Action<FlowDirection> setFlowDirection, Action<string> onPropertyChanged)
+    public void RefreshSubTitleFromState(int scheduleId, ScheduleStateItem? providedScheduleStateItem, Action<string> setSubTitle, Action<string> setLanguage, Action<string> onPropertyChanged)
     {
         if (scheduleId <= 0)
         {
@@ -66,7 +59,7 @@ public sealed class ScheduleListItemSubtitleManager(
 
             if (scheduleStateItem?.BiblePublicationScheduleId.HasValue == true)
             {
-                UpdateLanguageFromState(scheduleStateItem, setLanguage, setFlowDirection, onPropertyChanged);
+                UpdateLanguageFromState(scheduleStateItem, setLanguage, onPropertyChanged);
                 var subtitle = BuildSubtitleFromState(scheduleStateItem);
                 
                 logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Built subtitle: '{Subtitle}' for schedule {ScheduleId}", subtitle, scheduleId);
@@ -103,21 +96,21 @@ public sealed class ScheduleListItemSubtitleManager(
             else
             {
                 logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - No BiblePublicationScheduleId for schedule {ScheduleId}, clearing language", scheduleId);
-                ClearLanguage(setLanguage, setFlowDirection, onPropertyChanged);
+                ClearLanguage(setLanguage, onPropertyChanged);
             }
 
             // Only fall back to async lookup if display names are not expected to be populated
             logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Falling back to async lookup for schedule {ScheduleId}", scheduleId);
-            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, setFlowDirection, onPropertyChanged);
+            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, onPropertyChanged);
         }
         catch (Exception e)
         {
             logger.Error(e, "An error happened while refreshing subtitle from state for schedule {ScheduleId}", scheduleId);
-            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, setFlowDirection, onPropertyChanged);
+            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, onPropertyChanged);
         }
     }
 
-    private static void UpdateLanguageFromState(ScheduleStateItem scheduleStateItem, Action<string> setLanguage, Action<FlowDirection> setFlowDirection, Action<string> onPropertyChanged)
+    private static void UpdateLanguageFromState(ScheduleStateItem scheduleStateItem, Action<string> setLanguage, Action<string> onPropertyChanged)
     {
         if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
         {
@@ -132,14 +125,6 @@ public sealed class ScheduleListItemSubtitleManager(
             setLanguage(string.Empty);
         }
         onPropertyChanged("Language");
-
-        // Update flow direction based on language direction
-        var direction = scheduleStateItem.BiblePublicationLanguageDirection ?? "ltr";
-        var flowDirection = string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
-            ? FlowDirection.RightToLeft
-            : FlowDirection.LeftToRight;
-        setFlowDirection(flowDirection);
-        onPropertyChanged("ContentFlowDirection");
     }
 
     private static string BuildSubtitleFromState(ScheduleStateItem scheduleStateItem)
@@ -183,19 +168,17 @@ public sealed class ScheduleListItemSubtitleManager(
         }
     }
 
-    private static void ClearLanguage(Action<string> setLanguage, Action<FlowDirection> setFlowDirection, Action<string> onPropertyChanged)
+    private static void ClearLanguage(Action<string> setLanguage, Action<string> onPropertyChanged)
     {
         setLanguage(string.Empty);
         onPropertyChanged("Language");
-        setFlowDirection(FlowDirection.LeftToRight);
-        onPropertyChanged("ContentFlowDirection");
     }
 
     /// <summary>
     /// Async fallback method for refreshing track name from database.
     /// Only used if SectionName is not available in state.
     /// </summary>
-    public async Task RefreshTrackNameAsync(int scheduleId, bool force, Action<string> setSubTitle, Action<string> setLanguage, Action<FlowDirection> setFlowDirection, Action<string> onPropertyChanged)
+    public async Task RefreshTrackNameAsync(int scheduleId, bool force, Action<string> setSubTitle, Action<string> setLanguage, Action<string> onPropertyChanged)
     {
         if (scheduleId <= 0)
         {
@@ -209,7 +192,6 @@ public sealed class ScheduleListItemSubtitleManager(
                 .FirstOrDefault(s => s.Id == scheduleId);
 
             string language = string.Empty;
-            string direction = "ltr";
             if (scheduleStateItem != null)
             {
                 if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
@@ -220,16 +202,11 @@ public sealed class ScheduleListItemSubtitleManager(
                 {
                     language = scheduleStateItem.BiblePublicationLanguageCode;
                 }
-                direction = scheduleStateItem.BiblePublicationLanguageDirection ?? "ltr";
             }
 
             // Run database operations off UI thread
             var displayName = await Task.Run(async () =>
                 await displayService.GetTrackDisplayNameAsync(scheduleId, force));
-
-            var flowDirection = string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
-                ? FlowDirection.RightToLeft
-                : FlowDirection.LeftToRight;
 
             // Update UI on main thread
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -243,10 +220,6 @@ public sealed class ScheduleListItemSubtitleManager(
                 // Update Language property
                 setLanguage(language);
                 onPropertyChanged("Language");
-
-                // Update FlowDirection property
-                setFlowDirection(flowDirection);
-                onPropertyChanged("ContentFlowDirection");
             });
         }
         catch (Exception e)

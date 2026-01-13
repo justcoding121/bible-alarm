@@ -462,8 +462,7 @@
                                                Text="{Binding SubTitle}"
                                                TextColor="{DynamicResource PrimaryTextColor}"
                                                LineBreakMode="TailTruncation"
-                                               MaxLines="2"
-                                               FlowDirection="{Binding ContentFlowDirection}" />
+                                               MaxLines="2" />
                                     </VerticalStackLayout>
                                     <Grid Grid.Row="2"
                                           Grid.Column="0"
