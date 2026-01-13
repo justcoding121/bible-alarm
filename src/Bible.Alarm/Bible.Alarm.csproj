@@ -57,6 +57,8 @@
 		<!-- Windows-specific -->
 		<!-- For .NET MAUI 10, minimum supported OS version is Windows 10 version 1809 (10.0.17763.0) with WinUI 3 -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+		<!-- Specify RuntimeIdentifier for Windows to ensure the correct runtime pack is restored -->
+		<RuntimeIdentifier Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' AND '$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
 		<UseWinUI>true</UseWinUI>
 		<WindowsTargetPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</WindowsTargetPlatformVersion>
 		<!-- Allow unsafe blocks for WinRT interop (required for CsWinRT1030) -->
@@ -82,9 +84,11 @@
 
 		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
 		
-		<!-- Suppress IL trimming warnings only when trimming is NOT enabled -->
+		<!-- Suppress IL trimming/linking warnings -->
 		<!-- MAUI apps use platform-specific linking (AndroidLinkMode, MtouchLink), not .NET trimming -->
-		<!-- If PublishTrimmed is enabled, these warnings will appear and should be addressed -->
+		<!-- IL2037: EF Core internal method resolution - safe to suppress as EF handles this at runtime -->
+		<!-- IL2026/IL2072/IL2111: Suppress only when trimming is NOT enabled -->
+		<NoWarn>$(NoWarn);IL2037</NoWarn>
 		<NoWarn Condition="'$(PublishTrimmed)' != 'true'">$(NoWarn);IL2026;IL2072;IL2111</NoWarn>
 	</PropertyGroup>
 

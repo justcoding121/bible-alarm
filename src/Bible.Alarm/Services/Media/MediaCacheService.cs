@@ -39,6 +39,12 @@ public sealed class MediaCacheService(
     private string GetScheduleCacheFolder(int scheduleId) => Path.Combine(cacheRoot, scheduleId.ToString());
 
     private static readonly ConcurrentDictionary<long, SemaphoreSlim> lockStore = new();
+    
+    /// <summary>
+    /// Tracks in-progress downloads by cache key (scheduleId + url) to prevent duplicate downloads.
+    /// When a download is in progress, subsequent requests for the same file will await the existing task.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, Task<string?>> inProgressDownloads = new();
 
     public string GetCacheFileName(string url)
     {
@@ -231,6 +237,60 @@ public sealed class MediaCacheService(
 
     private async Task<string?> DownloadAndCacheTrackWithProgressAsync(PlayItem playItem, int scheduleId, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
     {
+        // Create a unique key for this download (scheduleId + URL)
+        var downloadKey = $"{scheduleId}:{playItem.Url}";
+        
+        // Check if there's already a download in progress for this file
+        if (inProgressDownloads.TryGetValue(downloadKey, out var existingTask))
+        {
+            logger.Debug("Download already in progress for {Url}, ScheduleId: {ScheduleId}. Waiting for existing download to complete.", 
+                playItem.Url, scheduleId);
+            try
+            {
+                // Wait for the existing download to complete and return its result
+                return await existingTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // The existing download was cancelled, let the caller handle it
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // The existing download failed, log but don't rethrow since caller may want to try again
+                logger.Warning(ex, "Existing download failed for {Url}, ScheduleId: {ScheduleId}", playItem.Url, scheduleId);
+                return null;
+            }
+        }
+        
+        // Create the download task
+        var downloadTaskSource = new TaskCompletionSource<string?>();
+        var downloadTask = downloadTaskSource.Task;
+        
+        // Try to add our task to the dictionary - if another thread beat us, use their task
+        if (!inProgressDownloads.TryAdd(downloadKey, downloadTask))
+        {
+            // Another thread just started the download, wait for their result
+            if (inProgressDownloads.TryGetValue(downloadKey, out existingTask))
+            {
+                logger.Debug("Another thread started download for {Url}, ScheduleId: {ScheduleId}. Waiting for that download.", 
+                    playItem.Url, scheduleId);
+                try
+                {
+                    return await existingTask;
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "Concurrent download failed for {Url}, ScheduleId: {ScheduleId}", playItem.Url, scheduleId);
+                    return null;
+                }
+            }
+        }
+        
         try
         {
             // Check for cancellation before downloading
@@ -244,15 +304,19 @@ public sealed class MediaCacheService(
                 await storageService.SaveFile(scheduleCacheFolder, GetCacheFileName(playItem.Url), bytes);
                 logger.Debug("Successfully downloaded and saved track: {Url}, Size: {Size} bytes, ScheduleId: {ScheduleId}", 
                     playItem.Url, bytes.Length, scheduleId);
+                downloadTaskSource.SetResult(playItem.Url);
                 return playItem.Url;
             }
 
             logger.Warning("Download returned null or empty bytes for: {Url}, attempting URL refresh", playItem.Url);
-            return await RefreshUrlAndRetryDownloadAsync(playItem, scheduleId, cancellationToken);
+            var refreshedUrl = await RefreshUrlAndRetryDownloadAsync(playItem, scheduleId, cancellationToken);
+            downloadTaskSource.SetResult(refreshedUrl);
+            return refreshedUrl;
         }
         catch (OperationCanceledException)
         {
             logger.Information("Download cancelled for track: {Url}", playItem.Url);
+            downloadTaskSource.SetCanceled(cancellationToken);
             throw;
         }
         catch (Exception ex)
@@ -262,18 +326,27 @@ public sealed class MediaCacheService(
             // Try refreshing URL and retrying
             try
             {
-                return await RefreshUrlAndRetryDownloadAsync(playItem, scheduleId, cancellationToken);
+                var refreshedUrl = await RefreshUrlAndRetryDownloadAsync(playItem, scheduleId, cancellationToken);
+                downloadTaskSource.SetResult(refreshedUrl);
+                return refreshedUrl;
             }
             catch (OperationCanceledException)
             {
                 logger.Information("URL refresh cancelled for track: {Url}", playItem.Url);
+                downloadTaskSource.SetCanceled(cancellationToken);
                 throw;
             }
             catch (Exception refreshEx)
             {
                 logger.Error(refreshEx, "Exception while refreshing URL for track: {Url}", playItem.Url);
+                downloadTaskSource.SetResult(null);
                 return null;
             }
+        }
+        finally
+        {
+            // Always remove from the dictionary when done (success or failure)
+            inProgressDownloads.TryRemove(downloadKey, out _);
         }
     }
 
@@ -455,6 +528,25 @@ public sealed class MediaCacheService(
         {
             try
             {
+                // Skip deletion if this file is currently being downloaded
+                // Extract schedule ID and check if any download is in progress for this file
+                var fileName = Path.GetFileName(filePath);
+                var parentDir = Path.GetFileName(Path.GetDirectoryName(filePath) ?? "");
+                
+                if (int.TryParse(parentDir, out var scheduleId))
+                {
+                    // Check if any in-progress download matches this file
+                    var isBeingDownloaded = inProgressDownloads.Keys
+                        .Any(key => key.StartsWith($"{scheduleId}:") && 
+                                    GetCacheFileName(key.Substring($"{scheduleId}:".Length)) == fileName);
+                    
+                    if (isBeingDownloaded)
+                    {
+                        logger.Debug("Skipping deletion of file being downloaded: {FilePath}", filePath);
+                        continue;
+                    }
+                }
+                
                 storageService.DeleteFile(filePath);
             }
             catch (Exception e)
