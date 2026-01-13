@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.XPath;
 using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
@@ -33,7 +34,14 @@ public class WindowsVersionPatcher(IVersionService versionService, IFileService 
             return;
         }
 
-        var identityNode = doc.SelectSingleNode("/Package/Identity");
+        // Create namespace manager for XPath queries
+        var namespaceManager = new XmlNamespaceManager(doc.NameTable);
+        namespaceManager.AddNamespace("appx", "http://schemas.microsoft.com/appx/manifest/foundation/windows10");
+
+        // Try namespace-aware XPath first, then fallback to simple XPath
+        var identityNode = doc.SelectSingleNode("//appx:Identity", namespaceManager) 
+                          ?? doc.SelectSingleNode("//Identity");
+        
         if (identityNode?.Attributes == null)
         {
             Console.WriteLine("Could not find Identity node in Windows manifest");

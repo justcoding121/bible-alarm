@@ -1,14 +1,35 @@
 using System.IO;
-using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.VersionPatcher.Services.Contracts;
 
 namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 
 public class PathService : IPathService
 {
-    public string GetAndroidManifestPath() => Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Bible.Alarm.Droid", "Properties", "AndroidManifest.xml");
+    private static string GetRepositoryRoot()
+    {
+        var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
+        
+        // Find the bible-alarm root directory
+        while (currentDir != null && currentDir.Name != "bible-alarm")
+        {
+            currentDir = currentDir.Parent;
+        }
+        
+        if (currentDir == null)
+        {
+            throw new DirectoryNotFoundException("Could not find bible-alarm repository root directory");
+        }
+        
+        return currentDir.FullName;
+    }
+    
+    private static readonly string RepositoryRoot = GetRepositoryRoot();
 
-    public string GetIosInfoPlistPath() => Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Bible.Alarm.iOS", "Info.plist");
+    public string GetAndroidManifestPath() => Path.Combine(RepositoryRoot, "src", "Bible.Alarm", "Platforms", "Android", "AndroidManifest.xml");
 
-    public string GetWindowsManifestPath() => Path.Combine(DirectoryHelper.IndexDirectory, "src", "Bible.Alarm", "Platforms", "Windows", "Package.appxmanifest");
+    public string GetIosInfoPlistPath() => Path.Combine(RepositoryRoot, "src", "Bible.Alarm", "Platforms", "iOS", "Info.plist");
+
+    public string GetWindowsManifestPath() => Path.Combine(RepositoryRoot, "src", "Bible.Alarm", "Platforms", "Windows", "Package.appxmanifest");
+
+    public string GetCsprojPath() => Path.Combine(RepositoryRoot, "src", "Bible.Alarm", "Bible.Alarm.csproj");
 }

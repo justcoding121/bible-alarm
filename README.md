@@ -4,6 +4,16 @@
 
 ![alt tag](https://github.com/justcoding121/bible-alarm/blob/develop/screenshots/all.jpg)
 
+## CI/CD Status
+
+### Build
+[![Build](https://github.com/justcoding121/bible-alarm/actions/workflows/build.yml/badge.svg)](https://github.com/justcoding121/bible-alarm/actions/workflows/build.yml)
+
+### Deployment
+[![Deploy Android](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-android.yml/badge.svg)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-android.yml)
+[![Deploy iOS](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-ios.yml/badge.svg)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-ios.yml)
+[![Deploy Windows](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-windows.yml/badge.svg)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-windows.yml)
+
 ## Code Quality
 
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=justcoding121_bible-alarm)

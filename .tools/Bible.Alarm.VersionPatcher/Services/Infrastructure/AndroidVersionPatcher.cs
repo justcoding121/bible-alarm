@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using Bible.Alarm.VersionPatcher.Services.Contracts;
@@ -12,53 +14,50 @@ public class AndroidVersionPatcher(IVersionService versionService, IFileService 
 
     public async Task PatchVersionAsync()
     {
-        var manifestFile = pathService.GetAndroidManifestPath();
+        // In .NET MAUI, Android versions are stored in the csproj file, not AndroidManifest.xml
+        // Update ApplicationVersion and ApplicationDisplayVersion in the csproj
+        var csprojFile = pathService.GetCsprojPath();
 
-        if (!fileService.FileExists(manifestFile))
+        if (!fileService.FileExists(csprojFile))
         {
-            Console.WriteLine($"Android manifest file not found: {manifestFile}");
+            Console.WriteLine($"Android csproj file not found: {csprojFile}");
             return;
         }
 
-        var content = await fileService.ReadFileAsync(manifestFile);
-        var doc = new XmlDocument();
-
-        try
+        var content = await fileService.ReadFileAsync(csprojFile);
+        
+        // Update ApplicationVersion (version code)
+        var versionCodeMatch = Regex.Match(content, @"<ApplicationVersion>(\d+)</ApplicationVersion>");
+        if (versionCodeMatch.Success)
         {
-            doc.LoadXml(content);
+            var currentVersionCode = versionCodeMatch.Groups[1].Value;
+            var newVersionCode = versionService.IncrementVersionCode(currentVersionCode);
+            content = Regex.Replace(content, 
+                @"<ApplicationVersion>\d+</ApplicationVersion>", 
+                $"<ApplicationVersion>{newVersionCode}</ApplicationVersion>");
+            Console.WriteLine($"Android ApplicationVersion updated: {currentVersionCode} -> {newVersionCode}");
         }
-        catch (XmlException)
+        else
         {
-            Console.WriteLine("Invalid XML format in Android manifest");
-            return;
-        }
-
-        var manifestNode = doc.SelectSingleNode("/manifest");
-        if (manifestNode?.Attributes == null)
-        {
-            Console.WriteLine("Could not find manifest node in Android manifest");
-            return;
+            Console.WriteLine("Could not find ApplicationVersion in csproj");
         }
 
-        var attrs = manifestNode.Attributes;
-        var versionCode = attrs["android:versionCode"]?.Value;
-        var versionName = attrs["android:versionName"]?.Value;
-
-        if (string.IsNullOrEmpty(versionCode) || string.IsNullOrEmpty(versionName))
+        // Update ApplicationDisplayVersion (version name)
+        var versionNameMatch = Regex.Match(content, @"<ApplicationDisplayVersion>([\d.]+)</ApplicationDisplayVersion>");
+        if (versionNameMatch.Success)
         {
-            Console.WriteLine("Could not find version attributes in Android manifest");
-            return;
+            var currentVersionName = versionNameMatch.Groups[1].Value;
+            var newVersionName = versionService.IncrementVersion(currentVersionName);
+            content = Regex.Replace(content, 
+                @"<ApplicationDisplayVersion>[\d.]+</ApplicationDisplayVersion>", 
+                $"<ApplicationDisplayVersion>{newVersionName}</ApplicationDisplayVersion>");
+            Console.WriteLine($"Android ApplicationDisplayVersion updated: {currentVersionName} -> {newVersionName}");
+        }
+        else
+        {
+            Console.WriteLine("Could not find ApplicationDisplayVersion in csproj");
         }
 
-        var newVersionCode = versionService.IncrementVersionCode(versionCode);
-        var newVersionName = versionService.IncrementVersion(versionName);
-
-        attrs["android:versionCode"].Value = newVersionCode;
-        attrs["android:versionName"].Value = newVersionName;
-
-        var updatedContent = doc.OuterXml;
-        await fileService.WriteFileAsync(manifestFile, updatedContent);
-
-        Console.WriteLine($"Android version updated: {versionName} -> {newVersionName}, {versionCode} -> {newVersionCode}");
+        await fileService.WriteFileAsync(csprojFile, content);
     }
 }

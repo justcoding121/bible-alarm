@@ -2,7 +2,7 @@ name: Update media links
 
 on:
   schedule:
-    - cron:  '0 2 * * 0'
+    - cron:  '0 2 14 * *'
     
 jobs:
   build:
@@ -14,6 +14,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: develop
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4

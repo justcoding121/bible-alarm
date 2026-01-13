@@ -172,9 +172,23 @@ ClientBin/
 *.dbmdl
 *.dbproj.schemaview
 *.pfx
+*.p12
+*.p8
+*.jks
+*.keystore
+*.mobileprovision
 *.publishsettings
 node_modules/
 orleans.codegen.cs
+
+# CI/CD secrets and certificates (should never be committed)
+android-keystore.jks
+certificate.pfx
+certificate.p12
+build_certificate.p12
+*.keychain-db
+private_keys/
+AuthKey_*.p8
 
 # RIA/Silverlight projects
 Generated_Code/

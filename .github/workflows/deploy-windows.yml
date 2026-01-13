@@ -1,0 +1,217 @@
+name: Deploy Windows to Microsoft Store
+
+on:
+  push:
+    branches:
+      - stable
+
+jobs:
+  deploy-windows:
+    runs-on: windows-latest
+    
+    env:
+      SYNCFUSION_LICENSE_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: stable
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    # Decode and install the code signing certificate
+    - name: Install Certificate
+      shell: powershell
+      env:
+        WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+        WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      run: |
+        $certBytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64)
+        $certPath = Join-Path $env:RUNNER_TEMP "certificate.pfx"
+        [IO.File]::WriteAllBytes($certPath, $certBytes)
+        
+        $securePassword = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText
+        Import-PfxCertificate -FilePath $certPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
+        
+        Remove-Item $certPath -Force
+        
+    - name: Restore dependencies
+      run: dotnet restore src/Bible.Alarm.sln
+      
+    # Patch version
+    - name: Patch Windows Version
+      shell: powershell
+      run: |
+        # Run version patcher
+        dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release
+        
+        # Also increment ApplicationVersion in csproj for MAUI
+        $csprojFile = "src/Bible.Alarm/Bible.Alarm.csproj"
+        $content = Get-Content $csprojFile -Raw
+        
+        # Update ApplicationVersion
+        if ($content -match '<ApplicationVersion>(\d+)</ApplicationVersion>') {
+            $currentVersion = [int]$Matches[1]
+            $newVersion = $currentVersion + 1
+            $content = $content -replace "<ApplicationVersion>$currentVersion</ApplicationVersion>", "<ApplicationVersion>$newVersion</ApplicationVersion>"
+            Write-Host "Updated ApplicationVersion: $currentVersion -> $newVersion"
+        }
+        
+        # Update ApplicationDisplayVersion
+        if ($content -match '<ApplicationDisplayVersion>(\d+)\.(\d+)</ApplicationDisplayVersion>') {
+            $major = [int]$Matches[1]
+            $minor = [int]$Matches[2]
+            $newMinor = $minor + 1
+            if ($newMinor -gt 99) {
+                $newMinor = 0
+                $major = $major + 1
+            }
+            $oldDisplay = "$($Matches[1]).$($Matches[2])"
+            $newDisplay = "$major.$newMinor"
+            $content = $content -replace "<ApplicationDisplayVersion>$oldDisplay</ApplicationDisplayVersion>", "<ApplicationDisplayVersion>$newDisplay</ApplicationDisplayVersion>"
+            Write-Host "Updated ApplicationDisplayVersion: $oldDisplay -> $newDisplay"
+        }
+        
+        Set-Content $csprojFile $content -NoNewline
+        
+        # Also update Package.appxmanifest version
+        $manifestFile = "src/Bible.Alarm/Platforms/Windows/Package.appxmanifest"
+        $manifestContent = Get-Content $manifestFile -Raw
+        
+        if ($manifestContent -match 'Version="(\d+)\.(\d+)\.(\d+)\.(\d+)"') {
+            $major = [int]$Matches[1]
+            $minor = [int]$Matches[2]
+            $newMinor = $minor + 1
+            if ($newMinor -gt 99) {
+                $newMinor = 0
+                $major = $major + 1
+            }
+            $oldVersion = "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
+            $newVersion = "$major.$newMinor.0.0"
+            $manifestContent = $manifestContent -replace "Version=`"$oldVersion`"", "Version=`"$newVersion`""
+            Set-Content $manifestFile $manifestContent -NoNewline
+            Write-Host "Updated Package.appxmanifest Version: $oldVersion -> $newVersion"
+        }
+
+    # Build Windows release (MSIX package)
+    - name: Build Windows Release
+      run: |
+        dotnet publish src/Bible.Alarm/Bible.Alarm.csproj `
+          --configuration Release `
+          --framework net10.0-windows10.0.19041.0 `
+          -p:WindowsPackageType=MSIX `
+          -p:RuntimeIdentifier=win-x64 `
+          -p:AppxPackageSigningEnabled=true `
+          -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}" `
+          --output ./artifacts/windows
+      shell: powershell
+
+    # Upload to Microsoft Store using Partner Center API
+    - name: Upload to Microsoft Store
+      shell: powershell
+      env:
+        AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+        AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
+        AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+        STORE_APP_ID: ${{ secrets.MICROSOFT_STORE_APP_ID }}
+      run: |
+        # Find the MSIX package
+        $msixPath = Get-ChildItem -Path "./artifacts/windows" -Filter "*.msix" -Recurse | Select-Object -First 1
+        
+        if (-not $msixPath) {
+            $msixPath = Get-ChildItem -Path "./artifacts/windows" -Filter "*.msixbundle" -Recurse | Select-Object -First 1
+        }
+        
+        if (-not $msixPath) {
+            Write-Error "No MSIX package found!"
+            exit 1
+        }
+        
+        Write-Host "Found package: $($msixPath.FullName)"
+        
+        # Get access token from Azure AD
+        $tokenUrl = "https://login.microsoftonline.com/$env:AZURE_AD_TENANT_ID/oauth2/token"
+        $body = @{
+            grant_type    = "client_credentials"
+            client_id     = $env:AZURE_AD_CLIENT_ID
+            client_secret = $env:AZURE_AD_CLIENT_SECRET
+            resource      = "https://manage.devcenter.microsoft.com"
+        }
+        
+        $tokenResponse = Invoke-RestMethod -Uri $tokenUrl -Method Post -Body $body
+        $accessToken = $tokenResponse.access_token
+        
+        $headers = @{
+            Authorization = "Bearer $accessToken"
+            "Content-Type" = "application/json"
+        }
+        
+        # Create a new submission
+        $submissionUrl = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:STORE_APP_ID/submissions"
+        
+        # Delete any pending submissions first
+        try {
+            $pendingSubmission = Invoke-RestMethod -Uri $submissionUrl -Method Get -Headers $headers -ErrorAction SilentlyContinue
+            if ($pendingSubmission.id) {
+                Invoke-RestMethod -Uri "$submissionUrl/$($pendingSubmission.id)" -Method Delete -Headers $headers
+            }
+        } catch {
+            # No pending submission, continue
+        }
+        
+        # Create new submission
+        $newSubmission = Invoke-RestMethod -Uri $submissionUrl -Method Post -Headers $headers
+        $submissionId = $newSubmission.id
+        $fileUploadUrl = $newSubmission.fileUploadUrl
+        
+        Write-Host "Created submission: $submissionId"
+        
+        # Upload the package
+        $uploadHeaders = @{
+            "x-ms-blob-type" = "BlockBlob"
+        }
+        
+        # Read package and upload
+        $packageBytes = [System.IO.File]::ReadAllBytes($msixPath.FullName)
+        Invoke-RestMethod -Uri $fileUploadUrl -Method Put -Headers $uploadHeaders -Body $packageBytes -ContentType "application/octet-stream"
+        
+        Write-Host "Package uploaded successfully"
+        
+        # Commit the submission
+        $commitUrl = "$submissionUrl/$submissionId/commit"
+        Invoke-RestMethod -Uri $commitUrl -Method Post -Headers $headers
+        
+        Write-Host "Submission committed successfully"
+
+    # Verify no secrets are staged before committing
+    - name: Verify no secrets in working directory
+      shell: powershell
+      run: |
+        # Check for common secret file patterns
+        $secretFiles = Get-ChildItem -Path . -Recurse -Include *.jks,*.keystore,*.pfx,*.p12,*.p8,*.mobileprovision -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notlike "*\.git\*" }
+        if ($secretFiles) {
+          Write-Error "ERROR: Secret files found in working directory!"
+          $secretFiles | ForEach-Object { Write-Host $_.FullName }
+          exit 1
+        }
+        Write-Host "✓ No secret files found in working directory"
+
+    # Commit version changes (only specific version files)
+    - name: Commit version changes
+      uses: EndBug/add-and-commit@v9
+      with:
+        author_name: github-actions[bot]
+        author_email: github-actions[bot]@users.noreply.github.com
+        message: '[Windows] Update app version for Microsoft Store release'
+        add: |
+          src/Bible.Alarm/Bible.Alarm.csproj
+          src/Bible.Alarm/Platforms/Windows/Package.appxmanifest
+        # Explicitly ignore all other files to prevent accidental commits
+        default_author: github_actions
+        skip_dirty_check: false
+        push: true

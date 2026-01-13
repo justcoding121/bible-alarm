@@ -1,0 +1,127 @@
+name: Deploy Android to Google Play
+
+on:
+  push:
+    branches:
+      - stable
+
+jobs:
+  deploy-android:
+    runs-on: ubuntu-latest
+    
+    env:
+      SYNCFUSION_LICENSE_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: stable
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    # Decode and setup the keystore for signing
+    - name: Decode Keystore
+      run: |
+        # Use temp directory to ensure keystore is never committed
+        KEYSTORE_PATH="${{ runner.temp }}/android-keystore.jks"
+        echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$KEYSTORE_PATH"
+        echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> $GITHUB_ENV
+      
+    - name: Restore dependencies
+      run: dotnet restore src/Bible.Alarm.sln
+      
+    # Patch version using the version patcher tool
+    - name: Patch Android Version
+      run: |
+        # Run version patcher for Android
+        dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release
+        
+        # Also increment ApplicationVersion in csproj for MAUI
+        CSPROJ_FILE="src/Bible.Alarm/Bible.Alarm.csproj"
+        CURRENT_VERSION=$(grep -oP '(?<=<ApplicationVersion>)\d+(?=</ApplicationVersion>)' "$CSPROJ_FILE")
+        NEW_VERSION=$((CURRENT_VERSION + 1))
+        sed -i "s/<ApplicationVersion>$CURRENT_VERSION<\/ApplicationVersion>/<ApplicationVersion>$NEW_VERSION<\/ApplicationVersion>/" "$CSPROJ_FILE"
+        
+        # Increment ApplicationDisplayVersion (minor version)
+        CURRENT_DISPLAY=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+(?=</ApplicationDisplayVersion>)' "$CSPROJ_FILE")
+        MAJOR=$(echo $CURRENT_DISPLAY | cut -d. -f1)
+        MINOR=$(echo $CURRENT_DISPLAY | cut -d. -f2)
+        NEW_MINOR=$((MINOR + 1))
+        if [ $NEW_MINOR -gt 99 ]; then
+          NEW_MINOR=0
+          MAJOR=$((MAJOR + 1))
+        fi
+        NEW_DISPLAY="$MAJOR.$NEW_MINOR"
+        sed -i "s/<ApplicationDisplayVersion>$CURRENT_DISPLAY<\/ApplicationDisplayVersion>/<ApplicationDisplayVersion>$NEW_DISPLAY<\/ApplicationDisplayVersion>/" "$CSPROJ_FILE"
+        
+        echo "Updated ApplicationVersion: $CURRENT_VERSION -> $NEW_VERSION"
+        echo "Updated ApplicationDisplayVersion: $CURRENT_DISPLAY -> $NEW_DISPLAY"
+
+    # Build Android release
+    - name: Build Android Release
+      run: |
+        dotnet publish src/Bible.Alarm/Bible.Alarm.csproj \
+          --configuration Release \
+          --framework net10.0-android \
+          -p:AndroidKeyStore=true \
+          -p:AndroidSigningKeyStore=${{ runner.temp }}/android-keystore.jks \
+          -p:AndroidSigningKeyAlias=${{ secrets.ANDROID_KEY_ALIAS }} \
+          -p:AndroidSigningKeyPass=${{ secrets.ANDROID_KEY_PASSWORD }} \
+          -p:AndroidSigningStorePass=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+          -p:AndroidPackageFormat=aab \
+          --output ./artifacts/android
+
+    # Upload to Google Play Store
+    - name: Upload to Google Play
+      uses: r0adkll/upload-google-play@v1
+      with:
+        serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        packageName: com.jthomas.info.Bible.Alarm
+        releaseFiles: ./artifacts/android/*.aab
+        track: production
+        status: completed
+        
+    # Clean up keystore
+    - name: Clean up keystore
+      if: always()
+      run: rm -f "${{ runner.temp }}/android-keystore.jks"
+
+    # Verify no secrets are staged before committing
+    - name: Verify no secrets in working directory
+      run: |
+        # Check for common secret file patterns
+        if find . -name "*.jks" -o -name "*.keystore" -o -name "*.pfx" -o -name "*.p12" -o -name "*.p8" -o -name "*.mobileprovision" | grep -v ".git"; then
+          echo "ERROR: Secret files found in working directory!"
+          find . -name "*.jks" -o -name "*.keystore" -o -name "*.pfx" -o -name "*.p12" -o -name "*.p8" -o -name "*.mobileprovision" | grep -v ".git"
+          exit 1
+        fi
+        echo "✓ No secret files found in working directory"
+
+    # Commit version changes (only specific version files)
+    - name: Commit version changes
+      uses: EndBug/add-and-commit@v9
+      with:
+        author_name: github-actions[bot]
+        author_email: github-actions[bot]@users.noreply.github.com
+        message: '[Android] Update app version for Play Store release'
+        add: |
+          src/Bible.Alarm/Bible.Alarm.csproj
+          src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
+        # Explicitly ignore all other files to prevent accidental commits
+        default_author: github_actions
+        skip_dirty_check: false
+        push: true

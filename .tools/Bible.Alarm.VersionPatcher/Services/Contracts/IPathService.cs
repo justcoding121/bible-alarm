@@ -5,4 +5,5 @@ public interface IPathService
     string GetAndroidManifestPath();
     string GetIosInfoPlistPath();
     string GetWindowsManifestPath();
+    string GetCsprojPath();
 }
