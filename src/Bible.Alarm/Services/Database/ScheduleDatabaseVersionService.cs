@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Interfaces.Platform;
+using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Services.Database.Interfaces;
 using Serilog;
 
@@ -10,10 +11,12 @@ namespace Bible.Alarm.Services.Database;
 /// Service for managing Schedule database version tracking.
 /// Uses Preferences for storage to track the app version that last verified/migrated the Schedule database.
 /// Used to optimize migration checks by skipping them when the app version hasn't changed.
+/// Uses IThreadSafePreferencesService for centralized, thread-safe Preferences access.
 /// </summary>
 public sealed class ScheduleDatabaseVersionService(
     ILogger logger,
-    IVersionFinder versionFinder)
+    IVersionFinder versionFinder,
+    IThreadSafePreferencesService preferencesService)
     : IScheduleDatabaseVersionService
 {
     private const string VersionPreferenceKey = "ScheduleDatabaseVersion";
@@ -22,12 +25,12 @@ public sealed class ScheduleDatabaseVersionService(
     {
         try
         {
-            if (!Preferences.ContainsKey(VersionPreferenceKey))
+            if (!preferencesService.ContainsKey(VersionPreferenceKey))
             {
                 return Task.FromResult(false);
             }
 
-            var storedVersion = Preferences.Get(VersionPreferenceKey, (string?)null);
+            var storedVersion = preferencesService.Get(VersionPreferenceKey, (string?)null);
             if (string.IsNullOrEmpty(storedVersion))
             {
                 return Task.FromResult(false);
@@ -59,7 +62,7 @@ public sealed class ScheduleDatabaseVersionService(
         try
         {
             var currentVersion = versionFinder.GetVersionName();
-            Preferences.Set(VersionPreferenceKey, currentVersion);
+            preferencesService.Set(VersionPreferenceKey, currentVersion);
             logger.Debug("Saved Schedule database version {Version} to Preferences", currentVersion);
         }
         catch (Exception ex)

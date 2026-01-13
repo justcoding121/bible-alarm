@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Text.Json;
+using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Serilog;
 
@@ -9,17 +10,19 @@ namespace Bible.Alarm.Services.Storage;
 /// <summary>
 /// Service for caching data to disk using Preferences storage with JSON serialization.
 /// Provides a simple key-value cache that can wrap any factory function.
+/// Uses IThreadSafePreferencesService for centralized, thread-safe Preferences access.
 /// </summary>
 public sealed class DiskCacheService : IDiskCacheService
 {
     private const string CacheKeyPrefix = "DiskCache_";
     private readonly ILogger logger;
+    private readonly IThreadSafePreferencesService preferencesService;
     private readonly JsonSerializerOptions jsonOptions;
-    private readonly SemaphoreSlim preferencesLock = new(1, 1);
 
-    public DiskCacheService(ILogger logger)
+    public DiskCacheService(ILogger logger, IThreadSafePreferencesService preferencesService)
     {
         this.logger = logger;
+        this.preferencesService = preferencesService;
         jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -39,9 +42,9 @@ public sealed class DiskCacheService : IDiskCacheService
         try
         {
             // Try to get from cache first
-            if (Preferences.ContainsKey(cacheKey))
+            if (preferencesService.ContainsKey(cacheKey))
             {
-                var json = Preferences.Get(cacheKey, (string?)null);
+                var json = preferencesService.Get(cacheKey, (string?)null);
                 if (!string.IsNullOrEmpty(json))
                 {
                     try
@@ -60,7 +63,7 @@ public sealed class DiskCacheService : IDiskCacheService
                         logger.Warning(deserializeEx, "Deserialization failed for key: {Key}, removing corrupted cache entry and calling factory", key);
                         try
                         {
-                            Preferences.Remove(cacheKey);
+                            preferencesService.Remove(cacheKey);
                         }
                         catch
                         {
@@ -107,12 +110,12 @@ public sealed class DiskCacheService : IDiskCacheService
 
         try
         {
-            if (!Preferences.ContainsKey(cacheKey))
+            if (!preferencesService.ContainsKey(cacheKey))
             {
                 return Task.FromResult<T?>(default);
             }
 
-            var json = Preferences.Get(cacheKey, (string?)null);
+            var json = preferencesService.Get(cacheKey, (string?)null);
             if (string.IsNullOrEmpty(json))
             {
                 return Task.FromResult<T?>(default);
@@ -127,7 +130,7 @@ public sealed class DiskCacheService : IDiskCacheService
             // Remove corrupted cache entry
             try
             {
-                Preferences.Remove(cacheKey);
+                preferencesService.Remove(cacheKey);
             }
             catch
             {
@@ -144,39 +147,17 @@ public sealed class DiskCacheService : IDiskCacheService
     {
         var cacheKey = GetCacheKey(key);
 
-        // Serialize access to Preferences to prevent file locking issues
-        await preferencesLock.WaitAsync(cancellationToken);
         try
         {
             var json = JsonSerializer.Serialize(value, jsonOptions);
-
-            // Retry logic for Preferences.Set() which can throw IOException if file is locked
-            const int maxRetries = 5;
-            for (int attempt = 1; attempt <= maxRetries; attempt++)
-            {
-                try
-                {
-                    Preferences.Set(cacheKey, json);
-                    logger.Debug("Cached value for key: {Key}", key);
-                    return;
-                }
-                catch (IOException ioEx) when (attempt < maxRetries)
-                {
-                    var delayMs = 100 * (int)Math.Pow(2, attempt - 1); // 100ms, 200ms, 400ms, 800ms, 1600ms
-                    logger.Warning(ioEx, "Error writing to Preferences (likely file locked), retrying (attempt {Attempt}/{MaxRetries}) after {DelayMs}ms for key: {Key}",
-                        attempt, maxRetries, delayMs, key);
-                    await Task.Delay(delayMs, cancellationToken);
-                }
-            }
+            // IThreadSafePreferencesService handles thread-safety and retries internally
+            await preferencesService.SetAsync(cacheKey, json, null, cancellationToken);
+            logger.Debug("Cached value for key: {Key}", key);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Error serializing and caching value for key: {Key}", key);
             throw;
-        }
-        finally
-        {
-            preferencesLock.Release();
         }
     }
 
@@ -187,23 +168,17 @@ public sealed class DiskCacheService : IDiskCacheService
     {
         var cacheKey = GetCacheKey(key);
 
-        // Serialize access to Preferences to prevent file locking issues
-        preferencesLock.Wait();
         try
         {
-            if (Preferences.ContainsKey(cacheKey))
+            if (preferencesService.ContainsKey(cacheKey))
             {
-                Preferences.Remove(cacheKey);
+                preferencesService.Remove(cacheKey);
                 logger.Debug("Removed cache entry for key: {Key}", key);
             }
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "Error removing cache entry for key: {Key}", key);
-        }
-        finally
-        {
-            preferencesLock.Release();
         }
     }
 
@@ -213,7 +188,7 @@ public sealed class DiskCacheService : IDiskCacheService
     public bool ContainsKey(string key)
     {
         var cacheKey = GetCacheKey(key);
-        return Preferences.ContainsKey(cacheKey);
+        return preferencesService.ContainsKey(cacheKey);
     }
 
     /// <summary>

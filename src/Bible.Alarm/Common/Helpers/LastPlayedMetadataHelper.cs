@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Common.Interfaces.Storage;
 using Serilog;
 
 namespace Bible.Alarm.Common.Helpers;
@@ -6,10 +7,25 @@ namespace Bible.Alarm.Common.Helpers;
 /// <summary>
 /// Static helper for saving and retrieving the last played track metadata to/from Preferences.
 /// Used to persist metadata across app restarts for all platforms.
+/// Uses IThreadSafePreferencesService for centralized, thread-safe Preferences access.
 /// </summary>
 public static class LastPlayedMetadataHelper
 {
     private static readonly ILogger logger = Log.ForContext(typeof(LastPlayedMetadataHelper));
+    
+    private static IThreadSafePreferencesService GetPreferencesService()
+    {
+        try
+        {
+            return Common.ServiceProviderManager.GetService<IThreadSafePreferencesService>();
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to get IThreadSafePreferencesService, falling back to direct Preferences access");
+            // Fallback to direct Preferences access if service is not available (shouldn't happen in normal operation)
+            throw;
+        }
+    }
 
     // Preference keys
     private const string LastPlayedTitleKey = "LastPlayedTitle";
@@ -42,19 +58,20 @@ public static class LastPlayedMetadataHelper
                 return;
             }
 
-            Preferences.Set(LastPlayedTitleKey, title ?? "");
-            Preferences.Set(LastPlayedArtistKey, artist ?? "");
-            Preferences.Set(LastPlayedAlbumKey, album ?? "");
-            Preferences.Set(LastPlayedArtworkUrlKey, artworkUrl ?? "");
+            var prefs = GetPreferencesService();
+            prefs.Set(LastPlayedTitleKey, title ?? "");
+            prefs.Set(LastPlayedArtistKey, artist ?? "");
+            prefs.Set(LastPlayedAlbumKey, album ?? "");
+            prefs.Set(LastPlayedArtworkUrlKey, artworkUrl ?? "");
 
             // Save schedule ID if available, otherwise remove it
             if (scheduleId.HasValue)
             {
-                Preferences.Set(LastPlayedScheduleIdKey, scheduleId.Value);
+                prefs.Set(LastPlayedScheduleIdKey, scheduleId.Value);
             }
             else
             {
-                Preferences.Remove(LastPlayedScheduleIdKey);
+                prefs.Remove(LastPlayedScheduleIdKey);
             }
 
             logger.Debug("Saved last played metadata to Preferences - Title: {Title}, Artist: {Artist}, ScheduleId: {ScheduleId}",
@@ -74,8 +91,9 @@ public static class LastPlayedMetadataHelper
     {
         try
         {
-            var title = Preferences.Get(LastPlayedTitleKey, "");
-            var artist = Preferences.Get(LastPlayedArtistKey, "");
+            var prefs = GetPreferencesService();
+            var title = prefs.Get(LastPlayedTitleKey, "");
+            var artist = prefs.Get(LastPlayedArtistKey, "");
 
             // Return null if no valid metadata exists
             if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(artist))
@@ -83,9 +101,9 @@ public static class LastPlayedMetadataHelper
                 return null;
             }
 
-            var album = Preferences.Get(LastPlayedAlbumKey, "");
-            var artworkUrl = Preferences.Get(LastPlayedArtworkUrlKey, "");
-            var scheduleId = Preferences.Get(LastPlayedScheduleIdKey, -1);
+            var album = prefs.Get(LastPlayedAlbumKey, "");
+            var artworkUrl = prefs.Get(LastPlayedArtworkUrlKey, "");
+            var scheduleId = prefs.Get(LastPlayedScheduleIdKey, -1);
 
             return (
                 Title: title,
@@ -109,11 +127,12 @@ public static class LastPlayedMetadataHelper
     {
         try
         {
-            Preferences.Remove(LastPlayedTitleKey);
-            Preferences.Remove(LastPlayedArtistKey);
-            Preferences.Remove(LastPlayedAlbumKey);
-            Preferences.Remove(LastPlayedArtworkUrlKey);
-            Preferences.Remove(LastPlayedScheduleIdKey);
+            var prefs = GetPreferencesService();
+            prefs.Remove(LastPlayedTitleKey);
+            prefs.Remove(LastPlayedArtistKey);
+            prefs.Remove(LastPlayedAlbumKey);
+            prefs.Remove(LastPlayedArtworkUrlKey);
+            prefs.Remove(LastPlayedScheduleIdKey);
 
             logger.Debug("Cleared last played metadata from Preferences");
         }

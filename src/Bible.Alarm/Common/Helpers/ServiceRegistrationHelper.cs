@@ -121,6 +121,9 @@ public static class ServiceRegistrationHelper
         // Register logging
         services.AddSingleton(_ => Log.Logger);
 
+        // Register thread-safe Preferences service (must be singleton to share lock across all instances)
+        services.AddSingleton<Bible.Alarm.Common.Interfaces.Storage.IThreadSafePreferencesService, Bible.Alarm.Common.Services.Storage.ThreadSafePreferencesService>();
+
         // Register core services that don't have platform dependencies
         services.AddSingleton<IDownloadService, DownloadService>();
         services.AddSingleton<IMediaIndexVersionService, MediaIndexVersionService>();

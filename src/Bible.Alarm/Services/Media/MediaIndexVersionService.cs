@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Interfaces.Platform;
+using Bible.Alarm.Common.Interfaces.Storage;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Serilog;
@@ -11,11 +12,13 @@ namespace Bible.Alarm.Services.Media;
 /// Service for managing media index version tracking.
 /// Uses Preferences for storage (new) with backward compatibility for version.dat file (legacy).
 /// Used to determine if the media index database needs to be updated or migrated.
+/// Uses IThreadSafePreferencesService for centralized, thread-safe Preferences access.
 /// </summary>
 public sealed class MediaIndexVersionService(
     ILogger logger,
     IStorageService storageService,
-    IVersionFinder versionFinder)
+    IVersionFinder versionFinder,
+    IThreadSafePreferencesService preferencesService)
     : IMediaIndexVersionService
 {
     private const string VersionPreferenceKey = "MediaIndexVersion";
@@ -28,7 +31,7 @@ public sealed class MediaIndexVersionService(
     public async Task<bool> VersionFileExistsAsync()
     {
         // Check Preferences first (new method)
-        if (Preferences.ContainsKey(VersionPreferenceKey))
+        if (preferencesService.ContainsKey(VersionPreferenceKey))
         {
             return true;
         }
@@ -40,9 +43,9 @@ public sealed class MediaIndexVersionService(
     public async Task<string?> ReadVersionAsync()
     {
         // Try Preferences first (new method)
-        if (Preferences.ContainsKey(VersionPreferenceKey))
+        if (preferencesService.ContainsKey(VersionPreferenceKey))
         {
-            var version = Preferences.Get(VersionPreferenceKey, (string?)null);
+            var version = preferencesService.Get(VersionPreferenceKey, (string?)null);
             if (!string.IsNullOrEmpty(version))
             {
                 return version;
@@ -90,7 +93,7 @@ public sealed class MediaIndexVersionService(
             var currentVersion = versionFinder.GetVersionName();
 
             // Save to Preferences (new method)
-            Preferences.Set(VersionPreferenceKey, currentVersion);
+            preferencesService.Set(VersionPreferenceKey, currentVersion);
             logger.Debug("Saved current version {Version} to Preferences", currentVersion);
 
             // Also save to version.dat for backward compatibility during transition
@@ -121,9 +124,9 @@ public sealed class MediaIndexVersionService(
     {
         try
         {
-            if (!Preferences.ContainsKey(VersionPreferenceKey))
+            if (!preferencesService.ContainsKey(VersionPreferenceKey))
             {
-                Preferences.Set(VersionPreferenceKey, version);
+                preferencesService.Set(VersionPreferenceKey, version);
                 logger.Debug("Migrated version {Version} from version.dat to Preferences", version);
             }
         }
