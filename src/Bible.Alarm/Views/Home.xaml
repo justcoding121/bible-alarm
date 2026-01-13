@@ -9,7 +9,7 @@
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
     xmlns:vm="clr-namespace:Bible.Alarm.ViewModels"
     xmlns:buttons="clr-namespace:Syncfusion.Maui.Buttons;assembly=Syncfusion.Maui.Buttons"
-    xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
+    xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared;assembly=Bible.Alarm"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
@@ -37,21 +37,75 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
+                <!-- SfEffectsView wrapper for WinUI only -->
+                <core:SfEffectsView Grid.Row="0"
+                                    TouchDownEffects="Ripple"
+                                    TouchUpEffects="None"
+                                    RippleBackground="{StaticResource PrimaryColor}"
+                                    RippleAnimationDuration="200"
+                                    ShouldIgnoreTouches="False"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Fill">
+                    <core:SfEffectsView.IsVisible>
+                        <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                            <On Platform="WinUI" Value="true" />
+                        </OnPlatform>
+                    </core:SfEffectsView.IsVisible>
+                    <core:SfEffectsView.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding AddScheduleCommand}" />
+                    </core:SfEffectsView.GestureRecognizers>
+                    <Button x:Name="AddScheduleEffectsButton"
+                            Margin="{OnPlatform Default='0,0,0,8',
+                                                iOS='0,0,0,8'}"
+                            AutomationId="AddScheduleButton"
+                            BackgroundColor="{StaticResource PrimaryColor}"
+                            CornerRadius="12"
+                            Command="{Binding AddScheduleCommand}"
+                            IsEnabled="{Binding IsBootstrapReady}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="{DynamicResource IconStandardFontSize}"
+                            HorizontalOptions="Fill"
+                            HeightRequest="{DynamicResource IconStandardContainerSize}"
+                            Padding="0"
+                            Text="{x:Static fn:GlyphNames.Plus}"
+                            TextColor="White"
+                            InputTransparent="{OnPlatform WinUI=True, Default=False}">
+                        <Button.Shadow>
+                            <Shadow Brush="#40000000" 
+                                    Offset="0,2" 
+                                    Radius="4" 
+                                    Opacity="0.3" />
+                        </Button.Shadow>
+                        <Button.Triggers>
+                            <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5" />
+                                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
+                            </Trigger>
+                            <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                <Setter Property="Opacity" Value="1.0" />
+                                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
+                            </Trigger>
+                        </Button.Triggers>
+                    </Button>
+                </core:SfEffectsView>
+                <!-- Regular button for Android/iOS (with native effects) -->
                 <Button Grid.Row="0"
-                    Margin="{OnPlatform Default='0,0,0,8',
-                                        iOS='0,0,0,8'}"
-                    AutomationId="AddScheduleButton"
-                    BackgroundColor="{StaticResource PrimaryColor}"
-                    CornerRadius="12"
-                    Command="{Binding AddScheduleCommand}"
-                    IsEnabled="{Binding IsBootstrapReady}"
-                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="{DynamicResource IconStandardFontSize}"
-                    HorizontalOptions="Fill"
-                    HeightRequest="{DynamicResource IconStandardContainerSize}"
-                    Padding="0"
-                    Text="{x:Static fn:GlyphNames.Plus}"
-                    TextColor="White">
+                        x:Name="AddScheduleButtonNoEffects"
+                        Margin="{OnPlatform Default='0,0,0,8',
+                                            iOS='0,0,0,8'}"
+                        AutomationId="AddScheduleButton"
+                        BackgroundColor="{StaticResource PrimaryColor}"
+                        CornerRadius="12"
+                        Command="{Binding AddScheduleCommand}"
+                        IsEnabled="{Binding IsBootstrapReady}"
+                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                        FontSize="{DynamicResource IconStandardFontSize}"
+                        HorizontalOptions="Fill"
+                        HeightRequest="{DynamicResource IconStandardContainerSize}"
+                        Padding="0"
+                        Text="{x:Static fn:GlyphNames.Plus}"
+                        TextColor="White"
+                        IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
                     <Button.Shadow>
                         <Shadow Brush="#40000000" 
                                 Offset="0,2" 
@@ -262,88 +316,130 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <Border Grid.Column="0"
-                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Sunday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                                StrokeShape="RoundRectangle 4,4,4,4"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center">
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
                                                     Text="S"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Sunday'}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Sunday'}"
+                                                    HorizontalTextAlignment="Center"
+                                                    VerticalTextAlignment="Center"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center" />
                                         </Border>
                                         <Border Grid.Column="1"
-                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Monday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                                StrokeShape="RoundRectangle 4,4,4,4"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center">
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
                                                     Text="M"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Monday'}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Monday'}"
+                                                    HorizontalTextAlignment="Center"
+                                                    VerticalTextAlignment="Center"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center" />
                                         </Border>
                                         <Border Grid.Column="2"
-                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Tuesday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                                StrokeShape="RoundRectangle 4,4,4,4"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center">
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
                                                     Text="T"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Tuesday'}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Tuesday'}"
+                                                    HorizontalTextAlignment="Center"
+                                                    VerticalTextAlignment="Center"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center" />
                                         </Border>
                                         <Border Grid.Column="3"
-                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Wednesday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                                StrokeShape="RoundRectangle 4,4,4,4"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center">
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
                                                     Text="W"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Wednesday'}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Wednesday'}"
+                                                    HorizontalTextAlignment="Center"
+                                                    VerticalTextAlignment="Center"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center" />
                                         </Border>
                                         <Border Grid.Column="4"
-                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Thursday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                                StrokeShape="RoundRectangle 4,4,4,4"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center">
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
                                                     Text="T"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Thursday'}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Thursday'}"
+                                                    HorizontalTextAlignment="Center"
+                                                    VerticalTextAlignment="Center"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center" />
                                         </Border>
                                         <Border Grid.Column="5"
-                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Friday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                                StrokeShape="RoundRectangle 4,4,4,4"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center">
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
                                                     Text="F"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Friday'}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Friday'}"
+                                                    HorizontalTextAlignment="Center"
+                                                    VerticalTextAlignment="Center"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center" />
                                         </Border>
                                         <Border Grid.Column="6"
-                                                Padding="{OnPlatform WinUI='5,3', Default='6,4'}"
+                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Saturday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4">
+                                                StrokeShape="RoundRectangle 4,4,4,4"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center">
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
                                                     Text="S"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Saturday'}" />
+                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Saturday'}"
+                                                    HorizontalTextAlignment="Center"
+                                                    VerticalTextAlignment="Center"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center" />
                                         </Border>
                                     </Grid>
                                     <VerticalStackLayout Grid.Row="1" 
@@ -379,6 +475,37 @@
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
+                                        <!-- Previous button - SfEffectsView for WinUI only -->
+                                        <core:SfEffectsView Grid.Column="0"
+                                                            TouchDownEffects="Ripple"
+                                                            TouchUpEffects="None"
+                                                            RippleBackground="{DynamicResource PrimaryColor}"
+                                                            RippleAnimationDuration="200"
+                                                            ShouldIgnoreTouches="False"
+                                                            HorizontalOptions="Start"
+                                                            VerticalOptions="Center">
+                                            <core:SfEffectsView.IsVisible>
+                                                <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                                                    <On Platform="WinUI" Value="true" />
+                                                </OnPlatform>
+                                            </core:SfEffectsView.IsVisible>
+                                            <core:SfEffectsView.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding PreviousCommand}" />
+                                            </core:SfEffectsView.GestureRecognizers>
+                                            <Button Padding="0"
+                                                    BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                                                    CornerRadius="6"
+                                                    Command="{Binding PreviousCommand}"
+                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                    FontSize="{DynamicResource IconStandardFontSize}"
+                                                    HorizontalOptions="Start"
+                                                    HeightRequest="{DynamicResource IconSmallContainerSize}"
+                                                    WidthRequest="{DynamicResource IconSmallContainerSize}"
+                                                    Text="{x:Static fn:GlyphNames.Left}"
+                                                    TextColor="{DynamicResource TextSecondaryColor}"
+                                                    VerticalOptions="Center"
+                                                    InputTransparent="{OnPlatform WinUI=True, Default=False}" />
+                                        </core:SfEffectsView>
                                         <Button Grid.Column="0"
                                                 Padding="0"
                                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -391,7 +518,39 @@
                                                 WidthRequest="{DynamicResource IconSmallContainerSize}"
                                                 Text="{x:Static fn:GlyphNames.Left}"
                                                 TextColor="{DynamicResource TextSecondaryColor}"
-                                                VerticalOptions="Center" />
+                                                VerticalOptions="Center"
+                                                IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}" />
+                                        <!-- Next button - SfEffectsView for WinUI only -->
+                                        <core:SfEffectsView Grid.Column="1"
+                                                            TouchDownEffects="Ripple"
+                                                            TouchUpEffects="None"
+                                                            RippleBackground="{DynamicResource PrimaryColor}"
+                                                            RippleAnimationDuration="200"
+                                                            ShouldIgnoreTouches="False"
+                                                            HorizontalOptions="Start"
+                                                            VerticalOptions="Center">
+                                            <core:SfEffectsView.IsVisible>
+                                                <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                                                    <On Platform="WinUI" Value="true" />
+                                                </OnPlatform>
+                                            </core:SfEffectsView.IsVisible>
+                                            <core:SfEffectsView.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding NextCommand}" />
+                                            </core:SfEffectsView.GestureRecognizers>
+                                            <Button Padding="0"
+                                                    BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                                                    CornerRadius="6"
+                                                    Command="{Binding NextCommand}"
+                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                    FontSize="{DynamicResource IconStandardFontSize}"
+                                                    HeightRequest="{DynamicResource IconSmallContainerSize}"
+                                                    WidthRequest="{DynamicResource IconSmallContainerSize}"
+                                                    HorizontalOptions="Start"
+                                                    Text="{x:Static fn:GlyphNames.Right}"
+                                                    TextColor="{DynamicResource TextSecondaryColor}"
+                                                    VerticalOptions="Center"
+                                                    InputTransparent="{OnPlatform WinUI=True, Default=False}" />
+                                        </core:SfEffectsView>
                                         <Button Grid.Column="1"
                                                 Padding="0"
                                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -404,7 +563,8 @@
                                                 HorizontalOptions="Start"
                                                 Text="{x:Static fn:GlyphNames.Right}"
                                                 TextColor="{DynamicResource TextSecondaryColor}"
-                                                VerticalOptions="Center" />
+                                                VerticalOptions="Center"
+                                                IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}" />
                                     </Grid>
                                 </Grid>
                                 <Grid Grid.Column="2"
@@ -417,28 +577,40 @@
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
                                     <!-- Windows-specific delete button -->
-                                    <Button Grid.Row="0"
+                                    <core:SfEffectsView Grid.Row="0"
                                             Margin="0,0,0,8"
-                                            Padding="0"
-                                            BackgroundColor="{StaticResource ErrorColor}"
-                                            CornerRadius="100"
-                                            Command="{Binding DeleteCommand}"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="{DynamicResource IconSmallFontSize}"
-                                            HeightRequest="{DynamicResource IconSmallContainerSize}"
-                                            WidthRequest="{DynamicResource IconSmallContainerSize}"
+                                            TouchDownEffects="Ripple"
+                                            TouchUpEffects="None"
+                                            RippleBackground="{StaticResource ErrorColor}"
+                                            RippleAnimationDuration="200"
+                                            ShouldIgnoreTouches="False"
                                             HorizontalOptions="Center"
                                             VerticalOptions="Center"
-                                            Text="{x:Static fn:GlyphNames.Trash}"
-                                            TextColor="White"
                                             IsVisible="{OnPlatform WinUI='True', Default='False'}">
-                                        <Button.Shadow>
-                                            <Shadow Brush="#40000000" 
-                                                    Offset="0,2" 
-                                                    Radius="4" 
-                                                    Opacity="0.3" />
-                                        </Button.Shadow>
-                                    </Button>
+                                        <core:SfEffectsView.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding DeleteCommand}" />
+                                        </core:SfEffectsView.GestureRecognizers>
+                                        <Button Padding="0"
+                                                BackgroundColor="{StaticResource ErrorColor}"
+                                                CornerRadius="100"
+                                                Command="{Binding DeleteCommand}"
+                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                FontSize="{DynamicResource IconSmallFontSize}"
+                                                HeightRequest="{DynamicResource IconSmallContainerSize}"
+                                                WidthRequest="{DynamicResource IconSmallContainerSize}"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center"
+                                                Text="{x:Static fn:GlyphNames.Trash}"
+                                                TextColor="White"
+                                                InputTransparent="True">
+                                            <Button.Shadow>
+                                                <Shadow Brush="#40000000" 
+                                                        Offset="0,2" 
+                                                        Radius="4" 
+                                                        Opacity="0.3" />
+                                            </Button.Shadow>
+                                        </Button>
+                                    </core:SfEffectsView>
                                     <shared:PlatformSwitch Grid.Row="1"
                                             HorizontalOptions="End"
                                             IsToggled="{Binding IsEnabled, Mode=TwoWay}"
@@ -486,23 +658,65 @@
         </Grid>
         
         <!-- Floating Alarm Settings Button (Android only) -->
-        <Button
-            AutomationId="AlarmSettingsFloatingButton"
-            BackgroundColor="{StaticResource PrimaryColor}"
-            CornerRadius="100"
-            Command="{Binding OpenAlarmSettingsCommand}"
-            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-            FontSize="{DynamicResource IconStandardFontSize}"
-            HeightRequest="{DynamicResource IconLargeContainerSize}"
+        <!-- Floating alarm settings button - SfEffectsView for WinUI only -->
+        <core:SfEffectsView AutomationId="AlarmSettingsFloatingButton"
+            TouchDownEffects="Ripple"
+            TouchUpEffects="None"
+            RippleBackground="{StaticResource PrimaryColor}"
+            RippleAnimationDuration="200"
+            ShouldIgnoreTouches="False"
             HorizontalOptions="End"
+            VerticalOptions="End"
             IsVisible="{Binding IsFloatingButtonVisible}"
             Margin="0,0,16,16"
             Opacity="{Binding IsFloatingButtonVisible, Converter={StaticResource booleanToDoubleConverter}}"
-            Padding="0"
-            Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
-            VerticalOptions="End"
-            WidthRequest="{DynamicResource IconLargeContainerSize}"
             ZIndex="100">
+            <core:SfEffectsView.IsVisible>
+                <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                    <On Platform="WinUI" Value="true" />
+                </OnPlatform>
+            </core:SfEffectsView.IsVisible>
+            <core:SfEffectsView.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding OpenAlarmSettingsCommand}" />
+            </core:SfEffectsView.GestureRecognizers>
+            <Button BackgroundColor="{StaticResource PrimaryColor}"
+                    CornerRadius="100"
+                    Command="{Binding OpenAlarmSettingsCommand}"
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    FontSize="{DynamicResource IconStandardFontSize}"
+                    HeightRequest="{DynamicResource IconLargeContainerSize}"
+                    WidthRequest="{DynamicResource IconLargeContainerSize}"
+                    HorizontalOptions="End"
+                    Padding="0"
+                    Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
+                    VerticalOptions="End"
+                    InputTransparent="True">
+                <Button.Shadow>
+                    <Shadow Brush="#40000000" 
+                            Offset="0,4" 
+                            Radius="8" 
+                            Opacity="0.4" />
+                </Button.Shadow>
+            </Button>
+        </core:SfEffectsView>
+        <!-- Regular button for Android/iOS -->
+        <Button x:Name="AlarmSettingsFloatingButtonNoEffects"
+                AutomationId="AlarmSettingsFloatingButton"
+                BackgroundColor="{StaticResource PrimaryColor}"
+                CornerRadius="100"
+                Command="{Binding OpenAlarmSettingsCommand}"
+                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                FontSize="{DynamicResource IconStandardFontSize}"
+                HeightRequest="{DynamicResource IconLargeContainerSize}"
+                WidthRequest="{DynamicResource IconLargeContainerSize}"
+                HorizontalOptions="End"
+                Margin="0,0,16,16"
+                Opacity="{Binding IsFloatingButtonVisible, Converter={StaticResource booleanToDoubleConverter}}"
+                Padding="0"
+                Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
+                VerticalOptions="End"
+                IsVisible="{Binding IsFloatingButtonVisible}"
+                ZIndex="100">
             <Button.Shadow>
                 <Shadow Brush="#40000000" 
                         Offset="0,4" 

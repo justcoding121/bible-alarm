@@ -284,7 +284,6 @@
                             VerticalOptions="Center"
                             VerticalTextAlignment="Center" />
                     </Border>
-                </Grid>
                     </Grid>
                 </core:SfEffectsView>
                 <!-- Divider -->
@@ -384,7 +383,6 @@
                         </Border>
                     </Grid>
                 </Grid>
-                    </Grid>
                 </core:SfEffectsView>
             </Grid>
         </Grid>

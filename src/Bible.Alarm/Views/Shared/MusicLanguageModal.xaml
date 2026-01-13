@@ -11,8 +11,10 @@
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
+    xmlns:sharedControls="clr-namespace:Bible.Alarm.Views.Shared;assembly=Bible.Alarm"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
+    xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
     x:DataType="music:SongPublicationSelectionViewModel"
     Padding="0,0,0,0">
     <ContentPage.Resources>
@@ -194,8 +196,41 @@
                             Opacity="0.1"
                             Radius="4" />
                 </Border.Shadow>
-                <Button
-                    x:Name="CloseButton"
+                <!-- Close button - SfEffectsView for WinUI only -->
+                <core:SfEffectsView x:Name="CloseButtonEffectsView"
+                    TouchDownEffects="Ripple"
+                    TouchUpEffects="None"
+                    RippleBackground="{DynamicResource PrimaryColor}"
+                    RippleAnimationDuration="200"
+                    ShouldIgnoreTouches="False"
+                    HorizontalOptions="Fill"
+                    VerticalOptions="Fill">
+                    <core:SfEffectsView.IsVisible>
+                        <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                            <On Platform="WinUI" Value="true" />
+                        </OnPlatform>
+                    </core:SfEffectsView.IsVisible>
+                    <core:SfEffectsView.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding CloseModalCommand}" />
+                    </core:SfEffectsView.GestureRecognizers>
+                    <Button x:Name="CloseButton"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
+                        Command="{Binding CloseModalCommand}"
+                        CornerRadius="12"
+                        FontSize="{DynamicResource ButtonFontSize}"
+                        FontAttributes="Bold"
+                        HorizontalOptions="Fill"
+                        MinimumHeightRequest="50"
+                        Padding="20,0"
+                        Text="CLOSE"
+                        TextColor="{DynamicResource PrimaryTextColor}"
+                        VerticalOptions="Fill"
+                        InputTransparent="True" />
+                </core:SfEffectsView>
+                <!-- Regular button for Android/iOS -->
+                <Button x:Name="CloseButtonNoEffects"
                     BackgroundColor="Transparent"
                     BorderWidth="0"
                     BorderColor="Transparent"
@@ -208,7 +243,8 @@
                     Padding="20,0"
                     Text="CLOSE"
                     TextColor="{DynamicResource PrimaryTextColor}"
-                    VerticalOptions="Fill" />
+                    VerticalOptions="Fill"
+                    IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}" />
             </Border>
             
             <!-- BUSY OVERLAY – appears only while IsBusy = true -->

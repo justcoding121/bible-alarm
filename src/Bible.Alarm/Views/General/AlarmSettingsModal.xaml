@@ -63,7 +63,7 @@
                         HorizontalOptions="Fill"
                         HorizontalTextAlignment="Center"
                         LineBreakMode="WordWrap"
-                        Text="To ensure alarms work reliably, please configure these essential settings:&#10;&#10;1. Battery Optimization: Prevent the system from stopping alarms in the background&#10;2. Do Not Disturb: Allow alarms to play even when your device is in silent or DND mode"
+                        Text="To ensure alarms work reliably, please configure these essential settings:"
                         TextColor="{DynamicResource TextPrimaryColor}"
                         VerticalOptions="Start"
                         VerticalTextAlignment="Start" />

@@ -21,6 +21,12 @@ public partial class Home : BaseContentPage, IDisposable
         BindingContext = vm;
         viewModel = vm;
 
+        // Hide the non-effects button on WinUI (use SfEffectsView version instead)
+        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        {
+            AlarmSettingsFloatingButtonNoEffects.IsVisible = false;
+        }
+
         // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
     }
