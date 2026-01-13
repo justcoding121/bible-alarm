@@ -63,7 +63,7 @@
                     </Grid.ColumnDefinitions>
                     <shared:PlatformSwitch
                         Grid.Column="0"
-                        Margin="{OnPlatform Default='0', WinUI='0,0,-8,0'}"
+                        Margin="{OnPlatform Default='0'}"
                         HorizontalOptions="End"
                         IsToggled="{Binding MusicEnabled, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />

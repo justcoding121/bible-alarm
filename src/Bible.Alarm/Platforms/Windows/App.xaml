@@ -8,6 +8,7 @@
         <Style TargetType="ToggleSwitch">
             <Setter Property="OffContent" Value=" " />
             <Setter Property="OnContent" Value=" " />
+            <Setter Property="MinWidth" Value="0" />
         </Style>
         <Style TargetType="TextBox">
             <Setter Property="BorderThickness" Value="0" />

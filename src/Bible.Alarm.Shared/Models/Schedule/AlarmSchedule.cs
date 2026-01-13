@@ -168,13 +168,34 @@ public sealed class AlarmSchedule : IComparable
         string? bibleLanguageCode = null;
         string? biblePublicationCode = null;
         
+        // Priority codes for Bible publications (lower = higher priority)
+        // Prefer nwt (2013 NWT) over bi12 (1984 NWT)
+        string[] priorityPublicationCodes = ["nwt", "bi12"];
+        
+        int GetPublicationSortPriority(string code)
+        {
+            var lowerCode = code.ToLowerInvariant();
+            for (int i = 0; i < priorityPublicationCodes.Length; i++)
+            {
+                if (lowerCode == priorityPublicationCodes[i])
+                    return i;
+            }
+            return priorityPublicationCodes.Length; // Others come after priority publications
+        }
+        
         // Try English first
         if (bibleLanguages.ContainsKey(DefaultLanguageCode))
         {
             var englishPublications = await biblePublicationService.GetByLanguageCodeAsync(DefaultLanguageCode);
             if (englishPublications != null)
             {
-                foreach (var pub in englishPublications)
+                // Sort publications by priority: nwt first, then bi12, then others
+                var sortedPublications = englishPublications
+                    .OrderBy(pub => GetPublicationSortPriority(pub.Key))
+                    .ThenBy(pub => pub.Value.Name) // Secondary sort by name for consistency
+                    .ToList();
+                
+                foreach (var pub in sortedPublications)
                 {
                     if (PublicationTypeHelper.HasSectionStructure(pub.Key))
                     {
@@ -197,7 +218,13 @@ public sealed class AlarmSchedule : IComparable
                     continue;
                 }
                 
-                foreach (var pub in publications)
+                // Sort publications by priority: nwt first, then bi12, then others
+                var sortedPublications = publications
+                    .OrderBy(pub => GetPublicationSortPriority(pub.Key))
+                    .ThenBy(pub => pub.Value.Name) // Secondary sort by name for consistency
+                    .ToList();
+                
+                foreach (var pub in sortedPublications)
                 {
                     if (PublicationTypeHelper.HasSectionStructure(pub.Key))
                     {

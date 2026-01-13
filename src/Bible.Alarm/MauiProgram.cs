@@ -17,6 +17,7 @@ using Syncfusion.Licensing;
 using Syncfusion.Maui.Core.Hosting;
 #if WINDOWS
 using Bible.Alarm.Platforms.Windows.Services.Platform;
+using Bible.Alarm.Platforms.Windows.Handlers;
 #endif
 
 namespace Bible.Alarm;
@@ -69,6 +70,11 @@ public static class MauiProgram
             .ConfigureMauiHandlers(handlers =>
             {
                 handlers.AddHandler<SearchBar, SearchBarHandler>();
+            })
+#elif WINDOWS
+            .ConfigureMauiHandlers(handlers =>
+            {
+                handlers.AddHandler<Microsoft.Maui.Controls.Switch, SwitchHandler>();
             })
 #endif
             .ConfigureFonts(fonts =>

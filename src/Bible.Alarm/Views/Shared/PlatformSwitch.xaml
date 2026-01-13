@@ -10,16 +10,12 @@
     <OnPlatform x:TypeArguments="View">
         <OnPlatform.Platforms>
             <On Platform="WinUI">
-                <Border
-                    x:Name="WinUIBorder"
+                <Switch
+                    x:Name="WinUISwitch"
+                    MinimumWidthRequest="0"
+                    MaximumWidthRequest="60"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="50"
-                    HorizontalOptions="{Binding HorizontalOptions, Source={RelativeSource AncestorType={x:Type ContentView}}}">
-                    <Switch
-                        x:Name="WinUISwitch"
-                        VerticalOptions="Center"
-                        HorizontalOptions="{Binding HorizontalOptions, Source={RelativeSource AncestorType={x:Type ContentView}}}" />
-                </Border>
+                    HorizontalOptions="Start" />
             </On>
             <On Platform="Android">
                 <buttons:SfSwitch

@@ -1,3 +1,7 @@
+#if WINDOWS
+using Microsoft.UI.Xaml.Controls;
+#endif
+
 namespace Bible.Alarm.Views.Shared;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
@@ -55,6 +59,15 @@ public partial class PlatformSwitch : ContentView
         if (WinUISwitch != null)
         {
             WinUISwitch.Toggled += (_, e) => IsToggled = e.Value;
+            
+#if WINDOWS
+            // For WinUI, ensure the native ToggleSwitch MinWidth is set to 0
+            // This must be done after the handler is connected to access the native view
+            if (Handler?.PlatformView is Microsoft.UI.Xaml.Controls.ToggleSwitch toggleSwitch)
+            {
+                toggleSwitch.MinWidth = 0;
+            }
+#endif
         }
         if (AndroidSwitch != null)
         {
@@ -86,14 +99,14 @@ public partial class PlatformSwitch : ContentView
         // Sync HorizontalOptions property to child controls
         if (propertyName == nameof(HorizontalOptions))
         {
-            if (WinUIBorder != null)
-            {
-                WinUIBorder.HorizontalOptions = HorizontalOptions;
-            }
+            // For WinUI, we use HorizontalOptions="Start" on the Switch itself
+            // and let the ContentView handle the End alignment
+#if !WINDOWS
             if (WinUISwitch != null)
             {
                 WinUISwitch.HorizontalOptions = HorizontalOptions;
             }
+#endif
             if (AndroidSwitch != null)
             {
                 AndroidSwitch.HorizontalOptions = HorizontalOptions;
