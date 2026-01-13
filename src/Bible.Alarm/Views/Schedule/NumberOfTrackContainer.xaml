@@ -53,27 +53,12 @@
                       HorizontalOptions="Fill"
                       VerticalOptions="Fill"
                       IsVisible="True">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                <Label Grid.Column="0"
-                       FontSize="{DynamicResource LargeFontSize}"
+                    <Label FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
-                       Text="{Binding TrackLabelText}"
+                       Text="{Binding TracksLabelText}"
                        TextColor="{DynamicResource TextPrimaryColor}"
-                       VerticalOptions="Center"
-                       VerticalTextAlignment="Center"
-                       IsVisible="True" />
-                <Label Grid.Column="1"
-                       FontSize="{DynamicResource LargeFontSize}"
-                       FontAttributes="Bold"
-                       HorizontalOptions="End"
-                       Margin="12,0,0,0"
-                       Text="{Binding CurrentNumberOfTracksText, TargetNullValue=''}"
-                       TextColor="{StaticResource PrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center"
                        IsVisible="True" />
@@ -179,7 +164,7 @@
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center">
-                    Tap to play
+                    Wait until I tap alarm notification to start playing
                 </Label>
                 <Grid Grid.Column="1"
                       HorizontalOptions="End"

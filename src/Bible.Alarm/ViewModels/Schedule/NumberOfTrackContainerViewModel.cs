@@ -275,6 +275,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             {
                 // Notify that the Text property (computed from CurrentNumberOfTracks) has changed
                 OnPropertyChanged(nameof(CurrentNumberOfTracksText));
+                OnPropertyChanged(nameof(TracksLabelText));
             }
         }
     }
@@ -306,6 +307,21 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     public string TrackLabelText => HasSectionStructure ? "Chapters to play each time" : "Episodes to play each time";
 
     /// <summary>
+    /// Gets the combined label text showing the number with "chapters or episodes" format.
+    /// Returns format like "3 chapters or episodes" (not bold).
+    /// </summary>
+    public string TracksLabelText
+    {
+        get
+        {
+            var number = CurrentNumberOfTracks?.Value ?? 0;
+            if (number == 0)
+                return "chapters or episodes";
+            return $"{number} chapters or episodes";
+        }
+    }
+
+    /// <summary>
     /// Gets the header text for the tracks selection modal.
     /// Returns "Select Number of Chapters" for sectioned publications,
     /// or "Select Number of Episodes" for non-sectioned publications.
@@ -314,12 +330,12 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
     /// <summary>
     /// Gets the label text for the "restart incomplete" toggle.
-    /// Returns "Restart incomplete chapters from the beginning?" for sectioned publications,
-    /// or "Restart incomplete episodes from the beginning?" for non-sectioned publications.
+    /// Returns "Restart incomplete chapters from the beginning" for sectioned publications,
+    /// or "Restart incomplete episodes from the beginning" for non-sectioned publications.
     /// </summary>
     public string RestartLabelText => HasSectionStructure 
-        ? "Restart incomplete chapters from the beginning?" 
-        : "Restart incomplete episodes from the beginning?";
+        ? "Restart incomplete chapters from the beginning" 
+        : "Restart incomplete episodes from the beginning";
 
     public bool NotificationEnabled
     {

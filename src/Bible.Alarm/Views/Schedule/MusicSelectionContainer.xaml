@@ -63,7 +63,7 @@
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center">
-                    Play music before Bible audio
+                    Begin with music
                 </Label>
                 <Grid Grid.Column="1"
                       ColumnSpacing="0"

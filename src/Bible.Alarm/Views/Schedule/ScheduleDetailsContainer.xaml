@@ -131,7 +131,6 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    HorizontalTextAlignment="Center"
                                     VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
@@ -198,7 +197,6 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    HorizontalTextAlignment="Center"
                                     VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
@@ -265,7 +263,6 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    HorizontalTextAlignment="Center"
                                     VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
@@ -332,7 +329,6 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    HorizontalTextAlignment="Center"
                                     VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
@@ -399,7 +395,6 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    HorizontalTextAlignment="Center"
                                     VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
@@ -466,7 +461,6 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    HorizontalTextAlignment="Center"
                                     VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
@@ -533,7 +527,6 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    HorizontalTextAlignment="Center"
                                     VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
