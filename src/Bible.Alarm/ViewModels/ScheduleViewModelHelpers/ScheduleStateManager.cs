@@ -97,6 +97,12 @@ public sealed class ScheduleStateManager
                 {
                     logger.Error("ScheduleStateManager: Failed to load schedule {ScheduleId} from database", scheduleId);
                     isInitializing = false;
+                    // Hide overlay to prevent infinite spinner - the page will show empty state
+                    // which is better than spinning forever
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
+                    });
                     return;
                 }
 
@@ -111,6 +117,11 @@ public sealed class ScheduleStateManager
             {
                 logger.Error(ex, "Error loading existing schedule {ScheduleId}", scheduleId);
                 isInitializing = false;
+                // Hide overlay on error to prevent infinite spinner
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
+                });
             }
         });
     }
@@ -141,6 +152,11 @@ public sealed class ScheduleStateManager
             {
                 logger.Error(ex, "Error creating sample schedule");
                 isInitializing = false;
+                // Hide overlay on error to prevent infinite spinner
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
+                });
             }
         });
     }

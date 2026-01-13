@@ -49,11 +49,47 @@ public class ProgressBarManager : IDisposable
         ProgressBarOpacity = shouldShow ? 1.0 : 0.0;
     }
 
+    /// <summary>
+    /// Temporarily shows the progress bar without affecting the shouldShowProgressBar flag.
+    /// Used for showing progress during next/prev track operations.
+    /// </summary>
+    public void ShowTemporarily()
+    {
+        ProgressBarOpacity = 1.0;
+    }
+
     public async Task FadeOutAsync()
     {
         // Prevent showing progress bar again
         shouldShowProgressBar = false;
 
+        // If already hidden, don't re-animate (would cause a flash)
+        if (progressBarOpacity == 0)
+        {
+            return;
+        }
+
+        const int fadeSteps = 10;
+        const int fadeDurationMs = 200;
+        const double stepDelay = fadeDurationMs / (double)fadeSteps;
+
+        // Fade from current opacity to 0 (not from 1.0)
+        var startOpacity = progressBarOpacity;
+        for (int i = fadeSteps; i >= 0; i--)
+        {
+            ProgressBarOpacity = startOpacity * i / fadeSteps;
+            await Task.Delay((int)stepDelay);
+        }
+
+        ProgressBarOpacity = 0.0;
+    }
+
+    /// <summary>
+    /// Hides the progress bar with fade animation without affecting the shouldShowProgressBar flag.
+    /// Used for hiding progress after next/prev track operations complete.
+    /// </summary>
+    public async Task HideTemporarilyAsync()
+    {
         // If already hidden, don't re-animate (would cause a flash)
         if (progressBarOpacity == 0)
         {

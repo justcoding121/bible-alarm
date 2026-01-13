@@ -103,21 +103,6 @@ public static class ThemeColors
         public static Color SlateBlue => Color.FromArgb("#6A5ACD");
         public static Color LightPurple => Color.FromArgb("#9370DB");
         public static Color LightPurpleForDark => Color.FromArgb("#E8E0FF");
-        
-        // Theme-aware primary color - lighter in dark mode for better contrast
-        public static Color Dark => Color.FromArgb("#B8A0F0"); // Lighter purple for dark mode
-        public static Color Light => Color.FromArgb("#6A5ACD"); // Original slate blue for light mode
-        
-        public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
-    }
-
-    public static class PrimaryLight
-    {
-        // Theme-aware primary light color - used for highlights and lighter accents
-        public static Color Dark => Color.FromArgb("#D0C0F8"); // Even lighter purple for dark mode highlights
-        public static Color Light => Color.FromArgb("#9370DB"); // Original light purple for light mode
-        
-        public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
     }
 
     // Day/Calendar Colors (used in converters)

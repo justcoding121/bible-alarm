@@ -112,3 +112,19 @@ public class SeekBackwardButtonPressedMessage
 public class DestroyMediaElementMessage
 {
 }
+
+/// <summary>
+/// Message sent to show the progress bar on the home page.
+/// Used when next/prev buttons are clicked to indicate background activity.
+/// </summary>
+public class ShowProgressBarMessage
+{
+}
+
+/// <summary>
+/// Message sent to hide the progress bar on the home page.
+/// Used when subtitle is updated after track change.
+/// </summary>
+public class HideProgressBarMessage
+{
+}

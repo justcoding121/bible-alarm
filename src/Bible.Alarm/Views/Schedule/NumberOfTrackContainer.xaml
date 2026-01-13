@@ -53,12 +53,27 @@
                       HorizontalOptions="Fill"
                       VerticalOptions="Fill"
                       IsVisible="True">
-                    <Label FontSize="{DynamicResource LargeFontSize}"
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0"
+                       FontSize="{DynamicResource LargeFontSize}"
                        FontAttributes="None"
-                       HorizontalOptions="Fill"
+                       HorizontalOptions="Start"
                        HorizontalTextAlignment="Start"
                        Text="{Binding TracksLabelText}"
                        TextColor="{DynamicResource TextPrimaryColor}"
+                       VerticalOptions="Center"
+                       VerticalTextAlignment="Center"
+                       IsVisible="True" />
+                    <Label Grid.Column="1"
+                       FontSize="{DynamicResource LargeFontSize}"
+                       FontAttributes="None"
+                       HorizontalOptions="End"
+                       HorizontalTextAlignment="End"
+                       Text="{Binding SelectedTracksText}"
+                       TextColor="{DynamicResource PrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center"
                        IsVisible="True" />

@@ -231,6 +231,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                         // Update label text properties
                         OnPropertyChanged(nameof(HasSectionStructure));
                         OnPropertyChanged(nameof(TrackLabelText));
+                        OnPropertyChanged(nameof(TracksLabelText));
+                        OnPropertyChanged(nameof(SelectedTracksText));
                         OnPropertyChanged(nameof(ModalHeaderText));
                         OnPropertyChanged(nameof(RestartLabelText));
 
@@ -275,7 +277,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             {
                 // Notify that the Text property (computed from CurrentNumberOfTracks) has changed
                 OnPropertyChanged(nameof(CurrentNumberOfTracksText));
-                OnPropertyChanged(nameof(TracksLabelText));
+                OnPropertyChanged(nameof(SelectedTracksText));
             }
         }
     }
@@ -307,17 +309,30 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     public string TrackLabelText => HasSectionStructure ? "Chapters to play each time" : "Episodes to play each time";
 
     /// <summary>
-    /// Gets the combined label text showing the number with "chapters or episodes" format.
-    /// Returns format like "3 chapters or episodes" (not bold).
+    /// Gets the static label text for the tracks selection row.
+    /// Returns "Number of chapters to play" for sectioned publications (Bible),
+    /// or "Number of episodes to play" for non-sectioned publications (dramas).
     /// </summary>
-    public string TracksLabelText
+    public string TracksLabelText => HasSectionStructure ? "Number of chapters to play" : "Number of episodes to play";
+
+    /// <summary>
+    /// Gets the dynamic selected value text showing the number with proper singular/plural.
+    /// Returns format like "3 Chapters", "1 Chapter", "3 Episodes", or "1 Episode".
+    /// </summary>
+    public string SelectedTracksText
     {
         get
         {
             var number = CurrentNumberOfTracks?.Value ?? 0;
             if (number == 0)
-                return "chapters or episodes";
-            return $"{number} chapters or episodes";
+            {
+                return HasSectionStructure ? "Chapters" : "Episodes";
+            }
+            
+            var unitSingular = HasSectionStructure ? "Chapter" : "Episode";
+            var unitPlural = HasSectionStructure ? "Chapters" : "Episodes";
+            var selectedUnit = number == 1 ? unitSingular : unitPlural;
+            return $"{number} {selectedUnit}";
         }
     }
 

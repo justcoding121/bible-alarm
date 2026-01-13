@@ -23,17 +23,17 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
-        <Grid Grid.Row="0"
+        <FlexLayout Grid.Row="0"
               x:Name="ButtonContainer"
-              ColumnSpacing="0"
-              RowSpacing="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+              Wrap="Wrap"
+              JustifyContent="Center"
+              AlignItems="Stretch"
+              AlignContent="Start"
+              HorizontalOptions="Fill">
             <!-- Cancel button - SfEffectsView for WinUI only -->
-            <core:SfEffectsView Grid.Column="0"
-                                 Margin="0,3,3,3"
+            <core:SfEffectsView Margin="0,3,3,3"
+                                 FlexLayout.Basis="45%"
+                                 FlexLayout.Grow="1"
                                  TouchDownEffects="Ripple"
                                  TouchUpEffects="None"
                                  RippleBackground="{DynamicResource DividerColor}"
@@ -67,9 +67,10 @@
                     </Button.Shadow>
                 </Button>
             </core:SfEffectsView>
-            <Button Grid.Column="0"
-                    x:Name="CancelButtonNoEffects"
+            <Button x:Name="CancelButtonNoEffects"
                     Margin="0,3,3,3"
+                    FlexLayout.Basis="45%"
+                    FlexLayout.Grow="1"
                     AutomationId="CancelButton"
                     BackgroundColor="{DynamicResource DividerColor}"
                     CornerRadius="8"
@@ -88,8 +89,9 @@
                 </Button.Shadow>
             </Button>
             <!-- Save button - SfEffectsView for WinUI only -->
-            <core:SfEffectsView Grid.Column="1"
-                                 Margin="3,3,0,3"
+            <core:SfEffectsView Margin="3,3,0,3"
+                                 FlexLayout.Basis="45%"
+                                 FlexLayout.Grow="1"
                                  TouchDownEffects="Ripple"
                                  TouchUpEffects="None"
                                  RippleBackground="{StaticResource PrimaryColor}"
@@ -123,9 +125,10 @@
                     </Button.Shadow>
                 </Button>
             </core:SfEffectsView>
-            <Button Grid.Column="1"
-                    x:Name="SaveButtonNoEffects"
+            <Button x:Name="SaveButtonNoEffects"
                     Margin="3,3,0,3"
+                    FlexLayout.Basis="45%"
+                    FlexLayout.Grow="1"
                     AutomationId="SaveButton"
                     BackgroundColor="{StaticResource PrimaryColor}"
                     CornerRadius="8"
@@ -143,7 +146,7 @@
                             Opacity="0.3" />
                 </Button.Shadow>
             </Button>
-        </Grid>
+        </FlexLayout>
         <ScrollView x:Name="ScheduleScrollView"
                     Grid.Row="1"
                     Margin="0,0,0,0">

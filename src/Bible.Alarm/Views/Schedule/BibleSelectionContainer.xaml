@@ -135,7 +135,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding PublicationDisplayText}"
-                       TextColor="{DynamicResource TextPrimaryColor}"
+                       TextColor="{StaticResource PrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 <!-- Arrow Indicator -->

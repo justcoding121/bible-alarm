@@ -12,15 +12,17 @@ using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.ViewModels.General;
 using Bible.Alarm.ViewModels.HomeViewModelHelpers;
+using Bible.Alarm.Common.Messenger;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels;
 
-public sealed class HomeViewModel : ObservableObject, IDisposable
+public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<ShowProgressBarMessage>, IRecipient<HideProgressBarMessage>
 {
     private readonly ILogger logger;
     private readonly IServiceScopeFactory scopeFactory;
@@ -195,6 +197,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
 
         // Start tracking bootstrap ready state
         bootstrapReadyManager.StartTracking();
+
+        // Register for progress bar messages
+        WeakReferenceMessenger.Default.Register<ShowProgressBarMessage>(this);
+        WeakReferenceMessenger.Default.Register<HideProgressBarMessage>(this);
     }
 
 
@@ -373,9 +379,29 @@ public sealed class HomeViewModel : ObservableObject, IDisposable
         });
     }
 
+    public void Receive(ShowProgressBarMessage message)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            // Show progress bar temporarily (doesn't affect normal visibility logic)
+            progressBarManager.ShowTemporarily();
+        });
+    }
+
+    public void Receive(HideProgressBarMessage message)
+    {
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            // Hide progress bar temporarily (doesn't affect normal visibility logic)
+            await progressBarManager.HideTemporarilyAsync();
+        });
+    }
+
     public void Dispose()
     {
         state.StateChanged -= OnStateChanged;
+        WeakReferenceMessenger.Default.Unregister<ShowProgressBarMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<HideProgressBarMessage>(this);
         bootstrapReadyManager.Dispose();
         progressBarManager.Dispose();
         scheduleViewModelManager.DisposeAll();

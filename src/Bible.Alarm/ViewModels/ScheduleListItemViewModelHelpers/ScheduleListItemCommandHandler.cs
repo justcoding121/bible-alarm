@@ -70,6 +70,10 @@ public sealed class ScheduleListItemCommandHandler(
             }
 
             logger.Information("PreviousCommand: Moving to previous track for schedule {ScheduleId}", schedule.Id);
+            
+            // Show progress bar to indicate background activity
+            WeakReferenceMessenger.Default.Send(new ShowProgressBarMessage());
+            
             try
             {
                 // Run database operations off UI thread
@@ -124,6 +128,10 @@ public sealed class ScheduleListItemCommandHandler(
             }
 
             logger.Information("NextCommand: Moving to next track for schedule {ScheduleId}", schedule.Id);
+            
+            // Show progress bar to indicate background activity
+            WeakReferenceMessenger.Default.Send(new ShowProgressBarMessage());
+            
             try
             {
                 // Run database operations off UI thread

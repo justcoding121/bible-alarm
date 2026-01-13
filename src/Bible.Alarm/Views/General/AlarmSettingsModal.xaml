@@ -111,8 +111,7 @@
                             FontSize="{DynamicResource LargeFontSize}"
                             FontAttributes="Bold"
                             HorizontalOptions="Fill"
-                            MinimumHeightRequest="50"
-                            Padding="20,0"
+                            Padding="20,12"
                             Text="{Binding BatteryOptimizationButtonText}"
                             TextColor="White"
                             VerticalOptions="Fill">
@@ -134,8 +133,7 @@
                             FontSize="{DynamicResource LargeFontSize}"
                             FontAttributes="Bold"
                             HorizontalOptions="Fill"
-                            MinimumHeightRequest="50"
-                            Padding="20,0"
+                            Padding="20,12"
                             Text="{Binding DndButtonText}"
                             TextColor="White"
                             VerticalOptions="Fill">
@@ -158,8 +156,7 @@
                             FontSize="{DynamicResource ButtonFontSize}"
                             FontAttributes="Bold"
                             HorizontalOptions="Fill"
-                            MinimumHeightRequest="50"
-                            Padding="20,0"
+                            Padding="20,12"
                             Text="CLOSE"
                             TextColor="{DynamicResource PrimaryTextColor}"
                             VerticalOptions="Fill">
@@ -182,8 +179,7 @@
                             FontSize="{DynamicResource LargeFontSize}"
                             FontAttributes="Bold"
                             HorizontalOptions="Fill"
-                            MinimumHeightRequest="50"
-                            Padding="20,0"
+                            Padding="20,12"
                             Text="OKAY"
                             TextColor="{DynamicResource PrimaryTextColor}"
                             VerticalOptions="Fill">

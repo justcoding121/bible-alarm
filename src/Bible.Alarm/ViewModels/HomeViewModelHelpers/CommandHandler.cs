@@ -55,8 +55,8 @@ public class CommandHandler
 
     public ICommand CreateViewScheduleCommand()
     {
-        // Use AsyncRelayCommandOptions.AllowConcurrentExecutions to ensure taps aren't ignored
-        // while a previous command is still completing
+        // Do NOT use AllowConcurrentExecutions - this prevents double-tap from creating
+        // multiple navigations that race with each other and corrupt ScheduleNavigationContext
         return new AsyncRelayCommand<ScheduleListItemViewModel>(async x =>
         {
             if (x == null || x.Schedule == null)
@@ -70,7 +70,7 @@ public class CommandHandler
             }
 
             await showOverlayAndNavigateAsync(x);
-        }, AsyncRelayCommandOptions.AllowConcurrentExecutions);
+        });
     }
 }
 

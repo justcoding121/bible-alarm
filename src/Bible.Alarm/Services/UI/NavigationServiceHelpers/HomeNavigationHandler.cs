@@ -98,18 +98,12 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
             }
         }
 
-        // Check if playback is active and hide home page if so
-        // This prevents visual flash when app starts cold from Android Auto while playing
-        if (ShouldHideHomePageOnStart())
-        {
-            existingHome.Opacity = 0.0;
-            Logger.Information("Existing home page opacity set to 0.0 after pop (playback active)");
-        }
-        else
-        {
-            // Ensure home page is visible if playback is not active
-            existingHome.Opacity = 1.0;
-        }
+        // NOTE: Do NOT change opacity when navigating back to an existing Home page.
+        // The Home page's opacity is managed by AlarmModalService based on playback state.
+        // Changing it here causes bugs:
+        // - If playback is active: opacity = 0 makes Home blank when user returns from Schedule page
+        // - The AlarmModalService will show/hide Home appropriately when playback starts/stops
+        Logger.Information("Navigated back to existing home page (opacity unchanged)");
     }
 
     private async Task PopToRootAndPushNewHomeAsync(INavigation navigation)

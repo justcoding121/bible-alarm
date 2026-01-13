@@ -202,9 +202,15 @@ public partial class Schedule : BaseContentPage, IDisposable
             });
         }
 
-        // Also check if we should hide overlay when containers become ready (after content is loaded)
-        // This handles the case where containers signal ready AFTER content loads
-        if (isContentLoaded && viewModel != null)
+        // Check if we should hide overlay when container ViewModels are assigned (after content is loaded)
+        // Only trigger for container VM assignments to avoid resetting timeout on every property change
+        var isContainerAssignment = e.PropertyName is
+            nameof(ScheduleViewModel.BibleSelectionContainerViewModel) or
+            nameof(ScheduleViewModel.MusicSelectionContainerViewModel) or
+            nameof(ScheduleViewModel.NumberOfTrackContainerViewModel) or
+            nameof(ScheduleViewModel.ScheduleDetailsContainerViewModel);
+
+        if (isContainerAssignment && isContentLoaded && viewModel != null)
         {
             viewModel.OnContentLoaded();
         }

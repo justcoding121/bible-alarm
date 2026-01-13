@@ -3,9 +3,9 @@ using System.Windows.Input;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
@@ -21,6 +21,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     private readonly IPlaybackService playbackService;
     private readonly IState<PlaybackState> playbackState;
     private readonly IDispatcher dispatcher;
+    private readonly INavigationService navigationService;
     private readonly IGeneralSettingsService generalSettingsService;
 
     private bool isDisposed;
@@ -53,12 +54,13 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     public ICommand SeekCommand { get; set; }
     public ICommand RetryCommand { get; set; }
 
-    public AlarmViewModel(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, IGeneralSettingsService generalSettingsService)
+    public AlarmViewModel(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, INavigationService navigationService, IGeneralSettingsService generalSettingsService)
     {
         this.logger = logger;
         this.playbackService = playbackService;
         this.playbackState = playbackState;
         this.dispatcher = dispatcher;
+        this.navigationService = navigationService;
         this.generalSettingsService = generalSettingsService;
 
         // Initialize string fields to avoid nullable warnings
@@ -515,9 +517,10 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
 
 
     /// <summary>
-    /// Hides the Home page overlay. Called when the Alarm Modal is fully rendered and visible.
+    /// Shows the Home page (sets opacity to 1.0). Called when the Alarm Modal is fully rendered and visible.
+    /// This ensures the Home page is visible behind the modal, preventing visual issues when the modal is dismissed.
     /// </summary>
-    public void HideHomePageOverlay() => dispatcher.Dispatch(new SetHomePageOverlayAction { IsVisible = false });
+    public void HideHomePageOverlay() => navigationService.SetHomePageVisibility(isPlaybackActive: false);
 
     public void Dispose()
     {

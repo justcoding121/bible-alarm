@@ -55,24 +55,15 @@
                 </OnPlatform.Platforms>
             </OnPlatform>
         </Grid>
-        <Grid Grid.Row="1"
+        <FlexLayout Grid.Row="1"
               Margin="8,0"
               HorizontalOptions="Center"
               VerticalOptions="Center"
-              HeightRequest="{DynamicResource IconStandardContainerSize}"
-              MaximumWidthRequest="{OnPlatform Android='350', iOS='350', WinUI='400', Default='350'}"
-              ColumnSpacing="4"
-              RowSpacing="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Border Grid.Column="0"
+              Wrap="Wrap"
+              JustifyContent="Center"
+              AlignItems="Center"
+              AlignContent="Center">
+            <Border Margin="2"
                     Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
                     StrokeThickness="0"
                     StrokeShape="RoundRectangle 6,6,6,6"
@@ -131,14 +122,13 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Grid.Column="1"
+            <Border Margin="2"
                     Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
                     StrokeThickness="0"
                     StrokeShape="RoundRectangle 6,6,6,6"
@@ -197,14 +187,13 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Grid.Column="2"
+            <Border Margin="2"
                     Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
                     StrokeThickness="0"
                     StrokeShape="RoundRectangle 6,6,6,6"
@@ -263,14 +252,13 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Grid.Column="3"
+            <Border Margin="2"
                     Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
                     StrokeThickness="0"
                     StrokeShape="RoundRectangle 6,6,6,6"
@@ -329,14 +317,13 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Grid.Column="4"
+            <Border Margin="2"
                     Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
                     StrokeThickness="0"
                     StrokeShape="RoundRectangle 6,6,6,6"
@@ -395,14 +382,13 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Grid.Column="5"
+            <Border Margin="2"
                     Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
                     StrokeThickness="0"
                     StrokeShape="RoundRectangle 6,6,6,6"
@@ -461,14 +447,13 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Grid.Column="6"
+            <Border Margin="2"
                     Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
                     StrokeThickness="0"
                     StrokeShape="RoundRectangle 6,6,6,6"
@@ -527,14 +512,13 @@
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Fill"
-                                    VerticalTextAlignment="Center"
                                     MinimumWidthRequest="{DynamicResource IconStandardContainerSize}"
                                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-        </Grid>
+        </FlexLayout>
         <Grid Grid.Row="2"
               Margin="0"
               HorizontalOptions="Center"

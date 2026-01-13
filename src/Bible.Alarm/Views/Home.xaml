@@ -302,20 +302,13 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <Grid Grid.Row="0" 
+                                    <FlexLayout Grid.Row="0" 
                                           HorizontalOptions="Start"
-                                          ColumnSpacing="{OnPlatform WinUI='3', Default='4'}"
+                                          Wrap="Wrap"
+                                          JustifyContent="Start"
+                                          AlignItems="Center"
                                           Margin="0,0,0,8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <Border Grid.Column="0"
+                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
                                                 Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Sunday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
@@ -333,7 +326,7 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Grid.Column="1"
+                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
                                                 Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Monday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
@@ -351,7 +344,7 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Grid.Column="2"
+                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
                                                 Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Tuesday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
@@ -369,7 +362,7 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Grid.Column="3"
+                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
                                                 Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Wednesday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
@@ -387,7 +380,7 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Grid.Column="4"
+                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
                                                 Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Thursday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
@@ -405,7 +398,7 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Grid.Column="5"
+                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
                                                 Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Friday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
@@ -423,7 +416,7 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Grid.Column="6"
+                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
                                                 Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Saturday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
@@ -441,7 +434,7 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                    </Grid>
+                                    </FlexLayout>
                                     <VerticalStackLayout Grid.Row="1" 
                                           HorizontalOptions="Fill"
                                           VerticalOptions="Start"

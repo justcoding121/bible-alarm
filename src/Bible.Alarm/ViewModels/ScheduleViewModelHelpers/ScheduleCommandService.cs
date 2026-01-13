@@ -246,6 +246,9 @@ public sealed class ScheduleCommandService : IScheduleCommandService
 
         if (scheduleId <= 0)
         {
+            // Hide overlay on invalid schedule ID to prevent infinite spinner
+            logger.Warning("ExecuteDeleteAsync: Invalid ScheduleId {ScheduleId}, hiding overlay", scheduleId);
+            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
             return false;
         }
 

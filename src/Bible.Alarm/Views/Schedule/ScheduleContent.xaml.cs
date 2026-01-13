@@ -42,7 +42,8 @@ public partial class ScheduleContent : ContentView
 
         // Platform-specific styling for Cancel and Save buttons
         // FontSize is now set via XAML using ButtonFontSize resource which scales with accessibility settings
-        // Only platform-specific height, padding, and margins are set here
+        // Height is now dynamic (no HeightRequest) to properly support large accessibility font sizes
+        // Buttons use FlexLayout with wrapping to handle narrow widths with large fonts
         // On WinUI, buttons are inside SfEffectsView; on Android/iOS, they're separate buttons
         Button? cancelButton = platform == DevicePlatform.WinUI ? CancelButton : CancelButtonNoEffects;
         Button? saveButton = platform == DevicePlatform.WinUI ? SaveButton : SaveButtonNoEffects;
@@ -51,13 +52,11 @@ public partial class ScheduleContent : ContentView
         {
             if (cancelButton != null)
             {
-                cancelButton.HeightRequest = 45;
                 cancelButton.Padding = new Thickness(10, 10);
                 cancelButton.VerticalOptions = LayoutOptions.Fill;
             }
             if (saveButton != null)
             {
-                saveButton.HeightRequest = 45;
                 saveButton.Padding = new Thickness(10, 10);
                 saveButton.VerticalOptions = LayoutOptions.Fill;
             }
@@ -70,13 +69,11 @@ public partial class ScheduleContent : ContentView
         {
             if (cancelButton != null)
             {
-                cancelButton.HeightRequest = 50;
                 cancelButton.Padding = new Thickness(10, 12);
                 cancelButton.VerticalOptions = LayoutOptions.Fill;
             }
             if (saveButton != null)
             {
-                saveButton.HeightRequest = 50;
                 saveButton.Padding = new Thickness(10, 12);
                 saveButton.VerticalOptions = LayoutOptions.Fill;
             }
@@ -89,13 +86,11 @@ public partial class ScheduleContent : ContentView
         {
             if (cancelButton != null)
             {
-                cancelButton.HeightRequest = 45;
                 cancelButton.Padding = new Thickness(10, 6, 10, 10);
                 cancelButton.VerticalOptions = LayoutOptions.Center;
             }
             if (saveButton != null)
             {
-                saveButton.HeightRequest = 45;
                 saveButton.Padding = new Thickness(10, 6, 10, 10);
                 saveButton.VerticalOptions = LayoutOptions.Center;
             }
@@ -108,13 +103,11 @@ public partial class ScheduleContent : ContentView
         {
             if (cancelButton != null)
             {
-                cancelButton.HeightRequest = 45;
                 cancelButton.Padding = new Thickness(10, 8);
                 cancelButton.VerticalOptions = LayoutOptions.Fill;
             }
             if (saveButton != null)
             {
-                saveButton.HeightRequest = 45;
                 saveButton.Padding = new Thickness(10, 8);
                 saveButton.VerticalOptions = LayoutOptions.Fill;
             }
@@ -126,29 +119,25 @@ public partial class ScheduleContent : ContentView
 
         // Platform-specific styling for Delete button
         // FontSize is now set via XAML using ButtonFontSize resource which scales with accessibility settings
-        // Only platform-specific height and padding are set here
+        // Height is now dynamic (no HeightRequest) to properly support large accessibility font sizes
         // On WinUI, button is inside SfEffectsView; on Android/iOS, it's a separate button
         Button? deleteButton = platform == DevicePlatform.WinUI ? DeleteButton : DeleteButtonNoEffects;
         if (deleteButton != null)
         {
             if (platform == DevicePlatform.WinUI)
             {
-                deleteButton.HeightRequest = 45;
                 deleteButton.Padding = new Thickness(10, 10);
             }
             else if (platform == DevicePlatform.iOS)
             {
-                deleteButton.HeightRequest = 50;
                 deleteButton.Padding = new Thickness(10, 12);
             }
             else if (platform == DevicePlatform.Android)
             {
-                deleteButton.HeightRequest = 45;
                 deleteButton.Padding = new Thickness(10, 6, 10, 10);
             }
             else
             {
-                deleteButton.HeightRequest = 45;
                 deleteButton.Padding = new Thickness(10, 8);
             }
         }

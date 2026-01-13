@@ -1,8 +1,10 @@
 #nullable enable
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 
@@ -215,6 +217,9 @@ public sealed class ScheduleListItemSubtitleManager(
                 {
                     setSubTitle(displayName);
                     onPropertyChanged("SubTitle");
+                    
+                    // Hide progress bar when subtitle is updated (indicates track change is complete)
+                    WeakReferenceMessenger.Default.Send(new HideProgressBarMessage());
                 }
 
                 // Update Language property

@@ -138,8 +138,6 @@ public partial class App : Application
             Resources["PrimaryTextColor"] = ThemeColors.PrimaryText.Get(theme);
             Resources["SelectedItemBackgroundColor"] = ThemeColors.SelectedItemBackground.Get(theme);
             Resources["DisabledTextColor"] = ThemeColors.DisabledText.Get(theme);
-            Resources["PrimaryColor"] = ThemeColors.Primary.Get(theme);
-            Resources["PrimaryLightColor"] = ThemeColors.PrimaryLight.Get(theme);
         }
         catch (Exception ex)
         {

@@ -222,6 +222,8 @@ public sealed class ScheduleListItemViewModel(
                 OnPropertyChanged();
                 if (!propertyManager.IsInitializing && Schedule != null)
                 {
+                    // Show progress bar to indicate background activity
+                    WeakReferenceMessenger.Default.Send(new ShowProgressBarMessage());
                     _ = HandleIsEnabledChanged(value);
                 }
             }
@@ -251,6 +253,9 @@ public sealed class ScheduleListItemViewModel(
             propertyManager.IsEnabled = !attemptedValue;
             OnPropertyChanged(nameof(IsEnabled));
             OnPropertyChanged(nameof(This));
+            
+            // Hide progress bar when operation fails and is reverted
+            WeakReferenceMessenger.Default.Send(new HideProgressBarMessage());
         });
     }
 
@@ -497,6 +502,9 @@ public sealed class ScheduleListItemViewModel(
             if (changeInfo.IsEnabledChanged)
             {
                 OnPropertyChanged(nameof(IsEnabled));
+                
+                // Hide progress bar when IsEnabled is updated (indicates toggle operation is complete)
+                WeakReferenceMessenger.Default.Send(new HideProgressBarMessage());
             }
             if (changeInfo.NameChanged)
             {
@@ -521,6 +529,9 @@ public sealed class ScheduleListItemViewModel(
                     ScheduleId);
                 OnPropertyChanged(nameof(SubTitle));
                 OnPropertyChanged(nameof(Language));
+                
+                // Hide progress bar when subtitle is updated (indicates track change is complete)
+                WeakReferenceMessenger.Default.Send(new HideProgressBarMessage());
             }
         });
     }

@@ -272,9 +272,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
                 CancelOverlayTimeout();
                 dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
             }
-            else if (isContentLoaded && !stateValue.ContainerReadiness.AllReady)
+            else if (isContentLoaded && !stateValue.ContainerReadiness.AllReady && overlayTimeoutCancellation == null)
             {
-                // Content loaded but containers not ready - start timeout to prevent infinite spinner
+                // Content loaded but containers not ready - start timeout ONLY if not already running
                 StartOverlayTimeout();
             }
         }
@@ -420,9 +420,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             CancelOverlayTimeout();
             dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
         }
-        else if (stateValue.IsSchedulePageOverlayVisible)
+        else if (stateValue.IsSchedulePageOverlayVisible && overlayTimeoutCancellation == null)
         {
-            // Start timeout to hide overlay if containers don't signal ready within 5 seconds
+            // Start timeout ONLY if one isn't already running - prevents timeout reset on property changes
             StartOverlayTimeout();
         }
     }
