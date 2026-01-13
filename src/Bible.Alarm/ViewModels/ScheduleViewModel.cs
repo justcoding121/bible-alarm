@@ -428,7 +428,13 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Starts a timeout task that will hide the overlay after 5 seconds if containers haven't signaled ready.
+    /// Hard timeout in milliseconds for the busy overlay.
+    /// After this time, the overlay will be hidden regardless of container readiness.
+    /// </summary>
+    private const int OverlayHardTimeoutMs = 10000; // 10 seconds
+
+    /// <summary>
+    /// Starts a timeout task that will hide the overlay after 15 seconds if containers haven't signaled ready.
     /// This prevents the spinner from spinning forever if a container fails to signal ready.
     /// </summary>
     private void StartOverlayTimeout()
@@ -443,14 +449,14 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         {
             try
             {
-                await Task.Delay(5000, token); // Wait 5 seconds
+                await Task.Delay(OverlayHardTimeoutMs, token);
 
                 if (!token.IsCancellationRequested)
                 {
                     var stateValue = state.Value;
                     if (stateValue.IsSchedulePageOverlayVisible && !stateValue.ContainerReadiness.AllReady)
                     {
-                        logger.Warning("ScheduleViewModel: Overlay timeout - containers didn't signal ready within 5 seconds, hiding overlay anyway");
+                        logger.Warning("ScheduleViewModel: Overlay timeout - containers didn't signal ready within {TimeoutMs}ms, hiding overlay anyway", OverlayHardTimeoutMs);
                         dispatcher.Dispatch(new global::Bible.Alarm.Stores.Actions.SetSchedulePageOverlayAction { IsVisible = false });
                     }
                 }

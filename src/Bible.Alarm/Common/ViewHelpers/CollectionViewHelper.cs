@@ -99,8 +99,9 @@ public static class CollectionViewHelper
     /// <summary>
     /// Waits for a ViewModel's IsBusy property to become false using Polly retry policy.
     /// This is useful for ensuring data is loaded before attempting to scroll to an item.
+    /// Default timeout is 10 seconds to allow for slower operations while preventing indefinite spinning.
     /// </summary>
-    public static async Task<bool> WaitForNotBusyAsync(Func<bool> isBusyGetter, int maxWaitSeconds = 5, int delayMs = 100, CancellationToken cancellationToken = default)
+    public static async Task<bool> WaitForNotBusyAsync(Func<bool> isBusyGetter, int maxWaitSeconds = 10, int delayMs = 100, CancellationToken cancellationToken = default)
     {
         if (isBusyGetter == null)
         {

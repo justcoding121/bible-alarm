@@ -8,6 +8,29 @@ public partial class BusyOverlay : ContentView
 {
     private static readonly ILogger logger = Log.ForContext<BusyOverlay>();
 
+    /// <summary>
+    /// Hard timeout in milliseconds. After this time, the overlay will auto-hide.
+    /// Default is 10 seconds (10000ms). Set to 0 to disable auto-hide timeout.
+    /// </summary>
+    public static readonly BindableProperty HardTimeoutMsProperty = BindableProperty.Create(
+        nameof(HardTimeoutMs),
+        typeof(int),
+        typeof(BusyOverlay),
+        10000, // 10 seconds default
+        BindingMode.OneWay);
+
+    /// <summary>
+    /// Hard timeout in milliseconds. After this time, the overlay will auto-hide.
+    /// Default is 10 seconds. Set to 0 to disable auto-hide timeout.
+    /// </summary>
+    public int HardTimeoutMs
+    {
+        get => (int)GetValue(HardTimeoutMsProperty);
+        set => SetValue(HardTimeoutMsProperty, value);
+    }
+
+    private CancellationTokenSource? timeoutCancellation;
+
     public static new readonly BindableProperty IsVisibleProperty = BindableProperty.Create(
         nameof(IsVisible),
         typeof(bool),
@@ -26,24 +49,66 @@ public partial class BusyOverlay : ContentView
             {
                 logger.Debug("BusyOverlay.IsVisible: Setting from {OldValue} to {NewValue} (via property setter)", oldValue, value);
                 SetValue(IsVisibleProperty, value);
-                // Note: OnIsVisibleChanged will be called automatically by BindableProperty, which handles opacity/InputTransparent
-                // We only need to handle spinner start/stop here for immediate feedback
+                // Note: OnIsVisibleChanged will be called automatically by BindableProperty, which handles:
+                // - opacity/InputTransparent
+                // - spinner start/stop
+                // - hard timeout start/cancel
+            }
+        }
+    }
 
-                // Force spinner to start/stop immediately when visibility changes
-                // This ensures smooth animation without binding delays
-                if (value)
+    /// <summary>
+    /// Starts the hard timeout that will auto-hide the overlay after HardTimeoutMs.
+    /// </summary>
+    private void StartHardTimeout()
+    {
+        CancelHardTimeout();
+
+        var timeoutMs = HardTimeoutMs;
+        if (timeoutMs <= 0)
+        {
+            return; // Timeout disabled
+        }
+
+        timeoutCancellation = new CancellationTokenSource();
+        var token = timeoutCancellation.Token;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(timeoutMs, token);
+
+                if (!token.IsCancellationRequested)
                 {
-                    // Wait for next UI cycle to ensure XAML is fully loaded
-                    this.Dispatcher.Dispatch(() =>
+                    logger.Warning("BusyOverlay: Hard timeout reached ({TimeoutMs}ms), auto-hiding overlay", timeoutMs);
+                    await MainThread.InvokeOnMainThreadAsync(() =>
                     {
-                        StartSpinnerImmediately();
+                        IsVisible = false;
                     });
                 }
-                else
-                {
-                    StopSpinnerImmediately();
-                }
             }
+            catch (OperationCanceledException)
+            {
+                // Timeout cancelled (overlay was hidden normally)
+            }
+        }, token);
+    }
+
+    /// <summary>
+    /// Cancels the hard timeout.
+    /// </summary>
+    private void CancelHardTimeout()
+    {
+        if (timeoutCancellation != null)
+        {
+            try
+            {
+                timeoutCancellation.Cancel();
+                timeoutCancellation.Dispose();
+            }
+            catch { }
+            timeoutCancellation = null;
         }
     }
 
@@ -72,6 +137,18 @@ public partial class BusyOverlay : ContentView
                     overlay.overlayGrid.Opacity = opacity;
                     overlay.overlayGrid.InputTransparent = inputTransparent;
                     logger.Debug("BusyOverlay.OnIsVisibleChanged: Set ContentView.InputTransparent to {InputTransparent}, overlayGrid.Opacity to {Opacity}, overlayGrid.InputTransparent to {InputTransparent}", inputTransparent, opacity, inputTransparent);
+                }
+
+                // Handle spinner and hard timeout based on visibility change
+                if (newBoolValue)
+                {
+                    overlay.StartSpinnerImmediately();
+                    overlay.StartHardTimeout();
+                }
+                else
+                {
+                    overlay.StopSpinnerImmediately();
+                    overlay.CancelHardTimeout();
                 }
             });
         }
@@ -116,12 +193,17 @@ public partial class BusyOverlay : ContentView
 
     private void OnBusyOverlayLoaded(object? sender, EventArgs e)
     {
-        // OnIsVisibleChanged already handles opacity and InputTransparent setup
-        // We only need to ensure spinner starts if overlay is visible when loaded
-        if (IsVisible && busyIndicator != null)
+        // OnIsVisibleChanged may not be called if IsVisible is set to true in XAML before binding
+        // So we need to handle the case where the overlay is already visible when loaded
+        if (IsVisible)
         {
-            logger.Debug("BusyOverlay: Loaded and visible, starting spinner immediately");
-            busyIndicator.IsRunning = true;
+            if (busyIndicator != null)
+            {
+                logger.Debug("BusyOverlay: Loaded and visible, starting spinner immediately");
+                busyIndicator.IsRunning = true;
+            }
+            // Start hard timeout for initially visible overlays
+            StartHardTimeout();
         }
 
         // Unsubscribe after first load
