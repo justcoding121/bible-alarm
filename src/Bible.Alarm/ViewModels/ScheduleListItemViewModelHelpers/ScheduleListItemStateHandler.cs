@@ -101,6 +101,19 @@ public sealed class ScheduleListItemStateHandler(
         var biblePublicationLanguageCodeChanged = oldBiblePublicationLanguageCode != newBiblePublicationLanguageCode;
         var biblePublicationScheduleIdChanged = oldBiblePublicationScheduleId != newBiblePublicationScheduleId;
 
+        // Check if display names have been populated (even if other properties haven't changed)
+        // This handles the case where display names are populated asynchronously by bootstrap service
+        var displayNamesPopulated = (!string.IsNullOrWhiteSpace(newSectionName) && 
+                                     string.IsNullOrWhiteSpace(lastKnownSectionName)) ||
+                                    (!string.IsNullOrWhiteSpace(newTrackTitle) && 
+                                     string.IsNullOrWhiteSpace(lastKnownTrackTitle));
+
+        logger.Debug("ScheduleListItemStateHandler: DetectScheduleChanges - ScheduleId: {ScheduleId}, LastKnownSectionName: '{LastKnownSectionName}', NewSectionName: '{NewSectionName}', LastKnownTrackTitle: '{LastKnownTrackTitle}', NewTrackTitle: '{NewTrackTitle}', DisplayNamesPopulated: {DisplayNamesPopulated}",
+            updatedScheduleItem.Id,
+            lastKnownSectionName ?? "null", newSectionName ?? "null",
+            lastKnownTrackTitle ?? "null", newTrackTitle ?? "null",
+            displayNamesPopulated);
+
         // Check if ANY bible schedule property has changed
         var anyBibleSchedulePropertyChanged = biblePublicationCodeChanged ||
                                              biblePublicationLanguageCodeChanged ||
@@ -109,7 +122,13 @@ public sealed class ScheduleListItemStateHandler(
                                              oldTrackNumber != updatedSchedule.BiblePublicationSchedule?.TrackNumber ||
                                              lastKnownBiblePublicationLanguageName != newBiblePublicationLanguageName ||
                                              lastKnownSectionName != newSectionName ||
-                                             lastKnownTrackTitle != newTrackTitle;
+                                             lastKnownTrackTitle != newTrackTitle ||
+                                             displayNamesPopulated;
+
+        logger.Debug("ScheduleListItemStateHandler: DetectScheduleChanges - ScheduleId: {ScheduleId}, AnyBibleSchedulePropertyChanged: {AnyBibleSchedulePropertyChanged}, TrackTitleChanged: {TrackTitleChanged}, SectionNameChanged: {SectionNameChanged}",
+            updatedScheduleItem.Id, anyBibleSchedulePropertyChanged,
+            lastKnownTrackTitle != newTrackTitle,
+            lastKnownSectionName != newSectionName);
 
         // Log DaysOfWeek changes for debugging
         if (daysOfWeekChanged)

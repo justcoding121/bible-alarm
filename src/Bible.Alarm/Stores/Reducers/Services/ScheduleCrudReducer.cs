@@ -234,8 +234,13 @@ public static class ScheduleCrudReducer
             return state;
         }
 
-        Log.Debug("ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', MusicEnabled: {MusicEnabled}",
-            action.Schedule.Id, action.Schedule.BiblePublicationLanguageName ?? "null", action.Schedule.BiblePublicationSectionName ?? "null", action.Schedule.MusicEnabled);
+        Log.Debug("ApplicationReducer: OnUpdateScheduleSuccess - ScheduleId: {ScheduleId}, BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}, MusicEnabled: {MusicEnabled}",
+            action.Schedule.Id, 
+            action.Schedule.BiblePublicationLanguageName ?? "null", 
+            action.Schedule.BiblePublicationSectionName ?? "null",
+            action.Schedule.BiblePublicationTrackTitle ?? "null",
+            action.Schedule.BiblePublicationCode ?? "null",
+            action.Schedule.MusicEnabled);
 
         // Create new Schedules collection to maintain immutability
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
@@ -252,8 +257,21 @@ public static class ScheduleCrudReducer
                     var sourceSchedule = action.Schedule.DeepClone();
                     updatedScheduleItem = sourceSchedule; // Use the cloned schedule directly
 
-                    Log.Debug("ApplicationReducer: Existing item BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', MusicEnabled: {MusicEnabled}",
-                        scheduleItem.BiblePublicationLanguageName ?? "null", scheduleItem.BiblePublicationSectionName ?? "null", scheduleItem.MusicEnabled);
+                    Log.Debug("ApplicationReducer: Existing item - BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}, MusicEnabled: {MusicEnabled}",
+                        scheduleItem.BiblePublicationLanguageName ?? "null", 
+                        scheduleItem.BiblePublicationSectionName ?? "null",
+                        scheduleItem.BiblePublicationTrackTitle ?? "null",
+                        scheduleItem.BiblePublicationCode ?? "null",
+                        scheduleItem.MusicEnabled);
+
+                    // Preserve display names from existing schedule if they're missing in the action
+                    // This ensures display names are available immediately after save, before bootstrap service populates them
+                    DisplayNamePreservationHelper.PreserveDisplayNamesFromExisting(updatedScheduleItem, scheduleItem);
+
+                    Log.Debug("ApplicationReducer: After preservation - BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}",
+                        updatedScheduleItem.BiblePublicationSectionName ?? "null",
+                        updatedScheduleItem.BiblePublicationTrackTitle ?? "null",
+                        updatedScheduleItem.BiblePublicationCode ?? "null");
 
                     Log.Debug("ApplicationReducer: Updated schedule item (new instance) - MusicEnabled: {OldMusicEnabled} -> {NewMusicEnabled}, Name: '{OldName}' -> '{NewName}'",
                         oldMusicEnabled, updatedScheduleItem.MusicEnabled, updatedScheduleItem.Name, action.Schedule.Name);

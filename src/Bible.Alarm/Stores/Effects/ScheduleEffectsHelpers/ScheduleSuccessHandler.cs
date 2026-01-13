@@ -27,10 +27,29 @@ public class ScheduleSuccessHandler
     {
         try
         {
-            Log.Debug("ScheduleEffects: HandleUpdateScheduleSuccess - Schedule updated in DB, refreshing cache for schedule {ScheduleId}", action.Schedule?.Id);
+            var scheduleId = action.Schedule?.Id ?? 0;
+            if (scheduleId <= 0)
+            {
+                Log.Warning("ScheduleEffects: HandleUpdateScheduleSuccess - Invalid schedule ID");
+                return Task.CompletedTask;
+            }
 
-            // Refresh cache in background after successful DB update
-            _ = Task.Run(async () => await cacheManager.RefreshScheduleCacheAsync());
+            // Skip cache refresh if this action was dispatched from a cache refresh operation
+            // This prevents an infinite cycle: HandleUpdateScheduleSuccess -> RefreshSingleScheduleAsync -> UpdateScheduleSuccessAction -> HandleUpdateScheduleSuccess -> ...
+            if (action.SkipCacheRefresh)
+            {
+                Log.Debug("ScheduleEffects: HandleUpdateScheduleSuccess - Skipping cache refresh (action.SkipCacheRefresh=true) for schedule {ScheduleId}", scheduleId);
+                
+                // Still dispatch SetCarPlayScreenAction to refresh Android Auto metadata
+                dispatcher.Dispatch(new SetCarPlayScreenAction());
+                return Task.CompletedTask;
+            }
+
+            Log.Debug("ScheduleEffects: HandleUpdateScheduleSuccess - Schedule updated in DB, refreshing cache for schedule {ScheduleId}", scheduleId);
+
+            // Refresh entire cache and dispatch single schedule update with populated display names
+            // This keeps the cache in sync while only updating the single schedule in Fluxor state
+            _ = Task.Run(async () => await cacheManager.RefreshSingleScheduleAsync(scheduleId));
 
             // Dispatch SetCarPlayScreenAction to refresh Android Auto metadata
             // This will trigger DefaultCarScreenEffect to fetch metadata and update MediaSession

@@ -372,11 +372,23 @@ public sealed class ScheduleListItemViewModel(
             return;
         }
 
+        logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - ScheduleId: {ScheduleId}, CurrentPublicationCode: {PublicationCode}, CurrentSectionNumber: {SectionNumber}, CurrentTrackNumber: {TrackNumber}",
+            schedule.Id,
+            schedule.BiblePublicationSchedule?.PublicationCode ?? "null",
+            schedule.BiblePublicationSchedule?.SectionNumber?.ToString() ?? "null",
+            schedule.BiblePublicationSchedule?.TrackNumber.ToString() ?? "null");
+
         var changeInfo = stateHandler.HandleApplicationStateChanged(schedule.Id, schedule);
         if (changeInfo == null)
         {
+            logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - No change info returned for schedule {ScheduleId}", schedule.Id);
             return;
         }
+
+        logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - ScheduleId: {ScheduleId}, AnyBibleSchedulePropertyChanged: {AnyBibleSchedulePropertyChanged}, TrackTitleChanged: {TrackTitleChanged}, SectionNameChanged: {SectionNameChanged}, NewTrackTitle: '{NewTrackTitle}', NewSectionName: '{NewSectionName}'",
+            schedule.Id, changeInfo.AnyBibleSchedulePropertyChanged,
+            changeInfo.TrackTitleChanged, changeInfo.SectionNameChanged,
+            changeInfo.NewTrackTitle ?? "null", changeInfo.NewSectionName ?? "null");
 
         // Store old DaysOfWeek before updating to ensure we can detect changes
         var oldDaysOfWeek = schedule.DaysOfWeek;
@@ -415,6 +427,11 @@ public sealed class ScheduleListItemViewModel(
         // Refresh subtitle if ANY bible schedule property changed
         var subtitleChanged = changeInfo.AnyBibleSchedulePropertyChanged;
 
+        logger.Debug("ScheduleListItemViewModel: UpdateScheduleFromState - ScheduleId: {ScheduleId}, SubtitleChanged: {SubtitleChanged}, AnyBibleSchedulePropertyChanged: {AnyBibleSchedulePropertyChanged}, NewSectionName: '{NewSectionName}', NewTrackTitle: '{NewTrackTitle}', BiblePublicationCodeChanged: {BiblePublicationCodeChanged}",
+            updatedSchedule.Id, subtitleChanged, changeInfo.AnyBibleSchedulePropertyChanged,
+            changeInfo.NewSectionName ?? "null", changeInfo.NewTrackTitle ?? "null",
+            changeInfo.BiblePublicationCodeChanged);
+
         if (subtitleChanged)
         {
             stateHandler.LastKnownBiblePublicationLanguageName = changeInfo.NewBiblePublicationLanguageName;
@@ -425,6 +442,13 @@ public sealed class ScheduleListItemViewModel(
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 var updatedScheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == updatedSchedule.Id);
+                
+                logger.Debug("ScheduleListItemViewModel: UpdateScheduleFromState - OnMainThread - ScheduleId: {ScheduleId}, FoundScheduleItem: {FoundScheduleItem}, PublicationCode: {PublicationCode}, SectionName: '{SectionName}', TrackTitle: '{TrackTitle}'",
+                    updatedSchedule.Id, updatedScheduleItem != null,
+                    updatedScheduleItem?.BiblePublicationCode ?? "null",
+                    updatedScheduleItem?.BiblePublicationSectionName ?? "null",
+                    updatedScheduleItem?.BiblePublicationTrackTitle ?? "null");
+                
                 // Update tracked publication code if it changed
                 if (changeInfo.BiblePublicationCodeChanged && updatedScheduleItem != null)
                 {
@@ -432,19 +456,8 @@ public sealed class ScheduleListItemViewModel(
                 }
                 RefreshSubTitleFromState(updatedScheduleItem);
                 
-                // Schedule a delayed refresh in case display names are populated asynchronously
-                // This handles the case where bootstrap service populates display names after state update
-                Task.Delay(500).ContinueWith(_ =>
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        var delayedScheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == updatedSchedule.Id);
-                        if (delayedScheduleItem != null)
-                        {
-                            RefreshSubTitleFromState(delayedScheduleItem);
-                        }
-                    });
-                });
+                // Note: Display names are now populated and dispatched via InitializeAction in RefreshScheduleCacheAsync
+                // OnApplicationStateChanged will automatically detect the populated display names and refresh the subtitle
             });
         }
     }

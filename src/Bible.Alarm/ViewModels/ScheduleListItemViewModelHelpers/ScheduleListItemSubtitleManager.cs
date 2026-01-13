@@ -46,6 +46,7 @@ public sealed class ScheduleListItemSubtitleManager(
     {
         if (scheduleId <= 0)
         {
+            logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Invalid scheduleId: {ScheduleId}", scheduleId);
             return;
         }
 
@@ -55,22 +56,58 @@ public sealed class ScheduleListItemSubtitleManager(
             var scheduleStateItem = providedScheduleStateItem ??
                 applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
 
+            logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - ScheduleId: {ScheduleId}, ProvidedItem: {HasProvidedItem}, FoundInState: {FoundInState}, PublicationCode: {PublicationCode}, SectionName: {SectionName}, TrackTitle: {TrackTitle}",
+                scheduleId,
+                providedScheduleStateItem != null,
+                scheduleStateItem != null,
+                scheduleStateItem?.BiblePublicationCode ?? "null",
+                scheduleStateItem?.BiblePublicationSectionName ?? "null",
+                scheduleStateItem?.BiblePublicationTrackTitle ?? "null");
+
             if (scheduleStateItem?.BiblePublicationScheduleId.HasValue == true)
             {
                 UpdateLanguageFromState(scheduleStateItem, setLanguage, setFlowDirection, onPropertyChanged);
                 var subtitle = BuildSubtitleFromState(scheduleStateItem);
+                
+                logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Built subtitle: '{Subtitle}' for schedule {ScheduleId}", subtitle, scheduleId);
+                
                 if (!string.IsNullOrEmpty(subtitle))
                 {
+                    logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Setting subtitle to '{Subtitle}' for schedule {ScheduleId}", subtitle, scheduleId);
                     setSubTitle(subtitle);
                     onPropertyChanged("SubTitle");
+                    return;
+                }
+                
+                // If subtitle is empty, check if we're waiting for display names to be populated
+                // For sectioned publications, we need BiblePublicationSectionName
+                // For non-sectioned publications, we need BiblePublicationTrackTitle
+                var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode);
+                var waitingForDisplayNames = (hasSectionStructure && string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName)) ||
+                                            (!hasSectionStructure && string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle));
+                
+                logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - ScheduleId: {ScheduleId}, HasSectionStructure: {HasSectionStructure}, WaitingForDisplayNames: {WaitingForDisplayNames}, SectionName: '{SectionName}', TrackTitle: '{TrackTitle}'",
+                    scheduleId, hasSectionStructure, waitingForDisplayNames,
+                    scheduleStateItem.BiblePublicationSectionName ?? "null",
+                    scheduleStateItem.BiblePublicationTrackTitle ?? "null");
+                
+                // If we're waiting for display names, don't fall back to async lookup yet
+                // The delayed refresh will catch it when display names are populated
+                if (waitingForDisplayNames)
+                {
+                    logger.Debug("ScheduleListItemSubtitleManager: Waiting for display names to be populated for schedule {ScheduleId}. HasSectionStructure: {HasSectionStructure}", 
+                        scheduleId, hasSectionStructure);
                     return;
                 }
             }
             else
             {
+                logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - No BiblePublicationScheduleId for schedule {ScheduleId}, clearing language", scheduleId);
                 ClearLanguage(setLanguage, setFlowDirection, onPropertyChanged);
             }
 
+            // Only fall back to async lookup if display names are not expected to be populated
+            logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Falling back to async lookup for schedule {ScheduleId}", scheduleId);
             _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, setFlowDirection, onPropertyChanged);
         }
         catch (Exception e)
@@ -137,9 +174,10 @@ public sealed class ScheduleListItemSubtitleManager(
         else
         {
             // Drama/Video: Show just the track title
-            if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
+            var trackTitle = scheduleStateItem.BiblePublicationTrackTitle;
+            if (!string.IsNullOrWhiteSpace(trackTitle))
             {
-                return scheduleStateItem.BiblePublicationTrackTitle;
+                return trackTitle;
             }
             return string.Empty;
         }

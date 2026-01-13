@@ -76,11 +76,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                         logger.Warning("Track {TrackNumber} '{TrackTitle}' has null BaseUrlEntity. UrlPath={UrlPath}",
                             track.Number, track.Title, track.Source.UrlPath);
                     }
-                    else
-                    {
-                        logger.Debug("Track {TrackNumber} '{TrackTitle}' has URL={Url}",
-                            track.Number, track.Title, track.Source.Url);
-                    }
+                    // Removed excessive debug logging for each track URL
                 }
             }
 

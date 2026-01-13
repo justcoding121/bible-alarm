@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 
@@ -39,9 +40,42 @@ public static class DisplayNamePreservationHelper
             actionSchedule.BiblePublicationName = existingScheduleItem.BiblePublicationName;
         }
 
-        if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationSectionName))
+        // Check if publication type changed (sectioned <-> non-sectioned)
+        var actionHasSectionStructure = !string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCode) &&
+            PublicationTypeHelper.HasSectionStructure(actionSchedule.BiblePublicationCode);
+        var existingHasSectionStructure = !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationCode) &&
+            PublicationTypeHelper.HasSectionStructure(existingScheduleItem.BiblePublicationCode);
+
+        // Only preserve section name if publication type hasn't changed and both are sectioned
+        if (actionHasSectionStructure == existingHasSectionStructure && actionHasSectionStructure)
         {
-            actionSchedule.BiblePublicationSectionName = existingScheduleItem.BiblePublicationSectionName;
+            if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationSectionName))
+            {
+                Log.Debug("ApplicationReducer: Preserving existing BiblePublicationSectionName: {SectionName}",
+                    existingScheduleItem.BiblePublicationSectionName);
+                actionSchedule.BiblePublicationSectionName = existingScheduleItem.BiblePublicationSectionName;
+            }
+        }
+        // Only preserve track title if publication type hasn't changed and both are non-sectioned
+        else if (actionHasSectionStructure == existingHasSectionStructure && !actionHasSectionStructure)
+        {
+            if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationTrackTitle) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationTrackTitle))
+            {
+                Log.Debug("ApplicationReducer: Preserving existing BiblePublicationTrackTitle: {TrackTitle}",
+                    existingScheduleItem.BiblePublicationTrackTitle);
+                actionSchedule.BiblePublicationTrackTitle = existingScheduleItem.BiblePublicationTrackTitle;
+            }
+            else if (!string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationTrackTitle))
+            {
+                Log.Debug("ApplicationReducer: Using action's BiblePublicationTrackTitle (not preserving): {TrackTitle}",
+                    actionSchedule.BiblePublicationTrackTitle);
+            }
+        }
+        // If publication type changed, don't preserve incompatible display names
+        else
+        {
+            Log.Debug("ApplicationReducer: Publication type changed (sectioned: {ActionSectioned} -> {ExistingSectioned}), not preserving incompatible display names",
+                actionHasSectionStructure, existingHasSectionStructure);
         }
     }
 
