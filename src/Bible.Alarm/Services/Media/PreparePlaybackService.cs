@@ -10,62 +10,148 @@ namespace Bible.Alarm.Services.Media;
 public sealed class PreparePlaybackService(
     ILogger logger,
     IPlaylistService playlistService,
-    IMediaCacheService cacheService) : IPreparePlaybackService
+    IMediaCacheService cacheService,
+    IDownloadService downloadService) : IPreparePlaybackService
 {
+    private const int MaxConcurrentDownloads = 3;
 
     public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
         var playItems = await playlistService.NextTracks(scheduleId);
-        var preparedTracks = new List<AudioPlayerTrack>();
         var totalTracks = playItems.Count;
-        var loadedTracks = 0;
 
-        // Send initial progress message with total count
-        SendProgressMessage(loadedTracks, totalTracks, 0, 0, null);
-
-        foreach (var playItem in playItems)
+        if (totalTracks == 0)
         {
-            // Check for cancellation before processing each track
-            cancellationToken.ThrowIfCancellationRequested();
-
-            // Capture current track index for progress callback
-            var currentTrackIndex = loadedTracks;
-
-            // Progress callback for download bytes
-            void DownloadProgressCallback(long bytesDownloaded, long? totalBytes)
-            {
-                var trackProgress = totalBytes.HasValue && totalBytes.Value > 0
-                    ? (double)bytesDownloaded / totalBytes.Value
-                    : 0.0;
-                SendProgressMessage(currentTrackIndex, totalTracks, trackProgress, bytesDownloaded, totalBytes);
-            }
-
-            var audioPlayerTrack = await PrepareSingleTrackWithProgressAsync(playItem, DownloadProgressCallback, cancellationToken);
-
-            if (audioPlayerTrack == null)
-            {
-                logger.Warning($"Failed to download {playItem.Url}");
-                return null;
-            }
-
-            preparedTracks.Add(audioPlayerTrack);
-
-            // Send progress update message after each track is prepared
-            loadedTracks++;
-            SendProgressMessage(loadedTracks, totalTracks, 1.0, 0, null);
-
-            // Add delay to ensure each progress state (1/3, 2/3, 3/3) is visible on UI
-            // Use cancellation token for delay
-            if (loadedTracks < totalTracks)
-            {
-                await Task.Delay(50, cancellationToken);
-            }
+            return new List<AudioPlayerTrack>();
         }
 
-        return preparedTracks;
+        // Send initial progress message
+        SendProgressMessage(0, totalTracks, 0, 0, null, 0, null);
+
+        // Phase 1: Get all Content-Length values first (HEAD requests in parallel)
+        var trackSizes = new Dictionary<int, long?>();
+        var sizeTasks = playItems.Select(async (playItem, index) =>
+        {
+            try
+            {
+                var contentLength = await downloadService.GetContentLengthAsync(playItem.Url, cancellationToken);
+                lock (trackSizes)
+                {
+                    trackSizes[index] = contentLength;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Failed to get Content-Length for track {Index}: {Url}", index, playItem.Url);
+                lock (trackSizes)
+                {
+                    trackSizes[index] = null;
+                }
+            }
+        });
+
+        await Task.WhenAll(sizeTasks);
+
+        // Calculate total expected bytes
+        var totalBytesExpected = trackSizes.Values
+            .Where(v => v.HasValue)
+            .Sum(v => v.Value);
+
+        // Phase 2: Download tracks in parallel with concurrency limit
+        var preparedTracks = new AudioPlayerTrack?[totalTracks]; // Use array to maintain order
+        var trackProgress = new Dictionary<int, long>(); // Track index -> bytes downloaded
+        var progressLock = new object();
+        var loadedTracks = 0;
+        var loadedTracksLock = new object();
+
+        using var semaphore = new SemaphoreSlim(MaxConcurrentDownloads, MaxConcurrentDownloads);
+
+        var downloadTasks = playItems.Select(async (playItem, index) =>
+        {
+            await semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                // Progress callback for this specific track
+                void DownloadProgressCallback(long bytesDownloaded, long? totalBytes)
+                {
+                    lock (progressLock)
+                    {
+                        // Update this track's progress
+                        trackProgress[index] = bytesDownloaded;
+
+                        // Calculate overall progress
+                        var totalBytesDownloaded = trackProgress.Values.Sum();
+                        var currentTrackProgress = totalBytes.HasValue && totalBytes.Value > 0
+                            ? (double)bytesDownloaded / totalBytes.Value
+                            : 0.0;
+
+                        // Send progress message with overall stats
+                        SendProgressMessage(
+                            loadedTracks,
+                            totalTracks,
+                            currentTrackProgress,
+                            bytesDownloaded,
+                            totalBytes,
+                            totalBytesDownloaded,
+                            totalBytesExpected > 0 ? totalBytesExpected : null);
+                    }
+                }
+
+                var audioPlayerTrack = await PrepareSingleTrackWithProgressAsync(playItem, DownloadProgressCallback, cancellationToken);
+
+                if (audioPlayerTrack == null)
+                {
+                    logger.Warning("Failed to download track {Index}: {Url}", index, playItem.Url);
+                    return null;
+                }
+
+                lock (loadedTracksLock)
+                {
+                    preparedTracks[index] = audioPlayerTrack; // Store in correct position
+                    loadedTracks++;
+                }
+
+                // Update progress after track completion - ensure we use the final size
+                lock (progressLock)
+                {
+                    // Set final size for this track (use actual size if known, otherwise keep current progress)
+                    if (trackSizes[index].HasValue)
+                    {
+                        trackProgress[index] = trackSizes[index].Value;
+                    }
+                    
+                    var totalBytesDownloaded = trackProgress.Values.Sum();
+                    SendProgressMessage(
+                        loadedTracks,
+                        totalTracks,
+                        1.0,
+                        trackSizes[index] ?? trackProgress.GetValueOrDefault(index, 0),
+                        trackSizes[index],
+                        totalBytesDownloaded,
+                        totalBytesExpected > 0 ? totalBytesExpected : null);
+                }
+
+                return audioPlayerTrack;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+
+        await Task.WhenAll(downloadTasks);
+
+        // Check if any downloads failed
+        if (preparedTracks.Any(r => r == null))
+        {
+            logger.Warning("Some tracks failed to download");
+            return null;
+        }
+
+        return preparedTracks.Where(t => t != null).ToList()!;
     }
 
-    private static void SendProgressMessage(int loadedTracks, int totalTracks, double currentTrackProgress, long bytesDownloaded, long? totalBytes)
+    private static void SendProgressMessage(int loadedTracks, int totalTracks, double currentTrackProgress, long bytesDownloaded, long? totalBytes, long totalBytesDownloaded, long? totalBytesExpected)
     {
         WeakReferenceMessenger.Default.Send(new PlaybackPreparationProgressMessage
         {
@@ -73,7 +159,9 @@ public sealed class PreparePlaybackService(
             TotalTracks = totalTracks,
             CurrentTrackProgress = currentTrackProgress,
             BytesDownloaded = bytesDownloaded,
-            TotalBytes = totalBytes
+            TotalBytes = totalBytes,
+            TotalBytesDownloaded = totalBytesDownloaded,
+            TotalBytesExpected = totalBytesExpected
         });
     }
 

@@ -48,6 +48,16 @@ public class PlaybackPreparationProgressMessage
     /// Total bytes expected for the current track (if known).
     /// </summary>
     public long? TotalBytes { get; init; }
+    
+    /// <summary>
+    /// Total bytes downloaded across all tracks (for overall progress calculation).
+    /// </summary>
+    public long TotalBytesDownloaded { get; init; }
+    
+    /// <summary>
+    /// Total bytes expected across all tracks (if known, for overall progress calculation).
+    /// </summary>
+    public long? TotalBytesExpected { get; init; }
 }
 
 /// <summary>

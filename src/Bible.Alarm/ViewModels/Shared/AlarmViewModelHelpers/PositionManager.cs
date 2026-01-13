@@ -70,11 +70,19 @@ public sealed class PositionManager()
         var loadedTracks = message.LoadedTracks;
         var totalTracks = message.TotalTracks;
         
-        // Calculate progress including current track's download progress for smoother progress bar
-        // Each completed track contributes (1/totalTracks), and current track contributes partial progress
+        // Calculate progress based on overall bytes downloaded (for parallel downloads)
+        // Use byte-based progress if available, otherwise fall back to track-based progress
         double preparationProgress;
-        if (totalTracks > 0)
+        if (message.TotalBytesExpected.HasValue && message.TotalBytesExpected.Value > 0)
         {
+            // Use overall byte-based progress for accurate representation of parallel downloads
+            preparationProgress = (double)message.TotalBytesDownloaded / message.TotalBytesExpected.Value;
+            // Clamp to [0, 1]
+            preparationProgress = Math.Max(0.0, Math.Min(1.0, preparationProgress));
+        }
+        else if (totalTracks > 0)
+        {
+            // Fallback to track-based progress if byte info not available
             var completedTrackProgress = loadedTracks / (double)totalTracks;
             var currentTrackContribution = message.CurrentTrackProgress / totalTracks;
             preparationProgress = completedTrackProgress + currentTrackContribution;

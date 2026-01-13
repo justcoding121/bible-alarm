@@ -110,6 +110,58 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
         }, combinedCts.Token);
     }
 
+    public async Task<long?> GetContentLengthAsync(string url, CancellationToken cancellationToken = default)
+    {
+        // Combine the service's cancellation token with the provided one
+        using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token, cancellationToken);
+
+        return await fileExistsRetryPolicy.ExecuteAsync(async ct =>
+        {
+            using var client = new HttpClient(handler, false)
+            {
+                Timeout = TimeSpan.FromSeconds(timeOutSeconds)
+            };
+
+            try
+            {
+                // Try HEAD request first (lightweight)
+                using var headRequest = new HttpRequestMessage(HttpMethod.Head, url);
+                headRequest.Headers.UserAgent.ParseAdd(UserAgent);
+                headRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+
+                var headResponse = await client.SendAsync(headRequest, ct);
+                if (headResponse.IsSuccessStatusCode)
+                {
+                    return headResponse.Content.Headers.ContentLength;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Debug(ex, "HEAD request failed for URL: {Url}, trying GET with headers only", url);
+            }
+
+            // Fallback: GET request but only read headers (no body download)
+            try
+            {
+                using var getRequest = new HttpRequestMessage(HttpMethod.Get, url);
+                getRequest.Headers.UserAgent.ParseAdd(UserAgent);
+                getRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+
+                using var response = await client.SendAsync(getRequest, HttpCompletionOption.ResponseHeadersRead, ct);
+                if (response.IsSuccessStatusCode)
+                {
+                    return response.Content.Headers.ContentLength;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Failed to get Content-Length for URL: {Url}", url);
+            }
+
+            return null;
+        }, combinedCts.Token);
+    }
+
     /// <summary>
     /// Downloads a file with a stall timeout - only times out if no data is received for X seconds.
     /// This prevents canceling slow but active downloads while still detecting stalled connections.

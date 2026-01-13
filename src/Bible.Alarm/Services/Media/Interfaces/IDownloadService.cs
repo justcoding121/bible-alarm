@@ -14,6 +14,14 @@ public interface IDownloadService : IDisposable
     /// <returns>The downloaded bytes.</returns>
     Task<byte[]> DownloadWithProgressAsync(string url, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default);
     
+    /// <summary>
+    /// Gets the Content-Length of a file via HEAD request without downloading it.
+    /// </summary>
+    /// <param name="url">The URL to check.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The Content-Length if available, null otherwise.</returns>
+    Task<long?> GetContentLengthAsync(string url, CancellationToken cancellationToken = default);
+    
     Task<bool> FileExists(string url);
 }
 

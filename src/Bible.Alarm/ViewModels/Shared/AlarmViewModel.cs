@@ -346,6 +346,8 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     private long bytesDownloaded;
     private long? totalBytes;
     private double currentTrackProgress;
+    private long totalBytesDownloaded;
+    private long? totalBytesExpected;
 
     public bool IsPreparing
     {
@@ -393,27 +395,22 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
         {
             if (totalTracks <= 0)
             {
-                return "Preparing..\n ";
+                return "Preparing..";
             }
 
-            // Always use two lines to prevent layout jumps when text changes
-            // Line 1: Track progress
-            // Line 2: Download percentage (or empty placeholder)
-            
             if (loadedTracks < totalTracks)
             {
-                // Still downloading/preparing
-                var downloadInfo = " "; // Placeholder to maintain height
-                if (bytesDownloaded > 0 && totalBytes.HasValue && totalBytes.Value > 0)
+                // Still downloading/preparing - show percentage
+                if (totalBytesDownloaded > 0 && totalBytesExpected.HasValue && totalBytesExpected.Value > 0)
                 {
-                    var percentage = (bytesDownloaded * 100.0) / totalBytes.Value;
-                    downloadInfo = $"{percentage:F1}%";
+                    var percentage = (totalBytesDownloaded * 100.0) / totalBytesExpected.Value;
+                    return $"{percentage:F1}%";
                 }
-                return $"Downloading track {loadedTracks + 1}/{totalTracks}\n{downloadInfo}";
+                return "Preparing..";
             }
 
             // All tracks prepared
-            return $"Prepared {totalTracks} tracks\n ";
+            return "Ready";
         }
     }
 
@@ -483,6 +480,8 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
             bytesDownloaded = message.BytesDownloaded;
             totalBytes = message.TotalBytes;
             currentTrackProgress = message.CurrentTrackProgress;
+            totalBytesDownloaded = message.TotalBytesDownloaded;
+            totalBytesExpected = message.TotalBytesExpected;
 
             messageHandler.HandlePreparationProgressMessage(
                 message,
