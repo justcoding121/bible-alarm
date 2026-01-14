@@ -17,7 +17,7 @@
         <x:String x:Key="Friday">Friday</x:String>
         <x:String x:Key="Saturday">Saturday</x:String>
     </ContentView.Resources>
-    <Grid RowSpacing="12">
+    <Grid RowSpacing="{DynamicResource SpacingStandard}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -26,7 +26,7 @@
         <Grid Grid.Row="0"
               HorizontalOptions="Center"
               VerticalOptions="Center"
-              Padding="0,8">
+              Padding="0">
             <OnPlatform x:TypeArguments="View">
                 <OnPlatform.Platforms>
                     <On Platform="iOS">
@@ -56,21 +56,23 @@
             </OnPlatform>
         </Grid>
         <FlexLayout Grid.Row="1"
-              Margin="8,0"
+              Margin="0"
               HorizontalOptions="Center"
               VerticalOptions="Center"
               Wrap="Wrap"
               JustifyContent="Center"
               AlignItems="Center"
               AlignContent="Center">
-            <Border Margin="2"
-                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
+            <Border Margin="1"
+                    Padding="{DynamicResource PaddingSmall}"
                     StrokeThickness="0"
-                    StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
                     MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Sunday}">
                         <Binding Path="DaysOfWeek" />
@@ -85,7 +87,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Sunday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="S"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
                                     HorizontalOptions="Center"
@@ -101,7 +103,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Sunday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="S"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
                                     HorizontalOptions="Center"
@@ -117,7 +119,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Sunday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="S"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
                                     HorizontalOptions="Fill"
@@ -128,14 +130,16 @@
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Margin="2"
-                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
+            <Border Margin="1"
+                    Padding="{DynamicResource PaddingSmall}"
                     StrokeThickness="0"
-                    StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
                     MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Monday}">
                         <Binding Path="DaysOfWeek" />
@@ -150,7 +154,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Monday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="M"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
                                     HorizontalOptions="Center"
@@ -166,7 +170,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Monday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="M"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
                                     HorizontalOptions="Center"
@@ -182,7 +186,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Monday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="M"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
                                     HorizontalOptions="Fill"
@@ -193,14 +197,16 @@
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Margin="2"
-                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
+            <Border Margin="1"
+                    Padding="{DynamicResource PaddingSmall}"
                     StrokeThickness="0"
-                    StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Tuesday}">
                         <Binding Path="DaysOfWeek" />
@@ -215,7 +221,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Tuesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="T"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
                                     HorizontalOptions="Center"
@@ -231,7 +237,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Tuesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="T"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
                                     HorizontalOptions="Center"
@@ -247,7 +253,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Tuesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="T"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
                                     HorizontalOptions="Fill"
@@ -258,14 +264,16 @@
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Margin="2"
-                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
+            <Border Margin="1"
+                    Padding="{DynamicResource PaddingSmall}"
                     StrokeThickness="0"
-                    StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Wednesday}">
                         <Binding Path="DaysOfWeek" />
@@ -280,7 +288,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Wednesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="W"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
                                     HorizontalOptions="Center"
@@ -296,7 +304,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Wednesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="W"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
                                     HorizontalOptions="Center"
@@ -312,7 +320,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Wednesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="W"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
                                     HorizontalOptions="Fill"
@@ -323,14 +331,16 @@
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Margin="2"
-                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
+            <Border Margin="1"
+                    Padding="{DynamicResource PaddingSmall}"
                     StrokeThickness="0"
-                    StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Thursday}">
                         <Binding Path="DaysOfWeek" />
@@ -345,7 +355,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Thursday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="T"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
                                     HorizontalOptions="Center"
@@ -361,7 +371,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Thursday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="T"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
                                     HorizontalOptions="Center"
@@ -377,7 +387,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Thursday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="T"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
                                     HorizontalOptions="Fill"
@@ -388,14 +398,16 @@
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Margin="2"
-                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
+            <Border Margin="1"
+                    Padding="{DynamicResource PaddingSmall}"
                     StrokeThickness="0"
-                    StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Friday}">
                         <Binding Path="DaysOfWeek" />
@@ -410,7 +422,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Friday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="F"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
                                     HorizontalOptions="Center"
@@ -426,7 +438,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Friday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="F"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
                                     HorizontalOptions="Center"
@@ -442,7 +454,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Friday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="F"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
                                     HorizontalOptions="Fill"
@@ -453,14 +465,16 @@
                     </OnPlatform.Platforms>
                 </OnPlatform>
             </Border>
-            <Border Margin="2"
-                    Padding="{OnPlatform Android='2,2', iOS='5,4', WinUI='3,1,5,5', Default='5,4'}"
+            <Border Margin="1"
+                    Padding="{DynamicResource PaddingSmall}"
                     StrokeThickness="0"
-                    StrokeShape="RoundRectangle 6,6,6,6"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Saturday}">
                         <Binding Path="DaysOfWeek" />
@@ -475,7 +489,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Saturday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="S"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
                                     HorizontalOptions="Center"
@@ -491,7 +505,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Saturday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="S"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
                                     HorizontalOptions="Center"
@@ -507,7 +521,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Saturday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource SmallMediumFontSize}"
                                     Text="S"
                                     TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
                                     HorizontalOptions="Fill"
@@ -533,10 +547,10 @@
                     BackgroundColor="{DynamicResource CardBackgroundColor}"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    Padding="12,12"
+                    Padding="12,4"
                     MinimumWidthRequest="280">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="8" />
+                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
                 </Border.StrokeShape>
                 <Border.Shadow>
                     <Shadow Brush="#20000000" 

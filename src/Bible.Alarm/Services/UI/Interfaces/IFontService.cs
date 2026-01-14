@@ -26,6 +26,11 @@ public interface IFontService : IDisposable
     double SmallFontSize { get; }
 
     /// <summary>
+    /// Small-medium font size (12 points) scaled by device density and OS accessibility settings
+    /// </summary>
+    double SmallMediumFontSize { get; }
+
+    /// <summary>
     /// Medium font size (14 points) scaled by device density and OS accessibility settings
     /// </summary>
     double MediumFontSize { get; }

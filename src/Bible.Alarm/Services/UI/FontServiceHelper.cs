@@ -85,6 +85,12 @@ public static class FontServiceHelper
     public static double SmallFontSize => GetFontService().SmallFontSize;
 
     /// <summary>
+    /// Gets the small-medium font size (12pt scaled by density)
+    /// Hot-reload friendly: Always returns a valid value
+    /// </summary>
+    public static double SmallMediumFontSize => GetFontService().SmallMediumFontSize;
+
+    /// <summary>
     /// Gets the medium font size (14pt scaled by density)
     /// Hot-reload friendly: Always returns a valid value
     /// </summary>

@@ -49,7 +49,7 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
-        if (sender is Grid grid && grid.BindingContext is PublicationListViewItemModel publicationItem)
+        if (sender is View view && view.BindingContext is PublicationListViewItemModel publicationItem)
         {
             if (ViewModel != null && ViewModel.SectionSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
             {

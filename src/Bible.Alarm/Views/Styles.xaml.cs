@@ -47,12 +47,18 @@ public partial class Styles : ResourceDictionary
         // Get FontService from FontServiceHelper (initialized in MauiProgram)
         var service = fontService ?? FontServiceHelper.GetFontService();
 
+        // Calculate font scale factor based on StandardFontSize (which already includes accessibility scaling)
+        // Base StandardFontSize is 12.0, so scale factor = current / base
+        const double BaseStandardFontSize = 12.0;
+        double fontScaleFactor = service.StandardFontSize / BaseStandardFontSize;
+
         // Update resources with actual scaled values (includes OS accessibility font scale)
         // DynamicResource bindings will automatically pick up these changes
         this["StandardFontSize"] = service.StandardFontSize;
         this["HeaderFontSize"] = service.HeaderFontSize;
         this["ButtonFontSize"] = service.ButtonFontSize;
         this["SmallFontSize"] = service.SmallFontSize;
+        this["SmallMediumFontSize"] = service.SmallMediumFontSize;
         this["MediumFontSize"] = service.MediumFontSize;
         this["LargeFontSize"] = service.LargeFontSize;
         this["TitleFontSize"] = service.TitleFontSize;
@@ -69,6 +75,30 @@ public partial class Styles : ResourceDictionary
         this["IconSmallContainerSize"] = service.IconSmallContainerSize;
         this["IconStandardContainerSize"] = service.IconStandardContainerSize;
         this["IconLargeContainerSize"] = service.IconLargeContainerSize;
+
+        // Spacing resources - scale with font size for fluent UI
+        // Base values are defined in XAML, scaled here
+        this["SpacingExtraSmall"] = 2.0 * fontScaleFactor;
+        this["SpacingSmall"] = 4.0 * fontScaleFactor;
+        this["SpacingMedium"] = 8.0 * fontScaleFactor;
+        this["SpacingStandard"] = 12.0 * fontScaleFactor;
+        this["SpacingLarge"] = 16.0 * fontScaleFactor;
+        this["SpacingExtraLarge"] = 20.0 * fontScaleFactor;
+
+        // Padding resources - scale with font size
+        this["PaddingSmall"] = 4.0 * fontScaleFactor;
+        this["PaddingMedium"] = 8.0 * fontScaleFactor;
+        this["PaddingStandard"] = 12.0 * fontScaleFactor;
+        this["PaddingLarge"] = 16.0 * fontScaleFactor;
+        this["PaddingExtraLarge"] = 20.0 * fontScaleFactor;
+
+        // Corner radius resources - scale slightly with font size for better proportions
+        // Corner radius scales less aggressively than spacing (0.8x factor) to maintain visual balance
+        double cornerRadiusScale = 0.8 + (fontScaleFactor - 1.0) * 0.5; // Scale between 0.8x and 1.3x
+        this["CornerRadiusSmall"] = 4.0 * cornerRadiusScale;
+        this["CornerRadiusMedium"] = 6.0 * cornerRadiusScale;
+        this["CornerRadiusStandard"] = 8.0 * cornerRadiusScale;
+        this["CornerRadiusLarge"] = 12.0 * cornerRadiusScale;
     }
 }
 

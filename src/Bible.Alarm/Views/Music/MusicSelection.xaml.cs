@@ -77,7 +77,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
 
     private async void OnMusicTypeItemTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is Grid grid && grid.BindingContext is MusicTypeListItemViewModel musicTypeItem)
+        if (sender is View view && view.BindingContext is MusicTypeListItemViewModel musicTypeItem)
         {
             if (ViewModel != null && ViewModel.SongPublicationSelectionCommand is IAsyncRelayCommand<MusicTypeListItemViewModel> asyncCommand)
             {

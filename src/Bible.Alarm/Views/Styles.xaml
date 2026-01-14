@@ -10,6 +10,7 @@
     <x:Double x:Key="HeaderFontSize">18.0</x:Double>
     <x:Double x:Key="ButtonFontSize">17.0</x:Double>
     <x:Double x:Key="SmallFontSize">10.0</x:Double>
+    <x:Double x:Key="SmallMediumFontSize">12.0</x:Double>
     <x:Double x:Key="MediumFontSize">14.0</x:Double>
     <x:Double x:Key="LargeFontSize">16.0</x:Double>
     <x:Double x:Key="TitleFontSize">20.0</x:Double>
@@ -28,6 +29,28 @@
     <x:Double x:Key="IconSmallContainerSize">32.0</x:Double>
     <x:Double x:Key="IconStandardContainerSize">48.0</x:Double>
     <x:Double x:Key="IconLargeContainerSize">56.0</x:Double>
+    
+    <!-- Spacing and padding resources - scale with OS font size for fluent UI -->
+    <!-- These are updated automatically when screen size/orientation changes or OS font scale changes -->
+    <x:Double x:Key="SpacingExtraSmall">2.0</x:Double>
+    <x:Double x:Key="SpacingSmall">4.0</x:Double>
+    <x:Double x:Key="SpacingMedium">8.0</x:Double>
+    <x:Double x:Key="SpacingStandard">12.0</x:Double>
+    <x:Double x:Key="SpacingLarge">16.0</x:Double>
+    <x:Double x:Key="SpacingExtraLarge">20.0</x:Double>
+    
+    <!-- Padding resources - scale with OS font size -->
+    <x:Double x:Key="PaddingSmall">4.0</x:Double>
+    <x:Double x:Key="PaddingMedium">8.0</x:Double>
+    <x:Double x:Key="PaddingStandard">12.0</x:Double>
+    <x:Double x:Key="PaddingLarge">16.0</x:Double>
+    <x:Double x:Key="PaddingExtraLarge">20.0</x:Double>
+    
+    <!-- Corner radius resources - scale slightly with font size for better proportions -->
+    <x:Double x:Key="CornerRadiusSmall">4.0</x:Double>
+    <x:Double x:Key="CornerRadiusMedium">6.0</x:Double>
+    <x:Double x:Key="CornerRadiusStandard">8.0</x:Double>
+    <x:Double x:Key="CornerRadiusLarge">12.0</x:Double>
 
     <!-- Color Resources (static - theme-aware colors are defined per-page) -->
     <Color x:Key="PrimaryColor">#6A5ACD</Color>

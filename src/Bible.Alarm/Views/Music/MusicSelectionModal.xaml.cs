@@ -87,7 +87,7 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
-        if (sender is Grid grid && grid.BindingContext is MusicTypeListItemViewModel musicTypeItem)
+        if (sender is View view && view.BindingContext is MusicTypeListItemViewModel musicTypeItem)
         {
             if (ViewModel != null && ViewModel.SongPublicationSelectionCommand is IAsyncRelayCommand<MusicTypeListItemViewModel> asyncCommand)
             {

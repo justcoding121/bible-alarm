@@ -50,7 +50,7 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
-        if (sender is Grid grid && grid.BindingContext is LanguageListViewItemModel languageItem)
+        if (sender is View view && view.BindingContext is LanguageListViewItemModel languageItem)
         {
             if (ViewModel is BiblePublicationSelectionViewModel bibleSelectionViewModel)
             {

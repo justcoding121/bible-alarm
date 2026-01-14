@@ -33,7 +33,7 @@
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <Grid Grid.Row="0" Padding="16,12">
+            <Grid Grid.Row="0" Padding="16,8,16,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -55,11 +55,10 @@
                         <TapGestureRecognizer Command="{Binding AddScheduleCommand}" />
                     </core:SfEffectsView.GestureRecognizers>
                     <Button x:Name="AddScheduleEffectsButton"
-                            Margin="{OnPlatform Default='0,0,0,8',
-                                                iOS='0,0,0,8'}"
+                            Margin="0"
                             AutomationId="AddScheduleButton"
                             BackgroundColor="{StaticResource PrimaryColor}"
-                            CornerRadius="12"
+                            CornerRadius="{DynamicResource CornerRadiusLarge}"
                             Command="{Binding AddScheduleCommand}"
                             IsEnabled="{Binding IsBootstrapReady}"
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -91,11 +90,10 @@
                 <!-- Regular button for Android/iOS (with native effects) -->
                 <Button Grid.Row="0"
                         x:Name="AddScheduleButtonNoEffects"
-                        Margin="{OnPlatform Default='0,0,0,8',
-                                            iOS='0,0,0,8'}"
+                        Margin="0"
                         AutomationId="AddScheduleButton"
                         BackgroundColor="{StaticResource PrimaryColor}"
-                        CornerRadius="12"
+                        CornerRadius="{DynamicResource CornerRadiusLarge}"
                         Command="{Binding AddScheduleCommand}"
                         IsEnabled="{Binding IsBootstrapReady}"
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
@@ -127,6 +125,7 @@
             <!-- Progress bar for schedule loading -->
             <shared:AnimatedProgressBar
                 Grid.Row="1"
+                Margin="0,8,0,8"
                 Opacity="{Binding ProgressBarOpacity}"
                 VerticalOptions="Start"
                 InputTransparent="{Binding IsProgressBarHidden}"
@@ -143,7 +142,7 @@
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" 
-                                       ItemSpacing="16" />
+                                       ItemSpacing="{DynamicResource SpacingLarge}" />
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ScheduleListItemViewModel">
@@ -166,9 +165,7 @@
                             <Grid>
                                 <core:SfEffectsView
                                         x:Name="ScheduleItemEffectsView"
-                                        Margin="{OnPlatform Default='16,0,16,0',
-                                                             WinUI='16,0,16,0',
-                                                             iOS='16,0,16,0'}"
+                                        Margin="16,0,16,0"
                                         TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                         TouchUpEffects="None"
                                         RippleBackground="{StaticResource PrimaryColor}"
@@ -180,10 +177,12 @@
                                     </core:SfEffectsView.GestureRecognizers>
                                 <Border
                                         x:Name="ScheduleItemBorder"
-                                        Padding="16,16,16,16"
+                                        Padding="{DynamicResource PaddingLarge}"
                                         BackgroundColor="{DynamicResource CardBackgroundColor}"
-                                        StrokeThickness="0"
-                                        StrokeShape="RoundRectangle 12,12,12,12">
+                                        StrokeThickness="0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="{DynamicResource CornerRadiusLarge}" />
+                                    </Border.StrokeShape>
                                     <Border.Shadow>
                                         <Shadow Brush="#20000000" 
                                                     Offset="0,2" 
@@ -205,11 +204,8 @@
                                 </Grid.RowDefinitions>
                                 <Grid VerticalOptions="Center"
                                       Grid.Column="0"
-                                      Margin="{OnIdiom Default={OnPlatform Default='0,0,12,0',
-                                                                     iOS='0,0,12,0',
-                                                                     WinUI='0,0,12,0'},
-                                         Tablet={OnPlatform Default='0,0,12,0'}}"
-                                      RowSpacing="8">
+                                      Margin="0,0,10,0"
+                                      RowSpacing="{DynamicResource SpacingMedium}">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
@@ -289,9 +285,7 @@
                                 </Grid>
                                 <Grid
                                         Grid.Column="1"
-                                        Margin="{OnPlatform Default='0,0,12,0',
-                                                            iOS='0,0,12,0',
-                                                            WinUI='0,0,8,0'}"
+                                        Margin="0,0,10,0"
                                         HorizontalOptions="Fill"
                                         VerticalOptions="Fill">
                                     <Grid.RowDefinitions>
@@ -308,14 +302,16 @@
                                           JustifyContent="Start"
                                           AlignItems="Center"
                                           Margin="0,0,0,8">
-                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
-                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
+                                        <Border Margin="1"
+                                                Padding="4,2"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Sunday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4"
                                                 HorizontalOptions="Center"
                                                 VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                            </Border.StrokeShape>
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
@@ -326,14 +322,16 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
-                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
+                                        <Border Margin="1"
+                                                Padding="4,2"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Monday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4"
                                                 HorizontalOptions="Center"
                                                 VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                            </Border.StrokeShape>
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
@@ -344,14 +342,16 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
-                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
+                                        <Border Margin="1"
+                                                Padding="4,2"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Tuesday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4"
                                                 HorizontalOptions="Center"
                                                 VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                            </Border.StrokeShape>
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
@@ -362,14 +362,16 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
-                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
+                                        <Border Margin="1"
+                                                Padding="4,2"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Wednesday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4"
                                                 HorizontalOptions="Center"
                                                 VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                            </Border.StrokeShape>
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
@@ -380,14 +382,16 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
-                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
+                                        <Border Margin="1"
+                                                Padding="4,2"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Thursday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4"
                                                 HorizontalOptions="Center"
                                                 VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                            </Border.StrokeShape>
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
@@ -398,14 +402,16 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
-                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
+                                        <Border Margin="1"
+                                                Padding="4,2"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Friday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4"
                                                 HorizontalOptions="Center"
                                                 VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                            </Border.StrokeShape>
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
@@ -416,14 +422,16 @@
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                         </Border>
-                                        <Border Margin="{OnPlatform WinUI='1', Default='2'}"
-                                                Padding="{OnPlatform WinUI='3,1,5,5', Default='6,4'}"
+                                        <Border Margin="1"
+                                                Padding="4,2"
                                                 BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Saturday'}"
                                                 Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 4,4,4,4"
                                                 HorizontalOptions="Center"
                                                 VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                            </Border.StrokeShape>
                                             <Label
                                                     FontAttributes="Bold"
                                                     FontSize="{DynamicResource SmallFontSize}"
@@ -438,7 +446,7 @@
                                     <VerticalStackLayout Grid.Row="1" 
                                           HorizontalOptions="Fill"
                                           VerticalOptions="Start"
-                                          Spacing="4">
+                                          Spacing="{DynamicResource PaddingSmall}">
                                         <Label Margin="0,0,0,0"
                                                HorizontalOptions="Fill"
                                                HorizontalTextAlignment="Start"
@@ -461,7 +469,7 @@
                                           Grid.Column="0"
                                           HorizontalOptions="Start"
                                           Margin="0,8,0,0"
-                                          ColumnSpacing="8"
+                                          ColumnSpacing="{DynamicResource SpacingMedium}"
                                           VerticalOptions="End">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
@@ -501,7 +509,7 @@
                                         <Button Grid.Column="0"
                                                 Padding="0"
                                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                                CornerRadius="6"
+                                                CornerRadius="{DynamicResource CornerRadiusMedium}"
                                                 Command="{Binding PreviousCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                                 FontSize="{DynamicResource IconStandardFontSize}"
@@ -546,7 +554,7 @@
                                         <Button Grid.Column="1"
                                                 Padding="0"
                                                 BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                                CornerRadius="6"
+                                                CornerRadius="{DynamicResource CornerRadiusMedium}"
                                                 Command="{Binding NextCommand}"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                                 FontSize="{DynamicResource IconStandardFontSize}"
@@ -609,13 +617,13 @@
                                             Scale="1" />
                                 </Grid>
                                 <!-- Language label and music icon positioned at bottom right -->
-                                <Grid Grid.Column="1"
+                                    <Grid Grid.Column="1"
                                       Grid.ColumnSpan="2"
                                       Grid.Row="0"
                                       Margin="0,0,0,0"
                                       HorizontalOptions="End"
                                       VerticalOptions="End"
-                                      ColumnSpacing="4">
+                                      ColumnSpacing="{DynamicResource PaddingSmall}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="Auto" />
@@ -692,7 +700,7 @@
             </Button>
         </core:SfEffectsView>
         <!-- Regular button for Android/iOS -->
-        <Button x:Name="AlarmSettingsFloatingButtonNoEffects"
+            <Button x:Name="AlarmSettingsFloatingButtonNoEffects"
                 AutomationId="AlarmSettingsFloatingButton"
                 BackgroundColor="{StaticResource PrimaryColor}"
                 CornerRadius="100"

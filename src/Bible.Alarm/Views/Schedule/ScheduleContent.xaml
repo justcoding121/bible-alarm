@@ -25,13 +25,14 @@
         </Grid.RowDefinitions>
         <FlexLayout Grid.Row="0"
               x:Name="ButtonContainer"
+              Margin="0,0,0,4"
               Wrap="Wrap"
               JustifyContent="Center"
               AlignItems="Stretch"
               AlignContent="Start"
               HorizontalOptions="Fill">
             <!-- Cancel button - SfEffectsView for WinUI only -->
-            <core:SfEffectsView Margin="0,3,3,3"
+            <core:SfEffectsView Margin="0,0,3,0"
                                  FlexLayout.Basis="45%"
                                  FlexLayout.Grow="1"
                                  TouchDownEffects="Ripple"
@@ -51,14 +52,14 @@
                 <Button x:Name="CancelButton"
                         AutomationId="CancelButton"
                         BackgroundColor="{DynamicResource DividerColor}"
-                        CornerRadius="8"
-                        Command="{Binding CancelCommand}"
+                        CornerRadius="{DynamicResource CornerRadiusStandard}"
                         FontSize="{DynamicResource ButtonFontSize}"
                         FontAttributes="Bold"
                         HorizontalOptions="Fill"
                         Text="CANCEL"
                         TextColor="{DynamicResource TextSecondaryColor}"
-                        InputTransparent="True">
+                        InputTransparent="True"
+                        IsEnabled="False">
                     <Button.Shadow>
                         <Shadow Brush="#20000000" 
                                 Offset="0,2" 
@@ -68,12 +69,12 @@
                 </Button>
             </core:SfEffectsView>
             <Button x:Name="CancelButtonNoEffects"
-                    Margin="0,3,3,3"
+                    Margin="0,0,3,0"
                     FlexLayout.Basis="45%"
                     FlexLayout.Grow="1"
                     AutomationId="CancelButton"
                     BackgroundColor="{DynamicResource DividerColor}"
-                    CornerRadius="8"
+                    CornerRadius="{DynamicResource CornerRadiusStandard}"
                     Command="{Binding CancelCommand}"
                     FontSize="{DynamicResource ButtonFontSize}"
                     FontAttributes="Bold"
@@ -89,7 +90,7 @@
                 </Button.Shadow>
             </Button>
             <!-- Save button - SfEffectsView for WinUI only -->
-            <core:SfEffectsView Margin="3,3,0,3"
+            <core:SfEffectsView Margin="3,0,0,0"
                                  FlexLayout.Basis="45%"
                                  FlexLayout.Grow="1"
                                  TouchDownEffects="Ripple"
@@ -109,14 +110,14 @@
                 <Button x:Name="SaveButton"
                         AutomationId="SaveButton"
                         BackgroundColor="{StaticResource PrimaryColor}"
-                        CornerRadius="8"
-                        Command="{Binding SaveCommand}"
+                        CornerRadius="{DynamicResource CornerRadiusStandard}"
                         FontSize="{DynamicResource ButtonFontSize}"
                         FontAttributes="Bold"
                         HorizontalOptions="Fill"
                         Text="SAVE"
                         TextColor="White"
-                        InputTransparent="True">
+                        InputTransparent="True"
+                        IsEnabled="False">
                     <Button.Shadow>
                         <Shadow Brush="#40000000" 
                                 Offset="0,2" 
@@ -126,12 +127,12 @@
                 </Button>
             </core:SfEffectsView>
             <Button x:Name="SaveButtonNoEffects"
-                    Margin="3,3,0,3"
+                    Margin="3,0,0,0"
                     FlexLayout.Basis="45%"
                     FlexLayout.Grow="1"
                     AutomationId="SaveButton"
                     BackgroundColor="{StaticResource PrimaryColor}"
-                    CornerRadius="8"
+                    CornerRadius="{DynamicResource CornerRadiusStandard}"
                     Command="{Binding SaveCommand}"
                     FontSize="{DynamicResource ButtonFontSize}"
                     FontAttributes="Bold"
@@ -152,7 +153,7 @@
                     Margin="0,0,0,0">
             <Grid x:Name="ScrollContentGrid"
                   HorizontalOptions="Fill"
-                  RowSpacing="10">
+                  RowSpacing="{DynamicResource SpacingStandard}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -186,14 +187,14 @@
                     <Button x:Name="DeleteButton"
                             IsVisible="{Binding IsExistingSchedule}"
                             BackgroundColor="{StaticResource ErrorColor}"
-                            CornerRadius="8"
-                            Command="{Binding DeleteCommand}"
+                            CornerRadius="{DynamicResource CornerRadiusStandard}"
                             FontSize="{DynamicResource ButtonFontSize}"
                             FontAttributes="Bold"
                             HorizontalOptions="Fill"
                             Text="DELETE"
                             TextColor="White"
-                            InputTransparent="True">
+                            InputTransparent="True"
+                            IsEnabled="False">
                         <Button.Shadow>
                             <Shadow Brush="#40000000" 
                                     Offset="0,2" 
@@ -208,7 +209,7 @@
                         IsVisible="{Binding IsExistingSchedule}"
                         VerticalOptions="End"
                         BackgroundColor="{StaticResource ErrorColor}"
-                        CornerRadius="8"
+                        CornerRadius="{DynamicResource CornerRadiusStandard}"
                         Command="{Binding DeleteCommand}"
                         FontSize="{DynamicResource ButtonFontSize}"
                         FontAttributes="Bold"

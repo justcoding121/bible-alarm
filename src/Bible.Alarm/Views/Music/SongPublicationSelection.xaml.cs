@@ -46,7 +46,7 @@ public partial class SongPublicationSelection : BaseContentPage, IDisposable
 
     private async void OnSongPublicationItemTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is Grid grid && grid.BindingContext is PublicationListViewItemModel publicationItem)
+        if (sender is View view && view.BindingContext is PublicationListViewItemModel publicationItem)
         {
             if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
             {

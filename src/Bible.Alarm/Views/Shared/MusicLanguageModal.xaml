@@ -131,52 +131,60 @@
                     </LinearItemsLayout>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="shared:LanguageListViewItemModel">
-                        <Grid Margin="16,0">
-                            <Border
-                                BackgroundColor="{DynamicResource CardBackgroundColor}"
-                                StrokeThickness="0"
-                                Padding="0">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Style.Triggers>
-                                            <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
-                                                <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12" />
-                                </Border.StrokeShape>
-                                <Border.Shadow>
-                                    <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
-                                            Offset="0,2"
-                                            Opacity="0.08"
-                                            Radius="4" />
-                                </Border.Shadow>
-                                <Grid
-                                    Padding="20,18"
-                                    HorizontalOptions="Fill"
-                                    MinimumHeightRequest="56"
-                                    BackgroundColor="Transparent">
-                                    <Grid.GestureRecognizers>
+                        <DataTemplate x:DataType="shared:LanguageListViewItemModel">
+                            <Grid Margin="16,0">
+                                <core:SfEffectsView
+                                    TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                    TouchUpEffects="None"
+                                    RippleBackground="{StaticResource PrimaryColor}"
+                                    HighlightBackground="{StaticResource PrimaryLightColor}"
+                                    RippleAnimationDuration="200"
+                                    ShouldIgnoreTouches="False">
+                                    <core:SfEffectsView.GestureRecognizers>
                                         <TapGestureRecognizer Tapped="OnLanguageItemTapped" />
-                                    </Grid.GestureRecognizers>
-                                    <Label
-                                        FontSize="{DynamicResource LargeFontSize}"
-                                        HorizontalOptions="Start"
-                                        HorizontalTextAlignment="Start"
-                                        InputTransparent="True"
-                                        LineBreakMode="WordWrap"
-                                        Text="{Binding Name}"
-                                        TextColor="{DynamicResource TextPrimaryColor}"
-                                        VerticalOptions="Center"
-                                        VerticalTextAlignment="Center" />
-                                </Grid>
-                            </Border>
-                        </Grid>
-                    </DataTemplate>
+                                    </core:SfEffectsView.GestureRecognizers>
+                                    <Border
+                                        BackgroundColor="{DynamicResource CardBackgroundColor}"
+                                        StrokeThickness="0"
+                                        Padding="0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="12" />
+                                        </Border.StrokeShape>
+                                        <Border.Shadow>
+                                            <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                                    Offset="0,2"
+                                                    Opacity="0.08"
+                                                    Radius="4" />
+                                        </Border.Shadow>
+                                        <Grid
+                                            Padding="20,18"
+                                            HorizontalOptions="Fill"
+                                            MinimumHeightRequest="56"
+                                            BackgroundColor="Transparent">
+                                            <Label
+                                                FontSize="{DynamicResource LargeFontSize}"
+                                                HorizontalOptions="Start"
+                                                HorizontalTextAlignment="Start"
+                                                InputTransparent="True"
+                                                LineBreakMode="WordWrap"
+                                                Text="{Binding Name}"
+                                                TextColor="{DynamicResource TextPrimaryColor}"
+                                                VerticalOptions="Center"
+                                                VerticalTextAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </core:SfEffectsView>
+                            </Grid>
+                        </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
             

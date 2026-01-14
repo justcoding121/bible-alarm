@@ -19,6 +19,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
     private double headerFontSize;
     private double buttonFontSize;
     private double smallFontSize;
+    private double smallMediumFontSize;
     private double mediumFontSize;
     private double largeFontSize;
     private double titleFontSize;
@@ -108,6 +109,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         standardFontSize = 14.0 * accessibilityScale;
         headerFontSize = 20.0 * accessibilityScale;
         smallFontSize = 12.0 * accessibilityScale;
+        smallMediumFontSize = 12.0 * accessibilityScale;
         mediumFontSize = 16.0 * accessibilityScale;
         largeFontSize = 18.0 * accessibilityScale;
         titleFontSize = 22.0 * accessibilityScale;
@@ -138,6 +140,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         const double BaseStandardSize = 12.0;
         const double BaseHeaderSize = 18.0;
         const double BaseSmallSize = 10.0;
+        const double BaseSmallMediumSize = 12.0;
         const double BaseMediumSize = 14.0;
         const double BaseLargeSize = 16.0;
         const double BaseTitleSize = 20.0;
@@ -145,6 +148,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         standardFontSize = BaseStandardSize * accessibilityScale;
         headerFontSize = BaseHeaderSize * accessibilityScale;
         smallFontSize = BaseSmallSize * accessibilityScale;
+        smallMediumFontSize = BaseSmallMediumSize * accessibilityScale;
         mediumFontSize = BaseMediumSize * accessibilityScale;
         largeFontSize = BaseLargeSize * accessibilityScale;
         titleFontSize = BaseTitleSize * accessibilityScale;
@@ -205,6 +209,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         const double BaseStandardSize = 12.0;
         const double BaseHeaderSize = 18.0;
         const double BaseSmallSize = 10.0;
+        const double BaseSmallMediumSize = 12.0;
         const double BaseMediumSize = 14.0;
         const double BaseLargeSize = 16.0;
         const double BaseTitleSize = 20.0;
@@ -221,6 +226,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         standardFontSize = Math.Min(BaseStandardSize * densityScale * accessibilityScale, 17.0 * accessibilityCap);
         headerFontSize = Math.Min(BaseHeaderSize * densityScale * accessibilityScale, 26.0 * accessibilityCap);
         smallFontSize = Math.Min(BaseSmallSize * densityScale * accessibilityScale, 14.0 * accessibilityCap);
+        smallMediumFontSize = Math.Min(BaseSmallMediumSize * densityScale * accessibilityScale, 16.0 * accessibilityCap);
         mediumFontSize = Math.Min(BaseMediumSize * densityScale * accessibilityScale, 19.0 * accessibilityCap);
         largeFontSize = Math.Min(BaseLargeSize * densityScale * accessibilityScale, 22.0 * accessibilityCap);
         titleFontSize = Math.Min(BaseTitleSize * densityScale * accessibilityScale, 30.0 * accessibilityCap);
@@ -299,6 +305,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
     public double HeaderFontSize => headerFontSize;
     public double ButtonFontSize => buttonFontSize;
     public double SmallFontSize => smallFontSize;
+    public double SmallMediumFontSize => smallMediumFontSize;
     public double MediumFontSize => mediumFontSize;
     public double LargeFontSize => largeFontSize;
     public double TitleFontSize => titleFontSize;

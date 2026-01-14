@@ -80,7 +80,7 @@ public partial class BiblePublicationSelection : BaseContentPage, IDisposable
 
     private async void OnPublicationItemTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is Grid grid && grid.BindingContext is PublicationListViewItemModel publicationItem)
+        if (sender is View view && view.BindingContext is PublicationListViewItemModel publicationItem)
         {
             if (ViewModel != null && ViewModel.SectionSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
             {
