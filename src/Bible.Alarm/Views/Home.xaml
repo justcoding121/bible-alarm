@@ -199,17 +199,16 @@
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
                                         <!-- Row 1: Two columns (play button, time and days) -->
-                                        <Grid Grid.Row="0"
+                                        <FlexLayout Grid.Row="0"
+                                              Direction="Row"
+                                              Wrap="Wrap"
+                                              AlignItems="Center"
+                                              JustifyContent="Start"
                                               HorizontalOptions="Fill"
-                                              VerticalOptions="Center"
-                                              ColumnSpacing="10">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
+                                              VerticalOptions="Center">
                                             <!-- Column 1: Play button -->
-                                            <Grid Grid.Column="0"
-                                                  Margin="{DynamicResource MarginThickness16_0}"
+                                            <Grid FlexLayout.Basis="Auto"
+                                                  Margin="{DynamicResource MarginThicknessPaddingLarge}"
                                                   VerticalOptions="Center"
                                                   HorizontalOptions="Start"
                                                   HeightRequest="{DynamicResource IconLargeContainerSize}"
@@ -255,7 +254,8 @@
                                                         Opacity="0.95" />
                                             </Grid>
                                             <!-- Column 2: Time and days of week (stacked vertically) -->
-                                            <VerticalStackLayout Grid.Column="1"
+                                            <VerticalStackLayout FlexLayout.Grow="1"
+                                                  FlexLayout.Basis="Auto"
                                                   Margin="{DynamicResource MarginThickness0}"
                                                   HorizontalOptions="Start"
                                                   VerticalOptions="Center"
@@ -438,7 +438,7 @@
                                                 </Border>
                                                 </FlexLayout>
                                             </VerticalStackLayout>
-                                        </Grid>
+                                        </FlexLayout>
                                         <!-- Row 2: Remaining items (name, publication name, subtitle, language/music) -->
                                         <VerticalStackLayout Grid.Row="1"
                                               HorizontalOptions="Fill"

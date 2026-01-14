@@ -106,43 +106,69 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
 
     private void SetWindowsDesktopFallbackFontSizes(double androidAlarmReduction)
     {
-        // Apply accessibility scale factor even to fallback sizes
+        // Apply progressive accessibility scaling to fallback sizes
         double accessibilityScale = accessibilityFontScaleService.FontScale;
 
-        standardFontSize = 14.0 * accessibilityScale;
-        headerFontSize = 20.0 * accessibilityScale;
-        smallFontSize = 12.0 * accessibilityScale;
-        smallMediumFontSize = 12.0 * accessibilityScale;
-        mediumFontSize = 16.0 * accessibilityScale;
-        largeFontSize = 18.0 * accessibilityScale;
-        titleFontSize = 22.0 * accessibilityScale;
+        const double BaseStandardSize = 14.0;
+        const double BaseHeaderSize = 20.0;
+        const double BaseSmallSize = 12.0;
+        const double BaseSmallMediumSize = 12.0;
+        const double BaseMediumSize = 16.0;
+        const double BaseLargeSize = 18.0;
+        const double BaseTitleSize = 22.0;
 
-        alarmTimeFontSize = 35.0 * accessibilityScale;
-        alarmMeridianFontSize = 19.0 * accessibilityScale;
-        alarmBellIconFontSize = 80.0 * accessibilityScale;
+        standardFontSize = BaseStandardSize * CalculateProgressiveAccessibilityScale(BaseStandardSize, accessibilityScale);
+        headerFontSize = BaseHeaderSize * CalculateProgressiveAccessibilityScale(BaseHeaderSize, accessibilityScale);
+        smallFontSize = BaseSmallSize * CalculateProgressiveAccessibilityScale(BaseSmallSize, accessibilityScale);
+        smallMediumFontSize = BaseSmallMediumSize * CalculateProgressiveAccessibilityScale(BaseSmallMediumSize, accessibilityScale);
+        mediumFontSize = BaseMediumSize * CalculateProgressiveAccessibilityScale(BaseMediumSize, accessibilityScale);
+        largeFontSize = BaseLargeSize * CalculateProgressiveAccessibilityScale(BaseLargeSize, accessibilityScale);
+        titleFontSize = BaseTitleSize * CalculateProgressiveAccessibilityScale(BaseTitleSize, accessibilityScale);
+
+        // Alarm fonts use minimal scaling
+        const double BaseAlarmTimeSize = 35.0;
+        const double BaseAlarmMeridianSize = 19.0;
+        const double BaseAlarmBellIconSize = 80.0;
+
+        alarmTimeFontSize = BaseAlarmTimeSize * CalculateProgressiveAccessibilityScale(BaseAlarmTimeSize, accessibilityScale);
+        alarmMeridianFontSize = BaseAlarmMeridianSize * CalculateProgressiveAccessibilityScale(BaseAlarmMeridianSize, accessibilityScale);
+        alarmBellIconFontSize = BaseAlarmBellIconSize * CalculateProgressiveAccessibilityScale(BaseAlarmBellIconSize, accessibilityScale);
 
         // Icon font sizes
-        iconSmallFontSize = 14.0 * accessibilityScale;
-        iconStandardFontSize = 20.0 * accessibilityScale;
-        iconLargeFontSize = 28.0 * accessibilityScale;
+        const double BaseIconSmallSize = 14.0;
+        const double BaseIconStandardSize = 20.0;
+        const double BaseIconLargeSize = 28.0;
 
-        // Icon container sizes
-        iconSmallContainerSize = 32.0 * accessibilityScale;
-        iconStandardContainerSize = 48.0 * accessibilityScale;
-        iconLargeContainerSize = 56.0 * accessibilityScale;
+        iconSmallFontSize = BaseIconSmallSize * CalculateProgressiveAccessibilityScale(BaseIconSmallSize, accessibilityScale);
+        iconStandardFontSize = BaseIconStandardSize * CalculateProgressiveAccessibilityScale(BaseIconStandardSize, accessibilityScale);
+        iconLargeFontSize = BaseIconLargeSize * CalculateProgressiveAccessibilityScale(BaseIconLargeSize, accessibilityScale);
 
-        // Content widths scale with accessibility for better layout at larger font sizes
-        contentWidthSmall = 200.0 * accessibilityScale;
-        contentWidthMedium = 240.0 * accessibilityScale;
-        contentWidthLarge = 280.0 * accessibilityScale;
+        // Icon container sizes scale proportionally with their icons
+        const double BaseIconSmallContainerSize = 32.0;
+        const double BaseIconStandardContainerSize = 48.0;
+        const double BaseIconLargeContainerSize = 56.0;
 
-        Log.Logger.Debug("Using Windows desktop fallback font sizes with accessibility scale {AccessibilityScale:F2}",
+        double iconSmallProgressiveScale = CalculateProgressiveAccessibilityScale(BaseIconSmallSize, accessibilityScale);
+        double iconStandardProgressiveScale = CalculateProgressiveAccessibilityScale(BaseIconStandardSize, accessibilityScale);
+        double iconLargeProgressiveScale = CalculateProgressiveAccessibilityScale(BaseIconLargeSize, accessibilityScale);
+
+        iconSmallContainerSize = BaseIconSmallContainerSize * iconSmallProgressiveScale;
+        iconStandardContainerSize = BaseIconStandardContainerSize * iconStandardProgressiveScale;
+        iconLargeContainerSize = BaseIconLargeContainerSize * iconLargeProgressiveScale;
+
+        // Content widths scale conservatively
+        double contentWidthProgressiveScale = CalculateProgressiveAccessibilityScale(14.0, accessibilityScale);
+        contentWidthSmall = 200.0 * contentWidthProgressiveScale;
+        contentWidthMedium = 240.0 * contentWidthProgressiveScale;
+        contentWidthLarge = 280.0 * contentWidthProgressiveScale;
+
+        Log.Logger.Debug("Using Windows desktop fallback font sizes with progressive accessibility scale {AccessibilityScale:F2}",
             accessibilityScale);
     }
 
     private void SetOtherPlatformFallbackFontSizes(bool isAndroid, double androidAlarmReduction)
     {
-        // Apply accessibility scale factor even to fallback sizes
+        // Apply progressive accessibility scaling to fallback sizes
         double accessibilityScale = accessibilityFontScaleService.FontScale;
 
         const double BaseStandardSize = 12.0;
@@ -153,41 +179,62 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         const double BaseLargeSize = 16.0;
         const double BaseTitleSize = 20.0;
 
-        standardFontSize = BaseStandardSize * accessibilityScale;
-        headerFontSize = BaseHeaderSize * accessibilityScale;
-        smallFontSize = BaseSmallSize * accessibilityScale;
-        smallMediumFontSize = BaseSmallMediumSize * accessibilityScale;
-        mediumFontSize = BaseMediumSize * accessibilityScale;
-        largeFontSize = BaseLargeSize * accessibilityScale;
-        titleFontSize = BaseTitleSize * accessibilityScale;
+        standardFontSize = BaseStandardSize * CalculateProgressiveAccessibilityScale(BaseStandardSize, accessibilityScale);
+        headerFontSize = BaseHeaderSize * CalculateProgressiveAccessibilityScale(BaseHeaderSize, accessibilityScale);
+        smallFontSize = BaseSmallSize * CalculateProgressiveAccessibilityScale(BaseSmallSize, accessibilityScale);
+        smallMediumFontSize = BaseSmallMediumSize * CalculateProgressiveAccessibilityScale(BaseSmallMediumSize, accessibilityScale);
+        mediumFontSize = BaseMediumSize * CalculateProgressiveAccessibilityScale(BaseMediumSize, accessibilityScale);
+        largeFontSize = BaseLargeSize * CalculateProgressiveAccessibilityScale(BaseLargeSize, accessibilityScale);
+        titleFontSize = BaseTitleSize * CalculateProgressiveAccessibilityScale(BaseTitleSize, accessibilityScale);
 
         // Icon font sizes
-        iconSmallFontSize = 14.0 * accessibilityScale;
-        iconStandardFontSize = 20.0 * accessibilityScale;
-        iconLargeFontSize = 28.0 * accessibilityScale;
+        const double BaseIconSmallSize = 14.0;
+        const double BaseIconStandardSize = 20.0;
+        const double BaseIconLargeSize = 28.0;
 
-        // Icon container sizes
-        iconSmallContainerSize = 32.0 * accessibilityScale;
-        iconStandardContainerSize = 48.0 * accessibilityScale;
-        iconLargeContainerSize = 56.0 * accessibilityScale;
+        iconSmallFontSize = BaseIconSmallSize * CalculateProgressiveAccessibilityScale(BaseIconSmallSize, accessibilityScale);
+        iconStandardFontSize = BaseIconStandardSize * CalculateProgressiveAccessibilityScale(BaseIconStandardSize, accessibilityScale);
+        iconLargeFontSize = BaseIconLargeSize * CalculateProgressiveAccessibilityScale(BaseIconLargeSize, accessibilityScale);
 
-        // Content widths scale with accessibility for better layout at larger font sizes
-        contentWidthSmall = 200.0 * accessibilityScale;
-        contentWidthMedium = 240.0 * accessibilityScale;
-        contentWidthLarge = 280.0 * accessibilityScale;
+        // Icon container sizes scale proportionally with their icons
+        const double BaseIconSmallContainerSize = 32.0;
+        const double BaseIconStandardContainerSize = 48.0;
+        const double BaseIconLargeContainerSize = 56.0;
 
+        double iconSmallProgressiveScale = CalculateProgressiveAccessibilityScale(BaseIconSmallSize, accessibilityScale);
+        double iconStandardProgressiveScale = CalculateProgressiveAccessibilityScale(BaseIconStandardSize, accessibilityScale);
+        double iconLargeProgressiveScale = CalculateProgressiveAccessibilityScale(BaseIconLargeSize, accessibilityScale);
+
+        iconSmallContainerSize = BaseIconSmallContainerSize * iconSmallProgressiveScale;
+        iconStandardContainerSize = BaseIconStandardContainerSize * iconStandardProgressiveScale;
+        iconLargeContainerSize = BaseIconLargeContainerSize * iconLargeProgressiveScale;
+
+        // Content widths scale conservatively
+        double contentWidthProgressiveScale = CalculateProgressiveAccessibilityScale(14.0, accessibilityScale);
+        contentWidthSmall = 200.0 * contentWidthProgressiveScale;
+        contentWidthMedium = 240.0 * contentWidthProgressiveScale;
+        contentWidthLarge = 280.0 * contentWidthProgressiveScale;
+
+        // Alarm fonts use minimal scaling with caps
         double baseAlarmTimeSize = 37.0 * androidAlarmReduction;
         double baseAlarmMeridianSize = 21.0 * androidAlarmReduction;
         const double BaseAlarmBellIconSize = 80.0;
 
-        double accessibilityCap = Math.Max(1.0, accessibilityScale);
-        double fallbackMaxTime = (isAndroid ? 36.0 : 48.0) * accessibilityCap;
-        double fallbackMaxMeridian = (isAndroid ? 20.0 : 26.0) * accessibilityCap;
-        alarmTimeFontSize = Math.Min(baseAlarmTimeSize * accessibilityScale, fallbackMaxTime);
-        alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * accessibilityScale, fallbackMaxMeridian);
-        alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * accessibilityScale, 100.0 * accessibilityCap);
+        double alarmTimeProgressiveScale = CalculateProgressiveAccessibilityScale(baseAlarmTimeSize, accessibilityScale);
+        double alarmMeridianProgressiveScale = CalculateProgressiveAccessibilityScale(baseAlarmMeridianSize, accessibilityScale);
+        double alarmBellIconProgressiveScale = CalculateProgressiveAccessibilityScale(BaseAlarmBellIconSize, accessibilityScale);
 
-        Log.Logger.Warning("Invalid display info detected on non-Windows platform, using fallback font sizes with accessibility scale {AccessibilityScale:F2}",
+        // Apply minimal max caps for alarm fonts
+        double maxProgressiveScale = CalculateProgressiveAccessibilityScale(30.0, accessibilityScale);
+        double maxScaleFactor = 1.0 + ((maxProgressiveScale - 1.0) * 0.5);
+        double fallbackMaxTime = (isAndroid ? 36.0 : 48.0) * maxScaleFactor;
+        double fallbackMaxMeridian = (isAndroid ? 20.0 : 26.0) * maxScaleFactor;
+
+        alarmTimeFontSize = Math.Min(baseAlarmTimeSize * alarmTimeProgressiveScale, fallbackMaxTime);
+        alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * alarmMeridianProgressiveScale, fallbackMaxMeridian);
+        alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * alarmBellIconProgressiveScale, 100.0 * maxScaleFactor);
+
+        Log.Logger.Warning("Invalid display info detected on non-Windows platform, using fallback font sizes with progressive accessibility scale {AccessibilityScale:F2}",
             accessibilityScale);
     }
 
@@ -217,6 +264,64 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
                Math.Min(density, 2.2);
     }
 
+    /// <summary>
+    /// Calculates a progressive accessibility scale factor based on base font size.
+    /// Smaller fonts scale more with OS accessibility settings, while larger fonts scale less.
+    /// This addresses the issue where users increase OS font size to read small text,
+    /// but don't want already-large fonts to become unnecessarily huge.
+    /// </summary>
+    /// <param name="baseFontSize">The base font size in points</param>
+    /// <param name="accessibilityScale">The OS accessibility font scale (1.0 = normal, >1.0 = larger)</param>
+    /// <returns>A progressive scale factor that decreases as base font size increases</returns>
+    private static double CalculateProgressiveAccessibilityScale(double baseFontSize, double accessibilityScale)
+    {
+        // If accessibility scale is 1.0 (normal), no scaling needed
+        if (accessibilityScale <= 1.0)
+        {
+            return 1.0;
+        }
+
+        // Calculate how much extra scaling is needed beyond normal
+        double extraScale = accessibilityScale - 1.0;
+
+        // Progressive scaling based on font size:
+        // - Very small fonts (<=10pt): scale fully (100% of extra scale)
+        // - Small fonts (10-12pt): scale fully (100% of extra scale)
+        // - Medium fonts (12-16pt): scale moderately (50% of extra scale)
+        // - Large fonts (16-20pt): scale minimally (25% of extra scale)
+        // - Very large fonts (>20pt): scale very minimally (10% of extra scale)
+
+        double progressiveFactor;
+        if (baseFontSize <= 10.0)
+        {
+            // Very small fonts: full scaling
+            progressiveFactor = 1.0;
+        }
+        else if (baseFontSize <= 12.0)
+        {
+            // Small fonts: full scaling
+            progressiveFactor = 1.0;
+        }
+        else if (baseFontSize <= 16.0)
+        {
+            // Medium fonts: moderate scaling (interpolate from 1.0 at 12pt to 0.5 at 16pt)
+            progressiveFactor = 1.0 - ((baseFontSize - 12.0) / 4.0) * 0.5;
+        }
+        else if (baseFontSize <= 20.0)
+        {
+            // Large fonts: minimal scaling (interpolate from 0.5 at 16pt to 0.25 at 20pt)
+            progressiveFactor = 0.5 - ((baseFontSize - 16.0) / 4.0) * 0.25;
+        }
+        else
+        {
+            // Very large fonts: very minimal scaling (interpolate from 0.25 at 20pt to 0.1 at 30pt+)
+            progressiveFactor = Math.Max(0.1, 0.25 - ((baseFontSize - 20.0) / 10.0) * 0.15);
+        }
+
+        // Apply progressive factor to extra scale, then add back the base 1.0
+        return 1.0 + (extraScale * progressiveFactor);
+    }
+
     private void SetStandardFontSizes(double densityScale, double accessibilityScale)
     {
         const double BaseStandardSize = 12.0;
@@ -232,42 +337,56 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         const double BaseIconStandardSize = 20.0;
         const double BaseIconLargeSize = 28.0;
 
-        // Apply both density scaling and accessibility scaling
-        // Max caps are also scaled by accessibility factor to allow larger fonts for accessibility
+        // Apply progressive accessibility scaling: smaller fonts scale more, larger fonts scale less
+        // This addresses the issue where users increase OS font size to read small text,
+        // but don't want already-large fonts to become unnecessarily huge
+        double smallProgressiveScale = CalculateProgressiveAccessibilityScale(BaseSmallSize, accessibilityScale);
+        double smallMediumProgressiveScale = CalculateProgressiveAccessibilityScale(BaseSmallMediumSize, accessibilityScale);
+        double standardProgressiveScale = CalculateProgressiveAccessibilityScale(BaseStandardSize, accessibilityScale);
+        double mediumProgressiveScale = CalculateProgressiveAccessibilityScale(BaseMediumSize, accessibilityScale);
+        double largeProgressiveScale = CalculateProgressiveAccessibilityScale(BaseLargeSize, accessibilityScale);
+        double headerProgressiveScale = CalculateProgressiveAccessibilityScale(BaseHeaderSize, accessibilityScale);
+        double titleProgressiveScale = CalculateProgressiveAccessibilityScale(BaseTitleSize, accessibilityScale);
+
+        // Max caps: smaller fonts can scale more, larger fonts have tighter caps
         double accessibilityCap = Math.Max(1.0, accessibilityScale);
 
-        standardFontSize = Math.Min(BaseStandardSize * densityScale * accessibilityScale, 17.0 * accessibilityCap);
-        headerFontSize = Math.Min(BaseHeaderSize * densityScale * accessibilityScale, 26.0 * accessibilityCap);
-        smallFontSize = Math.Min(BaseSmallSize * densityScale * accessibilityScale, 14.0 * accessibilityCap);
-        smallMediumFontSize = Math.Min(BaseSmallMediumSize * densityScale * accessibilityScale, 16.0 * accessibilityCap);
-        mediumFontSize = Math.Min(BaseMediumSize * densityScale * accessibilityScale, 19.0 * accessibilityCap);
-        largeFontSize = Math.Min(BaseLargeSize * densityScale * accessibilityScale, 22.0 * accessibilityCap);
-        titleFontSize = Math.Min(BaseTitleSize * densityScale * accessibilityScale, 30.0 * accessibilityCap);
+        standardFontSize = Math.Min(BaseStandardSize * densityScale * standardProgressiveScale, 17.0 * accessibilityCap);
+        headerFontSize = Math.Min(BaseHeaderSize * densityScale * headerProgressiveScale, 26.0);
+        smallFontSize = Math.Min(BaseSmallSize * densityScale * smallProgressiveScale, 14.0 * accessibilityCap);
+        smallMediumFontSize = Math.Min(BaseSmallMediumSize * densityScale * smallMediumProgressiveScale, 16.0 * accessibilityCap);
+        mediumFontSize = Math.Min(BaseMediumSize * densityScale * mediumProgressiveScale, 19.0);
+        largeFontSize = Math.Min(BaseLargeSize * densityScale * largeProgressiveScale, 22.0);
+        titleFontSize = Math.Min(BaseTitleSize * densityScale * titleProgressiveScale, 30.0);
 
-        // Icon fonts also scale with accessibility - icons should be legible at larger sizes
-        iconSmallFontSize = Math.Min(BaseIconSmallSize * accessibilityScale, 20.0 * accessibilityCap);
-        iconStandardFontSize = Math.Min(BaseIconStandardSize * accessibilityScale, 28.0 * accessibilityCap);
-        iconLargeFontSize = Math.Min(BaseIconLargeSize * accessibilityScale, 40.0 * accessibilityCap);
+        // Icon fonts: small icons scale more, large icons scale less
+        double iconSmallProgressiveScale = CalculateProgressiveAccessibilityScale(BaseIconSmallSize, accessibilityScale);
+        double iconStandardProgressiveScale = CalculateProgressiveAccessibilityScale(BaseIconStandardSize, accessibilityScale);
+        double iconLargeProgressiveScale = CalculateProgressiveAccessibilityScale(BaseIconLargeSize, accessibilityScale);
 
-        // Icon container sizes scale with accessibility so containers grow with icons
-        // Container should be approximately 2x the icon size for proper padding
+        iconSmallFontSize = Math.Min(BaseIconSmallSize * iconSmallProgressiveScale, 20.0 * accessibilityCap);
+        iconStandardFontSize = Math.Min(BaseIconStandardSize * iconStandardProgressiveScale, 28.0);
+        iconLargeFontSize = Math.Min(BaseIconLargeSize * iconLargeProgressiveScale, 40.0);
+
+        // Icon container sizes scale proportionally with their icons
         const double BaseIconSmallContainerSize = 32.0;
         const double BaseIconStandardContainerSize = 48.0;
         const double BaseIconLargeContainerSize = 56.0;
 
-        iconSmallContainerSize = Math.Min(BaseIconSmallContainerSize * accessibilityScale, 48.0 * accessibilityCap);
-        iconStandardContainerSize = Math.Min(BaseIconStandardContainerSize * accessibilityScale, 72.0 * accessibilityCap);
-        iconLargeContainerSize = Math.Min(BaseIconLargeContainerSize * accessibilityScale, 84.0 * accessibilityCap);
+        iconSmallContainerSize = Math.Min(BaseIconSmallContainerSize * iconSmallProgressiveScale, 48.0 * accessibilityCap);
+        iconStandardContainerSize = Math.Min(BaseIconStandardContainerSize * iconStandardProgressiveScale, 72.0);
+        iconLargeContainerSize = Math.Min(BaseIconLargeContainerSize * iconLargeProgressiveScale, 84.0);
 
-        // Content widths scale with accessibility for better layout at larger font sizes
-        // These scale more conservatively than fonts to maintain reasonable UI proportions
+        // Content widths scale conservatively to maintain reasonable UI proportions
+        // Use a moderate progressive scale based on a medium base size
+        double contentWidthProgressiveScale = CalculateProgressiveAccessibilityScale(14.0, accessibilityScale);
         const double BaseContentWidthSmall = 200.0;
         const double BaseContentWidthMedium = 240.0;
         const double BaseContentWidthLarge = 280.0;
 
-        contentWidthSmall = Math.Min(BaseContentWidthSmall * accessibilityScale, 300.0 * accessibilityCap);
-        contentWidthMedium = Math.Min(BaseContentWidthMedium * accessibilityScale, 360.0 * accessibilityCap);
-        contentWidthLarge = Math.Min(BaseContentWidthLarge * accessibilityScale, 420.0 * accessibilityCap);
+        contentWidthSmall = Math.Min(BaseContentWidthSmall * contentWidthProgressiveScale, 300.0 * accessibilityCap);
+        contentWidthMedium = Math.Min(BaseContentWidthMedium * contentWidthProgressiveScale, 360.0 * accessibilityCap);
+        contentWidthLarge = Math.Min(BaseContentWidthLarge * contentWidthProgressiveScale, 420.0 * accessibilityCap);
     }
 
     private void SetAlarmFontSizes(double densityScale, double accessibilityScale, double widthDp, bool isAndroid, double androidAlarmReduction)
@@ -279,24 +398,31 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         bool isPhone = widthDp < 600;
         var maxSizes = GetAlarmMaxSizes(isPhone, isAndroid, accessibilityScale);
 
-        // Apply both density scaling and accessibility scaling to alarm fonts
-        alarmTimeFontSize = Math.Min(baseAlarmTimeSize * densityScale * accessibilityScale, maxSizes.MaxTime);
-        alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * densityScale * accessibilityScale, maxSizes.MaxMeridian);
-        alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * densityScale * accessibilityScale, maxSizes.MaxBellIcon);
+        // Apply progressive accessibility scaling to alarm fonts
+        // Alarm fonts are already large, so they should scale minimally
+        double alarmTimeProgressiveScale = CalculateProgressiveAccessibilityScale(baseAlarmTimeSize, accessibilityScale);
+        double alarmMeridianProgressiveScale = CalculateProgressiveAccessibilityScale(baseAlarmMeridianSize, accessibilityScale);
+        double alarmBellIconProgressiveScale = CalculateProgressiveAccessibilityScale(BaseAlarmBellIconSize, accessibilityScale);
+
+        alarmTimeFontSize = Math.Min(baseAlarmTimeSize * densityScale * alarmTimeProgressiveScale, maxSizes.MaxTime);
+        alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * densityScale * alarmMeridianProgressiveScale, maxSizes.MaxMeridian);
+        alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * densityScale * alarmBellIconProgressiveScale, maxSizes.MaxBellIcon);
     }
 
     private static (double MaxTime, double MaxMeridian, double MaxBellIcon) GetAlarmMaxSizes(bool isPhone, bool isAndroid, double accessibilityScale)
     {
-        // Scale the max sizes by accessibility factor to allow larger fonts when user needs them
-        double accessibilityCap = Math.Max(1.0, accessibilityScale);
+        // Alarm fonts are already large, so max sizes should scale minimally with accessibility
+        // Use a very minimal progressive scale for the max caps (similar to very large fonts)
+        double maxProgressiveScale = CalculateProgressiveAccessibilityScale(30.0, accessibilityScale);
+        double maxScaleFactor = 1.0 + ((maxProgressiveScale - 1.0) * 0.5); // Further reduce max scaling
 
         double maxAlarmTimeSize = (isPhone
             ? (isAndroid ? 36.0 : 34.0)
-            : (isAndroid ? 45.0 : 60.0)) * accessibilityCap;
+            : (isAndroid ? 45.0 : 60.0)) * maxScaleFactor;
         double maxAlarmMeridianSize = (isPhone
             ? (isAndroid ? 20.0 : 22.0)
-            : (isAndroid ? 25.0 : 34.0)) * accessibilityCap;
-        double maxAlarmBellIconSize = (isPhone ? 100.0 : 130.0) * accessibilityCap;
+            : (isAndroid ? 25.0 : 34.0)) * maxScaleFactor;
+        double maxAlarmBellIconSize = (isPhone ? 100.0 : 130.0) * maxScaleFactor;
 
         return (maxAlarmTimeSize, maxAlarmMeridianSize, maxAlarmBellIconSize);
     }
