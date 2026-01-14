@@ -76,6 +76,11 @@ public partial class Styles : ResourceDictionary
         this["IconStandardContainerSize"] = service.IconStandardContainerSize;
         this["IconLargeContainerSize"] = service.IconLargeContainerSize;
 
+        // Content widths (for modal and content widths)
+        this["ContentWidthSmall"] = service.ContentWidthSmall;
+        this["ContentWidthMedium"] = service.ContentWidthMedium;
+        this["ContentWidthLarge"] = service.ContentWidthLarge;
+
         // Spacing resources - scale with font size for fluent UI
         // Base values are defined in XAML, scaled here
         this["SpacingExtraSmall"] = 2.0 * fontScaleFactor;

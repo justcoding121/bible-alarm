@@ -50,7 +50,7 @@
                 <Label
                     FontSize="{DynamicResource HeaderFontSize}"
                     FontAttributes="Bold"
-                    MinimumHeightRequest="56"
+                    MinimumHeightRequest="{DynamicResource IconLargeContainerSize}"
                     Text="Select Music Type"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
@@ -115,7 +115,7 @@
                                         <Grid
                                             Padding="20,18"
                                             ColumnSpacing="12"
-                                            MinimumHeightRequest="56"
+                                            MinimumHeightRequest="{DynamicResource IconLargeContainerSize}"
                                             BackgroundColor="Transparent">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />

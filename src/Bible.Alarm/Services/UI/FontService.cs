@@ -32,6 +32,9 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
     private double iconSmallContainerSize;
     private double iconStandardContainerSize;
     private double iconLargeContainerSize;
+    private double contentWidthSmall;
+    private double contentWidthMedium;
+    private double contentWidthLarge;
 
     private readonly IAccessibilityFontScaleService accessibilityFontScaleService;
 
@@ -128,6 +131,11 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         iconStandardContainerSize = 48.0 * accessibilityScale;
         iconLargeContainerSize = 56.0 * accessibilityScale;
 
+        // Content widths scale with accessibility for better layout at larger font sizes
+        contentWidthSmall = 200.0 * accessibilityScale;
+        contentWidthMedium = 240.0 * accessibilityScale;
+        contentWidthLarge = 280.0 * accessibilityScale;
+
         Log.Logger.Debug("Using Windows desktop fallback font sizes with accessibility scale {AccessibilityScale:F2}",
             accessibilityScale);
     }
@@ -162,6 +170,11 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         iconSmallContainerSize = 32.0 * accessibilityScale;
         iconStandardContainerSize = 48.0 * accessibilityScale;
         iconLargeContainerSize = 56.0 * accessibilityScale;
+
+        // Content widths scale with accessibility for better layout at larger font sizes
+        contentWidthSmall = 200.0 * accessibilityScale;
+        contentWidthMedium = 240.0 * accessibilityScale;
+        contentWidthLarge = 280.0 * accessibilityScale;
 
         double baseAlarmTimeSize = 37.0 * androidAlarmReduction;
         double baseAlarmMeridianSize = 21.0 * androidAlarmReduction;
@@ -245,6 +258,16 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         iconSmallContainerSize = Math.Min(BaseIconSmallContainerSize * accessibilityScale, 48.0 * accessibilityCap);
         iconStandardContainerSize = Math.Min(BaseIconStandardContainerSize * accessibilityScale, 72.0 * accessibilityCap);
         iconLargeContainerSize = Math.Min(BaseIconLargeContainerSize * accessibilityScale, 84.0 * accessibilityCap);
+
+        // Content widths scale with accessibility for better layout at larger font sizes
+        // These scale more conservatively than fonts to maintain reasonable UI proportions
+        const double BaseContentWidthSmall = 200.0;
+        const double BaseContentWidthMedium = 240.0;
+        const double BaseContentWidthLarge = 280.0;
+
+        contentWidthSmall = Math.Min(BaseContentWidthSmall * accessibilityScale, 300.0 * accessibilityCap);
+        contentWidthMedium = Math.Min(BaseContentWidthMedium * accessibilityScale, 360.0 * accessibilityCap);
+        contentWidthLarge = Math.Min(BaseContentWidthLarge * accessibilityScale, 420.0 * accessibilityCap);
     }
 
     private void SetAlarmFontSizes(double densityScale, double accessibilityScale, double widthDp, bool isAndroid, double androidAlarmReduction)
@@ -318,6 +341,9 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
     public double IconSmallContainerSize => iconSmallContainerSize;
     public double IconStandardContainerSize => iconStandardContainerSize;
     public double IconLargeContainerSize => iconLargeContainerSize;
+    public double ContentWidthSmall => contentWidthSmall;
+    public double ContentWidthMedium => contentWidthMedium;
+    public double ContentWidthLarge => contentWidthLarge;
 
     public double GetScaledFontSize(double baseSizeInPoints)
     {

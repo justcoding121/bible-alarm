@@ -30,6 +30,12 @@
     <x:Double x:Key="IconStandardContainerSize">48.0</x:Double>
     <x:Double x:Key="IconLargeContainerSize">56.0</x:Double>
     
+    <!-- Content width resources - for modal and content widths -->
+    <!-- These scale with OS accessibility settings for better layout at larger font sizes -->
+    <x:Double x:Key="ContentWidthSmall">200.0</x:Double>
+    <x:Double x:Key="ContentWidthMedium">240.0</x:Double>
+    <x:Double x:Key="ContentWidthLarge">280.0</x:Double>
+    
     <!-- Spacing and padding resources - scale with OS font size for fluent UI -->
     <!-- These are updated automatically when screen size/orientation changes or OS font scale changes -->
     <x:Double x:Key="SpacingExtraSmall">2.0</x:Double>

@@ -119,7 +119,7 @@
                                         <Grid
                                             Padding="20,18"
                                             ColumnSpacing="12"
-                                            MinimumHeightRequest="56"
+                                            MinimumHeightRequest="{DynamicResource IconLargeContainerSize}"
                                             BackgroundColor="Transparent">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />

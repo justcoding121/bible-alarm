@@ -157,7 +157,7 @@
                                                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                                     Glyph="{x:Static fn:GlyphNames.Trash}"
                                                     Color="White"
-                                                    Size="20" />
+                                                    Size="{DynamicResource IconSmallFontSize}" />
                                         </SwipeItem.IconImageSource>
                                     </SwipeItem>
                                 </SwipeItems>

@@ -79,7 +79,7 @@
                         BackgroundColor="{DynamicResource CardBackgroundColor}"
                         StrokeThickness="0"
                         Padding="24,20"
-                        MinimumWidthRequest="280">
+                        MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="16" />
                         </Border.StrokeShape>
@@ -87,7 +87,7 @@
                             HorizontalOptions="Center"
                             VerticalOptions="Center"
                             RowSpacing="12"
-                            WidthRequest="240">
+                            WidthRequest="{DynamicResource ContentWidthMedium}">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -100,10 +100,10 @@
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding ProgressText}"
                                 TextColor="{DynamicResource TextPrimaryColor}"
-                                MinimumHeightRequest="48" />
+                                MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
                             <ProgressBar Grid.Row="1"
                                 Margin="10,5"
-                                WidthRequest="200"
+                                WidthRequest="{DynamicResource ContentWidthSmall}"
                                 HorizontalOptions="Center"
                                 Progress="{Binding PreparationProgress}"
                                 ProgressColor="{StaticResource PrimaryColor}" />
@@ -215,8 +215,8 @@
                         <Grid Grid.Row="0"
                             HorizontalOptions="Center"
                             VerticalOptions="Center"
-                            WidthRequest="280"
-                            HeightRequest="280">
+                            WidthRequest="{DynamicResource ContentWidthLarge}"
+                            HeightRequest="{DynamicResource ContentWidthLarge}">
                             <!-- Busy Indicator for loading artwork -->
                             <Grid
                                 IsVisible="{Binding IsArtworkLoading}"

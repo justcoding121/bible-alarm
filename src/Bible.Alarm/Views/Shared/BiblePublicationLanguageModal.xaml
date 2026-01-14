@@ -55,7 +55,7 @@
                 <Label
                     FontSize="{DynamicResource HeaderFontSize}"
                     FontAttributes="Bold"
-                    MinimumHeightRequest="56"
+                    MinimumHeightRequest="{DynamicResource IconLargeContainerSize}"
                     Text="Select Language"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"

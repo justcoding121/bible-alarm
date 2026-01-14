@@ -91,6 +91,21 @@ public interface IFontService : IDisposable
     double IconLargeContainerSize { get; }
 
     /// <summary>
+    /// Small content width (200pt base) for content elements like progress bars, scaled by accessibility settings
+    /// </summary>
+    double ContentWidthSmall { get; }
+
+    /// <summary>
+    /// Medium content width (240pt base) for content elements like progress indicator grids, scaled by accessibility settings
+    /// </summary>
+    double ContentWidthMedium { get; }
+
+    /// <summary>
+    /// Large content width (280pt base) for content elements like modal borders and artwork containers, scaled by accessibility settings
+    /// </summary>
+    double ContentWidthLarge { get; }
+
+    /// <summary>
     /// Gets a scaled font size based on a base size in points
     /// </summary>
     double GetScaledFontSize(double baseSizeInPoints);

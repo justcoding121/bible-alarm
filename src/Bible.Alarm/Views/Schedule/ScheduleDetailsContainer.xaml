@@ -591,7 +591,7 @@
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     Padding="12,4"
-                    MinimumWidthRequest="280">
+                    MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
                 </Border.StrokeShape>
