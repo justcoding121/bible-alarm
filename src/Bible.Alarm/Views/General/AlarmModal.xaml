@@ -64,8 +64,8 @@
             <Grid
                 x:Name="MainContentArea"
                 Grid.Row="0"
-                Padding="24,40,24,24"
-                RowSpacing="24"
+                Padding="{DynamicResource PaddingThickness24_40_24_24}"
+                RowSpacing="{DynamicResource SpacingXLarge}"
                 VerticalOptions="Fill">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -78,7 +78,7 @@
                         IsVisible="{Binding ShowPreparingProgress}"
                         BackgroundColor="{DynamicResource CardBackgroundColor}"
                         StrokeThickness="0"
-                        Padding="24,20"
+                        Padding="{DynamicResource PaddingThickness24_20}"
                         MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="16" />
@@ -102,7 +102,7 @@
                                 TextColor="{DynamicResource TextPrimaryColor}"
                                 MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
                             <ProgressBar Grid.Row="1"
-                                Margin="10,5"
+                                Margin="{DynamicResource MarginThickness10_5}"
                                 WidthRequest="{DynamicResource ContentWidthSmall}"
                                 HorizontalOptions="Center"
                                 Progress="{Binding PreparationProgress}"
@@ -132,7 +132,7 @@
                         BackgroundColor="{DynamicResource ControlBackgroundColor}"
                         StrokeThickness="1"
                         Stroke="#4A2A2A"
-                        Padding="24,20,24,48">
+                        Padding="{DynamicResource PaddingThickness24_20_24_48}">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="16" />
                         </Border.StrokeShape>
@@ -274,8 +274,8 @@
                         
                         <!-- Track Metadata - fixed height, truncated text -->
                         <Grid Grid.Row="1"
-                            RowSpacing="4"
-                            Padding="16,8,16,0"
+                            RowSpacing="{DynamicResource SpacingSmall}"
+                            Padding="{DynamicResource PaddingThickness16_8_16_0}"
                             HorizontalOptions="Fill">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -321,8 +321,8 @@
                     <RoundRectangle CornerRadius="24,24,0,0" />
                 </Border.StrokeShape>
                 <Grid
-                    Padding="24,20,24,32"
-                    RowSpacing="20">
+                    Padding="{DynamicResource PaddingThickness24_20_24_32}"
+                    RowSpacing="{DynamicResource MarginExtraLarge}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -339,7 +339,7 @@
                         StrokeThickness="0"
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
-                        Margin="0,0,0,16">
+                        Margin="{DynamicResource MarginThickness0_0_0_16}">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="100" />
                         </Border.StrokeShape>

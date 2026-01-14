@@ -25,7 +25,7 @@
     <Grid AutomationId="HomePage" BackgroundColor="{DynamicResource PageBackgroundColor}" HorizontalOptions="Fill" VerticalOptions="Fill">
         <Grid
             Grid.Row="0"
-            Margin="{OnPlatform Default='0', iOS='0,20,0,0', Android='0,24,0,0'}"
+            Margin="{DynamicResource MarginThicknessTopSafeArea}"
             RowSpacing="0"
             Grid.ZIndex="1">
             <Grid.RowDefinitions>
@@ -33,7 +33,7 @@
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <Grid Grid.Row="0" Padding="16,8,16,0">
+            <Grid Grid.Row="0" Padding="{DynamicResource PaddingThickness16_8_16_0}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -55,7 +55,7 @@
                         <TapGestureRecognizer Command="{Binding AddScheduleCommand}" />
                     </core:SfEffectsView.GestureRecognizers>
                     <Button x:Name="AddScheduleEffectsButton"
-                            Margin="0"
+                            Margin="{DynamicResource MarginThickness0}"
                             AutomationId="AddScheduleButton"
                             BackgroundColor="{StaticResource PrimaryColor}"
                             CornerRadius="{DynamicResource CornerRadiusLarge}"
@@ -65,7 +65,7 @@
                             FontSize="{DynamicResource IconStandardFontSize}"
                             HorizontalOptions="Fill"
                             HeightRequest="{DynamicResource IconStandardContainerSize}"
-                            Padding="0"
+                            Padding="{DynamicResource PaddingThickness0}"
                             Text="{x:Static fn:GlyphNames.Plus}"
                             TextColor="White"
                             InputTransparent="{OnPlatform WinUI=True, Default=False}">
@@ -90,7 +90,7 @@
                 <!-- Regular button for Android/iOS (with native effects) -->
                 <Button Grid.Row="0"
                         x:Name="AddScheduleButtonNoEffects"
-                        Margin="0"
+                        Margin="{DynamicResource MarginThickness0}"
                         AutomationId="AddScheduleButton"
                         BackgroundColor="{StaticResource PrimaryColor}"
                         CornerRadius="{DynamicResource CornerRadiusLarge}"
@@ -100,7 +100,7 @@
                         FontSize="{DynamicResource IconStandardFontSize}"
                         HorizontalOptions="Fill"
                         HeightRequest="{DynamicResource IconStandardContainerSize}"
-                        Padding="0"
+                        Padding="{DynamicResource PaddingThickness0}"
                         Text="{x:Static fn:GlyphNames.Plus}"
                         TextColor="White"
                         IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
@@ -125,7 +125,7 @@
             <!-- Progress bar for schedule loading -->
             <shared:AnimatedProgressBar
                 Grid.Row="1"
-                Margin="0,8,0,8"
+                Margin="{DynamicResource MarginThickness0_8_0_8}"
                 Opacity="{Binding ProgressBarOpacity}"
                 VerticalOptions="Start"
                 InputTransparent="{Binding IsProgressBarHidden}"
@@ -165,7 +165,7 @@
                             <Grid>
                                 <core:SfEffectsView
                                         x:Name="ScheduleItemEffectsView"
-                                        Margin="16,0,16,0"
+                                        Margin="{DynamicResource MarginThickness16_0}"
                                         TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                         TouchUpEffects="None"
                                         RippleBackground="{StaticResource PrimaryColor}"
@@ -198,18 +198,20 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
-                                        <!-- Row 1: Two columns (play button, time and days) that can wrap -->
-                                        <FlexLayout Grid.Row="0"
-                                              Direction="Row"
-                                              Wrap="Wrap"
-                                              AlignItems="Center"
-                                              JustifyContent="SpaceBetween"
+                                        <!-- Row 1: Two columns (play button, time and days) -->
+                                        <Grid Grid.Row="0"
                                               HorizontalOptions="Fill"
-                                              VerticalOptions="Start">
+                                              VerticalOptions="Center"
+                                              ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
                                             <!-- Column 1: Play button -->
-                                            <Grid Margin="0,0,10,0"
+                                            <Grid Grid.Column="0"
+                                                  Margin="{DynamicResource MarginThickness16_0}"
                                                   VerticalOptions="Center"
-                                                  HorizontalOptions="Center"
+                                                  HorizontalOptions="Start"
                                                   HeightRequest="{DynamicResource IconLargeContainerSize}"
                                                   WidthRequest="{DynamicResource IconLargeContainerSize}">
                                                 <Border
@@ -253,16 +255,16 @@
                                                         Opacity="0.95" />
                                             </Grid>
                                             <!-- Column 2: Time and days of week (stacked vertically) -->
-                                            <VerticalStackLayout Margin="0"
-                                                  FlexLayout.Grow="1"
-                                                  HorizontalOptions="Center"
+                                            <VerticalStackLayout Grid.Column="1"
+                                                  Margin="{DynamicResource MarginThickness0}"
+                                                  HorizontalOptions="Start"
                                                   VerticalOptions="Center"
                                                   Spacing="{DynamicResource SpacingMedium}">
                                                 <!-- Time -->
-                                                <Grid Margin="0"
-                                                      HorizontalOptions="Center"
+                                                <Grid Margin="{DynamicResource MarginThickness0}"
+                                                      HorizontalOptions="Start"
                                                       VerticalOptions="Center"
-                                                      ColumnSpacing="2">
+                                                      ColumnSpacing="{DynamicResource SpacingExtraSmall}">
                                                     <Grid.GestureRecognizers>
                                                         <TapGestureRecognizer Command="{Binding ToggleEnabledCommand}" />
                                                     </Grid.GestureRecognizers>
@@ -271,8 +273,8 @@
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
                                                     <Label Grid.Column="0"
-                                                           Margin="0"
-                                                           Padding="0"
+                                                           Margin="{DynamicResource MarginThickness0}"
+                                                           Padding="{DynamicResource PaddingThickness0}"
                                                            FontSize="{DynamicResource AlarmTimeFontSize}"
                                                            FontAttributes="Bold"
                                                            Text="{Binding TimeText}"
@@ -280,8 +282,8 @@
                                                            TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
                                                            LineBreakMode="NoWrap" />
                                                     <Label Grid.Column="1"
-                                                           Margin="0"
-                                                           Padding="0"
+                                                           Margin="{DynamicResource MarginThickness0}"
+                                                           Padding="{DynamicResource PaddingThickness0}"
                                                            FontSize="{DynamicResource AlarmMeridianFontSize}"
                                                            Text="{Binding MeridianText}"
                                                            VerticalOptions="Center"
@@ -289,13 +291,13 @@
                                                            VerticalTextAlignment="Center" />
                                                 </Grid>
                                                 <!-- Days of week -->
-                                                <FlexLayout HorizontalOptions="Center"
+                                                <FlexLayout HorizontalOptions="Start"
                                                       Wrap="Wrap"
-                                                      JustifyContent="Center"
+                                                      JustifyContent="Start"
                                                       AlignItems="Center"
-                                                      Margin="0">
-                                                <Border Margin="1"
-                                                        Padding="4,2"
+                                                      Margin="{DynamicResource MarginThickness0}">
+                                                <Border Margin="{DynamicResource MarginThickness0_5}"
+                                                        Padding="{DynamicResource PaddingThickness4_2}"
                                                         BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Sunday'}"
                                                         Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                         StrokeThickness="0"
@@ -314,8 +316,8 @@
                                                             HorizontalOptions="Center"
                                                             VerticalOptions="Center" />
                                                 </Border>
-                                                <Border Margin="1"
-                                                        Padding="4,2"
+                                                <Border Margin="{DynamicResource MarginThickness0_5}"
+                                                        Padding="{DynamicResource PaddingThickness4_2}"
                                                         BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Monday'}"
                                                         Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                         StrokeThickness="0"
@@ -334,8 +336,8 @@
                                                             HorizontalOptions="Center"
                                                             VerticalOptions="Center" />
                                                 </Border>
-                                                <Border Margin="1"
-                                                        Padding="4,2"
+                                                <Border Margin="{DynamicResource MarginThickness0_5}"
+                                                        Padding="{DynamicResource PaddingThickness4_2}"
                                                         BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Tuesday'}"
                                                         Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                         StrokeThickness="0"
@@ -354,8 +356,8 @@
                                                             HorizontalOptions="Center"
                                                             VerticalOptions="Center" />
                                                 </Border>
-                                                <Border Margin="1"
-                                                        Padding="4,2"
+                                                <Border Margin="{DynamicResource MarginThickness0_5}"
+                                                        Padding="{DynamicResource PaddingThickness4_2}"
                                                         BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Wednesday'}"
                                                         Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                         StrokeThickness="0"
@@ -374,8 +376,8 @@
                                                             HorizontalOptions="Center"
                                                             VerticalOptions="Center" />
                                                 </Border>
-                                                <Border Margin="1"
-                                                        Padding="4,2"
+                                                <Border Margin="{DynamicResource MarginThickness0_5}"
+                                                        Padding="{DynamicResource PaddingThickness4_2}"
                                                         BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Thursday'}"
                                                         Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                         StrokeThickness="0"
@@ -394,8 +396,8 @@
                                                             HorizontalOptions="Center"
                                                             VerticalOptions="Center" />
                                                 </Border>
-                                                <Border Margin="1"
-                                                        Padding="4,2"
+                                                <Border Margin="{DynamicResource MarginThickness0_5}"
+                                                        Padding="{DynamicResource PaddingThickness4_2}"
                                                         BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Friday'}"
                                                         Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                         StrokeThickness="0"
@@ -414,8 +416,8 @@
                                                             HorizontalOptions="Center"
                                                             VerticalOptions="Center" />
                                                 </Border>
-                                                <Border Margin="1"
-                                                        Padding="4,2"
+                                                <Border Margin="{DynamicResource MarginThickness0_5}"
+                                                        Padding="{DynamicResource PaddingThickness4_2}"
                                                         BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Saturday'}"
                                                         Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
                                                         StrokeThickness="0"
@@ -436,13 +438,13 @@
                                                 </Border>
                                                 </FlexLayout>
                                             </VerticalStackLayout>
-                                        </FlexLayout>
+                                        </Grid>
                                         <!-- Row 2: Remaining items (name, publication name, subtitle, language/music) -->
                                         <VerticalStackLayout Grid.Row="1"
                                               HorizontalOptions="Fill"
                                               VerticalOptions="Start"
                                               Spacing="{DynamicResource PaddingSmall}">
-                                            <Label Margin="0,0,0,0"
+                                            <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"
                                                    HorizontalTextAlignment="Start"
                                                    FontSize="{DynamicResource LargeFontSize}"
@@ -450,7 +452,7 @@
                                                    Text="{Binding Name}"
                                                    TextColor="{DynamicResource TextPrimaryColor}"
                                                    LineBreakMode="WordWrap" />
-                                            <Label Margin="0"
+                                            <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"
                                                    HorizontalTextAlignment="Start"
                                                    FontSize="{DynamicResource MediumFontSize}"
@@ -458,7 +460,7 @@
                                                    TextColor="{DynamicResource PrimaryTextColor}"
                                                    LineBreakMode="WordWrap"
                                                    IsVisible="{Binding BiblePublicationName, Converter={StaticResource isStringNotEmptyConverter}}" />
-                                            <Label Margin="0"
+                                            <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"
                                                    HorizontalTextAlignment="Start"
                                                    FontSize="{DynamicResource MediumFontSize}"
@@ -466,10 +468,10 @@
                                                    TextColor="{DynamicResource PrimaryTextColor}"
                                                    LineBreakMode="WordWrap" />
                                             <!-- Language label and music icon -->
-                                            <Grid Margin="0,8,0,0"
+                                            <Grid Margin="{DynamicResource MarginThickness0_8_0_0}"
                                                   HorizontalOptions="Fill"
                                                   VerticalOptions="Start"
-                                                  ColumnSpacing="6">
+                                                  ColumnSpacing="{DynamicResource SpacingMedium}">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
@@ -509,7 +511,7 @@
         
         <!-- Floating Alarm Settings Button (Android only) -->
         <!-- Floating alarm settings button - SfEffectsView for WinUI only -->
-        <core:SfEffectsView AutomationId="AlarmSettingsFloatingButton"
+            <core:SfEffectsView AutomationId="AlarmSettingsFloatingButton"
             TouchDownEffects="Ripple"
             TouchUpEffects="None"
             RippleBackground="{StaticResource PrimaryColor}"
@@ -518,7 +520,7 @@
             HorizontalOptions="End"
             VerticalOptions="End"
             IsVisible="{Binding IsFloatingButtonVisible}"
-            Margin="0,0,16,16"
+            Margin="{DynamicResource MarginThickness0_0_16_16}"
             Opacity="{Binding IsFloatingButtonVisible, Converter={StaticResource booleanToDoubleConverter}}"
             ZIndex="100">
             <core:SfEffectsView.IsVisible>
@@ -537,7 +539,7 @@
                     HeightRequest="{DynamicResource IconLargeContainerSize}"
                     WidthRequest="{DynamicResource IconLargeContainerSize}"
                     HorizontalOptions="End"
-                    Padding="0"
+                    Padding="{DynamicResource PaddingThickness0}"
                     Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
                     VerticalOptions="End"
                     InputTransparent="True">
@@ -560,9 +562,9 @@
                 HeightRequest="{DynamicResource IconLargeContainerSize}"
                 WidthRequest="{DynamicResource IconLargeContainerSize}"
                 HorizontalOptions="End"
-                Margin="0,0,16,16"
+                Margin="{DynamicResource MarginThickness0_0_16_16}"
                 Opacity="{Binding IsFloatingButtonVisible, Converter={StaticResource booleanToDoubleConverter}}"
-                Padding="0"
+                Padding="{DynamicResource PaddingThickness0}"
                 Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
                 VerticalOptions="End"
                 IsVisible="{Binding IsFloatingButtonVisible}"

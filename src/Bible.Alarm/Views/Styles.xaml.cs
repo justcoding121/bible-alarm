@@ -89,6 +89,7 @@ public partial class Styles : ResourceDictionary
         this["SpacingStandard"] = 12.0 * fontScaleFactor;
         this["SpacingLarge"] = 16.0 * fontScaleFactor;
         this["SpacingExtraLarge"] = 20.0 * fontScaleFactor;
+        this["SpacingXLarge"] = 24.0 * fontScaleFactor;
 
         // Padding resources - scale with font size
         this["PaddingSmall"] = 4.0 * fontScaleFactor;
@@ -96,6 +97,99 @@ public partial class Styles : ResourceDictionary
         this["PaddingStandard"] = 12.0 * fontScaleFactor;
         this["PaddingLarge"] = 16.0 * fontScaleFactor;
         this["PaddingExtraLarge"] = 20.0 * fontScaleFactor;
+        this["PaddingXLarge"] = 24.0 * fontScaleFactor;
+        this["PaddingXXLarge"] = 32.0 * fontScaleFactor;
+        this["PaddingXXXLarge"] = 40.0 * fontScaleFactor;
+        this["PaddingXXXXLarge"] = 48.0 * fontScaleFactor;
+
+        // Margin resources - scale with font size
+        this["MarginSmall"] = 4.0 * fontScaleFactor;
+        this["MarginMedium"] = 8.0 * fontScaleFactor;
+        this["MarginStandard"] = 12.0 * fontScaleFactor;
+        this["MarginLarge"] = 16.0 * fontScaleFactor;
+        this["MarginExtraLarge"] = 20.0 * fontScaleFactor;
+        this["MarginXLarge"] = 24.0 * fontScaleFactor;
+
+        // Minimum height resources - scale with font size for touch targets
+        this["MinimumHeightStandard"] = 56.0 * fontScaleFactor;
+
+        // Thickness resources for common padding/margin combinations - scale with font size
+        double paddingLarge = 16.0 * fontScaleFactor;
+        double paddingXLarge = 24.0 * fontScaleFactor;
+        double paddingXXXLarge = 40.0 * fontScaleFactor;
+        double paddingXXXXLarge = 48.0 * fontScaleFactor;
+        double marginSmall = 4.0 * fontScaleFactor;
+        double marginMedium = 8.0 * fontScaleFactor;
+        double marginLarge = 16.0 * fontScaleFactor;
+        double marginXLarge = 24.0 * fontScaleFactor;
+        double marginExtraSmall = 2.0 * fontScaleFactor;
+        double marginStandard = 12.0 * fontScaleFactor;
+        double marginExtraLarge = 20.0 * fontScaleFactor;
+        double paddingSmall = 4.0 * fontScaleFactor;
+        double paddingMedium = 8.0 * fontScaleFactor;
+        double paddingStandard = 12.0 * fontScaleFactor;
+        double paddingExtraLarge = 20.0 * fontScaleFactor;
+        double paddingXXLarge = 32.0 * fontScaleFactor;
+
+        // Common padding Thickness values
+        this["PaddingThicknessLarge"] = new Thickness(paddingLarge);
+        this["PaddingThicknessXLarge"] = new Thickness(paddingXLarge);
+        this["PaddingThicknessXXXLarge"] = new Thickness(paddingXXXLarge);
+        this["PaddingThicknessXXXXLarge"] = new Thickness(paddingXXXXLarge);
+        this["PaddingThicknessStandard"] = new Thickness(paddingStandard);
+        this["PaddingThicknessExtraLarge"] = new Thickness(paddingExtraLarge);
+        this["PaddingThicknessXXLarge"] = new Thickness(paddingXXLarge);
+        
+        // Specific padding combinations found in XAML files
+        this["PaddingThickness24_40_24_24"] = new Thickness(paddingXLarge, paddingXXXLarge, paddingXLarge, paddingXLarge);
+        this["PaddingThickness24_20"] = new Thickness(paddingXLarge, paddingExtraLarge);
+        this["PaddingThickness24_20_24_48"] = new Thickness(paddingXLarge, paddingExtraLarge, paddingXLarge, paddingXXXXLarge);
+        this["PaddingThickness24_20_24_32"] = new Thickness(paddingXLarge, paddingExtraLarge, paddingXLarge, paddingXXLarge);
+        this["PaddingThickness16_16"] = new Thickness(paddingLarge, paddingLarge);
+        this["PaddingThickness16_8"] = new Thickness(paddingLarge, paddingMedium);
+        this["PaddingThickness16_8_16_0"] = new Thickness(paddingLarge, paddingMedium, paddingLarge, 0);
+        this["PaddingThickness4_2"] = new Thickness(paddingSmall, marginExtraSmall);
+        this["PaddingThickness16_0"] = new Thickness(paddingLarge, 0);
+        this["PaddingThickness0"] = new Thickness(0);
+
+        // Common margin Thickness values
+        this["MarginThicknessSmall"] = new Thickness(marginSmall);
+        this["MarginThicknessMedium"] = new Thickness(marginMedium);
+        this["MarginThicknessLarge"] = new Thickness(marginLarge);
+        this["MarginThicknessXLarge"] = new Thickness(marginXLarge);
+        this["MarginThicknessStandard"] = new Thickness(marginStandard);
+        this["MarginThicknessExtraLarge"] = new Thickness(marginExtraLarge);
+        
+        // Specific margin combinations found in XAML files
+        this["MarginThickness0"] = new Thickness(0);
+        this["MarginThickness0_8_0_8"] = new Thickness(0, marginMedium, 0, marginMedium);
+        this["MarginThickness0_0_10_0"] = new Thickness(0, 0, 10.0 * fontScaleFactor, 0);
+        this["MarginThickness16_0_0_0"] = new Thickness(marginLarge, 0, 0, 0); // Left margin only, scales with font size
+        this["MarginThickness0_0_16_16"] = new Thickness(0, 0, marginLarge, marginLarge);
+        this["MarginThickness0_0_0_16"] = new Thickness(0, 0, 0, marginLarge);
+        this["MarginThickness0_8_0_0"] = new Thickness(0, marginMedium, 0, 0);
+        this["MarginThickness10_5"] = new Thickness(10.0 * fontScaleFactor, 5.0 * fontScaleFactor);
+        this["MarginThickness1"] = new Thickness(marginExtraSmall);
+        this["MarginThickness0_5"] = new Thickness(1.0 * fontScaleFactor); // Half of MarginThickness1
+        this["MarginThickness0_20_0_0"] = new Thickness(0, marginExtraLarge, 0, 0);
+        this["MarginThickness0_24_0_0"] = new Thickness(0, marginXLarge, 0, 0);
+        this["MarginThickness16_0"] = new Thickness(marginLarge, 0, marginLarge, 0);
+        this["MarginThickness16_0_16_0"] = new Thickness(marginLarge, 0, marginLarge, 0);
+        // Platform-specific top margins for safe area (scale with font size)
+        // iOS: 20pt base, Android: 24pt base
+        var platform = DeviceInfo.Platform;
+        if (platform == DevicePlatform.iOS)
+        {
+            this["MarginThicknessTopSafeArea"] = new Thickness(0, 20.0 * fontScaleFactor, 0, 0);
+        }
+        else if (platform == DevicePlatform.Android)
+        {
+            this["MarginThicknessTopSafeArea"] = new Thickness(0, 24.0 * fontScaleFactor, 0, 0);
+        }
+        else
+        {
+            this["MarginThicknessTopSafeArea"] = new Thickness(0);
+        }
 
         // Corner radius resources - scale slightly with font size for better proportions
         // Corner radius scales less aggressively than spacing (0.8x factor) to maintain visual balance

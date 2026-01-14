@@ -7,12 +7,12 @@
              xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
              x:DataType="vm:AlarmSettingsContainerViewModel"
              IsVisible="True">
-    <Border Margin="0"
-            Padding="0"
+    <Border Margin="{DynamicResource MarginThickness0}"
+            Padding="{DynamicResource PaddingThickness0}"
             StrokeThickness="0"
             BackgroundColor="{DynamicResource CardBackgroundColor}"
             HorizontalOptions="Fill"
-            MinimumHeightRequest="56"
+            MinimumHeightRequest="{DynamicResource MinimumHeightStandard}"
             IsVisible="True">
         <Border.StrokeShape>
             <RoundRectangle CornerRadius="16" />
@@ -24,8 +24,8 @@
                     Opacity="0.2" />
         </Border.Shadow>
         <Grid RowSpacing="0"
-              Padding="0"
-              MinimumHeightRequest="56"
+              Padding="{DynamicResource PaddingThickness0}"
+              MinimumHeightRequest="{DynamicResource MinimumHeightStandard}"
               IsVisible="True">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -44,10 +44,10 @@
                                           NumberOfTapsRequired="1" />
                 </core:SfEffectsView.GestureRecognizers>
                 <Grid x:Name="EnabledButton"
-                      Margin="0"
-                      Padding="16,16"
+                      Margin="{DynamicResource MarginThickness0}"
+                      Padding="{DynamicResource PaddingThickness16_16}"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                      MinimumHeightRequest="56"
+                      MinimumHeightRequest="{DynamicResource MinimumHeightStandard}"
                       HorizontalOptions="Fill"
                       VerticalOptions="Fill">
                     <Grid.ColumnDefinitions>
@@ -110,10 +110,10 @@
                                               NumberOfTapsRequired="1" />
                     </core:SfEffectsView.GestureRecognizers>
                     <Grid x:Name="NotificationEnabledButton"
-                          Margin="0"
-                          Padding="16,16"
+                          Margin="{DynamicResource MarginThickness0}"
+                          Padding="{DynamicResource PaddingThickness16_16}"
                           BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                          MinimumHeightRequest="56"
+                          MinimumHeightRequest="{DynamicResource MinimumHeightStandard}"
                           HorizontalOptions="Fill"
                           VerticalOptions="Fill">
                         <Grid.ColumnDefinitions>
