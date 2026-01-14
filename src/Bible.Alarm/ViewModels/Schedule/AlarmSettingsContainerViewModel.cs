@@ -201,18 +201,35 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
                             }
                             else
                             {
-                                logger.Information("Notification permission granted - toggle remains enabled");
+                                logger.Information("Notification permission granted - updating schedule state");
+                                // Permission granted - now dispatch the update to persist the change
+                                MainThread.BeginInvokeOnMainThread(() =>
+                                {
+                                    DispatchScheduleUpdate(s => s.NotificationEnabled = true);
+                                });
                             }
                         }
                         catch (Exception ex)
                         {
                             logger.Error(ex, "Error requesting notification permission");
+                            // On error, revert the toggle
+                            MainThread.BeginInvokeOnMainThread(() =>
+                            {
+                                notificationEnabled = false;
+                                OnPropertyChanged(nameof(NotificationEnabled));
+                            });
                         }
                     });
+#else
+                    // Non-Android platforms - dispatch immediately
+                    DispatchScheduleUpdate(s => s.NotificationEnabled = value);
 #endif
                 }
-
-                DispatchScheduleUpdate(s => s.NotificationEnabled = value);
+                else
+                {
+                    // Disabling - no permission needed, dispatch immediately
+                    DispatchScheduleUpdate(s => s.NotificationEnabled = value);
+                }
             }
         }
     }

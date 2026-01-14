@@ -222,6 +222,19 @@ public sealed class ScheduleListItemViewModel(
         private set => subtitleManager.Language = value;
     }
 
+    public string BiblePublicationName
+    {
+        get
+        {
+            if (Schedule?.Id <= 0)
+            {
+                return string.Empty;
+            }
+
+            var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == Schedule.Id);
+            return scheduleStateItem?.BiblePublicationName ?? string.Empty;
+        }
+    }
 
     public bool MusicEnabled => Schedule?.MusicEnabled ?? false;
 
@@ -490,6 +503,7 @@ public sealed class ScheduleListItemViewModel(
                 if (changeInfo.BiblePublicationCodeChanged && updatedScheduleItem != null)
                 {
                     stateHandler.LastKnownBiblePublicationCode = updatedScheduleItem.BiblePublicationCode;
+                    OnPropertyChanged(nameof(BiblePublicationName));
                 }
                 RefreshSubTitleFromState(updatedScheduleItem);
                 
@@ -542,6 +556,7 @@ public sealed class ScheduleListItemViewModel(
                     ScheduleId);
                 OnPropertyChanged(nameof(SubTitle));
                 OnPropertyChanged(nameof(Language));
+                OnPropertyChanged(nameof(BiblePublicationName));
                 
                 // Hide progress bar when subtitle is updated (indicates track change is complete)
                 WeakReferenceMessenger.Default.Send(new HideProgressBarMessage());

@@ -114,8 +114,8 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         largeFontSize = 18.0 * accessibilityScale;
         titleFontSize = 22.0 * accessibilityScale;
 
-        alarmTimeFontSize = 30.0 * accessibilityScale;
-        alarmMeridianFontSize = 16.0 * accessibilityScale;
+        alarmTimeFontSize = 35.0 * accessibilityScale;
+        alarmMeridianFontSize = 19.0 * accessibilityScale;
         alarmBellIconFontSize = 80.0 * accessibilityScale;
 
         // Icon font sizes
@@ -163,13 +163,13 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         iconStandardContainerSize = 48.0 * accessibilityScale;
         iconLargeContainerSize = 56.0 * accessibilityScale;
 
-        double baseAlarmTimeSize = 32.0 * androidAlarmReduction;
-        double baseAlarmMeridianSize = 18.0 * androidAlarmReduction;
+        double baseAlarmTimeSize = 37.0 * androidAlarmReduction;
+        double baseAlarmMeridianSize = 21.0 * androidAlarmReduction;
         const double BaseAlarmBellIconSize = 80.0;
 
         double accessibilityCap = Math.Max(1.0, accessibilityScale);
-        double fallbackMaxTime = (isAndroid ? 30.0 : 40.0) * accessibilityCap;
-        double fallbackMaxMeridian = (isAndroid ? 16.0 : 22.0) * accessibilityCap;
+        double fallbackMaxTime = (isAndroid ? 36.0 : 48.0) * accessibilityCap;
+        double fallbackMaxMeridian = (isAndroid ? 20.0 : 26.0) * accessibilityCap;
         alarmTimeFontSize = Math.Min(baseAlarmTimeSize * accessibilityScale, fallbackMaxTime);
         alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * accessibilityScale, fallbackMaxMeridian);
         alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * accessibilityScale, 100.0 * accessibilityCap);
@@ -249,8 +249,8 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
 
     private void SetAlarmFontSizes(double densityScale, double accessibilityScale, double widthDp, bool isAndroid, double androidAlarmReduction)
     {
-        double baseAlarmTimeSize = 32.0 * androidAlarmReduction;
-        double baseAlarmMeridianSize = 18.0 * androidAlarmReduction;
+        double baseAlarmTimeSize = 37.0 * androidAlarmReduction;
+        double baseAlarmMeridianSize = 21.0 * androidAlarmReduction;
         const double BaseAlarmBellIconSize = 80.0;
 
         bool isPhone = widthDp < 600;
@@ -268,11 +268,11 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         double accessibilityCap = Math.Max(1.0, accessibilityScale);
 
         double maxAlarmTimeSize = (isPhone
-            ? (isAndroid ? 30.0 : 28.0)
-            : (isAndroid ? 38.0 : 50.0)) * accessibilityCap;
+            ? (isAndroid ? 36.0 : 34.0)
+            : (isAndroid ? 45.0 : 60.0)) * accessibilityCap;
         double maxAlarmMeridianSize = (isPhone
-            ? (isAndroid ? 16.0 : 18.0)
-            : (isAndroid ? 21.0 : 28.0)) * accessibilityCap;
+            ? (isAndroid ? 20.0 : 22.0)
+            : (isAndroid ? 25.0 : 34.0)) * accessibilityCap;
         double maxAlarmBellIconSize = (isPhone ? 100.0 : 130.0) * accessibilityCap;
 
         return (maxAlarmTimeSize, maxAlarmMeridianSize, maxAlarmBellIconSize);

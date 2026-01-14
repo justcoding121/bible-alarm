@@ -189,308 +189,317 @@
                                                     Radius="8" 
                                                     Opacity="0.15" />
                                     </Border.Shadow>
-                                    <FlexLayout
+                                    <Grid
                                             x:Name="ScheduleItemGrid"
-                                    Direction="Row"
-                                    AlignItems="Start"
-                                    JustifyContent="Start"
-                                    Wrap="Wrap"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Start">
-                                <Grid VerticalOptions="Center"
-                                      Margin="0,0,10,0"
-                                      RowSpacing="{DynamicResource SpacingMedium}">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <Grid Grid.Row="0"
-                                          Margin="0,0,0,8"
-                                          HorizontalOptions="Center"
-                                          VerticalOptions="Center"
-                                          HeightRequest="{DynamicResource IconLargeContainerSize}"
-                                          WidthRequest="{DynamicResource IconLargeContainerSize}">
-                                        <Border
-                                                BackgroundColor="{StaticResource PrimaryColor}"
-                                                StrokeThickness="0"
-                                                HorizontalOptions="Fill"
-                                                VerticalOptions="Fill">
-                                            <Border.StrokeShape>
-                                                <!-- Large CornerRadius is clipped to create circle regardless of container size -->
-                                                <RoundRectangle CornerRadius="100" />
-                                            </Border.StrokeShape>
-                                            <Border.Shadow>
-                                                <Shadow Brush="#60000000" 
-                                                            Offset="0,4" 
-                                                            Radius="8" 
-                                                            Opacity="0.4" />
-                                            </Border.Shadow>
-                                            <Border.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding PlayCommand}" />
-                                            </Border.GestureRecognizers>
-                                            <Label
-                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                    FontSize="{DynamicResource IconLargeFontSize}"
-                                                    HorizontalOptions="Center"
-                                                    VerticalOptions="Center"
-                                                    Text="{x:Static fn:GlyphNames.Play}"
-                                                    TextColor="White"
-                                                    HorizontalTextAlignment="Center"
-                                                    VerticalTextAlignment="Center"
-                                                    IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}" />
-                                        </Border>
-                                        <!-- Loading indicator overlay - shows when IsBusy is true -->
-                                        <ActivityIndicator
-                                                IsRunning="{Binding IsBusy}"
-                                                IsVisible="{Binding IsBusy}"
-                                                Color="White"
-                                                WidthRequest="{DynamicResource IconStandardFontSize}"
-                                                HeightRequest="{DynamicResource IconStandardFontSize}"
-                                                VerticalOptions="Center"
-                                                HorizontalOptions="Center"
-                                                Opacity="0.95" />
+                                            HorizontalOptions="Fill"
+                                            VerticalOptions="Start"
+                                            RowSpacing="{DynamicResource SpacingMedium}">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <!-- First row: Play button and time -->
+                                        <Grid Grid.Row="0"
+                                              VerticalOptions="Center"
+                                              HorizontalOptions="Start"
+                                              RowSpacing="{DynamicResource SpacingMedium}">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid Grid.Row="0"
+                                                  Margin="0,0,0,8"
+                                                  HorizontalOptions="Center"
+                                                  VerticalOptions="Center"
+                                                  HeightRequest="{DynamicResource IconLargeContainerSize}"
+                                                  WidthRequest="{DynamicResource IconLargeContainerSize}">
+                                                <Border
+                                                        BackgroundColor="{StaticResource PrimaryColor}"
+                                                        StrokeThickness="0"
+                                                        HorizontalOptions="Fill"
+                                                        VerticalOptions="Fill">
+                                                    <Border.StrokeShape>
+                                                        <!-- Large CornerRadius is clipped to create circle regardless of container size -->
+                                                        <RoundRectangle CornerRadius="100" />
+                                                    </Border.StrokeShape>
+                                                    <Border.Shadow>
+                                                        <Shadow Brush="#60000000" 
+                                                                    Offset="0,4" 
+                                                                    Radius="8" 
+                                                                    Opacity="0.4" />
+                                                    </Border.Shadow>
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer Command="{Binding PlayCommand}" />
+                                                    </Border.GestureRecognizers>
+                                                    <Label
+                                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                            FontSize="{DynamicResource IconLargeFontSize}"
+                                                            HorizontalOptions="Center"
+                                                            VerticalOptions="Center"
+                                                            Text="{x:Static fn:GlyphNames.Play}"
+                                                            TextColor="White"
+                                                            HorizontalTextAlignment="Center"
+                                                            VerticalTextAlignment="Center"
+                                                            IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}" />
+                                                </Border>
+                                                <!-- Loading indicator overlay - shows when IsBusy is true -->
+                                                <ActivityIndicator
+                                                        IsRunning="{Binding IsBusy}"
+                                                        IsVisible="{Binding IsBusy}"
+                                                        Color="White"
+                                                        WidthRequest="{DynamicResource IconStandardFontSize}"
+                                                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                                                        VerticalOptions="Center"
+                                                        HorizontalOptions="Center"
+                                                        Opacity="0.95" />
+                                            </Grid>
+                                            <Grid Grid.Row="1"
+                                                  Margin="0"
+                                                  HorizontalOptions="Center"
+                                                  VerticalOptions="Center"
+                                                  ColumnSpacing="2">
+                                                <Grid.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding ToggleEnabledCommand}" />
+                                                </Grid.GestureRecognizers>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Label Grid.Column="0"
+                                                       Margin="0"
+                                                       Padding="0"
+                                                       FontSize="{DynamicResource AlarmTimeFontSize}"
+                                                       FontAttributes="Bold"
+                                                       Text="{Binding TimeText}"
+                                                       VerticalOptions="Center"
+                                                       TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
+                                                       LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="1"
+                                                       Margin="0"
+                                                       Padding="0"
+                                                       FontSize="{DynamicResource AlarmMeridianFontSize}"
+                                                       Text="{Binding MeridianText}"
+                                                       VerticalOptions="Center"
+                                                       TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
+                                                       VerticalTextAlignment="Center" />
+                                            </Grid>
+                                        </Grid>
+                                        <!-- Second row: Day indicators, name/subtitle, language/music -->
+                                        <Grid Grid.Row="1"
+                                              HorizontalOptions="Fill"
+                                              VerticalOptions="Fill">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FlexLayout Grid.Row="0" 
+                                                  HorizontalOptions="Start"
+                                                  Wrap="Wrap"
+                                                  JustifyContent="Start"
+                                                  AlignItems="Center"
+                                                  Margin="0,0,0,8">
+                                                <Border Margin="1"
+                                                        Padding="4,2"
+                                                        BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Sunday'}"
+                                                        Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                        StrokeThickness="0"
+                                                        HorizontalOptions="Center"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                                    </Border.StrokeShape>
+                                                    <Label
+                                                            FontAttributes="Bold"
+                                                            FontSize="{DynamicResource SmallFontSize}"
+                                                            Text="S"
+                                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Sunday'}"
+                                                            HorizontalTextAlignment="Center"
+                                                            VerticalTextAlignment="Center"
+                                                            HorizontalOptions="Center"
+                                                            VerticalOptions="Center" />
+                                                </Border>
+                                                <Border Margin="1"
+                                                        Padding="4,2"
+                                                        BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Monday'}"
+                                                        Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                        StrokeThickness="0"
+                                                        HorizontalOptions="Center"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                                    </Border.StrokeShape>
+                                                    <Label
+                                                            FontAttributes="Bold"
+                                                            FontSize="{DynamicResource SmallFontSize}"
+                                                            Text="M"
+                                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Monday'}"
+                                                            HorizontalTextAlignment="Center"
+                                                            VerticalTextAlignment="Center"
+                                                            HorizontalOptions="Center"
+                                                            VerticalOptions="Center" />
+                                                </Border>
+                                                <Border Margin="1"
+                                                        Padding="4,2"
+                                                        BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Tuesday'}"
+                                                        Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                        StrokeThickness="0"
+                                                        HorizontalOptions="Center"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                                    </Border.StrokeShape>
+                                                    <Label
+                                                            FontAttributes="Bold"
+                                                            FontSize="{DynamicResource SmallFontSize}"
+                                                            Text="T"
+                                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Tuesday'}"
+                                                            HorizontalTextAlignment="Center"
+                                                            VerticalTextAlignment="Center"
+                                                            HorizontalOptions="Center"
+                                                            VerticalOptions="Center" />
+                                                </Border>
+                                                <Border Margin="1"
+                                                        Padding="4,2"
+                                                        BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Wednesday'}"
+                                                        Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                        StrokeThickness="0"
+                                                        HorizontalOptions="Center"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                                    </Border.StrokeShape>
+                                                    <Label
+                                                            FontAttributes="Bold"
+                                                            FontSize="{DynamicResource SmallFontSize}"
+                                                            Text="W"
+                                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Wednesday'}"
+                                                            HorizontalTextAlignment="Center"
+                                                            VerticalTextAlignment="Center"
+                                                            HorizontalOptions="Center"
+                                                            VerticalOptions="Center" />
+                                                </Border>
+                                                <Border Margin="1"
+                                                        Padding="4,2"
+                                                        BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Thursday'}"
+                                                        Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                        StrokeThickness="0"
+                                                        HorizontalOptions="Center"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                                    </Border.StrokeShape>
+                                                    <Label
+                                                            FontAttributes="Bold"
+                                                            FontSize="{DynamicResource SmallFontSize}"
+                                                            Text="T"
+                                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Thursday'}"
+                                                            HorizontalTextAlignment="Center"
+                                                            VerticalTextAlignment="Center"
+                                                            HorizontalOptions="Center"
+                                                            VerticalOptions="Center" />
+                                                </Border>
+                                                <Border Margin="1"
+                                                        Padding="4,2"
+                                                        BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Friday'}"
+                                                        Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                        StrokeThickness="0"
+                                                        HorizontalOptions="Center"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                                    </Border.StrokeShape>
+                                                    <Label
+                                                            FontAttributes="Bold"
+                                                            FontSize="{DynamicResource SmallFontSize}"
+                                                            Text="F"
+                                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Friday'}"
+                                                            HorizontalTextAlignment="Center"
+                                                            VerticalTextAlignment="Center"
+                                                            HorizontalOptions="Center"
+                                                            VerticalOptions="Center" />
+                                                </Border>
+                                                <Border Margin="1"
+                                                        Padding="4,2"
+                                                        BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Saturday'}"
+                                                        Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
+                                                        StrokeThickness="0"
+                                                        HorizontalOptions="Center"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
+                                                    </Border.StrokeShape>
+                                                    <Label
+                                                            FontAttributes="Bold"
+                                                            FontSize="{DynamicResource SmallFontSize}"
+                                                            Text="S"
+                                                            TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Saturday'}"
+                                                            HorizontalTextAlignment="Center"
+                                                            VerticalTextAlignment="Center"
+                                                            HorizontalOptions="Center"
+                                                            VerticalOptions="Center" />
+                                                </Border>
+                                            </FlexLayout>
+                                            <VerticalStackLayout Grid.Row="1" 
+                                                  HorizontalOptions="Fill"
+                                                  VerticalOptions="Start"
+                                                  Spacing="{DynamicResource PaddingSmall}">
+                                                <Label Margin="0,0,0,0"
+                                                       HorizontalOptions="Fill"
+                                                       HorizontalTextAlignment="Start"
+                                                       FontSize="{DynamicResource LargeFontSize}"
+                                                       FontAttributes="Bold"
+                                                       Text="{Binding Name}"
+                                                       TextColor="{DynamicResource TextPrimaryColor}"
+                                                       LineBreakMode="WordWrap" />
+                                                <Label Margin="0"
+                                                       HorizontalOptions="Fill"
+                                                       HorizontalTextAlignment="Start"
+                                                       FontSize="{DynamicResource MediumFontSize}"
+                                                       Text="{Binding BiblePublicationName}"
+                                                       TextColor="{DynamicResource PrimaryTextColor}"
+                                                       LineBreakMode="WordWrap"
+                                                       IsVisible="{Binding BiblePublicationName, Converter={StaticResource isStringNotEmptyConverter}}" />
+                                                <Label Margin="0"
+                                                       HorizontalOptions="Fill"
+                                                       HorizontalTextAlignment="Start"
+                                                       FontSize="{DynamicResource MediumFontSize}"
+                                                       Text="{Binding SubTitle}"
+                                                       TextColor="{DynamicResource PrimaryTextColor}"
+                                                       LineBreakMode="WordWrap" />
+                                            </VerticalStackLayout>
+                                            <!-- Language label and music icon -->
+                                            <HorizontalStackLayout Grid.Row="2"
+                                                  Grid.Column="0"
+                                                  Margin="0,8,0,0"
+                                                  Spacing="6"
+                                                  HorizontalOptions="Fill"
+                                                  VerticalOptions="Start">
+                                                <!-- Language text -->
+                                                <Label HorizontalOptions="Fill"
+                                                        HorizontalTextAlignment="Start"
+                                                        FontSize="{DynamicResource StandardFontSize}"
+                                                        Text="{Binding Language}"
+                                                        TextColor="{DynamicResource TextPrimaryColor}"
+                                                        IsVisible="{Binding Language, Converter={StaticResource isStringNotEmptyConverter}}"
+                                                        VerticalOptions="Start"
+                                                        LineBreakMode="WordWrap" />
+                                                <!-- Music icon (next to language) -->
+                                                <Label HorizontalOptions="Start"
+                                                        VerticalOptions="Start"
+                                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                                        FontSize="{DynamicResource MediumFontSize}"
+                                                        Text="{x:Static fn:GlyphNames.Music}"
+                                                        TextColor="{DynamicResource PrimaryTextColor}"
+                                                        Opacity="0.8"
+                                                        IsVisible="{Binding MusicEnabled, Mode=OneWay}"
+                                                        InputTransparent="True" />
+                                            </HorizontalStackLayout>
+                                        </Grid>
                                     </Grid>
-                                    <Grid Grid.Row="1"
-                                          Margin="0"
-                                          HorizontalOptions="Center"
-                                          VerticalOptions="Center"
-                                          ColumnSpacing="2">
-                                        <Grid.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding ToggleEnabledCommand}" />
-                                        </Grid.GestureRecognizers>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <Label Grid.Column="0"
-                                               Margin="0"
-                                               Padding="0"
-                                               FontSize="{DynamicResource AlarmTimeFontSize}"
-                                               FontAttributes="Bold"
-                                               Text="{Binding TimeText}"
-                                               VerticalOptions="Center"
-                                               TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
-                                               LineBreakMode="NoWrap" />
-                                        <Label Grid.Column="1"
-                                               Margin="0"
-                                               Padding="0"
-                                               FontSize="{DynamicResource AlarmMeridianFontSize}"
-                                               Text="{Binding MeridianText}"
-                                               VerticalOptions="Center"
-                                               TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
-                                               VerticalTextAlignment="Center" />
-                                    </Grid>
-                                </Grid>
-                                <Grid
-                                        FlexLayout.Grow="1"
-                                        Margin="0,0,10,0"
-                                        HorizontalOptions="Fill"
-                                        VerticalOptions="Fill">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <FlexLayout Grid.Row="0" 
-                                          HorizontalOptions="Start"
-                                          Wrap="Wrap"
-                                          JustifyContent="Start"
-                                          AlignItems="Center"
-                                          Margin="0,0,0,8">
-                                        <Border Margin="1"
-                                                Padding="4,2"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Sunday'}"
-                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
-                                                StrokeThickness="0"
-                                                HorizontalOptions="Center"
-                                                VerticalOptions="Center">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
-                                            </Border.StrokeShape>
-                                            <Label
-                                                    FontAttributes="Bold"
-                                                    FontSize="{DynamicResource SmallFontSize}"
-                                                    Text="S"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Sunday'}"
-                                                    HorizontalTextAlignment="Center"
-                                                    VerticalTextAlignment="Center"
-                                                    HorizontalOptions="Center"
-                                                    VerticalOptions="Center" />
-                                        </Border>
-                                        <Border Margin="1"
-                                                Padding="4,2"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Monday'}"
-                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
-                                                StrokeThickness="0"
-                                                HorizontalOptions="Center"
-                                                VerticalOptions="Center">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
-                                            </Border.StrokeShape>
-                                            <Label
-                                                    FontAttributes="Bold"
-                                                    FontSize="{DynamicResource SmallFontSize}"
-                                                    Text="M"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Monday'}"
-                                                    HorizontalTextAlignment="Center"
-                                                    VerticalTextAlignment="Center"
-                                                    HorizontalOptions="Center"
-                                                    VerticalOptions="Center" />
-                                        </Border>
-                                        <Border Margin="1"
-                                                Padding="4,2"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Tuesday'}"
-                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
-                                                StrokeThickness="0"
-                                                HorizontalOptions="Center"
-                                                VerticalOptions="Center">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
-                                            </Border.StrokeShape>
-                                            <Label
-                                                    FontAttributes="Bold"
-                                                    FontSize="{DynamicResource SmallFontSize}"
-                                                    Text="T"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Tuesday'}"
-                                                    HorizontalTextAlignment="Center"
-                                                    VerticalTextAlignment="Center"
-                                                    HorizontalOptions="Center"
-                                                    VerticalOptions="Center" />
-                                        </Border>
-                                        <Border Margin="1"
-                                                Padding="4,2"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Wednesday'}"
-                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
-                                                StrokeThickness="0"
-                                                HorizontalOptions="Center"
-                                                VerticalOptions="Center">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
-                                            </Border.StrokeShape>
-                                            <Label
-                                                    FontAttributes="Bold"
-                                                    FontSize="{DynamicResource SmallFontSize}"
-                                                    Text="W"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Wednesday'}"
-                                                    HorizontalTextAlignment="Center"
-                                                    VerticalTextAlignment="Center"
-                                                    HorizontalOptions="Center"
-                                                    VerticalOptions="Center" />
-                                        </Border>
-                                        <Border Margin="1"
-                                                Padding="4,2"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Thursday'}"
-                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
-                                                StrokeThickness="0"
-                                                HorizontalOptions="Center"
-                                                VerticalOptions="Center">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
-                                            </Border.StrokeShape>
-                                            <Label
-                                                    FontAttributes="Bold"
-                                                    FontSize="{DynamicResource SmallFontSize}"
-                                                    Text="T"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Thursday'}"
-                                                    HorizontalTextAlignment="Center"
-                                                    VerticalTextAlignment="Center"
-                                                    HorizontalOptions="Center"
-                                                    VerticalOptions="Center" />
-                                        </Border>
-                                        <Border Margin="1"
-                                                Padding="4,2"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Friday'}"
-                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
-                                                StrokeThickness="0"
-                                                HorizontalOptions="Center"
-                                                VerticalOptions="Center">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
-                                            </Border.StrokeShape>
-                                            <Label
-                                                    FontAttributes="Bold"
-                                                    FontSize="{DynamicResource SmallFontSize}"
-                                                    Text="F"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Friday'}"
-                                                    HorizontalTextAlignment="Center"
-                                                    VerticalTextAlignment="Center"
-                                                    HorizontalOptions="Center"
-                                                    VerticalOptions="Center" />
-                                        </Border>
-                                        <Border Margin="1"
-                                                Padding="4,2"
-                                                BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Saturday'}"
-                                                Opacity="{Binding This, Converter={StaticResource dayOpacityConverter}}"
-                                                StrokeThickness="0"
-                                                HorizontalOptions="Center"
-                                                VerticalOptions="Center">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusSmall}" />
-                                            </Border.StrokeShape>
-                                            <Label
-                                                    FontAttributes="Bold"
-                                                    FontSize="{DynamicResource SmallFontSize}"
-                                                    Text="S"
-                                                    TextColor="{Binding This, Converter={StaticResource dayColorConverter}, ConverterParameter='Saturday'}"
-                                                    HorizontalTextAlignment="Center"
-                                                    VerticalTextAlignment="Center"
-                                                    HorizontalOptions="Center"
-                                                    VerticalOptions="Center" />
-                                        </Border>
-                                    </FlexLayout>
-                                    <VerticalStackLayout Grid.Row="1" 
-                                          HorizontalOptions="Fill"
-                                          VerticalOptions="Start"
-                                          Spacing="{DynamicResource PaddingSmall}">
-                                        <Label Margin="0,0,0,0"
-                                               HorizontalOptions="Fill"
-                                               HorizontalTextAlignment="Start"
-                                               FontSize="{DynamicResource LargeFontSize}"
-                                               FontAttributes="Bold"
-                                               Text="{Binding Name}"
-                                               TextColor="{DynamicResource TextPrimaryColor}"
-                                               LineBreakMode="WordWrap" />
-                                        <Label Margin="0"
-                                               HorizontalOptions="Fill"
-                                               HorizontalTextAlignment="Start"
-                                               FontSize="{DynamicResource MediumFontSize}"
-                                               Text="{Binding SubTitle}"
-                                               TextColor="{DynamicResource PrimaryTextColor}"
-                                               LineBreakMode="TailTruncation"
-                                               MaxLines="3" />
-                                    </VerticalStackLayout>
-                                    <!-- Language label and music icon -->
-                                    <HorizontalStackLayout Grid.Row="2"
-                                          Grid.Column="0"
-                                          Margin="0,8,0,0"
-                                          Spacing="6"
-                                          HorizontalOptions="Fill"
-                                          VerticalOptions="Start">
-                                        <!-- Language text -->
-                                        <Label HorizontalOptions="Start"
-                                                HorizontalTextAlignment="Start"
-                                                FontSize="{DynamicResource StandardFontSize}"
-                                                Text="{Binding Language}"
-                                                TextColor="{DynamicResource TextPrimaryColor}"
-                                                IsVisible="{Binding Language, Converter={StaticResource isStringNotEmptyConverter}}"
-                                                VerticalOptions="Start"
-                                                LineBreakMode="WordWrap" />
-                                        <!-- Music icon (next to language) -->
-                                        <Label HorizontalOptions="Start"
-                                                VerticalOptions="Start"
-                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="{DynamicResource MediumFontSize}"
-                                                Text="{x:Static fn:GlyphNames.Music}"
-                                                TextColor="{DynamicResource PrimaryTextColor}"
-                                                Opacity="0.8"
-                                                IsVisible="{Binding MusicEnabled, Mode=OneWay}"
-                                                InputTransparent="True" />
-                                    </HorizontalStackLayout>
-                                </Grid>
-                            </FlexLayout>
                             </Border>
                             </core:SfEffectsView>
                             </Grid>
