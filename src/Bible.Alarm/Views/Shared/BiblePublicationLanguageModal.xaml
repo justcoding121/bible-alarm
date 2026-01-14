@@ -212,7 +212,8 @@
                     RippleAnimationDuration="200"
                     ShouldIgnoreTouches="False"
                     HorizontalOptions="Fill"
-                    VerticalOptions="Fill">
+                    VerticalOptions="Start"
+                    HeightRequest="{DynamicResource IconStandardContainerSize}">
                     <core:SfEffectsView.IsVisible>
                         <OnPlatform x:TypeArguments="x:Boolean" Default="false">
                             <On Platform="WinUI" Value="true" />

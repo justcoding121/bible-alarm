@@ -142,7 +142,7 @@
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" 
-                                       ItemSpacing="{DynamicResource SpacingLarge}" />
+                                       ItemSpacing="12" />
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ScheduleListItemViewModel">
@@ -189,21 +189,15 @@
                                                     Radius="8" 
                                                     Opacity="0.15" />
                                     </Border.Shadow>
-                                    <Grid
+                                    <FlexLayout
                                             x:Name="ScheduleItemGrid"
-                                    ColumnSpacing="{OnPlatform iOS='0'}"
+                                    Direction="Row"
+                                    AlignItems="Start"
+                                    JustifyContent="Start"
+                                    Wrap="Wrap"
                                     HorizontalOptions="Fill"
                                     VerticalOptions="Start">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="{OnPlatform WinUI='50', Default='auto'}" />
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
                                 <Grid VerticalOptions="Center"
-                                      Grid.Column="0"
                                       Margin="0,0,10,0"
                                       RowSpacing="{DynamicResource SpacingMedium}">
                                     <Grid.RowDefinitions>
@@ -261,11 +255,15 @@
                                           HorizontalOptions="Center"
                                           VerticalOptions="Center"
                                           ColumnSpacing="2">
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding ToggleEnabledCommand}" />
+                                        </Grid.GestureRecognizers>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <Label Grid.Column="0"
+                                               Margin="0"
                                                Padding="0"
                                                FontSize="{DynamicResource AlarmTimeFontSize}"
                                                FontAttributes="Bold"
@@ -284,7 +282,7 @@
                                     </Grid>
                                 </Grid>
                                 <Grid
-                                        Grid.Column="1"
+                                        FlexLayout.Grow="1"
                                         Margin="0,0,10,0"
                                         HorizontalOptions="Fill"
                                         VerticalOptions="Fill">
@@ -465,189 +463,41 @@
                                                LineBreakMode="TailTruncation"
                                                MaxLines="2" />
                                     </VerticalStackLayout>
+                                    <!-- Language label and music icon -->
                                     <Grid Grid.Row="2"
                                           Grid.Column="0"
-                                          HorizontalOptions="Start"
                                           Margin="0,8,0,0"
-                                          ColumnSpacing="{DynamicResource SpacingMedium}"
-                                          VerticalOptions="End">
+                                          ColumnSpacing="{DynamicResource PaddingSmall}"
+                                          HorizontalOptions="Fill"
+                                          VerticalOptions="Center">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <!-- Previous button - SfEffectsView for WinUI only -->
-                                        <core:SfEffectsView Grid.Column="0"
-                                                            TouchDownEffects="Ripple"
-                                                            TouchUpEffects="None"
-                                                            RippleBackground="{DynamicResource PrimaryColor}"
-                                                            RippleAnimationDuration="200"
-                                                            ShouldIgnoreTouches="False"
-                                                            HorizontalOptions="Start"
-                                                            VerticalOptions="Center">
-                                            <core:SfEffectsView.IsVisible>
-                                                <OnPlatform x:TypeArguments="x:Boolean" Default="false">
-                                                    <On Platform="WinUI" Value="true" />
-                                                </OnPlatform>
-                                            </core:SfEffectsView.IsVisible>
-                                            <core:SfEffectsView.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding PreviousCommand}" />
-                                            </core:SfEffectsView.GestureRecognizers>
-                                            <Button Padding="0"
-                                                    BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                                    CornerRadius="6"
-                                                    Command="{Binding PreviousCommand}"
-                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                    FontSize="{DynamicResource IconStandardFontSize}"
-                                                    HorizontalOptions="Start"
-                                                    HeightRequest="{DynamicResource IconSmallContainerSize}"
-                                                    WidthRequest="{DynamicResource IconSmallContainerSize}"
-                                                    Text="{x:Static fn:GlyphNames.Left}"
-                                                    TextColor="{DynamicResource TextSecondaryColor}"
-                                                    VerticalOptions="Center"
-                                                    InputTransparent="{OnPlatform WinUI=True, Default=False}" />
-                                        </core:SfEffectsView>
-                                        <Button Grid.Column="0"
-                                                Padding="0"
-                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                                CornerRadius="{DynamicResource CornerRadiusMedium}"
-                                                Command="{Binding PreviousCommand}"
-                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="{DynamicResource IconStandardFontSize}"
+                                        <!-- Language text -->
+                                        <Label Grid.Column="0"
                                                 HorizontalOptions="Start"
-                                                HeightRequest="{DynamicResource IconSmallContainerSize}"
-                                                WidthRequest="{DynamicResource IconSmallContainerSize}"
-                                                Text="{x:Static fn:GlyphNames.Left}"
-                                                TextColor="{DynamicResource TextSecondaryColor}"
+                                                HorizontalTextAlignment="Start"
+                                                FontSize="{DynamicResource StandardFontSize}"
+                                                Text="{Binding Language}"
+                                                TextColor="{DynamicResource TextPrimaryColor}"
+                                                IsVisible="{Binding Language, Converter={StaticResource isStringNotEmptyConverter}}"
                                                 VerticalOptions="Center"
-                                                IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}" />
-                                        <!-- Next button - SfEffectsView for WinUI only -->
-                                        <core:SfEffectsView Grid.Column="1"
-                                                            TouchDownEffects="Ripple"
-                                                            TouchUpEffects="None"
-                                                            RippleBackground="{DynamicResource PrimaryColor}"
-                                                            RippleAnimationDuration="200"
-                                                            ShouldIgnoreTouches="False"
-                                                            HorizontalOptions="Start"
-                                                            VerticalOptions="Center">
-                                            <core:SfEffectsView.IsVisible>
-                                                <OnPlatform x:TypeArguments="x:Boolean" Default="false">
-                                                    <On Platform="WinUI" Value="true" />
-                                                </OnPlatform>
-                                            </core:SfEffectsView.IsVisible>
-                                            <core:SfEffectsView.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding NextCommand}" />
-                                            </core:SfEffectsView.GestureRecognizers>
-                                            <Button Padding="0"
-                                                    BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                                    CornerRadius="6"
-                                                    Command="{Binding NextCommand}"
-                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                    FontSize="{DynamicResource IconStandardFontSize}"
-                                                    HeightRequest="{DynamicResource IconSmallContainerSize}"
-                                                    WidthRequest="{DynamicResource IconSmallContainerSize}"
-                                                    HorizontalOptions="Start"
-                                                    Text="{x:Static fn:GlyphNames.Right}"
-                                                    TextColor="{DynamicResource TextSecondaryColor}"
-                                                    VerticalOptions="Center"
-                                                    InputTransparent="{OnPlatform WinUI=True, Default=False}" />
-                                        </core:SfEffectsView>
-                                        <Button Grid.Column="1"
-                                                Padding="0"
-                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                                CornerRadius="{DynamicResource CornerRadiusMedium}"
-                                                Command="{Binding NextCommand}"
+                                                LineBreakMode="NoWrap" />
+                                        <!-- Music icon (right aligned) -->
+                                        <Label Grid.Column="1"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Center"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="{DynamicResource IconStandardFontSize}"
-                                                HeightRequest="{DynamicResource IconSmallContainerSize}"
-                                                WidthRequest="{DynamicResource IconSmallContainerSize}"
-                                                HorizontalOptions="Start"
-                                                Text="{x:Static fn:GlyphNames.Right}"
-                                                TextColor="{DynamicResource TextSecondaryColor}"
-                                                VerticalOptions="Center"
-                                                IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}" />
+                                                FontSize="{DynamicResource MediumFontSize}"
+                                                Text="{x:Static fn:GlyphNames.Music}"
+                                                TextColor="{DynamicResource PrimaryTextColor}"
+                                                Opacity="0.8"
+                                                IsVisible="{Binding MusicEnabled, Mode=OneWay}"
+                                                InputTransparent="True" />
                                     </Grid>
                                 </Grid>
-                                <Grid Grid.Column="2"
-                                      Margin="0"
-                                      HorizontalOptions="End"
-                                      VerticalOptions="Center"
-                                      RowSpacing="8">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <!-- Windows-specific delete button -->
-                                    <core:SfEffectsView Grid.Row="0"
-                                            Margin="0,0,0,8"
-                                            TouchDownEffects="Ripple"
-                                            TouchUpEffects="None"
-                                            RippleBackground="{StaticResource ErrorColor}"
-                                            RippleAnimationDuration="200"
-                                            ShouldIgnoreTouches="False"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center"
-                                            IsVisible="{OnPlatform WinUI='True', Default='False'}">
-                                        <core:SfEffectsView.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding DeleteCommand}" />
-                                        </core:SfEffectsView.GestureRecognizers>
-                                        <Button Padding="0"
-                                                BackgroundColor="{StaticResource ErrorColor}"
-                                                CornerRadius="100"
-                                                Command="{Binding DeleteCommand}"
-                                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                FontSize="{DynamicResource IconSmallFontSize}"
-                                                HeightRequest="{DynamicResource IconSmallContainerSize}"
-                                                WidthRequest="{DynamicResource IconSmallContainerSize}"
-                                                HorizontalOptions="Center"
-                                                VerticalOptions="Center"
-                                                Text="{x:Static fn:GlyphNames.Trash}"
-                                                TextColor="White"
-                                                InputTransparent="True">
-                                            <Button.Shadow>
-                                                <Shadow Brush="#40000000" 
-                                                        Offset="0,2" 
-                                                        Radius="4" 
-                                                        Opacity="0.3" />
-                                            </Button.Shadow>
-                                        </Button>
-                                    </core:SfEffectsView>
-                                    <shared:PlatformSwitch Grid.Row="1"
-                                            HorizontalOptions="End"
-                                            IsToggled="{Binding IsEnabled, Mode=TwoWay}"
-                                            Scale="1" />
-                                </Grid>
-                                <!-- Language label and music icon positioned at bottom right -->
-                                    <Grid Grid.Column="1"
-                                      Grid.ColumnSpan="2"
-                                      Grid.Row="0"
-                                      Margin="0,0,0,0"
-                                      HorizontalOptions="End"
-                                      VerticalOptions="End"
-                                      ColumnSpacing="{DynamicResource PaddingSmall}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Label Grid.Column="0"
-                                            HorizontalOptions="End"
-                                            HorizontalTextAlignment="End"
-                                            FontSize="{DynamicResource StandardFontSize}"
-                                            Text="{Binding Language}"
-                                            TextColor="{DynamicResource PrimaryTextColor}"
-                                            IsVisible="{Binding Language, Converter={StaticResource isStringNotEmptyConverter}}"
-                                            VerticalOptions="Center" />
-                                    <Label Grid.Column="1"
-                                            HorizontalOptions="End"
-                                            VerticalOptions="Center"
-                                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                            FontSize="{DynamicResource StandardFontSize}"
-                                            Text="{x:Static fn:GlyphNames.Music}"
-                                            TextColor="{DynamicResource PrimaryTextColor}"
-                                            Opacity="0.8"
-                                            IsVisible="{Binding MusicEnabled, Mode=OneWay}"
-                                            InputTransparent="True" />
-                                </Grid>
-                            </Grid>
+                            </FlexLayout>
                             </Border>
                             </core:SfEffectsView>
                             </Grid>

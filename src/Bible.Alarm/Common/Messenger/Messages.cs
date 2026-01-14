@@ -128,3 +128,11 @@ public class ShowProgressBarMessage
 public class HideProgressBarMessage
 {
 }
+
+/// <summary>
+/// Message sent when the app theme changes (dark/light mode).
+/// ViewModels should listen to this and notify properties that use theme-aware converters.
+/// </summary>
+public class ThemeChangedMessage
+{
+}

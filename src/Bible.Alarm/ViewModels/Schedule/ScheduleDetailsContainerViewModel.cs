@@ -27,6 +27,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
     private bool isEnabled;
     private bool hasSignaledReady;
     private bool isReadyActionQueued;
+    private bool isProcessingStateChange;
     private int scheduleId;
 
     public ScheduleDetailsContainerViewModel(
@@ -149,6 +150,30 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         {
             // Handle case where InitializeFromState hasn't been called yet
             InitializeFromState();
+        }
+        else if (currentSchedule != null && hasSignaledReady)
+        {
+            // Update individual properties when they change (after initialization)
+            if (isEnabled != currentSchedule.IsEnabled)
+            {
+                isEnabled = currentSchedule.IsEnabled;
+                OnPropertyChanged(nameof(IsEnabled));
+            }
+            if (time != new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second))
+            {
+                time = new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second);
+                OnPropertyChanged(nameof(Time));
+            }
+            if (daysOfWeek != currentSchedule.DaysOfWeek)
+            {
+                daysOfWeek = currentSchedule.DaysOfWeek;
+                OnPropertyChanged(nameof(DaysOfWeek));
+            }
+            if (name != currentSchedule.Name)
+            {
+                name = currentSchedule.Name;
+                OnPropertyChanged(nameof(Name));
+            }
         }
     }
 

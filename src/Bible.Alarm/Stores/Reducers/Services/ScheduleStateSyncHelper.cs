@@ -17,6 +17,14 @@ public static class ScheduleStateSyncHelper
     {
         if (state.CurrentSchedule?.Id == actionSchedule.Id)
         {
+            // Check if the schedule actually changed to prevent unnecessary state updates
+            if (AreSchedulesEquivalent(state.CurrentSchedule, actionSchedule))
+            {
+                Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule values unchanged, returning existing reference to prevent cycle. ScheduleId: {ScheduleId}",
+                    actionSchedule.Id);
+                return state.CurrentSchedule;
+            }
+
             Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Updating CurrentSchedule. New LanguageName: {LanguageName}, PublicationName: {PublicationName}",
                 actionSchedule.BiblePublicationLanguageName ?? "null",
                 actionSchedule.BiblePublicationName ?? "null");
@@ -26,6 +34,32 @@ public static class ScheduleStateSyncHelper
         Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule ID ({CurrentScheduleId}) doesn't match action Schedule ID ({ActionScheduleId}), not updating CurrentSchedule",
             state.CurrentSchedule?.Id ?? 0, actionSchedule.Id);
         return state.CurrentSchedule;
+    }
+
+    /// <summary>
+    /// Checks if two schedules have equivalent values for the properties that matter for state updates.
+    /// This helps prevent unnecessary state updates that cause cycles.
+    /// </summary>
+    private static bool AreSchedulesEquivalent(ScheduleStateItem current, ScheduleStateItem action)
+    {
+        // Compare key properties that would trigger state changes
+        return current.Id == action.Id &&
+               current.MusicType == action.MusicType &&
+               current.MusicLanguageCode == action.MusicLanguageCode &&
+               current.MusicPublicationCode == action.MusicPublicationCode &&
+               current.MusicTrackNumber == action.MusicTrackNumber &&
+               current.MusicRepeat == action.MusicRepeat &&
+               current.BiblePublicationLanguageCode == action.BiblePublicationLanguageCode &&
+               current.BiblePublicationCode == action.BiblePublicationCode &&
+               current.BiblePublicationSectionNumber == action.BiblePublicationSectionNumber &&
+               current.BiblePublicationTrackNumber == action.BiblePublicationTrackNumber &&
+               current.Name == action.Name &&
+               current.IsEnabled == action.IsEnabled &&
+               current.Hour == action.Hour &&
+               current.Minute == action.Minute &&
+               current.Second == action.Second &&
+               current.DaysOfWeek == action.DaysOfWeek &&
+               current.MusicEnabled == action.MusicEnabled;
     }
 
     public static BiblePublicationStateItem? SyncBiblePublicationScheduleIfNeeded(UpdateScheduleFromViewModelAction action, ScheduleStateItem? updatedCurrentSchedule)

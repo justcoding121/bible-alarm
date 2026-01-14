@@ -26,6 +26,7 @@ public static class ContainerReadinessReducer
             "MusicSelection" => currentReadiness.MusicSelection,
             "NumberOfTrack" => currentReadiness.NumberOfTrack,
             "ScheduleDetails" => currentReadiness.ScheduleDetails,
+            "AlarmSettings" => currentReadiness.AlarmSettings,
             _ => false
         };
 
@@ -42,16 +43,18 @@ public static class ContainerReadinessReducer
             "MusicSelection" => currentReadiness with { MusicSelection = true },
             "NumberOfTrack" => currentReadiness with { NumberOfTrack = true },
             "ScheduleDetails" => currentReadiness with { ScheduleDetails = true },
+            "AlarmSettings" => currentReadiness with { AlarmSettings = true },
             _ => currentReadiness
         };
 
-        Logger.Debug("ContainerReadyAction: {ContainerName} ready. All ready: {AllReady} (B:{Bible}, M:{Music}, N:{Number}, S:{Schedule})",
+        Logger.Debug("ContainerReadyAction: {ContainerName} ready. All ready: {AllReady} (B:{Bible}, M:{Music}, N:{Number}, S:{Schedule}, A:{Alarm})",
             action.ContainerName,
             updatedReadiness.AllReady,
             updatedReadiness.BiblePublicationSelection,
             updatedReadiness.MusicSelection,
             updatedReadiness.NumberOfTrack,
-            updatedReadiness.ScheduleDetails);
+            updatedReadiness.ScheduleDetails,
+            updatedReadiness.AlarmSettings);
 
         // Must return NEW instance for Fluxor to detect change and fire StateChanged
         return new ApplicationState(

@@ -103,6 +103,17 @@ public static class ApplicationReducer
         var updatedCurrentBiblePublicationSchedule = ScheduleStateSyncHelper.SyncBiblePublicationScheduleIfNeeded(action, updatedCurrentSchedule);
         var updatedCurrentMusic = ScheduleStateSyncHelper.SyncMusicIfNeeded(action, updatedCurrentSchedule);
 
+        // Check if state actually changed to prevent unnecessary state updates and cycles
+        // If CurrentSchedule wasn't updated (same reference), and other properties didn't change, return existing state
+        if (newSchedules == null && 
+            ReferenceEquals(updatedCurrentSchedule, state.CurrentSchedule) &&
+            ReferenceEquals(updatedCurrentMusic, state.CurrentMusic) &&
+            ReferenceEquals(updatedCurrentBiblePublicationSchedule, state.CurrentBiblePublicationSchedule))
+        {
+            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - No actual state changes detected, returning existing state to prevent cycle. ScheduleId: {ScheduleId}", action.Schedule.Id);
+            return state;
+        }
+
         // Create new state with new Schedules collection if it was updated, otherwise use existing
         if (newSchedules != null)
         {

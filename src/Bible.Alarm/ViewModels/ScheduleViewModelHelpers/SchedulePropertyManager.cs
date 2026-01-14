@@ -27,6 +27,7 @@ public sealed class SchedulePropertyManager : ObservableObject
     private MusicSelectionContainerViewModel? musicSelectionContainerViewModel;
     private NumberOfTrackContainerViewModel? numberOfTrackContainerViewModel;
     private ScheduleDetailsContainerViewModel? scheduleDetailsContainerViewModel;
+    private AlarmSettingsContainerViewModel? alarmSettingsContainerViewModel;
 
     public BiblePublicationSelectionContainerViewModel? BibleSelectionContainerViewModel
     {
@@ -50,6 +51,12 @@ public sealed class SchedulePropertyManager : ObservableObject
     {
         get => scheduleDetailsContainerViewModel;
         set => SetProperty(ref scheduleDetailsContainerViewModel, value);
+    }
+
+    public AlarmSettingsContainerViewModel? AlarmSettingsContainerViewModel
+    {
+        get => alarmSettingsContainerViewModel;
+        set => SetProperty(ref alarmSettingsContainerViewModel, value);
     }
 
     // Properties

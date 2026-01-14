@@ -1,11 +1,28 @@
+using System.ComponentModel;
 using System.Globalization;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.ViewModels;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
 
-public sealed class DayColorConverter : IValueConverter
+public sealed class DayColorConverter : IValueConverter, IMultiValueConverter, INotifyPropertyChanged
 {
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public DayColorConverter()
+    {
+        // Subscribe to theme changes when converter is instantiated
+        if (Application.Current != null)
+        {
+            Application.Current.RequestedThemeChanged += OnRequestedThemeChanged;
+        }
+    }
+
+    private void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e)
+    {
+        // Notify that the converter output has changed, causing all bindings to re-evaluate
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
+    }
     private static DaysOfWeek ParseDayParameter(object parameter)
     {
         return parameter switch
@@ -26,10 +43,14 @@ public sealed class DayColorConverter : IValueConverter
 
         var dayParameter = ParseDayParameter(parameter);
 
+        var theme = ThemeColors.GetCurrentTheme();
+
         if (value is DaysOfWeek)
         {
-            var isEnabled = ((DaysOfWeek)value & dayParameter) == dayParameter;
-            return isEnabled ? ThemeColors.Day.EnabledText : ThemeColors.Day.DisabledText;
+            var isDayEnabled = ((DaysOfWeek)value & dayParameter) == dayParameter;
+            return isDayEnabled 
+                ? ThemeColors.Day.EnabledText.Get(theme) 
+                : ThemeColors.Day.DisabledText.Get(theme);
         }
         else
         {
@@ -40,19 +61,62 @@ public sealed class DayColorConverter : IValueConverter
                 return Colors.White;
             }
 
-            var isEnabled = (schedule.DaysOfWeek & dayParameter) == dayParameter;
+            var isDayEnabled = (schedule.DaysOfWeek & dayParameter) == dayParameter;
 
             if (schedule.IsEnabled)
             {
-                // When alarm is enabled: light text on dark background for enabled days, darker text for disabled days
-                return isEnabled ? ThemeColors.Day.EnabledText : ThemeColors.Day.DisabledText;
+                // Schedule enabled
+                return isDayEnabled 
+                    ? ThemeColors.Day.EnabledText.Get(theme) 
+                    : ThemeColors.Day.DisabledText.Get(theme);
             }
 
-            // When alarm is disabled: flip the colors - enabled days get white text (on blue), disabled days get darker text (on gray)
-            // White for enabled days, darker text for disabled days
-            return isEnabled ? ThemeColors.Day.EnabledText : ThemeColors.Day.DisabledText;
+            // Schedule disabled - all days use disabled text color
+            return ThemeColors.Day.DisabledText.Get(theme);
         }
     }
+
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (values == null || values.Length < 2)
+        {
+            return Colors.White;
+        }
+
+        if (values[0] is not DaysOfWeek daysOfWeek)
+        {
+            return Colors.White;
+        }
+
+        if (values[1] is not bool isEnabled)
+        {
+            return Colors.White;
+        }
+
+        var dayParameter = ParseDayParameter(parameter);
+        var isDayEnabled = (daysOfWeek & dayParameter) == dayParameter;
+        var theme = ThemeColors.GetCurrentTheme();
+
+        // Four combinations (theme-aware):
+        // 1. Schedule enabled + Day enabled: White text on primary background (high contrast)
+        // 2. Schedule enabled + Day disabled: Disabled text on gray background
+        // 3. Schedule disabled + Day enabled: Disabled text on muted background
+        // 4. Schedule disabled + Day disabled: Disabled text on gray background
+        if (isEnabled)
+        {
+            // Schedule enabled
+            return isDayEnabled 
+                ? ThemeColors.Day.EnabledText.Get(theme) 
+                : ThemeColors.Day.DisabledText.Get(theme);
+        }
+        else
+        {
+            // Schedule disabled - all days use disabled text color (theme-aware)
+            return ThemeColors.Day.DisabledText.Get(theme);
+        }
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotImplementedException();
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }

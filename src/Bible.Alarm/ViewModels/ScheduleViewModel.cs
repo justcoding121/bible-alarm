@@ -119,6 +119,10 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             {
                 OnPropertyChanged(nameof(ScheduleDetailsContainerViewModel));
             }
+            else if (e.PropertyName == nameof(SchedulePropertyManager.AlarmSettingsContainerViewModel))
+            {
+                OnPropertyChanged(nameof(AlarmSettingsContainerViewModel));
+            }
         };
 
         // Subscribe to state changes
@@ -187,12 +191,13 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             // This is important when page/ViewModel is reused on device
             DisposeContainers();
 
-            await containerManager.InitializeContainerViewModelsAsync((bible, music, tracks, details) =>
+            await containerManager.InitializeContainerViewModelsAsync((bible, music, tracks, details, alarmSettings) =>
             {
                 propertyManager.BibleSelectionContainerViewModel = bible;
                 propertyManager.MusicSelectionContainerViewModel = music;
                 propertyManager.NumberOfTrackContainerViewModel = tracks;
                 propertyManager.ScheduleDetailsContainerViewModel = details;
+                propertyManager.AlarmSettingsContainerViewModel = alarmSettings;
             });
 
             hasInitializedContainersOnce = true;
@@ -232,6 +237,12 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             detailsDisposable.Dispose();
         }
         propertyManager.ScheduleDetailsContainerViewModel = null;
+
+        if (propertyManager.AlarmSettingsContainerViewModel is IDisposable alarmSettingsDisposable)
+        {
+            alarmSettingsDisposable.Dispose();
+        }
+        propertyManager.AlarmSettingsContainerViewModel = null;
     }
 
 
@@ -366,6 +377,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     public MusicSelectionContainerViewModel? MusicSelectionContainerViewModel => propertyManager.MusicSelectionContainerViewModel;
     public NumberOfTrackContainerViewModel? NumberOfTrackContainerViewModel => propertyManager.NumberOfTrackContainerViewModel;
     public ScheduleDetailsContainerViewModel? ScheduleDetailsContainerViewModel => propertyManager.ScheduleDetailsContainerViewModel;
+    public AlarmSettingsContainerViewModel? AlarmSettingsContainerViewModel => propertyManager.AlarmSettingsContainerViewModel;
 
     /// <summary>
     /// Hides the Home page overlay. Called when the Schedule page is fully rendered and visible.

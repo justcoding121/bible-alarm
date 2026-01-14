@@ -20,13 +20,19 @@ public sealed class BiblePublicationSelectionActionDispatcher
 
     public void DispatchBiblePublicationSelectionActions(BiblePublicationStateItem biblePublicationItem)
     {
+        // Only dispatch TrackSelectedAction - its reducer updates both CurrentSchedule and
+        // CurrentBiblePublicationSchedule, and its effect syncs all properties.
+        // Previously this also dispatched BiblePublicationSelectionAction which caused
+        // redundant state updates leading to state cycles in container view models.
         dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
-        dispatcher.Dispatch(new BiblePublicationSelectionAction(biblePublicationItem));
     }
 
     public void DispatchLanguageSelectionActions(BiblePublicationStateItem biblePublicationItem, LanguageListViewItemModel language)
     {
+        // Only dispatch TrackSelectedAction - its reducer updates both CurrentSchedule and
+        // CurrentBiblePublicationSchedule, and its effect syncs all properties.
+        // Previously this also dispatched BiblePublicationSelectionAction which caused
+        // redundant state updates leading to state cycles in container view models.
         dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
-        dispatcher.Dispatch(new BiblePublicationSelectionAction(biblePublicationItem));
     }
 }

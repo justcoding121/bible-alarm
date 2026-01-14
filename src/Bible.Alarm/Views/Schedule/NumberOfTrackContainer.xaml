@@ -31,8 +31,6 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <core:SfEffectsView Grid.Row="0"
                                  TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
@@ -68,11 +66,12 @@
                        VerticalTextAlignment="Center"
                        IsVisible="True" />
                     <Label Grid.Column="1"
-                       FontSize="{DynamicResource LargeFontSize}"
-                       FontAttributes="None"
+                       Margin="16,0,0,0"
+                       FontSize="{DynamicResource HeaderFontSize}"
+                       FontAttributes="Bold"
                        HorizontalOptions="End"
                        HorizontalTextAlignment="End"
-                       Text="{Binding SelectedTracksText}"
+                       Text="{Binding SelectedNumberText}"
                        TextColor="{DynamicResource PrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center"
@@ -128,71 +127,6 @@
                         Margin="{OnPlatform Default='0'}"
                         HorizontalOptions="End"
                         IsToggled="{Binding AlwaysPlayFromStart, Mode=TwoWay}"
-                        Scale="{OnPlatform Android='1', Default='1'}" />
-                </Grid>
-                </Grid>
-            </core:SfEffectsView>
-            <!-- Divider -->
-            <BoxView Grid.Row="3"
-                     HeightRequest="1"
-                     BackgroundColor="{DynamicResource DividerColor}"
-                     Margin="0"
-                     HorizontalOptions="Fill">
-                <BoxView.IsVisible>
-                    <OnPlatform x:TypeArguments="x:Boolean" Default="false">
-                        <On Platform="Android" Value="true" />
-                    </OnPlatform>
-                </BoxView.IsVisible>
-            </BoxView>
-            <core:SfEffectsView Grid.Row="4"
-                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
-                                 TouchUpEffects="None"
-                                 RippleBackground="{StaticResource PrimaryColor}"
-                                 HighlightBackground="{StaticResource PrimaryLightColor}"
-                                 RippleAnimationDuration="200"
-                                 ShouldIgnoreTouches="False">
-                <core:SfEffectsView.IsVisible>
-                    <OnPlatform x:TypeArguments="x:Boolean" Default="false">
-                        <On Platform="Android" Value="true" />
-                    </OnPlatform>
-                </core:SfEffectsView.IsVisible>
-                <core:SfEffectsView.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding NotificationEnabledCommand}"
-                                          NumberOfTapsRequired="1" />
-                </core:SfEffectsView.GestureRecognizers>
-                <Grid x:Name="ShowNotificationButton"
-                      Margin="0"
-                      Padding="16,16"
-                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                      MinimumHeightRequest="56"
-                      HorizontalOptions="Fill"
-                      VerticalOptions="Fill">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                <Label Grid.Column="0"
-                       FontSize="{DynamicResource LargeFontSize}"
-                       FontAttributes="None"
-                       HorizontalOptions="Fill"
-                       HorizontalTextAlignment="Start"
-                       TextColor="{DynamicResource TextPrimaryColor}"
-                       VerticalOptions="Center"
-                       VerticalTextAlignment="Center">
-                    Wait until I tap alarm notification to start playing
-                </Label>
-                <Grid Grid.Column="1"
-                      HorizontalOptions="End"
-                      VerticalOptions="Center"
-                      ColumnSpacing="0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <shared:PlatformSwitch
-                        Grid.Column="0"
-                        Margin="0"
-                        HorizontalOptions="End"
-                        IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
                         Scale="{OnPlatform Android='1', Default='1'}" />
                 </Grid>
                 </Grid>

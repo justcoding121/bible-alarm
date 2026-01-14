@@ -278,6 +278,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                 // Notify that the Text property (computed from CurrentNumberOfTracks) has changed
                 OnPropertyChanged(nameof(CurrentNumberOfTracksText));
                 OnPropertyChanged(nameof(SelectedTracksText));
+                OnPropertyChanged(nameof(SelectedNumberText));
             }
         }
     }
@@ -333,6 +334,19 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             var unitPlural = HasSectionStructure ? "Chapters" : "Episodes";
             var selectedUnit = number == 1 ? unitSingular : unitPlural;
             return $"{number} {selectedUnit}";
+        }
+    }
+
+    /// <summary>
+    /// Gets just the number value as a string for display in the container.
+    /// Returns format like "3" or "1".
+    /// </summary>
+    public string SelectedNumberText
+    {
+        get
+        {
+            var number = CurrentNumberOfTracks?.Value ?? 0;
+            return number.ToString();
         }
     }
 

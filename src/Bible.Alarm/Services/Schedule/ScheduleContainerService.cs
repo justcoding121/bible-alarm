@@ -16,7 +16,7 @@ public sealed class ScheduleContainerService : IScheduleContainerService
 
     public async Task InitializeContainersAsync(
         IServiceProvider serviceProvider,
-        Action<BiblePublicationSelectionContainerViewModel, MusicSelectionContainerViewModel, NumberOfTrackContainerViewModel, ScheduleDetailsContainerViewModel> onContainersReady)
+        Action<BiblePublicationSelectionContainerViewModel, MusicSelectionContainerViewModel, NumberOfTrackContainerViewModel, ScheduleDetailsContainerViewModel, AlarmSettingsContainerViewModel> onContainersReady)
     {
         try
         {
@@ -34,13 +34,17 @@ public sealed class ScheduleContainerService : IScheduleContainerService
             var scheduleDetails = await Task.Run(() =>
                 serviceProvider.GetRequiredService<ScheduleDetailsContainerViewModel>());
 
+            var alarmSettings = await Task.Run(() =>
+                serviceProvider.GetRequiredService<AlarmSettingsContainerViewModel>());
+
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 onContainersReady(
                     bibleSelection,
                     musicSelection,
                     numberOfTrack,
-                    scheduleDetails);
+                    scheduleDetails,
+                    alarmSettings);
             });
         }
         catch (Exception ex)

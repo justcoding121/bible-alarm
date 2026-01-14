@@ -105,15 +105,74 @@ public static class ThemeColors
         public static Color LightPurpleForDark => Color.FromArgb("#E8E0FF");
     }
 
-    // Day/Calendar Colors (used in converters)
+    // Day/Calendar Colors (used in converters) - Theme-aware
     public static class Day
     {
-        public static Color EnabledText => Colors.White;
-        public static Color DisabledText => Color.FromArgb("#666666");
-        // SlateBlue
-        public static Color EnabledBackground => Color.FromArgb("#6A5ACD");
-        public static Color DisabledBackground => Color.FromArgb("#C0C0C0");
-        public static Color DefaultBackground => Color.FromArgb("#D0D0D0");
+        // Text colors
+        public static class EnabledText
+        {
+            public static Color Dark => Colors.White;
+            public static Color Light => Colors.White;
+            public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
+        }
+
+        public static class DisabledText
+        {
+            // Dark mode: lighter gray for better contrast on dark backgrounds
+            public static Color Dark => Color.FromArgb("#B0B0B0");
+            // Light mode: darker gray for better contrast on light backgrounds
+            public static Color Light => Color.FromArgb("#666666");
+            public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
+        }
+
+        // Background colors
+        public static class EnabledBackground
+        {
+            // Schedule enabled + Day enabled: Primary color (prominent)
+            public static Color Dark => Color.FromArgb("#9370DB"); // Lighter purple for dark mode
+            public static Color Light => Color.FromArgb("#6A5ACD"); // SlateBlue for light mode
+            public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
+        }
+
+        public static class DisabledBackground
+        {
+            // Schedule enabled + Day disabled: Neutral gray
+            public static Color Dark => Color.FromArgb("#404040"); // Darker gray for dark mode
+            public static Color Light => Color.FromArgb("#C0C0C0"); // Light gray for light mode
+            public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
+        }
+
+        public static class DefaultBackground
+        {
+            // Schedule disabled + Day enabled: Muted primary to show day is selected but schedule is off
+            public static Color Dark => Color.FromArgb("#4A3A6D"); // Muted purple for dark mode
+            public static Color Light => Color.FromArgb("#D0D0D0"); // Light gray for light mode
+            public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
+        }
+
+        public static class AlarmDisabledDayDisabledBackground
+        {
+            // Schedule disabled + Day disabled: More muted gray to distinguish from enabled schedule + disabled day
+            public static Color Dark => Color.FromArgb("#2A2A2A"); // Darker, more muted gray for dark mode
+            public static Color Light => Color.FromArgb("#E0E0E0"); // Lighter gray for light mode
+            public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
+        }
+
+        // Legacy properties for backward compatibility (use Light theme as default)
+        [Obsolete("Use EnabledText.Get(theme) instead")]
+        public static Color EnabledTextLegacy => EnabledText.Light;
+        
+        [Obsolete("Use DisabledText.Get(theme) instead")]
+        public static Color DisabledTextLegacy => DisabledText.Light;
+        
+        [Obsolete("Use EnabledBackground.Get(theme) instead")]
+        public static Color EnabledBackgroundLegacy => EnabledBackground.Light;
+        
+        [Obsolete("Use DisabledBackground.Get(theme) instead")]
+        public static Color DisabledBackgroundLegacy => DisabledBackground.Light;
+        
+        [Obsolete("Use DefaultBackground.Get(theme) instead")]
+        public static Color DefaultBackgroundLegacy => DefaultBackground.Light;
     }
 
     // Animation/Interaction Colors

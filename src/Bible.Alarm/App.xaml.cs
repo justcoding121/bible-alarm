@@ -1,9 +1,11 @@
 #nullable enable
 using System.ComponentModel;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.UI;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Views;
+using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
 
 namespace Bible.Alarm;
@@ -149,5 +151,7 @@ public partial class App : Application
     {
         UpdateThemeAwareColorResources();
         WindowSetupService.UpdateNavigationBarColors();
+        // Notify ViewModels to update theme-aware bindings (e.g., day button colors)
+        WeakReferenceMessenger.Default.Send(new ThemeChangedMessage());
     }
 }

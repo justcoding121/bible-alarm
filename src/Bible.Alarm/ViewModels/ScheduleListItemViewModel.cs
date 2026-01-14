@@ -149,6 +149,9 @@ public sealed class ScheduleListItemViewModel(
         // Subscribe to PlaybackState changes to manage IsBusy
         playbackState.StateChanged += OnPlaybackStateChanged;
 
+        // Subscribe to theme changes to update day button colors
+        WeakReferenceMessenger.Default.Register<ThemeChangedMessage>(this, (r, m) => OnThemeChanged());
+
         // Initialize commands using helper (recreate with updated schedule)
         PlayCommand = new AsyncRelayCommand(async () =>
         {
@@ -163,9 +166,15 @@ public sealed class ScheduleListItemViewModel(
                 await playbackService.PlayScheduleAsync(Schedule.Id);
             }
         });
-        // Recreate commands with updated schedule to ensure they use the latest track information
-        PreviousCommand = commandHandler.CreatePreviousCommand(Schedule);
-        NextCommand = commandHandler.CreateNextCommand(Schedule);
+
+        // Toggle enabled/disabled state when time text is tapped
+        ToggleEnabledCommand = new RelayCommand(() =>
+        {
+            if (Schedule != null)
+            {
+                IsEnabled = !IsEnabled;
+            }
+        });
 
         DeleteCommand = new AsyncRelayCommand(async () =>
         {
@@ -281,8 +290,7 @@ public sealed class ScheduleListItemViewModel(
 
     public ICommand PlayCommand { get; private set; } = null!;
 
-    public ICommand PreviousCommand { get; set; } = null!;
-    public ICommand NextCommand { get; set; } = null!;
+    public ICommand ToggleEnabledCommand { get; private set; } = null!;
     public ICommand DeleteCommand { get; private set; } = null!;
 
     public bool IsBusy

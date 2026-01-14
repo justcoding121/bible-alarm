@@ -154,7 +154,8 @@
                 Margin="16,8,16,16"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
                 StrokeThickness="0"
-                Padding="0">
+                Padding="0"
+                MinimumHeightRequest="{DynamicResource IconStandardContainerSize}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="12" />
                 </Border.StrokeShape>
@@ -194,7 +195,7 @@
                         Text="CLOSE"
                         TextColor="{DynamicResource PrimaryTextColor}"
                         VerticalOptions="Fill"
-                        InputTransparent="True" />
+                        IsEnabled="True" />
                 </core:SfEffectsView>
                 <!-- Regular button for Android/iOS -->
                 <Button x:Name="CloseButtonNoEffects"

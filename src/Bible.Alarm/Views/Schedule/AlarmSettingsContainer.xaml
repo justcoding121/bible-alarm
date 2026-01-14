@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentView x:Class="Bible.Alarm.Views.Schedule.AlarmSettingsContainer"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.Schedule;assembly=Bible.Alarm"
+             xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
+             xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
+             x:DataType="vm:AlarmSettingsContainerViewModel"
+             IsVisible="True">
+    <Border Margin="0"
+            Padding="0"
+            StrokeThickness="0"
+            BackgroundColor="{DynamicResource CardBackgroundColor}"
+            HorizontalOptions="Fill"
+            MinimumHeightRequest="56"
+            IsVisible="True">
+        <Border.StrokeShape>
+            <RoundRectangle CornerRadius="16" />
+        </Border.StrokeShape>
+        <Border.Shadow>
+            <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}" 
+                    Offset="0,4" 
+                    Radius="12" 
+                    Opacity="0.2" />
+        </Border.Shadow>
+        <Grid RowSpacing="0"
+              Padding="0"
+              MinimumHeightRequest="56"
+              IsVisible="True">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <!-- Row 0: Alarm Enabled Toggle -->
+            <core:SfEffectsView Grid.Row="0"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False">
+                <core:SfEffectsView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ToggleEnabledCommand}"
+                                          NumberOfTapsRequired="1" />
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="EnabledButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0"
+                           FontSize="{DynamicResource LargeFontSize}"
+                           FontAttributes="None"
+                           HorizontalOptions="Fill"
+                           HorizontalTextAlignment="Start"
+                           Text="Reminder Enabled"
+                           TextColor="{DynamicResource TextPrimaryColor}"
+                           VerticalOptions="Center"
+                           VerticalTextAlignment="Center" />
+                    <Grid Grid.Column="1"
+                          HorizontalOptions="End"
+                          VerticalOptions="Center"
+                          ColumnSpacing="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <shared:PlatformSwitch
+                            Grid.Column="0"
+                            Margin="0"
+                            HorizontalOptions="End"
+                            IsToggled="{Binding IsEnabled, Mode=TwoWay}"
+                            Scale="{OnPlatform Android='1', Default='1'}" />
+                    </Grid>
+                </Grid>
+            </core:SfEffectsView>
+            <!-- Android-only wrapper for collapsible content -->
+            <Grid Grid.Row="1"
+                  IsVisible="{OnPlatform Android=True, Default=False}">
+                <!-- Collapsible Content - visible when enabled -->
+                <Grid x:Name="CollapsibleContent"
+                      RowSpacing="0"
+                      Padding="0"
+                      IsVisible="{Binding IsEnabled}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <!-- Divider -->
+                    <BoxView Grid.Row="0"
+                             HeightRequest="1"
+                             BackgroundColor="{DynamicResource DividerColor}"
+                             Margin="0"
+                             HorizontalOptions="Fill" />
+                    <!-- Wait until I tap notification row -->
+                    <core:SfEffectsView Grid.Row="1"
+                                         TouchDownEffects="Ripple"
+                                         TouchUpEffects="None"
+                                         RippleBackground="{StaticResource PrimaryColor}"
+                                         HighlightBackground="{StaticResource PrimaryLightColor}"
+                                         RippleAnimationDuration="200"
+                                         ShouldIgnoreTouches="False">
+                    <core:SfEffectsView.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ToggleNotificationEnabledCommand}"
+                                              NumberOfTapsRequired="1" />
+                    </core:SfEffectsView.GestureRecognizers>
+                    <Grid x:Name="NotificationEnabledButton"
+                          Margin="0"
+                          Padding="16,16"
+                          BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                          MinimumHeightRequest="56"
+                          HorizontalOptions="Fill"
+                          VerticalOptions="Fill">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0"
+                               FontSize="{DynamicResource LargeFontSize}"
+                               FontAttributes="None"
+                               HorizontalOptions="Fill"
+                               HorizontalTextAlignment="Start"
+                               TextColor="{DynamicResource TextPrimaryColor}"
+                               VerticalOptions="Center"
+                               VerticalTextAlignment="Center">
+                            Wait until I tap alarm notification to start playing
+                        </Label>
+                        <Grid Grid.Column="1"
+                              HorizontalOptions="End"
+                              VerticalOptions="Center"
+                              ColumnSpacing="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <shared:PlatformSwitch
+                                Grid.Column="0"
+                                Margin="0"
+                                HorizontalOptions="End"
+                                IsToggled="{Binding NotificationEnabled, Mode=TwoWay}"
+                                Scale="{OnPlatform Android='1', Default='1'}" />
+                        </Grid>
+                    </Grid>
+                </core:SfEffectsView>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
+</ContentView>

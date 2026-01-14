@@ -9,6 +9,7 @@
     <ContentView.Resources>
         <converters:DayColorConverter x:Key="dayColorConverter" />
         <converters:DayBackgroundColorConverter x:Key="dayBackgroundColorConverter" />
+        <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" />
         <x:String x:Key="Sunday">Sunday</x:String>
         <x:String x:Key="Monday">Monday</x:String>
         <x:String x:Key="Tuesday">Tuesday</x:String>
@@ -32,7 +33,7 @@
                     <On Platform="iOS">
                         <TimePicker AutomationId="AlarmTimePicker"
                                     BackgroundColor="Transparent"
-                                    TextColor="{StaticResource PrimaryColor}"
+                                    TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter={StaticResource PrimaryColor}}"
                                     FontSize="{DynamicResource AlarmTimeFontSize}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
@@ -47,7 +48,7 @@
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
                                     Margin="0"
-                                    TextColor="{StaticResource PrimaryColor}"
+                                    TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter={StaticResource PrimaryColor}}"
                                     Time="{Binding Time, Mode=TwoWay}">
                             <TimePicker.Format>hh:mm tt</TimePicker.Format>
                         </TimePicker>
@@ -88,12 +89,14 @@
                                     CommandParameter="{StaticResource Sunday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="S"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="S">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="Android">
                             <Button Padding="0"
@@ -104,12 +107,14 @@
                                     CommandParameter="{StaticResource Sunday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="S"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="S">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="WinUI">
                             <Button Padding="0"
@@ -120,12 +125,14 @@
                                     CommandParameter="{StaticResource Sunday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="S"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Sunday}}"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="S">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -155,12 +162,14 @@
                                     CommandParameter="{StaticResource Monday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="M"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="M">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="Android">
                             <Button Padding="0"
@@ -171,12 +180,14 @@
                                     CommandParameter="{StaticResource Monday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="M"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="M">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="WinUI">
                             <Button Padding="0"
@@ -187,12 +198,14 @@
                                     CommandParameter="{StaticResource Monday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="M"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Monday}}"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="M">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -222,12 +235,14 @@
                                     CommandParameter="{StaticResource Tuesday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="T"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="T">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="Android">
                             <Button Padding="0"
@@ -238,12 +253,14 @@
                                     CommandParameter="{StaticResource Tuesday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="T"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="T">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="WinUI">
                             <Button Padding="0"
@@ -254,12 +271,14 @@
                                     CommandParameter="{StaticResource Tuesday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="T"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Tuesday}}"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="T">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -289,12 +308,14 @@
                                     CommandParameter="{StaticResource Wednesday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="W"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="W">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="Android">
                             <Button Padding="0"
@@ -305,12 +326,14 @@
                                     CommandParameter="{StaticResource Wednesday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="W"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="W">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="WinUI">
                             <Button Padding="0"
@@ -321,12 +344,14 @@
                                     CommandParameter="{StaticResource Wednesday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="W"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Wednesday}}"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="W">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -356,12 +381,14 @@
                                     CommandParameter="{StaticResource Thursday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="T"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="T">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="Android">
                             <Button Padding="0"
@@ -372,12 +399,14 @@
                                     CommandParameter="{StaticResource Thursday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="T"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="T">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="WinUI">
                             <Button Padding="0"
@@ -388,12 +417,14 @@
                                     CommandParameter="{StaticResource Thursday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="T"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Thursday}}"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="T">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -423,12 +454,14 @@
                                     CommandParameter="{StaticResource Friday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="F"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="F">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="Android">
                             <Button Padding="0"
@@ -439,12 +472,14 @@
                                     CommandParameter="{StaticResource Friday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="F"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="F">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="WinUI">
                             <Button Padding="0"
@@ -455,12 +490,14 @@
                                     CommandParameter="{StaticResource Friday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="F"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Friday}}"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="F">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
@@ -490,12 +527,14 @@
                                     CommandParameter="{StaticResource Saturday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="S"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="S">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="Android">
                             <Button Padding="0"
@@ -506,12 +545,14 @@
                                     CommandParameter="{StaticResource Saturday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="S"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="S">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                         <On Platform="WinUI">
                             <Button Padding="0"
@@ -522,12 +563,14 @@
                                     CommandParameter="{StaticResource Saturday}"
                                     FontAttributes="Bold"
                                     FontSize="{DynamicResource SmallMediumFontSize}"
-                                    Text="S"
-                                    TextColor="{Binding DaysOfWeek, Converter={StaticResource dayColorConverter}, ConverterParameter={StaticResource Saturday}}"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill"
-                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}" />
+                                    Text="S">
+                                        <Button.TextColor>
+                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">
+                                                <Binding Path="DaysOfWeek" />
+                                                <Binding Path="IsEnabled" />
+                                            </MultiBinding>
+                                        </Button.TextColor>
+                                    </Button>
                         </On>
                     </OnPlatform.Platforms>
                 </OnPlatform>
