@@ -1,11 +1,11 @@
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class AlarmSettingsModal : BaseContentPage, IDisposable
+public partial class AndroidAlarmPermissionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
 
-    public AlarmSettingsModal()
+    public AndroidAlarmPermissionModal()
     {
         InitializeComponent();
     }

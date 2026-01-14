@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.General.AlarmSettingsModal"
+    x:Class="Bible.Alarm.Views.General.AndroidAlarmPermissionModal"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -34,7 +34,7 @@
                                 Radius="16" />
                     </Border.Shadow>
                     <Grid
-                        AutomationId="AlarmSettingsModal"
+                        AutomationId="AndroidAlarmPermissionModal"
                         HorizontalOptions="Fill"
                         RowSpacing="20"
                         VerticalOptions="Start">
@@ -197,4 +197,3 @@
         </ScrollView>
     </ContentPage.Content>
 </views:BaseContentPage>
-

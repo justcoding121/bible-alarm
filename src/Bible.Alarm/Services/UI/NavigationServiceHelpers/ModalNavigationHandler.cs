@@ -120,15 +120,15 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         {
             try
             {
-                var modal = serviceProvider.GetRequiredService<AlarmSettingsModal>();
+                var modal = serviceProvider.GetRequiredService<AndroidAlarmPermissionModal>();
                 modal.BindingContext = bindingContext;
                 // Disable animation for instant appearance
                 await navigation.PushModalAsync(modal, animated: false);
-                logger.Information("AlarmSettingsModal opened successfully");
+                logger.Information("AndroidAlarmPermissionModal opened successfully");
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error opening AlarmSettingsModal");
+                logger.Error(ex, "Error opening AndroidAlarmPermissionModal");
             }
         });
     }

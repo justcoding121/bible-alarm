@@ -146,71 +146,73 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <!-- Enhanced Close Button -->
-            <Border
-                Grid.Row="2"
+            <!-- Close Button - SfEffectsView for WinUI only -->
+            <core:SfEffectsView Grid.Row="2"
+                x:Name="CloseButtonEffectsView"
                 Margin="16,8,16,16"
-                BackgroundColor="{DynamicResource CardBackgroundColor}"
-                StrokeThickness="0"
-                Padding="0">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
-                            Offset="0,2"
-                            Opacity="0.1"
-                            Radius="4" />
-                </Border.Shadow>
-                <!-- Close button - SfEffectsView for WinUI only -->
-                <core:SfEffectsView x:Name="CloseButtonEffectsView"
-                    TouchDownEffects="Ripple"
-                    TouchUpEffects="None"
-                    RippleBackground="{DynamicResource PrimaryColor}"
-                    RippleAnimationDuration="200"
-                    ShouldIgnoreTouches="False"
-                    HorizontalOptions="Fill"
-                    VerticalOptions="Start"
-                    HeightRequest="{DynamicResource IconStandardContainerSize}">
-                    <core:SfEffectsView.IsVisible>
-                        <OnPlatform x:TypeArguments="x:Boolean" Default="false">
-                            <On Platform="WinUI" Value="true" />
-                        </OnPlatform>
-                    </core:SfEffectsView.IsVisible>
-                    <core:SfEffectsView.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding CloseModalCommand}" />
-                    </core:SfEffectsView.GestureRecognizers>
-                    <Button x:Name="CloseButton"
-                        BackgroundColor="Transparent"
-                        BorderWidth="0"
-                        BorderColor="Transparent"
-                        Command="{Binding CloseModalCommand}"
-                        CornerRadius="12"
-                        FontSize="{DynamicResource ButtonFontSize}"
-                        FontAttributes="Bold"
-                        HorizontalOptions="Fill"
-                        Padding="20,12"
-                        Text="CLOSE"
-                        TextColor="{DynamicResource PrimaryTextColor}"
-                        VerticalOptions="Fill"
-                        InputTransparent="True" />
-                </core:SfEffectsView>
-                <!-- Regular button for Android/iOS -->
-                <Button x:Name="CloseButtonNoEffects"
-                    BackgroundColor="Transparent"
+                TouchDownEffects="Ripple"
+                TouchUpEffects="None"
+                RippleBackground="{DynamicResource PrimaryColor}"
+                RippleAnimationDuration="200"
+                ShouldIgnoreTouches="False"
+                HorizontalOptions="Fill"
+                VerticalOptions="Fill"
+                HeightRequest="{DynamicResource IconStandardContainerSize}">
+                <core:SfEffectsView.IsVisible>
+                    <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                        <On Platform="WinUI" Value="true" />
+                    </OnPlatform>
+                </core:SfEffectsView.IsVisible>
+                <core:SfEffectsView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding CloseModalCommand}" />
+                </core:SfEffectsView.GestureRecognizers>
+                <Button x:Name="CloseButton"
+                    BackgroundColor="{DynamicResource CardBackgroundColor}"
                     BorderWidth="0"
                     BorderColor="Transparent"
-                    Command="{Binding CloseModalCommand}"
                     CornerRadius="12"
                     FontSize="{DynamicResource ButtonFontSize}"
                     FontAttributes="Bold"
                     HorizontalOptions="Fill"
+                    VerticalOptions="Fill"
                     Padding="20,12"
                     Text="CLOSE"
-                    TextColor="{DynamicResource PrimaryTextColor}"
-                    VerticalOptions="Fill"
-                    IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}" />
-            </Border>
+                    TextColor="{AppThemeBinding Light=#212529, Dark=White}"
+                    InputTransparent="True"
+                    IsEnabled="False">
+                    <Button.Shadow>
+                        <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                Offset="0,2"
+                                Opacity="0.1"
+                                Radius="4" />
+                    </Button.Shadow>
+                </Button>
+            </core:SfEffectsView>
+            <!-- Regular button for Android/iOS -->
+            <Button Grid.Row="2"
+                x:Name="CloseButtonNoEffects"
+                Margin="16,8,16,16"
+                BackgroundColor="{DynamicResource CardBackgroundColor}"
+                BorderWidth="0"
+                BorderColor="Transparent"
+                Command="{Binding CloseModalCommand}"
+                CornerRadius="12"
+                FontSize="{DynamicResource ButtonFontSize}"
+                FontAttributes="Bold"
+                HorizontalOptions="Fill"
+                Padding="{OnPlatform Android='20,6,20,10', iOS='20,12', Default='20,12'}"
+                Text="CLOSE"
+                TextColor="{DynamicResource PrimaryTextColor}"
+                VerticalOptions="Center"
+                HeightRequest="{DynamicResource IconStandardContainerSize}"
+                IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
+                <Button.Shadow>
+                    <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                            Offset="0,2"
+                            Opacity="0.1"
+                            Radius="4" />
+                </Button.Shadow>
+            </Button>
 
             <!-- BUSY OVERLAY – visibility controlled from code-behind -->
             <sharedViews:BusyOverlay x:Name="BusyOverlay"

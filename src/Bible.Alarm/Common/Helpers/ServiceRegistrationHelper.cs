@@ -342,7 +342,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<MusicSelectionModal>();
         services.AddTransient<SongPublicationSelectionModal>();
         services.AddTransient<Views.Bible.TrackSelectionModal>();
-        services.AddTransient<AlarmSettingsModal>();
+        services.AddTransient<AndroidAlarmPermissionModal>();
         services.AddTransient<NumberOfTracksModal>();
 
         // NavigationPage with Home as the root page
