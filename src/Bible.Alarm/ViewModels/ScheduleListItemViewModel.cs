@@ -551,9 +551,18 @@ public sealed class ScheduleListItemViewModel(
         // The overlay is hidden by AlarmModalService -> ScheduleItemStateService after modal is shown.
     }
 
+    private void OnThemeChanged()
+    {
+        // Notify 'This' property to trigger converters that bind to the entire ViewModel
+        // This causes day button colors to update when theme changes
+        // Note: We're already on the main thread (message is sent from main thread)
+        OnPropertyChanged(nameof(This));
+    }
+
     public void Dispose()
     {
         applicationState.StateChanged -= OnApplicationStateChanged;
         playbackState.StateChanged -= OnPlaybackStateChanged;
+        WeakReferenceMessenger.Default.Unregister<ThemeChangedMessage>(this);
     }
 }

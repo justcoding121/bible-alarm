@@ -1,28 +1,11 @@
-using System.ComponentModel;
 using System.Globalization;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.ViewModels;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
 
-public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter, INotifyPropertyChanged
+public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueConverter
 {
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    public DayBackgroundColorConverter()
-    {
-        // Subscribe to theme changes when converter is instantiated
-        if (Application.Current != null)
-        {
-            Application.Current.RequestedThemeChanged += OnRequestedThemeChanged;
-        }
-    }
-
-    private void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e)
-    {
-        // Notify that the converter output has changed, causing all bindings to re-evaluate
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
-    }
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var theme = ThemeColors.GetCurrentTheme();

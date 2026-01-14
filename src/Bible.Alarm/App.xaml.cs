@@ -152,6 +152,10 @@ public partial class App : Application
         UpdateThemeAwareColorResources();
         WindowSetupService.UpdateNavigationBarColors();
         // Notify ViewModels to update theme-aware bindings (e.g., day button colors)
-        WeakReferenceMessenger.Default.Send(new ThemeChangedMessage());
+        // Use BeginInvokeOnMainThread to ensure resources are fully propagated before ViewModels update
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            WeakReferenceMessenger.Default.Send(new ThemeChangedMessage());
+        });
     }
 }

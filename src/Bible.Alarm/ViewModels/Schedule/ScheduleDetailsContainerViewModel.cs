@@ -2,12 +2,14 @@
 
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -42,6 +44,8 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         this.mapper = mapper;
 
         state.StateChanged += OnStateChanged;
+        // Subscribe to theme changes to update day button colors
+        WeakReferenceMessenger.Default.Register<ThemeChangedMessage>(this, (r, m) => OnThemeChanged());
         InitializeCommands();
         InitializeFromState();
     }
@@ -114,66 +118,80 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        var stateValue = state.Value;
-        var currentSchedule = stateValue.CurrentSchedule;
-
-        // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
-        // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
-        if (hasSignaledReady && !stateValue.ContainerReadiness.ScheduleDetails && currentSchedule != null)
+        // Prevent re-entrant calls to avoid cycles
+        if (isProcessingStateChange)
         {
-            hasSignaledReady = false;
-            isReadyActionQueued = false; // Reset queued flag as well
-            // Re-initialize and signal ready again
-            InitializeFromState();
             return;
         }
 
-        // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
-        // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
-        if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
+        isProcessingStateChange = true;
+        try
         {
-            InitializeFromState();
-            return;
-        }
+            var stateValue = state.Value;
+            var currentSchedule = stateValue.CurrentSchedule;
 
-        // Reset hasSignaledReady when schedule ID changes to a different positive ID (existing schedule opened)
-        if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
-        {
-            hasSignaledReady = false;
-            isReadyActionQueued = false; // Reset queued flag as well
-            InitializeFromState();
-            return;
-        }
+            // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
+            // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
+            if (hasSignaledReady && !stateValue.ContainerReadiness.ScheduleDetails && currentSchedule != null)
+            {
+                hasSignaledReady = false;
+                isReadyActionQueued = false; // Reset queued flag as well
+                // Re-initialize and signal ready again
+                InitializeFromState();
+                return;
+            }
 
-        // Only update properties if they changed (don't re-initialize)
-        if (currentSchedule != null && !hasSignaledReady)
-        {
-            // Handle case where InitializeFromState hasn't been called yet
-            InitializeFromState();
+            // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
+            // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
+            if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
+            {
+                InitializeFromState();
+                return;
+            }
+
+            // Reset hasSignaledReady when schedule ID changes to a different positive ID (existing schedule opened)
+            if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
+            {
+                hasSignaledReady = false;
+                isReadyActionQueued = false; // Reset queued flag as well
+                InitializeFromState();
+                return;
+            }
+
+            // Only update properties if they changed (don't re-initialize)
+            if (currentSchedule != null && !hasSignaledReady)
+            {
+                // Handle case where InitializeFromState hasn't been called yet
+                InitializeFromState();
+            }
+            else if (currentSchedule != null && hasSignaledReady)
+            {
+                // Update individual properties when they change (after initialization)
+                if (isEnabled != currentSchedule.IsEnabled)
+                {
+                    isEnabled = currentSchedule.IsEnabled;
+                    OnPropertyChanged(nameof(IsEnabled));
+                }
+                if (time != new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second))
+                {
+                    time = new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second);
+                    OnPropertyChanged(nameof(Time));
+                }
+                if (daysOfWeek != currentSchedule.DaysOfWeek)
+                {
+                    daysOfWeek = currentSchedule.DaysOfWeek;
+                    OnPropertyChanged(nameof(DaysOfWeek));
+                }
+                if (name != currentSchedule.Name)
+                {
+                    name = currentSchedule.Name;
+                    OnPropertyChanged(nameof(Name));
+                }
+            }
         }
-        else if (currentSchedule != null && hasSignaledReady)
+        finally
         {
-            // Update individual properties when they change (after initialization)
-            if (isEnabled != currentSchedule.IsEnabled)
-            {
-                isEnabled = currentSchedule.IsEnabled;
-                OnPropertyChanged(nameof(IsEnabled));
-            }
-            if (time != new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second))
-            {
-                time = new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second);
-                OnPropertyChanged(nameof(Time));
-            }
-            if (daysOfWeek != currentSchedule.DaysOfWeek)
-            {
-                daysOfWeek = currentSchedule.DaysOfWeek;
-                OnPropertyChanged(nameof(DaysOfWeek));
-            }
-            if (name != currentSchedule.Name)
-            {
-                name = currentSchedule.Name;
-                OnPropertyChanged(nameof(Name));
-            }
+            isProcessingStateChange = false;
         }
     }
 
@@ -326,9 +344,20 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         OnPropertyChanged(nameof(IsEnabled));
     }
 
+    private void OnThemeChanged()
+    {
+        // Notify DaysOfWeek and IsEnabled properties to trigger converters that bind to them
+        // This causes day button colors to update when theme changes
+        // Note: We're already on the main thread (message is sent from main thread),
+        // but we batch the notifications to ensure MultiBinding converters see both values updated together
+        OnPropertyChanged(nameof(DaysOfWeek));
+        OnPropertyChanged(nameof(IsEnabled));
+    }
+
     public void Dispose()
     {
         state.StateChanged -= OnStateChanged;
+        WeakReferenceMessenger.Default.Unregister<ThemeChangedMessage>(this);
     }
 }
 

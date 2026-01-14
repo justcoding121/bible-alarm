@@ -1,7 +1,6 @@
 #nullable enable
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Models;
-using Bible.Alarm.ViewModels.Shared;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
@@ -27,7 +26,7 @@ public sealed class BiblePublicationSelectionActionDispatcher
         dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
     }
 
-    public void DispatchLanguageSelectionActions(BiblePublicationStateItem biblePublicationItem, LanguageListViewItemModel language)
+    public void DispatchLanguageSelectionActions(BiblePublicationStateItem biblePublicationItem)
     {
         // Only dispatch TrackSelectedAction - its reducer updates both CurrentSchedule and
         // CurrentBiblePublicationSchedule, and its effect syncs all properties.

@@ -197,7 +197,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(
                 x, publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle, currentSchedule);
             var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
-            actionDispatcher.DispatchLanguageSelectionActions(biblePublicationItem, x);
+            actionDispatcher.DispatchLanguageSelectionActions(biblePublicationItem);
         });
     }
 
