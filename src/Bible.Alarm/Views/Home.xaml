@@ -459,22 +459,18 @@
                                                FontSize="{DynamicResource MediumFontSize}"
                                                Text="{Binding SubTitle}"
                                                TextColor="{DynamicResource PrimaryTextColor}"
-                                               LineBreakMode="WordWrap" />
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="3" />
                                     </VerticalStackLayout>
                                     <!-- Language label and music icon -->
-                                    <Grid Grid.Row="2"
+                                    <HorizontalStackLayout Grid.Row="2"
                                           Grid.Column="0"
                                           Margin="0,8,0,0"
-                                          ColumnSpacing="{DynamicResource PaddingSmall}"
+                                          Spacing="6"
                                           HorizontalOptions="Fill"
                                           VerticalOptions="Start">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
                                         <!-- Language text -->
-                                        <Label Grid.Column="0"
-                                                HorizontalOptions="Start"
+                                        <Label HorizontalOptions="Start"
                                                 HorizontalTextAlignment="Start"
                                                 FontSize="{DynamicResource StandardFontSize}"
                                                 Text="{Binding Language}"
@@ -482,10 +478,9 @@
                                                 IsVisible="{Binding Language, Converter={StaticResource isStringNotEmptyConverter}}"
                                                 VerticalOptions="Start"
                                                 LineBreakMode="WordWrap" />
-                                        <!-- Music icon (right aligned) -->
-                                        <Label Grid.Column="1"
-                                                HorizontalOptions="End"
-                                                VerticalOptions="Center"
+                                        <!-- Music icon (next to language) -->
+                                        <Label HorizontalOptions="Start"
+                                                VerticalOptions="Start"
                                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                                 FontSize="{DynamicResource MediumFontSize}"
                                                 Text="{x:Static fn:GlyphNames.Music}"
@@ -493,7 +488,7 @@
                                                 Opacity="0.8"
                                                 IsVisible="{Binding MusicEnabled, Mode=OneWay}"
                                                 InputTransparent="True" />
-                                    </Grid>
+                                    </HorizontalStackLayout>
                                 </Grid>
                             </FlexLayout>
                             </Border>
