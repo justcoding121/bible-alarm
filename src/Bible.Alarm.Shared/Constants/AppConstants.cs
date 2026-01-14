@@ -20,11 +20,6 @@ public static class AppConstants
         public const string JwOrgIndexServiceBaseUrl = "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS";
 
         /// <summary>
-        /// Alternative JW.org index service URL
-        /// </summary>
-        public const string JwOrgAlternativeIndexServiceUrl = "https://apps.jw.org/GETPUBMEDIALINKS";
-
-        /// <summary>
         /// JW.org Mediator API base URL for category-based content (dramas, etc.)
         /// </summary>
         public const string JwOrgMediatorApiBaseUrl = "https://b.jw-cdn.org/apis/mediator/v1";

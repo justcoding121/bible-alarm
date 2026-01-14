@@ -30,13 +30,10 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Use Include chain before SelectMany to properly load nested navigation properties
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(p => p.Sections.Where(s => s.Number == sectionNumber))
                     .ThenInclude(s => s.Tracks)
-                        .ThenInclude(t => t.Source)
-                            .ThenInclude(src => src!.BaseUrlEntity)
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -69,13 +66,10 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Use Include chain before SelectMany to properly load nested navigation properties
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(p => p.Sections.Where(s => s.Number == sectionNumber))
                     .ThenInclude(s => s.Tracks.Where(t => t.Number == trackNumber))
-                        .ThenInclude(t => t.Source)
-                            .ThenInclude(src => src!.BaseUrlEntity)
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -93,71 +87,9 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
 
     public async Task UpdateTrackUrlAsync(string languageCode, string publicationCode, int sectionNumber, int trackNumber, string url, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            using var scope = scopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var track = await dbContext.BiblePublications
-                .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
-                .SelectMany(x => x.Sections)
-                .Where(x => x.Number == sectionNumber)
-                .SelectMany(x => x.Tracks)
-                .Include(x => x.Source)
-                .ThenInclude(s => s!.BaseUrlEntity)
-                .Where(x => x.Number == trackNumber)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (track?.Source != null)
-            {
-                // Extract path from the new URL and update UrlPath
-                var (baseUrl, urlPath) = ExtractBaseUrlAndPath(url);
-                track.Source.UrlPath = urlPath;
-
-                // Update BaseUrl if it changed (rare, but handle it)
-                if (track.Source.BaseUrlEntity.BaseUrl != baseUrl)
-                {
-                    var existingBaseUrl = await dbContext.SourceBaseUrls
-                        .FirstOrDefaultAsync(x => x.BaseUrl == baseUrl, cancellationToken);
-                    if (existingBaseUrl != null)
-                    {
-                        track.Source.BaseUrlEntity = existingBaseUrl;
-                    }
-                    else
-                    {
-                        track.Source.BaseUrlEntity = new SourceBaseUrl { BaseUrl = baseUrl };
-                    }
-                }
-
-                await dbContext.SaveChangesAsync(cancellationToken);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error updating BiblePublicationTrack URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}, TrackNumber={TrackNumber}",
-                languageCode, publicationCode, sectionNumber, trackNumber);
-            throw;
-        }
-    }
-
-    private static (string BaseUrl, string UrlPath) ExtractBaseUrlAndPath(string fullUrl)
-    {
-        if (string.IsNullOrEmpty(fullUrl))
-        {
-            return (string.Empty, string.Empty);
-        }
-
-        try
-        {
-            var uri = new Uri(fullUrl);
-            var baseUrl = $"{uri.Scheme}://{uri.Host}";
-            var urlPath = uri.PathAndQuery;
-            return (baseUrl, urlPath);
-        }
-        catch (UriFormatException)
-        {
-            return (string.Empty, fullUrl);
-        }
+        // URLs are now computed on-demand, no need to store them
+        // This method is kept for backward compatibility but does nothing
+        await Task.CompletedTask;
     }
 
     public void Dispose()

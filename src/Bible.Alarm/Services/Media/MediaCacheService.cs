@@ -41,77 +41,76 @@ public sealed class MediaCacheService(
     private static readonly ConcurrentDictionary<long, SemaphoreSlim> lockStore = new();
     
     /// <summary>
-    /// Tracks in-progress downloads by cache key (scheduleId + url) to prevent duplicate downloads.
+    /// Tracks in-progress downloads by cache key (scheduleId + lookupPath) to prevent duplicate downloads.
     /// When a download is in progress, subsequent requests for the same file will await the existing task.
+    /// Uses lookup path instead of CDN URL so cache files are stable even when CDN URLs change.
     /// </summary>
     private static readonly ConcurrentDictionary<string, Task<string?>> inProgressDownloads = new();
 
-    public string GetCacheFileName(string url)
+    /// <summary>
+    /// Gets the cache file name from a lookup path (API query string).
+    /// Uses lookup path instead of CDN URL so cache files are stable even when CDN URLs change.
+    /// This enables offline playback by building lookup paths from schedule config.
+    /// </summary>
+    public string GetCacheFileName(string lookUpPath)
     {
-        if (string.IsNullOrWhiteSpace(url))
+        if (string.IsNullOrWhiteSpace(lookUpPath))
         {
-            throw new ArgumentException("URL cannot be null or empty", nameof(url));
+            throw new ArgumentException("LookUpPath cannot be null or empty", nameof(lookUpPath));
         }
         
-        // Check if URL looks valid before attempting to parse
-        if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
-            !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-        {
-            logger.Warning("Invalid URL format (missing scheme): {Url}", url);
-            throw new UriFormatException($"Invalid URL format: {url}");
-        }
+        // Hash the lookup path to create a safe filename
+        var plainTextBytes = Encoding.UTF8.GetBytes(lookUpPath);
+        var base64Name = Convert.ToBase64String(plainTextBytes)
+            .Replace('/', '_')  // Replace / with _ for filesystem safety
+            .Replace('+', '-')  // Replace + with - for filesystem safety
+            .Replace("=", "");  // Remove padding
         
-        var uri = new Uri(url);
-
-        var plainTextBytes = Encoding.UTF8.GetBytes(uri.PathAndQuery);
-        var base64Name = Convert.ToBase64String(plainTextBytes);
-        
-        // Preserve the original file extension from the URL to ensure proper metadata extraction
-        // TagLib and other libraries use file extension to determine the file format
-        var extension = GetFileExtensionFromUrl(uri);
+        // Determine file extension from lookup path
+        var extension = GetFileExtensionFromLookUpPath(lookUpPath);
         
         return base64Name + extension;
     }
     
-    private static string GetFileExtensionFromUrl(Uri uri)
+    /// <summary>
+    /// Gets the file extension from a lookup path based on fileformat parameter or default to .mp3
+    /// </summary>
+    private static string GetFileExtensionFromLookUpPath(string lookUpPath)
     {
-        // Get extension from the URL path (without query string)
-        var path = uri.AbsolutePath;
-        var extension = Path.GetExtension(path);
-        
-        // If we got a valid extension, use it; otherwise fall back to default
-        if (!string.IsNullOrEmpty(extension) && 
-            (extension.Equals(".mp3", StringComparison.OrdinalIgnoreCase) ||
-             extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase) ||
-             extension.Equals(".m4a", StringComparison.OrdinalIgnoreCase) ||
-             extension.Equals(".aac", StringComparison.OrdinalIgnoreCase)))
+        // Check for fileformat parameter in lookup path
+        if (lookUpPath.Contains("fileformat=MP4", StringComparison.OrdinalIgnoreCase))
         {
-            return extension.ToLowerInvariant();
+            return ".mp4";
+        }
+        if (lookUpPath.Contains("fileformat=MP3", StringComparison.OrdinalIgnoreCase))
+        {
+            return ".mp3";
+        }
+        if (lookUpPath.Contains("fileformat=M4A", StringComparison.OrdinalIgnoreCase))
+        {
+            return ".m4a";
+        }
+        if (lookUpPath.Contains("fileformat=AAC", StringComparison.OrdinalIgnoreCase))
+        {
+            return ".aac";
         }
         
         // Default to mp3 for backwards compatibility
         return AppConstants.Media.MediaFileExtension;
     }
 
-    public string GetCacheFilePath(string url) => Path.Combine(cacheRoot, GetCacheFileName(url));
-    
     /// <summary>
-    /// Gets the cache file path for a URL within a specific schedule's folder.
+    /// Gets the cache file path for a lookup path within a specific schedule's folder.
     /// </summary>
-    private string GetCacheFilePath(string url, int scheduleId) => Path.Combine(GetScheduleCacheFolder(scheduleId), GetCacheFileName(url));
+    public string GetCacheFilePath(string lookUpPath, int scheduleId) => 
+        Path.Combine(GetScheduleCacheFolder(scheduleId), GetCacheFileName(lookUpPath));
 
-    public async Task<bool> ExistsAsync(string url)
-    {
-        var cachePath = Path.Combine(cacheRoot, GetCacheFileName(url));
-        return await storageService.FileExists(cachePath);
-    }
-    
     /// <summary>
-    /// Checks if a file exists in a schedule's cache folder.
+    /// Checks if a cached file exists for a lookup path in a schedule's cache folder.
     /// </summary>
-    private async Task<bool> ExistsAsync(string url, int scheduleId)
+    public async Task<bool> ExistsAsync(string lookUpPath, int scheduleId)
     {
-        var cachePath = GetCacheFilePath(url, scheduleId);
+        var cachePath = GetCacheFilePath(lookUpPath, scheduleId);
         return await storageService.FileExists(cachePath);
     }
 
@@ -154,17 +153,36 @@ public sealed class MediaCacheService(
 
         foreach (var playItem in playlist)
         {
-            if (await ExistsAsync(playItem.Url, scheduleId))
+            // Use lookup path (stable) instead of CDN URL (dynamic) for cache filename
+            var lookUpPath = playItem.Metadata.LookUpPath;
+            
+            // Check if file exists using lookup path
+            if (await ExistsAsync(lookUpPath, scheduleId))
             {
+                // File exists and lookup path matches - skip download
+                logger.Debug("Skipping download - cached file exists for lookup path: {LookUpPath}, URL: {Url}", 
+                    lookUpPath, playItem.Url);
                 continue;
             }
 
             downloaded = true;
 
-            var cachedUrl = await DownloadAndCacheTrackAsync(playItem, scheduleId);
-            if (cachedUrl == null)
+            // Download with individual error handling - don't let one failure stop others
+            try
             {
-                break;
+                var cachedUrl = await DownloadAndCacheTrackAsync(playItem, scheduleId);
+                if (cachedUrl == null)
+                {
+                    // Download failed - log but continue with next track
+                    logger.Warning("Failed to download track: {Url} (lookup path: {LookUpPath}) for schedule {ScheduleId}. Continuing with next track.", 
+                        playItem.Url, lookUpPath, scheduleId);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Individual download failure - log but continue processing other tracks
+                logger.Error(ex, "Exception downloading track: {Url} (lookup path: {LookUpPath}) for schedule {ScheduleId}. Continuing with next track.", 
+                    playItem.Url, lookUpPath, scheduleId);
             }
         }
 
@@ -189,11 +207,15 @@ public sealed class MediaCacheService(
             return null;
         }
 
-        // Check if file exists in schedule's cache folder
-        if (await ExistsAsync(playItem.Url, scheduleId))
+        // Use lookup path (stable) instead of CDN URL (dynamic) for cache filename
+        var lookUpPath = playItem.Metadata.LookUpPath;
+
+        // Check if file exists in schedule's cache folder using lookup path
+        if (await ExistsAsync(lookUpPath, scheduleId))
         {
-            var cachedFilePath = GetCacheFilePath(playItem.Url, scheduleId);
-            logger.Debug("Using cached file for track: {Url}, Path: {CachedPath}", playItem.Url, cachedFilePath);
+            var cachedFilePath = GetCacheFilePath(lookUpPath, scheduleId);
+            logger.Debug("Using cached file for track: LookUpPath={LookUpPath}, URL={Url}, Path={CachedPath}", 
+                lookUpPath, playItem.Url, cachedFilePath);
             // Report as complete for cached files
             progressCallback?.Invoke(1, 1);
             // On iOS, MediaElement needs the file path directly instead of file:// URI
@@ -207,21 +229,23 @@ public sealed class MediaCacheService(
         // Check internet connectivity before attempting download
         if (!await networkStatusService.IsInternetAvailable())
         {
-            logger.Warning("No internet connection available. Cannot download track: {Url}", playItem.Url);
+            logger.Warning("No internet connection available. Cannot download track: LookUpPath={LookUpPath}, URL={Url}", 
+                lookUpPath, playItem.Url);
             return null;
         }
 
         // Download and cache the file with progress reporting
-        logger.Information("Downloading track (not in cache): {Url}", playItem.Url);
+        logger.Information("Downloading track (not in cache): LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
         var cachedUrl = await DownloadAndCacheTrackWithProgressAsync(playItem, scheduleId, progressCallback, cancellationToken);
         if (cachedUrl == null)
         {
-            logger.Error("Failed to download and cache track: {Url}", playItem.Url);
+            logger.Error("Failed to download and cache track: LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
             return null;
         }
 
-        var downloadedFilePath = GetCacheFilePath(cachedUrl, scheduleId);
-        logger.Information("Successfully downloaded and cached track: {Url}, Path: {CachedPath}", playItem.Url, downloadedFilePath);
+        var downloadedFilePath = GetCacheFilePath(lookUpPath, scheduleId);
+        logger.Information("Successfully downloaded and cached track: LookUpPath={LookUpPath}, URL={Url}, Path={CachedPath}", 
+            lookUpPath, playItem.Url, downloadedFilePath);
         // On iOS, MediaElement may need the file path directly instead of file:// URI
         if (DeviceInfo.Platform == DevicePlatform.iOS)
         {
@@ -237,14 +261,16 @@ public sealed class MediaCacheService(
 
     private async Task<string?> DownloadAndCacheTrackWithProgressAsync(PlayItem playItem, int scheduleId, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
     {
-        // Create a unique key for this download (scheduleId + URL)
-        var downloadKey = $"{scheduleId}:{playItem.Url}";
+        // Use lookup path (stable) instead of CDN URL (dynamic) for cache key
+        var lookUpPath = playItem.Metadata.LookUpPath;
+        // Create a unique key for this download (scheduleId + lookupPath)
+        var downloadKey = $"{scheduleId}:{lookUpPath}";
         
         // Check if there's already a download in progress for this file
         if (inProgressDownloads.TryGetValue(downloadKey, out var existingTask))
         {
-            logger.Debug("Download already in progress for {Url}, ScheduleId: {ScheduleId}. Waiting for existing download to complete.", 
-                playItem.Url, scheduleId);
+            logger.Debug("Download already in progress for LookUpPath={LookUpPath}, URL={Url}, ScheduleId={ScheduleId}. Waiting for existing download to complete.", 
+                lookUpPath, playItem.Url, scheduleId);
             try
             {
                 // Wait for the existing download to complete and return its result
@@ -258,7 +284,8 @@ public sealed class MediaCacheService(
             catch (Exception ex)
             {
                 // The existing download failed, log but don't rethrow since caller may want to try again
-                logger.Warning(ex, "Existing download failed for {Url}, ScheduleId: {ScheduleId}", playItem.Url, scheduleId);
+                logger.Warning(ex, "Existing download failed for LookUpPath={LookUpPath}, URL={Url}, ScheduleId={ScheduleId}", 
+                    lookUpPath, playItem.Url, scheduleId);
                 return null;
             }
         }
@@ -273,8 +300,8 @@ public sealed class MediaCacheService(
             // Another thread just started the download, wait for their result
             if (inProgressDownloads.TryGetValue(downloadKey, out existingTask))
             {
-                logger.Debug("Another thread started download for {Url}, ScheduleId: {ScheduleId}. Waiting for that download.", 
-                    playItem.Url, scheduleId);
+                logger.Debug("Another thread started download for LookUpPath={LookUpPath}, URL={Url}, ScheduleId={ScheduleId}. Waiting for that download.", 
+                    lookUpPath, playItem.Url, scheduleId);
                 try
                 {
                     return await existingTask;
@@ -285,7 +312,8 @@ public sealed class MediaCacheService(
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "Concurrent download failed for {Url}, ScheduleId: {ScheduleId}", playItem.Url, scheduleId);
+                    logger.Warning(ex, "Concurrent download failed for LookUpPath={LookUpPath}, URL={Url}, ScheduleId={ScheduleId}", 
+                        lookUpPath, playItem.Url, scheduleId);
                     return null;
                 }
             }
@@ -300,28 +328,30 @@ public sealed class MediaCacheService(
 
             if (bytes != null && bytes.Length > 0)
             {
+                // Use lookup path (stable) instead of CDN URL (dynamic) for cache filename
                 var scheduleCacheFolder = GetScheduleCacheFolder(scheduleId);
-                await storageService.SaveFile(scheduleCacheFolder, GetCacheFileName(playItem.Url), bytes);
-                logger.Debug("Successfully downloaded and saved track: {Url}, Size: {Size} bytes, ScheduleId: {ScheduleId}", 
-                    playItem.Url, bytes.Length, scheduleId);
+                await storageService.SaveFile(scheduleCacheFolder, GetCacheFileName(lookUpPath), bytes);
+                logger.Debug("Successfully downloaded and saved track: LookUpPath={LookUpPath}, URL={Url}, Size={Size} bytes, ScheduleId={ScheduleId}", 
+                    lookUpPath, playItem.Url, bytes.Length, scheduleId);
                 downloadTaskSource.SetResult(playItem.Url);
                 return playItem.Url;
             }
 
-            logger.Warning("Download returned null or empty bytes for: {Url}, attempting URL refresh", playItem.Url);
+            logger.Warning("Download returned null or empty bytes for: LookUpPath={LookUpPath}, URL={Url}, attempting URL refresh", 
+                lookUpPath, playItem.Url);
             var refreshedUrl = await RefreshUrlAndRetryDownloadAsync(playItem, scheduleId, cancellationToken);
             downloadTaskSource.SetResult(refreshedUrl);
             return refreshedUrl;
         }
         catch (OperationCanceledException)
         {
-            logger.Information("Download cancelled for track: {Url}", playItem.Url);
+            logger.Information("Download cancelled for track: LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
             downloadTaskSource.SetCanceled(cancellationToken);
             throw;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Exception while downloading track: {Url}", playItem.Url);
+            logger.Error(ex, "Exception while downloading track: LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
 
             // Try refreshing URL and retrying
             try
@@ -372,9 +402,12 @@ public sealed class MediaCacheService(
             return null;
         }
 
+        // Use lookup path (stable) instead of CDN URL (dynamic) for cache filename
+        var lookUpPath = playItem.Metadata.LookUpPath;
         var scheduleCacheFolder = GetScheduleCacheFolder(scheduleId);
-        await storageService.SaveFile(scheduleCacheFolder, GetCacheFileName(refreshedUrl), bytes);
-        logger.Warning("Downloaded using updated URL {RefreshedUrl} for {PlayItem}, ScheduleId: {ScheduleId}", refreshedUrl, playItem, scheduleId);
+        await storageService.SaveFile(scheduleCacheFolder, GetCacheFileName(lookUpPath), bytes);
+        logger.Warning("Downloaded using updated URL {RefreshedUrl} (lookup path: {LookUpPath}) for {PlayItem}, ScheduleId: {ScheduleId}", 
+            refreshedUrl, lookUpPath, playItem, scheduleId);
         return refreshedUrl;
     }
 
@@ -415,10 +448,10 @@ public sealed class MediaCacheService(
                 var fileName = Path.GetFileName(filePath);
                 bool shouldKeep = false;
                 
-                // Check if this file matches any URL in the current playlist
+                // Check if this file matches any lookup path in the current playlist
                 foreach (var playItem in playlist)
                 {
-                    var expectedFileName = GetCacheFileName(playItem.Url);
+                    var expectedFileName = GetCacheFileName(playItem.Metadata.LookUpPath);
                     if (fileName.Equals(expectedFileName, StringComparison.OrdinalIgnoreCase))
                     {
                         shouldKeep = true;
@@ -536,6 +569,7 @@ public sealed class MediaCacheService(
                 if (int.TryParse(parentDir, out var scheduleId))
                 {
                     // Check if any in-progress download matches this file
+                    // Key format is "scheduleId:lookUpPath", so we need to check if the filename matches
                     var isBeingDownloaded = inProgressDownloads.Keys
                         .Any(key => key.StartsWith($"{scheduleId}:") && 
                                     GetCacheFileName(key.Substring($"{scheduleId}:".Length)) == fileName);
@@ -590,7 +624,17 @@ public sealed class MediaCacheService(
             
             // Schedule exists - update cache by deleting files that don't match new configuration
             // Get the new schedule's playlist to determine which files should be kept
-            var newPlaylist = await mediaPlayService.NextTracks(scheduleId);
+            // IMPORTANT: If API fails, don't delete any cache files to preserve existing cache
+            List<PlayItem> newPlaylist;
+            try
+            {
+                newPlaylist = await mediaPlayService.NextTracks(scheduleId);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Failed to get playlist for schedule {ScheduleId} - API call failed. Not deleting any cache files to preserve existing cache.", scheduleId);
+                return; // Don't delete any cache if API fails
+            }
             
             // Get all files in the schedule's cache folder
             if (!await storageService.DirectoryExists(scheduleCacheFolder))
@@ -601,17 +645,17 @@ public sealed class MediaCacheService(
             
             var allFiles = await storageService.GetAllFiles(scheduleCacheFolder);
             
-            // Delete files that don't match the new schedule's URLs
+            // Delete files that don't match the new schedule's lookup paths
             var filePathsToDelete = new HashSet<string>();
             foreach (var filePath in allFiles)
             {
                 var fileName = Path.GetFileName(filePath);
                 
-                // Check all URLs to see if this file matches any of them
+                // Check all lookup paths to see if this file matches any of them
                 bool shouldKeep = false;
                 foreach (var playItem in newPlaylist)
                 {
-                    var expectedFileName = GetCacheFileName(playItem.Url);
+                    var expectedFileName = GetCacheFileName(playItem.Metadata.LookUpPath);
                     if (fileName.Equals(expectedFileName, StringComparison.OrdinalIgnoreCase))
                     {
                         shouldKeep = true;

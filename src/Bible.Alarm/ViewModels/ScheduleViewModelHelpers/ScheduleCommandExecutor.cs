@@ -100,9 +100,14 @@ public sealed class ScheduleCommandExecutor
 
         try
         {
+            // Read current schedule fresh from state to ensure we have the latest values
+            // (including NumberOfTracksToRead and AlwaysPlayFromStart that may have been updated)
             var currentSchedule = state.Value.CurrentSchedule;
             var isNewSchedule = IsNewSchedule();
             var scheduleId = GetScheduleId();
+
+            logger.Information("SaveCommand: Reading state - currentSchedule.NumberOfTracksToRead={NumberOfTracksToRead}, currentSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+                currentSchedule?.NumberOfTracksToRead ?? 0, currentSchedule?.AlwaysPlayFromStart ?? false);
 
             var musicUpdated = DetectMusicChanges();
             var biblePublicationUpdated = DetectBiblePublicationChanges();

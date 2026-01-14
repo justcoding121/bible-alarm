@@ -18,15 +18,18 @@ public class PlaylistMusicTrackBuilder
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
     private readonly IMelodyMusicService melodyMusicService;
+    private readonly IMediaUrlRefreshService urlRefreshService;
 
     public PlaylistMusicTrackBuilder(
         ILogger logger,
         IMediaService mediaService,
-        IMelodyMusicService melodyMusicService)
+        IMelodyMusicService melodyMusicService,
+        IMediaUrlRefreshService urlRefreshService)
     {
         this.logger = logger;
         this.mediaService = mediaService;
         this.melodyMusicService = melodyMusicService;
+        this.urlRefreshService = urlRefreshService;
     }
 
     public async Task<PlayItem> NextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)
@@ -47,8 +50,7 @@ public class PlaylistMusicTrackBuilder
         var melodyTracks = await mediaService.GetMelodyMusicTracks(melodyMusic.PublicationCode);
         var trackIndex = CalculateTrackIndex(melodyMusic.TrackNumber, melodyTracks.Count, next);
         var melodyTrack = melodyTracks[trackIndex];
-        ValidateTrackSource(melodyTrack.Source, trackIndex, "Melody");
-        return CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
+        return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
     }
 
     private async Task<PlayItem> GetNextVocalTrackAsync(AlarmSchedule schedule, bool next)
@@ -57,8 +59,7 @@ public class PlaylistMusicTrackBuilder
         var vocalTracks = await mediaService.GetVocalMusicTracks(vocalMusic.LanguageCode, vocalMusic.PublicationCode);
         var trackIndex = CalculateTrackIndex(vocalMusic.TrackNumber, vocalTracks.Count, next);
         var vocalTrack = vocalTracks[trackIndex];
-        ValidateTrackSource(vocalTrack.Source, trackIndex, "Vocal");
-        return CreateVocalPlayItem(schedule, vocalMusic, vocalTrack);
+        return await CreateVocalPlayItem(schedule, vocalMusic, vocalTrack);
     }
 
     private static int CalculateTrackIndex(int currentTrackNumber, int totalTracks, bool next)
@@ -74,42 +75,47 @@ public class PlaylistMusicTrackBuilder
         return currentTrackNumber;
     }
 
-    private static void ValidateTrackSource(Source? source, int trackIndex, string trackType)
+    private async Task<PlayItem> CreateMelodyPlayItem(AlarmSchedule schedule, AlarmMusic melodyMusic, MusicTrack melodyTrack)
     {
-        if (source == null)
-        {
-            throw new InvalidOperationException($"{trackType} track {trackIndex + 1} Source is null");
-        }
-    }
-
-    private static PlayItem CreateMelodyPlayItem(AlarmSchedule schedule, AlarmMusic melodyMusic, MusicTrack melodyTrack)
-    {
-        if (melodyTrack.Source == null)
-        {
-            throw new InvalidOperationException($"Melody track {melodyTrack.Number} Source is null");
-        }
-        // LookUpPath is now computed from PublicationCode, LanguageCode (null for melody), and TrackNumber
-        return new PlayItem(new TrackMetadata
+        // Compute URL on-demand using TrackMetadata
+        var trackMetadata = new TrackMetadata
         {
             ScheduleId = schedule.Id,
             PublicationCode = melodyMusic.PublicationCode,
-            TrackNumber = melodyTrack.Number
-        }, melodyTrack.Source.Url);
+            TrackNumber = melodyTrack.Number,
+            DownloadCode = melodyTrack.DownloadCode, // Store disc code (e.g., "iam-1", "iam-2") for melody music
+            OriginalTrackNumber = melodyTrack.OriginalTrackNumber // Store original track number from API (within the disc)
+            // LanguageCode is empty for melody music
+        };
+
+        var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
+        if (string.IsNullOrEmpty(url))
+        {
+            throw new InvalidOperationException($"Failed to get URL for melody track {melodyTrack.Number}");
+        }
+
+        return new PlayItem(trackMetadata, url);
     }
 
-    private static PlayItem CreateVocalPlayItem(AlarmSchedule schedule, AlarmMusic vocalMusic, MusicTrack vocalTrack)
+    private async Task<PlayItem> CreateVocalPlayItem(AlarmSchedule schedule, AlarmMusic vocalMusic, MusicTrack vocalTrack)
     {
-        if (vocalTrack.Source == null)
-        {
-            throw new InvalidOperationException($"Vocal track {vocalTrack.Number} Source is null");
-        }
-        // LookUpPath is now computed from PublicationCode, LanguageCode, and TrackNumber
-        return new PlayItem(new TrackMetadata
+        // Compute URL on-demand using TrackMetadata
+        var trackMetadata = new TrackMetadata
         {
             ScheduleId = schedule.Id,
             PublicationCode = vocalMusic.PublicationCode,
             LanguageCode = vocalMusic.LanguageCode,
-            TrackNumber = vocalTrack.Number
-        }, vocalTrack.Source.Url);
+            TrackNumber = vocalTrack.Number,
+            DownloadCode = vocalTrack.DownloadCode, // Typically same as publication code, but store for consistency
+            OriginalTrackNumber = vocalTrack.OriginalTrackNumber // Typically same as Number for vocal music
+        };
+
+        var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
+        if (string.IsNullOrEmpty(url))
+        {
+            throw new InvalidOperationException($"Failed to get URL for vocal track {vocalTrack.Number}");
+        }
+
+        return new PlayItem(trackMetadata, url);
     }
 }

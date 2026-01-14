@@ -487,15 +487,15 @@ internal class MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
         string? languageCode)
     {
         // LookUpPath is no longer stored in the database - it's computed at runtime
-        // The parameters are still passed in case we need them for other purposes
-        _ = publicationDownloadCode;
-        _ = languageCode;
-
+        // Store DownloadCode for melody music that uses disc codes (e.g., "iam-1", "iam-2")
+        // Store OriginalTrackNumber for melody music - the API expects the track number within that disc
         return new MusicTrack
         {
             Number = trackNumber,
             Title = title,
-            Url = url
+            Url = url,
+            DownloadCode = publicationDownloadCode,
+            OriginalTrackNumber = track // Store the original track number from API (within the disc)
         };
     }
 

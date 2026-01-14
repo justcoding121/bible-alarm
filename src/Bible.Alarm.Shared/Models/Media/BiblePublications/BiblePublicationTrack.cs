@@ -3,7 +3,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Bible.Alarm.Shared.Models.Media;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -29,8 +28,6 @@ public sealed class BiblePublicationTrack : IComparable
     [Required]
     [MaxLength(255)]
     public string Title { get; set; } = string.Empty;
-
-    public Source? Source { get; set; }
 
     /// <summary>
     /// Required foreign key to BiblePublication.

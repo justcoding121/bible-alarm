@@ -17,11 +17,13 @@ public class PlaylistBiblePublicationTrackBuilder
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
     private readonly IBiblePublicationService? biblePublicationService;
+    private readonly IMediaUrlRefreshService urlRefreshService;
 
-    public PlaylistBiblePublicationTrackBuilder(ILogger logger, IMediaService mediaService, IBiblePublicationService? biblePublicationService = null)
+    public PlaylistBiblePublicationTrackBuilder(ILogger logger, IMediaService mediaService, IMediaUrlRefreshService urlRefreshService, IBiblePublicationService? biblePublicationService = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
+        this.urlRefreshService = urlRefreshService;
         this.biblePublicationService = biblePublicationService;
     }
 
@@ -182,15 +184,26 @@ public class PlaylistBiblePublicationTrackBuilder
             throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} not found in section {sectionNumber}");
         }
 
-        if (trackDetail.Source == null)
+        // Compute URL on-demand using TrackMetadata
+        var trackMetadata = new TrackMetadata
         {
-            throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} Source is null in section {sectionNumber}");
+            IsBibleContent = true,
+            LanguageCode = biblePublicationSchedule.LanguageCode,
+            PublicationCode = biblePublicationSchedule.PublicationCode,
+            SectionNumber = sectionNumber,
+            TrackNumber = trackDetail.Number
+        };
+
+        var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
+        if (string.IsNullOrEmpty(url))
+        {
+            throw new InvalidOperationException($"Failed to get URL for track {biblePublicationSchedule.TrackNumber} in section {sectionNumber}");
         }
 
         return new TrackInfo(
             sectionNumber,
             trackDetail,
-            trackDetail.Source.Url);
+            url);
     }
 
     private async Task<TrackInfo> GetInitialTrackInfoForNonSectionedPublication(BiblePublicationSchedule biblePublicationSchedule)
@@ -217,17 +230,20 @@ public class PlaylistBiblePublicationTrackBuilder
             throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} not found in non-sectioned publication");
         }
 
-        if (track.Source == null)
+        // Compute URL on-demand using TrackMetadata
+        var trackMetadata = new TrackMetadata
         {
-            throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} Source is null in non-sectioned publication");
-        }
+            IsBibleContent = true,
+            LanguageCode = biblePublicationSchedule.LanguageCode,
+            PublicationCode = biblePublicationSchedule.PublicationCode,
+            SectionNumber = 0, // Non-sectioned
+            TrackNumber = track.Number
+        };
 
-        var url = track.Source.Url;
-        if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
+        if (string.IsNullOrEmpty(url))
         {
-            logger.Error("Track {TrackNumber} has invalid URL: '{Url}'. BaseUrlEntity may not be loaded. UrlPath={UrlPath}",
-                track.Number, url, track.Source.UrlPath);
-            throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} has invalid URL in non-sectioned publication. URL: {url}");
+            throw new InvalidOperationException($"Failed to get URL for track {biblePublicationSchedule.TrackNumber} in non-sectioned publication");
         }
 
         return new TrackInfo(
@@ -306,15 +322,27 @@ public class PlaylistBiblePublicationTrackBuilder
             throw new InvalidOperationException("Next track Value is null");
         }
 
-        if (next.Value.Source == null)
+        // Compute URL on-demand using TrackMetadata
+        var sectionNumber = next.Key?.Number ?? 0;
+        var trackMetadata = new TrackMetadata
         {
-            throw new InvalidOperationException("Next track Source is null");
+            IsBibleContent = true,
+            LanguageCode = biblePublicationSchedule.LanguageCode,
+            PublicationCode = biblePublicationSchedule.PublicationCode,
+            SectionNumber = sectionNumber,
+            TrackNumber = next.Value.Number
+        };
+
+        var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
+        if (string.IsNullOrEmpty(url))
+        {
+            throw new InvalidOperationException($"Failed to get URL for next track {next.Value.Number}");
         }
 
         // For non-sectioned publications, Key (section) will be null, use 0
         return new TrackInfo(
-            next.Key?.Number ?? 0,
+            sectionNumber,
             next.Value,
-            next.Value.Source.Url);
+            url);
     }
 }

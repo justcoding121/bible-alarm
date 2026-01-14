@@ -122,7 +122,8 @@ public sealed class TrackSelectionSyncHandler
             updatedSchedule.BiblePublicationCode = biblePub.PublicationCode;
             updatedSchedule.BiblePublicationSectionNumber = biblePub.SectionNumber;
             updatedSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
-            updatedSchedule.BiblePublicationFinishedDuration = biblePub.FinishedDuration;
+            // Reset progress to 0.0 when track is changed (by cascade or direct selection)
+            updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
             
             // Copy display names from the action (populated from list items when user tapped)
             // When language or publication changes, always use new values (or clear if empty)

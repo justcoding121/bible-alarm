@@ -17,7 +17,22 @@ public sealed class PreparePlaybackService(
 
     public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
-        var playItems = await playlistService.NextTracks(scheduleId);
+        // Send initial progress message BEFORE media lookup so alarm modal shows "Preparing.." immediately
+        // We'll update the total tracks count once we know how many tracks we have
+        SendProgressMessage(0, 1, 0, 0, null, 0, null);
+
+        List<PlayItem> playItems;
+        try
+        {
+            playItems = await playlistService.NextTracks(scheduleId);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to get track URLs (media lookup failed) for schedule {ScheduleId}", scheduleId);
+            // Return null to signal error - PlaybackService will handle showing error message
+            return null;
+        }
+
         var totalTracks = playItems.Count;
 
         if (totalTracks == 0)
@@ -25,7 +40,7 @@ public sealed class PreparePlaybackService(
             return new List<AudioPlayerTrack>();
         }
 
-        // Send initial progress message
+        // Update progress message with actual track count now that we have it
         SendProgressMessage(0, totalTracks, 0, 0, null, 0, null);
 
         // Phase 1: Get all Content-Length values first (HEAD requests in parallel)

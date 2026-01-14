@@ -10,5 +10,7 @@ public interface IMediaUrlRefreshService
     Task<string?> GetBiblePublicationTrackUrl(string languageCode, string pubCode, int sectionNumber, int track, string lookUpPath);
 
     Task<string?> GetMusicTrackUrl(string languageCode, string lookUpPath);
+
+    Task<string?> GetDramaTrackUrl(string categoryKey, string languageCode, int trackNumber, string? naturalKey = null);
 }
 

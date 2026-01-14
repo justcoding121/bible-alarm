@@ -242,7 +242,8 @@ public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, I
     /// Gets the track title with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
     /// </summary>
     public string Title => System.Net.WebUtility.HtmlDecode(track.Title).Replace('\u00A0', ' ');
-    public string Url => track.Source?.Url ?? string.Empty;
+    // URLs are now computed on-demand, not stored
+    public string Url => string.Empty;
 
     public int CompareTo(object? obj) => Number.CompareTo((obj as BiblePublicationTrackListViewItemModel)?.Number);
 }

@@ -26,8 +26,6 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 
 internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, DownloadUtility downloadUtility)
 {
-    // Cache for base URLs to avoid duplicate lookups
-    private readonly Dictionary<string, SourceBaseUrl> baseUrlCache = new();
 
     public async Task Seed()
     {
@@ -279,82 +277,16 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     {
         foreach (var track in tracks)
         {
-            var source = await CreateSource(db, track.Value.Url);
+            // URLs are no longer stored - they will be computed on-demand
             var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
             {
                 Number = track.Value.Number,
                 Title = track.Value.Title, // Localized chapter title (e.g., "അധ്യായം 1" in Malayalam)
-                Source = source,
                 Publication = biblePublication
             };
 
             newSection.Tracks.Add(newTrack);
         }
-    }
-
-    /// <summary>
-    /// Creates a Source by extracting and caching the base URL.
-    /// </summary>
-    private async Task<Source> CreateSource(MediaDbContext db, string fullUrl)
-    {
-        var (baseUrl, urlPath) = ExtractBaseUrlAndPath(fullUrl);
-        var baseUrlEntity = await GetOrCreateBaseUrl(db, baseUrl);
-
-        return new Source
-        {
-            BaseUrlEntity = baseUrlEntity,
-            BaseUrlId = baseUrlEntity.Id,
-            UrlPath = urlPath
-        };
-    }
-
-    /// <summary>
-    /// Extracts the base URL (scheme + host) and path from a full URL.
-    /// </summary>
-    private static (string BaseUrl, string UrlPath) ExtractBaseUrlAndPath(string fullUrl)
-    {
-        if (string.IsNullOrEmpty(fullUrl))
-        {
-            return (string.Empty, string.Empty);
-        }
-
-        try
-        {
-            var uri = new Uri(fullUrl);
-            var baseUrl = $"{uri.Scheme}://{uri.Host}";
-            var urlPath = uri.PathAndQuery;
-            return (baseUrl, urlPath);
-        }
-        catch (UriFormatException)
-        {
-            // If URL is malformed, store the whole thing as the path
-            return (string.Empty, fullUrl);
-        }
-    }
-
-    /// <summary>
-    /// Gets an existing base URL or creates a new one.
-    /// Always checks the current database context first to ensure entities are tracked correctly.
-    /// </summary>
-    private async Task<SourceBaseUrl> GetOrCreateBaseUrl(MediaDbContext db, string baseUrl)
-    {
-        // Always check database first in current context to ensure entity is tracked by this context
-        // Don't use cached entities directly as they may be from a different DbContext scope
-        var existing = await db.SourceBaseUrls.FirstOrDefaultAsync(x => x.BaseUrl == baseUrl);
-        if (existing != null)
-        {
-            // Update cache with entity from current context
-            baseUrlCache[baseUrl] = existing;
-            return existing;
-        }
-
-        // Create new
-        var newBaseUrl = new SourceBaseUrl { BaseUrl = baseUrl };
-        db.SourceBaseUrls.Add(newBaseUrl);
-        await db.SaveChangesAsync();
-
-        baseUrlCache[baseUrl] = newBaseUrl;
-        return newBaseUrl;
     }
 
     #region Drama Seeding
@@ -441,12 +373,11 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     {
         foreach (var track in tracks)
         {
-            var source = await CreateSource(db, track.Value.Url);
+            // URLs are no longer stored - they will be computed on-demand
             var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
             {
                 Number = track.Value.Number,
-                Title = track.Value.Title,
-                Source = source
+                Title = track.Value.Title
             };
 
             publication.Tracks.Add(newTrack);
@@ -539,12 +470,11 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     {
         foreach (var episode in episodes)
         {
-            var source = await CreateSource(db, episode.Value.Url);
+            // URLs are no longer stored - they will be computed on-demand
             var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
             {
                 Number = episode.Value.Number,
-                Title = episode.Value.Title,
-                Source = source
+                Title = episode.Value.Title
             };
 
             publication.Tracks.Add(newTrack);
@@ -610,12 +540,15 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     {
         foreach (var track in tracks)
         {
-            var source = await CreateSource(db, track.Value.Url);
+            // URLs are no longer stored - they will be computed on-demand
+            // Store DownloadCode for melody music that uses disc codes (e.g., "iam-1", "iam-2")
+            // Store OriginalTrackNumber for melody music - the API expects the track number within that disc
             var newTrack = new Shared.Models.Media.Music.MusicTrack
             {
                 Number = track.Value.Number,
                 Title = track.Value.Title,
-                Source = source
+                DownloadCode = track.Value.DownloadCode,
+                OriginalTrackNumber = track.Value.OriginalTrackNumber
             };
 
             newMelodyMusic.Tracks.Add(newTrack);
@@ -702,12 +635,15 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
     {
         foreach (var track in tracks)
         {
-            var source = await CreateSource(db, track.Value.Url);
+            // URLs are no longer stored - they will be computed on-demand
+            // For vocal music, DownloadCode is typically the same as publication code, but store it for consistency
+            // OriginalTrackNumber is typically the same as Number for vocal music
             var newTrack = new Shared.Models.Media.Music.MusicTrack
             {
                 Number = track.Value.Number,
                 Title = track.Value.Title,
-                Source = source
+                DownloadCode = track.Value.DownloadCode,
+                OriginalTrackNumber = track.Value.OriginalTrackNumber
             };
 
             newVocalMusic.Tracks.Add(newTrack);

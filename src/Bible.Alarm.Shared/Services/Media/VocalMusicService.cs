@@ -106,12 +106,9 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Use Include chain before navigation to properly load nested navigation properties
             var publication = await dbContext.VocalMusic
                 .AsNoTracking()
                 .Include(x => x.Tracks)
-                    .ThenInclude(t => t.Source)
-                        .ThenInclude(src => src!.BaseUrlEntity)
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -133,70 +130,11 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
 
     public async Task UpdateTrackUrlAsync(string languageCode, string publicationCode, int trackNumber, string url, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            using var scope = scopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var track = await dbContext.VocalMusic
-                .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
-                .SelectMany(x => x.Tracks)
-                .Include(x => x.Source)
-                .ThenInclude(s => s!.BaseUrlEntity)
-                .Where(x => x.Number == trackNumber)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (track?.Source != null)
-            {
-                // Extract path from the new URL and update UrlPath
-                var (baseUrl, urlPath) = ExtractBaseUrlAndPath(url);
-                track.Source.UrlPath = urlPath;
-
-                // Update BaseUrl if it changed (rare, but handle it)
-                if (track.Source.BaseUrlEntity.BaseUrl != baseUrl)
-                {
-                    var existingBaseUrl = await dbContext.SourceBaseUrls
-                        .FirstOrDefaultAsync(x => x.BaseUrl == baseUrl, cancellationToken);
-                    if (existingBaseUrl != null)
-                    {
-                        track.Source.BaseUrlEntity = existingBaseUrl;
-                    }
-                    else
-                    {
-                        track.Source.BaseUrlEntity = new SourceBaseUrl { BaseUrl = baseUrl };
-                    }
-                }
-
-                await dbContext.SaveChangesAsync(cancellationToken);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error updating VocalMusic track URL. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
-                languageCode, publicationCode, trackNumber);
-            throw;
-        }
+        // URLs are now computed on-demand, no need to store them
+        // This method is kept for backward compatibility but does nothing
+        await Task.CompletedTask;
     }
 
-    private static (string BaseUrl, string UrlPath) ExtractBaseUrlAndPath(string fullUrl)
-    {
-        if (string.IsNullOrEmpty(fullUrl))
-        {
-            return (string.Empty, string.Empty);
-        }
-
-        try
-        {
-            var uri = new Uri(fullUrl);
-            var baseUrl = $"{uri.Scheme}://{uri.Host}";
-            var urlPath = uri.PathAndQuery;
-            return (baseUrl, urlPath);
-        }
-        catch (UriFormatException)
-        {
-            return (string.Empty, fullUrl);
-        }
-    }
 
     public void Dispose()
     {

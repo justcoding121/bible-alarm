@@ -59,7 +59,9 @@ public static class ScheduleStateSyncHelper
                current.Minute == action.Minute &&
                current.Second == action.Second &&
                current.DaysOfWeek == action.DaysOfWeek &&
-               current.MusicEnabled == action.MusicEnabled;
+               current.MusicEnabled == action.MusicEnabled &&
+               current.NumberOfTracksToRead == action.NumberOfTracksToRead &&
+               current.AlwaysPlayFromStart == action.AlwaysPlayFromStart;
     }
 
     public static BiblePublicationStateItem? SyncBiblePublicationScheduleIfNeeded(UpdateScheduleFromViewModelAction action, ScheduleStateItem? updatedCurrentSchedule)

@@ -16,7 +16,6 @@ public class MediaDbContext : DbContext
     }
 
     public DbSet<Language> Languages { get; set; }
-    public DbSet<SourceBaseUrl> SourceBaseUrls { get; set; }
 
     public DbSet<BiblePublication> BiblePublications { get; set; }
     public DbSet<BiblePublicationSection> BiblePublicationSections { get; set; }

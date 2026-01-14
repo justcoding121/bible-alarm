@@ -14,13 +14,17 @@ public static class PublicationTypeHelper
     private static readonly HashSet<string> DramaPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
         "Dramas",
-        "DramaticBibleReadings",
+        "DramaticBibleReadings"
+    };
+
+    private static readonly HashSet<string> VideoPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
+    {
         "gnj" // Good News According to Jesus (video)
     };
 
     /// <summary>
     /// Returns true if the publication has a Section → Track structure (traditional Bible).
-    /// Returns false for dramas which have a flat Track structure.
+    /// Returns false for dramas and videos which have a flat Track structure.
     /// </summary>
     public static bool HasSectionStructure(string? publicationCode)
     {
@@ -29,7 +33,7 @@ public static class PublicationTypeHelper
             return true; // Default to Bible structure
         }
 
-        return !DramaPublicationCodes.Contains(publicationCode);
+        return !DramaPublicationCodes.Contains(publicationCode) && !VideoPublicationCodes.Contains(publicationCode);
     }
 
     /// <summary>
@@ -43,6 +47,20 @@ public static class PublicationTypeHelper
         }
 
         return DramaPublicationCodes.Contains(publicationCode);
+    }
+
+    /// <summary>
+    /// Returns true if the publication is a video (e.g., "The Good News According to Jesus").
+    /// Videos are non-sectioned like dramas but use GETPUBMEDIALINKS API, not Mediator API.
+    /// </summary>
+    public static bool IsVideo(string? publicationCode)
+    {
+        if (string.IsNullOrEmpty(publicationCode))
+        {
+            return false;
+        }
+
+        return VideoPublicationCodes.Contains(publicationCode);
     }
 
     /// <summary>

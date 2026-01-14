@@ -76,10 +76,15 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
 
     public async Task<byte[]> DownloadAsync(string url, string? alternativeUrl = null, CancellationToken cancellationToken = default)
     {
-        return await DownloadWithProgressAsync(url, null, cancellationToken);
+        return await DownloadWithProgressAsyncInternal(url, null, cancellationToken, alternativeUrl);
     }
 
     public async Task<byte[]> DownloadWithProgressAsync(string url, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
+    {
+        return await DownloadWithProgressAsyncInternal(url, progressCallback, cancellationToken, null);
+    }
+
+    private async Task<byte[]> DownloadWithProgressAsyncInternal(string url, Action<long, long?>? progressCallback, CancellationToken cancellationToken, string? alternativeUrl)
     {
         // Combine the service's cancellation token with the provided one
         using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token, cancellationToken);
@@ -103,8 +108,26 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                 // Check for cancellation before retrying
                 combinedCts.Token.ThrowIfCancellationRequested();
 
+                // If alternative URL is provided, try it before giving up
+                if (!string.IsNullOrEmpty(alternativeUrl) && alternativeUrl != url)
+                {
+                    logger.Warning(ex, "Failed to download from primary URL: {Url}, trying alternative URL: {AlternativeUrl}", url, alternativeUrl);
+                    try
+                    {
+                        return await DownloadWithStallTimeoutAsync(alternativeUrl, combinedCts.Token, progressCallback);
+                    }
+                    catch (Exception altEx)
+                    {
+                        logger.Error(altEx, "Failed to download from alternative URL: {AlternativeUrl}", alternativeUrl);
+                        throw; // Throw the alternative URL exception
+                    }
+                }
+
                 logger.Warning(ex, "Failed to download from primary URL: {Url}", url);
-                logger.Error(ex, "No alternative URL provided for failed download: {Url}", url);
+                if (string.IsNullOrEmpty(alternativeUrl))
+                {
+                    logger.Error("No alternative URL provided for failed download: {Url}", url);
+                }
                 throw;
             }
         }, combinedCts.Token);

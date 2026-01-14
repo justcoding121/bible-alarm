@@ -26,14 +26,24 @@ public sealed class ScheduleSaveService : IScheduleSaveService
     {
         logger.Information("PrepareModelForSave: Starting. musicUpdated={MusicUpdated}, IsNewSchedule={IsNewSchedule}", musicUpdated, isNewSchedule);
 
-        logger.Information("PrepareModelForSave: CurrentSchedule state - MusicType={MusicType}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicId={MusicId}",
+        logger.Information("PrepareModelForSave: CurrentSchedule state - MusicType={MusicType}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicId={MusicId}, NumberOfTracksToRead={NumberOfTracksToRead}, AlwaysPlayFromStart={AlwaysPlayFromStart}",
             currentSchedule?.MusicType?.ToString() ?? "null",
             currentSchedule?.MusicTrackNumber?.ToString() ?? "null",
             currentSchedule?.MusicPublicationCode ?? "null",
             currentSchedule?.MusicLanguageCode ?? "null",
-            currentSchedule?.MusicId?.ToString() ?? "null");
+            currentSchedule?.MusicId?.ToString() ?? "null",
+            currentSchedule?.NumberOfTracksToRead ?? 0,
+            currentSchedule?.AlwaysPlayFromStart ?? false);
 
         var model = mapper.Map<AlarmSchedule>(currentSchedule);
+        
+        // Explicitly ensure NumberOfTracksToRead and AlwaysPlayFromStart are set from currentSchedule state
+        // (AutoMapper should handle this, but we explicitly set it to be safe)
+        model.NumberOfTracksToRead = currentSchedule.NumberOfTracksToRead;
+        model.AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
+        
+        logger.Information("PrepareModelForSave: After mapping - model.NumberOfTracksToRead={NumberOfTracksToRead}, model.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            model.NumberOfTracksToRead, model.AlwaysPlayFromStart);
 
         logger.Information("PrepareModelForSave: After GetModel() - model.Music={HasMusic}, model.Music?.MusicType={MusicType}, model.Music?.TrackNumber={TrackNumber}, model.Music?.PublicationCode={PublicationCode}, model.Music?.LanguageCode={LanguageCode}",
             model.Music != null ? "not null" : "null",
@@ -146,10 +156,12 @@ public sealed class ScheduleSaveService : IScheduleSaveService
 
         var scheduleStateItem = mapper.Map<ScheduleStateItem>(model);
 
-        // Ensure MusicEnabled and all display names are set from CurrentSchedule state
+        // Ensure MusicEnabled, NumberOfTracksToRead, AlwaysPlayFromStart, and all display names are set from CurrentSchedule state
         scheduleStateItem.MusicEnabled = currentSchedule.MusicEnabled;
-        logger.Information("PrepareScheduleStateItem: Set scheduleStateItem.MusicEnabled={MusicEnabled} from CurrentSchedule state",
-            scheduleStateItem.MusicEnabled);
+        scheduleStateItem.NumberOfTracksToRead = currentSchedule.NumberOfTracksToRead;
+        scheduleStateItem.AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
+        logger.Information("PrepareScheduleStateItem: Set scheduleStateItem.MusicEnabled={MusicEnabled}, NumberOfTracksToRead={NumberOfTracksToRead}, and AlwaysPlayFromStart={AlwaysPlayFromStart} from CurrentSchedule state",
+            scheduleStateItem.MusicEnabled, scheduleStateItem.NumberOfTracksToRead, scheduleStateItem.AlwaysPlayFromStart);
 
         // Preserve all display names from CurrentSchedule state
         scheduleStateItem.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;

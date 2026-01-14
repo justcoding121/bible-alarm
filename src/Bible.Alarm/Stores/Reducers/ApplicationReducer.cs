@@ -380,7 +380,8 @@ public static class ApplicationReducer
                 : updatedCurrentSchedule.BiblePublicationCode;
             updatedCurrentSchedule.BiblePublicationSectionNumber = biblePub.SectionNumber;
             updatedCurrentSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
-            updatedCurrentSchedule.BiblePublicationFinishedDuration = biblePub.FinishedDuration;
+            // Reset progress to 0.0 when track is changed (by cascade or direct selection)
+            updatedCurrentSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
             
             // Update display names - use action values if provided, otherwise keep existing
             updatedCurrentSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 

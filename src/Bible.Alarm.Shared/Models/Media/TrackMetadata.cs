@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
@@ -26,12 +27,48 @@ public class TrackMetadata
     public string PublicationCode { get; set; } = string.Empty;
 
     /// <summary>
+    /// Optional natural key for drama/video tracks (e.g., "pub-dwj_E_1_AUDIO").
+    /// Used for more precise lookup when available.
+    /// </summary>
+    public string? NaturalKey { get; set; }
+
+    /// <summary>
+    /// Download code used to fetch this track (e.g., "iam-1", "iam-2" for melody music discs).
+    /// This is needed for melody music publications that use multiple disc codes.
+    /// For regular publications, this will be null and the publication code will be used.
+    /// </summary>
+    public string? DownloadCode { get; set; }
+
+    /// <summary>
+    /// Original track number from the API response (within the disc).
+    /// This is needed for melody music with multiple discs, where the API expects the track number within that specific disc.
+    /// For regular publications, this will be null and TrackNumber will be used.
+    /// </summary>
+    public int? OriginalTrackNumber { get; set; }
+
+    /// <summary>
     /// Computes the LookUpPath at runtime based on PlayType and available parameters.
     /// This replaces storing LookUpPath in the database.
+    /// For dramas, uses Mediator API format. For Bible/Videos/Music, uses GETPUBMEDIALINKS format.
     /// </summary>
-    public string LookUpPath => PlayType == PlayType.Bible
-        ? LookUpPathBuilder.BuildBiblePublicationTrackLookUpPath(LanguageCode, PublicationCode, SectionNumber, TrackNumber)
-        : LookUpPathBuilder.BuildMusicTrackLookUpPath(PublicationCode, LanguageCode, TrackNumber);
+    public string LookUpPath
+    {
+        get
+        {
+            if (PlayType == PlayType.Bible)
+            {
+                // Check if this is a drama (uses Mediator API)
+                if (PublicationTypeHelper.IsDrama(PublicationCode))
+                {
+                    return LookUpPathBuilder.BuildDramaTrackLookUpPath(PublicationCode, LanguageCode, TrackNumber, NaturalKey);
+                }
+                // Traditional Bible publication (uses GETPUBMEDIALINKS)
+                return LookUpPathBuilder.BuildBiblePublicationTrackLookUpPath(LanguageCode, PublicationCode, SectionNumber, TrackNumber);
+            }
+            // Music (uses GETPUBMEDIALINKS)
+            return LookUpPathBuilder.BuildMusicTrackLookUpPath(PublicationCode, LanguageCode, TrackNumber, DownloadCode, OriginalTrackNumber);
+        }
+    }
 
     public int SectionNumber { get; set; }
     public int TrackNumber { get; set; }

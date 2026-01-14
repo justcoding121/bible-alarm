@@ -214,8 +214,14 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             await Task.Delay(50);
         }
 
+        logger.Information("ExecuteSaveAsync: Before PrepareModelForSave - currentSchedule.NumberOfTracksToRead={NumberOfTracksToRead}, currentSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            currentSchedule.NumberOfTracksToRead, currentSchedule.AlwaysPlayFromStart);
+        
         var model = scheduleSaveService.PrepareModelForSave(currentSchedule, isNewSchedule, musicUpdated);
         var scheduleStateItem = scheduleSaveService.PrepareScheduleStateItem(model, currentSchedule, musicUpdated);
+
+        logger.Information("ExecuteSaveAsync: After PrepareScheduleStateItem - scheduleStateItem.NumberOfTracksToRead={NumberOfTracksToRead}, scheduleStateItem.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            scheduleStateItem.NumberOfTracksToRead, scheduleStateItem.AlwaysPlayFromStart);
 
         if (isNewSchedule)
         {
@@ -224,7 +230,8 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         }
         else
         {
-            logger.Information("DispatchSaveActionAsync: Dispatching UpdateScheduleFromViewModelAction with shouldSave: true");
+            logger.Information("DispatchSaveActionAsync: Dispatching UpdateScheduleFromViewModelAction with shouldSave: true. scheduleStateItem.NumberOfTracksToRead={NumberOfTracksToRead}, scheduleStateItem.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+                scheduleStateItem.NumberOfTracksToRead, scheduleStateItem.AlwaysPlayFromStart);
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, musicUpdated, biblePublicationUpdated, shouldSave: true));
         }
 

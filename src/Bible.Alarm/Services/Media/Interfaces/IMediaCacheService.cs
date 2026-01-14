@@ -5,9 +5,21 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IMediaCacheService : IDisposable
 {
-    Task<bool> ExistsAsync(string url);
-    string GetCacheFileName(string url);
-    string GetCacheFilePath(string url);
+    /// <summary>
+    /// Checks if a cached file exists for a lookup path in a schedule's cache folder.
+    /// </summary>
+    Task<bool> ExistsAsync(string lookUpPath, int scheduleId);
+    
+    /// <summary>
+    /// Gets the cache file name from a lookup path (API query string).
+    /// Uses lookup path instead of CDN URL so cache files are stable even when CDN URLs change.
+    /// </summary>
+    string GetCacheFileName(string lookUpPath);
+    
+    /// <summary>
+    /// Gets the cache file path for a lookup path within a specific schedule's folder.
+    /// </summary>
+    string GetCacheFilePath(string lookUpPath, int scheduleId);
 
     Task<bool> SetupAlarmCacheAsync(int alarmScheduleId);
     Task CleanUpAsync();

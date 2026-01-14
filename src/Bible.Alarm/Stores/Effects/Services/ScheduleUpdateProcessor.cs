@@ -58,7 +58,14 @@ public sealed class ScheduleUpdateProcessor
         // Map and run database update on background thread to avoid blocking UI
         var savedSchedule = await Task.Run(async () =>
         {
+            Log.Information("UpdateScheduleInDatabaseAsync: action.Schedule.NumberOfTracksToRead={NumberOfTracksToRead}, action.Schedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+                action.Schedule!.NumberOfTracksToRead, action.Schedule.AlwaysPlayFromStart);
+            
             var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule!);
+            
+            Log.Information("UpdateScheduleInDatabaseAsync: After mapping - dbSchedule.NumberOfTracksToRead={NumberOfTracksToRead}, dbSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+                dbSchedule.NumberOfTracksToRead, dbSchedule.AlwaysPlayFromStart);
+            
             return await alarmScheduleService!.UpdateScheduleByIdAsync(
                 action.Schedule.Id,
                 existing => ScheduleEntityUpdater.UpdateScheduleEntity(existing, dbSchedule, action),
@@ -66,6 +73,8 @@ public sealed class ScheduleUpdateProcessor
         });
 
         LogScheduleUpdateResult(savedSchedule);
+        Log.Information("UpdateScheduleInDatabaseAsync: After save - savedSchedule.NumberOfTracksToRead={NumberOfTracksToRead}, savedSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            savedSchedule.NumberOfTracksToRead, savedSchedule.AlwaysPlayFromStart);
         return savedSchedule;
     }
 
