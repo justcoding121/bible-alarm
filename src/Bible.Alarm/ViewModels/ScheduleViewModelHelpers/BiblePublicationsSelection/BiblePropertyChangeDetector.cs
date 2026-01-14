@@ -47,12 +47,13 @@ public sealed class BiblePublicationPropertyChangeDetector
         lastIsSectionVisible = displayTextProvider.GetIsSectionVisible();
     }
 
-    public PropertyChangeInfo DetectPropertyChanges(ScheduleStateItem? currentSchedule, BiblePublicationStateItem? currentBiblePublication)
+    public PropertyChangeInfo DetectPropertyChanges(ScheduleStateItem? currentSchedule)
     {
+        // Use CurrentSchedule as the single source of truth
         var currentLanguageCode = currentSchedule?.BiblePublicationLanguageCode;
-        var currentPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule?.BiblePublicationCode;
-        var currentSectionNumber = currentBiblePublication?.SectionNumber ?? currentSchedule?.BiblePublicationSectionNumber;
-        var currentTrackNumber = currentBiblePublication?.TrackNumber ?? currentSchedule?.BiblePublicationTrackNumber;
+        var currentPublicationCode = currentSchedule?.BiblePublicationCode;
+        var currentSectionNumber = currentSchedule?.BiblePublicationSectionNumber;
+        var currentTrackNumber = currentSchedule?.BiblePublicationTrackNumber;
 
         var languageCodeChanged = currentLanguageCode != lastLanguageCode;
         var publicationCodeChanged = currentPublicationCode != lastPublicationCode;

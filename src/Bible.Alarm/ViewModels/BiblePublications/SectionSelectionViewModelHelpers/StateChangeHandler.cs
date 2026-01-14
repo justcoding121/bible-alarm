@@ -85,10 +85,19 @@ public class StateChangeHandler
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
 
-        // Update current if we have CurrentBiblePublicationSchedule (for other properties like SectionNumber)
-        if (stateValue.CurrentBiblePublicationSchedule != null)
+        // Derive from CurrentSchedule (single source of truth)
+        // currentSchedule is already declared above
+        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
-            var newCurrent = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
+            // Create BiblePublicationSchedule from CurrentSchedule
+            var newCurrent = new BiblePublicationSchedule
+            {
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+            };
             setCurrent(newCurrent);
             setLastCurrent(newCurrent);
         }

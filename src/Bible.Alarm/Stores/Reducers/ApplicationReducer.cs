@@ -21,8 +21,6 @@ public static class ApplicationReducer
         return new ApplicationState(
             schedules: action.ScheduleList,
             currentSchedule: null,
-            currentMusic: null,
-            currentBiblePublicationSchedule: null,
             isHomePageOverlayVisible: false,
             isSchedulePageOverlayVisible: false);
     }
@@ -100,17 +98,12 @@ public static class ApplicationReducer
         // else: ShouldSave=false means only update CurrentSchedule, not Schedules collection
 
         var updatedCurrentSchedule = ScheduleStateSyncHelper.UpdateCurrentScheduleIfMatches(state, action.Schedule);
-        var updatedCurrentBiblePublicationSchedule = ScheduleStateSyncHelper.SyncBiblePublicationScheduleIfNeeded(action, updatedCurrentSchedule);
-        var updatedCurrentMusic = ScheduleStateSyncHelper.SyncMusicIfNeeded(action, updatedCurrentSchedule);
 
         // Check if state actually changed to prevent unnecessary state updates and cycles
-        // If CurrentSchedule wasn't updated (same reference), and other properties didn't change, return existing state
-        if (newSchedules == null && 
-            ReferenceEquals(updatedCurrentSchedule, state.CurrentSchedule) &&
-            ReferenceEquals(updatedCurrentMusic, state.CurrentMusic) &&
-            ReferenceEquals(updatedCurrentBiblePublicationSchedule, state.CurrentBiblePublicationSchedule))
+        // If CurrentSchedule wasn't updated (same reference), return existing state
+        if (newSchedules == null && ReferenceEquals(updatedCurrentSchedule, state.CurrentSchedule))
         {
-            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - No actual state changes detected, returning existing state to prevent cycle. ScheduleId: {ScheduleId}", action.Schedule.Id);
+            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule values unchanged, returning existing reference to prevent cycle. ScheduleId: {ScheduleId}", action.Schedule.Id);
             return state;
         }
 
@@ -120,15 +113,14 @@ public static class ApplicationReducer
             return new ApplicationState(
                 schedules: newSchedules,
                 currentSchedule: updatedCurrentSchedule,
-                currentMusic: updatedCurrentMusic,
-                currentBiblePublicationSchedule: updatedCurrentBiblePublicationSchedule,
                 isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
                 isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
-                containerReadiness: state.ContainerReadiness);
+                containerReadiness: state.ContainerReadiness,
+                pendingScheduleLoad: state.PendingScheduleLoad);
         }
         else
         {
-            return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule, updatedCurrentMusic, updatedCurrentBiblePublicationSchedule);
+            return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);
         }
     }
 
@@ -242,38 +234,9 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnViewSchedule(ApplicationState state, ViewScheduleAction action)
     {
-        // Create CurrentBiblePublicationSchedule from schedule's Bible reading properties
-        BiblePublicationStateItem? currentBiblePublicationSchedule = null;
-        if (action.SelectedSchedule != null &&
-            ScheduleStateSyncHelper.HasValidBiblePublicationProperties(action.SelectedSchedule))
-        {
-            currentBiblePublicationSchedule = new BiblePublicationStateItem
-            {
-                Id = action.SelectedSchedule.BiblePublicationScheduleId ?? 0,
-                LanguageCode = action.SelectedSchedule.BiblePublicationLanguageCode ?? string.Empty,
-                PublicationCode = action.SelectedSchedule.BiblePublicationCode ?? string.Empty,
-                SectionNumber = action.SelectedSchedule.BiblePublicationSectionNumber,
-                TrackNumber = action.SelectedSchedule.BiblePublicationTrackNumber ?? 1,
-                FinishedDuration = action.SelectedSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
-                AlarmScheduleId = action.SelectedSchedule.Id,
-                LanguageName = action.SelectedSchedule.BiblePublicationLanguageName,
-                LanguageDirection = action.SelectedSchedule.BiblePublicationLanguageDirection,
-                PublicationName = action.SelectedSchedule.BiblePublicationName,
-                SectionName = action.SelectedSchedule.BiblePublicationSectionName,
-                TrackTitle = action.SelectedSchedule.BiblePublicationTrackTitle
-            };
-        }
-
+        // CurrentSchedule is the single source of truth - all data is already in the schedule
         // Deep clone the selected schedule to ensure CurrentSchedule is independent from the item in Schedules collection
         ScheduleStateItem? clonedCurrentSchedule = action.SelectedSchedule?.DeepClone();
-
-        // Sync CurrentMusic from the schedule's music properties (especially important for new schedules)
-        // This ensures CurrentMusic matches CurrentSchedule's music type (defaults to Melodies for new schedules)
-        MusicStateItem? syncedCurrentMusic = null;
-        if (clonedCurrentSchedule != null && ScheduleStateSyncHelper.HasValidMusicProperties(clonedCurrentSchedule))
-        {
-            syncedCurrentMusic = ScheduleStateSyncHelper.CreateMusicFromCurrent(clonedCurrentSchedule);
-        }
 
         // Always set overlay to visible when navigating to schedule page
         // This ensures the overlay is shown even if it was left visible from a previous visit
@@ -283,8 +246,6 @@ public static class ApplicationReducer
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: clonedCurrentSchedule,
-            currentMusic: syncedCurrentMusic,
-            currentBiblePublicationSchedule: currentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: overlayVisible,
             containerReadiness: Models.ContainerReadiness.NotReady,
@@ -299,8 +260,6 @@ public static class ApplicationReducer
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: null, // Will be set after DB load
-            currentMusic: null,
-            currentBiblePublicationSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: true, // Show overlay while loading
             containerReadiness: Models.ContainerReadiness.NotReady,
@@ -316,8 +275,6 @@ public static class ApplicationReducer
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: null,
-            currentMusic: null,
-            currentBiblePublicationSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: false, // Reset overlay visibility when leaving schedule page
             containerReadiness: Models.ContainerReadiness.NotReady);
@@ -326,44 +283,25 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnMusicSelection(ApplicationState state, MusicSelectionAction action)
     {
-        // Only update CurrentMusic if it doesn't conflict with CurrentSchedule's music type
-        // For new schedules (Id <= 0), CurrentSchedule is the source of truth
-        // Don't let MusicSelectionAction override CurrentSchedule's music type
-        MusicStateItem? finalCurrentMusic = action.CurrentMusic;
-        if (state.CurrentSchedule != null && state.CurrentSchedule.Id <= 0)
-        {
-            // For new schedules, sync CurrentMusic from CurrentSchedule to ensure consistency
-            if (ScheduleStateSyncHelper.HasValidMusicProperties(state.CurrentSchedule))
-            {
-                finalCurrentMusic = ScheduleStateSyncHelper.CreateMusicFromCurrent(state.CurrentSchedule);
-            }
-        }
-
-        return StateFactory.CreateUpdatedState(
-            state,
-            state.CurrentSchedule,
-            finalCurrentMusic,
-            state.CurrentBiblePublicationSchedule);
+        // Music selection updates CurrentSchedule directly via OnMusicTrackSelected
+        // This reducer is kept for backward compatibility but doesn't need to do anything
+        return state;
     }
 
     [ReducerMethod]
     public static ApplicationState OnSongPublicationSelection(ApplicationState state, SongPublicationSelectionAction action)
     {
-        return StateFactory.CreateUpdatedState(
-            state,
-            state.CurrentSchedule,
-            action.CurrentMusic,
-            state.CurrentBiblePublicationSchedule);
+        // Song publication selection updates CurrentSchedule directly via OnMusicTrackSelected
+        // This reducer is kept for backward compatibility but doesn't need to do anything
+        return state;
     }
 
     [ReducerMethod]
     public static ApplicationState OnMusicTrackSelection(ApplicationState state, Actions.Music.TrackSelectionAction action)
     {
-        return StateFactory.CreateUpdatedState(
-            state,
-            state.CurrentSchedule,
-            action.CurrentMusic,
-            state.CurrentBiblePublicationSchedule);
+        // Track selection updates CurrentSchedule directly via OnMusicTrackSelected
+        // This reducer is kept for backward compatibility but doesn't need to do anything
+        return state;
     }
 
     [ReducerMethod]
@@ -391,68 +329,83 @@ public static class ApplicationReducer
                 music.MusicType, music.TrackNumber, music.TrackName);
         }
 
-        return StateFactory.CreateUpdatedState(
-            state,
-            updatedCurrentSchedule,
-            action.CurrentMusic,
-            state.CurrentBiblePublicationSchedule);
+        return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);
     }
 
     [ReducerMethod]
     public static ApplicationState OnBibleSelection(ApplicationState state, BiblePublicationSelectionAction action)
     {
-        return StateFactory.CreateUpdatedState(
-            state,
-            state.CurrentSchedule,
-            state.CurrentMusic,
-            action.CurrentBiblePublicationSchedule);
+        // Bible selection updates CurrentSchedule directly via OnBiblePublicationTrackSelected
+        // This reducer is kept for backward compatibility but doesn't need to do anything
+        return state;
     }
 
     [ReducerMethod]
     public static ApplicationState OnSectionSelection(ApplicationState state, SectionSelectionAction action)
     {
-        return StateFactory.CreateUpdatedState(
-            state,
-            state.CurrentSchedule,
-            state.CurrentMusic,
-            action.CurrentBiblePublicationSchedule);
+        // Section selection updates CurrentSchedule directly via OnBiblePublicationTrackSelected
+        // This reducer is kept for backward compatibility but doesn't need to do anything
+        return state;
     }
 
     [ReducerMethod]
     public static ApplicationState OnBiblePublicationTrackSelection(ApplicationState state, Actions.BiblePublications.TrackSelectionAction action)
     {
-        return StateFactory.CreateUpdatedState(
-            state,
-            state.CurrentSchedule,
-            state.CurrentMusic,
-            action.CurrentBiblePublicationSchedule);
+        // Track selection updates CurrentSchedule directly via OnBiblePublicationTrackSelected
+        // This reducer is kept for backward compatibility but doesn't need to do anything
+        return state;
     }
 
     [ReducerMethod]
     public static ApplicationState OnBiblePublicationTrackSelected(ApplicationState state, Actions.BiblePublications.TrackSelectedAction action)
     {
         // IMPORTANT: Update CurrentSchedule synchronously here to ensure schedule page shows
-        // the new track immediately when modal closes. The async effect runs too late.
+        // the new selection immediately when modal closes. The async effect runs too late.
+        // Must update ALL bible publication fields to prevent ViewModels from reading stale state
+        // and dispatching actions that revert the user's selection (causing state cycles).
         var updatedCurrentSchedule = state.CurrentSchedule;
         if (updatedCurrentSchedule != null && action.CurrentBiblePublicationSchedule != null)
         {
             var biblePub = action.CurrentBiblePublicationSchedule;
             updatedCurrentSchedule = updatedCurrentSchedule.DeepClone();
-            updatedCurrentSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
-            updatedCurrentSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle;
-            // Also update section if it changed
+            
+            // Update ALL bible publication fields to ensure CurrentSchedule is fully in sync
+            // This prevents ViewModels from reading stale values when they dispatch updates
+            updatedCurrentSchedule.BiblePublicationScheduleId = biblePub.Id > 0 ? biblePub.Id : updatedCurrentSchedule.BiblePublicationScheduleId;
+            updatedCurrentSchedule.BiblePublicationLanguageCode = !string.IsNullOrEmpty(biblePub.LanguageCode) 
+                ? biblePub.LanguageCode 
+                : updatedCurrentSchedule.BiblePublicationLanguageCode;
+            updatedCurrentSchedule.BiblePublicationCode = !string.IsNullOrEmpty(biblePub.PublicationCode) 
+                ? biblePub.PublicationCode 
+                : updatedCurrentSchedule.BiblePublicationCode;
             updatedCurrentSchedule.BiblePublicationSectionNumber = biblePub.SectionNumber;
-            updatedCurrentSchedule.BiblePublicationSectionName = biblePub.SectionName;
+            updatedCurrentSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
+            updatedCurrentSchedule.BiblePublicationFinishedDuration = biblePub.FinishedDuration;
+            
+            // Update display names - use action values if provided, otherwise keep existing
+            updatedCurrentSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
+                ? biblePub.LanguageName 
+                : updatedCurrentSchedule.BiblePublicationLanguageName;
+            updatedCurrentSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
+                ? biblePub.LanguageDirection 
+                : updatedCurrentSchedule.BiblePublicationLanguageDirection;
+            updatedCurrentSchedule.BiblePublicationName = !string.IsNullOrEmpty(biblePub.PublicationName) 
+                ? biblePub.PublicationName 
+                : updatedCurrentSchedule.BiblePublicationName;
+            updatedCurrentSchedule.BiblePublicationSectionName = !string.IsNullOrEmpty(biblePub.SectionName) 
+                ? biblePub.SectionName 
+                : updatedCurrentSchedule.BiblePublicationSectionName;
+            updatedCurrentSchedule.BiblePublicationTrackTitle = !string.IsNullOrEmpty(biblePub.TrackTitle) 
+                ? biblePub.TrackTitle 
+                : updatedCurrentSchedule.BiblePublicationTrackTitle;
 
-            Log.Debug("ApplicationReducer.OnBiblePublicationTrackSelected: Updated CurrentSchedule with TrackNumber={TrackNumber}, TrackTitle={TrackTitle}",
-                biblePub.TrackNumber, biblePub.TrackTitle);
+            Log.Debug("ApplicationReducer.OnBiblePublicationTrackSelected: Updated CurrentSchedule with " +
+                "LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}, TrackNumber={TrackNumber}",
+                updatedCurrentSchedule.BiblePublicationLanguageCode, updatedCurrentSchedule.BiblePublicationCode,
+                biblePub.SectionNumber, biblePub.TrackNumber);
         }
 
-        return StateFactory.CreateUpdatedState(
-            state,
-            updatedCurrentSchedule,
-            state.CurrentMusic,
-            action.CurrentBiblePublicationSchedule);
+        return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);
     }
 
     [ReducerMethod]
@@ -461,8 +414,6 @@ public static class ApplicationReducer
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,
-            currentMusic: state.CurrentMusic,
-            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: action.IsVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible);
     }
@@ -479,8 +430,6 @@ public static class ApplicationReducer
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,
-            currentMusic: state.CurrentMusic,
-            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: action.IsVisible,
             containerReadiness: containerReadiness);
@@ -496,8 +445,6 @@ public static class ApplicationReducer
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: null,
-            currentMusic: null,
-            currentBiblePublicationSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible, // Keep current overlay state during navigation
             containerReadiness: Models.ContainerReadiness.NotReady); // Reset container readiness

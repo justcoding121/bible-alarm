@@ -27,12 +27,22 @@ public sealed class TrackSelectionHandler(
         }
 
         // Ensure current is set from state if it's null
+        // Derive from CurrentSchedule (single source of truth)
         if (current == null)
         {
             var stateValue = state.Value;
-            if (stateValue.CurrentMusic != null)
+            if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
             {
-                current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+                // Create AlarmMusic from CurrentSchedule
+                var schedule = stateValue.CurrentSchedule;
+                current = new AlarmMusic
+                {
+                    MusicType = schedule.MusicType.Value,
+                    LanguageCode = schedule.MusicLanguageCode,
+                    PublicationCode = schedule.MusicPublicationCode ?? string.Empty,
+                    TrackNumber = schedule.MusicTrackNumber ?? 0,
+                    Repeat = schedule.MusicRepeat ?? false
+                };
             }
         }
 

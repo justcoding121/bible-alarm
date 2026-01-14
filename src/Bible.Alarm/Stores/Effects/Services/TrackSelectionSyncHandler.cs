@@ -94,6 +94,21 @@ public sealed class TrackSelectionSyncHandler
             var currentSchedule = currentState.CurrentSchedule;
             var biblePub = action.CurrentBiblePublicationSchedule;
 
+            // The reducer OnBiblePublicationTrackSelected now updates CurrentSchedule synchronously,
+            // so we should check if CurrentSchedule already has the action's values.
+            // If everything is already in sync, skip the redundant dispatch to avoid extra state updates.
+            var alreadyInSync = 
+                currentSchedule.BiblePublicationLanguageCode == biblePub.LanguageCode &&
+                currentSchedule.BiblePublicationCode == biblePub.PublicationCode &&
+                currentSchedule.BiblePublicationSectionNumber == biblePub.SectionNumber &&
+                currentSchedule.BiblePublicationTrackNumber == biblePub.TrackNumber;
+            
+            if (alreadyInSync)
+            {
+                Log.Debug("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - CurrentSchedule already in sync with action, skipping dispatch.");
+                return;
+            }
+
             // Detect if language or publication changed - if so, we should NOT preserve old names
             var languageChanged = !string.IsNullOrEmpty(biblePub.LanguageCode) && 
                                   biblePub.LanguageCode != currentSchedule.BiblePublicationLanguageCode;

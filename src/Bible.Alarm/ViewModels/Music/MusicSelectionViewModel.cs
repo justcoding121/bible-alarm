@@ -12,6 +12,7 @@ using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.Stores.Selectors;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -52,11 +53,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
                 Repeat = currentState.CurrentSchedule.MusicRepeat ?? false
             };
         }
-        else if (this.state.Value.CurrentMusic != null)
-        {
-            // Fallback to CurrentMusic if CurrentSchedule doesn't have music info
-            current = this.mapper.Map<AlarmMusic>(this.state.Value.CurrentMusic);
-        }
+        // CurrentSchedule is the single source of truth - no fallback needed
 
         // Initialize selected music type immediately
         SetSelectedMusicType();
@@ -233,10 +230,11 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
     {
         if (current == null)
         {
-            var currentItem = this.state.Value.CurrentMusic;
-            if (currentItem != null)
+            // Derive from CurrentSchedule (single source of truth)
+            var currentSchedule = this.state.Value.CurrentSchedule;
+            if (currentSchedule != null && currentSchedule.MusicType.HasValue)
             {
-                current = this.mapper.Map<AlarmMusic>(currentItem);
+                current = ApplicationSelectors.GetCurrentMusicEntity(this.state.Value, this.mapper);
             }
         }
     }

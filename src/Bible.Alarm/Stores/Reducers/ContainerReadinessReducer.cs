@@ -60,8 +60,6 @@ public static class ContainerReadinessReducer
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,
-            currentMusic: state.CurrentMusic,
-            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
             containerReadiness: updatedReadiness);
@@ -76,8 +74,6 @@ public static class ContainerReadinessReducer
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: state.CurrentSchedule,
-            currentMusic: state.CurrentMusic,
-            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
             containerReadiness: ContainerReadiness.NotReady);

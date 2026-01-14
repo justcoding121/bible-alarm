@@ -13,20 +13,21 @@ namespace Bible.Alarm.Stores.Reducers.Services;
 /// </summary>
 public static class StateFactory
 {
+    /// <summary>
+    /// Creates updated state with only CurrentSchedule (single source of truth).
+    /// Removed separate CurrentMusic and CurrentBiblePublicationSchedule - all data is in CurrentSchedule.
+    /// </summary>
     public static ApplicationState CreateUpdatedState(
         ApplicationState state,
-        ScheduleStateItem? updatedCurrentSchedule,
-        MusicStateItem? updatedCurrentMusic,
-        BiblePublicationStateItem? updatedCurrentBiblePublicationSchedule)
+        ScheduleStateItem? updatedCurrentSchedule)
     {
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: updatedCurrentSchedule,
-            currentMusic: updatedCurrentMusic,
-            currentBiblePublicationSchedule: updatedCurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
-            containerReadiness: state.ContainerReadiness);
+            containerReadiness: state.ContainerReadiness,
+            pendingScheduleLoad: state.PendingScheduleLoad);
     }
 
     public static ApplicationState CreateStateWithSchedules(
@@ -37,11 +38,10 @@ public static class StateFactory
         return new ApplicationState(
             schedules: newSchedules,
             currentSchedule: updatedCurrentSchedule ?? state.CurrentSchedule,
-            currentMusic: state.CurrentMusic,
-            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
-            containerReadiness: state.ContainerReadiness);
+            containerReadiness: state.ContainerReadiness,
+            pendingScheduleLoad: state.PendingScheduleLoad);
     }
 }
 

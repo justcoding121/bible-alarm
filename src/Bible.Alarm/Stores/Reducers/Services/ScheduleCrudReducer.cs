@@ -305,8 +305,6 @@ public static class ScheduleCrudReducer
         return new ApplicationState(
             schedules: newSchedules,
             currentSchedule: updatedCurrentSchedule,
-            currentMusic: state.CurrentMusic,
-            currentBiblePublicationSchedule: state.CurrentBiblePublicationSchedule,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
             containerReadiness: state.ContainerReadiness);

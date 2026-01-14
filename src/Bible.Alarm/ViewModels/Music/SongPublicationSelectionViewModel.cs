@@ -58,10 +58,9 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         state.StateChanged += OnMusicChanged;
 
         // Check current state immediately in case state is already set
-        // Also check CurrentSchedule as fallback (source of truth for new schedules)
+        // Use CurrentSchedule as source of truth
         var currentState = state.Value;
-        if (currentState.CurrentMusic != null ||
-            (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue))
+        if (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue)
         {
             OnMusicInitialized(null, EventArgs.Empty);
         }
@@ -286,23 +285,6 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
                 else if (musicType == MusicType.Melodies)
                 {
                     // For Melodies, language code can be null, so we can proceed
-                    break;
-                }
-            }
-
-            // Fall back to CurrentMusic if CurrentSchedule isn't updated yet
-            // This handles the case where music selection action updates CurrentMusic
-            // but the effect that syncs to CurrentSchedule hasn't run yet
-            if (string.IsNullOrEmpty(newLanguageCode) && stateValue.CurrentMusic != null)
-            {
-                musicType = stateValue.CurrentMusic.MusicType;
-                newLanguageCode = stateValue.CurrentMusic.LanguageCode;
-                if (musicType == MusicType.Vocals && !string.IsNullOrEmpty(newLanguageCode))
-                {
-                    break;
-                }
-                else if (musicType == MusicType.Melodies)
-                {
                     break;
                 }
             }

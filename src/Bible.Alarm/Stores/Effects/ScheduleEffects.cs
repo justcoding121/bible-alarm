@@ -245,7 +245,9 @@ public class ScheduleEffects(
     [EffectMethod]
     public async Task HandleBiblePublicationTrackSelected(Bible.Alarm.Stores.Actions.BiblePublications.TrackSelectedAction action, IDispatcher dispatcher)
     {
-        await trackSyncHandler.HandleTrackSelected(action, dispatcher);
+        // No-op: Reducer OnBiblePublicationTrackSelected now directly updates CurrentSchedule
+        // No sync needed - CurrentSchedule is the single source of truth
+        await Task.CompletedTask;
     }
 
     /// <summary>
@@ -256,7 +258,9 @@ public class ScheduleEffects(
     [EffectMethod]
     public async Task HandleMusicTrackSelected(Bible.Alarm.Stores.Actions.Music.TrackSelectedAction action, IDispatcher dispatcher)
     {
-        await trackSyncHandler.HandleTrackSelected(action, dispatcher);
+        // No-op: Reducer OnMusicTrackSelected now directly updates CurrentSchedule
+        // No sync needed - CurrentSchedule is the single source of truth
+        await Task.CompletedTask;
     }
 }
 

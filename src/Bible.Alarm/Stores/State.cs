@@ -11,11 +11,11 @@ public class ApplicationState
 {
     public ObservableHashSet<ScheduleStateItem> Schedules { get; set; }
 
+    /// <summary>
+    /// Single source of truth for the current schedule being edited.
+    /// Contains all schedule properties including bible publication and music properties (flattened).
+    /// </summary>
     public ScheduleStateItem? CurrentSchedule { get; set; }
-
-    public MusicStateItem? CurrentMusic { get; set; }
-
-    public BiblePublicationStateItem? CurrentBiblePublicationSchedule { get; set; }
 
     public bool IsHomePageOverlayVisible { get; set; }
     public bool IsSchedulePageOverlayVisible { get; set; }
@@ -38,8 +38,6 @@ public class ApplicationState
     public ApplicationState(
         ObservableHashSet<ScheduleStateItem> schedules,
         ScheduleStateItem? currentSchedule = null,
-        MusicStateItem? currentMusic = null,
-        BiblePublicationStateItem? currentBiblePublicationSchedule = null,
         bool isHomePageOverlayVisible = false,
         bool isSchedulePageOverlayVisible = false,
         ContainerReadiness? containerReadiness = null,
@@ -47,8 +45,6 @@ public class ApplicationState
     {
         Schedules = schedules ?? [];
         CurrentSchedule = currentSchedule;
-        CurrentMusic = currentMusic;
-        CurrentBiblePublicationSchedule = currentBiblePublicationSchedule;
         IsHomePageOverlayVisible = isHomePageOverlayVisible;
         IsSchedulePageOverlayVisible = isSchedulePageOverlayVisible;
         ContainerReadiness = containerReadiness ?? Models.ContainerReadiness.NotReady;

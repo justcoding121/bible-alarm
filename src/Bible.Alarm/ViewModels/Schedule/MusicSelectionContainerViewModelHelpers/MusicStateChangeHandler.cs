@@ -90,11 +90,20 @@ public sealed class MusicStateChangeHandler
             HandleMusicLanguageDirectionChange(currentSchedule);
         }
 
-        // Check if CurrentMusic changed
-        if (stateValue.CurrentMusic != null)
+        // Check if CurrentSchedule music changed (CurrentSchedule is the single source of truth)
+        if (currentSchedule != null && currentSchedule.MusicType.HasValue)
         {
+            // Create MusicStateItem from CurrentSchedule for the handler
+            var musicStateItem = new MusicStateItem
+            {
+                MusicType = currentSchedule.MusicType.Value,
+                LanguageCode = currentSchedule.MusicLanguageCode,
+                PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
+                TrackNumber = currentSchedule.MusicTrackNumber ?? 0,
+                Repeat = currentSchedule.MusicRepeat ?? false
+            };
             HandleCurrentMusicChange(
-                stateValue.CurrentMusic,
+                musicStateItem,
                 stateHolder,
                 onPropertyChanged);
         }

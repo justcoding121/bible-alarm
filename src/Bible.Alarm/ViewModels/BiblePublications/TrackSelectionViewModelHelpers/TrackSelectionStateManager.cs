@@ -67,10 +67,19 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         lastPublicationCode = newPublicationCode;
         lastSectionNumber = effectiveSectionNumber;
 
-        // Update current if we have CurrentBiblePublicationSchedule
-        if (stateValue.CurrentBiblePublicationSchedule != null)
+        // Derive from CurrentSchedule (single source of truth)
+        // currentSchedule is already declared above
+        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
-            current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
+            // Create BiblePublicationSchedule from CurrentSchedule
+            current = new BiblePublicationSchedule
+            {
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+            };
             lastCurrent = current;
         }
         else
@@ -139,10 +148,19 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         lastPublicationCode = newPublicationCode;
         lastSectionNumber = effectiveSectionNumber;
 
-        // Update current if we have CurrentBiblePublicationSchedule
-        if (stateValue.CurrentBiblePublicationSchedule != null)
+        // Derive from CurrentSchedule (single source of truth)
+        // currentSchedule is already declared above
+        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
-            current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
+            // Create BiblePublicationSchedule from CurrentSchedule
+            current = new BiblePublicationSchedule
+            {
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+            };
             lastCurrent = current;
         }
         else
@@ -200,10 +218,19 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         lastPublicationCode = newPublicationCode;
         lastSectionNumber = newSectionNumber.Value;
 
-        // Update current from CurrentSchedule
-        if (stateValue.CurrentBiblePublicationSchedule != null)
+        // Derive from CurrentSchedule (single source of truth)
+        // currentSchedule is already declared above
+        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
-            current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
+            // Create BiblePublicationSchedule from CurrentSchedule
+            current = new BiblePublicationSchedule
+            {
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+            };
         }
         else
         {
@@ -212,7 +239,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = newSectionNumber.Value,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
+                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
         }
         lastCurrent = current;
@@ -249,10 +276,19 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         lastPublicationCode = newPublicationCode;
         lastSectionNumber = effectiveSectionNumber;
 
-        // Update current from CurrentSchedule
-        if (stateValue.CurrentBiblePublicationSchedule != null)
+        // Derive from CurrentSchedule (single source of truth)
+        // currentSchedule is already declared above
+        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
-            current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
+            // Create BiblePublicationSchedule from CurrentSchedule
+            current = new BiblePublicationSchedule
+            {
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+            };
         }
         else
         {
@@ -261,7 +297,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = effectiveSectionNumber,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
+                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
         }
         lastCurrent = current;

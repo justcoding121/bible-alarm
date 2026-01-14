@@ -35,30 +35,44 @@ public static class ApplicationSelectors
 
     /// <summary>
     /// Selector: Get current music as AlarmMusic entity (for ViewModel use).
-    /// Maps MusicStateItem (domain model) → AlarmMusic (entity for ViewModel).
+    /// Derives from CurrentSchedule (single source of truth).
     /// </summary>
     public static AlarmMusic? GetCurrentMusicEntity(ApplicationState state, IMapper mapper)
     {
-        if (state.CurrentMusic == null)
+        if (state.CurrentSchedule == null)
         {
             return null;
         }
 
-        return mapper.Map<AlarmMusic>(state.CurrentMusic);
+        // Extract music from CurrentSchedule (flattened properties)
+        var schedule = state.CurrentSchedule;
+        if (!schedule.MusicId.HasValue && !schedule.MusicType.HasValue)
+        {
+            return null;
+        }
+
+        return mapper.Map<AlarmSchedule>(schedule)?.Music;
     }
 
     /// <summary>
     /// Selector: Get current Bible reading schedule as BiblePublicationSchedule entity (for ViewModel use).
-    /// Maps BiblePublicationStateItem (domain model) → BiblePublicationSchedule (entity for ViewModel).
+    /// Derives from CurrentSchedule (single source of truth).
     /// </summary>
     public static BiblePublicationSchedule? GetCurrentBiblePublicationEntity(ApplicationState state, IMapper mapper)
     {
-        if (state.CurrentBiblePublicationSchedule == null)
+        if (state.CurrentSchedule == null)
         {
             return null;
         }
 
-        return mapper.Map<BiblePublicationSchedule>(state.CurrentBiblePublicationSchedule);
+        // Extract Bible publication from CurrentSchedule (flattened properties)
+        var schedule = state.CurrentSchedule;
+        if (!schedule.BiblePublicationScheduleId.HasValue && string.IsNullOrEmpty(schedule.BiblePublicationLanguageCode))
+        {
+            return null;
+        }
+
+        return mapper.Map<AlarmSchedule>(schedule)?.BiblePublicationSchedule;
     }
 
     /// <summary>

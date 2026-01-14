@@ -25,13 +25,8 @@ public sealed class TrackStateManager(IMapper mapper)
     public void InitializeCurrent(IState<ApplicationState> state)
     {
         var stateValue = state.Value;
-        // Use CurrentSchedule as the source of truth, with CurrentMusic as fallback
-        if (stateValue.CurrentMusic != null)
-        {
-            current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
-            lastCurrent = current;
-        }
-        else if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
+        // Use CurrentSchedule as the source of truth
+        if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
         {
             // Create a minimal AlarmMusic from CurrentSchedule
             var currentSchedule = stateValue.CurrentSchedule;
@@ -87,14 +82,10 @@ public sealed class TrackStateManager(IMapper mapper)
         lastPublicationCode = newPublicationCode;
 
         // Update current if we have CurrentMusic (for other properties like TrackNumber)
-        if (stateValue.CurrentMusic != null)
+        // Derive from CurrentSchedule (single source of truth)
+        if (currentSchedule != null)
         {
-            current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
-            lastCurrent = current;
-        }
-        else
-        {
-            // Create a minimal AlarmMusic from CurrentSchedule
+            // Create AlarmMusic from CurrentSchedule
             current = new AlarmMusic
             {
                 MusicType = newMusicType.Value,
@@ -185,14 +176,10 @@ public sealed class TrackStateManager(IMapper mapper)
         lastPublicationCode = newPublicationCode;
 
         // Update current if we have CurrentMusic (for other properties like TrackNumber)
-        if (stateValue.CurrentMusic != null)
+        // Derive from CurrentSchedule (single source of truth)
+        if (currentSchedule != null)
         {
-            current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
-            lastCurrent = current;
-        }
-        else
-        {
-            // Create a minimal AlarmMusic from CurrentSchedule
+            // Create AlarmMusic from CurrentSchedule
             current = new AlarmMusic
             {
                 MusicType = newMusicType.Value,

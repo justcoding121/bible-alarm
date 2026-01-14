@@ -84,10 +84,8 @@ public sealed class BiblePublicationDisplayTextProvider
             return currentSchedule.BiblePublicationName;
         }
 
-        // Fallback: use publication code from CurrentBiblePublicationSchedule or CurrentSchedule
-        var biblePublication = state.Value.CurrentBiblePublicationSchedule;
-        string publicationCode = biblePublication?.PublicationCode?.ToLowerInvariant()
-            ?? currentSchedule?.BiblePublicationCode?.ToLowerInvariant()
+        // Use CurrentSchedule as the source of truth
+        string publicationCode = currentSchedule?.BiblePublicationCode?.ToLowerInvariant()
             ?? string.Empty;
 
         if (string.IsNullOrEmpty(publicationCode))

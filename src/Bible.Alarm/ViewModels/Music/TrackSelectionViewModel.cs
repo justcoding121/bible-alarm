@@ -83,10 +83,9 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         state.StateChanged += OnMusicChanged;
 
         // Check current state immediately in case state is already set
-        // Also check CurrentSchedule as fallback (source of truth for new schedules)
+        // Use CurrentSchedule as source of truth
         var currentState = state.Value;
-        if (currentState.CurrentMusic != null ||
-            (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue))
+        if (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue)
         {
             OnMusicInitialized(null, EventArgs.Empty);
         }
@@ -149,29 +148,8 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
                 }
             }
 
-            // Fall back to CurrentMusic if CurrentSchedule isn't updated yet
-            // This handles the case where music selection action updates CurrentMusic
-            // but the effect that syncs to CurrentSchedule hasn't run yet
-            if (string.IsNullOrEmpty(publicationCode) && stateValue.CurrentMusic != null)
-            {
-                musicType = stateValue.CurrentMusic.MusicType;
-                languageCode = stateValue.CurrentMusic.LanguageCode;
-                publicationCode = stateValue.CurrentMusic.PublicationCode;
-
-                if (!string.IsNullOrEmpty(publicationCode))
-                {
-                    // For vocals, language code is required
-                    if (musicType == MusicType.Vocals && !string.IsNullOrEmpty(languageCode))
-                    {
-                        break;
-                    }
-                    // For melodies, language code can be null
-                    else if (musicType == MusicType.Melodies)
-                    {
-                        break;
-                    }
-                }
-            }
+            // CurrentSchedule is the single source of truth - no fallback needed
+            // If CurrentSchedule doesn't have the info, wait for next iteration
 
             // Wait a bit and retry if required values are not set yet
             await Task.Delay(delayMs);

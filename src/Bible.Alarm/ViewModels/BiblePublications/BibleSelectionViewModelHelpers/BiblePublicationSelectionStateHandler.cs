@@ -69,16 +69,25 @@ public sealed class BiblePublicationSelectionStateHandler
                 lastLanguageCode = newLanguageCode;
             }
 
-            // Update current if we have CurrentBiblePublicationSchedule (for other properties like PublicationCode)
-            if (stateValue.CurrentBiblePublicationSchedule != null)
+            // Derive from CurrentSchedule (single source of truth)
+            var currentSchedule = stateValue.CurrentSchedule;
+            if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
             {
-                current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
+                // Create BiblePublicationSchedule from CurrentSchedule
+                current = new BiblePublicationSchedule
+                {
+                    LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                    PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                    SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                    TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                    FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+                };
                 if (string.IsNullOrEmpty(lastLanguageCode))
                 {
                     lastLanguageCode = current.LanguageCode;
                 }
             }
-            else if (stateValue.CurrentSchedule != null && !string.IsNullOrEmpty(newLanguageCode))
+            else if (currentSchedule != null && !string.IsNullOrEmpty(newLanguageCode))
             {
                 // Create a minimal BiblePublicationSchedule from CurrentSchedule
                 current = new BiblePublicationSchedule
@@ -204,10 +213,19 @@ public sealed class BiblePublicationSelectionStateHandler
         // Update tracking variable
         lastLanguageCode = newLanguageCode;
 
-        // Update current if we have CurrentBiblePublicationSchedule (for other properties like PublicationCode)
-        if (stateValue.CurrentBiblePublicationSchedule != null)
+        // Derive from CurrentSchedule (single source of truth)
+        // currentSchedule is already declared above
+        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
-            current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
+            // Create BiblePublicationSchedule from CurrentSchedule
+            current = new BiblePublicationSchedule
+            {
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+            };
             lastCurrent = current;
         }
         else
@@ -274,18 +292,6 @@ public sealed class BiblePublicationSelectionStateHandler
                 }
             }
 
-            // Fall back to CurrentBiblePublicationSchedule if CurrentSchedule isn't updated yet
-            // This handles the case where BiblePublicationSelectionAction updates CurrentBiblePublicationSchedule
-            // but the effect that syncs to CurrentSchedule hasn't run yet
-            if (string.IsNullOrEmpty(newLanguageCode) && stateValue.CurrentBiblePublicationSchedule != null)
-            {
-                newLanguageCode = stateValue.CurrentBiblePublicationSchedule.LanguageCode;
-                if (!string.IsNullOrEmpty(newLanguageCode))
-                {
-                    break;
-                }
-            }
-
             // Wait a bit and retry if language code is not set yet
             await Task.Delay(delayMs);
         }
@@ -305,10 +311,18 @@ public sealed class BiblePublicationSelectionStateHandler
         // Update tracking variable
         lastLanguageCode = newLanguageCode;
 
-        // Update current from CurrentSchedule
-        if (finalStateValue.CurrentBiblePublicationSchedule != null)
+        // Update current from CurrentSchedule (single source of truth)
+        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
-            current = mapper.Map<BiblePublicationSchedule>(finalStateValue.CurrentBiblePublicationSchedule);
+            // Create BiblePublicationSchedule from CurrentSchedule
+            current = new BiblePublicationSchedule
+            {
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+            };
         }
         else if (!string.IsNullOrEmpty(newLanguageCode))
         {

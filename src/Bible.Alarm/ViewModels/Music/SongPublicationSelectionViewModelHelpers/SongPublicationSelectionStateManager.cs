@@ -28,9 +28,18 @@ public sealed class SongPublicationSelectionStateManager(IMapper mapper)
     public void InitializeCurrent(IState<ApplicationState> state)
     {
         var stateValue = state.Value;
-        if (stateValue.CurrentMusic != null)
+        // Derive from CurrentSchedule (single source of truth)
+        if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
         {
-            current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
+            var schedule = stateValue.CurrentSchedule;
+            current = new AlarmMusic
+            {
+                MusicType = schedule.MusicType.Value,
+                LanguageCode = schedule.MusicLanguageCode,
+                PublicationCode = schedule.MusicPublicationCode ?? string.Empty,
+                TrackNumber = schedule.MusicTrackNumber ?? 0,
+                Repeat = schedule.MusicRepeat ?? false
+            };
             lastCurrent = current;
         }
     }
@@ -76,15 +85,11 @@ public sealed class SongPublicationSelectionStateManager(IMapper mapper)
         lastMusicType = newMusicType.Value;
         lastLanguageCode = newLanguageCode;
 
-        // Update current if we have CurrentMusic
-        if (stateValue.CurrentMusic != null)
+        // Update current from CurrentSchedule
+        // Derive from CurrentSchedule (single source of truth)
+        if (currentSchedule != null)
         {
-            current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
-            lastCurrent = current;
-        }
-        else
-        {
-            // Create a minimal AlarmMusic from CurrentSchedule
+            // Create AlarmMusic from CurrentSchedule
             // LanguageCode can be null/empty for Vocals when opening language modal
             current = new AlarmMusic
             {
@@ -144,15 +149,10 @@ public sealed class SongPublicationSelectionStateManager(IMapper mapper)
         lastMusicType = newMusicType.Value;
         lastLanguageCode = newLanguageCode;
 
-        // Update current if we have CurrentMusic
-        if (stateValue.CurrentMusic != null)
+        // Update current from CurrentSchedule (single source of truth)
+        if (currentSchedule != null)
         {
-            current = mapper.Map<AlarmMusic>(stateValue.CurrentMusic);
-            lastCurrent = current;
-        }
-        else
-        {
-            // Create a minimal AlarmMusic from CurrentSchedule
+            // Create AlarmMusic from CurrentSchedule
             current = new AlarmMusic
             {
                 MusicType = newMusicType.Value,
@@ -186,26 +186,18 @@ public sealed class SongPublicationSelectionStateManager(IMapper mapper)
     {
         if (current == null)
         {
-            var currentItem = state.Value.CurrentMusic;
-            if (currentItem != null)
+            // Derive from CurrentSchedule (single source of truth)
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule != null && currentSchedule.MusicType.HasValue)
             {
-                current = mapper.Map<AlarmMusic>(currentItem);
-            }
-            else
-            {
-                // Create from CurrentSchedule if available
-                var currentSchedule = state.Value.CurrentSchedule;
-                if (currentSchedule != null && currentSchedule.MusicType.HasValue)
+                current = new AlarmMusic
                 {
-                    current = new AlarmMusic
-                    {
-                        MusicType = currentSchedule.MusicType.Value,
-                        LanguageCode = currentSchedule.MusicLanguageCode ?? string.Empty,
-                        PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
-                        TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
-                        Repeat = currentSchedule.MusicRepeat ?? false
-                    };
-                }
+                    MusicType = currentSchedule.MusicType.Value,
+                    LanguageCode = currentSchedule.MusicLanguageCode ?? string.Empty,
+                    PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
+                    TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+                    Repeat = currentSchedule.MusicRepeat ?? false
+                };
             }
         }
     }

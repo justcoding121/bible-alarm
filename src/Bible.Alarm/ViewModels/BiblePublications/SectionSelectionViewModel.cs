@@ -220,10 +220,18 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
 
-        // Update current if we have CurrentBiblePublicationSchedule (for other properties like SectionNumber)
-        if (stateValue.CurrentBiblePublicationSchedule != null)
+        // Derive from CurrentSchedule (single source of truth)
+        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
         {
-            current = mapper.Map<BiblePublicationSchedule>(stateValue.CurrentBiblePublicationSchedule);
+            // Create BiblePublicationSchedule from CurrentSchedule
+            current = new BiblePublicationSchedule
+            {
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
+                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+            };
             lastCurrent = current;
         }
         else

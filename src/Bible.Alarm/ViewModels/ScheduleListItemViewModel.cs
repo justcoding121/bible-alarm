@@ -132,6 +132,11 @@ public sealed class ScheduleListItemViewModel(
         });
         // Note: SubTitle and Language will be set by RefreshSubTitleFromState() below
 
+        // Unsubscribe first to avoid duplicate subscriptions when InitializeCommon is called multiple times
+        applicationState.StateChanged -= OnApplicationStateChanged;
+        playbackState.StateChanged -= OnPlaybackStateChanged;
+        WeakReferenceMessenger.Default.Unregister<ThemeChangedMessage>(this);
+
         // Subscribe to ApplicationState changes to react when this schedule is updated
         applicationState.StateChanged += OnApplicationStateChanged;
         // Store initial state for comparison

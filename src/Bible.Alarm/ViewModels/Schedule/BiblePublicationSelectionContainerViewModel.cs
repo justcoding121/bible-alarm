@@ -85,23 +85,22 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             scheduleId = currentSchedule.Id;
             isNewSchedule = currentSchedule.Id <= 0;
 
-            // Initialize last values
-            var currentBiblePublication = state.Value.CurrentBiblePublicationSchedule;
+            // Initialize last values from CurrentSchedule (single source of truth)
             propertyChangeDetector.Initialize(
                 currentSchedule.BiblePublicationLanguageCode,
-                currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode,
-                currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber,
-                currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber);
+                currentSchedule.BiblePublicationCode,
+                currentSchedule.BiblePublicationSectionNumber,
+                currentSchedule.BiblePublicationTrackNumber);
 
             // Initialize last processed state to prevent duplicate processing
             lastProcessedScheduleId = currentSchedule.Id;
             lastProcessedLanguageCode = currentSchedule.BiblePublicationLanguageCode;
             lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
-            lastProcessedPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode;
+            lastProcessedPublicationCode = currentSchedule.BiblePublicationCode;
             lastProcessedPublicationName = currentSchedule.BiblePublicationName;
-            lastProcessedSectionNumber = currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber;
+            lastProcessedSectionNumber = currentSchedule.BiblePublicationSectionNumber;
             lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
-            lastProcessedTrackNumber = currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber;
+            lastProcessedTrackNumber = currentSchedule.BiblePublicationTrackNumber;
 
             // Batch property notifications to reduce UI thread work
             propertyNotifier.NotifyAllDisplayTextPropertiesChanged();
@@ -183,7 +182,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
         {
             var stateValue = state.Value;
             var currentSchedule = stateValue.CurrentSchedule;
-            var currentBiblePublication = stateValue.CurrentBiblePublicationSchedule;
+            // CurrentSchedule is the single source of truth - no need for separate currentBiblePublication
 
             // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
             // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
@@ -214,20 +213,20 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
                 currentSchedule.Id == lastProcessedScheduleId &&
                 currentSchedule.BiblePublicationLanguageCode == lastProcessedLanguageCode &&
                 currentSchedule.BiblePublicationLanguageName == lastProcessedLanguageName &&
-                (currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode) == lastProcessedPublicationCode &&
+                currentSchedule.BiblePublicationCode == lastProcessedPublicationCode &&
                 currentSchedule.BiblePublicationName == lastProcessedPublicationName &&
-                (currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber) == lastProcessedSectionNumber &&
+                currentSchedule.BiblePublicationSectionNumber == lastProcessedSectionNumber &&
                 currentSchedule.BiblePublicationSectionName == lastProcessedSectionName &&
-                (currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber) == lastProcessedTrackNumber)
+                currentSchedule.BiblePublicationTrackNumber == lastProcessedTrackNumber)
             {
                 return;
             }
 
-            LogStateChange(currentSchedule, currentBiblePublication);
+            LogStateChange(currentSchedule);
             HandleScheduleIdChange(currentSchedule);
             UpdateBiblePublicationUpdatedFlag(currentSchedule);
 
-            var changeInfo = propertyChangeDetector.DetectPropertyChanges(currentSchedule, currentBiblePublication);
+            var changeInfo = propertyChangeDetector.DetectPropertyChanges(currentSchedule);
             if (changeInfo.HasChanges)
             {
                 // Reset the flag when a new cascade change is detected (before updating last values)
@@ -257,11 +256,11 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
                 lastProcessedScheduleId = currentSchedule.Id;
                 lastProcessedLanguageCode = currentSchedule.BiblePublicationLanguageCode;
                 lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
-                lastProcessedPublicationCode = currentBiblePublication?.PublicationCode ?? currentSchedule.BiblePublicationCode;
+                lastProcessedPublicationCode = currentSchedule.BiblePublicationCode;
                 lastProcessedPublicationName = currentSchedule.BiblePublicationName;
-                lastProcessedSectionNumber = currentBiblePublication?.SectionNumber ?? currentSchedule.BiblePublicationSectionNumber;
+                lastProcessedSectionNumber = currentSchedule.BiblePublicationSectionNumber;
                 lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
-                lastProcessedTrackNumber = currentBiblePublication?.TrackNumber ?? currentSchedule.BiblePublicationTrackNumber;
+                lastProcessedTrackNumber = currentSchedule.BiblePublicationTrackNumber;
             }
         }
         finally
@@ -297,7 +296,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
         return true;
     }
 
-    private void LogStateChange(ScheduleStateItem? currentSchedule, BiblePublicationStateItem? currentBiblePublication)
+    private void LogStateChange(ScheduleStateItem? currentSchedule)
     {
         // Logging removed - not needed for normal operation
     }

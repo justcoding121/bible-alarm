@@ -54,16 +54,11 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         propertyManager = new BiblePublicationSelectionPropertyManager(state, dataProvider, stateHandler);
 
         // Initialize current from state if available (map DTO to entity)
-        // Use CurrentSchedule as the source of truth, with CurrentBiblePublicationSchedule as fallback
+        // Use CurrentSchedule as the source of truth
         var currentState = state.Value;
         BiblePublicationSchedule? initialCurrent = null;
         string? initialLanguageCode = null;
-        if (currentState.CurrentBiblePublicationSchedule != null)
-        {
-            initialCurrent = mapper.Map<BiblePublicationSchedule>(currentState.CurrentBiblePublicationSchedule);
-            initialLanguageCode = initialCurrent.LanguageCode;
-        }
-        else if (currentState.CurrentSchedule != null && !string.IsNullOrEmpty(currentState.CurrentSchedule.BiblePublicationLanguageCode))
+        if (currentState.CurrentSchedule != null && !string.IsNullOrEmpty(currentState.CurrentSchedule.BiblePublicationLanguageCode))
         {
             // Create a minimal BiblePublicationSchedule from CurrentSchedule
             var currentSchedule = currentState.CurrentSchedule;
