@@ -575,8 +575,11 @@ public sealed class ScheduleListItemViewModel(
     {
         // Notify 'This' property to trigger converters that bind to the entire ViewModel
         // This causes day button colors to update when theme changes
-        // Note: We're already on the main thread (message is sent from main thread)
-        OnPropertyChanged(nameof(This));
+        // Use BeginInvokeOnMainThread to ensure this happens after theme resources are fully updated
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            OnPropertyChanged(nameof(This));
+        });
     }
 
     public void Dispose()

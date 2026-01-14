@@ -63,7 +63,7 @@
                        TextColor="{DynamicResource TextPrimaryColor}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center">
-                    Begin with music
+                    Start with music
                 </Label>
                 <Grid Grid.Column="1"
                       ColumnSpacing="0"

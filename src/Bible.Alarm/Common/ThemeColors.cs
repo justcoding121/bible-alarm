@@ -144,9 +144,11 @@ public static class ThemeColors
 
         public static class DefaultBackground
         {
-            // Schedule disabled + Day enabled: Muted primary to show day is selected but schedule is off
-            public static Color Dark => Color.FromArgb("#4A3A6D"); // Muted purple for dark mode
-            public static Color Light => Color.FromArgb("#D0D0D0"); // Light gray for light mode
+            // Schedule disabled + Day enabled: Matches add button disabled state (PrimaryColor at 50% opacity)
+            // PrimaryColor #6A5ACD (RGB: 106, 90, 205) at 50% opacity over typical backgrounds
+            // Approximates to a dimmer slate blue that matches the visual appearance
+            public static Color Dark => Color.FromArgb("#554A9F"); // Dimmer slate blue for dark mode (matches disabled add button)
+            public static Color Light => Color.FromArgb("#B5A5D5"); // Dimmer slate blue for light mode (matches disabled add button)
             public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
         }
 

@@ -88,7 +88,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Sunday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="S">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
@@ -106,7 +106,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Sunday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="S">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
@@ -124,7 +124,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Sunday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="S">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
@@ -161,7 +161,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Monday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="M">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
@@ -179,7 +179,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Monday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="M">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
@@ -197,7 +197,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Monday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="M">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
@@ -234,7 +234,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Tuesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="T">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
@@ -252,7 +252,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Tuesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="T">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
@@ -270,7 +270,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Tuesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="T">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
@@ -307,7 +307,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Wednesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="W">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
@@ -325,7 +325,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Wednesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="W">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
@@ -343,7 +343,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Wednesday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="W">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
@@ -380,7 +380,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Thursday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="T">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
@@ -398,7 +398,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Thursday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="T">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
@@ -416,7 +416,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Thursday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="T">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
@@ -453,7 +453,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Friday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="F">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
@@ -471,7 +471,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Friday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="F">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
@@ -489,7 +489,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Friday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="F">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
@@ -526,7 +526,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Saturday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="S">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">
@@ -544,7 +544,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Saturday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="S">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">
@@ -562,7 +562,7 @@
                                     Command="{Binding ToggleDayCommand}"
                                     CommandParameter="{StaticResource Saturday}"
                                     FontAttributes="Bold"
-                                    FontSize="{DynamicResource MediumFontSize}"
+                                    FontSize="{DynamicResource LargeFontSize}"
                                     Text="S">
                                         <Button.TextColor>
                                             <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">

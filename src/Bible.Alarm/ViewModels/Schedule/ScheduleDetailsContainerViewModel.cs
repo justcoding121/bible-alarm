@@ -349,9 +349,21 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         // Notify DaysOfWeek and IsEnabled properties to trigger converters that bind to them
         // This causes day button colors to update when theme changes
         // Note: We're already on the main thread (message is sent from main thread),
-        // but we batch the notifications to ensure MultiBinding converters see both values updated together
-        OnPropertyChanged(nameof(DaysOfWeek));
-        OnPropertyChanged(nameof(IsEnabled));
+        // Use BeginInvokeOnMainThread to ensure this happens after theme resources are fully updated
+        // Notify properties separately to force MultiBinding converters to re-evaluate
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            // Notify IsEnabled first, then DaysOfWeek to ensure MultiBinding re-evaluates
+            OnPropertyChanged(nameof(IsEnabled));
+            // Small delay to force MultiBinding to see both notifications separately
+            Task.Delay(10).ContinueWith(_ =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    OnPropertyChanged(nameof(DaysOfWeek));
+                });
+            });
+        });
     }
 
     public void Dispose()

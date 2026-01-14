@@ -46,9 +46,18 @@ public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueCo
         if (isEnabled)
         {
             // Schedule enabled
-            return isDayEnabled 
-                ? ThemeColors.Day.EnabledBackground.Get(theme) 
-                : ThemeColors.Day.DisabledBackground.Get(theme);
+            if (isDayEnabled)
+            {
+                // Use PrimaryColor resource when both alarm and button are enabled (matches Save button)
+                if (Application.Current?.Resources.TryGetValue("PrimaryColor", out var primaryColorResource) == true &&
+                    primaryColorResource is Color primaryColor)
+                {
+                    return primaryColor;
+                }
+                // Fallback to ThemeColors if resource not found
+                return ThemeColors.Day.EnabledBackground.Get(theme);
+            }
+            return ThemeColors.Day.DisabledBackground.Get(theme);
         }
         else
         {
@@ -89,9 +98,18 @@ public sealed class DayBackgroundColorConverter : IValueConverter, IMultiValueCo
         if (isEnabled)
         {
             // Schedule enabled
-            return isDayEnabled 
-                ? ThemeColors.Day.EnabledBackground.Get(theme) 
-                : ThemeColors.Day.DisabledBackground.Get(theme);
+            if (isDayEnabled)
+            {
+                // Use PrimaryColor resource when both alarm and button are enabled (matches Save button)
+                if (Application.Current?.Resources.TryGetValue("PrimaryColor", out var primaryColorResource) == true &&
+                    primaryColorResource is Color primaryColor)
+                {
+                    return primaryColor;
+                }
+                // Fallback to ThemeColors if resource not found
+                return ThemeColors.Day.EnabledBackground.Get(theme);
+            }
+            return ThemeColors.Day.DisabledBackground.Get(theme);
         }
         else
         {
