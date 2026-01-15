@@ -193,44 +193,49 @@
                                             x:Name="ScheduleItemGrid"
                                             HorizontalOptions="Fill"
                                             VerticalOptions="Start"
+                                            ColumnSpacing="{DynamicResource SpacingMedium}"
                                             RowSpacing="{DynamicResource SpacingMedium}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
-                                        <!-- Row 1: Two columns (play button, time and days) -->
-                                        <FlexLayout Grid.Row="0"
-                                              Direction="Row"
-                                              Wrap="Wrap"
-                                              AlignItems="Center"
-                                              JustifyContent="Start"
-                                              HorizontalOptions="Fill"
-                                              VerticalOptions="Center">
-                                            <!-- Column 1: Play button -->
-                                            <Grid FlexLayout.Basis="Auto"
-                                                  Margin="{DynamicResource MarginThicknessPaddingLarge}"
-                                                  VerticalOptions="Center"
-                                                  HorizontalOptions="Start"
-                                                  HeightRequest="{DynamicResource IconLargeContainerSize}"
-                                                  WidthRequest="{DynamicResource IconLargeContainerSize}">
+                                        
+                                        <!-- Row 1, Column 1: Play button -->
+                                        <Grid Grid.Column="0"
+                                              Grid.Row="0"
+                                              Margin="{DynamicResource MarginThicknessPaddingLarge}"
+                                              VerticalOptions="Center"
+                                              HorizontalOptions="Start"
+                                              HeightRequest="{DynamicResource IconLargeContainerSize}"
+                                              WidthRequest="{DynamicResource IconLargeContainerSize}">
+                                            <core:SfEffectsView
+                                                    TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                                    TouchUpEffects="None"
+                                                    RippleBackground="{StaticResource PrimaryColor}"
+                                                    HighlightBackground="{StaticResource PrimaryLightColor}"
+                                                    RippleAnimationDuration="200"
+                                                    ShouldIgnoreTouches="False">
+                                                <core:SfEffectsView.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding PlayCommand}" />
+                                                </core:SfEffectsView.GestureRecognizers>
                                                 <Border
                                                         BackgroundColor="{StaticResource PrimaryColor}"
                                                         StrokeThickness="0"
                                                         HorizontalOptions="Fill"
                                                         VerticalOptions="Fill">
                                                     <Border.StrokeShape>
-                                                        <!-- Large CornerRadius is clipped to create circle regardless of container size -->
                                                         <RoundRectangle CornerRadius="100" />
                                                     </Border.StrokeShape>
                                                     <Border.Shadow>
                                                         <Shadow Brush="#60000000" 
-                                                                    Offset="0,4" 
-                                                                    Radius="8" 
-                                                                    Opacity="0.4" />
+                                                                    Offset="0,3" 
+                                                                    Radius="10" 
+                                                                    Opacity="0.35" />
                                                     </Border.Shadow>
-                                                    <Border.GestureRecognizers>
-                                                        <TapGestureRecognizer Command="{Binding PlayCommand}" />
-                                                    </Border.GestureRecognizers>
                                                     <Label
                                                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                                             FontSize="{DynamicResource IconLargeFontSize}"
@@ -242,60 +247,61 @@
                                                             VerticalTextAlignment="Center"
                                                             IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}" />
                                                 </Border>
-                                                <!-- Loading indicator overlay - shows when IsBusy is true -->
-                                                <ActivityIndicator
-                                                        IsRunning="{Binding IsBusy}"
-                                                        IsVisible="{Binding IsBusy}"
-                                                        Color="White"
-                                                        WidthRequest="{DynamicResource IconStandardFontSize}"
-                                                        HeightRequest="{DynamicResource IconStandardFontSize}"
-                                                        VerticalOptions="Center"
-                                                        HorizontalOptions="Center"
-                                                        Opacity="0.95" />
-                                            </Grid>
-                                            <!-- Column 2: Time and days of week (stacked vertically) -->
-                                            <VerticalStackLayout FlexLayout.Grow="1"
-                                                  FlexLayout.Basis="Auto"
-                                                  Margin="{DynamicResource MarginThickness0}"
+                                            </core:SfEffectsView>
+                                            <!-- Loading indicator overlay - shows when IsBusy is true -->
+                                            <ActivityIndicator
+                                                    IsRunning="{Binding IsBusy}"
+                                                    IsVisible="{Binding IsBusy}"
+                                                    Color="White"
+                                                    WidthRequest="{DynamicResource IconStandardFontSize}"
+                                                    HeightRequest="{DynamicResource IconStandardFontSize}"
+                                                    VerticalOptions="Center"
+                                                    HorizontalOptions="Center"
+                                                    Opacity="0.95" />
+                                        </Grid>
+                                        
+                                        <!-- Row 1, Column 2: Time and days -->
+                                        <VerticalStackLayout Grid.Column="1"
+                                              Grid.Row="0"
+                                              HorizontalOptions="Fill"
+                                              VerticalOptions="Center"
+                                              Spacing="{DynamicResource SpacingSmall}">
+                                            <!-- Time display - most prominent for alarm app -->
+                                            <Grid Margin="{DynamicResource MarginThickness0}"
                                                   HorizontalOptions="Start"
                                                   VerticalOptions="Center"
-                                                  Spacing="{DynamicResource SpacingMedium}">
-                                                <!-- Time -->
-                                                <Grid Margin="{DynamicResource MarginThickness0}"
-                                                      HorizontalOptions="Start"
-                                                      VerticalOptions="Center"
-                                                      ColumnSpacing="{DynamicResource SpacingExtraSmall}">
-                                                    <Grid.GestureRecognizers>
-                                                        <TapGestureRecognizer Command="{Binding ToggleEnabledCommand}" />
-                                                    </Grid.GestureRecognizers>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <Label Grid.Column="0"
-                                                           Margin="{DynamicResource MarginThickness0}"
-                                                           Padding="{DynamicResource PaddingThickness0}"
-                                                           FontSize="{DynamicResource AlarmTimeFontSize}"
-                                                           FontAttributes="Bold"
-                                                           Text="{Binding TimeText}"
-                                                           VerticalOptions="Center"
-                                                           TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
-                                                           LineBreakMode="NoWrap" />
-                                                    <Label Grid.Column="1"
-                                                           Margin="{DynamicResource MarginThickness0}"
-                                                           Padding="{DynamicResource PaddingThickness0}"
-                                                           FontSize="{DynamicResource AlarmMeridianFontSize}"
-                                                           Text="{Binding MeridianText}"
-                                                           VerticalOptions="Center"
-                                                           TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
-                                                           VerticalTextAlignment="Center" />
-                                                </Grid>
-                                                <!-- Days of week -->
-                                                <FlexLayout HorizontalOptions="Start"
-                                                      Wrap="Wrap"
-                                                      JustifyContent="Start"
-                                                      AlignItems="Center"
-                                                      Margin="{DynamicResource MarginThickness0}">
+                                                  ColumnSpacing="{DynamicResource SpacingExtraSmall}">
+                                                <Grid.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding ToggleEnabledCommand}" />
+                                                </Grid.GestureRecognizers>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Label Grid.Column="0"
+                                                       Margin="{DynamicResource MarginThickness0}"
+                                                       Padding="{DynamicResource PaddingThickness0}"
+                                                       FontSize="{DynamicResource AlarmTimeFontSize}"
+                                                       FontAttributes="Bold"
+                                                       Text="{Binding TimeText}"
+                                                       VerticalOptions="Center"
+                                                       TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
+                                                       LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="1"
+                                                       Margin="{DynamicResource MarginThickness0}"
+                                                       Padding="{DynamicResource PaddingThickness0}"
+                                                       FontSize="{DynamicResource AlarmMeridianFontSize}"
+                                                       Text="{Binding MeridianText}"
+                                                       VerticalOptions="Center"
+                                                       TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
+                                                       VerticalTextAlignment="Center" />
+                                            </Grid>
+                                            <!-- Days of week badges -->
+                                            <FlexLayout HorizontalOptions="Start"
+                                                  Wrap="Wrap"
+                                                  JustifyContent="Start"
+                                                  AlignItems="Center"
+                                                  Margin="{DynamicResource MarginThickness0}">
                                                 <Border Margin="{DynamicResource MarginThickness0_5}"
                                                         Padding="{DynamicResource PaddingThickness4_2}"
                                                         BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Sunday'}"
@@ -436,11 +442,13 @@
                                                             HorizontalOptions="Center"
                                                             VerticalOptions="Center" />
                                                 </Border>
-                                                </FlexLayout>
-                                            </VerticalStackLayout>
-                                        </FlexLayout>
-                                        <!-- Row 2: Remaining items (name, publication name, subtitle, language/music) -->
-                                        <VerticalStackLayout Grid.Row="1"
+                                            </FlexLayout>
+                                        </VerticalStackLayout>
+                                        
+                                        <!-- Row 2: Schedule details (name, publication, subtitle, language/music) - spans full width -->
+                                        <VerticalStackLayout Grid.Column="0"
+                                              Grid.ColumnSpan="2"
+                                              Grid.Row="1"
                                               HorizontalOptions="Fill"
                                               VerticalOptions="Start"
                                               Spacing="{DynamicResource PaddingSmall}">

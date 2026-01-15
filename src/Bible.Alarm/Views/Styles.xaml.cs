@@ -176,6 +176,8 @@ public partial class Styles : ResourceDictionary
         this["MarginThickness0_0_10_0"] = new Thickness(0, 0, 10.0 * fontScaleFactor, 0);
         this["MarginThickness16_0_0_0"] = new Thickness(marginLarge, 0, 0, 0); // Left margin only, scales with font size
         this["MarginThicknessPaddingLarge"] = new Thickness(paddingLarge, 0, paddingLarge, 0); // Left and right margins matching schedule item padding
+        this["MarginThicknessPaddingLarge_Standard"] = new Thickness(paddingLarge, 0, paddingStandard, 0); // Left margin matches card padding (16pt), right margin uses standard spacing (12pt) for better list item spacing
+        this["MarginThickness0_0_Standard_0"] = new Thickness(0, 0, paddingStandard, 0); // No left margin, right margin uses standard spacing (12pt) for list item spacing
         this["MarginThickness0_0_16_16"] = new Thickness(0, 0, marginLarge, marginLarge);
         this["MarginThickness0_0_0_16"] = new Thickness(0, 0, 0, marginLarge);
         this["MarginThickness0_8_0_0"] = new Thickness(0, marginMedium, 0, 0);
