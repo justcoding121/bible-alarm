@@ -6,15 +6,17 @@
 
     <!-- Font size resources - set with default values, will be updated in code-behind -->
     <!-- These are updated automatically when screen size/orientation changes or OS font scale changes -->
-    <x:Double x:Key="StandardFontSize">12.0</x:Double>
-    <x:Double x:Key="HeaderFontSize">18.0</x:Double>
-    <x:Double x:Key="ButtonFontSize">17.0</x:Double>
-    <x:Double x:Key="SmallFontSize">10.0</x:Double>
-    <x:Double x:Key="SmallMediumFontSize">12.0</x:Double>
-    <x:Double x:Key="MediumFontSize">14.0</x:Double>
-    <x:Double x:Key="LargeFontSize">16.0</x:Double>
-    <x:Double x:Key="TitleFontSize">20.0</x:Double>
-    <x:Double x:Key="AlarmTimeFontSize">40.0</x:Double>
+    <!-- Using platform-specific defaults per industry standards (iOS/Android/Windows) -->
+    <!-- Initial values are iOS defaults; actual platform-specific values are set at runtime -->
+    <x:Double x:Key="StandardFontSize">17.0</x:Double>
+    <x:Double x:Key="HeaderFontSize">22.0</x:Double>
+    <x:Double x:Key="ButtonFontSize">21.0</x:Double>
+    <x:Double x:Key="SmallFontSize">13.0</x:Double>
+    <x:Double x:Key="SmallMediumFontSize">15.0</x:Double>
+    <x:Double x:Key="MediumFontSize">17.0</x:Double>
+    <x:Double x:Key="LargeFontSize">22.0</x:Double>
+    <x:Double x:Key="TitleFontSize">28.0</x:Double>
+    <x:Double x:Key="AlarmTimeFontSize">36.0</x:Double>
     <x:Double x:Key="AlarmMeridianFontSize">18.0</x:Double>
     <x:Double x:Key="AlarmBellIconFontSize">80.0</x:Double>
     

@@ -6,10 +6,83 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
+    /// <summary>
+    /// Platform-specific font size defaults based on industry standards
+    /// </summary>
+internal record PlatformFontDefaults(
+    double StandardSize,    // Body text
+    double HeaderSize,       // Headers
+    double SmallSize,       // Small text / Caption
+    double SmallMediumSize, // Small-medium text
+    double MediumSize,      // Medium text
+    double LargeSize,       // Large text
+    double TitleSize,       // Title / Display text
+    double AlarmTimeSize,   // Alarm time in list items (per alarm clock app standards)
+    double AlarmMeridianSize // AM/PM in list items
+)
+{
+    /// <summary>
+    /// iOS defaults per Apple Human Interface Guidelines
+    /// Body: 17pt, Caption: 13pt, Headline: 22pt, Title: 28pt
+    /// Alarm time: 36pt for prominent display (per Clock app standards for list items)
+    /// </summary>
+    public static PlatformFontDefaults iOS { get; } = new(
+        StandardSize: 17.0,    // iOS Body (17pt)
+        HeaderSize: 22.0,      // iOS Headline (22pt)
+        SmallSize: 13.0,       // iOS Caption (13pt)
+        SmallMediumSize: 15.0, // iOS Subhead (15pt)
+        MediumSize: 17.0,      // iOS Body (17pt)
+        LargeSize: 22.0,      // iOS Headline (22pt)
+        TitleSize: 28.0,       // iOS Title 1 (28pt)
+        AlarmTimeSize: 36.0,   // iOS alarm time (36pt, prominent display size)
+        AlarmMeridianSize: 18.0 // iOS AM/PM (18pt, Headline size)
+    );
+
+    /// <summary>
+    /// Android defaults per Material Design typography scale
+    /// Body Large: 16sp, Body Medium: 14sp, Body Small: 12sp, Headline: 20-24sp
+    /// Alarm time: 28sp for prominent display (per Material Design and alarm app standards)
+    /// </summary>
+    public static PlatformFontDefaults Android { get; } = new(
+        StandardSize: 16.0,    // Android Body Large (16sp)
+        HeaderSize: 20.0,     // Android Headline Medium (20sp)
+        SmallSize: 12.0,      // Android Body Small (12sp)
+        SmallMediumSize: 14.0, // Android Body Medium (14sp)
+        MediumSize: 16.0,     // Android Body Large (16sp)
+        LargeSize: 20.0,      // Android Headline Medium (20sp)
+        TitleSize: 24.0,       // Android Headline Large (24sp)
+        AlarmTimeSize: 28.0,   // Android alarm time (28sp, prominent display size)
+        AlarmMeridianSize: 18.0 // Android AM/PM (18sp, Headline Medium size)
+    );
+
+    /// <summary>
+    /// Windows defaults per Fluent Design System
+    /// Body: 14pt (desktop standard), Header: 18pt, Title: 24pt
+    /// Alarm time: 32pt for prominent display (larger for desktop readability)
+    /// </summary>
+    public static PlatformFontDefaults Windows { get; } = new(
+        StandardSize: 14.0,    // Windows Body (14pt)
+        HeaderSize: 18.0,      // Windows Header (18pt)
+        SmallSize: 12.0,       // Windows Caption (12pt)
+        SmallMediumSize: 13.0, // Windows Small (13pt)
+        MediumSize: 14.0,      // Windows Body (14pt)
+        LargeSize: 18.0,       // Windows Header (18pt)
+        TitleSize: 24.0,       // Windows Title (24pt)
+        AlarmTimeSize: 32.0,   // Windows alarm time (32pt, prominent display size)
+        AlarmMeridianSize: 18.0 // Windows AM/PM (18pt, matches Header)
+    );
+}
+
 /// <summary>
 /// Service for managing scalable font sizes based on device metrics and OS accessibility settings.
-/// Uses screen width in density-independent pixels (dp) to determine device category,
-/// then applies both density scaling and OS accessibility font scale for optimal readability.
+/// Uses screen width in density-independent pixels (dp) to determine device category (phone/tablet/desktop),
+/// then applies platform-specific defaults, device size multipliers, density scaling, and OS accessibility font scale.
+/// 
+/// Device size scaling per industry standards:
+/// - Phones: 1.0x (base size)
+/// - Tablets: 1.15-1.20x (larger for better readability at viewing distance)
+/// - Desktop: 1.0-1.1x (consistent desktop sizes)
+/// 
 /// Automatically recalculates when screen size/orientation changes or OS font scale changes.
 /// </summary>
 public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposable
@@ -93,29 +166,38 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
     private void SetFallbackFontSizes(DevicePlatform platform, bool isAndroid, double androidAlarmReduction)
     {
         var deviceIdiom = DeviceInfo.Idiom;
+        
+        // Determine device size category for fallback (use screen width if available, otherwise use idiom)
+        var deviceSizeCategory = deviceIdiom == DeviceIdiom.Desktop 
+            ? DeviceSizeCategory.Desktop 
+            : DeviceSizeCategory.Phone; // Default to phone if we can't determine
+        double deviceSizeMultiplier = GetDeviceSizeMultiplier(deviceSizeCategory, platform);
 
         if (platform == DevicePlatform.WinUI || deviceIdiom == DeviceIdiom.Desktop)
         {
-            SetWindowsDesktopFallbackFontSizes(androidAlarmReduction);
+            SetWindowsDesktopFallbackFontSizes(androidAlarmReduction, deviceSizeMultiplier);
         }
         else
         {
-            SetOtherPlatformFallbackFontSizes(isAndroid, androidAlarmReduction);
+            SetOtherPlatformFallbackFontSizes(isAndroid, androidAlarmReduction, deviceSizeMultiplier);
         }
     }
 
-    private void SetWindowsDesktopFallbackFontSizes(double androidAlarmReduction)
+    private void SetWindowsDesktopFallbackFontSizes(double androidAlarmReduction, double deviceSizeMultiplier)
     {
         // Apply progressive accessibility scaling to fallback sizes
+        // Use Windows-specific defaults per Fluent Design System
         double accessibilityScale = accessibilityFontScaleService.FontScale;
 
-        const double BaseStandardSize = 14.0;
-        const double BaseHeaderSize = 20.0;
-        const double BaseSmallSize = 12.0;
-        const double BaseSmallMediumSize = 12.0;
-        const double BaseMediumSize = 16.0;
-        const double BaseLargeSize = 18.0;
-        const double BaseTitleSize = 22.0;
+        var defaults = PlatformFontDefaults.Windows;
+        // Apply device size multiplier (desktop typically uses 1.0x, but tablets may use larger)
+        double BaseStandardSize = defaults.StandardSize * deviceSizeMultiplier;
+        double BaseHeaderSize = defaults.HeaderSize * deviceSizeMultiplier;
+        double BaseSmallSize = defaults.SmallSize * deviceSizeMultiplier;
+        double BaseSmallMediumSize = defaults.SmallMediumSize * deviceSizeMultiplier;
+        double BaseMediumSize = defaults.MediumSize * deviceSizeMultiplier;
+        double BaseLargeSize = defaults.LargeSize * deviceSizeMultiplier;
+        double BaseTitleSize = defaults.TitleSize * deviceSizeMultiplier;
 
         standardFontSize = BaseStandardSize * CalculateProgressiveAccessibilityScale(BaseStandardSize, accessibilityScale);
         headerFontSize = BaseHeaderSize * CalculateProgressiveAccessibilityScale(BaseHeaderSize, accessibilityScale);
@@ -125,12 +207,23 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         largeFontSize = BaseLargeSize * CalculateProgressiveAccessibilityScale(BaseLargeSize, accessibilityScale);
         titleFontSize = BaseTitleSize * CalculateProgressiveAccessibilityScale(BaseTitleSize, accessibilityScale);
 
-        // Alarm fonts use minimal scaling
-        const double BaseAlarmTimeSize = 35.0;
-        const double BaseAlarmMeridianSize = 19.0;
+        // Alarm fonts use platform-specific defaults per industry standards
+        var windowsDefaults = PlatformFontDefaults.Windows;
+        double BaseAlarmTimeSize = windowsDefaults.AlarmTimeSize * deviceSizeMultiplier;
+        double BaseAlarmMeridianSize = windowsDefaults.AlarmMeridianSize * deviceSizeMultiplier;
         const double BaseAlarmBellIconSize = 80.0;
 
-        alarmTimeFontSize = BaseAlarmTimeSize * CalculateProgressiveAccessibilityScale(BaseAlarmTimeSize, accessibilityScale);
+        // Apply progressive accessibility scaling with boost for alarm time
+        double alarmTimeProgressiveScale = CalculateProgressiveAccessibilityScale(BaseAlarmTimeSize, accessibilityScale);
+        // Boost the progressive scale for alarm time to allow better accessibility scaling
+        if (BaseAlarmTimeSize > 20.0 && accessibilityScale > 1.0)
+        {
+            double baseProgressiveScale = alarmTimeProgressiveScale;
+            double extraBoost = (accessibilityScale - 1.0) * 0.3; // Add 30% more scaling
+            alarmTimeProgressiveScale = Math.Min(baseProgressiveScale + extraBoost, accessibilityScale);
+        }
+        
+        alarmTimeFontSize = BaseAlarmTimeSize * alarmTimeProgressiveScale;
         alarmMeridianFontSize = BaseAlarmMeridianSize * CalculateProgressiveAccessibilityScale(BaseAlarmMeridianSize, accessibilityScale);
         alarmBellIconFontSize = BaseAlarmBellIconSize * CalculateProgressiveAccessibilityScale(BaseAlarmBellIconSize, accessibilityScale);
 
@@ -162,22 +255,25 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         contentWidthMedium = 240.0 * contentWidthProgressiveScale;
         contentWidthLarge = 280.0 * contentWidthProgressiveScale;
 
-        Log.Logger.Debug("Using Windows desktop fallback font sizes with progressive accessibility scale {AccessibilityScale:F2}",
-            accessibilityScale);
+        Log.Logger.Debug("Using Windows desktop fallback font sizes (Body: {Body}pt, Header: {Header}pt) with device size multiplier {DeviceSizeMultiplier:F2} and progressive accessibility scale {AccessibilityScale:F2}",
+            BaseStandardSize, BaseHeaderSize, deviceSizeMultiplier, accessibilityScale);
     }
 
-    private void SetOtherPlatformFallbackFontSizes(bool isAndroid, double androidAlarmReduction)
+    private void SetOtherPlatformFallbackFontSizes(bool isAndroid, double androidAlarmReduction, double deviceSizeMultiplier)
     {
         // Apply progressive accessibility scaling to fallback sizes
+        // Use platform-specific defaults: iOS or Android based on industry standards
         double accessibilityScale = accessibilityFontScaleService.FontScale;
 
-        const double BaseStandardSize = 12.0;
-        const double BaseHeaderSize = 18.0;
-        const double BaseSmallSize = 10.0;
-        const double BaseSmallMediumSize = 12.0;
-        const double BaseMediumSize = 14.0;
-        const double BaseLargeSize = 16.0;
-        const double BaseTitleSize = 20.0;
+        var defaults = isAndroid ? PlatformFontDefaults.Android : PlatformFontDefaults.iOS;
+        // Apply device size multiplier (tablets get larger fonts per industry standards)
+        double BaseStandardSize = defaults.StandardSize * deviceSizeMultiplier;
+        double BaseHeaderSize = defaults.HeaderSize * deviceSizeMultiplier;
+        double BaseSmallSize = defaults.SmallSize * deviceSizeMultiplier;
+        double BaseSmallMediumSize = defaults.SmallMediumSize * deviceSizeMultiplier;
+        double BaseMediumSize = defaults.MediumSize * deviceSizeMultiplier;
+        double BaseLargeSize = defaults.LargeSize * deviceSizeMultiplier;
+        double BaseTitleSize = defaults.TitleSize * deviceSizeMultiplier;
 
         standardFontSize = BaseStandardSize * CalculateProgressiveAccessibilityScale(BaseStandardSize, accessibilityScale);
         headerFontSize = BaseHeaderSize * CalculateProgressiveAccessibilityScale(BaseHeaderSize, accessibilityScale);
@@ -215,27 +311,38 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         contentWidthMedium = 240.0 * contentWidthProgressiveScale;
         contentWidthLarge = 280.0 * contentWidthProgressiveScale;
 
-        // Alarm fonts use minimal scaling with caps
-        double baseAlarmTimeSize = 37.0 * androidAlarmReduction;
-        double baseAlarmMeridianSize = 21.0 * androidAlarmReduction;
+        // Alarm fonts use platform-specific defaults per industry standards
+        var platformDefaults = isAndroid ? PlatformFontDefaults.Android : PlatformFontDefaults.iOS;
+        // No reduction for alarm time - should be prominent and large
+        double baseAlarmTimeSize = platformDefaults.AlarmTimeSize * deviceSizeMultiplier;
+        double baseAlarmMeridianSize = platformDefaults.AlarmMeridianSize * deviceSizeMultiplier;
         const double BaseAlarmBellIconSize = 80.0;
 
+        // Apply progressive accessibility scaling with boost for alarm time
         double alarmTimeProgressiveScale = CalculateProgressiveAccessibilityScale(baseAlarmTimeSize, accessibilityScale);
+        // Boost the progressive scale for alarm time to allow better accessibility scaling
+        if (baseAlarmTimeSize > 20.0 && accessibilityScale > 1.0)
+        {
+            double baseProgressiveScale = alarmTimeProgressiveScale;
+            double extraBoost = (accessibilityScale - 1.0) * 0.3; // Add 30% more scaling
+            alarmTimeProgressiveScale = Math.Min(baseProgressiveScale + extraBoost, accessibilityScale);
+        }
+        
         double alarmMeridianProgressiveScale = CalculateProgressiveAccessibilityScale(baseAlarmMeridianSize, accessibilityScale);
         double alarmBellIconProgressiveScale = CalculateProgressiveAccessibilityScale(BaseAlarmBellIconSize, accessibilityScale);
 
-        // Apply minimal max caps for alarm fonts
+        // Apply max caps for alarm fonts (allow up to 2.5x for accessibility)
         double maxProgressiveScale = CalculateProgressiveAccessibilityScale(30.0, accessibilityScale);
         double maxScaleFactor = 1.0 + ((maxProgressiveScale - 1.0) * 0.5);
-        double fallbackMaxTime = (isAndroid ? 36.0 : 48.0) * maxScaleFactor;
-        double fallbackMaxMeridian = (isAndroid ? 20.0 : 26.0) * maxScaleFactor;
+        double fallbackMaxTime = baseAlarmTimeSize * 2.5 * maxScaleFactor;
+        double fallbackMaxMeridian = baseAlarmMeridianSize * 2.0 * maxScaleFactor;
 
         alarmTimeFontSize = Math.Min(baseAlarmTimeSize * alarmTimeProgressiveScale, fallbackMaxTime);
         alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * alarmMeridianProgressiveScale, fallbackMaxMeridian);
         alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * alarmBellIconProgressiveScale, 100.0 * maxScaleFactor);
 
-        Log.Logger.Warning("Invalid display info detected on non-Windows platform, using fallback font sizes with progressive accessibility scale {AccessibilityScale:F2}",
-            accessibilityScale);
+        Log.Logger.Warning("Invalid display info detected on {Platform} platform, using fallback font sizes (Body: {Body}pt, Header: {Header}pt) with device size multiplier {DeviceSizeMultiplier:F2} and progressive accessibility scale {AccessibilityScale:F2}",
+            isAndroid ? "Android" : "iOS", BaseStandardSize, BaseHeaderSize, deviceSizeMultiplier, accessibilityScale);
     }
 
     private void SetScaledFontSizes(DisplayInfo mainDisplayInfo, bool isAndroid, double androidAlarmReduction)
@@ -246,12 +353,79 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         // Get the OS accessibility font scale (1.0 = normal, >1.0 = larger for accessibility)
         double accessibilityScale = accessibilityFontScaleService.FontScale;
 
+        var platform = DeviceInfo.Platform;
+        var deviceIdiom = DeviceInfo.Idiom;
+        
+        // Determine device size category and multiplier
+        var deviceSizeCategory = GetDeviceSizeCategory(widthDp, deviceIdiom);
+        double deviceSizeMultiplier = GetDeviceSizeMultiplier(deviceSizeCategory, platform);
+        
         double densityScale = CalculateDensityScaleFactor(widthDp, density);
-        SetStandardFontSizes(densityScale, accessibilityScale);
-        SetAlarmFontSizes(densityScale, accessibilityScale, widthDp, isAndroid, androidAlarmReduction);
+        SetStandardFontSizes(densityScale, accessibilityScale, platform, deviceSizeMultiplier);
+        SetAlarmFontSizes(densityScale, accessibilityScale, widthDp, isAndroid, androidAlarmReduction, platform, deviceSizeMultiplier);
 
-        Log.Logger.Debug("Font sizes updated with density scale {DensityScale:F2} and accessibility scale {AccessibilityScale:F2}",
-            densityScale, accessibilityScale);
+        Log.Logger.Debug("Font sizes updated with density scale {DensityScale:F2}, accessibility scale {AccessibilityScale:F2}, device size multiplier {DeviceSizeMultiplier:F2} for platform {Platform} ({DeviceSizeCategory})",
+            densityScale, accessibilityScale, deviceSizeMultiplier, platform, deviceSizeCategory);
+    }
+
+    /// <summary>
+    /// Device size categories based on screen width in density-independent pixels
+    /// Following industry standards: phones < 600dp, tablets 600-960dp, desktop > 960dp
+    /// </summary>
+    private enum DeviceSizeCategory
+    {
+        Phone,      // < 600dp (small to large phones)
+        Tablet,     // 600-960dp (tablets, foldables)
+        Desktop     // > 960dp (desktop, large tablets)
+    }
+
+    /// <summary>
+    /// Determines device size category based on screen width
+    /// </summary>
+    private static DeviceSizeCategory GetDeviceSizeCategory(double widthDp, DeviceIdiom idiom)
+    {
+        // Desktop idiom always uses desktop category
+        if (idiom == DeviceIdiom.Desktop)
+        {
+            return DeviceSizeCategory.Desktop;
+        }
+
+        // Use width-based categorization per Material Design and iOS guidelines
+        return widthDp < 600 ? DeviceSizeCategory.Phone :
+               widthDp < 960 ? DeviceSizeCategory.Tablet :
+               DeviceSizeCategory.Desktop;
+    }
+
+    /// <summary>
+    /// Gets device size multiplier for font scaling per industry standards
+    /// - Phones: 1.0x (base size)
+    /// - Tablets: 1.15-1.20x (slightly larger for better readability at viewing distance)
+    /// - Desktop: 1.0-1.1x (desktop apps typically use consistent sizes)
+    /// </summary>
+    private static double GetDeviceSizeMultiplier(DeviceSizeCategory category, DevicePlatform platform)
+    {
+        if (category == DeviceSizeCategory.Phone)
+        {
+            return 1.0; // Base size for phones
+        }
+        
+        if (category == DeviceSizeCategory.Tablet)
+        {
+            if (platform == DevicePlatform.iOS)
+                return 1.15;      // iOS tablets: 15% larger (per HIG recommendations)
+            if (platform == DevicePlatform.Android)
+                return 1.20;      // Android tablets: 20% larger (per Material Design)
+            return 1.15;          // Default for other platforms
+        }
+        
+        if (category == DeviceSizeCategory.Desktop)
+        {
+            if (platform == DevicePlatform.WinUI)
+                return 1.0;       // Windows desktop: standard size
+            return 1.1;           // Other desktop: slight increase
+        }
+        
+        return 1.0;
     }
 
     private static double CalculateDensityScaleFactor(double widthDp, double density)
@@ -322,15 +496,27 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         return 1.0 + (extraScale * progressiveFactor);
     }
 
-    private void SetStandardFontSizes(double densityScale, double accessibilityScale)
+    private void SetStandardFontSizes(double densityScale, double accessibilityScale, DevicePlatform platform, double deviceSizeMultiplier)
     {
-        const double BaseStandardSize = 12.0;
-        const double BaseHeaderSize = 18.0;
-        const double BaseSmallSize = 10.0;
-        const double BaseSmallMediumSize = 12.0;
-        const double BaseMediumSize = 14.0;
-        const double BaseLargeSize = 16.0;
-        const double BaseTitleSize = 20.0;
+        // Get platform-specific defaults based on industry standards
+        PlatformFontDefaults defaults;
+        if (platform == DevicePlatform.iOS)
+            defaults = PlatformFontDefaults.iOS;
+        else if (platform == DevicePlatform.Android)
+            defaults = PlatformFontDefaults.Android;
+        else if (platform == DevicePlatform.WinUI)
+            defaults = PlatformFontDefaults.Windows;
+        else
+            defaults = PlatformFontDefaults.Android; // Default to Android for unknown platforms
+
+        // Apply device size multiplier to base sizes (tablets/desktop get larger fonts)
+        double BaseStandardSize = defaults.StandardSize * deviceSizeMultiplier;
+        double BaseHeaderSize = defaults.HeaderSize * deviceSizeMultiplier;
+        double BaseSmallSize = defaults.SmallSize * deviceSizeMultiplier;
+        double BaseSmallMediumSize = defaults.SmallMediumSize * deviceSizeMultiplier;
+        double BaseMediumSize = defaults.MediumSize * deviceSizeMultiplier;
+        double BaseLargeSize = defaults.LargeSize * deviceSizeMultiplier;
+        double BaseTitleSize = defaults.TitleSize * deviceSizeMultiplier;
 
         // Icon font sizes (for Font Awesome icons etc.)
         const double BaseIconSmallSize = 14.0;
@@ -349,15 +535,17 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         double titleProgressiveScale = CalculateProgressiveAccessibilityScale(BaseTitleSize, accessibilityScale);
 
         // Max caps: smaller fonts can scale more, larger fonts have tighter caps
+        // Caps are proportional to base sizes to maintain platform-appropriate scaling
         double accessibilityCap = Math.Max(1.0, accessibilityScale);
 
-        standardFontSize = Math.Min(BaseStandardSize * densityScale * standardProgressiveScale, 17.0 * accessibilityCap);
-        headerFontSize = Math.Min(BaseHeaderSize * densityScale * headerProgressiveScale, 26.0);
-        smallFontSize = Math.Min(BaseSmallSize * densityScale * smallProgressiveScale, 14.0 * accessibilityCap);
-        smallMediumFontSize = Math.Min(BaseSmallMediumSize * densityScale * smallMediumProgressiveScale, 16.0 * accessibilityCap);
-        mediumFontSize = Math.Min(BaseMediumSize * densityScale * mediumProgressiveScale, 19.0);
-        largeFontSize = Math.Min(BaseLargeSize * densityScale * largeProgressiveScale, 22.0);
-        titleFontSize = Math.Min(BaseTitleSize * densityScale * titleProgressiveScale, 30.0);
+        // Calculate max caps as multiples of base sizes (allows ~1.5x scaling for accessibility)
+        standardFontSize = Math.Min(BaseStandardSize * densityScale * standardProgressiveScale, BaseStandardSize * 1.5 * accessibilityCap);
+        headerFontSize = Math.Min(BaseHeaderSize * densityScale * headerProgressiveScale, BaseHeaderSize * 1.5);
+        smallFontSize = Math.Min(BaseSmallSize * densityScale * smallProgressiveScale, BaseSmallSize * 1.6 * accessibilityCap);
+        smallMediumFontSize = Math.Min(BaseSmallMediumSize * densityScale * smallMediumProgressiveScale, BaseSmallMediumSize * 1.5 * accessibilityCap);
+        mediumFontSize = Math.Min(BaseMediumSize * densityScale * mediumProgressiveScale, BaseMediumSize * 1.4);
+        largeFontSize = Math.Min(BaseLargeSize * densityScale * largeProgressiveScale, BaseLargeSize * 1.4);
+        titleFontSize = Math.Min(BaseTitleSize * densityScale * titleProgressiveScale, BaseTitleSize * 1.3);
 
         // Icon fonts: small icons scale more, large icons scale less
         double iconSmallProgressiveScale = CalculateProgressiveAccessibilityScale(BaseIconSmallSize, accessibilityScale);
@@ -389,39 +577,80 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         contentWidthLarge = Math.Min(BaseContentWidthLarge * contentWidthProgressiveScale, 420.0 * accessibilityCap);
     }
 
-    private void SetAlarmFontSizes(double densityScale, double accessibilityScale, double widthDp, bool isAndroid, double androidAlarmReduction)
+    private void SetAlarmFontSizes(double densityScale, double accessibilityScale, double widthDp, bool isAndroid, double androidAlarmReduction, DevicePlatform platform, double deviceSizeMultiplier)
     {
-        double baseAlarmTimeSize = 37.0 * androidAlarmReduction;
-        double baseAlarmMeridianSize = 21.0 * androidAlarmReduction;
+        // Get platform-specific alarm font defaults per industry standards
+        PlatformFontDefaults defaults;
+        if (platform == DevicePlatform.iOS)
+            defaults = PlatformFontDefaults.iOS;
+        else if (platform == DevicePlatform.Android)
+            defaults = PlatformFontDefaults.Android;
+        else if (platform == DevicePlatform.WinUI)
+            defaults = PlatformFontDefaults.Windows;
+        else
+            defaults = PlatformFontDefaults.Android;
+
+        // Apply device size multiplier - no reduction for alarm time (should be prominent)
+        // Alarm time should be large and prominent, so we don't reduce it
+        double baseAlarmTimeSize = defaults.AlarmTimeSize * deviceSizeMultiplier;
+        double baseAlarmMeridianSize = defaults.AlarmMeridianSize * deviceSizeMultiplier;
         const double BaseAlarmBellIconSize = 80.0;
 
         bool isPhone = widthDp < 600;
-        var maxSizes = GetAlarmMaxSizes(isPhone, isAndroid, accessibilityScale);
+        var maxSizes = GetAlarmMaxSizes(isPhone, isAndroid, accessibilityScale, platform, deviceSizeMultiplier);
 
         // Apply progressive accessibility scaling to alarm fonts
-        // Alarm fonts are already large, so they should scale minimally
+        // Alarm fonts should scale more than very large fonts since they're display text
+        // Use a more generous scaling factor for alarm time (treat as display/headline text)
         double alarmTimeProgressiveScale = CalculateProgressiveAccessibilityScale(baseAlarmTimeSize, accessibilityScale);
+        // For alarm time, allow more scaling - treat it like headline text (not very large display)
+        // If base is > 20pt, the progressive scale is minimal, so boost it for alarm time
+        if (baseAlarmTimeSize > 20.0 && accessibilityScale > 1.0)
+        {
+            // Boost the progressive scale for alarm time to allow better accessibility scaling
+            double baseProgressiveScale = alarmTimeProgressiveScale;
+            double extraBoost = (accessibilityScale - 1.0) * 0.3; // Add 30% more scaling
+            alarmTimeProgressiveScale = Math.Min(baseProgressiveScale + extraBoost, accessibilityScale);
+        }
+        
         double alarmMeridianProgressiveScale = CalculateProgressiveAccessibilityScale(baseAlarmMeridianSize, accessibilityScale);
         double alarmBellIconProgressiveScale = CalculateProgressiveAccessibilityScale(BaseAlarmBellIconSize, accessibilityScale);
 
-        alarmTimeFontSize = Math.Min(baseAlarmTimeSize * densityScale * alarmTimeProgressiveScale, maxSizes.MaxTime);
+        // Allow alarm time to scale more aggressively with density (up to 2.5x for better visibility)
+        double alarmTimeDensityScale = Math.Min(densityScale, 2.5);
+        alarmTimeFontSize = Math.Min(baseAlarmTimeSize * alarmTimeDensityScale * alarmTimeProgressiveScale, maxSizes.MaxTime);
         alarmMeridianFontSize = Math.Min(baseAlarmMeridianSize * densityScale * alarmMeridianProgressiveScale, maxSizes.MaxMeridian);
         alarmBellIconFontSize = Math.Min(BaseAlarmBellIconSize * densityScale * alarmBellIconProgressiveScale, maxSizes.MaxBellIcon);
     }
 
-    private static (double MaxTime, double MaxMeridian, double MaxBellIcon) GetAlarmMaxSizes(bool isPhone, bool isAndroid, double accessibilityScale)
+    private static (double MaxTime, double MaxMeridian, double MaxBellIcon) GetAlarmMaxSizes(bool isPhone, bool isAndroid, double accessibilityScale, DevicePlatform platform, double deviceSizeMultiplier)
     {
         // Alarm fonts are already large, so max sizes should scale minimally with accessibility
         // Use a very minimal progressive scale for the max caps (similar to very large fonts)
         double maxProgressiveScale = CalculateProgressiveAccessibilityScale(30.0, accessibilityScale);
         double maxScaleFactor = 1.0 + ((maxProgressiveScale - 1.0) * 0.5); // Further reduce max scaling
 
-        double maxAlarmTimeSize = (isPhone
-            ? (isAndroid ? 36.0 : 34.0)
-            : (isAndroid ? 45.0 : 60.0)) * maxScaleFactor;
-        double maxAlarmMeridianSize = (isPhone
-            ? (isAndroid ? 20.0 : 22.0)
-            : (isAndroid ? 25.0 : 34.0)) * maxScaleFactor;
+        // Get platform-specific base sizes and calculate max as multiples (allows ~2x scaling for accessibility)
+        PlatformFontDefaults defaults;
+        if (platform == DevicePlatform.iOS)
+            defaults = PlatformFontDefaults.iOS;
+        else if (platform == DevicePlatform.Android)
+            defaults = PlatformFontDefaults.Android;
+        else if (platform == DevicePlatform.WinUI)
+            defaults = PlatformFontDefaults.Windows;
+        else
+            defaults = PlatformFontDefaults.Android;
+
+        double baseTimeSize = defaults.AlarmTimeSize * deviceSizeMultiplier;
+        double baseMeridianSize = defaults.AlarmMeridianSize * deviceSizeMultiplier;
+
+        // Max sizes: allow up to 2.5x for accessibility, with higher limits for tablets
+        // Increased multipliers to allow alarm time to grow larger
+        double maxTimeMultiplier = isPhone ? 2.5 : 3.0;
+        double maxMeridianMultiplier = isPhone ? 2.0 : 2.5;
+
+        double maxAlarmTimeSize = baseTimeSize * maxTimeMultiplier * maxScaleFactor;
+        double maxAlarmMeridianSize = baseMeridianSize * maxMeridianMultiplier * maxScaleFactor;
         double maxAlarmBellIconSize = (isPhone ? 100.0 : 130.0) * maxScaleFactor;
 
         return (maxAlarmTimeSize, maxAlarmMeridianSize, maxAlarmBellIconSize);

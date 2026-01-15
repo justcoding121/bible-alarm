@@ -6,12 +6,12 @@ namespace Bible.Alarm.Services.UI.Interfaces;
 public interface IFontService : IDisposable
 {
     /// <summary>
-    /// Base font size (12 points) scaled by device density and OS accessibility settings
+    /// Base font size (platform-specific: iOS 17pt, Android 16sp, Windows 14pt) scaled by device density and OS accessibility settings
     /// </summary>
     double StandardFontSize { get; }
 
     /// <summary>
-    /// Header font size (18 points) scaled by device density and OS accessibility settings
+    /// Header font size (platform-specific: iOS 22pt, Android 20sp, Windows 18pt) scaled by device density and OS accessibility settings
     /// </summary>
     double HeaderFontSize { get; }
 
@@ -21,27 +21,27 @@ public interface IFontService : IDisposable
     double ButtonFontSize { get; }
 
     /// <summary>
-    /// Small font size (10 points) scaled by device density and OS accessibility settings
+    /// Small font size (platform-specific: iOS 13pt, Android 12sp, Windows 12pt) scaled by device density and OS accessibility settings
     /// </summary>
     double SmallFontSize { get; }
 
     /// <summary>
-    /// Small-medium font size (12 points) scaled by device density and OS accessibility settings
+    /// Small-medium font size (platform-specific: iOS 15pt, Android 14sp, Windows 13pt) scaled by device density and OS accessibility settings
     /// </summary>
     double SmallMediumFontSize { get; }
 
     /// <summary>
-    /// Medium font size (14 points) scaled by device density and OS accessibility settings
+    /// Medium font size (platform-specific: iOS 17pt, Android 16sp, Windows 14pt) scaled by device density and OS accessibility settings
     /// </summary>
     double MediumFontSize { get; }
 
     /// <summary>
-    /// Large font size (16 points) scaled by device density and OS accessibility settings
+    /// Large font size (platform-specific: iOS 22pt, Android 20sp, Windows 18pt) scaled by device density and OS accessibility settings
     /// </summary>
     double LargeFontSize { get; }
 
     /// <summary>
-    /// Title font size (20 points) scaled by device density and OS accessibility settings
+    /// Title font size (platform-specific: iOS 28pt, Android 24sp, Windows 24pt) scaled by device density and OS accessibility settings
     /// </summary>
     double TitleFontSize { get; }
 

@@ -43,8 +43,8 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         this.dispatcher = dispatcher;
 
         // Initialize helper classes
-        stateManager = new TrackStateManager(mapper);
-        selectionHandler = new TrackSelectionHandler(dispatcher, state, mapper, navigationService);
+        stateManager = new TrackStateManager();
+        selectionHandler = new TrackSelectionHandler(dispatcher, state, navigationService);
         listManager = new TrackListManager(logger, mediaService);
         propertyManager = new TrackPropertyManager();
 

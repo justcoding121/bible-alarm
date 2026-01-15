@@ -49,7 +49,7 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         this.mapper = mapper;
 
         // Initialize helper classes
-        stateManager = new SongPublicationSelectionStateManager(mapper);
+        stateManager = new SongPublicationSelectionStateManager();
         dataProvider = new SongPublicationSelectionDataProvider(mediaService);
         commandHandler = new SongPublicationSelectionCommandHandler(navigationService, state, dispatcher);
         propertyManager = new SongPublicationSelectionPropertyManager();

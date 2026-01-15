@@ -61,13 +61,13 @@ public static class FontServiceHelper
     }
 
     /// <summary>
-    /// Gets the standard font size (12pt scaled by density)
+    /// Gets the standard font size (platform-specific: iOS 17pt, Android 16sp, Windows 14pt) scaled by density
     /// Hot-reload friendly: Always returns a valid value
     /// </summary>
     public static double StandardFontSize => GetFontService().StandardFontSize;
 
     /// <summary>
-    /// Gets the header font size (18pt scaled by density)
+    /// Gets the header font size (platform-specific: iOS 22pt, Android 20sp, Windows 18pt) scaled by density
     /// Hot-reload friendly: Always returns a valid value
     /// </summary>
     public static double HeaderFontSize => GetFontService().HeaderFontSize;
@@ -79,31 +79,31 @@ public static class FontServiceHelper
     public static double ButtonFontSize => GetFontService().ButtonFontSize;
 
     /// <summary>
-    /// Gets the small font size (10pt scaled by density)
+    /// Gets the small font size (platform-specific: iOS 13pt, Android 12sp, Windows 12pt) scaled by density
     /// Hot-reload friendly: Always returns a valid value
     /// </summary>
     public static double SmallFontSize => GetFontService().SmallFontSize;
 
     /// <summary>
-    /// Gets the small-medium font size (12pt scaled by density)
+    /// Gets the small-medium font size (platform-specific: iOS 15pt, Android 14sp, Windows 13pt) scaled by density
     /// Hot-reload friendly: Always returns a valid value
     /// </summary>
     public static double SmallMediumFontSize => GetFontService().SmallMediumFontSize;
 
     /// <summary>
-    /// Gets the medium font size (14pt scaled by density)
+    /// Gets the medium font size (platform-specific: iOS 17pt, Android 16sp, Windows 14pt) scaled by density
     /// Hot-reload friendly: Always returns a valid value
     /// </summary>
     public static double MediumFontSize => GetFontService().MediumFontSize;
 
     /// <summary>
-    /// Gets the large font size (16pt scaled by density)
+    /// Gets the large font size (platform-specific: iOS 22pt, Android 20sp, Windows 18pt) scaled by density
     /// Hot-reload friendly: Always returns a valid value
     /// </summary>
     public static double LargeFontSize => GetFontService().LargeFontSize;
 
     /// <summary>
-    /// Gets the title font size (20pt scaled by density)
+    /// Gets the title font size (platform-specific: iOS 28pt, Android 24sp, Windows 24pt) scaled by density
     /// Hot-reload friendly: Always returns a valid value
     /// </summary>
     public static double TitleFontSize => GetFontService().TitleFontSize;

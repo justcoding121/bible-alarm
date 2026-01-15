@@ -48,9 +48,19 @@ public partial class Styles : ResourceDictionary
         var service = fontService ?? FontServiceHelper.GetFontService();
 
         // Calculate font scale factor based on StandardFontSize (which already includes accessibility scaling)
-        // Base StandardFontSize is 12.0, so scale factor = current / base
-        const double BaseStandardFontSize = 12.0;
-        double fontScaleFactor = service.StandardFontSize / BaseStandardFontSize;
+        // Use platform-specific base size to calculate scale factor for spacing/padding
+        // This ensures spacing scales proportionally with font size changes (accessibility, density, etc.)
+        var currentPlatform = DeviceInfo.Platform;
+        double baseStandardSize;
+        if (currentPlatform == DevicePlatform.iOS)
+            baseStandardSize = 17.0;      // iOS Body default
+        else if (currentPlatform == DevicePlatform.Android)
+            baseStandardSize = 16.0;      // Android Body Large default
+        else if (currentPlatform == DevicePlatform.WinUI)
+            baseStandardSize = 14.0;      // Windows Body default
+        else
+            baseStandardSize = 16.0;       // Default fallback
+        double fontScaleFactor = service.StandardFontSize / baseStandardSize;
 
         // Update resources with actual scaled values (includes OS accessibility font scale)
         // DynamicResource bindings will automatically pick up these changes
@@ -178,12 +188,11 @@ public partial class Styles : ResourceDictionary
         this["MarginThickness16_0_16_0"] = new Thickness(marginLarge, 0, marginLarge, 0);
         // Platform-specific top margins for safe area (scale with font size)
         // iOS: 20pt base, Android: 24pt base
-        var platform = DeviceInfo.Platform;
-        if (platform == DevicePlatform.iOS)
+        if (currentPlatform == DevicePlatform.iOS)
         {
             this["MarginThicknessTopSafeArea"] = new Thickness(0, 20.0 * fontScaleFactor, 0, 0);
         }
-        else if (platform == DevicePlatform.Android)
+        else if (currentPlatform == DevicePlatform.Android)
         {
             this["MarginThicknessTopSafeArea"] = new Thickness(0, 24.0 * fontScaleFactor, 0, 0);
         }
