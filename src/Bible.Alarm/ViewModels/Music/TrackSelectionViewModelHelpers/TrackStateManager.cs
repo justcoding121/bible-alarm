@@ -11,7 +11,7 @@ namespace Bible.Alarm.ViewModels.Music.TrackSelectionViewModelHelpers;
 /// <summary>
 /// Handles state management and initialization for TrackSelectionViewModel.
 /// </summary>
-public sealed class TrackStateManager(IMapper mapper)
+public sealed class TrackStateManager
 {
     private AlarmMusic? current;
     private AlarmMusic? lastCurrent;

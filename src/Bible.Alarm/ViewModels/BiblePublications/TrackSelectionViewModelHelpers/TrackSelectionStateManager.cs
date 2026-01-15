@@ -10,7 +10,7 @@ namespace Bible.Alarm.ViewModels.BiblePublications.TrackSelectionViewModelHelper
 /// <summary>
 /// Handles state management and initialization for TrackSelectionViewModel.
 /// </summary>
-public sealed class TrackSelectionStateManager(IMapper mapper)
+public sealed class TrackSelectionStateManager
 {
     private BiblePublicationSchedule? current;
     private BiblePublicationSchedule? lastCurrent;
@@ -90,7 +90,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = effectiveSectionNumber,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
+                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
         }
@@ -171,7 +171,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionNumber = effectiveSectionNumber,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
+                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
         }
@@ -194,7 +194,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
         }
     }
 
-    public void UpdateFromState(IState<ApplicationState> state, IMapper mapper)
+    public void UpdateFromState(IState<ApplicationState> state)
     {
         var stateValue = state.Value;
 
@@ -248,7 +248,7 @@ public sealed class TrackSelectionStateManager(IMapper mapper)
     /// <summary>
     /// Updates state from CurrentSchedule, allowing section number 0 for non-sectioned publications.
     /// </summary>
-    public void UpdateFromStateForNonSectioned(IState<ApplicationState> state, IMapper mapper)
+    public void UpdateFromStateForNonSectioned(IState<ApplicationState> state)
     {
         var stateValue = state.Value;
 

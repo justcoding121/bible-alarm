@@ -93,9 +93,9 @@ public sealed class BiblePublicationSelectionStateHandler
                 current = new BiblePublicationSchedule
                 {
                     LanguageCode = newLanguageCode,
-                    PublicationCode = stateValue.CurrentSchedule.BiblePublicationCode,
-                    SectionNumber = stateValue.CurrentSchedule.BiblePublicationSectionNumber ?? 1,
-                    TrackNumber = stateValue.CurrentSchedule.BiblePublicationTrackNumber ?? 1
+                    PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
+                    SectionNumber = currentSchedule?.BiblePublicationSectionNumber ?? 1,
+                    TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
                 };
             }
 
@@ -234,9 +234,9 @@ public sealed class BiblePublicationSelectionStateHandler
             current = new BiblePublicationSchedule
             {
                 LanguageCode = newLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationCode,
-                SectionNumber = currentSchedule.BiblePublicationSectionNumber ?? 1,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
+                PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
+                SectionNumber = currentSchedule?.BiblePublicationSectionNumber ?? 1,
+                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
         }
@@ -329,9 +329,9 @@ public sealed class BiblePublicationSelectionStateHandler
             current = new BiblePublicationSchedule
             {
                 LanguageCode = newLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationCode,
-                SectionNumber = currentSchedule.BiblePublicationSectionNumber ?? 1,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
+                PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
+                SectionNumber = currentSchedule?.BiblePublicationSectionNumber ?? 1,
+                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
         }
 

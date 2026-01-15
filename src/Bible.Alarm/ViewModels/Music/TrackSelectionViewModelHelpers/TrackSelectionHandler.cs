@@ -16,7 +16,6 @@ namespace Bible.Alarm.ViewModels.Music.TrackSelectionViewModelHelpers;
 public sealed class TrackSelectionHandler(
     IDispatcher dispatcher,
     IState<ApplicationState> state,
-    IMapper mapper,
     INavigationService navigationService)
 {
     public async Task HandleTrackSelection(MusicTrackListViewItemModel track, AlarmMusic? current)

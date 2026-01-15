@@ -130,7 +130,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         Log.Debug("TrackSelectionViewModel.RefreshFromState: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionNumber={SectionNumber}",
             newLanguageCode, newPublicationCode, effectiveSectionNumber);
 
-        stateManager.UpdateFromStateForNonSectioned(state, mapper);
+        stateManager.UpdateFromStateForNonSectioned(state);
 
         // Ensure tracks are populated if not already initialized
         if (!stateManager.InitComplete || propertyManager.Tracks == null || propertyManager.Tracks.Count == 0)

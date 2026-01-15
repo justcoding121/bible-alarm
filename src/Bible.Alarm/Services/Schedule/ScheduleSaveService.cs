@@ -39,8 +39,8 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         
         // Explicitly ensure NumberOfTracksToRead and AlwaysPlayFromStart are set from currentSchedule state
         // (AutoMapper should handle this, but we explicitly set it to be safe)
-        model.NumberOfTracksToRead = currentSchedule.NumberOfTracksToRead;
-        model.AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
+        model.NumberOfTracksToRead = currentSchedule?.NumberOfTracksToRead ?? 0;
+        model.AlwaysPlayFromStart = currentSchedule?.AlwaysPlayFromStart ?? false;
         
         logger.Information("PrepareModelForSave: After mapping - model.NumberOfTracksToRead={NumberOfTracksToRead}, model.AlwaysPlayFromStart={AlwaysPlayFromStart}",
             model.NumberOfTracksToRead, model.AlwaysPlayFromStart);

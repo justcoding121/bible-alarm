@@ -231,7 +231,7 @@ public sealed class ScheduleListItemViewModel(
                 return string.Empty;
             }
 
-            var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == Schedule.Id);
+            var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == Schedule?.Id);
             return scheduleStateItem?.BiblePublicationName ?? string.Empty;
         }
     }

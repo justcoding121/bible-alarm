@@ -104,7 +104,7 @@ public class PlaylistMusicTrackBuilder
         {
             ScheduleId = schedule.Id,
             PublicationCode = vocalMusic.PublicationCode,
-            LanguageCode = vocalMusic.LanguageCode,
+            LanguageCode = vocalMusic.LanguageCode ?? string.Empty,
             TrackNumber = vocalTrack.Number,
             DownloadCode = vocalTrack.DownloadCode, // Typically same as publication code, but store for consistency
             OriginalTrackNumber = vocalTrack.OriginalTrackNumber // Typically same as Number for vocal music
