@@ -165,7 +165,7 @@ public sealed class SongPublicationSelectionStateManager
         }
 
         // If music type or language changed, repopulate song sections
-        if (needsRepopulation && initComplete && newMusicType.Value == MusicType.Vocals)
+        if (needsRepopulation && initComplete && newMusicType.Value == MusicType.VocalMusic)
         {
             Task.Run(async () =>
             {

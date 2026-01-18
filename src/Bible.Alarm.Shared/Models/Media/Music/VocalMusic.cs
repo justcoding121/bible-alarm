@@ -1,17 +1,33 @@
+#nullable enable
+
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
+using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 
 namespace Bible.Alarm.Shared.Models.Media.Music;
 
-[Table("VocalMusic")]
-[Index(nameof(Code), nameof(LanguageId), IsUnique = true)]
-public sealed class VocalMusic : TranslatedPublication
+/// <summary>
+/// Wrapper for BiblePublication used for Vocal music (Music category with LanguageId).
+/// Vocal music publications are BiblePublications under Music category with a language foreign key.
+/// </summary>
+public class VocalMusic
 {
-    [Key]
-    public int Id { get; set; }
+    public BiblePublication Publication { get; set; } = null!;
 
-    [Required]
-    public List<MusicTrack> Tracks { get; set; } = [];
+    // Expose BiblePublication properties for convenience
+    public int Id => Publication.Id;
+    public string Code => Publication.Code;
+    public string Name => Publication.Name;
+    public int CategoryId => Publication.CategoryId;
+    public Category Category => Publication.Category;
+    public int? LanguageId => Publication.LanguageId;
+    public Language? Language => Publication.Language;
+    public List<BaseUrl> BaseUrls => Publication.BaseUrls;
+    public List<UrlParam> UrlParams => Publication.UrlParams;
+    public List<BiblePublicationSection> Sections => Publication.Sections;
+    public List<BiblePublicationTrack> Tracks => Publication.Tracks;
+    public bool IsVideo => Publication.IsVideo;
+
+    public static implicit operator BiblePublication(VocalMusic vocalMusic) => vocalMusic.Publication;
+    public static implicit operator VocalMusic(BiblePublication publication) => new VocalMusic { Publication = publication };
 }

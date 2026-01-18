@@ -17,10 +17,14 @@ using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Video;
 
-internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
+internal class VideoHarvester : BaseHarvester
 {
-    private const int MaxConcurrentLanguageDownloads = 8;
     private const string PreferredQuality = "240p"; // Use lowest quality for audio-only playback
+
+    public VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
+        : base(logger, downloadUtility)
+    {
+    }
 
     private static readonly Dictionary<string, string> VideoPublicationCodeToNameMappings = new([
         new KeyValuePair<string, string>("gnj", "The Good News According to Jesus")
@@ -39,7 +43,6 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
     private readonly Dictionary<(string LanguageCode, string PublicationCode), string> localizedPublicationNames = new();
     private readonly object localizedNamesLock = new();
 
-    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY", "A"]; // A = Arabic, not AR (Bambara)
 
     internal async Task HarvestVideoLinks(bool isTestRun = false)
     {
@@ -48,9 +51,14 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         foreach (var publication in VideoPublicationCodeToNameMappings)
         {
+            Logger.Information("Starting harvest for Video publication: {PublicationName} ({PublicationCode})", 
+                publication.Value, publication.Key);
+            
             var languageEntries = await GetLanguageEntries(publication.Key, publication.Value, isTestRun);
             if (languageEntries == null || languageEntries.Count == 0)
             {
+                Logger.Warning("No languages found for Video publication: {PublicationName} ({PublicationCode})", 
+                    publication.Value, publication.Key);
                 continue;
             }
 
@@ -70,20 +78,25 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         string publicationName,
         bool isTestRun)
     {
+        Logger.Information("Fetching languages for Video publication: {PublicationName} ({PublicationCode})", 
+            publicationName, publicationCode);
+        
         string jsonString;
         try
         {
             // Use track=1 to get all available languages
             var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&alllangs=1&track=1&langwritten=E&txtCMSLang=E";
-            jsonString = await downloadUtility.GetAsync(harvestLink);
+            jsonString = await DownloadUtility.GetAsync(harvestLink);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
         {
+            Logger.Warning("No languages found for Video publication: {PublicationName} ({PublicationCode})", 
+                publicationName, publicationCode);
             return null;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to fetch languages for video publication {PublicationCode} ({PublicationName}). Skipping.",
+            Logger.Error(ex, "Failed to fetch languages for video publication {PublicationCode} ({PublicationName}). Skipping.",
                 publicationCode, publicationName);
             return null;
         }
@@ -91,63 +104,19 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         var languageEntries = ParseLanguageEntries(jsonString);
         if (languageEntries == null || languageEntries.Count == 0)
         {
+            Logger.Warning("No languages found for Video publication: {PublicationName} ({PublicationCode})", 
+                publicationName, publicationCode);
             return null;
         }
 
-        return FilterLanguageEntriesForTestRun(languageEntries, isTestRun);
-    }
-
-    private static List<(string Code, string Name, string Direction)>? ParseLanguageEntries(string jsonString)
-    {
-        using var doc = JsonDocument.Parse(jsonString);
-        var root = doc.RootElement;
-
-        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("languages", out var languages))
+        var filteredEntries = FilterLanguageEntriesForTestRun(languageEntries, isTestRun);
+        if (filteredEntries != null && filteredEntries.Count > 0)
         {
-            return null;
+            Logger.Information("Found {Count} language(s) for Video publication: {PublicationName} ({PublicationCode})", 
+                filteredEntries.Count, publicationName, publicationCode);
         }
-
-        var languageEntries = new List<(string Code, string Name, string Direction)>();
-        foreach (var item in languages.EnumerateObject())
-        {
-            if (!item.Value.TryGetProperty("name", out var nameElement))
-            {
-                continue;
-            }
-
-            var rawLanguage = nameElement.GetString();
-            // Decode HTML entities like &nbsp; to proper characters
-            var language = rawLanguage != null ? WebUtility.HtmlDecode(rawLanguage) : null;
-            if (string.IsNullOrEmpty(language))
-            {
-                continue;
-            }
-
-            // Extract direction (defaults to "ltr" if not present)
-            var direction = "ltr";
-            if (item.Value.TryGetProperty("direction", out var directionElement))
-            {
-                direction = directionElement.GetString() ?? "ltr";
-            }
-
-            // Normalize language code to uppercase for consistent storage
-            languageEntries.Add((item.Name.ToUpperInvariant(), language, direction));
-        }
-
-        return languageEntries;
-    }
-
-    private static List<(string Code, string Name, string Direction)>? FilterLanguageEntriesForTestRun(
-        List<(string Code, string Name, string Direction)> languageEntries,
-        bool isTestRun)
-    {
-        if (!isTestRun)
-        {
-            return languageEntries;
-        }
-
-        var testRunEntries = languageEntries.Where(e => TestRunLanguageCodes.Contains(e.Code)).ToList();
-        return testRunEntries.Count > 0 ? testRunEntries : null;
+        
+        return filteredEntries;
     }
 
     private async Task ProcessLanguageEntries(
@@ -187,7 +156,7 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         Dictionary<string, List<string>> languageCodeToPublications)
     {
         var (languageCode, language, direction) = entry;
-        logger.Information("Harvesting Video episode links for {PublicationName} in {Language} language.",
+        Logger.Information("Harvesting Video episode links for {PublicationName} in {Language} language.",
             publicationName, language);
 
         try
@@ -207,7 +176,7 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
         catch (Exception e)
         {
-            logger.Error(e, "Failed: Harvesting Video episode links for {PublicationName} in {Language} language.",
+            Logger.Error(e, "Failed: Harvesting Video episode links for {PublicationName} in {Language} language.",
                 publicationName, language);
         }
     }
@@ -222,7 +191,7 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         try
         {
             var categoryUrl = $"{AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl}/categories/{languageCode}/{categoryKey}?detailed=1";
-            var jsonString = await downloadUtility.GetAsync(categoryUrl);
+            var jsonString = await DownloadUtility.GetAsync(categoryUrl);
 
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
@@ -244,7 +213,7 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to fetch localized name for {PublicationCode} in {LanguageCode}",
+            Logger.Warning(ex, "Failed to fetch localized name for {PublicationCode} in {LanguageCode}",
                 publicationCode, languageCode);
         }
     }
@@ -272,7 +241,11 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
 
     private async Task<bool> HarvestVideoEpisodes(string publicationCode, string languageCode)
     {
-        var dir = $"{DirectoryHelper.IndexDirectory}/media/Video/{languageCode}/{publicationCode}";
+        // Unified structure: media/Dramas/{languageCode}/{publicationCode} (no Audio/Video prefix)
+        // Videos use "Dramas" category, IsVideo flag in database determines if it's video or audio
+        var normalizedLanguageCode = languageCode.ToUpperInvariant();
+        var normalizedPublicationCode = publicationCode.ToUpperInvariant();
+        var dir = $"{DirectoryHelper.IndexDirectory}/media/Dramas/{normalizedLanguageCode}/{normalizedPublicationCode}";
         var file = $"{dir}/episodes.json";
 
         var episodes = new List<VideoEpisode>();
@@ -310,7 +283,7 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         try
         {
             var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&langwritten={languageCode}&track={episodeNumber}";
-            jsonString = await downloadUtility.GetAsync(harvestLink);
+            jsonString = await DownloadUtility.GetAsync(harvestLink);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
         {
@@ -318,7 +291,7 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to fetch episode {EpisodeNumber} for {PublicationCode} in {LanguageCode}",
+            Logger.Warning(ex, "Failed to fetch episode {EpisodeNumber} for {PublicationCode} in {LanguageCode}",
                 episodeNumber, publicationCode, languageCode);
             return null;
         }
@@ -428,7 +401,8 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
         Dictionary<string, List<string>> languageCodeToPublications,
         Dictionary<string, LanguageInfo> languageCodeToInfo)
     {
-        var videoDir = $"{DirectoryHelper.IndexDirectory}/media/Video";
+        // Unified structure: media/Dramas (no Audio/Video prefix)
+        var videoDir = $"{DirectoryHelper.IndexDirectory}/media/Dramas";
         if (!Directory.Exists(videoDir))
         {
             Directory.CreateDirectory(videoDir);
@@ -436,8 +410,10 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         foreach (var languagePublication in languageCodeToPublications)
         {
-            var languageCode = languagePublication.Key;
-            var languageDir = $"{videoDir}/{languageCode}";
+            // Unified structure: media/Dramas/{languageCode} (no Audio/Video prefix)
+            // Normalize language code for path consistency
+            var normalizedLanguageCode = languagePublication.Key.ToUpperInvariant();
+            var languageDir = $"{videoDir}/{normalizedLanguageCode}";
             if (!Directory.Exists(languageDir))
             {
                 Directory.CreateDirectory(languageDir);
@@ -447,7 +423,8 @@ internal class VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
                 languagePublication.Value.Select(pubCode =>
                 {
                     // Use localized name if available, otherwise fall back to English
-                    var name = localizedPublicationNames.TryGetValue((languageCode, pubCode), out var localizedName)
+                    var langCode = languagePublication.Key;
+                    var name = localizedPublicationNames.TryGetValue((langCode, pubCode), out var localizedName)
                         ? localizedName
                         : VideoPublicationCodeToNameMappings.GetValueOrDefault(pubCode, pubCode);
 

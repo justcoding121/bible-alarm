@@ -47,14 +47,23 @@ public class TrackMetadata
     public int? OriginalTrackNumber { get; set; }
 
     /// <summary>
-    /// Computes the LookUpPath at runtime based on PlayType and available parameters.
-    /// This replaces storing LookUpPath in the database.
+    /// The lookup path (query string) for refreshing the URL from the API.
+    /// If set, this value is used. Otherwise, it's computed from parameters.
     /// For dramas, uses Mediator API format. For Bible/Videos/Music, uses GETPUBMEDIALINKS format.
     /// </summary>
+    private string? _lookUpPath;
+
     public string LookUpPath
     {
         get
         {
+            // If LookUpPath was set explicitly (from UrlConstructionService), use it
+            if (!string.IsNullOrEmpty(_lookUpPath))
+            {
+                return _lookUpPath;
+            }
+
+            // Fallback to computed LookUpPath for backward compatibility
             if (PlayType == PlayType.Bible)
             {
                 // Check if this is a drama (uses Mediator API)
@@ -68,6 +77,7 @@ public class TrackMetadata
             // Music (uses GETPUBMEDIALINKS)
             return LookUpPathBuilder.BuildMusicTrackLookUpPath(PublicationCode, LanguageCode, TrackNumber, DownloadCode, OriginalTrackNumber);
         }
+        set => _lookUpPath = value;
     }
 
     public int SectionNumber { get; set; }

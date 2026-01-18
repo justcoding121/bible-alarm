@@ -136,12 +136,12 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
                 if (musicType.HasValue && !string.IsNullOrEmpty(publicationCode))
                 {
                     // For vocals, language code is required
-                    if (musicType.Value == MusicType.Vocals && !string.IsNullOrEmpty(languageCode))
+                    if (musicType.Value == MusicType.VocalMusic && !string.IsNullOrEmpty(languageCode))
                     {
                         break;
                     }
                     // For melodies, language code can be null
-                    else if (musicType.Value == MusicType.Melodies)
+                    else if (musicType.Value == MusicType.Music)
                     {
                         break;
                     }
@@ -163,7 +163,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         }
 
         // For vocals, language code is required
-        if (musicType.Value == MusicType.Vocals && string.IsNullOrEmpty(languageCode))
+        if (musicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(languageCode))
         {
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
             return;
@@ -233,7 +233,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private async Task Initialize(string? languageCode, string publicationCode)
     {
-        var musicType = stateManager.LastMusicType ?? stateManager.Current?.MusicType ?? MusicType.Vocals;
+        var musicType = stateManager.LastMusicType ?? stateManager.Current?.MusicType ?? MusicType.VocalMusic;
         await listManager.PopulateTracks(musicType, languageCode, publicationCode, propertyManager.Tracks);
 
         // Subscribe to PropertyChanged events for Repeat

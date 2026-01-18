@@ -13,13 +13,17 @@ public sealed class BiblePublicationPropertyChangeDetector
     private readonly BiblePublicationDisplayTextProvider displayTextProvider;
 
     // Track last values to prevent unnecessary PropertyChanged notifications
+    private string? lastCategoryDisplayText;
     private string? lastLanguageDisplayText;
     private string? lastPublicationDisplayText;
     private string? lastSectionDisplayText;
     private string? lastTrackDisplayText;
     private bool? lastIsSectionVisible;
+    private bool? lastIsLanguageVisible;
 
     // Track underlying property values to detect cascading changes
+    private int? lastCategoryId;
+    private string? lastCategoryName;
     private string? lastLanguageCode;
     private string? lastPublicationCode;
     private int? lastSectionNumber;
@@ -31,30 +35,40 @@ public sealed class BiblePublicationPropertyChangeDetector
     }
 
     public void Initialize(
+        int? categoryId,
+        string? categoryName,
         string? languageCode,
         string? publicationCode,
         int? sectionNumber,
         int? trackNumber)
     {
+        lastCategoryId = categoryId;
+        lastCategoryName = categoryName;
         lastLanguageCode = languageCode;
         lastPublicationCode = publicationCode;
         lastSectionNumber = sectionNumber;
         lastTrackNumber = trackNumber;
+        lastCategoryDisplayText = displayTextProvider.GetCategoryDisplayText();
         lastLanguageDisplayText = displayTextProvider.GetLanguageDisplayText();
         lastPublicationDisplayText = displayTextProvider.GetPublicationDisplayText();
         lastSectionDisplayText = displayTextProvider.GetSectionDisplayText();
         lastTrackDisplayText = displayTextProvider.GetTrackDisplayText();
         lastIsSectionVisible = displayTextProvider.GetIsSectionVisible();
+        lastIsLanguageVisible = displayTextProvider.GetIsLanguageVisible();
     }
 
     public PropertyChangeInfo DetectPropertyChanges(ScheduleStateItem? currentSchedule)
     {
         // Use CurrentSchedule as the single source of truth
+        var currentCategoryId = currentSchedule?.BiblePublicationCategoryId;
+        var currentCategoryName = currentSchedule?.BiblePublicationCategoryName;
         var currentLanguageCode = currentSchedule?.BiblePublicationLanguageCode;
         var currentPublicationCode = currentSchedule?.BiblePublicationCode;
         var currentSectionNumber = currentSchedule?.BiblePublicationSectionNumber;
         var currentTrackNumber = currentSchedule?.BiblePublicationTrackNumber;
 
+        var categoryIdChanged = currentCategoryId != lastCategoryId;
+        var categoryNameChanged = currentCategoryName != lastCategoryName;
         var languageCodeChanged = currentLanguageCode != lastLanguageCode;
         var publicationCodeChanged = currentPublicationCode != lastPublicationCode;
         var sectionNumberChanged = currentSectionNumber != lastSectionNumber;
@@ -64,90 +78,116 @@ public sealed class BiblePublicationPropertyChangeDetector
         var sectionVisibilityTypeChanged = publicationCodeChanged &&
             PublicationTypeHelper.IsDrama(currentPublicationCode) != PublicationTypeHelper.IsDrama(lastPublicationCode);
 
+        var newCategoryDisplayText = displayTextProvider.GetCategoryDisplayText();
         var newLanguageDisplayText = displayTextProvider.GetLanguageDisplayText();
         var newPublicationDisplayText = displayTextProvider.GetPublicationDisplayText();
         var newSectionDisplayText = displayTextProvider.GetSectionDisplayText();
         var newTrackDisplayText = displayTextProvider.GetTrackDisplayText();
         var newIsSectionVisible = displayTextProvider.GetIsSectionVisible();
+        var newIsLanguageVisible = displayTextProvider.GetIsLanguageVisible();
 
+        var categoryDisplayChanged = newCategoryDisplayText != lastCategoryDisplayText;
         var languageDisplayChanged = newLanguageDisplayText != lastLanguageDisplayText;
         var publicationDisplayChanged = newPublicationDisplayText != lastPublicationDisplayText;
         var sectionDisplayChanged = newSectionDisplayText != lastSectionDisplayText;
         var trackDisplayChanged = newTrackDisplayText != lastTrackDisplayText;
         var isSectionVisibleChanged = newIsSectionVisible != lastIsSectionVisible;
+        var isLanguageVisibleChanged = newIsLanguageVisible != lastIsLanguageVisible;
 
-        // Cascade logic: Language → Publication → Section → Track
+        // Cascade logic: Category → Language → Publication → Section → Track
+        // Category change cascades to everything below
         // IsSectionVisible changes when publication type changes (to/from drama)
-        var notifyLanguage = languageCodeChanged;
-        var notifyPublication = languageCodeChanged || publicationCodeChanged;
-        var notifySection = languageCodeChanged || publicationCodeChanged || sectionNumberChanged;
-        var notifyTrack = languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged;
+        var notifyCategory = categoryIdChanged || categoryNameChanged;
+        var notifyLanguage = categoryIdChanged || categoryNameChanged || languageCodeChanged;
+        var notifyPublication = categoryIdChanged || categoryNameChanged || languageCodeChanged || publicationCodeChanged;
+        var notifySection = categoryIdChanged || categoryNameChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged;
+        var notifyTrack = categoryIdChanged || categoryNameChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged;
         var notifyIsSectionVisible = sectionVisibilityTypeChanged || isSectionVisibleChanged;
+        var notifyIsLanguageVisible = categoryIdChanged || categoryNameChanged || isLanguageVisibleChanged;
 
-        var displayTextOnlyChanged = (languageDisplayChanged && !languageCodeChanged) ||
-                                    (publicationDisplayChanged && !languageCodeChanged && !publicationCodeChanged) ||
-                                    (sectionDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !sectionNumberChanged) ||
-                                    (trackDisplayChanged && !languageCodeChanged && !publicationCodeChanged && !sectionNumberChanged && !trackNumberChanged);
+        var displayTextOnlyChanged = (categoryDisplayChanged && !categoryIdChanged && !categoryNameChanged) ||
+                                    (languageDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged) ||
+                                    (publicationDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged) ||
+                                    (sectionDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged && !sectionNumberChanged) ||
+                                    (trackDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged && !sectionNumberChanged && !trackNumberChanged);
 
-        var cascadeChangeOccurred = languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged;
+        var cascadeChangeOccurred = categoryIdChanged || categoryNameChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged;
 
         var changeInfo = new PropertyChangeInfo
         {
+            CurrentCategoryId = currentCategoryId,
+            CurrentCategoryName = currentCategoryName,
             CurrentLanguageCode = currentLanguageCode,
             CurrentPublicationCode = currentPublicationCode,
             CurrentSectionNumber = currentSectionNumber,
             CurrentTrackNumber = currentTrackNumber,
+            NewCategoryDisplayText = newCategoryDisplayText,
             NewLanguageDisplayText = newLanguageDisplayText,
             NewPublicationDisplayText = newPublicationDisplayText,
             NewSectionDisplayText = newSectionDisplayText,
             NewTrackDisplayText = newTrackDisplayText,
             NewIsSectionVisible = newIsSectionVisible,
+            NewIsLanguageVisible = newIsLanguageVisible,
+            NotifyCategory = notifyCategory,
             NotifyLanguage = notifyLanguage,
             NotifyPublication = notifyPublication,
             NotifySection = notifySection,
             NotifyTrack = notifyTrack,
             NotifyIsSectionVisible = notifyIsSectionVisible,
+            NotifyIsLanguageVisible = notifyIsLanguageVisible,
             DisplayTextOnlyChanged = displayTextOnlyChanged,
             CascadeChangeOccurred = cascadeChangeOccurred,
+            CategoryDisplayChanged = categoryDisplayChanged,
             LanguageDisplayChanged = languageDisplayChanged,
             PublicationDisplayChanged = publicationDisplayChanged,
             SectionDisplayChanged = sectionDisplayChanged,
             TrackDisplayChanged = trackDisplayChanged,
-            HasChanges = notifyLanguage || notifyPublication || notifySection || notifyTrack || notifyIsSectionVisible || displayTextOnlyChanged
+            HasChanges = notifyCategory || notifyLanguage || notifyPublication || notifySection || notifyTrack || notifyIsSectionVisible || notifyIsLanguageVisible || displayTextOnlyChanged
         };
 
         // Update last values
+        lastCategoryId = currentCategoryId;
+        lastCategoryName = currentCategoryName;
         lastLanguageCode = currentLanguageCode;
         lastPublicationCode = currentPublicationCode;
         lastSectionNumber = currentSectionNumber;
         lastTrackNumber = currentTrackNumber;
+        lastCategoryDisplayText = newCategoryDisplayText;
         lastLanguageDisplayText = newLanguageDisplayText;
         lastPublicationDisplayText = newPublicationDisplayText;
         lastSectionDisplayText = newSectionDisplayText;
         lastTrackDisplayText = newTrackDisplayText;
         lastIsSectionVisible = newIsSectionVisible;
+        lastIsLanguageVisible = newIsLanguageVisible;
 
         return changeInfo;
     }
 
     public record PropertyChangeInfo
     {
+        public int? CurrentCategoryId { get; init; }
+        public string? CurrentCategoryName { get; init; }
         public string? CurrentLanguageCode { get; init; }
         public string? CurrentPublicationCode { get; init; }
         public int? CurrentSectionNumber { get; init; }
         public int? CurrentTrackNumber { get; init; }
+        public string NewCategoryDisplayText { get; init; } = string.Empty;
         public string NewLanguageDisplayText { get; init; } = string.Empty;
         public string NewPublicationDisplayText { get; init; } = string.Empty;
         public string NewSectionDisplayText { get; init; } = string.Empty;
         public string NewTrackDisplayText { get; init; } = string.Empty;
         public bool NewIsSectionVisible { get; init; }
+        public bool NewIsLanguageVisible { get; init; }
+        public bool NotifyCategory { get; init; }
         public bool NotifyLanguage { get; init; }
         public bool NotifyPublication { get; init; }
         public bool NotifySection { get; init; }
         public bool NotifyTrack { get; init; }
         public bool NotifyIsSectionVisible { get; init; }
+        public bool NotifyIsLanguageVisible { get; init; }
         public bool DisplayTextOnlyChanged { get; init; }
         public bool CascadeChangeOccurred { get; init; }
+        public bool CategoryDisplayChanged { get; init; }
         public bool LanguageDisplayChanged { get; init; }
         public bool PublicationDisplayChanged { get; init; }
         public bool SectionDisplayChanged { get; init; }

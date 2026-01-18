@@ -278,11 +278,11 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
                 musicType = stateValue.CurrentSchedule.MusicType.Value;
                 newLanguageCode = stateValue.CurrentSchedule.MusicLanguageCode;
                 // For Vocals, we need language code; for Melodies, it can be null
-                if (musicType == MusicType.Vocals && !string.IsNullOrEmpty(newLanguageCode))
+                if (musicType == MusicType.VocalMusic && !string.IsNullOrEmpty(newLanguageCode))
                 {
                     break;
                 }
-                else if (musicType == MusicType.Melodies)
+                else if (musicType == MusicType.Music)
                 {
                     // For Melodies, language code can be null, so we can proceed
                     break;
@@ -301,7 +301,7 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         }
 
         // For Vocals, language code is required
-        if (musicType.Value == MusicType.Vocals && string.IsNullOrEmpty(newLanguageCode))
+        if (musicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(newLanguageCode))
         {
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
             return;
@@ -328,7 +328,7 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
 
         // For Vocals, if no language is selected but languages are available, select based on current schedule
         string? languageCodeToUse = null;
-        if (finalStateValue.CurrentSchedule?.MusicType == MusicType.Vocals &&
+        if (finalStateValue.CurrentSchedule?.MusicType == MusicType.VocalMusic &&
             propertyManager.CurrentLanguage == null &&
             propertyManager.Languages != null &&
             propertyManager.Languages.Count > 0)

@@ -272,6 +272,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             // on UI thread here, it will execute immediately (MainThread.BeginInvokeOnMainThread checks
             // if already on main thread and executes synchronously if so)
             propertyManager.NotifySchedulePropertiesChanged();
+            
+            // Notify IsMusicSelectionVisible when category changes
+            OnPropertyChanged(nameof(IsMusicSelectionVisible));
         });
 
         // Handle overlay visibility based on container readiness and content load state
@@ -371,6 +374,31 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     }
 
     public bool IsExistingSchedule => propertyManager.IsExistingSchedule;
+
+    /// <summary>
+    /// Determines if MusicSelectionContainer should be visible.
+    /// Returns false when Music category is selected (Music category publications don't use the music selection container).
+    /// </summary>
+    public bool IsMusicSelectionVisible
+    {
+        get
+        {
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return true; // Default to visible
+            }
+
+            // Hide music selection container when Music category is selected
+            if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
+                string.Equals(currentSchedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
 
     // Container ViewModels - exposed for XAML binding
     public BiblePublicationSelectionContainerViewModel? BibleSelectionContainerViewModel => propertyManager.BibleSelectionContainerViewModel;

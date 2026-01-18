@@ -23,11 +23,11 @@ internal sealed class MusicDisplayNamePopulator
 
         var music = schedule.Music;
 
-        if (music.MusicType == MusicType.Vocals)
+        if (music.MusicType == MusicType.VocalMusic)
         {
             PopulateVocalMusic(schedule, scheduleStateItem, music, lookupData);
         }
-        else if (music.MusicType == MusicType.Melodies)
+        else if (music.MusicType == MusicType.Music)
         {
             PopulateMelodyMusic(schedule, scheduleStateItem, music, lookupData);
         }

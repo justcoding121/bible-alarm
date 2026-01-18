@@ -11,6 +11,8 @@ public sealed class BiblePublicationStateItem : IComparable
 {
     public int Id { get; set; }
 
+    public int? CategoryId { get; set; }
+    public string? CategoryName { get; set; }
     public string LanguageCode { get; set; } = string.Empty;
     public string PublicationCode { get; set; } = string.Empty;
 

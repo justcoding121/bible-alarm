@@ -55,7 +55,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         IBiblePublicationService BiblePublicationService,
         IMelodyMusicService melodyMusicService,
         IMediaUrlRefreshService urlRefreshService,
-        IDiskCacheService? diskCacheService)
+        IDiskCacheService? diskCacheService,
+        IUrlConstructionService? urlConstructionService = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
@@ -66,8 +67,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         this.melodyMusicService = melodyMusicService;
         this.urlRefreshService = urlRefreshService;
         this.diskCacheService = diskCacheService;
-        biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, mediaService, urlRefreshService, BiblePublicationService);
-        musicTrackBuilder = new PlaylistMusicTrackBuilder(logger, mediaService, melodyMusicService, urlRefreshService);
+        biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, mediaService, urlRefreshService, BiblePublicationService, urlConstructionService);
+        musicTrackBuilder = new PlaylistMusicTrackBuilder(logger, mediaService, melodyMusicService, urlRefreshService, urlConstructionService);
         trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);
         trackNavigator = new TrackNavigator(mediaService, BiblePublicationService);
         scheduleUpdater = new ScheduleUpdater(alarmScheduleService, cancellationTokenSource.Token);
@@ -226,6 +227,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             IsLastTrack = false
         };
 
+        // Note: LookUpPath will be set by GetInitialTrackInfo if UrlConstructionService is available
+        // The URL is already constructed in GetInitialTrackInfo, so we use trackInfo.Url directly
         return new PlayItem(trackMetadata, trackInfo.Url);
     }
 
@@ -333,32 +336,32 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         return schedule.Music.MusicType switch
         {
-            MusicType.Melodies => await GetNextMelodyTrackAsync(schedule, next),
-            MusicType.Vocals => await GetNextVocalTrackAsync(schedule, next),
+            MusicType.Music => await GetNextMusicTrackAsync(schedule, next),
+            MusicType.VocalMusic => await GetNextVocalMusicTrackAsync(schedule, next),
             _ => throw new ApplicationException("Invalid MusicType.")
         };
     }
 
-    private async Task<PlayItem> GetNextMelodyTrackAsync(AlarmSchedule schedule, bool next)
+    private async Task<PlayItem> GetNextMusicTrackAsync(AlarmSchedule schedule, bool next)
     {
-        var melodyMusic = schedule.Music;
-        if (melodyMusic == null)
+        var music = schedule.Music;
+        if (music == null)
         {
             throw new InvalidOperationException("Schedule music is null");
         }
-        var melodyTracks = await mediaService.GetMelodyMusicTracks(melodyMusic.PublicationCode);
-        if (melodyTracks.Count == 0)
+        var musicTracks = await mediaService.GetMelodyMusicTracks(music.PublicationCode);
+        if (musicTracks.Count == 0)
         {
-            throw new InvalidOperationException($"No melody tracks found for publication {melodyMusic.PublicationCode}");
+            throw new InvalidOperationException($"No music tracks found for publication {music.PublicationCode}");
         }
 
-        var melodyTrackIndex = CalculateTrackIndex(melodyMusic.TrackNumber, melodyTracks.Count, next);
-        var melodyTrack = melodyTracks[melodyTrackIndex];
+        var musicTrackIndex = CalculateTrackIndex(music.TrackNumber, musicTracks.Count, next);
+        var musicTrack = musicTracks[musicTrackIndex];
 
-        return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
+        return await CreateMusicPlayItem(schedule, music, musicTrack);
     }
 
-    private async Task<PlayItem> GetNextVocalTrackAsync(AlarmSchedule schedule, bool next)
+    private async Task<PlayItem> GetNextVocalMusicTrackAsync(AlarmSchedule schedule, bool next)
     {
         var vocalMusic = schedule.Music;
         if (vocalMusic == null)
@@ -374,7 +377,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var vocalTrackIndex = CalculateTrackIndex(vocalMusic.TrackNumber, vocalTracks.Count, next);
         var vocalTrack = vocalTracks[vocalTrackIndex];
 
-        return await CreateVocalPlayItem(schedule, vocalMusic, vocalTrack);
+        return await CreateVocalMusicPlayItem(schedule, vocalMusic, vocalTrack);
     }
 
     private static int CalculateTrackIndex(int currentTrackNumber, int totalTracks, bool next)
@@ -387,29 +390,29 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         return trackIndex;
     }
 
-    private async Task<PlayItem> CreateMelodyPlayItem(AlarmSchedule schedule, AlarmMusic melodyMusic, MusicTrack melodyTrack)
+    private async Task<PlayItem> CreateMusicPlayItem(AlarmSchedule schedule, AlarmMusic music, MusicTrack musicTrack)
     {
         // Compute URL on-demand using TrackMetadata
         var trackMetadata = new TrackMetadata
         {
             ScheduleId = schedule.Id,
-            PublicationCode = melodyMusic.PublicationCode,
-            TrackNumber = melodyTrack.Number,
-            DownloadCode = melodyTrack.DownloadCode, // Store disc code (e.g., "iam-1", "iam-2") for melody music
-            OriginalTrackNumber = melodyTrack.OriginalTrackNumber // Store original track number from API (within the disc)
-            // LanguageCode is empty for melody music
+            PublicationCode = music.PublicationCode,
+            TrackNumber = musicTrack.Number,
+            DownloadCode = musicTrack.DownloadCode, // Store disc code (e.g., "iam-1", "iam-2") for music
+            OriginalTrackNumber = musicTrack.OriginalTrackNumber // Store original track number from API (within the disc)
+            // LanguageCode is empty for music without language
         };
 
         var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
         if (string.IsNullOrEmpty(url))
         {
-            throw new InvalidOperationException($"Failed to get URL for melody track {melodyTrack.Number}");
+            throw new InvalidOperationException($"Failed to get URL for music track {musicTrack.Number}");
         }
 
         return new PlayItem(trackMetadata, url);
     }
 
-    private async Task<PlayItem> CreateVocalPlayItem(AlarmSchedule schedule, AlarmMusic vocalMusic, MusicTrack vocalTrack)
+    private async Task<PlayItem> CreateVocalMusicPlayItem(AlarmSchedule schedule, AlarmMusic vocalMusic, MusicTrack vocalTrack)
     {
         // Compute URL on-demand using TrackMetadata
         var trackMetadata = new TrackMetadata

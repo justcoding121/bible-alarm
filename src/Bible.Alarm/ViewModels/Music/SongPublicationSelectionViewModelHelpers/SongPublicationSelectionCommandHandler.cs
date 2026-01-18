@@ -85,7 +85,7 @@ public sealed class SongPublicationSelectionCommandHandler(
         return new MusicStateItem
         {
             Repeat = currentSchedule?.MusicRepeat ?? false,
-            MusicType = MusicType.Vocals,
+            MusicType = MusicType.VocalMusic,
             LanguageCode = languageCode,
             PublicationCode = songPublication.Code,
             TrackNumber = trackNumber,
@@ -107,7 +107,7 @@ public sealed class SongPublicationSelectionCommandHandler(
         return new MusicStateItem
         {
             Repeat = currentSchedule?.MusicRepeat ?? false,
-            MusicType = MusicType.Vocals,
+            MusicType = MusicType.VocalMusic,
             LanguageCode = language.Code,
             PublicationCode = publicationCode,
             TrackNumber = trackNumber,

@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +54,12 @@ public sealed class BiblePublicationTrack : IComparable
     /// Only set for section-based tracks.
     /// </summary>
     public BiblePublicationSection? Section { get; set; }
+
+    /// <summary>
+    /// Navigation property to UrlParams (one-to-many, optional).
+    /// Contains URL parameters as key-value pairs needed to construct the file URL.
+    /// </summary>
+    public List<UrlParam> UrlParams { get; set; } = [];
 
     public int CompareTo(object? obj)
     {

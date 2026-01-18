@@ -38,7 +38,7 @@ internal sealed class LookupDataCollector
             if (schedule.Music != null)
             {
                 var music = schedule.Music;
-                if (music.MusicType == MusicType.Vocals)
+                if (music.MusicType == MusicType.VocalMusic)
                 {
                     if (!string.IsNullOrWhiteSpace(music.LanguageCode))
                     {
@@ -53,7 +53,7 @@ internal sealed class LookupDataCollector
                         }
                     }
                 }
-                else if (music.MusicType == MusicType.Melodies)
+                else if (music.MusicType == MusicType.Music)
                 {
                     if (!string.IsNullOrWhiteSpace(music.PublicationCode))
                     {

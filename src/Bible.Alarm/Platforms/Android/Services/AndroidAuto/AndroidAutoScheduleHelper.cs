@@ -106,36 +106,72 @@ public static class AndroidAutoScheduleHelper
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: • Schedule Name • Language (schedule name omitted if empty)
+    /// Format: * Category * Publication Name, * Subsection * TrackName * Language
     /// </summary>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
-        var subtitleParts = new List<string>();
-
-        // Add schedule name with bullet points only if not empty
-        if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
+        if (!scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            subtitleParts.Add($"• {scheduleItem.Name} •");
+            // Fallback: show status and time if no Bible reading schedule
+            var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
+            var timeText = scheduleItem.TimeText;
+            return $"* {statusText} * {timeText}";
         }
 
-        // Add language if Bible reading schedule exists
-        if (scheduleItem.BiblePublicationScheduleId.HasValue)
-        {
-            // Use BiblePublicationLanguageName from ScheduleStateItem (populated during bootstrap)
-            // Fallback to LanguageCode if BiblePublicationLanguageName is not set
-            var languageName = !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName)
-                ? scheduleItem.BiblePublicationLanguageName
-                : scheduleItem.BiblePublicationLanguageCode ?? string.Empty;
+        var subtitleParts = new List<string>();
 
-            if (!string.IsNullOrWhiteSpace(languageName))
+        // Add Category
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationCategoryName))
+        {
+            subtitleParts.Add($"* {scheduleItem.BiblePublicationCategoryName}");
+        }
+
+        // Add Publication Name
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
+        {
+            subtitleParts.Add($"* {scheduleItem.BiblePublicationName}");
+        }
+
+        // Add Subsection (if exists) - only for sectioned publications
+        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
+        if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
+        {
+            subtitleParts.Add($"* {scheduleItem.BiblePublicationSectionName}");
+        }
+
+        // Add Track Name
+        if (hasSectionStructure)
+        {
+            // For sectioned publications, show track number
+            var trackNumber = scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0
+                ? scheduleItem.BiblePublicationTrackNumber.Value.ToString()
+                : null;
+            if (trackNumber != null)
             {
-                // Add music note emoji (🎵) to the right of language text if music is enabled
-                // Using emoji instead of single note symbol for larger, more visible appearance
-                var languageText = scheduleItem.MusicEnabled
-                    ? $"{languageName} 🎵"
-                    : languageName;
-                subtitleParts.Add(languageText);
+                subtitleParts.Add($"* {trackNumber}");
             }
+        }
+        else
+        {
+            // For non-sectioned publications (dramas/videos), show track title
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
+            {
+                subtitleParts.Add($"* {scheduleItem.BiblePublicationTrackTitle}");
+            }
+        }
+
+        // Add Language (at the end)
+        var languageName = !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName)
+            ? scheduleItem.BiblePublicationLanguageName
+            : scheduleItem.BiblePublicationLanguageCode ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(languageName))
+        {
+            // Add music note emoji (🎵) to the right of language text if music is enabled
+            var languageText = scheduleItem.MusicEnabled
+                ? $"{languageName} 🎵"
+                : languageName;
+            subtitleParts.Add($"* {languageText}");
         }
 
         if (subtitleParts.Count > 0)
@@ -143,10 +179,10 @@ public static class AndroidAutoScheduleHelper
             return string.Join(" ", subtitleParts);
         }
 
-        // Fallback: show status and time if no Bible reading schedule
-        var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
-        var timeText = scheduleItem.TimeText;
-        return $"{statusText} • {timeText}";
+        // Fallback: show status and time
+        var fallbackStatusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
+        var fallbackTimeText = scheduleItem.TimeText;
+        return $"* {fallbackStatusText} * {fallbackTimeText}";
     }
 }
 

@@ -112,7 +112,10 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         // Ensure MusicEnabled is set from CurrentSchedule state
         if (currentSchedule != null)
         {
-            model.MusicEnabled = currentSchedule.MusicEnabled;
+            // Disable music when Music category is selected (Music category publications don't use the music selection container)
+            var isMusicCategory = !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
+                                  string.Equals(currentSchedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase);
+            model.MusicEnabled = isMusicCategory ? false : currentSchedule.MusicEnabled;
         }
         logger.Information("PrepareModelForSave: Set model.MusicEnabled={MusicEnabled} from CurrentSchedule state",
             model.MusicEnabled);
@@ -157,7 +160,10 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         var scheduleStateItem = mapper.Map<ScheduleStateItem>(model);
 
         // Ensure MusicEnabled, NumberOfTracksToRead, AlwaysPlayFromStart, and all display names are set from CurrentSchedule state
-        scheduleStateItem.MusicEnabled = currentSchedule.MusicEnabled;
+        // Disable music when Music category is selected (Music category publications don't use the music selection container)
+        var isMusicCategory = !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
+                              string.Equals(currentSchedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase);
+        scheduleStateItem.MusicEnabled = isMusicCategory ? false : currentSchedule.MusicEnabled;
         scheduleStateItem.NumberOfTracksToRead = currentSchedule.NumberOfTracksToRead;
         scheduleStateItem.AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
         logger.Information("PrepareScheduleStateItem: Set scheduleStateItem.MusicEnabled={MusicEnabled}, NumberOfTracksToRead={NumberOfTracksToRead}, and AlwaysPlayFromStart={AlwaysPlayFromStart} from CurrentSchedule state",

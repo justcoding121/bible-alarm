@@ -1,11 +1,3 @@
-/* CARPLAY MEDIA LISTING DISABLED - Requires Apple MFi approval
- * Commented out to avoid App Store rejection for CarPlay Audio entitlement.
- * This helper provides methods for loading schedules and formatting display information.
- * 
- * To re-enable after Apple approval, uncomment this file.
- */
-
-/*
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Shared.Helpers;
@@ -117,37 +109,76 @@ public static class CarPlayScheduleHelper
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: • Schedule Name • Language (schedule name omitted if empty)
+    /// Format: * Category * Publication Name, * Subsection * TrackName * Language
     /// </summary>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
+        if (!scheduleItem.BiblePublicationScheduleId.HasValue)
+        {
+            // Fallback: show status and time if no Bible reading schedule
+            var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
+            var timeText = scheduleItem.TimeText;
+            return $"* {statusText} * {timeText}";
+        }
+
         var subtitleParts = new List<string>();
         var isRtl = string.Equals(scheduleItem.BiblePublicationLanguageDirection, "rtl", StringComparison.OrdinalIgnoreCase);
 
-        // Add schedule name with bullet points only if not empty
-        if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
+        // Add Category
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationCategoryName))
         {
-            subtitleParts.Add($"• {scheduleItem.Name} •");
+            subtitleParts.Add($"* {scheduleItem.BiblePublicationCategoryName}");
         }
 
-        // Add language if Bible reading schedule exists
-        if (scheduleItem.BiblePublicationScheduleId.HasValue)
+        // Add Publication Name
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
         {
-            var languageName = !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName)
-                ? scheduleItem.BiblePublicationLanguageName
-                : scheduleItem.BiblePublicationLanguageCode ?? string.Empty;
+            subtitleParts.Add($"* {scheduleItem.BiblePublicationName}");
+        }
 
-            if (!string.IsNullOrWhiteSpace(languageName))
+        // Add Subsection (if exists) - only for sectioned publications
+        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
+        if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
+        {
+            subtitleParts.Add($"* {scheduleItem.BiblePublicationSectionName}");
+        }
+
+        // Add Track Name
+        if (hasSectionStructure)
+        {
+            // For sectioned publications, show track number
+            var trackNumber = scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0
+                ? scheduleItem.BiblePublicationTrackNumber.Value.ToString()
+                : null;
+            if (trackNumber != null)
             {
-                // Apply RTL marker to the language name if needed
-                var rtlLanguageName = isRtl ? $"{RightToLeftMark}{languageName}" : languageName;
-
-                // Add music note emoji if music is enabled
-                var languageText = scheduleItem.MusicEnabled
-                    ? $"{rtlLanguageName} 🎵"
-                    : rtlLanguageName;
-                subtitleParts.Add(languageText);
+                subtitleParts.Add($"* {trackNumber}");
             }
+        }
+        else
+        {
+            // For non-sectioned publications (dramas/videos), show track title
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
+            {
+                subtitleParts.Add($"* {scheduleItem.BiblePublicationTrackTitle}");
+            }
+        }
+
+        // Add Language (at the end)
+        var languageName = !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName)
+            ? scheduleItem.BiblePublicationLanguageName
+            : scheduleItem.BiblePublicationLanguageCode ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(languageName))
+        {
+            // Apply RTL marker to the language name if needed
+            var rtlLanguageName = isRtl ? $"{RightToLeftMark}{languageName}" : languageName;
+
+            // Add music note emoji if music is enabled
+            var languageText = scheduleItem.MusicEnabled
+                ? $"{rtlLanguageName} 🎵"
+                : rtlLanguageName;
+            subtitleParts.Add($"* {languageText}");
         }
 
         if (subtitleParts.Count > 0)
@@ -158,19 +189,8 @@ public static class CarPlayScheduleHelper
         }
 
         // Fallback: show status and time
-        var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
-        var timeText = scheduleItem.TimeText;
-        return $"{statusText} • {timeText}";
+        var fallbackStatusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
+        var fallbackTimeText = scheduleItem.TimeText;
+        return $"* {fallbackStatusText} * {fallbackTimeText}";
     }
-}
-*/
-
-// Placeholder class to prevent compilation errors
-namespace Bible.Alarm.Platforms.iOS.Services.CarPlay;
-
-public static class CarPlayScheduleHelper
-{
-    public static List<object> LoadScheduleStateItemsFromState() => new();
-    public static string BuildScheduleTitle(object scheduleItem) => string.Empty;
-    public static string BuildScheduleSubtitle(object scheduleItem) => string.Empty;
 }

@@ -32,7 +32,9 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
 
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(p => p.Sections.Where(s => s.Number == sectionNumber))
+                .Include(p => p.Sections)
+                    .ThenInclude(s => s.UrlParams)
+                .Include(p => p.Sections)
                     .ThenInclude(s => s.Tracks)
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -42,7 +44,7 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
                 return new SortedDictionary<int, BiblePublicationTrack>();
             }
 
-            var section = publication.Sections.FirstOrDefault(s => s.Number == sectionNumber);
+            var section = publication.Sections.FirstOrDefault(s => s.BookNum == sectionNumber);
             if (section == null)
             {
                 return new SortedDictionary<int, BiblePublicationTrack>();
@@ -68,13 +70,15 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
 
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(p => p.Sections.Where(s => s.Number == sectionNumber))
-                    .ThenInclude(s => s.Tracks.Where(t => t.Number == trackNumber))
+                .Include(p => p.Sections)
+                    .ThenInclude(s => s.UrlParams)
+                .Include(p => p.Sections)
+                    .ThenInclude(s => s.Tracks)
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return publication?.Sections
-                .FirstOrDefault(s => s.Number == sectionNumber)?
+                .FirstOrDefault(s => s.BookNum == sectionNumber)?
                 .Tracks.FirstOrDefault(t => t.Number == trackNumber);
         }
         catch (Exception ex)

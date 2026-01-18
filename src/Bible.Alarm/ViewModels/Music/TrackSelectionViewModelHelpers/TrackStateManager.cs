@@ -71,7 +71,7 @@ public sealed class TrackStateManager
         }
 
         // For vocals, language code is required
-        if (newMusicType.Value == MusicType.Vocals && string.IsNullOrEmpty(newLanguageCode))
+        if (newMusicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(newLanguageCode))
         {
             return;
         }
@@ -153,7 +153,7 @@ public sealed class TrackStateManager
         }
 
         // For vocals, language code is required
-        if (newMusicType.Value == MusicType.Vocals && string.IsNullOrEmpty(newLanguageCode))
+        if (newMusicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(newLanguageCode))
         {
             return;
         }

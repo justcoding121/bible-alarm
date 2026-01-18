@@ -271,7 +271,7 @@ public sealed class AlarmSchedule : IComparable
             Minute = 0,
             Music = new AlarmMusic
             {
-                MusicType = MusicType.Melodies,
+                MusicType = MusicType.Music,
                 PublicationCode = melodyPublicationCode,
                 LanguageCode = null
             },

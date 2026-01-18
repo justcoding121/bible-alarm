@@ -23,6 +23,8 @@ public sealed class BiblePublicationPropertyNotifier
     /// </summary>
     public void NotifyAllDisplayTextPropertiesChanged()
     {
+        onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.CategoryDisplayText));
+        onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsLanguageVisible));
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsSectionVisible));
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.ContentFlowDirection));
         onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.LanguageDisplayText));
@@ -36,9 +38,22 @@ public sealed class BiblePublicationPropertyNotifier
     /// </summary>
     public void NotifyPropertyChanges(BiblePublicationPropertyChangeDetector.PropertyChangeInfo changeInfo)
     {
-        // Language change cascades to all properties below (including flow direction)
-        if (changeInfo.NotifyLanguage)
+        // Category change cascades to all properties below
+        if (changeInfo.NotifyCategory)
         {
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.CategoryDisplayText));
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsLanguageVisible));
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.ContentFlowDirection));
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.LanguageDisplayText));
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.PublicationDisplayText));
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsSectionVisible));
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.SectionDisplayText));
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.TrackDisplayText));
+        }
+        // Language change cascades to all properties below (including flow direction)
+        else if (changeInfo.NotifyLanguage)
+        {
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsLanguageVisible));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.ContentFlowDirection));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.LanguageDisplayText));
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.PublicationDisplayText));
@@ -68,14 +83,24 @@ public sealed class BiblePublicationPropertyNotifier
         }
 
         // Handle IsSectionVisible separately if it changed but wasn't already notified
-        if (changeInfo.NotifyIsSectionVisible && !changeInfo.NotifyLanguage && !changeInfo.NotifyPublication)
+        if (changeInfo.NotifyIsSectionVisible && !changeInfo.NotifyCategory && !changeInfo.NotifyLanguage && !changeInfo.NotifyPublication)
         {
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsSectionVisible));
+        }
+
+        // Handle IsLanguageVisible separately if it changed but wasn't already notified
+        if (changeInfo.NotifyIsLanguageVisible && !changeInfo.NotifyCategory && !changeInfo.NotifyLanguage)
+        {
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.IsLanguageVisible));
         }
     }
 
     private void NotifyDisplayTextOnlyChanges(BiblePublicationPropertyChangeDetector.PropertyChangeInfo changeInfo)
     {
+        if (changeInfo.CategoryDisplayChanged)
+        {
+            onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.CategoryDisplayText));
+        }
         if (changeInfo.LanguageDisplayChanged)
         {
             onPropertyChanged(nameof(BiblePublicationSelectionContainerViewModel.LanguageDisplayText));

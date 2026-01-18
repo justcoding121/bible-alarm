@@ -333,6 +333,35 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
+    public static ApplicationState OnCategorySelection(ApplicationState state, CategorySelectionAction action)
+    {
+        // Category selection updates CurrentSchedule
+        var currentSchedule = state.CurrentSchedule;
+        if (currentSchedule == null)
+        {
+            return state;
+        }
+
+        var updatedSchedule = currentSchedule.DeepClone();
+        updatedSchedule.BiblePublicationCategoryId = action.CategoryId;
+        updatedSchedule.BiblePublicationCategoryName = action.CategoryName;
+        
+        // Cascade: Clear language, publication, section, and track when category changes
+        updatedSchedule.BiblePublicationLanguageCode = null;
+        updatedSchedule.BiblePublicationLanguageName = null;
+        updatedSchedule.BiblePublicationLanguageDirection = null;
+        updatedSchedule.BiblePublicationCode = null;
+        updatedSchedule.BiblePublicationName = null;
+        updatedSchedule.BiblePublicationSectionNumber = null;
+        updatedSchedule.BiblePublicationSectionName = null;
+        updatedSchedule.BiblePublicationTrackNumber = null;
+        updatedSchedule.BiblePublicationTrackTitle = null;
+        updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
+
+        return StateFactory.CreateUpdatedState(state, updatedSchedule);
+    }
+
+    [ReducerMethod]
     public static ApplicationState OnBibleSelection(ApplicationState state, BiblePublicationSelectionAction action)
     {
         // Bible selection updates CurrentSchedule directly via OnBiblePublicationTrackSelected

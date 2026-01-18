@@ -103,7 +103,7 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
                 {
                     // Still check if this duplicate matches the current publication code
                     if (current != null &&
-                        current.MusicType == MusicType.Vocals &&
+                        current.MusicType == MusicType.VocalMusic &&
                         current.LanguageCode == languageCode &&
                         current.PublicationCode == release.Code)
                     {
@@ -118,7 +118,7 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
                 mapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
 
                 if (current != null &&
-                    current.MusicType == MusicType.Vocals &&
+                    current.MusicType == MusicType.VocalMusic &&
                     current.LanguageCode == languageCode &&
                     current.PublicationCode == release.Code)
                 {
@@ -257,7 +257,7 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
     private static bool IsSameSongPublication(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
     {
         return currentSchedule != null &&
-               currentSchedule.MusicType == MusicType.Vocals &&
+               currentSchedule.MusicType == MusicType.VocalMusic &&
                currentSchedule.MusicLanguageCode == languageCode &&
                currentSchedule.MusicPublicationCode == publicationCode;
     }
@@ -265,7 +265,7 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
     private static bool IsSameLanguageAndSongPublication(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
     {
         return currentSchedule != null &&
-               currentSchedule.MusicType == MusicType.Vocals &&
+               currentSchedule.MusicType == MusicType.VocalMusic &&
                currentSchedule.MusicLanguageCode == languageCode &&
                currentSchedule.MusicPublicationCode == publicationCode;
     }

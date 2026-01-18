@@ -29,7 +29,7 @@ public sealed class TrackListManager(
 
                 // Run database operations off UI thread
                 SortedDictionary<int, MusicTrack> tracksFromDb;
-                if (musicType == MusicType.Melodies)
+                if (musicType == MusicType.Music)
                 {
                     tracksFromDb = await Task.Run(async () =>
                         await mediaService.GetMelodyMusicTracks(publicationCode));
@@ -45,7 +45,7 @@ public sealed class TrackListManager(
                 }
 
                 var trackVMs = new ObservableCollection<MusicTrackListViewItemModel>();
-                var isMelody = musicType == MusicType.Melodies;
+                var isMelody = musicType == MusicType.Music;
 
                 foreach (var track in tracksFromDb.Select(x => x.Value))
                 {

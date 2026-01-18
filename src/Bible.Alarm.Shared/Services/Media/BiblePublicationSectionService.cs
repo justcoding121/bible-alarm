@@ -31,9 +31,10 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
 
             return await dbContext.BiblePublicationSections
                 .AsNoTracking()
+                .Include(x => x.UrlParams)
                 .Where(x => x.BiblePublication.Code == publicationCode
                             && x.BiblePublication.Language.Code == languageCode
-                            && x.Number == sectionNumber)
+                            && x.BookNum == sectionNumber)
                 .Select(x => x.Name)
                 .FirstOrDefaultAsync(cancellationToken);
         }
@@ -54,12 +55,14 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
 
             var sections = await dbContext.BiblePublications
                 .AsNoTracking()
+                .Include(x => x.Sections)
+                    .ThenInclude(s => s.UrlParams)
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Sections)
-                .OrderBy(x => x.Number)
+                .OrderBy(x => x.BookNum ?? 0)
                 .ToListAsync(cancellationToken);
 
-            return new SortedDictionary<int, BiblePublicationSection>(sections.ToDictionary(x => x.Number, x => x));
+            return new SortedDictionary<int, BiblePublicationSection>(sections.Where(s => s.BookNum.HasValue).ToDictionary(x => x.BookNum!.Value, x => x));
         }
         catch (Exception ex)
         {
@@ -78,9 +81,11 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
 
             return await dbContext.BiblePublications
                 .AsNoTracking()
+                .Include(x => x.Sections)
+                    .ThenInclude(s => s.UrlParams)
                 .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Sections)
-                .Where(x => x.Number == sectionNumber)
+                .Where(x => x.BookNum == sectionNumber)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)

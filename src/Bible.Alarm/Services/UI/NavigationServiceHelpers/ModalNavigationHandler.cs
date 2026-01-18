@@ -80,6 +80,13 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         await navigation.PushModalAsync(modal, animated: false);
     }
 
+    public async Task OpenCategoryModalAsync(INavigation navigation, object bindingContext)
+    {
+        var modal = serviceProvider.GetRequiredService<CategorySelectionModal>();
+        modal.BindingContext = bindingContext;
+        await navigation.PushModalAsync(modal, animated: false);
+    }
+
     public async Task OpenAlarmModalAsync(INavigation navigation)
     {
         await MainThread.InvokeOnMainThreadAsync(async () =>

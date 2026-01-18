@@ -1,17 +1,33 @@
+#nullable enable
+
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
+using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 
 namespace Bible.Alarm.Shared.Models.Media.Music;
 
-[Table("MelodyMusic")]
-[Index(nameof(Code), IsUnique = true)]
-public sealed class MelodyMusic : Publication
+/// <summary>
+/// Wrapper for BiblePublication used for Kingdom Melodies (Music category without LanguageId).
+/// Kingdom Melodies are BiblePublications under Music category without a language foreign key.
+/// </summary>
+public class MelodyMusic
 {
-    [Key]
-    public int Id { get; set; }
+    public BiblePublication Publication { get; set; } = null!;
 
-    [Required]
-    public List<MusicTrack> Tracks { get; set; } = [];
+    // Expose BiblePublication properties for convenience
+    public int Id => Publication.Id;
+    public string Code => Publication.Code;
+    public string Name => Publication.Name;
+    public int CategoryId => Publication.CategoryId;
+    public Category Category => Publication.Category;
+    public int? LanguageId => Publication.LanguageId;
+    public Language? Language => Publication.Language;
+    public List<BaseUrl> BaseUrls => Publication.BaseUrls;
+    public List<UrlParam> UrlParams => Publication.UrlParams;
+    public List<BiblePublicationSection> Sections => Publication.Sections;
+    public List<BiblePublicationTrack> Tracks => Publication.Tracks;
+    public bool IsVideo => Publication.IsVideo;
+
+    public static implicit operator BiblePublication(MelodyMusic melodyMusic) => melodyMusic.Publication;
+    public static implicit operator MelodyMusic(BiblePublication publication) => new MelodyMusic { Publication = publication };
 }

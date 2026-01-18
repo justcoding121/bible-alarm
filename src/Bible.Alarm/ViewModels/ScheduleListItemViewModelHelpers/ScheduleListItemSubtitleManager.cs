@@ -131,43 +131,60 @@ public sealed class ScheduleListItemSubtitleManager(
 
     private static string BuildSubtitleFromState(ScheduleStateItem scheduleStateItem)
     {
-        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode);
+        var parts = new List<string>();
 
-        if (hasSectionStructure)
+        // Add Category
+        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName))
         {
-            // Traditional Bible: Show "Book Name Chapter Number" (e.g., "Genesis 1")
-            var sectionName = !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName)
-                ? scheduleStateItem.BiblePublicationSectionName
-                : null;
+            parts.Add(scheduleStateItem.BiblePublicationCategoryName);
+        }
 
+        // Add Publication Name
+        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
+        {
+            parts.Add(scheduleStateItem.BiblePublicationName);
+        }
+
+        // Add Subsection (if exists) - only for sectioned publications
+        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode);
+        if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
+        {
+            parts.Add(scheduleStateItem.BiblePublicationSectionName);
+        }
+
+        // Add Track Name
+        var hasSectionStructureForTrack = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode);
+        if (hasSectionStructureForTrack)
+        {
+            // For sectioned publications, show track number
             var trackNumber = scheduleStateItem.BiblePublicationTrackNumber.HasValue && scheduleStateItem.BiblePublicationTrackNumber.Value > 0
                 ? scheduleStateItem.BiblePublicationTrackNumber.Value.ToString()
                 : null;
-
-            if (sectionName != null && trackNumber != null)
+            if (trackNumber != null)
             {
-                return $"{sectionName} {trackNumber}";
+                parts.Add(trackNumber);
             }
-            else if (sectionName != null)
-            {
-                return sectionName;
-            }
-            else if (trackNumber != null)
-            {
-                return trackNumber;
-            }
-            return string.Empty;
         }
         else
         {
-            // Drama/Video: Show just the track title
-            var trackTitle = scheduleStateItem.BiblePublicationTrackTitle;
-            if (!string.IsNullOrWhiteSpace(trackTitle))
+            // For non-sectioned publications (dramas/videos), show track title
+            if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
             {
-                return trackTitle;
+                parts.Add(scheduleStateItem.BiblePublicationTrackTitle);
             }
-            return string.Empty;
         }
+
+        // Add Language (at the end)
+        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
+        {
+            parts.Add(scheduleStateItem.BiblePublicationLanguageName);
+        }
+        else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageCode))
+        {
+            parts.Add(scheduleStateItem.BiblePublicationLanguageCode);
+        }
+
+        return string.Join(" • ", parts);
     }
 
     private static void ClearLanguage(Action<string> setLanguage, Action<string> onPropertyChanged)

@@ -1,11 +1,3 @@
-/* CARPLAY MEDIA LISTING DISABLED - Requires Apple MFi approval
- * Commented out to avoid App Store rejection for CarPlay Audio entitlement.
- * This effect refreshes the CarPlay schedule list when schedules change.
- * 
- * To re-enable after Apple approval, uncomment this file.
- */
-
-/*
 #nullable enable
 using Bible.Alarm.Platforms.iOS.Services.CarPlay;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -93,13 +85,4 @@ public class CarPlayScheduleListEffect
             logger.Error(ex, "[CarPlay] Error refreshing schedule list");
         }
     }
-}
-*/
-
-// Placeholder class to prevent compilation errors
-namespace Bible.Alarm.Platforms.iOS.Effects;
-
-public class CarPlayScheduleListEffect
-{
-    // Empty class - CarPlay listing disabled
 }

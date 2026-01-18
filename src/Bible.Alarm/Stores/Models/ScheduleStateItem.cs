@@ -34,6 +34,8 @@ public sealed class ScheduleStateItem : IComparable
     // Bible Reading Schedule properties (flattened)
     public int? BiblePublicationScheduleId { get; set; }
 
+    public int? BiblePublicationCategoryId { get; set; }
+    public string? BiblePublicationCategoryName { get; set; }
     public string? BiblePublicationLanguageCode { get; set; }
     public string? BiblePublicationCode { get; set; }
 

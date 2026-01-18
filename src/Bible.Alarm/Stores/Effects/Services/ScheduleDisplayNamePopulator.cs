@@ -286,7 +286,7 @@ public sealed class ScheduleDisplayNamePopulator
         {
             var music = schedule.Music;
             // Only populate for vocals (melodies don't have language)
-            if (music.MusicType != MusicType.Vocals ||
+            if (music.MusicType != MusicType.VocalMusic ||
                 string.IsNullOrWhiteSpace(music.LanguageCode))
             {
                 return;
@@ -333,7 +333,7 @@ public sealed class ScheduleDisplayNamePopulator
         {
             var music = schedule.Music;
             // Only populate for vocals (melodies don't have publication name in the same way)
-            if (music.MusicType != MusicType.Vocals ||
+            if (music.MusicType != MusicType.VocalMusic ||
                 string.IsNullOrWhiteSpace(music.LanguageCode) ||
                 string.IsNullOrWhiteSpace(music.PublicationCode))
             {
@@ -373,7 +373,7 @@ public sealed class ScheduleDisplayNamePopulator
             }
 
             string? trackName = null;
-            if (music.MusicType == MusicType.Melodies)
+            if (music.MusicType == MusicType.Music)
             {
                 if (string.IsNullOrWhiteSpace(music.PublicationCode))
                 {
@@ -387,7 +387,7 @@ public sealed class ScheduleDisplayNamePopulator
                     trackName = $"Melody Number(s) {track.Title}";
                 }
             }
-            else if (music.MusicType == MusicType.Vocals)
+            else if (music.MusicType == MusicType.VocalMusic)
             {
                 if (string.IsNullOrWhiteSpace(music.LanguageCode) || string.IsNullOrWhiteSpace(music.PublicationCode))
                 {

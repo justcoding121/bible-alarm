@@ -372,7 +372,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 vms.Add(sectionVm);
                 mapping[sectionVm.Number] = sectionVm;
 
-                if (current != null && current.SectionNumber == section.Number)
+                if (current != null && current.SectionNumber == section.UrlParams.BookNum)
                 {
                     selected = sectionVm;
                     selected.IsSelected = true;
@@ -420,7 +420,7 @@ public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSec
     /// Gets the section name with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
     /// </summary>
     public string Name => System.Net.WebUtility.HtmlDecode(section.Name).Replace('\u00A0', ' ');
-    public int Number => section.Number;
+    public int Number => section.UrlParams.BookNum ?? 0;
 
     public int CompareTo(object? obj) => obj is not BiblePublicationSectionListViewItemModel other ? 1 : Number.CompareTo(other.Number);
 }

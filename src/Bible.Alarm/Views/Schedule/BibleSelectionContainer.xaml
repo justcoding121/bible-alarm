@@ -35,9 +35,79 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <!-- Language Name with icon -->
+            <!-- Category Name with icon -->
             <core:SfEffectsView Grid.Row="0"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False">
+                <core:SfEffectsView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SelectCategoryCommand}"
+                                          NumberOfTapsRequired="1" />
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="BibleCategoryButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
+                <!-- Category Name -->
+                <Label Grid.Column="0"
+                       FontSize="{DynamicResource LargeFontSize}"
+                       FontAttributes="None"
+                       HorizontalOptions="Fill"
+                       HorizontalTextAlignment="Start"
+                       LineBreakMode="WordWrap"
+                       Text="{Binding CategoryDisplayText}"
+                       TextColor="{StaticResource PrimaryColor}"
+                       VerticalOptions="Center"
+                       VerticalTextAlignment="Center" />
+                
+                <!-- Category Icon -->
+                <Border Grid.Column="1"
+                        BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                        HeightRequest="{DynamicResource IconSmallContainerSize}"
+                        HorizontalOptions="End"
+                        Margin="12,0,0,0"
+                        StrokeThickness="0"
+                        VerticalOptions="Center"
+                        WidthRequest="{DynamicResource IconSmallContainerSize}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <Label
+                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                        FontSize="{DynamicResource IconStandardFontSize}"
+                        HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"
+                        InputTransparent="True"
+                        Text="{x:Static fn:GlyphNames.Folder}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
+                        VerticalOptions="Center"
+                        VerticalTextAlignment="Center" />
+                </Border>
+                </Grid>
+            </core:SfEffectsView>
+            <!-- Divider -->
+            <BoxView Grid.Row="1"
+                     HeightRequest="1"
+                     BackgroundColor="{DynamicResource DividerColor}"
+                     Margin="0"
+                     HorizontalOptions="Fill"
+                     IsVisible="{Binding IsLanguageVisible}" />
+            <!-- Language Name with icon -->
+            <core:SfEffectsView Grid.Row="2"
+                                 IsVisible="{Binding IsLanguageVisible}"
                                  TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                  TouchUpEffects="None"
                                  RippleBackground="{StaticResource PrimaryColor}"
@@ -98,13 +168,13 @@
                 </Grid>
             </core:SfEffectsView>
             <!-- Divider -->
-            <BoxView Grid.Row="1"
+            <BoxView Grid.Row="3"
                      HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />
             <!-- Publication Name with right arrow -->
-            <core:SfEffectsView Grid.Row="2"
+            <core:SfEffectsView Grid.Row="4"
                                  TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                  TouchUpEffects="None"
                                  RippleBackground="{StaticResource PrimaryColor}"
@@ -161,14 +231,14 @@
                 </Grid>
             </core:SfEffectsView>
             <!-- Divider for Section (only visible when Section is visible) -->
-            <BoxView Grid.Row="3"
+            <BoxView Grid.Row="5"
                      HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill"
                      IsVisible="{Binding IsSectionVisible}" />
             <!-- Section Selection (only visible for traditional Bible reading) -->
-            <core:SfEffectsView Grid.Row="4"
+            <core:SfEffectsView Grid.Row="6"
                                  TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                  TouchUpEffects="None"
                                  RippleBackground="{StaticResource PrimaryColor}"
@@ -226,13 +296,13 @@
                 </Grid>
             </core:SfEffectsView>
             <!-- Divider -->
-            <BoxView Grid.Row="5"
+            <BoxView Grid.Row="7"
                      HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />
             <!-- Track/Part Selection -->
-            <core:SfEffectsView Grid.Row="6"
+            <core:SfEffectsView Grid.Row="8"
                                  TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                  TouchUpEffects="None"
                                  RippleBackground="{StaticResource PrimaryColor}"

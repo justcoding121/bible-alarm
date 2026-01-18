@@ -74,31 +74,33 @@ public sealed class MusicDisplayTextProvider
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
         {
-            return "Orchestral Melodies";
+            return "Instrumental Music";
         }
 
         return currentSchedule.MusicType.Value switch
         {
-            MusicType.Melodies => "Orchestral Melodies",
-            MusicType.Vocals => "Vocals",
-            _ => "Orchestral Melodies"
+            MusicType.Music => "Instrumental Music",
+            MusicType.VocalMusic => "Vocal Music",
+            _ => "Instrumental Music"
         };
     }
 
     public bool GetIsSongPublicationVisible()
     {
+        // Songbook (publication) is always visible for both Music and Vocal Music types
         var currentSchedule = state.Value.CurrentSchedule;
-        return currentSchedule != null &&
-               currentSchedule.MusicType.HasValue &&
-               currentSchedule.MusicType.Value == MusicType.Vocals;
+        return currentSchedule != null && currentSchedule.MusicType.HasValue;
     }
 
     public bool GetIsMusicLanguageVisible()
     {
         var currentSchedule = state.Value.CurrentSchedule;
+        // Language row is visible only when the selected music publication has a language
+        // This means VocalMusic type (which has LanguageId set)
         return currentSchedule != null &&
                currentSchedule.MusicType.HasValue &&
-               currentSchedule.MusicType.Value == MusicType.Vocals;
+               currentSchedule.MusicType.Value == MusicType.VocalMusic &&
+               !string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
     }
 
     public string GetMusicLanguageDisplayText()
@@ -153,8 +155,15 @@ public sealed class MusicDisplayTextProvider
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null ||
             !currentSchedule.MusicType.HasValue ||
-            currentSchedule.MusicType.Value != MusicType.Vocals ||
+            currentSchedule.MusicType.Value != MusicType.VocalMusic ||
             string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode) ||
+            string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode))
+        {
+            return string.Empty;
+        }
+
+        // For VocalMusic, we also need language code
+        if (currentSchedule.MusicType.Value == MusicType.VocalMusic &&
             string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode))
         {
             return string.Empty;

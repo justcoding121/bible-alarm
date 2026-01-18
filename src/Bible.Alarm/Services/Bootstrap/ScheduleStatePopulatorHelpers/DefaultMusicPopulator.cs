@@ -82,7 +82,7 @@ internal sealed class DefaultMusicPopulator
             {
                 var randomTrack = melodyMusic.Tracks[random.Next(melodyMusic.Tracks.Count)];
 
-                stateItem.MusicType = MusicType.Melodies;
+                stateItem.MusicType = MusicType.Music;
                 stateItem.MusicPublicationCode = defaultPublicationCode;
                 stateItem.MusicPublicationName = defaultPublicationName;
                 stateItem.MusicLanguageCode = null;

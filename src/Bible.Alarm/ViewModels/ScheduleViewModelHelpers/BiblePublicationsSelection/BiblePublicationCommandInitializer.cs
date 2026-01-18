@@ -47,6 +47,19 @@ public sealed class BiblePublicationCommandInitializer
         this.serviceProvider = serviceProvider;
     }
 
+    public ICommand CreateSelectCategoryCommand()
+    {
+        return new AsyncRelayCommand(async () =>
+        {
+            logger.Information("BibleSelectionContainerViewModel: SelectCategoryCommand - Opening category modal");
+            // Create a CategorySelectionViewModel instance for the category modal
+            var categoryViewModel = serviceProvider.GetRequiredService<CategorySelectionViewModel>();
+            logger.Debug("BibleSelectionContainerViewModel: SelectCategoryCommand - Created CategorySelectionViewModel, opening modal");
+            await navigationService.OpenCategoryModalAsync(categoryViewModel);
+            logger.Debug("BibleSelectionContainerViewModel: SelectCategoryCommand - Modal opened");
+        });
+    }
+
     public ICommand CreateSelectLanguageCommand()
     {
         return new AsyncRelayCommand(async () =>

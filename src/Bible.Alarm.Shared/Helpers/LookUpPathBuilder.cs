@@ -24,10 +24,10 @@ public static class LookUpPathBuilder
             // Videos use MP4, not MP3. Match harvester format: no txtCMSLang for videos
             return $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={languageCode}&track={trackNumber}";
         }
-        // For sectioned Bible publications, use booknum (not sectionnum) and txtCMSLang with languageCode (not E)
-        // Match harvester format: ?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang={languageCode}
+        // For sectioned Bible publications, use booknum (not sectionnum)
+        // Match harvester format: ?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}
         // Note: We include track parameter for individual track lookup, harvester doesn't use it when fetching all tracks
-        return $"?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&langwritten={languageCode}&txtCMSLang={languageCode}&track={trackNumber}";
+        return $"?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&langwritten={languageCode}&track={trackNumber}";
     }
 
     /// <summary>
@@ -45,11 +45,10 @@ public static class LookUpPathBuilder
         var pubCode = !string.IsNullOrEmpty(downloadCode) ? downloadCode : publicationCode;
         // Use originalTrackNumber if provided (for melody music with discs), otherwise use trackNumber
         var trackNum = originalTrackNumber ?? trackNumber;
-        // Match harvester format: ?output=json&pub={publicationDownloadCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang={cmsLang}
+        // Match harvester format: ?output=json&pub={publicationDownloadCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}
         // Note: We include track parameter for individual track lookup, harvester doesn't use it when fetching all tracks
         var langParam = string.IsNullOrEmpty(languageCode) ? "&langwritten=E" : $"&langwritten={languageCode}";
-        var cmsLang = languageCode ?? "E";
-        return $"?output=json&pub={pubCode}&fileformat=MP3{langParam}&txtCMSLang={cmsLang}&track={trackNum}";
+        return $"?output=json&pub={pubCode}&fileformat=MP3{langParam}&track={trackNum}";
     }
 
     /// <summary>

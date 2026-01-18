@@ -159,6 +159,12 @@ public sealed class NavigationService(
         await modalHandler.OpenLanguageModalAsync(navigation, bindingContext);
     }
 
+    public async Task OpenCategoryModalAsync(object bindingContext)
+    {
+        var navigation = GetNavigation();
+        await modalHandler.OpenCategoryModalAsync(navigation, bindingContext);
+    }
+
     public async Task OpenAlarmModalAsync()
     {
         var navigation = GetNavigation();

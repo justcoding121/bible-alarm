@@ -18,10 +18,12 @@ using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible;
 
-internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
+internal class JwBibleHarvester : BaseHarvester
 {
-    private const int MaxConcurrentLanguageDownloads = 8;
-    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY", "A"]; // A = Arabic, not AR (Bambara)
+    public JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
+        : base(logger, downloadUtility)
+    {
+    }
 
     /// <summary>
     /// Dictionary to store localized publication names: (languageCode, publicationCode) -> localizedName
@@ -43,11 +45,26 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         foreach (var publication in biblePublicationCodeToNameMappings)
         {
             var publicationCode = publication.Key;
-            logger.Information("Starting harvest for publication: {PublicationCode} ({PublicationName})", publicationCode, publication.Value);
+            Logger.Information("Starting harvest for publication: {PublicationCode} ({PublicationName})", publicationCode, publication.Value);
 
-            var filteredLanguages = await GetFilteredLanguages(publicationCode, publication.Value, isTestRun);
+            // Discover languages for each book (1-66) and save for English
+            var allDiscoveredLanguages = await DiscoverLanguagesForAllBooks(publicationCode, publication.Value, isTestRun);
+            
+            if (allDiscoveredLanguages == null || allDiscoveredLanguages.Count == 0)
+            {
+                Logger.Warning("No languages discovered for publication {PublicationCode}. Skipping.", publicationCode);
+                continue;
+            }
+
+            // Save language discovery results for English
+            await SaveLanguageDiscoveryForEnglish(publicationCode, allDiscoveredLanguages);
+
+            // Filter languages (exclude sign languages, apply test run filter if needed)
+            var filteredLanguages = FilterLanguages(allDiscoveredLanguages, isTestRun);
+            
             if (filteredLanguages == null || filteredLanguages.Count == 0)
             {
+                Logger.Warning("No languages remaining after filtering for publication {PublicationCode}. Skipping.", publicationCode);
                 continue;
             }
 
@@ -60,30 +77,15 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
     }
 
-    private async Task<Dictionary<string, LanguageInfo>?> GetFilteredLanguages(string publicationCode, string publicationName, bool isTestRun)
+    /// <summary>
+    /// Filters discovered languages by excluding sign languages, excluding English (E) since it's already saved,
+    /// and applying test run filter if needed.
+    /// </summary>
+    private Dictionary<string, LanguageInfo>? FilterLanguages(Dictionary<string, LanguageInfo> discoveredLanguages, bool isTestRun)
     {
-        Dictionary<string, LanguageInfo> discoveredLanguages;
-        try
-        {
-            discoveredLanguages = await DiscoverLanguagesFromApi(publicationCode);
-        }
-        catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
-        {
-            return null;
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Failed to discover languages for publication {PublicationCode} ({PublicationName}). Skipping.", publicationCode, publicationName);
-            return null;
-        }
-
-        if (discoveredLanguages.Count == 0)
-        {
-            return null;
-        }
-
         var filteredLanguages = discoveredLanguages
             .Where(lang => !ShouldSkipLanguage(lang.Value.Name))
+            .Where(lang => lang.Key != "E") // Exclude English (E) since we already saved language discovery for it
             .ToDictionary(x => x.Key, x => x.Value);
 
         if (filteredLanguages.Count == 0)
@@ -99,8 +101,8 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
 
             if (testRunLanguages.Count > 0)
             {
-                logger.Information("TEST RUN: Processing languages {Languages} for publication {PublicationCode}",
-                    string.Join(", ", testRunLanguages.Keys), publicationCode);
+                Logger.Information("TEST RUN: Processing languages {Languages}",
+                    string.Join(", ", testRunLanguages.Keys));
                 return testRunLanguages;
             }
             return null;
@@ -132,7 +134,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Failed to harvest Bible links for {PublicationName} ({PublicationCode}) in {Language} ({LanguageCode}).", publicationName, publicationCode, langEntry.Value.Name, langEntry.Key);
+                Logger.Error(ex, "Failed to harvest Bible links for {PublicationName} ({PublicationCode}) in {Language} ({LanguageCode}).", publicationName, publicationCode, langEntry.Value.Name, langEntry.Key);
             }
             finally
             {
@@ -151,9 +153,12 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         ConcurrentDictionary<string, LanguageInfo> languageCodeToInfoMappings,
         ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping)
     {
+        Logger.Information("Processing {Language} ({LanguageCode}) for publication: {PublicationName} ({PublicationCode})", 
+            languageInfo.Name, languageCode, publicationName, publicationCode);
+        
         languageCodeToInfoMappings.TryAdd(languageCode, languageInfo);
 
-        logger.Information("Harvesting Bible track links for {PublicationName} of {Language} language.", publicationName, languageInfo.Name);
+        Logger.Information("Harvesting Bible track links for {PublicationName} of {Language} language.", publicationName, languageInfo.Name);
         await HarvestBibleLinks(languageCode, publicationCode);
 
         if (!languageCodeToEditionsMapping.TryAdd(languageCode, [publicationCode]))
@@ -162,26 +167,80 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
     }
 
-    private static bool ShouldSkipLanguage(string languageName)
+
+
+    /// <summary>
+    /// Discovers languages for each Bible book (1-66) using alllangs=1 and langwritten=E.
+    /// Returns a consolidated dictionary of all unique languages discovered across all books.
+    /// </summary>
+    private async Task<Dictionary<string, LanguageInfo>?> DiscoverLanguagesForAllBooks(
+        string publicationCode, 
+        string publicationName, 
+        bool isTestRun)
     {
-        if (string.IsNullOrWhiteSpace(languageName))
+        var allDiscoveredLanguages = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
+
+        Logger.Information("Discovering languages for all books (1-66) in publication {PublicationCode}", publicationCode);
+
+        // Discover languages for each book (1-66)
+        for (int bookNum = 1; bookNum <= 66; bookNum++)
         {
-            return false;
+            try
+            {
+                var bookLanguages = await DiscoverLanguagesForBook(publicationCode, bookNum);
+                
+                if (bookLanguages != null && bookLanguages.Count > 0)
+                {
+                    // Merge into consolidated dictionary
+                    foreach (var lang in bookLanguages)
+                    {
+                        if (!allDiscoveredLanguages.ContainsKey(lang.Key))
+                        {
+                            allDiscoveredLanguages[lang.Key] = lang.Value;
+                        }
+                    }
+                    
+                    Logger.Debug("Book {BookNum}: Discovered {LanguageCount} languages (total unique: {TotalLanguages})", 
+                        bookNum, bookLanguages.Count, allDiscoveredLanguages.Count);
+                }
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
+            {
+                Logger.Warning("Book {BookNum}: HTTP error during language discovery. Skipping.", bookNum);
+                continue;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Book {BookNum}: Failed to discover languages. Skipping.", bookNum);
+                continue;
+            }
         }
 
-        var lowerName = languageName.ToLowerInvariant();
-        return lowerName.Contains("sign language");
+        if (allDiscoveredLanguages.Count == 0)
+        {
+            Logger.Warning("No languages discovered for publication {PublicationCode} across all books", publicationCode);
+            return null;
+        }
+
+        Logger.Information("Total unique languages discovered across all books for {PublicationCode}: {LanguageCount}", 
+            publicationCode, allDiscoveredLanguages.Count);
+
+        return allDiscoveredLanguages;
     }
 
-
-    private async Task<Dictionary<string, LanguageInfo>> DiscoverLanguagesFromApi(string publicationCode)
+    /// <summary>
+    /// Discovers languages for a specific book using alllangs=1 and langwritten=E.
+    /// </summary>
+    private async Task<Dictionary<string, LanguageInfo>?> DiscoverLanguagesForBook(
+        string publicationCode, 
+        int bookNum)
     {
-        // Use case-insensitive dictionary to avoid duplicates from case differences
         var discoveredLanguages = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
-        // Use txtCMSLang=E for language discovery since we need consistent English language names
-        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum=1&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
+        
+        // Use alllangs=1 and langwritten=E for discovery
+        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNum}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
 
-        var jsonString = await downloadUtility.GetAsync(harvestLink);
+        var jsonString = await DownloadUtility.GetAsync(harvestLink);
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
@@ -226,9 +285,50 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         return discoveredLanguages;
     }
 
+    /// <summary>
+    /// Saves language discovery results for English (E) as JSON.
+    /// Structure: media/Audio/Bible/E/{publicationCode}/language-discovery.json
+    /// </summary>
+    private async Task SaveLanguageDiscoveryForEnglish(
+        string publicationCode,
+        Dictionary<string, LanguageInfo> discoveredLanguages)
+    {
+        // Normalize publication code for path consistency
+        var normalizedPublicationCode = publicationCode.ToUpperInvariant();
+        var englishDir = $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/E/{normalizedPublicationCode}";
+        DirectoryHelper.Ensure(englishDir);
+
+        var languageDiscoveryFile = Path.Combine(englishDir, "language-discovery.json");
+        
+        // Create a list of languages with Code, Name, and Direction
+        var languageList = discoveredLanguages
+            .Select(kvp => new
+            {
+                Code = kvp.Key,
+                Name = kvp.Value.Name,
+                Direction = kvp.Value.Direction
+            })
+            .OrderBy(x => x.Code)
+            .ToList();
+
+        var json = JsonSerializer.Serialize(languageList, new JsonSerializerOptions 
+        { 
+            WriteIndented = true 
+        });
+        
+        await File.WriteAllTextAsync(languageDiscoveryFile, json);
+        
+        Logger.Information("Saved language discovery for English: {LanguageCount} languages to {File}", 
+            discoveredLanguages.Count, languageDiscoveryFile);
+    }
+
     private async Task<bool> HarvestBibleLinks(string languageCode, string publicationCode)
     {
-        var sectionsDirectory = $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageCode}/{publicationCode}";
+        // Normalize to uppercase for consistent file paths (cross-platform safety)
+        var normalizedLanguageCode = languageCode.ToUpperInvariant();
+        var normalizedPublicationCode = publicationCode.ToUpperInvariant();
+        
+        var sectionsDirectory = $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{normalizedLanguageCode}/{normalizedPublicationCode}";
         var sectionsIndex = $"{sectionsDirectory}/sections.json";
 
         var sectionNumberSectionMap = new Dictionary<int, BiblePublicationSection>();
@@ -236,15 +336,14 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
         string? localizedPublicationName = null;
 
         var sectionNumber = 1;
-        // Use txtCMSLang={languageCode} to get localized publication names, section names, and track titles
-        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang={languageCode}";
+        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}";
 
         while (sectionNumber <= 66)
         {
             string jsonString;
             try
             {
-                jsonString = await downloadUtility.GetAsync(harvestLink);
+                jsonString = await DownloadUtility.GetAsync(harvestLink);
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
             {
@@ -253,7 +352,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Failed to fetch section {SectionNumber} for publication {PublicationCode} in language {LanguageCode}. Skipping to next section.", sectionNumber, publicationCode, languageCode);
+                Logger.Error(ex, "Failed to fetch section {SectionNumber} for publication {PublicationCode} in language {LanguageCode}. Skipping to next section.", sectionNumber, publicationCode, languageCode);
                 AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
                 continue;
             }
@@ -332,7 +431,7 @@ internal class JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
             {
                 // Log and advance to next section on any exception during processing
                 // This ensures we don't get stuck in an infinite loop
-                logger.Warning(ex, "Error processing section files for section {SectionNumber}. Advancing to next section.", sectionNumber);
+                Logger.Warning(ex, "Error processing section files for section {SectionNumber}. Advancing to next section.", sectionNumber);
                 AdvanceToNextSection(ref sectionNumber, ref harvestLink, publicationCode, languageCode);
             }
             finally

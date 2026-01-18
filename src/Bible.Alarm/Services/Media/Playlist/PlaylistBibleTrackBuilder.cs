@@ -18,13 +18,20 @@ public class PlaylistBiblePublicationTrackBuilder
     private readonly IMediaService mediaService;
     private readonly IBiblePublicationService? biblePublicationService;
     private readonly IMediaUrlRefreshService urlRefreshService;
+    private readonly IUrlConstructionService? urlConstructionService;
 
-    public PlaylistBiblePublicationTrackBuilder(ILogger logger, IMediaService mediaService, IMediaUrlRefreshService urlRefreshService, IBiblePublicationService? biblePublicationService = null)
+    public PlaylistBiblePublicationTrackBuilder(
+        ILogger logger, 
+        IMediaService mediaService, 
+        IMediaUrlRefreshService urlRefreshService, 
+        IBiblePublicationService? biblePublicationService = null,
+        IUrlConstructionService? urlConstructionService = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
         this.urlRefreshService = urlRefreshService;
         this.biblePublicationService = biblePublicationService;
+        this.urlConstructionService = urlConstructionService;
     }
 
     public record TrackInfo(int SectionNumber, BiblePublicationTrack Track, string Url);
@@ -61,7 +68,7 @@ public class PlaylistBiblePublicationTrackBuilder
 
         while (numberOfTracksToRead > 0)
         {
-            var trackMetadata = CreateTrackMetadata(
+            var trackMetadata = await CreateTrackMetadataAsync(
                 scheduleId,
                 biblePublicationSchedule,
                 currentSectionNumber,
@@ -194,6 +201,20 @@ public class PlaylistBiblePublicationTrackBuilder
             TrackNumber = trackDetail.Number
         };
 
+        // Use UrlConstructionService to get the lookup path from database
+        if (urlConstructionService != null)
+        {
+            var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
+                biblePublicationSchedule.PublicationCode,
+                biblePublicationSchedule.LanguageCode,
+                sectionNumber > 0 ? sectionNumber : null,
+                trackDetail.Number);
+            if (!string.IsNullOrEmpty(lookUpPath))
+            {
+                trackMetadata.LookUpPath = lookUpPath;
+            }
+        }
+
         var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
         if (string.IsNullOrEmpty(url))
         {
@@ -240,6 +261,20 @@ public class PlaylistBiblePublicationTrackBuilder
             TrackNumber = track.Number
         };
 
+        // Use UrlConstructionService to get the lookup path from database
+        if (urlConstructionService != null)
+        {
+            var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
+                biblePublicationSchedule.PublicationCode,
+                biblePublicationSchedule.LanguageCode,
+                null, // No section for non-sectioned publications
+                track.Number);
+            if (!string.IsNullOrEmpty(lookUpPath))
+            {
+                trackMetadata.LookUpPath = lookUpPath;
+            }
+        }
+
         var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
         if (string.IsNullOrEmpty(url))
         {
@@ -252,7 +287,7 @@ public class PlaylistBiblePublicationTrackBuilder
             url);
     }
 
-    private TrackMetadata CreateTrackMetadata(
+    private async Task<TrackMetadata> CreateTrackMetadataAsync(
         int scheduleId,
         BiblePublicationSchedule biblePublicationSchedule,
         int sectionNumber,
@@ -267,11 +302,24 @@ public class PlaylistBiblePublicationTrackBuilder
             IsBibleContent = true,
             PublicationCode = biblePublicationSchedule.PublicationCode,
             LanguageCode = biblePublicationSchedule.LanguageCode,
-            // LookUpPath is now computed from LanguageCode, PublicationCode, SectionNumber, TrackNumber
             SectionNumber = sectionNumber,
             TrackNumber = trackNumber,
             IsLastTrack = remainingTracks == 1
         };
+
+        // Use UrlConstructionService to get the lookup path from database
+        if (urlConstructionService != null)
+        {
+            var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
+                biblePublicationSchedule.PublicationCode,
+                biblePublicationSchedule.LanguageCode,
+                sectionNumber > 0 ? sectionNumber : null,
+                trackNumber);
+            if (!string.IsNullOrEmpty(lookUpPath))
+            {
+                trackMetadata.LookUpPath = lookUpPath;
+            }
+        }
 
         var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, biblePublicationSchedule, trackMetadata);
         logger.Debug("[PlaylistBuild] ShouldSetFinishedDuration: {ShouldSet}, markedSeekTrack: {MarkedSeekTrack}, AlwaysPlayFromStart: {AlwaysPlayFromStart}, ScheduleFinishedDuration: {ScheduleFinishedDuration}, SectionMatch: {SectionMatch}",
@@ -332,6 +380,20 @@ public class PlaylistBiblePublicationTrackBuilder
             SectionNumber = sectionNumber,
             TrackNumber = next.Value.Number
         };
+
+        // Use UrlConstructionService to get the lookup path from database
+        if (urlConstructionService != null)
+        {
+            var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
+                biblePublicationSchedule.PublicationCode,
+                biblePublicationSchedule.LanguageCode,
+                sectionNumber > 0 ? sectionNumber : null,
+                next.Value.Number);
+            if (!string.IsNullOrEmpty(lookUpPath))
+            {
+                trackMetadata.LookUpPath = lookUpPath;
+            }
+        }
 
         var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
         if (string.IsNullOrEmpty(url))

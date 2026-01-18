@@ -44,13 +44,15 @@ public class Program
         bool verboseLogging = args.Contains("--verbose", StringComparer.OrdinalIgnoreCase) || 
                              args.Contains("-v", StringComparer.OrdinalIgnoreCase);
         
-        // Set minimum log level: Warning by default (for cleaner CI/CD logs), Information if verbose
-        var minimumLevel = verboseLogging ? LogEventLevel.Information : LogEventLevel.Warning;
+        // Set minimum log level: Information by default to show progress, Debug if verbose
+        var minimumLevel = verboseLogging ? LogEventLevel.Debug : LogEventLevel.Information;
         
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Is(minimumLevel)
             // Override to always show Information level for important messages
             .MinimumLevel.Override("Bible.Alarm.AudioLinksHarvestor.Program", LogEventLevel.Information)
+            // Show Information level for all harvesters to track progress
+            .MinimumLevel.Override("Bible.Alarm.AudioLinksHarvestor.Harvestors", LogEventLevel.Information)
             .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 
@@ -104,8 +106,9 @@ public class Program
 
         try
         {
-            var originalIndexFileSize =
-                (new FileInfo($"{DirectoryHelper.IndexDirectory}/index.zip")).Length;
+            var indexZipPath = $"{DirectoryHelper.IndexDirectory}/index.zip";
+            var indexZipFile = new FileInfo(indexZipPath);
+            var originalIndexFileSize = indexZipFile.Exists ? indexZipFile.Length : 0;
 
             DeleteDirectory(DirectoryHelper.IndexDirectory);
 
@@ -259,12 +262,15 @@ public class Program
 
         foreach (var languageEditionsMap in languageCodeToEditionsMapping)
         {
-            if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}"))
+            // Normalize language code for path consistency (cross-platform safety)
+            var normalizedLanguageCode = languageEditionsMap.Key.ToUpperInvariant();
+            
+            if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{normalizedLanguageCode}"))
             {
-                Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}");
+                Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{normalizedLanguageCode}");
             }
 
-            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{languageEditionsMap.Key}/publications.json", JsonSerializer.Serialize(
+            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{normalizedLanguageCode}/publications.json", JsonSerializer.Serialize(
             languageEditionsMap.Value.Select(publicationCode =>
             {
                 // Use localized publication name if available, otherwise fall back to English name

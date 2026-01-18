@@ -13,6 +13,15 @@ internal class DownloadUtility
 {
     private readonly ILogger logger;
     private readonly AsyncRetryPolicy<string> retryPolicy;
+    private static readonly Random random = new();
+    private static readonly object randomLock = new();
+
+    // Base URLs for load balancing
+    private static readonly string[] BaseUrls = 
+    [
+        "https://b.jw-cdn.org",
+        "https://app.jw-cdn.org"
+    ];
 
     public DownloadUtility(ILogger logger)
     {
@@ -32,14 +41,51 @@ internal class DownloadUtility
                 });
     }
 
+    /// <summary>
+    /// Randomly swaps the base URL between b.jw-cdn.org and app.jw-cdn.org for load balancing.
+    /// </summary>
+    /// <param name="url">The original URL</param>
+    /// <returns>URL with randomly selected base URL</returns>
+    private static string SwapBaseUrlRandomly(string url)
+    {
+        // Check if URL contains either base URL
+        if (!url.Contains("b.jw-cdn.org") && !url.Contains("app.jw-cdn.org"))
+        {
+            return url; // Not a JW.org CDN URL, return as-is
+        }
+
+        // Randomly select a base URL
+        string selectedBaseUrl;
+        lock (randomLock)
+        {
+            selectedBaseUrl = BaseUrls[random.Next(BaseUrls.Length)];
+        }
+
+        // Replace the base URL
+        if (url.Contains("b.jw-cdn.org"))
+        {
+            return url.Replace("https://b.jw-cdn.org", selectedBaseUrl);
+        }
+        
+        if (url.Contains("app.jw-cdn.org"))
+        {
+            return url.Replace("https://app.jw-cdn.org", selectedBaseUrl);
+        }
+
+        return url;
+    }
+
     internal async Task<string> GetAsync(string harvestLink)
     {
         try
         {
+            // Randomly swap base URL for load balancing
+            var loadBalancedUrl = SwapBaseUrlRandomly(harvestLink);
+            
             return await retryPolicy.ExecuteAsync(async () =>
             {
                 using var client = CreateHttpClient();
-                return await SendRequestWithFallback(client, harvestLink);
+                return await SendRequestWithFallback(client, loadBalancedUrl);
             });
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))

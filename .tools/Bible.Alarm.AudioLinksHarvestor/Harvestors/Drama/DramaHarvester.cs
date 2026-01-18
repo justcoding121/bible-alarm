@@ -18,9 +18,12 @@ using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Drama;
 
-internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
+internal class DramaHarvester : BaseHarvester
 {
-    private const int MaxConcurrentLanguageDownloads = 8;
+    public DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
+        : base(logger, downloadUtility)
+    {
+    }
 
     /// <summary>
     /// Drama categories with their API category keys and display names (English fallback).
@@ -36,7 +39,6 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
     /// </summary>
     private readonly ConcurrentDictionary<(string LanguageCode, string CategoryKey), string> localizedCategoryNames = new();
 
-    private static readonly HashSet<string> TestRunLanguageCodes = ["E", "MY", "A"]; // A = Arabic, not AR (Bambara)
 
     internal async Task HarvestDramaLinks(bool isTestRun = false)
     {
@@ -45,7 +47,7 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         foreach (var category in DramaCategoryToNameMappings)
         {
-            logger.Information("Harvesting Drama category: {CategoryName} ({CategoryKey})", category.Value, category.Key);
+            Logger.Information("Harvesting Drama category: {CategoryName} ({CategoryKey})", category.Value, category.Key);
 
             await HarvestDramaCategory(
                 category.Key,
@@ -69,11 +71,11 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         try
         {
-            jsonString = await downloadUtility.GetAsync(englishCategoryUrl);
+            jsonString = await DownloadUtility.GetAsync(englishCategoryUrl);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to fetch category {CategoryKey} for English. Skipping.", categoryKey);
+            Logger.Error(ex, "Failed to fetch category {CategoryKey} for English. Skipping.", categoryKey);
             return;
         }
 
@@ -81,7 +83,7 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
         var languagesFromCategory = ExtractLanguagesFromCategory(jsonString);
         if (languagesFromCategory.Count == 0)
         {
-            logger.Warning("No languages found for category {CategoryKey}. Skipping.", categoryKey);
+            Logger.Warning("No languages found for category {CategoryKey}. Skipping.", categoryKey);
             return;
         }
 
@@ -90,7 +92,7 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
             ? languagesFromCategory.Where(l => TestRunLanguageCodes.Contains(l))
             : languagesFromCategory;
 
-        logger.Information("Found {Count} languages for category {CategoryName}", languagesToProcess.Count(), categoryName);
+        Logger.Information("Found {Count} languages for category {CategoryName}", languagesToProcess.Count(), categoryName);
 
         // Process each language
         using var semaphore = new SemaphoreSlim(MaxConcurrentLanguageDownloads, MaxConcurrentLanguageDownloads);
@@ -154,7 +156,7 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to parse languages from category JSON");
+            Logger.Error(ex, "Failed to parse languages from category JSON");
         }
 
         return languages;
@@ -166,32 +168,34 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
         string languageCode,
         ConcurrentDictionary<string, ConcurrentBag<string>> languageCodeToCategories)
     {
+        Logger.Information("Processing {CategoryName} for language: {LanguageCode}", categoryName, languageCode);
+        
         // Normalize language code to uppercase for consistent storage and comparison
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
-        logger.Information("Harvesting {CategoryName} for language {LanguageCode}", categoryName, normalizedLanguageCode);
+        Logger.Information("Harvesting {CategoryName} for language {LanguageCode}", categoryName, normalizedLanguageCode);
 
         var categoryUrl = $"{AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl}/categories/{normalizedLanguageCode}/{categoryKey}?detailed=1";
         string jsonString;
 
         try
         {
-            jsonString = await downloadUtility.GetAsync(categoryUrl);
+            jsonString = await DownloadUtility.GetAsync(categoryUrl);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404") || ex.Message.Contains("Response status code"))
         {
-            logger.Warning("Category {CategoryKey} not available for language {LanguageCode}. Skipping.", categoryKey, normalizedLanguageCode);
+            Logger.Warning("Category {CategoryKey} not available for language {LanguageCode}. Skipping.", categoryKey, normalizedLanguageCode);
             return;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to fetch category {CategoryKey} for language {LanguageCode}. Skipping.", categoryKey, normalizedLanguageCode);
+            Logger.Error(ex, "Failed to fetch category {CategoryKey} for language {LanguageCode}. Skipping.", categoryKey, normalizedLanguageCode);
             return;
         }
 
         var (tracks, localizedCategoryName) = ParseCategoryTracks(jsonString, categoryKey, normalizedLanguageCode);
         if (tracks.Count == 0)
         {
-            logger.Warning("No tracks found for category {CategoryKey} in language {LanguageCode}. Skipping.", categoryKey, normalizedLanguageCode);
+            Logger.Warning("No tracks found for category {CategoryKey} in language {LanguageCode}. Skipping.", categoryKey, normalizedLanguageCode);
             return;
         }
 
@@ -211,7 +215,7 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
         // Save the tracks
         SaveDramaTracks(categoryKey, normalizedLanguageCode, tracks);
 
-        logger.Information("Saved {Count} tracks for {CategoryName} in {LanguageCode}", tracks.Count, categoryName, normalizedLanguageCode);
+        Logger.Information("Saved {Count} tracks for {CategoryName} in {LanguageCode}", tracks.Count, categoryName, normalizedLanguageCode);
     }
 
     private (List<DramaTrack> Tracks, string? LocalizedCategoryName) ParseCategoryTracks(string jsonString, string categoryKey, string languageCode)
@@ -255,7 +259,7 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to parse category tracks from JSON");
+            Logger.Error(ex, "Failed to parse category tracks from JSON");
         }
 
         return (tracks, localizedCategoryName);
@@ -331,7 +335,10 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
 
     private void SaveDramaTracks(string categoryKey, string languageCode, List<DramaTrack> tracks)
     {
-        var dir = $"{DirectoryHelper.IndexDirectory}/media/Audio/Drama/{languageCode}/{categoryKey}";
+        // Unified structure: media/Dramas/{languageCode}/{categoryKey} (no Audio/Video prefix)
+        var normalizedLanguageCode = languageCode.ToUpperInvariant();
+        var normalizedCategoryKey = categoryKey.ToUpperInvariant();
+        var dir = $"{DirectoryHelper.IndexDirectory}/media/Dramas/{normalizedLanguageCode}/{normalizedCategoryKey}";
         if (!Directory.Exists(dir))
         {
             Directory.CreateDirectory(dir);
@@ -352,7 +359,8 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
             var languageCode = kvp.Key.ToUpperInvariant();
             var categories = kvp.Value.Distinct().ToList();
 
-            var languageDir = $"{DirectoryHelper.IndexDirectory}/media/Audio/Drama/{languageCode}";
+            // Unified structure: media/Dramas/{languageCode} (no Audio/Video prefix)
+            var languageDir = $"{DirectoryHelper.IndexDirectory}/media/Dramas/{languageCode}";
             if (!Directory.Exists(languageDir))
             {
                 Directory.CreateDirectory(languageDir);
@@ -377,7 +385,8 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
         }
 
         // Save languages.json - store only codes, names and directions will be looked up from Language table during seeding
-        var dramaDir = $"{DirectoryHelper.IndexDirectory}/media/Audio/Drama";
+        // Unified structure: media/Dramas (no Audio/Video prefix)
+        var dramaDir = $"{DirectoryHelper.IndexDirectory}/media/Dramas";
         if (!Directory.Exists(dramaDir))
         {
             Directory.CreateDirectory(dramaDir);
@@ -395,6 +404,6 @@ internal class DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
 
         File.WriteAllText($"{dramaDir}/languages.json", languagesJson);
 
-        logger.Information("Saved drama metadata for {Count} languages", languageCodeToCategories.Count);
+        Logger.Information("Saved drama metadata for {Count} languages", languageCodeToCategories.Count);
     }
 }

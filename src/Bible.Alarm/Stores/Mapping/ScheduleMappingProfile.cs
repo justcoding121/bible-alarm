@@ -46,7 +46,7 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.Music, opt => opt.MapFrom(src => (src.MusicId.HasValue || src.MusicType.HasValue) ? new AlarmMusic
             {
                 Id = src.MusicId ?? 0,
-                MusicType = src.MusicType ?? MusicType.Melodies,
+                MusicType = src.MusicType ?? MusicType.Music,
                 PublicationCode = src.MusicPublicationCode ?? string.Empty,
                 LanguageCode = src.MusicLanguageCode,
                 TrackNumber = src.MusicTrackNumber ?? 0,

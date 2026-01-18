@@ -174,7 +174,9 @@
                 <scheduleViews:AlarmSettingsContainer Grid.Row="1" BindingContext="{Binding AlarmSettingsContainerViewModel}" />
                 <scheduleViews:BibleSelectionContainer Grid.Row="2" BindingContext="{Binding BibleSelectionContainerViewModel}" />
                 <scheduleViews:NumberOfTrackContainer Grid.Row="3" BindingContext="{Binding NumberOfTrackContainerViewModel}" />
-                <scheduleViews:MusicSelectionContainer Grid.Row="4" BindingContext="{Binding MusicSelectionContainerViewModel}" />
+                <scheduleViews:MusicSelectionContainer Grid.Row="4" 
+                                                       BindingContext="{Binding MusicSelectionContainerViewModel}"
+                                                       IsVisible="{Binding IsMusicSelectionVisible}" />
 
                 <!-- Delete button - SfEffectsView for WinUI only -->
                 <core:SfEffectsView Grid.Row="5"

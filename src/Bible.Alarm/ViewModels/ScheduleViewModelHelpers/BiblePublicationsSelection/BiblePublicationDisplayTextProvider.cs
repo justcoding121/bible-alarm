@@ -122,5 +122,46 @@ public sealed class BiblePublicationDisplayTextProvider
 
         return string.Empty;
     }
+
+    public string GetCategoryDisplayText()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName))
+        {
+            return currentSchedule.BiblePublicationCategoryName;
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Determines if the language row should be visible.
+    /// Returns false when category is Music (melodies don't have languages) or when language doesn't exist for the publication.
+    /// </summary>
+    public bool GetIsLanguageVisible()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null)
+        {
+            return true; // Default to visible
+        }
+
+        // Hide language row for Music category (melodies don't have languages)
+        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
+            string.Equals(currentSchedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        // Hide language row if language doesn't exist for the publication
+        if (string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode) &&
+            !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
+        {
+            return false;
+        }
+
+        return true;
+    }
 }
 

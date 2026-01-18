@@ -84,11 +84,20 @@ public static class ScheduleStateSyncHelper
 
     public static bool HasValidBiblePublicationProperties(ScheduleStateItem schedule)
     {
+        // Music category doesn't require language code
+        var isMusicCategory = !string.IsNullOrWhiteSpace(schedule.BiblePublicationCategoryName) &&
+                              string.Equals(schedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase);
+
         // Basic required properties for all content types
-        if (string.IsNullOrWhiteSpace(schedule.BiblePublicationLanguageCode) ||
-            string.IsNullOrWhiteSpace(schedule.BiblePublicationCode) ||
+        if (string.IsNullOrWhiteSpace(schedule.BiblePublicationCode) ||
             !schedule.BiblePublicationTrackNumber.HasValue ||
             schedule.BiblePublicationTrackNumber.Value <= 0)
+        {
+            return false;
+        }
+
+        // Language code is required for non-Music categories
+        if (!isMusicCategory && string.IsNullOrWhiteSpace(schedule.BiblePublicationLanguageCode))
         {
             return false;
         }
@@ -123,6 +132,8 @@ public static class ScheduleStateSyncHelper
         return new BiblePublicationStateItem
         {
             Id = updatedCurrentSchedule.BiblePublicationScheduleId ?? 0,
+            CategoryId = updatedCurrentSchedule.BiblePublicationCategoryId,
+            CategoryName = updatedCurrentSchedule.BiblePublicationCategoryName,
             LanguageCode = updatedCurrentSchedule.BiblePublicationLanguageCode ?? string.Empty,
             PublicationCode = updatedCurrentSchedule.BiblePublicationCode ?? string.Empty,
             SectionNumber = updatedCurrentSchedule.BiblePublicationSectionNumber,

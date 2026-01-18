@@ -19,22 +19,25 @@ public class PlaylistMusicTrackBuilder
     private readonly IMediaService mediaService;
     private readonly IMelodyMusicService melodyMusicService;
     private readonly IMediaUrlRefreshService urlRefreshService;
+    private readonly IUrlConstructionService? urlConstructionService;
 
     public PlaylistMusicTrackBuilder(
         ILogger logger,
         IMediaService mediaService,
         IMelodyMusicService melodyMusicService,
-        IMediaUrlRefreshService urlRefreshService)
+        IMediaUrlRefreshService urlRefreshService,
+        IUrlConstructionService? urlConstructionService = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
         this.melodyMusicService = melodyMusicService;
         this.urlRefreshService = urlRefreshService;
+        this.urlConstructionService = urlConstructionService;
     }
 
     public async Task<PlayItem> NextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)
     {
-        if (schedule.Music?.MusicType == MusicType.Melodies)
+        if (schedule.Music?.MusicType == MusicType.Music)
         {
             return await GetNextMelodyTrackAsync(schedule, next);
         }
@@ -88,6 +91,21 @@ public class PlaylistMusicTrackBuilder
             // LanguageCode is empty for melody music
         };
 
+        // Use UrlConstructionService to get the lookup path from database
+        // For melodies, use DownloadCode (disc code) as publicationCode and null language
+        if (urlConstructionService != null && !string.IsNullOrEmpty(melodyTrack.DownloadCode))
+        {
+            var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
+                melodyTrack.DownloadCode, // Use disc code (e.g., "iam-1") as publication code
+                null, // Melodies don't have language
+                null, // No section for music
+                melodyTrack.OriginalTrackNumber ?? melodyTrack.Number);
+            if (!string.IsNullOrEmpty(lookUpPath))
+            {
+                trackMetadata.LookUpPath = lookUpPath;
+            }
+        }
+
         var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
         if (string.IsNullOrEmpty(url))
         {
@@ -109,6 +127,20 @@ public class PlaylistMusicTrackBuilder
             DownloadCode = vocalTrack.DownloadCode, // Typically same as publication code, but store for consistency
             OriginalTrackNumber = vocalTrack.OriginalTrackNumber // Typically same as Number for vocal music
         };
+
+        // Use UrlConstructionService to get the lookup path from database
+        if (urlConstructionService != null && !string.IsNullOrEmpty(vocalMusic.LanguageCode))
+        {
+            var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
+                vocalMusic.PublicationCode,
+                vocalMusic.LanguageCode,
+                null, // No section for music
+                vocalTrack.Number);
+            if (!string.IsNullOrEmpty(lookUpPath))
+            {
+                trackMetadata.LookUpPath = lookUpPath;
+            }
+        }
 
         var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
         if (string.IsNullOrEmpty(url))

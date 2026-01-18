@@ -77,7 +77,7 @@ public sealed class MusicPropertyNotifier
 
             // For vocals: notify language, song section, and track
             // For melodies: only notify track
-            if (musicType == MusicType.Vocals)
+            if (musicType == MusicType.VocalMusic)
             {
                 onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicLanguageDisplayText));
                 onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
@@ -88,7 +88,7 @@ public sealed class MusicPropertyNotifier
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
         }
         // Language change (vocals only) cascades to song section, track, and flow direction
-        else if (notifyLanguage && musicType == MusicType.Vocals)
+        else if (notifyLanguage && musicType == MusicType.VocalMusic)
         {
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.ContentFlowDirection));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicLanguageDisplayText));

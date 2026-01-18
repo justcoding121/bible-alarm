@@ -147,6 +147,8 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IBiblePublicationService, BiblePublicationService>();
         services.AddSingleton<IBiblePublicationSectionService, BiblePublicationSectionService>();
         services.AddSingleton<IBiblePublicationTrackService, BiblePublicationTrackService>();
+        services.AddSingleton<ICategoryService, CategoryService>();
+        services.AddSingleton<IUrlConstructionService, UrlConstructionService>();
         services.AddSingleton<IMelodyMusicService, MelodyMusicService>();
         services.AddSingleton<IVocalMusicService, VocalMusicService>();
         services.AddSingleton<IBiblePublicationNavigationService, BiblePublicationNavigationService>();
@@ -300,6 +302,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<SongPublicationSelectionViewModel>();
         services.AddTransient<ViewModels.Music.TrackSelectionViewModel>();
         services.AddTransient<BiblePublicationSelectionViewModel>();
+        services.AddTransient<CategorySelectionViewModel>();
         services.AddTransient<SectionSelectionViewModel>();
         services.AddTransient<ViewModels.BiblePublications.TrackSelectionViewModel>();
         services.AddTransient<AlarmViewModel>();
@@ -335,6 +338,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<Views.Bible.TrackSelection>();
         services.AddTransient<BiblePublicationLanguageModal>();
         services.AddTransient<MusicLanguageModal>();
+        services.AddTransient<CategorySelectionModal>();
         services.AddTransient<AlarmModal>();
         services.AddTransient<BiblePublicationSelectionModal>();
         services.AddTransient<SectionSelectionModal>();

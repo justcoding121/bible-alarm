@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<views:BaseContentPage
+    x:Class="Bible.Alarm.Views.Shared.CategorySelectionModal"
+    xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+    xmlns:category="clr-namespace:Bible.Alarm.ViewModels.Categories"
+    xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
+    xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
+    xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
+    xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
+    xmlns:sharedControls="clr-namespace:Bible.Alarm.Views.Shared;assembly=Bible.Alarm"
+    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
+    xmlns:system="clr-namespace:System;assembly=System.Runtime"
+    xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
+    x:DataType="category:CategorySelectionViewModel"
+    Padding="0,0,0,0">
+    <ContentPage.Resources>
+        <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+    </ContentPage.Resources>
+    <ContentPage.Content>
+        <Grid
+            Margin="{OnPlatform Default='0', iOS='0,20,0,0', Android='0,24,0,0'}"
+            BackgroundColor="{DynamicResource BackgroundColor}"
+            ColumnSpacing="0"
+            RowSpacing="0"
+            HorizontalOptions="Fill"
+            VerticalOptions="Fill">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="auto" />
+            </Grid.RowDefinitions>
+            
+            <!-- Header -->
+            <Border
+                Grid.Row="0"
+                BackgroundColor="{DynamicResource CardBackgroundColor}"
+                StrokeThickness="0"
+                Padding="20,16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="0,0,20,20" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                            Offset="0,4"
+                            Opacity="0.1"
+                            Radius="8" />
+                </Border.Shadow>
+                <Label
+                    FontSize="{DynamicResource HeaderFontSize}"
+                    FontAttributes="Bold"
+                    MinimumHeightRequest="{DynamicResource IconLargeContainerSize}"
+                    Text="Select Category"
+                    TextColor="{DynamicResource TextPrimaryColor}"
+                    VerticalOptions="Fill"
+                    VerticalTextAlignment="Center" />
+            </Border>
+            
+            <!-- Collection View -->
+            <CollectionView
+                x:Name="CategoryCollectionView"
+                Grid.Row="1"
+                Margin="0,8,0,0"
+                BackgroundColor="Transparent"
+                Footer="{OnPlatform iOS=''}"
+                HorizontalOptions="Fill"
+                IsVisible="True"
+                ItemsSource="{Binding Categories}"
+                MinimumHeightRequest="300"
+                MinimumWidthRequest="250"
+                SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical">
+                        <LinearItemsLayout.ItemSpacing>
+                            <OnPlatform x:TypeArguments="x:Double">
+                                <On Platform="WinUI" Value="4" />
+                                <On Platform="Default" Value="8" />
+                            </OnPlatform>
+                        </LinearItemsLayout.ItemSpacing>
+                    </LinearItemsLayout>
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="shared:CategoryListViewItemModel">
+                            <Grid Margin="16,0">
+                                <core:SfEffectsView
+                                    TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                    TouchUpEffects="None"
+                                    RippleBackground="{StaticResource PrimaryColor}"
+                                    HighlightBackground="{StaticResource PrimaryLightColor}"
+                                    RippleAnimationDuration="200"
+                                    ShouldIgnoreTouches="False">
+                                    <core:SfEffectsView.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnCategoryItemTapped" />
+                                    </core:SfEffectsView.GestureRecognizers>
+                                    <Border
+                                        BackgroundColor="{DynamicResource CardBackgroundColor}"
+                                        StrokeThickness="0"
+                                        Padding="0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="BackgroundColor" Value="{DynamicResource SelectedItemBackgroundColor}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="12" />
+                                        </Border.StrokeShape>
+                                        <Border.Shadow>
+                                            <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                                    Offset="0,2"
+                                                    Opacity="0.08"
+                                                    Radius="4" />
+                                        </Border.Shadow>
+                                        <Grid
+                                            Padding="20,18"
+                                            HorizontalOptions="Fill"
+                                            MinimumHeightRequest="56"
+                                            BackgroundColor="Transparent">
+                                            <Label
+                                                FontSize="{DynamicResource LargeFontSize}"
+                                                HorizontalOptions="Start"
+                                                HorizontalTextAlignment="Start"
+                                                InputTransparent="True"
+                                                LineBreakMode="WordWrap"
+                                                Text="{Binding Name}"
+                                                TextColor="{DynamicResource TextPrimaryColor}"
+                                                VerticalOptions="Center"
+                                                VerticalTextAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </core:SfEffectsView>
+                            </Grid>
+                        </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+            
+            <!-- Close Button - SfEffectsView for WinUI only -->
+            <core:SfEffectsView Grid.Row="2"
+                x:Name="CloseButtonEffectsView"
+                Margin="16,8,16,16"
+                TouchDownEffects="Ripple"
+                TouchUpEffects="None"
+                RippleBackground="{DynamicResource PrimaryColor}"
+                RippleAnimationDuration="200"
+                ShouldIgnoreTouches="False"
+                HorizontalOptions="Fill"
+                VerticalOptions="Fill"
+                HeightRequest="{DynamicResource IconStandardContainerSize}">
+                <core:SfEffectsView.IsVisible>
+                    <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                        <On Platform="WinUI" Value="true" />
+                    </OnPlatform>
+                </core:SfEffectsView.IsVisible>
+                <core:SfEffectsView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding CloseModalCommand}" />
+                </core:SfEffectsView.GestureRecognizers>
+                <Button x:Name="CloseButton"
+                    BackgroundColor="{DynamicResource CardBackgroundColor}"
+                    BorderWidth="0"
+                    BorderColor="Transparent"
+                    CornerRadius="12"
+                    FontSize="{DynamicResource ButtonFontSize}"
+                    FontAttributes="Bold"
+                    HorizontalOptions="Fill"
+                    VerticalOptions="Fill"
+                    Padding="20,12"
+                    Text="CLOSE"
+                    TextColor="{AppThemeBinding Light=#212529, Dark=White}"
+                    InputTransparent="True"
+                    IsEnabled="False">
+                    <Button.Shadow>
+                        <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                Offset="0,2"
+                                Opacity="0.1"
+                                Radius="4" />
+                    </Button.Shadow>
+                </Button>
+            </core:SfEffectsView>
+            <!-- Regular button for Android/iOS -->
+            <Button Grid.Row="2"
+                x:Name="CloseButtonNoEffects"
+                Margin="16,8,16,16"
+                BackgroundColor="{DynamicResource CardBackgroundColor}"
+                BorderWidth="0"
+                BorderColor="Transparent"
+                Command="{Binding CloseModalCommand}"
+                CornerRadius="12"
+                FontSize="{DynamicResource ButtonFontSize}"
+                FontAttributes="Bold"
+                HorizontalOptions="Fill"
+                Padding="{OnPlatform Android='20,6,20,10', iOS='20,12', Default='20,12'}"
+                Text="CLOSE"
+                TextColor="{DynamicResource PrimaryTextColor}"
+                VerticalOptions="Center"
+                HeightRequest="{DynamicResource IconStandardContainerSize}"
+                IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
+                <Button.Shadow>
+                    <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                            Offset="0,2"
+                            Opacity="0.1"
+                            Radius="4" />
+                </Button.Shadow>
+            </Button>
+            
+            <!-- BUSY OVERLAY – appears only while IsBusy = true -->
+            <sharedViews:BusyOverlay x:Name="BusyOverlay"
+                                     Grid.Row="0"
+                                     Grid.RowSpan="3"
+                                     IsVisible="True" />
+        </Grid>
+    </ContentPage.Content>
+</views:BaseContentPage>

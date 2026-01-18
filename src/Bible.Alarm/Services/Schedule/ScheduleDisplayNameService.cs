@@ -180,7 +180,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
     private async Task PopulateMusicDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music)
     {
         // Music language name and direction (for vocals)
-        if (music.MusicType == MusicType.Vocals &&
+        if (music.MusicType == MusicType.VocalMusic &&
             !string.IsNullOrWhiteSpace(music.LanguageCode))
         {
             try
@@ -206,7 +206,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         }
 
         // Music publication name (for vocals)
-        if (music.MusicType == MusicType.Vocals &&
+        if (music.MusicType == MusicType.VocalMusic &&
             !string.IsNullOrWhiteSpace(music.LanguageCode) &&
             !string.IsNullOrWhiteSpace(music.PublicationCode))
         {
@@ -231,7 +231,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             try
             {
                 string? trackName = null;
-                if (music.MusicType == MusicType.Melodies)
+                if (music.MusicType == MusicType.Music)
                 {
                     if (!string.IsNullOrWhiteSpace(music.PublicationCode))
                     {
@@ -243,7 +243,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         }
                     }
                 }
-                else if (music.MusicType == MusicType.Vocals)
+                else if (music.MusicType == MusicType.VocalMusic)
                 {
                     if (!string.IsNullOrWhiteSpace(music.LanguageCode) && !string.IsNullOrWhiteSpace(music.PublicationCode))
                     {

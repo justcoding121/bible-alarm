@@ -113,4 +113,6 @@ public sealed class GlyphNames
     public static string Check = "\uf00c";
     // Font Awesome section-bible icon (for Bible type selection)
     public static string Bible = "\uf647";
+    // Font Awesome folder icon (for category selection)
+    public static string Folder = "\uf07b";
 }

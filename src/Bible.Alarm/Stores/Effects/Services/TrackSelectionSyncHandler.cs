@@ -198,7 +198,7 @@ public sealed class TrackSelectionSyncHandler
     {
         Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, MusicType: {MusicType}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}",
             action.CurrentMusic != null ? "not null" : "null",
-            action.CurrentMusic?.MusicType ?? MusicType.Melodies,
+            action.CurrentMusic?.MusicType ?? MusicType.Music,
             action.CurrentMusic?.PublicationCode ?? "null",
             action.CurrentMusic?.TrackNumber ?? 0);
     }

@@ -2,6 +2,6 @@ namespace Bible.Alarm.Shared.Models.Enums;
 
 public enum MusicType
 {
-    Melodies = 0,
-    Vocals = 1
+    Music = 0,      // Music publications without language (formerly Melodies/Kingdom Melodies)
+    VocalMusic = 1  // Music publications with language (formerly Vocals)
 }

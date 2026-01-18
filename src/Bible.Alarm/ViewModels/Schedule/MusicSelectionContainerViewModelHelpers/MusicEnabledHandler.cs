@@ -91,7 +91,7 @@ public class MusicEnabledHandler
             // before the async DB query for the default track completes
             if (value && !clonedSchedule.MusicType.HasValue)
             {
-                clonedSchedule.MusicType = MusicType.Melodies;
+                clonedSchedule.MusicType = MusicType.Music;
             }
 
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, false, false, shouldSave: false));
@@ -151,7 +151,7 @@ public class MusicEnabledHandler
 
                             // Check if music properties are already set to what we want to set
                             // This prevents redundant dispatches if the state was already updated
-                            if (latestSchedule.MusicType == MusicType.Melodies &&
+                            if (latestSchedule.MusicType == MusicType.Music &&
                                 latestSchedule.MusicPublicationCode == defaultPublicationCode &&
                                 latestSchedule.MusicTrackNumber == randomTrack.Number &&
                                 latestSchedule.MusicEnabled == true)
@@ -165,7 +165,7 @@ public class MusicEnabledHandler
                             var clonedSchedule = latestSchedule.DeepClone();
                             // MusicEnabled should already be true from the first dispatch, but ensure it's set
                             clonedSchedule.MusicEnabled = true;
-                            clonedSchedule.MusicType = MusicType.Melodies;
+                            clonedSchedule.MusicType = MusicType.Music;
                             clonedSchedule.MusicPublicationCode = defaultPublicationCode;
                             clonedSchedule.MusicPublicationName = defaultPublicationName;
                             clonedSchedule.MusicLanguageCode = null;

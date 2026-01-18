@@ -87,6 +87,8 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
 
             // Initialize last values from CurrentSchedule (single source of truth)
             propertyChangeDetector.Initialize(
+                currentSchedule.BiblePublicationCategoryId,
+                currentSchedule.BiblePublicationCategoryName,
                 currentSchedule.BiblePublicationLanguageCode,
                 currentSchedule.BiblePublicationCode,
                 currentSchedule.BiblePublicationSectionNumber,
@@ -154,6 +156,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
 
     private void InitializeCommands()
     {
+        SelectCategoryCommand = commandInitializer.CreateSelectCategoryCommand();
         SelectLanguageCommand = commandInitializer.CreateSelectLanguageCommand();
         SelectBibleCommand = commandInitializer.CreateSelectBibleCommand(
             () => biblePublicationSchedule, b => biblePublicationSchedule = b, scheduleId, isNewSchedule, biblePublicationUpdated);
@@ -349,13 +352,16 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     }
 
 
+    public ICommand SelectCategoryCommand { get; private set; } = null!;
     public ICommand SelectLanguageCommand { get; private set; } = null!;
     public ICommand SelectBibleCommand { get; private set; } = null!;
     public ICommand SelectSectionCommand { get; private set; } = null!;
     public ICommand SelectTrackCommand { get; private set; } = null!;
 
     public bool IsSectionVisible => displayTextProvider.GetIsSectionVisible();
+    public bool IsLanguageVisible => displayTextProvider.GetIsLanguageVisible();
     public FlowDirection ContentFlowDirection => displayTextProvider.GetFlowDirection();
+    public string CategoryDisplayText => displayTextProvider.GetCategoryDisplayText();
     public string LanguageDisplayText => displayTextProvider.GetLanguageDisplayText();
     public string PublicationDisplayText => displayTextProvider.GetPublicationDisplayText();
     public string SectionDisplayText => displayTextProvider.GetSectionDisplayText();

@@ -71,13 +71,13 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
             var currentSchedule = this.state.Value.CurrentSchedule;
             var isSameMusicType = IsSameMusicType(currentSchedule, x.MusicType);
 
-            if (x.MusicType == MusicType.Vocals)
+            if (x.MusicType == MusicType.VocalMusic)
             {
-                await HandleVocalsSelectionAsync(currentSchedule, isSameMusicType);
+                await HandleVocalMusicSelectionAsync(currentSchedule, isSameMusicType);
             }
             else
             {
-                await HandleMelodiesSelectionAsync(currentSchedule, isSameMusicType);
+                await HandleMusicSelectionAsync(currentSchedule, isSameMusicType);
             }
         });
 
@@ -208,13 +208,13 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         [
             new MusicTypeListItemViewModel
             {
-                MusicType = MusicType.Melodies,
-                Name = "Orchestral Melodies"
+                MusicType = MusicType.Music,
+                Name = "Instrumental Music"
             },
             new MusicTypeListItemViewModel
             {
-                MusicType = MusicType.Vocals,
-                Name = "Vocals"
+                MusicType = MusicType.VocalMusic,
+                Name = "Vocal Music"
             }
         ]);
 
@@ -244,7 +244,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         return currentSchedule != null && currentSchedule.MusicType == musicType;
     }
 
-    private async Task HandleVocalsSelectionAsync(ScheduleStateItem? currentSchedule, bool isSameMusicType)
+    private async Task HandleVocalMusicSelectionAsync(ScheduleStateItem? currentSchedule, bool isSameMusicType)
     {
         var result = await GetFirstLanguageAndSongPublicationAsync();
         if (result.LanguageCode == null)
@@ -260,8 +260,8 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var (trackNumber, trackName) = GetTrackForVocals(currentSchedule, isSameMusicType, result.LanguageCode, result.PublicationCode, tracks);
-        var trackSelectedItem = CreateVocalsMusicStateItem(currentSchedule, result.LanguageCode, result.PublicationCode, trackNumber, trackName, result.Language, result.FirstSongPublication);
+        var (trackNumber, trackName) = GetTrackForVocalMusic(currentSchedule, isSameMusicType, result.LanguageCode, result.PublicationCode, tracks);
+        var trackSelectedItem = CreateVocalMusicStateItem(currentSchedule, result.LanguageCode, result.PublicationCode, trackNumber, trackName, result.Language, result.FirstSongPublication);
 
         this.dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
         await navigationService.PopModalAsync();
@@ -302,7 +302,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         return (languageCode, language, firstSongPublication.Key, firstSongPublication.Value);
     }
 
-    private static (int TrackNumber, string TrackName) GetTrackForVocals(
+    private static (int TrackNumber, string TrackName) GetTrackForVocalMusic(
         ScheduleStateItem? currentSchedule,
         bool isSameMusicType,
         string languageCode,
@@ -323,7 +323,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         return (randomTrack.Number, randomTrack.Title);
     }
 
-    private static MusicStateItem CreateVocalsMusicStateItem(
+    private static MusicStateItem CreateVocalMusicStateItem(
         ScheduleStateItem? currentSchedule,
         string languageCode,
         string publicationCode,
@@ -335,7 +335,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         return new MusicStateItem
         {
             Repeat = currentSchedule?.MusicRepeat ?? false,
-            MusicType = MusicType.Vocals,
+            MusicType = MusicType.VocalMusic,
             LanguageCode = languageCode,
             PublicationCode = publicationCode,
             TrackNumber = trackNumber,
@@ -346,7 +346,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         };
     }
 
-    private async Task HandleMelodiesSelectionAsync(ScheduleStateItem? currentSchedule, bool isSameMusicType)
+    private async Task HandleMusicSelectionAsync(ScheduleStateItem? currentSchedule, bool isSameMusicType)
     {
         // Get melody publications from database instead of hard-coding
         var melodyReleases = await Task.Run(async () =>
@@ -386,14 +386,14 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var (trackNumber, trackName) = GetTrackForMelodies(currentSchedule, isSameMusicType, publicationCode, tracks);
-        var trackSelectedItem = CreateMelodiesMusicStateItem(currentSchedule, publicationCode, melodyPublication.Name, trackNumber, trackName);
+        var (trackNumber, trackName) = GetTrackForMusic(currentSchedule, isSameMusicType, publicationCode, tracks);
+        var trackSelectedItem = CreateMusicStateItem(currentSchedule, publicationCode, melodyPublication.Name, trackNumber, trackName);
 
         this.dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
         await navigationService.PopModalAsync();
     }
 
-    private static (int TrackNumber, string TrackName) GetTrackForMelodies(
+    private static (int TrackNumber, string TrackName) GetTrackForMusic(
         ScheduleStateItem? currentSchedule,
         bool isSameMusicType,
         string publicationCode,
@@ -404,15 +404,15 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
             currentSchedule.MusicTrackNumber.HasValue &&
             tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
         {
-            return (currentSchedule.MusicTrackNumber.Value, $"Melody Number(s) {currentTrack.Title}");
+            return (currentSchedule.MusicTrackNumber.Value, currentTrack.Title);
         }
 
         var tracksList = tracks.Values.ToList();
         var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-        return (randomTrack.Number, $"Melody Number(s) {randomTrack.Title}");
+        return (randomTrack.Number, randomTrack.Title);
     }
 
-    private static MusicStateItem CreateMelodiesMusicStateItem(
+    private static MusicStateItem CreateMusicStateItem(
         ScheduleStateItem? currentSchedule,
         string publicationCode,
         string publicationName,
@@ -422,7 +422,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
         return new MusicStateItem
         {
             Repeat = currentSchedule?.MusicRepeat ?? false,
-            MusicType = MusicType.Melodies,
+            MusicType = MusicType.Music,
             PublicationCode = publicationCode,
             PublicationName = publicationName,
             TrackNumber = trackNumber,

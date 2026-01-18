@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -16,12 +17,14 @@ namespace Bible.Alarm.Shared.Services.Media;
 
 /// <summary>
 /// Service for accessing VocalMusic database operations.
+/// Uses BiblePublications table filtered by Music category with LanguageId (Vocals).
 /// </summary>
 public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger logger) : IVocalMusicService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
+    private const string MusicCategoryName = "Music";
 
     public async Task<VocalMusic?> GetByLanguageAndCodeAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
@@ -30,10 +33,19 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            return await dbContext.VocalMusic
+            var publication = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
+                .Include(x => x.Category)
+                .Include(x => x.Language)
+                .Where(x => x.Category.CategoryName == MusicCategoryName 
+                    && x.LanguageId != null 
+                    && x.Language!.Code == languageCode 
+                    && x.Code == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
+
+            // VocalMusic is a subclass of BiblePublication, so we can return the publication directly
+            // The publication is already filtered to be Music category with LanguageId
+            return publication != null ? new VocalMusic { Publication = publication } : null;
         }
         catch (Exception ex)
         {
@@ -50,9 +62,13 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var vocalMusicList = await dbContext.VocalMusic
+            var vocalMusicList = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Where(x => x.Language.Code == languageCode)
+                .Include(x => x.Category)
+                .Include(x => x.Language)
+                .Where(x => x.Category.CategoryName == MusicCategoryName 
+                    && x.LanguageId != null 
+                    && x.Language!.Code == languageCode)
                 .ToListAsync(cancellationToken);
 
             // Handle potential duplicates gracefully - use first occurrence
@@ -61,7 +77,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             {
                 if (!result.ContainsKey(vm.Code))
                 {
-                    result[vm.Code] = vm;
+                    result[vm.Code] = new VocalMusic { Publication = vm };
                 }
                 else
                 {
@@ -84,9 +100,12 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var languages = await dbContext.VocalMusic
+            var languages = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Select(x => x.Language)
+                .Include(x => x.Category)
+                .Include(x => x.Language)
+                .Where(x => x.Category.CategoryName == MusicCategoryName && x.LanguageId != null)
+                .Select(x => x.Language!)
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
@@ -106,10 +125,15 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var publication = await dbContext.VocalMusic
+            var publication = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Tracks)
-                .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
+                .Include(x => x.Category)
+                .Include(x => x.Language)
+                .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
+                .Where(x => x.Category.CategoryName == MusicCategoryName 
+                    && x.LanguageId != null 
+                    && x.Language!.Code == languageCode 
+                    && x.Code == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (publication == null)
@@ -117,8 +141,19 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 return new SortedDictionary<int, MusicTrack>();
             }
 
-            var tracks = publication.Tracks.OrderBy(t => t.Number).ToList();
-            return new SortedDictionary<int, MusicTrack>(tracks.ToDictionary(x => x.Number, x => x));
+            var tracks = publication.Tracks.Where(t => t.BiblePublicationSectionId == null).OrderBy(t => t.Number).ToList();
+            // Map BiblePublicationTrack to MusicTrack
+            var musicTracks = tracks.Select(t => new MusicTrack
+            {
+                Number = t.Number,
+                Title = t.Title,
+                Url = string.Empty, // URLs are computed on-demand
+                LookUpPath = string.Empty,
+                DownloadCode = null,
+                OriginalTrackNumber = null
+            }).ToDictionary(x => x.Number, x => x);
+            
+            return new SortedDictionary<int, MusicTrack>(musicTracks);
         }
         catch (Exception ex)
         {
