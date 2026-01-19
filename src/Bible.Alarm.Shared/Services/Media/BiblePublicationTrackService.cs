@@ -36,7 +36,7 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
                     .ThenInclude(s => s.UrlParams)
                 .Include(p => p.Sections)
                     .ThenInclude(s => s.Tracks)
-                .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
+                .Where(x => x.Language != null && x.Language.Code == languageCode && x.Code == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (publication == null)
@@ -74,7 +74,7 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
                     .ThenInclude(s => s.UrlParams)
                 .Include(p => p.Sections)
                     .ThenInclude(s => s.Tracks)
-                .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
+                .Where(x => x.Language != null && x.Language.Code == languageCode && x.Code == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return publication?.Sections

@@ -15,47 +15,9 @@ public sealed class ScheduleMigrationService(
 
     public async Task MigrateBibleGatewaySchedulesAsync()
     {
-        if (DeviceInfo.Platform != DevicePlatform.Android)
-        {
-            return;
-        }
-
-        try
-        {
-            var alarmSchedules = await alarmScheduleService.GetSchedulesAsync(
-                x => x.BiblePublicationSchedule != null,
-                false,
-                true,
-                cancellationTokenSource.Token);
-
-            //bible gateway is not supported anymore due to copyright issues
-            var toRemove = alarmSchedules.Where(x =>
-                BgSourceHelper.PublicationCodeToNameMappings.Any(y => y.Key == x.BiblePublicationSchedule!.PublicationCode)).ToList();
-
-            if (toRemove.Any())
-            {
-                foreach (var item in toRemove)
-                {
-                    await alarmScheduleService.UpdateScheduleByIdAsync(
-                        item.Id,
-                        schedule =>
-                        {
-                            if (schedule.BiblePublicationSchedule != null)
-                            {
-                                schedule.BiblePublicationSchedule.PublicationCode = "nwt"; // NWT 2013 (not 1984)
-                                schedule.BiblePublicationSchedule.FinishedDuration = TimeSpan.Zero;
-                            }
-                        },
-                        cancellationTokenSource.Token);
-                }
-
-                logger.Information("Migrated {Count} Bible Gateway schedules to default publication code", toRemove.Count);
-            }
-        }
-        catch (Exception e)
-        {
-            logger.Error(e, "An error happened while migrating Bible Gateway schedules.");
-        }
+        // BibleGateway is no longer used - migration no longer needed
+        // This method is kept for interface compatibility but does nothing
+        await Task.CompletedTask;
     }
 
     public void Dispose()

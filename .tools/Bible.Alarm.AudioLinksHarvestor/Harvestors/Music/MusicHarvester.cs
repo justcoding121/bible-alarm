@@ -13,6 +13,7 @@ using Bible.Alarm.AudioLinksHarvestor.Models;
 using Bible.Alarm.AudioLinksHarvestor.Models.Music;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Constants;
+using SharedHelpers = Bible.Alarm.Shared.Helpers;
 using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Music;
@@ -27,16 +28,6 @@ internal class MusicHarvester : BaseHarvester
         this.dataPersister = dataPersister;
     }
 
-    /// <summary>
-    /// Default English names for vocal music publications (fallback if API doesn't return localized name)
-    /// </summary>
-    private static readonly Dictionary<string, string> vocalsPublicationCodeToNameMappings = new([
-        new KeyValuePair<string, string>("osg","Original Songs"),
-        new KeyValuePair<string, string>("sjjc","\"Sing Out Joyfully\" to Jehovah (2016)"),
-        new KeyValuePair<string, string>("sjji","\"Sing Out Joyfully\" to Jehovah—Instrumental"),
-        new KeyValuePair<string, string>("snv","Sing to Jehovah (2014) "),
-        new KeyValuePair<string, string>("pksjj","Children's Songs")
-    ]);
 
     /// <summary>
     /// Localized publication names: (languageCode, publicationCode) -> localizedName
@@ -48,28 +39,50 @@ internal class MusicHarvester : BaseHarvester
         var languageCodeToInfo = new Dictionary<string, LanguageInfo>();
         var languageCodeToPublications = new Dictionary<string, List<string>>();
 
-        foreach (var publication in vocalsPublicationCodeToNameMappings)
+        // List of vocal music publication codes to harvest (from centralized JwSourceHelper)
+        var vocalMusicPublicationCodes = SharedHelpers.JwSourceHelper.VocalMusicPublicationCodes;
+
+        foreach (var publicationCode in vocalMusicPublicationCodes)
         {
-            Logger.Information("Starting harvest for Vocal Music publication: {PublicationName} ({PublicationCode})", 
-                publication.Value, publication.Key);
+            Logger.Information("Starting harvest for Vocal Music publication: {PublicationCode}", publicationCode);
             
-            var languageEntries = await GetLanguageEntries(publication.Key, publication.Value, isTestRun);
+            var languageEntries = await GetLanguageEntries(publicationCode, publicationCode, isTestRun);
             if (languageEntries == null || languageEntries.Count == 0)
             {
-                Logger.Warning("No languages found for Vocal Music publication: {PublicationName} ({PublicationCode})", 
-                    publication.Value, publication.Key);
+                Logger.Warning("No languages found for Vocal Music publication: {PublicationCode}", publicationCode);
                 continue;
             }
 
-            Logger.Information("Found {Count} language(s) for Vocal Music publication: {PublicationName} ({PublicationCode})", 
-                languageEntries.Count, publication.Value, publication.Key);
+            Logger.Information("Found {Count} language(s) for Vocal Music publication: {PublicationCode}", 
+                languageEntries.Count, publicationCode);
 
-            await ProcessLanguageEntries(
-                languageEntries,
-                publication.Key,
-                publication.Value,
-                languageCodeToInfo,
-                languageCodeToPublications);
+            // Save discovered languages for on-demand fetching (excluding English)
+            // The alllangs=1 response already lists only available languages, so no verification needed
+            if (dataPersister != null)
+            {
+                var discoveredLanguages = languageEntries
+                    .Where(e => !e.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+                    .ToDictionary(
+                        e => e.Code,
+                        e => new LanguageInfo(e.Name, e.Direction));
+                
+                if (discoveredLanguages.Count > 0)
+                {
+                    await dataPersister.SavePublicationLanguages(publicationCode, discoveredLanguages);
+                }
+            }
+
+            // Verify English (E) is available (it will be seeded separately after discovery)
+            var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals("E", StringComparison.OrdinalIgnoreCase));
+            if (englishEntry == default)
+            {
+                Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
+                continue;
+            }
+
+            // Add English to language mappings (for reference, but don't process it here)
+            languageCodeToInfo.TryAdd("E", new LanguageInfo(englishEntry.Name, englishEntry.Direction));
+            AddPublicationToLanguage("E", publicationCode, languageCodeToPublications);
         }
     }
 
@@ -174,22 +187,18 @@ internal class MusicHarvester : BaseHarvester
     }
 
 
-    private static Dictionary<string, string> melodyPublicationCodeToNameMappings = new([
-        new KeyValuePair<string, string>("iam","Kingdom Melodies")
-    ]);
-
     internal async Task HarvestMusicMelodyLinks(bool isTestRun = false)
     {
         var discs = new List<string>();
         var downloadCodes = new List<string>();
 
-        foreach (var publication in melodyPublicationCodeToNameMappings)
+        // Melody music publication codes (from centralized JwSourceHelper)
+        foreach (var publicationCode in SharedHelpers.JwSourceHelper.MelodyMusicPublicationCodes)
         {
-            Logger.Information("Starting harvest for Instrumental Music publication: {PublicationName} ({PublicationCode})", 
-                publication.Value, publication.Key);
+            Logger.Information("Starting harvest for Instrumental Music publication: {PublicationCode}", publicationCode);
             
             downloadCodes.Clear();
-            if (publication.Key == "iam")
+            if (publicationCode == "iam")
             {
                 for (var i = 1; i <= 9; i++)
                 {
@@ -198,25 +207,17 @@ internal class MusicHarvester : BaseHarvester
                         continue;
                     }
 
-                    downloadCodes.Add($"{publication.Key}-{i}");
+                    downloadCodes.Add($"{publicationCode}-{i}");
                 }
             }
             else
             {
-                downloadCodes.Add(publication.Key);
+                downloadCodes.Add(publicationCode);
             }
 
-            Logger.Information("Harvesting Music track links for {PublicationName}.", publication.Value);
-            await HarvestMusicLinks(publication.Key, downloadCodes);
+            Logger.Information("Harvesting Music track links for {PublicationCode}.", publicationCode);
+            await HarvestMusicLinks(publicationCode, downloadCodes);
         }
-
-        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/publications.json", JsonSerializer.Serialize(
-        melodyPublicationCodeToNameMappings.Select(x => new
-        Publication
-        {
-            Code = x.Key,
-            Name = x.Value
-        }).OrderBy(x => x.Code)));
     }
 
     private async Task<bool> HarvestMusicLinks(string publicationCode, List<string> publicationDownloadCodes, string? languageCode = null)
@@ -318,7 +319,9 @@ internal class MusicHarvester : BaseHarvester
             // Save to database via persister if available, otherwise save to files
             if (dataPersister != null)
             {
-                await dataPersister.SaveMusicTracks(publicationCode, languageCode, musicTracks);
+                // Use localized publication name from API response, fallback to publication code
+                var finalPublicationName = localizedPubName ?? publicationCode;
+                await dataPersister.SaveMusicTracks(publicationCode, languageCode, finalPublicationName, musicTracks);
             }
             else
             {

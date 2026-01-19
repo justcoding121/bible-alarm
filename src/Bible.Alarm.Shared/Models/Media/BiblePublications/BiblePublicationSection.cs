@@ -18,8 +18,13 @@ public sealed class BiblePublicationSection : IComparable
     [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Section code (e.g., "1" for book 1, "gen" for Genesis, section code for dramas).
+    /// Matches SectionLanguage.SectionCode for consistency.
+    /// </summary>
     [Required]
-    public int Number { get; set; }
+    [MaxLength(50)]
+    public string SectionCode { get; set; } = string.Empty;
 
     [Required]
     [ForeignKey(nameof(BiblePublication))]
@@ -54,5 +59,24 @@ public sealed class BiblePublicationSection : IComparable
         }
     }
 
-    public int CompareTo(object obj) => obj is not BiblePublicationSection other ? 1 : Number.CompareTo(other.Number);
+    public int CompareTo(object obj)
+    {
+        if (obj is not BiblePublicationSection other)
+        {
+            return 1;
+        }
+        
+        // For Bible sections, try to compare by BookNum (from UrlParams) for proper ordering
+        // Otherwise compare by SectionCode
+        var thisBookNum = BookNum;
+        var otherBookNum = other.BookNum;
+        
+        if (thisBookNum.HasValue && otherBookNum.HasValue)
+        {
+            return thisBookNum.Value.CompareTo(otherBookNum.Value);
+        }
+        
+        // Fallback to string comparison of SectionCode
+        return string.Compare(SectionCode, other.SectionCode, StringComparison.OrdinalIgnoreCase);
+    }
 }

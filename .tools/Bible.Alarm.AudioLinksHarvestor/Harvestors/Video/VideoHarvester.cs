@@ -13,6 +13,7 @@ using Bible.Alarm.AudioLinksHarvestor.Models;
 using Bible.Alarm.AudioLinksHarvestor.Models.Video;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Constants;
+using SharedHelpers = Bible.Alarm.Shared.Helpers;
 using Serilog;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Video;
@@ -28,6 +29,10 @@ internal class VideoHarvester : BaseHarvester
         this.dataPersister = dataPersister;
     }
 
+    /// <summary>
+    /// Video publication code to name mappings (for logging/fallback).
+    /// Codes come from centralized JwSourceHelper.VideoPublicationCodes.
+    /// </summary>
     private static readonly Dictionary<string, string> VideoPublicationCodeToNameMappings = new([
         new KeyValuePair<string, string>("gnj", "The Good News According to Jesus")
     ]);
@@ -51,25 +56,48 @@ internal class VideoHarvester : BaseHarvester
         var languageCodeToInfo = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
         var languageCodeToPublications = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var publication in VideoPublicationCodeToNameMappings)
+        // Use codes from centralized JwSourceHelper
+        foreach (var publicationCode in SharedHelpers.JwSourceHelper.VideoPublicationCodes)
         {
+            var publicationName = VideoPublicationCodeToNameMappings.GetValueOrDefault(publicationCode, publicationCode);
             Logger.Information("Starting harvest for Video publication: {PublicationName} ({PublicationCode})", 
-                publication.Value, publication.Key);
+                publicationName, publicationCode);
             
-            var languageEntries = await GetLanguageEntries(publication.Key, publication.Value, isTestRun);
+            var languageEntries = await GetLanguageEntries(publicationCode, publicationName, isTestRun);
             if (languageEntries == null || languageEntries.Count == 0)
             {
                 Logger.Warning("No languages found for Video publication: {PublicationName} ({PublicationCode})", 
-                    publication.Value, publication.Key);
+                    publicationName, publicationCode);
                 continue;
             }
 
-            await ProcessLanguageEntries(
-                languageEntries,
-                publication.Key,
-                publication.Value,
-                languageCodeToInfo,
-                languageCodeToPublications);
+            // Save discovered languages for on-demand fetching (excluding English)
+            // The alllangs=1 response already lists only available languages, so no verification needed
+            if (dataPersister != null)
+            {
+                var discoveredLanguages = languageEntries
+                    .Where(e => !e.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+                    .ToDictionary(
+                        e => e.Code,
+                        e => new LanguageInfo(e.Name, e.Direction));
+                
+                if (discoveredLanguages.Count > 0)
+                {
+                    await dataPersister.SavePublicationLanguages(publicationCode, discoveredLanguages);
+                }
+            }
+
+            // Verify English (E) is available (it will be seeded separately after discovery)
+            var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals("E", StringComparison.OrdinalIgnoreCase));
+            if (englishEntry == default)
+            {
+                Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
+                continue;
+            }
+
+            // Add English to language mappings (for reference, but don't process it here)
+            languageCodeToInfo[englishEntry.Code] = new LanguageInfo(englishEntry.Name, englishEntry.Direction);
+            AddPublicationToLanguage(englishEntry.Code, publicationCode, languageCodeToPublications);
         }
     }
 

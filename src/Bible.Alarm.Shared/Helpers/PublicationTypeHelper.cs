@@ -23,8 +23,9 @@ public static class PublicationTypeHelper
     };
 
     /// <summary>
-    /// Returns true if the publication has a Section → Track structure (traditional Bible).
-    /// Returns false for dramas and videos which have a flat Track structure.
+    /// Returns true if the publication has a Section → Track structure.
+    /// Only Bible (books 1-66) and Music "iam" (Kingdom Melodies discs) have sections.
+    /// Returns false for dramas, videos, and other music which have a flat Track structure.
     /// </summary>
     public static bool HasSectionStructure(string? publicationCode)
     {
@@ -33,7 +34,29 @@ public static class PublicationTypeHelper
             return true; // Default to Bible structure
         }
 
-        return !DramaPublicationCodes.Contains(publicationCode) && !VideoPublicationCodes.Contains(publicationCode);
+        // Only Bible and "iam" (Kingdom Melodies) have sections
+        if (publicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
+        {
+            return true; // Kingdom Melodies uses discs (sections)
+        }
+
+        // Dramas and videos have flat tracks
+        if (DramaPublicationCodes.Contains(publicationCode) || VideoPublicationCodes.Contains(publicationCode))
+        {
+            return false;
+        }
+
+        // Check if it's a music publication (vocal or melody, but not "iam" which we already handled)
+        var isMusic = JwSourceHelper.VocalMusicPublicationCodes.Contains(publicationCode) ||
+                      JwSourceHelper.MelodyMusicPublicationCodes.Contains(publicationCode);
+        
+        if (isMusic)
+        {
+            return false; // Music publications (except "iam") have flat tracks
+        }
+
+        // Default to Bible structure (has sections)
+        return true;
     }
 
     /// <summary>

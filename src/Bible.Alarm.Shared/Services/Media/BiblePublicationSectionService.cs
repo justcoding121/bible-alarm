@@ -33,6 +33,7 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
                 .AsNoTracking()
                 .Include(x => x.UrlParams)
                 .Where(x => x.BiblePublication.Code == publicationCode
+                            && x.BiblePublication.Language != null
                             && x.BiblePublication.Language.Code == languageCode
                             && x.BookNum == sectionNumber)
                 .Select(x => x.Name)
@@ -57,7 +58,7 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
                 .AsNoTracking()
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.UrlParams)
-                .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
+                .Where(x => x.Language != null && x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Sections)
                 .OrderBy(x => x.BookNum ?? 0)
                 .ToListAsync(cancellationToken);
@@ -83,7 +84,7 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
                 .AsNoTracking()
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.UrlParams)
-                .Where(x => x.Language.Code == languageCode && x.Code == publicationCode)
+                .Where(x => x.Language != null && x.Language.Code == languageCode && x.Code == publicationCode)
                 .SelectMany(x => x.Sections)
                 .Where(x => x.BookNum == sectionNumber)
                 .FirstOrDefaultAsync(cancellationToken);

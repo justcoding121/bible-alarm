@@ -207,7 +207,7 @@ public class PlaylistBiblePublicationTrackBuilder
             var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
                 biblePublicationSchedule.PublicationCode,
                 biblePublicationSchedule.LanguageCode,
-                sectionNumber > 0 ? sectionNumber : null,
+                sectionNumber > 0 ? sectionNumber.ToString() : null,
                 trackDetail.Number);
             if (!string.IsNullOrEmpty(lookUpPath))
             {

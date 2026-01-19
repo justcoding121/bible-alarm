@@ -14,7 +14,9 @@ using Bible.Alarm.AudioLinksHarvestor.Models;
 using Bible.Alarm.AudioLinksHarvestor.Models.Drama;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Serilog;
+using DirectoryHelper = Bible.Alarm.AudioLinksHarvestor.Utility.DirectoryHelper;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Drama;
 
@@ -30,9 +32,8 @@ internal class DramaHarvester : BaseHarvester
     }
 
     /// <summary>
-    /// Drama publication codes with their display names (English fallback).
-    /// These are publications under the "Dramas" category in the Mediator API.
-    /// Note: "gnj" (Good News According to Jesus) is harvested separately by VideoHarvester.
+    /// Drama publication code to name mappings (for logging/fallback).
+    /// Codes come from centralized JwSourceHelper.DramaCategoryCodes.
     /// </summary>
     private static readonly Dictionary<string, string> DramaPubCodeToNameMapping = new([
         new KeyValuePair<string, string>("Dramas", "Bible Dramas"),
@@ -50,14 +51,15 @@ internal class DramaHarvester : BaseHarvester
         // Track publications per language: languageCode -> set of publication codes
         var languageCodeToPublications = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
-        // Harvest each drama publication from the "Dramas" category
-        foreach (var publication in DramaPubCodeToNameMapping)
+        // Harvest each drama publication from the "Dramas" category (codes from centralized JwSourceHelper)
+        foreach (var publicationCode in JwSourceHelper.DramaCategoryCodes)
         {
-            Logger.Information("Harvesting Drama publication: {PublicationName} ({PublicationCode})", publication.Value, publication.Key);
+            var publicationName = DramaPubCodeToNameMapping.GetValueOrDefault(publicationCode, publicationCode);
+            Logger.Information("Harvesting Drama publication: {PublicationName} ({PublicationCode})", publicationName, publicationCode);
 
             await HarvestDramaPublication(
-                publication.Key,
-                publication.Value,
+                publicationCode,
+                publicationName,
                 languageCodeToPublications,
                 isTestRun);
         }
@@ -92,33 +94,32 @@ internal class DramaHarvester : BaseHarvester
             return;
         }
 
-        // Filter for test run
-        IEnumerable<string> languagesToProcess = isTestRun
-            ? languagesFromCategory.Where(l => TestRunLanguageCodes.Contains(l))
-            : languagesFromCategory;
+        // Extract language info from English category response
+        var discoveredLanguages = ExtractLanguageInfoFromCategory(jsonString, languagesFromCategory);
 
-        Logger.Information("Found {Count} languages for publication {PublicationName}", languagesToProcess.Count(), publicationName);
-
-        // Process each language
-        using var semaphore = new SemaphoreSlim(MaxConcurrentLanguageDownloads, MaxConcurrentLanguageDownloads);
-        var tasks = languagesToProcess.Select(async languageCode =>
+        // Save discovered languages for on-demand fetching (excluding English)
+        // The category API already lists only available languages, so no verification needed
+        if (dataPersister != null && discoveredLanguages.Count > 0)
         {
-            await semaphore.WaitAsync();
-            try
+            // Remove English from discovered languages since we're processing it
+            var languagesToSave = discoveredLanguages
+                .Where(kvp => !kvp.Key.Equals("E", StringComparison.OrdinalIgnoreCase))
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            
+            if (languagesToSave.Count > 0)
             {
-                await ProcessPublicationForLanguage(
-                    publicationCode,
-                    publicationName,
-                    languageCode,
-                    languageCodeToPublications);
+                await dataPersister.SavePublicationLanguages(publicationCode, languagesToSave);
             }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
+        }
 
-        await Task.WhenAll(tasks);
+        // Verify English (E) is available (it will be seeded separately after discovery)
+        if (!languagesFromCategory.Contains("E", StringComparer.OrdinalIgnoreCase))
+        {
+            Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
+            return;
+        }
+
+        Logger.Information("English (E) found for publication {PublicationName} - will be seeded separately", publicationName);
     }
 
     private HashSet<string> ExtractLanguagesFromCategory(string jsonString)
@@ -165,6 +166,61 @@ internal class DramaHarvester : BaseHarvester
         }
 
         return languages;
+    }
+
+    private Dictionary<string, LanguageInfo> ExtractLanguageInfoFromCategory(string jsonString, HashSet<string> languageCodes)
+    {
+        var languageInfoMap = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonString);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("category", out var category))
+            {
+                return languageInfoMap;
+            }
+
+            // Try to get language info from category.language if available
+            if (category.TryGetProperty("language", out var languageElement))
+            {
+                var direction = "ltr";
+                if (languageElement.TryGetProperty("direction", out var dirElement))
+                {
+                    direction = dirElement.GetString() ?? "ltr";
+                }
+
+                string? name = null;
+                if (languageElement.TryGetProperty("name", out var nameElement))
+                {
+                    var rawName = nameElement.GetString();
+                    name = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
+                }
+
+                // This is for English, add it
+                if (!string.IsNullOrEmpty(name))
+                {
+                    languageInfoMap["E"] = new LanguageInfo(name, direction);
+                }
+            }
+
+            // For other languages, we'll use defaults (name = code, direction = ltr)
+            // They can be updated when fetched on-demand
+            foreach (var langCode in languageCodes)
+            {
+                if (!languageInfoMap.ContainsKey(langCode))
+                {
+                    languageInfoMap[langCode] = new LanguageInfo(langCode, "ltr");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to extract language info from category JSON");
+        }
+
+        return languageInfoMap;
     }
 
     private async Task ProcessPublicationForLanguage(

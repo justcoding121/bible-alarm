@@ -19,6 +19,7 @@ internal interface IDataPersister
     Task SaveBiblePublicationSections(
         string languageCode,
         string publicationCode,
+        string publicationName,
         Dictionary<int, BiblePublicationSection> sections,
         Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionNumberTrackMap);
 
@@ -34,6 +35,7 @@ internal interface IDataPersister
     Task SaveMusicTracks(
         string publicationCode,
         string? languageCode,
+        string publicationName,
         List<MusicTrack> tracks);
 
     Task SaveMelodyMusicTracks(
@@ -53,4 +55,14 @@ internal interface IDataPersister
         string languageCode,
         string publicationCode,
         Dictionary<string, string> languageCodeToNameMapping);
+
+    // Save discovered languages for publications and sections
+    Task SavePublicationLanguages(
+        string publicationCode,
+        Dictionary<string, LanguageInfo> discoveredLanguages);
+
+    Task SaveSectionLanguages(
+        string publicationCode,
+        string sectionCode,
+        Dictionary<string, LanguageInfo> discoveredLanguages);
 }

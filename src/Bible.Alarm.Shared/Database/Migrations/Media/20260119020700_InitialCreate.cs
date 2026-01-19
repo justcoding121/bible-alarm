@@ -81,13 +81,33 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 });
 
             migrationBuilder.CreateTable(
+                name: "PublicationLanguages",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    PublicationCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    LanguageId = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PublicationLanguages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PublicationLanguages_Languages_LanguageId",
+                        column: x => x.LanguageId,
+                        principalTable: "Languages",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "BiblePublicationSections",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    Number = table.Column<int>(type: "INTEGER", nullable: false),
+                    SectionCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     BiblePublicationId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
@@ -97,6 +117,34 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         name: "FK_BiblePublicationSections_BiblePublications_BiblePublicationId",
                         column: x => x.BiblePublicationId,
                         principalTable: "BiblePublications",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SectionLanguages",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    PublicationCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    SectionCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    LanguageId = table.Column<int>(type: "INTEGER", nullable: false),
+                    PublicationLanguageId = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SectionLanguages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SectionLanguages_Languages_LanguageId",
+                        column: x => x.LanguageId,
+                        principalTable: "Languages",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SectionLanguages_PublicationLanguages_PublicationLanguageId",
+                        column: x => x.PublicationLanguageId,
+                        principalTable: "PublicationLanguages",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -168,15 +216,15 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_ApiUrls_PathPrefix",
+                table: "ApiUrls",
+                column: "PathPrefix");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ApiUrls_Url",
                 table: "ApiUrls",
                 column: "Url",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ApiUrls_PathPrefix",
-                table: "ApiUrls",
-                column: "PathPrefix");
 
             migrationBuilder.CreateIndex(
                 name: "IX_BiblePublications_CategoryId",
@@ -211,6 +259,33 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_PublicationLanguages_LanguageId",
+                table: "PublicationLanguages",
+                column: "LanguageId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PublicationLanguages_PublicationCode_LanguageId",
+                table: "PublicationLanguages",
+                columns: new[] { "PublicationCode", "LanguageId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SectionLanguages_LanguageId",
+                table: "SectionLanguages",
+                column: "LanguageId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SectionLanguages_PublicationCode_SectionCode_LanguageId",
+                table: "SectionLanguages",
+                columns: new[] { "PublicationCode", "SectionCode", "LanguageId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SectionLanguages_PublicationLanguageId",
+                table: "SectionLanguages",
+                column: "PublicationLanguageId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UrlParams_BaseUrlId",
                 table: "UrlParams",
                 column: "BaseUrlId");
@@ -235,7 +310,13 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "SectionLanguages");
+
+            migrationBuilder.DropTable(
                 name: "UrlParams");
+
+            migrationBuilder.DropTable(
+                name: "PublicationLanguages");
 
             migrationBuilder.DropTable(
                 name: "ApiUrls");

@@ -22,7 +22,7 @@ public static class AppConstants
         /// <summary>
         /// JW.org Mediator API base URL for category-based content (dramas, etc.)
         /// </summary>
-        public const string JwOrgMediatorApiBaseUrl = "https://b.jw-cdn.org/apis/mediator/v1";
+        public const string JwOrgMediatorApiBaseUrl = "https://app.jw-cdn.org/apis/mediator/v1";
 
         /// <summary>
         /// Media index download base URL

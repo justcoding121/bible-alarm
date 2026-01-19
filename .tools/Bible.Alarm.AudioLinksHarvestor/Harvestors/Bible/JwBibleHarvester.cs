@@ -71,21 +71,25 @@ internal class JwBibleHarvester : BaseHarvester
                 await SaveLanguageDiscoveryForEnglish(publicationCode, allDiscoveredLanguages);
             }
 
-            // Filter languages (exclude sign languages, apply test run filter if needed)
-            var filteredLanguages = FilterLanguages(allDiscoveredLanguages, isTestRun);
-            
-            if (filteredLanguages == null || filteredLanguages.Count == 0)
+            // Save discovered languages for on-demand fetching (including English - it will be seeded separately)
+            if (dataPersister != null)
             {
-                Logger.Warning("No languages remaining after filtering for publication {PublicationCode}. Skipping.", publicationCode);
+                await dataPersister.SavePublicationLanguages(publicationCode, allDiscoveredLanguages);
+            }
+
+            // Verify English (E) is available (it will be seeded separately after discovery)
+            if (!allDiscoveredLanguages.TryGetValue("E", out var englishLanguageInfo))
+            {
+                Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
                 continue;
             }
 
-            await ProcessLanguagesForPublication(
-                filteredLanguages,
-                publicationCode,
-                publication.Value,
-                languageCodeToInfoMappings,
-                languageCodeToEditionsMapping);
+            // Add English to language mappings (for reference, but don't process it here)
+            languageCodeToInfoMappings.TryAdd("E", englishLanguageInfo);
+            if (!languageCodeToEditionsMapping.TryAdd("E", [publicationCode]))
+            {
+                languageCodeToEditionsMapping["E"].Add(publicationCode);
+            }
         }
     }
 
@@ -170,7 +174,7 @@ internal class JwBibleHarvester : BaseHarvester
         languageCodeToInfoMappings.TryAdd(languageCode, languageInfo);
 
         Logger.Information("Harvesting Bible track links for {PublicationName} of {Language} language.", publicationName, languageInfo.Name);
-        await HarvestBibleLinks(languageCode, publicationCode);
+        await HarvestBibleLinks(languageCode, publicationCode, publicationName);
 
         if (!languageCodeToEditionsMapping.TryAdd(languageCode, [publicationCode]))
         {
@@ -202,7 +206,14 @@ internal class JwBibleHarvester : BaseHarvester
                 
                 if (bookLanguages != null && bookLanguages.Count > 0)
                 {
-                    // Merge into consolidated dictionary
+                    // Save section languages for this book
+                    // The alllangs=1 response already lists only available languages, so no verification needed
+                    if (dataPersister != null)
+                    {
+                        await dataPersister.SaveSectionLanguages(publicationCode, bookNum.ToString(), bookLanguages);
+                    }
+
+                    // Merge languages into consolidated dictionary
                     foreach (var lang in bookLanguages)
                     {
                         if (!allDiscoveredLanguages.ContainsKey(lang.Key))
@@ -236,6 +247,7 @@ internal class JwBibleHarvester : BaseHarvester
         Logger.Information("Total unique languages discovered across all books for {PublicationCode}: {LanguageCount}", 
             publicationCode, allDiscoveredLanguages.Count);
 
+        // Return discovered languages (alllangs=1 response already lists only available languages)
         return allDiscoveredLanguages;
     }
 
@@ -333,7 +345,7 @@ internal class JwBibleHarvester : BaseHarvester
             discoveredLanguages.Count, languageDiscoveryFile);
     }
 
-    private async Task<bool> HarvestBibleLinks(string languageCode, string publicationCode)
+    private async Task<bool> HarvestBibleLinks(string languageCode, string publicationCode, string publicationName)
     {
         // Normalize to uppercase for consistent file paths (cross-platform safety)
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
@@ -458,7 +470,10 @@ internal class JwBibleHarvester : BaseHarvester
             // Save to database via persister if available, otherwise save to files
             if (dataPersister != null)
             {
-                await dataPersister.SaveBiblePublicationSections(languageCode, publicationCode, sectionNumberSectionMap, sectionNumberTrackMap);
+                // Use the publication name we extracted from the first section's API response (parentPubName)
+                // Fallback to the mapping name if API didn't provide it
+                var pubName = localizedPublicationName ?? publicationName;
+                await dataPersister.SaveBiblePublicationSections(languageCode, publicationCode, pubName, sectionNumberSectionMap, sectionNumberTrackMap);
             }
             else
             {

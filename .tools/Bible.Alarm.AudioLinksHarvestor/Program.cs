@@ -34,8 +34,7 @@ namespace Bible.Alarm.AudioLinksHarvestor;
 public class Program
 {
 
-    private static readonly Dictionary<string, string> biblePublicationCodeToNameMappings =
-        JwSourceHelper.PublicationCodeToNameMappings;
+    // Bible publication codes to harvest (from centralized JwSourceHelper)
 
 
     public static async Task<int> Main(string[] args)
@@ -95,6 +94,8 @@ public class Program
         services.AddTransient<VideoHarvester>();
         services.AddTransient<DbSeeder>();
         services.AddTransient<DownloadUtility>();
+        services.AddSingleton<System.Net.Http.HttpClient>(); // For LanguageContentService
+        services.AddTransient<Bible.Alarm.Shared.Services.Media.LanguageContentService>();
 
         await using var serviceProvider = services.BuildServiceProvider();
         var logger = serviceProvider.GetRequiredService<ILogger>();
@@ -130,21 +131,25 @@ public class Program
             var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
             var downloadUtility = serviceProvider.GetRequiredService<DownloadUtility>();
             var dbSeederLogger = serviceProvider.GetRequiredService<ILogger>();
-            IDataPersister dataPersister = new DbSeeder(dbSeederLogger, scopeFactory, downloadUtility);
+            IDataPersister dataPersister = new DbSeeder(dbSeederLogger, scopeFactory, downloadUtility, isTestRun);
 
             await using (var harvesterScope = serviceProvider.CreateAsyncScope())
             {
                 // Get logger and download utility from DI, but pass dataPersister manually
-                var logger = harvesterScope.ServiceProvider.GetRequiredService<ILogger>();
-                var downloadUtility = harvesterScope.ServiceProvider.GetRequiredService<DownloadUtility>();
+                var harvesterLogger = harvesterScope.ServiceProvider.GetRequiredService<ILogger>();
+                var harvesterDownloadUtility = harvesterScope.ServiceProvider.GetRequiredService<DownloadUtility>();
                 
                 // Create harvesters with dataPersister
-                var bibleHarvester = new JwBibleHarvester(logger, downloadUtility, dataPersister);
-                var musicHarvester = new MusicHarvester(logger, downloadUtility, dataPersister);
-                var dramaHarvester = new DramaHarvester(logger, downloadUtility, dataPersister);
-                var videoHarvester = new VideoHarvester(logger, downloadUtility, dataPersister);
+                var bibleHarvester = new JwBibleHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
+                var musicHarvester = new MusicHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
+                var dramaHarvester = new DramaHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
+                var videoHarvester = new VideoHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
 
-                bibleTasks.Add(bibleHarvester.HarvestBibleLinks(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToInfoMappings, languageCodeToEditionsMapping, isTestRun));
+                // Create a dictionary with publication codes (names will be extracted from API)
+                var biblePublicationCodeToNameMappings = JwSourceHelper.BiblePublicationCodes.ToDictionary(
+                    code => code, 
+                    code => code); // Temporary name, will be replaced by API response
+                bibleTasks.Add(bibleHarvester.HarvestBibleLinks(biblePublicationCodeToNameMappings, languageCodeToInfoMappings, languageCodeToEditionsMapping, isTestRun));
 
                 var musicTasks = new List<Task>
                 {
@@ -179,6 +184,22 @@ public class Program
                 {
                     logger.Error(ex, "Seeding failed");
                     return 1;
+                }
+
+                // Test on-demand fetching in test mode
+                if (isTestRun)
+                {
+                    try
+                    {
+                        logger.Information("=== Starting on-demand fetching test ===");
+                        await dbSeeder.TestOnDemandFetching();
+                        logger.Information("=== On-demand fetching test completed ===");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "On-demand fetching test failed");
+                        // Don't fail the entire process, just log the error
+                    }
                 }
             }
             else

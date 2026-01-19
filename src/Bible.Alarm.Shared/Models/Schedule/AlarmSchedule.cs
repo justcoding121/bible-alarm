@@ -309,7 +309,24 @@ public sealed class AlarmSchedule : IComparable
             throw new InvalidOperationException("BiblePublicationSchedule is null in sample schedule");
         }
 
-        sample.BiblePublicationSchedule.SectionNumber = section.Number;
+        // Try to parse SectionCode to int for SectionNumber, or use BookNum
+        if (int.TryParse(section.SectionCode, out var sectionNumberInt))
+        {
+            sample.BiblePublicationSchedule.SectionNumber = sectionNumberInt;
+        }
+        else if (section.BookNum.HasValue)
+        {
+            sample.BiblePublicationSchedule.SectionNumber = section.BookNum.Value;
+        }
+        else
+        {
+            // Fallback: try to get from UrlParams
+            var booknumParam = section.UrlParams.FirstOrDefault(p => p.Key.Equals("booknum", StringComparison.OrdinalIgnoreCase));
+            if (booknumParam != null && int.TryParse(booknumParam.Value, out var booknum))
+            {
+                sample.BiblePublicationSchedule.SectionNumber = booknum;
+            }
+        }
 
         if (sample.Music == null)
         {

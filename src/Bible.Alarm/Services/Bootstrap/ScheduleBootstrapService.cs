@@ -86,16 +86,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
             Log.Logger.Error(ex, "[BOOTSTRAP] Failed to seed default schedule, continuing bootstrap");
         }
 
-        try
-        {
-            // Migrate Bible Gateway schedules (legacy migration)
-            await scheduleMigrationService.MigrateBibleGatewaySchedulesAsync();
-        }
-        catch (Exception ex)
-        {
-            // Log error but don't fail bootstrap
-            Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to migrate Bible Gateway schedules, continuing bootstrap");
-        }
+        // BibleGateway migration no longer needed - removed
 
         return scheduleWasSeeded;
     }

@@ -161,8 +161,8 @@ public class UrlConstructionService : IUrlConstructionService
             queryParams["fileformat"] = queryParams["fileformat"].ToUpperInvariant();
         }
 
-        // Build query string in the expected order: output, pub, booknum, fileformat, langwritten, track
-        var orderedKeys = new[] { "output", "pub", "booknum", "fileformat", "langwritten", "track" };
+        // Build query string in the expected order: output, pub, booknum, fileformat, alllangs, langwritten, track
+        var orderedKeys = new[] { "output", "pub", "booknum", "fileformat", "alllangs", "langwritten", "track" };
         var queryParts = new List<string>();
         
         // Add parameters in the specified order
@@ -191,12 +191,12 @@ public class UrlConstructionService : IUrlConstructionService
     }
 
     /// <summary>
-    /// Constructs download URLs for a track by publication code, language code, section number, and track number.
+    /// Constructs download URLs for a track by publication code, language code, section code, and track number.
     /// </summary>
     public async Task<List<string>> ConstructTrackUrlsAsync(
         string publicationCode,
         string languageCode,
-        int? sectionNumber,
+        string? sectionCode,
         int trackNumber)
     {
         var query = _dbContext.BiblePublicationTracks
@@ -215,9 +215,10 @@ public class UrlConstructionService : IUrlConstructionService
                 && t.Number == trackNumber);
 
         // Filter by section if provided
-        if (sectionNumber.HasValue && sectionNumber.Value > 0)
+        if (!string.IsNullOrEmpty(sectionCode))
         {
-            query = query.Where(t => t.Section != null && t.Section.Number == sectionNumber.Value);
+            var normalizedSectionCode = sectionCode.ToLowerInvariant();
+            query = query.Where(t => t.Section != null && t.Section.SectionCode == normalizedSectionCode);
         }
         else
         {
@@ -235,14 +236,14 @@ public class UrlConstructionService : IUrlConstructionService
     }
 
     /// <summary>
-    /// Constructs the lookup path (query string) for a track by publication code, language code, section number, and track number.
+    /// Constructs the lookup path (query string) for a track by publication code, language code, section code, and track number.
     /// Returns the query string part (e.g., "?output=json&pub=nwt&booknum=1&fileformat=MP3&langwritten=E&track=1").
     /// Uses the first BaseUrl from the database.
     /// </summary>
     public async Task<string?> ConstructTrackLookUpPathAsync(
         string publicationCode,
         string? languageCode,
-        int? sectionNumber,
+        string? sectionCode,
         int trackNumber)
     {
         var query = _dbContext.BiblePublicationTracks
@@ -270,9 +271,10 @@ public class UrlConstructionService : IUrlConstructionService
         }
 
         // Filter by section if provided
-        if (sectionNumber.HasValue && sectionNumber.Value > 0)
+        if (!string.IsNullOrEmpty(sectionCode))
         {
-            query = query.Where(t => t.Section != null && t.Section.Number == sectionNumber.Value);
+            var normalizedSectionCode = sectionCode.ToLowerInvariant();
+            query = query.Where(t => t.Section != null && t.Section.SectionCode == normalizedSectionCode);
         }
         else
         {

@@ -33,7 +33,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             return await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Sections)
-                .Where(x => x.Code == publicationCode && x.Language.Code == languageCode)
+                .Where(x => x.Code == publicationCode && x.Language != null && x.Language.Code == languageCode)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
@@ -55,7 +55,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
-                .Where(x => x.Code == publicationCode && x.Language.Code == languageCode)
+                .Where(x => x.Code == publicationCode && x.Language != null && x.Language.Code == languageCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
             logger.Debug("GetByLanguageAndCodeWithTracksAsync: Loaded publication={PublicationName}, TracksCount={TracksCount} for language={LanguageCode}, code={PublicationCode}",
@@ -80,7 +80,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             var publicationsList = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Where(x => x.Language.Code == languageCode)
+                .Where(x => x.Language != null && x.Language.Code == languageCode)
                 .ToListAsync(cancellationToken);
 
             logger.Debug("GetByLanguageCodeAsync: Found {PublicationCount} publications for language={LanguageCode}",
@@ -120,7 +120,8 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             var biblePublicationsCount = await dbContext.BiblePublications.CountAsync(cancellationToken);
             var distinctLanguages = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Select(x => x.Language)
+                .Where(x => x.Language != null)
+                .Select(x => x.Language!)
                 .Distinct()
                 .ToListAsync(cancellationToken);
 

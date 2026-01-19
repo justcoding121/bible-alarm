@@ -21,6 +21,8 @@ public class MediaDbContext : DbContext
     public DbSet<BiblePublication> BiblePublications { get; set; }
     public DbSet<BiblePublicationSection> BiblePublicationSections { get; set; }
     public DbSet<BiblePublicationTrack> BiblePublicationTracks { get; set; }
+    public DbSet<PublicationLanguage> PublicationLanguages { get; set; }
+    public DbSet<SectionLanguage> SectionLanguages { get; set; }
     public DbSet<UrlParam> UrlParams { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -67,6 +69,34 @@ public class MediaDbContext : DbContext
             .IsRequired(false);
 
         // Language relationship is already optional (LanguageId is nullable)
+
+        // Ensure Language.Code has a unique index (also defined via [Index] attribute on model)
+        modelBuilder.Entity<Language>()
+            .HasIndex(l => l.Code)
+            .IsUnique();
+
+        // Configure PublicationLanguage relationships
+        modelBuilder.Entity<PublicationLanguage>()
+            .HasOne(pl => pl.Language)
+            .WithMany()
+            .HasForeignKey(pl => pl.LanguageId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Configure SectionLanguage relationships
+        modelBuilder.Entity<SectionLanguage>()
+            .HasOne(sl => sl.Language)
+            .WithMany()
+            .HasForeignKey(sl => sl.LanguageId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // SectionLanguage has a required relationship to PublicationLanguage
+        // If a section language exists, the publication language must exist
+        // Each publication can have many sections
+        modelBuilder.Entity<SectionLanguage>()
+            .HasOne(sl => sl.PublicationLanguage)
+            .WithMany(pl => pl.SectionLanguages)
+            .HasForeignKey(sl => sl.PublicationLanguageId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
 }

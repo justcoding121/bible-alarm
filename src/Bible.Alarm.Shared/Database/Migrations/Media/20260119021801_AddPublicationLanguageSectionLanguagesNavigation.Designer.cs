@@ -2,6 +2,7 @@
 using Bible.Alarm.Shared.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bible.Alarm.Shared.Database.Migrations.Media
 {
     [DbContext(typeof(MediaDbContext))]
-    partial class MediaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260119021801_AddPublicationLanguageSectionLanguagesNavigation")]
+    partial class AddPublicationLanguageSectionLanguagesNavigation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
@@ -30,8 +33,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.Property<string>("Url")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT")
-                        .HasColumnName("BaseUrl");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -129,6 +131,64 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .IsUnique();
 
                     b.ToTable("BiblePublicationTracks");
+                });
+
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.PublicationLanguage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PublicationCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LanguageId");
+
+                    b.HasIndex("PublicationCode", "LanguageId")
+                        .IsUnique();
+
+                    b.ToTable("PublicationLanguages");
+                });
+
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.SectionLanguage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PublicationCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PublicationLanguageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SectionCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LanguageId");
+
+                    b.HasIndex("PublicationLanguageId");
+
+                    b.HasIndex("PublicationCode", "SectionCode", "LanguageId")
+                        .IsUnique();
+
+                    b.ToTable("SectionLanguages");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.UrlParam", b =>
@@ -265,6 +325,36 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     b.Navigation("Section");
                 });
 
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.PublicationLanguage", b =>
+                {
+                    b.HasOne("Bible.Alarm.Shared.Models.Media.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Language");
+                });
+
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.SectionLanguage", b =>
+                {
+                    b.HasOne("Bible.Alarm.Shared.Models.Media.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Bible.Alarm.Shared.Models.Media.BiblePublications.PublicationLanguage", "PublicationLanguage")
+                        .WithMany("SectionLanguages")
+                        .HasForeignKey("PublicationLanguageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Language");
+
+                    b.Navigation("PublicationLanguage");
+                });
+
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.UrlParam", b =>
                 {
                     b.HasOne("Bible.Alarm.Shared.Models.Media.BaseUrl", "BaseUrl")
@@ -316,6 +406,11 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack", b =>
                 {
                     b.Navigation("UrlParams");
+                });
+
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.PublicationLanguage", b =>
+                {
+                    b.Navigation("SectionLanguages");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.Category", b =>
