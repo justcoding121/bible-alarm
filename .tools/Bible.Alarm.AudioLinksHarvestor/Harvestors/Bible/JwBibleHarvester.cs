@@ -20,9 +20,12 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible;
 
 internal class JwBibleHarvester : BaseHarvester
 {
-    public JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility)
+    private readonly IDataPersister? dataPersister;
+
+    public JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister = null)
         : base(logger, downloadUtility)
     {
+        this.dataPersister = dataPersister;
     }
 
     /// <summary>
@@ -57,7 +60,16 @@ internal class JwBibleHarvester : BaseHarvester
             }
 
             // Save language discovery results for English
-            await SaveLanguageDiscoveryForEnglish(publicationCode, allDiscoveredLanguages);
+            // Save language discovery
+            if (dataPersister != null)
+            {
+                var languageCodeToNameMapping = allDiscoveredLanguages.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Name);
+                await dataPersister.SaveLanguageDiscovery("E", publicationCode, languageCodeToNameMapping);
+            }
+            else
+            {
+                await SaveLanguageDiscoveryForEnglish(publicationCode, allDiscoveredLanguages);
+            }
 
             // Filter languages (exclude sign languages, apply test run filter if needed)
             var filteredLanguages = FilterLanguages(allDiscoveredLanguages, isTestRun);
@@ -443,7 +455,15 @@ internal class JwBibleHarvester : BaseHarvester
         // Note: sectionNumberSectionMap will have items if ProcessSectionFiles successfully processed any section files
         if (sectionNumberSectionMap.Count > 0)
         {
-            SaveSectionsAndTracks(sectionsDirectory, sectionsIndex, sectionNumberSectionMap, sectionNumberTrackMap);
+            // Save to database via persister if available, otherwise save to files
+            if (dataPersister != null)
+            {
+                await dataPersister.SaveBiblePublicationSections(languageCode, publicationCode, sectionNumberSectionMap, sectionNumberTrackMap);
+            }
+            else
+            {
+                SaveSectionsAndTracks(sectionsDirectory, sectionsIndex, sectionNumberSectionMap, sectionNumberTrackMap);
+            }
 
             // Store localized publication name if we captured it
             if (!string.IsNullOrEmpty(localizedPublicationName))

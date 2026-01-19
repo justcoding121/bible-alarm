@@ -24,8 +24,20 @@ using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.Video.VideoEpisode;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 
-internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, DownloadUtility downloadUtility)
+internal class DbSeeder : IDataPersister
 {
+    private readonly ILogger logger;
+    private readonly IServiceScopeFactory scopeFactory;
+    private readonly DownloadUtility downloadUtility;
+    private readonly InMemoryDataStore dataStore;
+
+    public DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, DownloadUtility downloadUtility)
+    {
+        this.logger = logger;
+        this.scopeFactory = scopeFactory;
+        this.downloadUtility = downloadUtility;
+        this.dataStore = new InMemoryDataStore();
+    }
 
     public async Task Seed()
     {
@@ -38,17 +50,15 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
 
         // Seed default Categories and ApiUrls first
         await SeedDefaultCategoriesAndApiUrls();
-
-        var indexDir = DirectoryHelper.IndexDirectory;
-        var mediaDir = Path.Combine(indexDir, "media");
         
         // Seed in order to maximize language table population before Drama
         // Bible, Music, and Video all extract direction from their APIs
-        await SeedBiblePublications(mediaDir);
-        await SeedMelodies(mediaDir);
-        await SeedVocals(mediaDir);
-        await SeedVideos(mediaDir);
-        await SeedDramas(mediaDir);  // Last - can rely on existing languages
+        // Only languages with publications are tracked in the database
+        await SeedBiblePublicationsFromMemory();
+        await SeedMelodiesFromMemory();
+        await SeedVocalsFromMemory();
+        await SeedVideosFromMemory();
+        await SeedDramasFromMemory();  // Last - can rely on existing languages
     }
 
     private async Task SeedDefaultCategoriesAndApiUrls()
@@ -132,53 +142,6 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         }
 
         await db.SaveChangesAsync();
-    }
-
-    private async Task SeedBiblePublications(string indexDir)
-    {
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        var mediaReader = new MediaReader(indexDir);
-
-        var bibleLanguages = await GetBibleLanguagesSafely(mediaReader);
-        if (bibleLanguages == null || bibleLanguages.Count == 0)
-        {
-            logger.Warning("No Bible languages found to seed.");
-            return;
-        }
-        
-        logger.Information("Found {Count} Bible languages to seed.", bibleLanguages.Count);
-
-        foreach (var language in bibleLanguages)
-        {
-            var newLanguage = await GetOrCreateLanguage(db, language.Value.Code, language.Value.Name, language.Value.Direction);
-            await SeedPublicationsForLanguage(db, mediaReader, language.Key, newLanguage);
-        }
-    }
-
-    private async Task<Language> GetOrCreateLanguage(MediaDbContext db, string code, string name, string direction = "ltr")
-    {
-        // Normalize code to uppercase for consistent storage and comparison
-        var normalizedCode = code.ToUpperInvariant();
-
-        // Case-insensitive lookup by code only (name may vary between sources)
-        var language = await db.Languages.FirstOrDefaultAsync(x => x.Code.ToUpper() == normalizedCode);
-        if (language == null)
-        {
-            language = new Language
-            {
-                Code = normalizedCode,
-                Name = name,
-                Direction = direction
-            };
-        }
-        else if (language.Direction != direction && direction != "ltr")
-        {
-            // Update direction if it's explicitly set (non-default)
-            language.Direction = direction;
-        }
-        return language;
     }
 
     /// <summary>
@@ -285,64 +248,6 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         }
     }
 
-    private async Task<Dictionary<string, Models.Language>?> GetBibleLanguagesSafely(MediaReader mediaReader)
-    {
-        return await GetSafely(() => mediaReader.GetBibleLanguages(), "GetBibleLanguages");
-    }
-
-    private async Task SeedPublicationsForLanguage(
-        MediaDbContext db,
-        MediaReader mediaReader,
-        string languageKey,
-        Language newLanguage)
-    {
-        var publications = await GetSafely(() => mediaReader.GetBiblePublications(languageKey), 
-            $"GetBiblePublications for language {languageKey}");
-        if (publications == null || publications.Count == 0)
-        {
-            logger.Warning("No Bible publications found for language {LanguageCode}", languageKey);
-            return;
-        }
-        
-        logger.Information("Found {Count} Bible publication(s) for language {LanguageCode}", publications.Count, languageKey);
-
-        // Load existing publication codes for this language upfront (one query)
-        var existingCodesList = await db.BiblePublications
-            .Where(t => t.Language.Code == languageKey)
-            .Select(t => t.Code)
-            .ToListAsync();
-        var existingCodes = new HashSet<string>(existingCodesList);
-
-        foreach (var publication in publications)
-        {
-            // Skip if already exists (in-memory check, fast)
-            if (existingCodes.Contains(publication.Value.Code))
-            {
-                logger.Information("Skipping publication {PublicationName} ({PublicationCode}) for language {LanguageCode} - already exists",
-                    publication.Value.Name, publication.Value.Code, languageKey);
-                continue;
-            }
-
-            logger.Information("Seeding publication {PublicationName} ({PublicationCode}) for language {LanguageCode}",
-                publication.Value.Name, publication.Value.Code, languageKey);
-
-            var sections = await GetSafely(() => mediaReader.GetBiblePublicationSections(languageKey, publication.Key),
-                $"GetBiblePublicationSections for {publication.Value.Code} in {languageKey}");
-            if (sections == null || sections.Count == 0)
-            {
-                logger.Warning("No sections found for publication {PublicationCode} in language {LanguageCode}. Skipping.",
-                    publication.Value.Code, languageKey);
-                continue;
-            }
-
-            var category = await GetCategory(db, "Bible");
-            var biblePublication = await CreateBiblePublication(db, publication.Value, newLanguage, category.Id, languageKey, isVideo: false);
-            await SeedSectionsForPublication(db, mediaReader, languageKey, publication.Key, sections, biblePublication);
-
-            await db.BiblePublications.AddAsync(biblePublication);
-            await db.SaveChangesAsync();
-        }
-    }
 
     private async Task<List<BaseUrl>> GetAllBaseUrls(MediaDbContext db)
     {
@@ -364,9 +269,6 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         string? languageCode,
         bool isVideo = false)
     {
-        // Get all base URLs (both https://b.jw-cdn.org and https://app.jw-cdn.org)
-        var baseUrls = await GetAllBaseUrls(db);
-        
         // Create UrlParam entries for BiblePublication
         var urlParams = new List<UrlParam>
         {
@@ -398,19 +300,12 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
             });
         }
 
-        // Ensure at least one BaseUrl is linked (required relationship)
-        if (baseUrls == null || baseUrls.Count == 0)
-        {
-            throw new InvalidOperationException($"No BaseUrls found for publication {publication.Code}. At least one BaseUrl is required.");
-        }
-
         var biblePublication = new BiblePublication
         {
             Name = publication.Name,
             Code = publication.Code,
             Language = newLanguage, // Optional - can be null
             CategoryId = categoryId,
-            BaseUrls = baseUrls, // Required - must have at least one
             UrlParams = urlParams, // Optional - can be empty
             IsVideo = isVideo
         };
@@ -418,229 +313,7 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         return biblePublication;
     }
 
-    private async Task SeedSectionsForPublication(
-        MediaDbContext db,
-        MediaReader mediaReader,
-        string languageKey,
-        string publicationKey,
-        SortedDictionary<int, BiblePublicationSection> sections,
-        BiblePublication biblePublication)
-    {
-        foreach (var section in sections)
-        {
-            // Create UrlParam for section with booknum
-            var sectionUrlParam = new UrlParam
-            {
-                BiblePublicationSectionId = 0, // Will be set after section is saved
-                Key = "booknum",
-                Value = section.Value.Number.ToString(),
-                IsQueryParam = true
-            };
-
-            var newSection = new Shared.Models.Media.BiblePublications.BiblePublicationSection
-            {
-                Name = section.Value.Name,
-                Number = section.Value.Number,
-                UrlParams = new List<UrlParam> { sectionUrlParam }
-            };
-
-            biblePublication.Sections.Add(newSection);
-
-            var tracks = await GetSafely(() => mediaReader.GetBiblePublicationTracks(languageKey, publicationKey, section.Key));
-            if (tracks == null || tracks.Count == 0)
-            {
-                continue;
-            }
-
-            await AddTracksToSection(db, tracks, newSection, biblePublication);
-        }
-    }
-
-    private async Task AddTracksToSection(
-        MediaDbContext db,
-        SortedDictionary<int, BiblePublicationTrack> tracks,
-        Shared.Models.Media.BiblePublications.BiblePublicationSection newSection,
-        BiblePublication biblePublication)
-    {
-        foreach (var track in tracks)
-        {
-            // Create UrlParam entries for track
-            var trackUrlParams = new List<UrlParam>
-            {
-                new UrlParam
-                {
-                    BiblePublicationTrackId = 0, // Will be set after track is saved
-                    Key = "pub",
-                    Value = biblePublication.Code,
-                    IsQueryParam = true
-                },
-                new UrlParam
-                {
-                    BiblePublicationTrackId = 0, // Will be set after track is saved
-                    Key = "track",
-                    Value = track.Value.Number.ToString(),
-                    IsQueryParam = true
-                },
-                new UrlParam
-                {
-                    BiblePublicationTrackId = 0, // Will be set after track is saved
-                    Key = "fileformat",
-                    Value = biblePublication.IsVideo ? "mp4" : "mp3",
-                    IsQueryParam = true
-                }
-            };
-
-            var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
-            {
-                Number = track.Value.Number,
-                Title = track.Value.Title, // Localized chapter title (e.g., "അധ്യായം 1" in Malayalam)
-                Publication = biblePublication,
-                Section = newSection,
-                UrlParams = trackUrlParams
-            };
-
-            newSection.Tracks.Add(newTrack);
-        }
-    }
-
-    #region Drama Seeding
-
-    private async Task SeedDramas(string indexDir)
-    {
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        var mediaReader = new MediaReader(indexDir);
-
-        var dramaLanguages = await GetSafely(() => mediaReader.GetDramaLanguages());
-        if (dramaLanguages == null || dramaLanguages.Count == 0)
-        {
-            logger.Information("No drama languages found to seed.");
-            return;
-        }
-
-        logger.Information("Found {Count} drama languages to seed.", dramaLanguages.Count);
-
-        foreach (var language in dramaLanguages)
-        {
-            var newLanguage = await GetOrCreateLanguageByCode(db, language.Value.Code);
-            await SeedDramaPublicationsForLanguage(db, mediaReader, language.Key, newLanguage);
-        }
-    }
-
-    private async Task SeedDramaPublicationsForLanguage(
-        MediaDbContext db,
-        MediaReader mediaReader,
-        string languageCode,
-        Language language)
-    {
-        var dramaPublications = await GetSafely(() => mediaReader.GetDramaPublications(languageCode));
-        if (dramaPublications == null || dramaPublications.Count == 0)
-        {
-            return;
-        }
-
-        // Load existing publication codes for this language upfront (one query)
-        var existingCodesList = await db.BiblePublications
-            .Where(p => p.Language.Code == languageCode)
-            .Select(p => p.Code)
-            .ToListAsync();
-        var existingCodes = new HashSet<string>(existingCodesList);
-
-        foreach (var publication in dramaPublications)
-        {
-            // Skip if already exists
-            if (existingCodes.Contains(publication.Value.Code))
-            {
-                logger.Information("Skipping drama publication {PublicationName} ({PublicationCode}) for language {LanguageCode} - already exists",
-                    publication.Value.Name, publication.Value.Code, languageCode);
-                continue;
-            }
-
-            logger.Information("Seeding drama publication {PublicationName} ({PublicationCode}) for language {LanguageCode}",
-                publication.Value.Name, publication.Value.Code, languageCode);
-
-            var category = await GetCategory(db, "Dramas");
-            var newPublication = await CreateBiblePublication(db, publication.Value, language, category.Id, languageCode, isVideo: false);
-
-            await SeedDramaSectionsForPublication(db, mediaReader, languageCode, publication.Key, newPublication);
-
-            await db.BiblePublications.AddAsync(newPublication);
-            await db.SaveChangesAsync();
-        }
-    }
-
-    private async Task SeedDramaSectionsForPublication(
-        MediaDbContext db,
-        MediaReader mediaReader,
-        string languageCode,
-        string publicationCode,
-        BiblePublication biblePublication)
-    {
-        // Read sections from sections.json
-        // The sections.json has Code (sectionCode like "iaoh"), Name, and Number (sequential)
-        var sectionsJsonPath = Path.Combine(DirectoryHelper.IndexDirectory, "media", "Dramas", languageCode.ToUpperInvariant(), publicationCode.ToUpperInvariant(), "sections.json");
-        if (!File.Exists(sectionsJsonPath))
-        {
-            logger.Warning("sections.json not found for drama publication {PublicationCode} in language {LanguageCode}", publicationCode, languageCode);
-            return;
-        }
-
-        var sectionsJson = await File.ReadAllTextAsync(sectionsJsonPath);
-        using (var doc = JsonDocument.Parse(sectionsJson))
-        {
-            foreach (var sectionElement in doc.RootElement.EnumerateArray())
-            {
-                if (!sectionElement.TryGetProperty("Number", out var numberElement) ||
-                    !sectionElement.TryGetProperty("Code", out var codeElement) ||
-                    !sectionElement.TryGetProperty("Name", out var nameElement))
-                {
-                    continue;
-                }
-
-                var sectionNumber = numberElement.GetInt32();
-                var sectionCode = codeElement.GetString() ?? "";
-                var sectionName = nameElement.GetString() ?? "";
-                
-                if (string.IsNullOrEmpty(sectionCode))
-                {
-                    logger.Warning("Section code is empty for section number {SectionNumber} in publication {PublicationCode}. Skipping.", sectionNumber, publicationCode);
-                    continue;
-                }
-
-            // Create UrlParam for section with sectionCode (used in naturalKey lookup)
-            var sectionUrlParams = new List<UrlParam>
-            {
-                new UrlParam
-                {
-                    BiblePublicationSectionId = 0, // Will be set after section is saved
-                    Key = "sectionCode",
-                    Value = sectionCode,
-                    IsQueryParam = false // Not a query param, used in naturalKey
-                }
-            };
-
-            var newSection = new Shared.Models.Media.BiblePublications.BiblePublicationSection
-            {
-                Name = sectionName,
-                Number = sectionNumber,
-                UrlParams = sectionUrlParams
-            };
-
-            biblePublication.Sections.Add(newSection);
-
-            // Read tracks for this section
-            var tracks = await GetSafely(() => mediaReader.GetDramaPublicationTracks(languageCode, publicationCode, sectionCode),
-                $"GetDramaPublicationTracks for section {sectionCode} in {publicationCode}");
-            if (tracks == null || tracks.Count == 0)
-            {
-                continue;
-            }
-
-            await AddDramaTracksToSection(db, tracks, newSection, biblePublication, languageCode);
-            }
-        }
-    }
+    #region Drama Seeding (file-based methods removed - using memory-based seeding)
 
     private async Task AddDramaTracksToSection(
         MediaDbContext db,
@@ -747,203 +420,10 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
 
     #endregion
 
-    #region Video Seeding
-
-    private async Task SeedVideos(string indexDir)
-    {
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        var mediaReader = new MediaReader(indexDir);
-
-        var videoLanguages = await GetSafely(() => mediaReader.GetVideoLanguages());
-        if (videoLanguages == null || videoLanguages.Count == 0)
-        {
-            logger.Information("No video languages found to seed.");
-            return;
-        }
-
-        logger.Information("Found {Count} video languages to seed.", videoLanguages.Count);
-
-        foreach (var language in videoLanguages)
-        {
-            var newLanguage = await GetOrCreateLanguageByCode(db, language.Value.Code);
-            await SeedVideoPublicationsForLanguage(db, mediaReader, language.Key, newLanguage);
-        }
-    }
-
-    private async Task SeedVideoPublicationsForLanguage(
-        MediaDbContext db,
-        MediaReader mediaReader,
-        string languageCode,
-        Language language)
-    {
-        var videoPublications = await GetSafely(() => mediaReader.GetVideoPublications(languageCode));
-        if (videoPublications == null || videoPublications.Count == 0)
-        {
-            return;
-        }
-
-        // Load existing publication codes for this language upfront (one query)
-        var existingCodesList = await db.BiblePublications
-            .Where(p => p.Language.Code == languageCode)
-            .Select(p => p.Code)
-            .ToListAsync();
-        var existingCodes = new HashSet<string>(existingCodesList);
-
-        foreach (var publication in videoPublications)
-        {
-            // Skip if already exists
-            if (existingCodes.Contains(publication.Value.Code))
-            {
-                logger.Information("Skipping video publication {PublicationName} ({PublicationCode}) for language {LanguageCode} - already exists",
-                    publication.Value.Name, publication.Value.Code, languageCode);
-                continue;
-            }
-
-            logger.Information("Seeding video publication {PublicationName} ({PublicationCode}) for language {LanguageCode}",
-                publication.Value.Name, publication.Value.Code, languageCode);
-
-            var episodes = await GetSafely(() => mediaReader.GetVideoEpisodes(languageCode, publication.Key));
-            if (episodes == null || episodes.Count == 0)
-            {
-                continue;
-            }
-
-            // Get the first BaseUrl (both should be seeded by SeedDefaultCategoriesAndApiUrls)
-            var apiUrls = await GetAllBaseUrls(db);
-            var apiUrl = apiUrls.FirstOrDefault();
-            if (apiUrl == null)
-            {
-                logger.Warning("No BaseUrl found for video publication. BaseUrls should be seeded first.");
-                continue;
-            }
-            var category = await GetCategory(db, "Dramas"); // Videos use Dramas category
-            var newPublication = await CreateBiblePublication(db, publication.Value, language, category.Id, languageCode, isVideo: true);
-
-            await AddEpisodesToPublication(db, episodes, newPublication);
-
-            await db.BiblePublications.AddAsync(newPublication);
-            await db.SaveChangesAsync();
-        }
-    }
-
-    private async Task AddEpisodesToPublication(
-        MediaDbContext db,
-        SortedDictionary<int, VideoEpisode> episodes,
-        BiblePublication publication)
-    {
-        foreach (var episode in episodes)
-        {
-            // Create UrlParam entries for track
-            var trackUrlParams = new List<UrlParam>
-            {
-                new UrlParam
-                {
-                    BiblePublicationTrackId = 0, // Will be set after track is saved
-                    Key = "pub",
-                    Value = publication.Code,
-                    IsQueryParam = true
-                },
-                new UrlParam
-                {
-                    BiblePublicationTrackId = 0, // Will be set after track is saved
-                    Key = "track",
-                    Value = episode.Value.Number.ToString(),
-                    IsQueryParam = true
-                },
-                new UrlParam
-                {
-                    BiblePublicationTrackId = 0, // Will be set after track is saved
-                    Key = "fileformat",
-                    Value = publication.IsVideo ? "mp4" : "mp3",
-                    IsQueryParam = true
-                }
-            };
-
-            var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
-            {
-                Number = episode.Value.Number,
-                Title = episode.Value.Title,
-                Publication = publication,
-                UrlParams = trackUrlParams
-            };
-
-            publication.Tracks.Add(newTrack);
-        }
-    }
+    #region Video Seeding (file-based methods removed - using memory-based seeding)
 
     #endregion
 
-    private async Task SeedMelodies(string indexDir)
-    {
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        var mediaReader = new MediaReader(indexDir);
-
-        var melodyMusicReleases = await GetSafely(() => mediaReader.GetMelodyMusicReleases());
-        if (melodyMusicReleases == null || melodyMusicReleases.Count == 0)
-        {
-            return;
-        }
-
-        // Load existing melody codes upfront (one query) - using BiblePublication with Category="Music" and LanguageId=null
-        var category = await GetCategory(db, "Music");
-        var existingCodesList = await db.BiblePublications
-            .Where(p => p.CategoryId == category.Id && p.LanguageId == null)
-            .Select(p => p.Code)
-            .ToListAsync();
-        var existingCodes = new HashSet<string>(existingCodesList);
-
-        foreach (var melodyMusicRelease in melodyMusicReleases)
-        {
-            // Skip if already exists (in-memory check, fast)
-            if (existingCodes.Contains(melodyMusicRelease.Value.Code))
-            {
-                logger.Information("Skipping melody {MelodyCode} - already exists", melodyMusicRelease.Key);
-                continue;
-            }
-
-            logger.Information("Seeding melody code {MelodyCode} music to database.", melodyMusicRelease.Key);
-
-            // For iam (Kingdom Melodies), get tracks grouped by disc
-            if (melodyMusicRelease.Key == "iam")
-            {
-                var discTracksMap = await GetSafely(() => mediaReader.GetMelodyMusicTracksByDisc(melodyMusicRelease.Key),
-                    $"GetMelodyMusicTracksByDisc for {melodyMusicRelease.Key}");
-                
-                if (discTracksMap == null || discTracksMap.Count == 0)
-                {
-                    logger.Warning("No disc tracks found for {MelodyCode}. Skipping.", melodyMusicRelease.Key);
-                    continue;
-                }
-
-                // Create BiblePublication for melody (no language, Category="Music")
-                var biblePublication = await CreateBiblePublication(db, melodyMusicRelease.Value, null, category.Id, null, isVideo: false);
-                await AddTracksToMelodyMusicWithSections(db, discTracksMap, biblePublication);
-
-                await db.BiblePublications.AddAsync(biblePublication);
-                await db.SaveChangesAsync();
-            }
-            else
-            {
-                // Original logic for other melody publications
-                var tracks = await GetSafely(() => mediaReader.GetMelodyMusicTracks(melodyMusicRelease.Key));
-                if (tracks == null || tracks.Count == 0)
-                {
-                    continue;
-                }
-
-                // Create BiblePublication for melody (no language, Category="Music")
-                var biblePublication = await CreateBiblePublication(db, melodyMusicRelease.Value, null, category.Id, null, isVideo: false);
-                await AddTracksToMelodyMusic(db, tracks, biblePublication);
-
-                await db.BiblePublications.AddAsync(biblePublication);
-                await db.SaveChangesAsync();
-            }
-        }
-    }
 
     private async Task AddTracksToMelodyMusic(MediaDbContext db, SortedDictionary<int, MusicTrack> tracks, BiblePublication biblePublication)
     {
@@ -1089,81 +569,6 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
         }
     }
 
-    private async Task SeedVocals(string indexDir)
-    {
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        var mediaReader = new MediaReader(indexDir);
-
-        var melodyLanguages = await GetSafely(() => mediaReader.GetVocalMusicLanguages(), "GetVocalMusicLanguages");
-        if (melodyLanguages == null || melodyLanguages.Count == 0)
-        {
-            logger.Warning("No vocal music languages found to seed.");
-            return;
-        }
-        
-        logger.Information("Found {Count} vocal music languages to seed.", melodyLanguages.Count);
-
-        foreach (var language in melodyLanguages)
-        {
-            var newLanguage = await GetOrCreateLanguage(db, language.Value.Code, language.Value.Name, language.Value.Direction);
-            await SeedVocalMusicReleasesForLanguage(db, mediaReader, language.Value.Code, newLanguage);
-        }
-    }
-
-    private async Task SeedVocalMusicReleasesForLanguage(
-        MediaDbContext db,
-        MediaReader mediaReader,
-        string languageCode,
-        Language newLanguage)
-    {
-        var vocalMusicReleases = await GetSafely(() => mediaReader.GetVocalMusicReleases(languageCode),
-            $"GetVocalMusicReleases for language {languageCode}");
-        if (vocalMusicReleases == null || vocalMusicReleases.Count == 0)
-        {
-            logger.Warning("No vocal music publications found for language {LanguageCode}", languageCode);
-            return;
-        }
-        
-        logger.Information("Found {Count} vocal music publication(s) for language {LanguageCode}", 
-            vocalMusicReleases.Count, languageCode);
-
-        // Load existing vocal music codes for this language upfront (one query) - using BiblePublication with Category="Music" and LanguageId set
-        var category = await GetCategory(db, "Music");
-        var existingCodesList = await db.BiblePublications
-            .Where(p => p.CategoryId == category.Id && p.LanguageId == newLanguage.Id)
-            .Select(p => p.Code)
-            .ToListAsync();
-        var existingCodes = new HashSet<string>(existingCodesList);
-
-        foreach (var vocalMusicRelease in vocalMusicReleases)
-        {
-            // Skip if already exists (in-memory check, fast)
-            if (existingCodes.Contains(vocalMusicRelease.Value.Code))
-            {
-                logger.Information("Skipping song section {SongPublicationName} ({SongPublicationCode}) for language {LanguageCode} - already exists",
-                    vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, languageCode);
-                continue;
-            }
-
-            logger.Information("Seeding song section {SongPublicationName} ({SongPublicationCode}) for language {LanguageCode}",
-                vocalMusicRelease.Value.Name, vocalMusicRelease.Value.Code, languageCode);
-
-            var tracks = await GetSafely(() => mediaReader.GetVocalMusicTracks(languageCode, vocalMusicRelease.Key));
-            if (tracks == null || tracks.Count == 0)
-            {
-                continue;
-            }
-
-            // Create BiblePublication for vocal music (with language, Category="Music")
-            var biblePublication = await CreateBiblePublication(db, vocalMusicRelease.Value, newLanguage, category.Id, languageCode, isVideo: false);
-            await AddTracksToVocalMusic(db, tracks, biblePublication);
-
-            await db.BiblePublications.AddAsync(biblePublication);
-            await db.SaveChangesAsync();
-        }
-    }
 
     private async Task AddTracksToVocalMusic(MediaDbContext db, SortedDictionary<int, MusicTrack> tracks, BiblePublication biblePublication)
     {
@@ -1220,4 +625,605 @@ internal class DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, Downl
             biblePublication.Tracks.Add(newTrack);
         }
     }
+
+    #region IDataPersister Implementation
+
+    public Task SaveBiblePublicationSections(
+        string languageCode,
+        string publicationCode,
+        Dictionary<int, BiblePublicationSection> sections,
+        Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionNumberTrackMap)
+    {
+        var key = (languageCode.ToUpperInvariant(), publicationCode.ToUpperInvariant());
+        dataStore.BiblePublications[key] = (sections, sectionNumberTrackMap);
+        return Task.CompletedTask;
+    }
+
+    public Task SaveDramaPublication(
+        string languageCode,
+        string publicationCode,
+        string publicationName,
+        Dictionary<string, List<DramaTrack>> tracksBySection,
+        Dictionary<string, string> sectionNames)
+    {
+        var key = (languageCode.ToUpperInvariant(), publicationCode.ToUpperInvariant());
+        dataStore.DramaPublications[key] = (publicationName, tracksBySection, sectionNames);
+        return Task.CompletedTask;
+    }
+
+    public Task SaveMusicTracks(
+        string publicationCode,
+        string? languageCode,
+        List<MusicTrack> tracks)
+    {
+        var key = (publicationCode.ToUpperInvariant(), languageCode?.ToUpperInvariant());
+        dataStore.MusicTracks[key] = tracks;
+        return Task.CompletedTask;
+    }
+
+    public Task SaveMelodyMusicTracks(
+        string publicationCode,
+        Dictionary<string, List<MusicTrack>> discTracksMap,
+        Dictionary<string, string> discNamesMap)
+    {
+        dataStore.MelodyMusic[publicationCode.ToUpperInvariant()] = (discTracksMap, discNamesMap);
+        return Task.CompletedTask;
+    }
+
+    public Task SaveVideoEpisodes(
+        string languageCode,
+        string publicationCode,
+        string publicationName,
+        List<VideoEpisode> episodes)
+    {
+        var key = (languageCode.ToUpperInvariant(), publicationCode.ToUpperInvariant());
+        dataStore.VideoPublications[key] = (publicationName, episodes);
+        return Task.CompletedTask;
+    }
+
+    public Task SaveLanguageDiscovery(
+        string languageCode,
+        string publicationCode,
+        Dictionary<string, string> languageCodeToNameMapping)
+    {
+        var key = (languageCode.ToUpperInvariant(), publicationCode.ToUpperInvariant());
+        dataStore.LanguageDiscovery[key] = languageCodeToNameMapping;
+        return Task.CompletedTask;
+    }
+
+    #endregion
+
+    #region Seed from Memory Methods
+
+    private async Task SeedBiblePublicationsFromMemory()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        // Get all unique language codes from stored Bible publications
+        var languageCodes = dataStore.BiblePublications.Keys.Select(k => k.LanguageCode).Distinct().ToList();
+        logger.Information("Found {Count} Bible languages to seed.", languageCodes.Count);
+
+        foreach (var languageCode in languageCodes)
+        {
+            var newLanguage = await GetOrCreateLanguageByCode(db, languageCode);
+            await SeedBiblePublicationsForLanguageFromMemory(db, languageCode, newLanguage);
+        }
+    }
+
+    private async Task SeedBiblePublicationsForLanguageFromMemory(
+        MediaDbContext db,
+        string languageCode,
+        Language language)
+    {
+        var publications = dataStore.BiblePublications
+            .Where(kvp => kvp.Key.LanguageCode == languageCode)
+            .ToList();
+
+        if (publications.Count == 0)
+        {
+            return;
+        }
+
+        logger.Information("Found {Count} Bible publication(s) for language {LanguageCode}", publications.Count, languageCode);
+
+        // Load existing publication codes for this language upfront
+        var existingCodesList = await db.BiblePublications
+            .Where(t => t.Language.Code == languageCode)
+            .Select(t => t.Code)
+            .ToListAsync();
+        var existingCodes = new HashSet<string>(existingCodesList);
+
+        foreach (var (key, (sections, sectionNumberTrackMap)) in publications)
+        {
+            // Extract publication code from key
+            var publicationCode = key.PublicationCode;
+            
+            // Skip if already exists
+            if (existingCodes.Contains(publicationCode))
+            {
+                logger.Information("Skipping publication {PublicationCode} for language {LanguageCode} - already exists",
+                    publicationCode, languageCode);
+                continue;
+            }
+
+            // Get publication name from first section or use code as fallback
+            var publicationName = sections.Values.FirstOrDefault()?.Name ?? publicationCode;
+
+            logger.Information("Seeding publication {PublicationName} ({PublicationCode}) for language {LanguageCode}",
+                publicationName, publicationCode, languageCode);
+
+            var category = await GetCategory(db, "Bible");
+            var publication = new Publication { Code = publicationCode, Name = publicationName };
+            var biblePublication = await CreateBiblePublication(db, publication, language, category.Id, languageCode, isVideo: false);
+            
+            await SeedSectionsForPublicationFromMemory(db, sections, sectionNumberTrackMap, biblePublication);
+
+            await db.BiblePublications.AddAsync(biblePublication);
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private async Task SeedSectionsForPublicationFromMemory(
+        MediaDbContext db,
+        Dictionary<int, BiblePublicationSection> sections,
+        Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionNumberTrackMap,
+        BiblePublication biblePublication)
+    {
+        foreach (var section in sections)
+        {
+            var sectionUrlParam = new UrlParam
+            {
+                BiblePublicationSectionId = 0,
+                Key = "booknum",
+                Value = section.Value.Number.ToString(),
+                IsQueryParam = true
+            };
+
+            var newSection = new Shared.Models.Media.BiblePublications.BiblePublicationSection
+            {
+                Name = section.Value.Name,
+                Number = section.Value.Number,
+                UrlParams = new List<UrlParam> { sectionUrlParam }
+            };
+
+            biblePublication.Sections.Add(newSection);
+
+            if (sectionNumberTrackMap.TryGetValue(section.Key, out var tracks) && tracks != null && tracks.Count > 0)
+            {
+                await AddTracksToSectionFromMemory(db, tracks, newSection, biblePublication);
+            }
+        }
+    }
+
+    private async Task AddTracksToSectionFromMemory(
+        MediaDbContext db,
+        Dictionary<int, BiblePublicationTrack> tracks,
+        Shared.Models.Media.BiblePublications.BiblePublicationSection newSection,
+        BiblePublication biblePublication)
+    {
+        foreach (var track in tracks.OrderBy(t => t.Key))
+        {
+            var trackUrlParams = new List<UrlParam>
+            {
+                new UrlParam
+                {
+                    BiblePublicationTrackId = 0,
+                    Key = "booknum",
+                    Value = newSection.Number.ToString(),
+                    IsQueryParam = true
+                },
+                new UrlParam
+                {
+                    BiblePublicationTrackId = 0,
+                    Key = "track",
+                    Value = track.Value.Number.ToString(),
+                    IsQueryParam = true
+                },
+                new UrlParam
+                {
+                    BiblePublicationTrackId = 0,
+                    Key = "fileformat",
+                    Value = "mp3",
+                    IsQueryParam = true
+                }
+            };
+
+            var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
+            {
+                Number = track.Value.Number,
+                Title = track.Value.Title,
+                Publication = biblePublication,
+                Section = newSection,
+                UrlParams = trackUrlParams
+            };
+
+            newSection.Tracks.Add(newTrack);
+        }
+    }
+
+    private async Task SeedDramasFromMemory()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var languageCodes = dataStore.DramaPublications.Keys.Select(k => k.LanguageCode).Distinct().ToList();
+        logger.Information("Found {Count} drama languages to seed.", languageCodes.Count);
+
+        foreach (var languageCode in languageCodes)
+        {
+            var newLanguage = await GetOrCreateLanguageByCode(db, languageCode);
+            await SeedDramaPublicationsForLanguageFromMemory(db, languageCode, newLanguage);
+        }
+    }
+
+    private async Task SeedDramaPublicationsForLanguageFromMemory(
+        MediaDbContext db,
+        string languageCode,
+        Language language)
+    {
+        var publications = dataStore.DramaPublications
+            .Where(kvp => kvp.Key.LanguageCode == languageCode)
+            .ToList();
+
+        if (publications.Count == 0)
+        {
+            return;
+        }
+
+        var existingCodesList = await db.BiblePublications
+            .Where(p => p.Language.Code == languageCode)
+            .Select(p => p.Code)
+            .ToListAsync();
+        var existingCodes = new HashSet<string>(existingCodesList);
+
+        foreach (var (key, (publicationName, tracksBySection, sectionNames)) in publications)
+        {
+            var publicationCode = key.PublicationCode;
+            
+            if (existingCodes.Contains(publicationCode))
+            {
+                logger.Information("Skipping drama publication {PublicationName} ({PublicationCode}) for language {LanguageCode} - already exists",
+                    publicationName, publicationCode, languageCode);
+                continue;
+            }
+
+            logger.Information("Seeding drama publication {PublicationName} ({PublicationCode}) for language {LanguageCode}",
+                publicationName, publicationCode, languageCode);
+
+            var category = await GetCategory(db, "Dramas");
+            var publication = new Publication { Code = publicationCode, Name = publicationName };
+            var newPublication = await CreateBiblePublication(db, publication, language, category.Id, languageCode, isVideo: false);
+
+            await SeedDramaSectionsForPublicationFromMemory(db, tracksBySection, sectionNames, newPublication, languageCode);
+
+            await db.BiblePublications.AddAsync(newPublication);
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private async Task SeedDramaSectionsForPublicationFromMemory(
+        MediaDbContext db,
+        Dictionary<string, List<DramaTrack>> tracksBySection,
+        Dictionary<string, string> sectionNames,
+        BiblePublication biblePublication,
+        string languageCode)
+    {
+        int sectionNumber = 1;
+        foreach (var sectionEntry in tracksBySection.OrderBy(s => s.Key))
+        {
+            var sectionCode = sectionEntry.Key;
+            var tracks = sectionEntry.Value;
+            var sectionName = sectionNames.TryGetValue(sectionCode, out var name) && !string.IsNullOrEmpty(name) ? name : sectionCode;
+
+            var sectionUrlParams = new List<UrlParam>
+            {
+                new UrlParam
+                {
+                    BiblePublicationSectionId = 0,
+                    Key = "sectionCode",
+                    Value = sectionCode,
+                    IsQueryParam = false
+                }
+            };
+
+            var newSection = new Shared.Models.Media.BiblePublications.BiblePublicationSection
+            {
+                Name = sectionName,
+                Number = sectionNumber,
+                UrlParams = sectionUrlParams
+            };
+
+            biblePublication.Sections.Add(newSection);
+
+            if (tracks != null && tracks.Count > 0)
+            {
+                var sortedTracks = new SortedDictionary<int, DramaTrack>();
+                foreach (var track in tracks.OrderBy(t => t.Number))
+                {
+                    sortedTracks[track.Number] = track;
+                }
+                await AddDramaTracksToSection(db, sortedTracks, newSection, biblePublication, languageCode);
+            }
+
+            sectionNumber++;
+        }
+    }
+
+    private async Task SeedMelodiesFromMemory()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        if (dataStore.MelodyMusic.Count == 0)
+        {
+            return;
+        }
+
+        logger.Information("Seeding melody code iam music to database.");
+
+        var category = await GetCategory(db, "Music");
+        var publication = new Publication { Code = "iam", Name = "Kingdom Melodies" };
+        var language = await GetOrCreateLanguageByCode(db, "E"); // Melody music uses English as base
+
+        var biblePublication = await CreateBiblePublication(db, publication, language, category.Id, "E", isVideo: false);
+
+        var discTracksMap = new Dictionary<string, (string Name, SortedDictionary<int, MusicTrack> Tracks)>();
+        foreach (var (pubCode, (discTracks, discNames)) in dataStore.MelodyMusic)
+        {
+            foreach (var discEntry in discTracks)
+            {
+                var discCode = discEntry.Key;
+                var discName = discNames.TryGetValue(discCode, out var name) ? name : discCode;
+                var sortedTracks = new SortedDictionary<int, MusicTrack>();
+                foreach (var track in discEntry.Value.OrderBy(t => t.Number))
+                {
+                    sortedTracks[track.Number] = track;
+                }
+                discTracksMap[discCode] = (discName, sortedTracks);
+            }
+        }
+
+        await AddTracksToMelodyMusicWithSections(db, discTracksMap, biblePublication);
+
+        await db.BiblePublications.AddAsync(biblePublication);
+        await db.SaveChangesAsync();
+    }
+
+    private async Task SeedVocalsFromMemory()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var languageCodes = dataStore.MusicTracks.Keys
+            .Where(k => k.LanguageCode != null)
+            .Select(k => k.LanguageCode!)
+            .Distinct()
+            .ToList();
+
+        logger.Information("Found {Count} vocal music languages to seed.", languageCodes.Count);
+
+        foreach (var languageCode in languageCodes)
+        {
+            var newLanguage = await GetOrCreateLanguageByCode(db, languageCode);
+            await SeedVocalMusicReleasesForLanguageFromMemory(db, languageCode, newLanguage);
+        }
+    }
+
+    private async Task SeedVocalMusicReleasesForLanguageFromMemory(
+        MediaDbContext db,
+        string languageCode,
+        Language language)
+    {
+        var publications = dataStore.MusicTracks
+            .Where(kvp => kvp.Key.LanguageCode == languageCode)
+            .ToList();
+
+        if (publications.Count == 0)
+        {
+            return;
+        }
+
+        logger.Information("Found {Count} vocal music publication(s) for language {LanguageCode}", publications.Count, languageCode);
+
+        // Map publication codes to names (would need to be stored separately or extracted)
+        // For now, using code as name
+        var category = await GetCategory(db, "Music");
+        var existingCodesList = await db.BiblePublications
+            .Where(p => p.Language.Code == languageCode && p.Category.CategoryName == "Music")
+            .Select(p => p.Code)
+            .ToListAsync();
+        var existingCodes = new HashSet<string>(existingCodesList);
+
+        foreach (var (key, tracks) in publications)
+        {
+            var publicationCode = key.PublicationCode;
+            
+            if (existingCodes.Contains(publicationCode))
+            {
+                continue;
+            }
+
+            // Get publication name from mapping (would need to be stored)
+            var publicationName = publicationCode; // Fallback
+            var publication = new Publication { Code = publicationCode, Name = publicationName };
+            var biblePublication = await CreateBiblePublication(db, publication, language, category.Id, languageCode, isVideo: false);
+
+            await AddVocalTracksToPublicationFromMemory(db, tracks, biblePublication);
+
+            await db.BiblePublications.AddAsync(biblePublication);
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private async Task AddVocalTracksToPublicationFromMemory(
+        MediaDbContext db,
+        List<MusicTrack> tracks,
+        BiblePublication biblePublication)
+    {
+        foreach (var track in tracks.OrderBy(t => t.Number))
+        {
+            var trackUrlParams = new List<UrlParam>
+            {
+                new UrlParam
+                {
+                    BiblePublicationTrackId = 0,
+                    Key = "pub",
+                    Value = biblePublication.Code,
+                    IsQueryParam = true
+                },
+                new UrlParam
+                {
+                    BiblePublicationTrackId = 0,
+                    Key = "track",
+                    Value = track.Number.ToString(),
+                    IsQueryParam = true
+                },
+                new UrlParam
+                {
+                    BiblePublicationTrackId = 0,
+                    Key = "fileformat",
+                    Value = "mp3",
+                    IsQueryParam = true
+                }
+            };
+
+            if (biblePublication.LanguageId.HasValue && biblePublication.Language != null)
+            {
+                trackUrlParams.Add(new UrlParam
+                {
+                    BiblePublicationTrackId = 0,
+                    Key = "langwritten",
+                    Value = biblePublication.Language.Code,
+                    IsQueryParam = true
+                });
+            }
+
+            var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
+            {
+                Number = track.Number,
+                Title = track.Title,
+                Publication = biblePublication,
+                UrlParams = trackUrlParams
+            };
+
+            biblePublication.Tracks.Add(newTrack);
+        }
+    }
+
+    private async Task SeedVideosFromMemory()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var languageCodes = dataStore.VideoPublications.Keys.Select(k => k.LanguageCode).Distinct().ToList();
+        logger.Information("Found {Count} video languages to seed.", languageCodes.Count);
+
+        foreach (var languageCode in languageCodes)
+        {
+            var newLanguage = await GetOrCreateLanguageByCode(db, languageCode);
+            await SeedVideoPublicationsForLanguageFromMemory(db, languageCode, newLanguage);
+        }
+    }
+
+    private async Task SeedVideoPublicationsForLanguageFromMemory(
+        MediaDbContext db,
+        string languageCode,
+        Language language)
+    {
+        var publications = dataStore.VideoPublications
+            .Where(kvp => kvp.Key.LanguageCode == languageCode)
+            .ToList();
+
+        if (publications.Count == 0)
+        {
+            return;
+        }
+
+        var existingCodesList = await db.BiblePublications
+            .Where(p => p.Language.Code == languageCode)
+            .Select(p => p.Code)
+            .ToListAsync();
+        var existingCodes = new HashSet<string>(existingCodesList);
+
+        var apiUrls = await GetAllBaseUrls(db);
+        var apiUrl = apiUrls.FirstOrDefault();
+        if (apiUrl == null)
+        {
+            logger.Warning("No BaseUrl found for video publication. BaseUrls should be seeded first.");
+            return;
+        }
+
+        var category = await GetCategory(db, "Dramas");
+
+        foreach (var (key, (publicationName, episodes)) in publications)
+        {
+            var publicationCode = key.PublicationCode;
+            
+            if (existingCodes.Contains(publicationCode))
+            {
+                logger.Information("Skipping video publication {PublicationName} ({PublicationCode}) for language {LanguageCode} - already exists",
+                    publicationName, publicationCode, languageCode);
+                continue;
+            }
+
+            logger.Information("Seeding video publication {PublicationName} ({PublicationCode}) for language {LanguageCode}",
+                publicationName, publicationCode, languageCode);
+
+            var publication = new Publication { Code = publicationCode, Name = publicationName };
+            var newPublication = await CreateBiblePublication(db, publication, language, category.Id, languageCode, isVideo: true);
+
+            await AddVideoEpisodesToPublicationFromMemory(db, episodes, newPublication, apiUrl);
+
+            await db.BiblePublications.AddAsync(newPublication);
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private async Task AddVideoEpisodesToPublicationFromMemory(
+        MediaDbContext db,
+        List<VideoEpisode> episodes,
+        BiblePublication biblePublication,
+        BaseUrl apiUrl)
+    {
+        foreach (var episode in episodes.OrderBy(e => e.Number))
+        {
+            var episodeUrlParams = new List<UrlParam>
+            {
+                new UrlParam
+                {
+                    BiblePublicationTrackId = 0,
+                    Key = "pub",
+                    Value = biblePublication.Code,
+                    IsQueryParam = true
+                },
+                new UrlParam
+                {
+                    BiblePublicationTrackId = 0,
+                    Key = "track",
+                    Value = episode.Number.ToString(),
+                    IsQueryParam = true
+                },
+                new UrlParam
+                {
+                    BiblePublicationTrackId = 0,
+                    Key = "fileformat",
+                    Value = "mp4",
+                    IsQueryParam = true
+                }
+            };
+
+            var newTrack = new Shared.Models.Media.BiblePublications.BiblePublicationTrack
+            {
+                Number = episode.Number,
+                Title = episode.Title,
+                Publication = biblePublication,
+                UrlParams = episodeUrlParams
+            };
+
+            biblePublication.Tracks.Add(newTrack);
+        }
+    }
+
+    #endregion
 }

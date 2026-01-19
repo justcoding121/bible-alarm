@@ -125,12 +125,24 @@ public class Program
 
             IReadOnlyDictionary<(string LanguageCode, string PublicationCode), string>? localizedPublicationNames = null;
 
+            // Get DbSeeder to use as IDataPersister (same instance will be used for seeding later)
+            // Create it directly from serviceProvider to keep it alive
+            var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+            var downloadUtility = serviceProvider.GetRequiredService<DownloadUtility>();
+            var dbSeederLogger = serviceProvider.GetRequiredService<ILogger>();
+            IDataPersister dataPersister = new DbSeeder(dbSeederLogger, scopeFactory, downloadUtility);
+
             await using (var harvesterScope = serviceProvider.CreateAsyncScope())
             {
-                var bibleHarvester = harvesterScope.ServiceProvider.GetRequiredService<JwBibleHarvester>();
-                var musicHarvester = harvesterScope.ServiceProvider.GetRequiredService<MusicHarvester>();
-                var dramaHarvester = harvesterScope.ServiceProvider.GetRequiredService<DramaHarvester>();
-                var videoHarvester = harvesterScope.ServiceProvider.GetRequiredService<VideoHarvester>();
+                // Get logger and download utility from DI, but pass dataPersister manually
+                var logger = harvesterScope.ServiceProvider.GetRequiredService<ILogger>();
+                var downloadUtility = harvesterScope.ServiceProvider.GetRequiredService<DownloadUtility>();
+                
+                // Create harvesters with dataPersister
+                var bibleHarvester = new JwBibleHarvester(logger, downloadUtility, dataPersister);
+                var musicHarvester = new MusicHarvester(logger, downloadUtility, dataPersister);
+                var dramaHarvester = new DramaHarvester(logger, downloadUtility, dataPersister);
+                var videoHarvester = new VideoHarvester(logger, downloadUtility, dataPersister);
 
                 bibleTasks.Add(bibleHarvester.HarvestBibleLinks(JwSourceHelper.PublicationCodeToNameMappings, languageCodeToInfoMappings, languageCodeToEditionsMapping, isTestRun));
 
@@ -156,24 +168,9 @@ public class Program
                 localizedPublicationNames = bibleHarvester.LocalizedPublicationNames;
             }
 
-            WriteBibleIndex(languageCodeToInfoMappings, languageCodeToEditionsMapping, localizedPublicationNames);
-
-            var index = new
+            // Use the same DbSeeder instance that was used as dataPersister
+            if (dataPersister is DbSeeder dbSeeder)
             {
-                ReleaseDate = DateTime.Now.Ticks
-            };
-
-            var indexFile = $"{DirectoryHelper.IndexDirectory}/media/index.json";
-            if (File.Exists(indexFile))
-            {
-                File.Delete(indexFile);
-            }
-
-            await File.WriteAllTextAsync(indexFile, JsonSerializer.Serialize(index));
-
-            await using (var seederScope = serviceProvider.CreateAsyncScope())
-            {
-                var dbSeeder = seederScope.ServiceProvider.GetRequiredService<DbSeeder>();
                 try
                 {
                     await dbSeeder.Seed();
@@ -183,6 +180,11 @@ public class Program
                     logger.Error(ex, "Seeding failed");
                     return 1;
                 }
+            }
+            else
+            {
+                logger.Error("dataPersister is not a DbSeeder instance. Cannot seed database.");
+                return 1;
             }
 
             SqliteConnection.ClearAllPools();
@@ -242,56 +244,6 @@ public class Program
         return 0;
     }
 
-    private static void WriteBibleIndex(
-        ConcurrentDictionary<string, LanguageInfo> languageCodeToInfoMappings,
-        ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping,
-        IReadOnlyDictionary<(string LanguageCode, string PublicationCode), string>? localizedPublicationNames)
-    {
-        if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Bible"))
-        {
-            Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Bible");
-        }
-
-        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Bible/languages.json", JsonSerializer.Serialize(
-            languageCodeToEditionsMapping.Select(x =>
-            {
-                var info = languageCodeToInfoMappings[x.Key];
-                return new Language
-                {
-                    Code = x.Key,
-                    Name = info.Name,
-                    Direction = info.Direction
-                };
-            }).OrderBy(x => x.Code).ToList()));
-
-        foreach (var languageEditionsMap in languageCodeToEditionsMapping)
-        {
-            // Normalize language code for path consistency (cross-platform safety)
-            var normalizedLanguageCode = languageEditionsMap.Key.ToUpperInvariant();
-            
-            if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Bible/{normalizedLanguageCode}"))
-            {
-                Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Bible/{normalizedLanguageCode}");
-            }
-
-            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Bible/{normalizedLanguageCode}/publications.json", JsonSerializer.Serialize(
-            languageEditionsMap.Value.Select(publicationCode =>
-            {
-                // Use localized publication name if available, otherwise fall back to English name
-                var name = localizedPublicationNames != null &&
-                           localizedPublicationNames.TryGetValue((languageEditionsMap.Key, publicationCode), out var localizedName)
-                    ? localizedName
-                    : biblePublicationCodeToNameMappings[publicationCode];
-
-                return new Publication
-                {
-                    Code = publicationCode,
-                    Name = name
-                };
-            }).OrderBy(x => x.Code)));
-        }
-
-    }
 
 
     private static void ZipFiles()

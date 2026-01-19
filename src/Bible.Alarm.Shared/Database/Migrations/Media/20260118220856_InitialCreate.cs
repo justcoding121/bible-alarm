@@ -81,30 +81,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 });
 
             migrationBuilder.CreateTable(
-                name: "BiblePublicationBaseUrl",
-                columns: table => new
-                {
-                    BaseUrlsId = table.Column<int>(type: "INTEGER", nullable: false),
-                    BiblePublicationsId = table.Column<int>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BiblePublicationBaseUrl", x => new { x.BaseUrlsId, x.BiblePublicationsId });
-                    table.ForeignKey(
-                        name: "FK_BiblePublicationBaseUrl_ApiUrls_BaseUrlsId",
-                        column: x => x.BaseUrlsId,
-                        principalTable: "ApiUrls",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_BiblePublicationBaseUrl_BiblePublications_BiblePublicationsId",
-                        column: x => x.BiblePublicationsId,
-                        principalTable: "BiblePublications",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "BiblePublicationSections",
                 columns: table => new
                 {
@@ -203,11 +179,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 column: "PathPrefix");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BiblePublicationBaseUrl_BiblePublicationsId",
-                table: "BiblePublicationBaseUrl",
-                column: "BiblePublicationsId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_BiblePublications_CategoryId",
                 table: "BiblePublications",
                 column: "CategoryId");
@@ -263,9 +234,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "BiblePublicationBaseUrl");
-
             migrationBuilder.DropTable(
                 name: "UrlParams");
 

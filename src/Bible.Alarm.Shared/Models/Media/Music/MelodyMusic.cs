@@ -22,7 +22,6 @@ public class MelodyMusic
     public Category Category => Publication.Category;
     public int? LanguageId => Publication.LanguageId;
     public Language? Language => Publication.Language;
-    public List<BaseUrl> BaseUrls => Publication.BaseUrls;
     public List<UrlParam> UrlParams => Publication.UrlParams;
     public List<BiblePublicationSection> Sections => Publication.Sections;
     public List<BiblePublicationTrack> Tracks => Publication.Tracks;

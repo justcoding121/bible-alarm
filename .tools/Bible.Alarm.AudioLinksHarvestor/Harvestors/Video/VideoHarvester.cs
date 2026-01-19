@@ -20,10 +20,12 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Video;
 internal class VideoHarvester : BaseHarvester
 {
     private const string PreferredQuality = "240p"; // Use lowest quality for audio-only playback
+    private readonly IDataPersister? dataPersister;
 
-    public VideoHarvester(ILogger logger, DownloadUtility downloadUtility)
+    public VideoHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister = null)
         : base(logger, downloadUtility)
     {
+        this.dataPersister = dataPersister;
     }
 
     private static readonly Dictionary<string, string> VideoPublicationCodeToNameMappings = new([
@@ -69,8 +71,6 @@ internal class VideoHarvester : BaseHarvester
                 languageCodeToInfo,
                 languageCodeToPublications);
         }
-
-        SaveVideoMetadata(languageCodeToPublications, languageCodeToInfo);
     }
 
     private async Task<List<(string Code, string Name, string Direction)>?> GetLanguageEntries(
@@ -161,7 +161,7 @@ internal class VideoHarvester : BaseHarvester
 
         try
         {
-            var success = await HarvestVideoEpisodes(publicationCode, languageCode);
+            var success = await HarvestVideoEpisodes(publicationCode, languageCode, publicationName);
             if (success)
             {
                 lock (languageCodeToInfo)
@@ -239,7 +239,7 @@ internal class VideoHarvester : BaseHarvester
         }
     }
 
-    private async Task<bool> HarvestVideoEpisodes(string publicationCode, string languageCode)
+    private async Task<bool> HarvestVideoEpisodes(string publicationCode, string languageCode, string publicationName)
     {
         // Unified structure: media/Dramas/{languageCode}/{publicationCode} (no Audio/Video prefix)
         // Videos use "Dramas" category, IsVideo flag in database determines if it's video or audio
@@ -273,7 +273,15 @@ internal class VideoHarvester : BaseHarvester
             return false;
         }
 
-        SaveEpisodes(dir, file, episodes);
+        // Save to database via persister if available, otherwise save to files
+        if (dataPersister != null)
+        {
+            await dataPersister.SaveVideoEpisodes(languageCode, publicationCode, publicationName, episodes);
+        }
+        else
+        {
+            SaveEpisodes(dir, file, episodes);
+        }
         return true;
     }
 
@@ -397,59 +405,4 @@ internal class VideoHarvester : BaseHarvester
         File.WriteAllText(file, episodesJson);
     }
 
-    private void SaveVideoMetadata(
-        Dictionary<string, List<string>> languageCodeToPublications,
-        Dictionary<string, LanguageInfo> languageCodeToInfo)
-    {
-        // Unified structure: media/Dramas (no Audio/Video prefix)
-        var videoDir = $"{DirectoryHelper.IndexDirectory}/media/Dramas";
-        if (!Directory.Exists(videoDir))
-        {
-            Directory.CreateDirectory(videoDir);
-        }
-
-        foreach (var languagePublication in languageCodeToPublications)
-        {
-            // Unified structure: media/Dramas/{languageCode} (no Audio/Video prefix)
-            // Normalize language code for path consistency
-            var normalizedLanguageCode = languagePublication.Key.ToUpperInvariant();
-            var languageDir = $"{videoDir}/{normalizedLanguageCode}";
-            if (!Directory.Exists(languageDir))
-            {
-                Directory.CreateDirectory(languageDir);
-            }
-
-            var publicationsJson = JsonSerializer.Serialize(
-                languagePublication.Value.Select(pubCode =>
-                {
-                    // Use localized name if available, otherwise fall back to English
-                    var langCode = languagePublication.Key;
-                    var name = localizedPublicationNames.TryGetValue((langCode, pubCode), out var localizedName)
-                        ? localizedName
-                        : VideoPublicationCodeToNameMappings.GetValueOrDefault(pubCode, pubCode);
-
-                    return new Publication
-                    {
-                        Code = pubCode,
-                        Name = name
-                    };
-                }).OrderBy(x => x.Code));
-
-            File.WriteAllText($"{languageDir}/publications.json", publicationsJson);
-        }
-
-        var languagesJson = JsonSerializer.Serialize(
-            languageCodeToPublications.Select(x =>
-            {
-                var info = languageCodeToInfo[x.Key];
-                return new Language
-                {
-                    Code = x.Key,
-                    Name = info.Name,
-                    Direction = info.Direction
-                };
-            }).OrderBy(x => x.Code));
-
-        File.WriteAllText($"{videoDir}/languages.json", languagesJson);
-    }
 }

@@ -28,7 +28,7 @@ public class UrlConstructionService : IUrlConstructionService
 
     /// <summary>
     /// Constructs download URLs for a Bible publication track.
-    /// Returns both primary and backup URLs (one for each BaseUrl linked to the publication).
+    /// Returns both primary and backup URLs (one for each BaseUrl in the database).
     /// </summary>
     /// <param name="trackId">The ID of the BiblePublicationTrack</param>
     /// <returns>List of constructed URLs (primary and backup)</returns>
@@ -38,17 +38,12 @@ public class UrlConstructionService : IUrlConstructionService
         var track = await _dbContext.BiblePublicationTracks
             .AsNoTracking() // Read-only, improves performance
             .Include(t => t.Publication)
-                .ThenInclude(p => p!.BaseUrls)
-            .Include(t => t.Publication)
                 .ThenInclude(p => p!.UrlParams)
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
             .Include(t => t.Section)
                 .ThenInclude(s => s!.UrlParams)
             .Include(t => t.UrlParams)
-            .Include(t => t.Publication)
-                .ThenInclude(p => p!.BaseUrls)
-                    .ThenInclude(bu => bu.UrlParams)
             .FirstOrDefaultAsync(t => t.Id == trackId);
 
         if (track == null || track.Publication == null)
@@ -56,16 +51,22 @@ public class UrlConstructionService : IUrlConstructionService
             return new List<string>();
         }
 
-        // Ensure at least one BaseUrl is present (required relationship)
-        if (track.Publication.BaseUrls == null || track.Publication.BaseUrls.Count == 0)
+        // Get all base URLs from the database (all downloads use the same ApiUrls)
+        var baseUrls = await _dbContext.BaseUrls
+            .AsNoTracking()
+            .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
+            .Include(bu => bu.UrlParams)
+            .ToListAsync();
+
+        if (baseUrls == null || baseUrls.Count == 0)
         {
             return new List<string>(); // Or throw exception if this should never happen
         }
 
         var urls = new List<string>();
 
-        // Get all base URLs linked to this publication (required - at least one)
-        foreach (var baseUrl in track.Publication.BaseUrls)
+        // Get all base URLs from the database
+        foreach (var baseUrl in baseUrls)
         {
             var url = ConstructUrl(baseUrl, track);
             if (!string.IsNullOrEmpty(url))
@@ -201,17 +202,12 @@ public class UrlConstructionService : IUrlConstructionService
         var query = _dbContext.BiblePublicationTracks
             .AsNoTracking() // Read-only, improves performance
             .Include(t => t.Publication)
-                .ThenInclude(p => p!.BaseUrls)
-            .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.UrlParams)
             .Include(t => t.Section)
                 .ThenInclude(s => s!.UrlParams)
             .Include(t => t.UrlParams)
-            .Include(t => t.Publication)
-                .ThenInclude(p => p!.BaseUrls)
-                    .ThenInclude(bu => bu.UrlParams)
             .Where(t => t.Publication != null
                 && t.Publication.Code == publicationCode
                 && t.Publication.Language != null
@@ -241,7 +237,7 @@ public class UrlConstructionService : IUrlConstructionService
     /// <summary>
     /// Constructs the lookup path (query string) for a track by publication code, language code, section number, and track number.
     /// Returns the query string part (e.g., "?output=json&pub=nwt&booknum=1&fileformat=MP3&langwritten=E&track=1").
-    /// Uses the first BaseUrl linked to the publication.
+    /// Uses the first BaseUrl from the database.
     /// </summary>
     public async Task<string?> ConstructTrackLookUpPathAsync(
         string publicationCode,
@@ -252,17 +248,12 @@ public class UrlConstructionService : IUrlConstructionService
         var query = _dbContext.BiblePublicationTracks
             .AsNoTracking()
             .Include(t => t.Publication)
-                .ThenInclude(p => p!.BaseUrls)
-            .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.UrlParams)
             .Include(t => t.Section)
                 .ThenInclude(s => s!.UrlParams)
             .Include(t => t.UrlParams)
-            .Include(t => t.Publication)
-                .ThenInclude(p => p!.BaseUrls)
-                    .ThenInclude(bu => bu.UrlParams)
             .Where(t => t.Publication != null
                 && t.Publication.Code == publicationCode
                 && t.Number == trackNumber);
@@ -290,13 +281,23 @@ public class UrlConstructionService : IUrlConstructionService
 
         var track = await query.FirstOrDefaultAsync();
 
-        if (track == null || track.Publication == null || track.Publication.BaseUrls == null || track.Publication.BaseUrls.Count == 0)
+        if (track == null || track.Publication == null)
         {
             return null;
         }
 
-        // Use the first BaseUrl to construct the URL, then extract the query string
-        var baseUrl = track.Publication.BaseUrls[0];
+        // Get the first BaseUrl from the database (all downloads use the same ApiUrls)
+        var baseUrl = await _dbContext.BaseUrls
+            .AsNoTracking()
+            .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
+            .Include(bu => bu.UrlParams)
+            .FirstOrDefaultAsync();
+
+        if (baseUrl == null)
+        {
+            return null;
+        }
+
         var fullUrl = ConstructUrl(baseUrl, track);
 
         if (string.IsNullOrEmpty(fullUrl))

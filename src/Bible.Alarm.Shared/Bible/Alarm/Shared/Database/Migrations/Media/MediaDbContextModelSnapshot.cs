@@ -16,21 +16,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
 
-            modelBuilder.Entity("BaseUrlBiblePublication", b =>
-                {
-                    b.Property<int>("BaseUrlsId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BiblePublicationsId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("BaseUrlsId", "BiblePublicationsId");
-
-                    b.HasIndex("BiblePublicationsId");
-
-                    b.ToTable("BiblePublicationBaseUrl", (string)null);
-                });
-
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BaseUrl", b =>
                 {
                     b.Property<int>("Id")
@@ -233,21 +218,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .IsUnique();
 
                     b.ToTable("Languages");
-                });
-
-            modelBuilder.Entity("BaseUrlBiblePublication", b =>
-                {
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.BaseUrl", null)
-                        .WithMany()
-                        .HasForeignKey("BaseUrlsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication", null)
-                        .WithMany()
-                        .HasForeignKey("BiblePublicationsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication", b =>

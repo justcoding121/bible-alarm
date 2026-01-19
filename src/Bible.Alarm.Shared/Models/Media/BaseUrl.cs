@@ -24,11 +24,6 @@ namespace Bible.Alarm.Shared.Models.Media;
     public string PathPrefix { get; set; } = string.Empty;
 
     /// <summary>
-    /// Navigation property to BiblePublications using this base URL
-    /// </summary>
-    public List<BiblePublications.BiblePublication> BiblePublications { get; set; } = [];
-
-    /// <summary>
     /// Navigation property to UrlParams (one-to-many, optional).
     /// Contains URL parameters as key-value pairs for this base URL.
     /// </summary>

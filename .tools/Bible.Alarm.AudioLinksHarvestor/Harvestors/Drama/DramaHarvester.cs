@@ -21,10 +21,12 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Drama;
 internal class DramaHarvester : BaseHarvester
 {
     private const int MaxConcurrentSectionDownloads = 8;
+    private readonly IDataPersister? dataPersister;
 
-    public DramaHarvester(ILogger logger, DownloadUtility downloadUtility)
+    public DramaHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister = null)
         : base(logger, downloadUtility)
     {
+        this.dataPersister = dataPersister;
     }
 
     /// <summary>
@@ -60,7 +62,6 @@ internal class DramaHarvester : BaseHarvester
                 isTestRun);
         }
 
-        SaveDramaMetadata(languageCodeToPublications);
     }
 
     private async Task HarvestDramaPublication(
@@ -256,7 +257,15 @@ internal class DramaHarvester : BaseHarvester
         }
 
         // Save sections and tracks (similar to Bible publications structure)
-        SaveDramaSectionsAndTracks(publicationCode, normalizedLanguageCode, tracksBySection, sectionNames);
+        // Save to database via persister if available, otherwise save to files
+        if (dataPersister != null)
+        {
+            await dataPersister.SaveDramaPublication(normalizedLanguageCode, publicationCode, finalPublicationName, tracksBySection, sectionNames);
+        }
+        else
+        {
+            SaveDramaSectionsAndTracks(publicationCode, normalizedLanguageCode, tracksBySection, sectionNames);
+        }
 
         Logger.Information("Saved {Count} sections for publication {PublicationCode} ({LanguageCode})", tracksBySection.Count, publicationCode, normalizedLanguageCode);
     }
@@ -490,56 +499,4 @@ internal class DramaHarvester : BaseHarvester
         }
     }
 
-    private void SaveDramaMetadata(
-        ConcurrentDictionary<string, ConcurrentDictionary<string, string>> languageCodeToPublications)
-    {
-        // Save publications for each language
-        foreach (var kvp in languageCodeToPublications)
-        {
-            // Normalize language code to uppercase for consistent storage
-            var languageCode = kvp.Key.ToUpperInvariant();
-            var publications = kvp.Value;
-
-            // Unified structure: media/Dramas/{languageCode} (no Audio/Video prefix)
-            var languageDir = $"{DirectoryHelper.IndexDirectory}/media/Dramas/{languageCode}";
-            if (!Directory.Exists(languageDir))
-            {
-                Directory.CreateDirectory(languageDir);
-            }
-
-            var publicationsJson = JsonSerializer.Serialize(
-                publications.Select(pub =>
-                {
-                    return new Publication
-                    {
-                        Code = pub.Key,
-                        Name = pub.Value
-                    };
-                }).OrderBy(x => x.Code));
-
-            File.WriteAllText($"{languageDir}/publications.json", publicationsJson);
-        }
-
-        // Save languages.json - store only codes, names and directions will be looked up from Language table during seeding
-        // Unified structure: media/Dramas (no Audio/Video prefix)
-        var dramaDir = $"{DirectoryHelper.IndexDirectory}/media/Dramas";
-        if (!Directory.Exists(dramaDir))
-        {
-            Directory.CreateDirectory(dramaDir);
-        }
-
-        // Store just the language codes (normalized to uppercase)
-        // During DB seeding, names and directions will be looked up from the existing Language table
-        var languagesJson = JsonSerializer.Serialize(
-            languageCodeToPublications.Keys.Select(code => new Language
-            {
-                Code = code.ToUpperInvariant(),
-                Name = code.ToUpperInvariant(), // Placeholder - actual name comes from Language table during seeding
-                Direction = "ltr" // Placeholder - actual direction comes from Language table during seeding
-            }).OrderBy(x => x.Code));
-
-        File.WriteAllText($"{dramaDir}/languages.json", languagesJson);
-
-        Logger.Information("Saved drama metadata for {Count} languages", languageCodeToPublications.Count);
-    }
 }

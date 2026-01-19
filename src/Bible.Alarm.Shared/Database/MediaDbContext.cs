@@ -41,14 +41,6 @@ public class MediaDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure BiblePublication -> BaseUrl relationship as required (at least one BaseUrl)
-        // Note: This is enforced at the application level since many-to-many relationships
-        // cannot have database-level "at least one" constraints
-        modelBuilder.Entity<BiblePublication>()
-            .HasMany(bp => bp.BaseUrls)
-            .WithMany(bu => bu.BiblePublications)
-            .UsingEntity(j => j.ToTable("BiblePublicationBaseUrl"));
-
         // Ensure all UrlParam relationships are optional (foreign keys are nullable)
         modelBuilder.Entity<UrlParam>()
             .HasOne(up => up.BiblePublication)

@@ -41,14 +41,6 @@ public sealed class BiblePublication : TranslatedPublication
     public new Media.Language? Language { get; set; }
 
     /// <summary>
-    /// Navigation property to BaseUrls (many-to-many, required - at least one).
-    /// A BiblePublication must be linked to at least one BaseUrl.
-    /// Typically linked to both https://app.jw-cdn.org and https://b.jw-cdn.org.
-    /// This is enforced at the application level (validation in seed logic).
-    /// </summary>
-    public List<Media.BaseUrl> BaseUrls { get; set; } = [];
-
-    /// <summary>
     /// Navigation property to UrlParams (one-to-many, optional).
     /// Contains URL parameters as key-value pairs.
     /// </summary>

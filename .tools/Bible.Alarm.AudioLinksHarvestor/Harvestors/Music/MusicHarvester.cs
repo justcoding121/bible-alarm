@@ -19,9 +19,12 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Music;
 
 internal class MusicHarvester : BaseHarvester
 {
-    public MusicHarvester(ILogger logger, DownloadUtility downloadUtility)
+    private readonly IDataPersister? dataPersister;
+
+    public MusicHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister = null)
         : base(logger, downloadUtility)
     {
+        this.dataPersister = dataPersister;
     }
 
     /// <summary>
@@ -68,8 +71,6 @@ internal class MusicHarvester : BaseHarvester
                 languageCodeToInfo,
                 languageCodeToPublications);
         }
-
-        SaveVocalMusicMetadata(languageCodeToPublications, languageCodeToInfo);
     }
 
     private async Task<List<(string Code, string Name, string Direction)>?> GetLanguageEntries(string publicationCode, string publicationName, bool isTestRun)
@@ -172,51 +173,6 @@ internal class MusicHarvester : BaseHarvester
         }
     }
 
-    private void SaveVocalMusicMetadata(
-        Dictionary<string, List<string>> languageCodeToPublications,
-        Dictionary<string, LanguageInfo> languageCodeToInfo)
-    {
-        foreach (var languagePublication in languageCodeToPublications)
-        {
-            var languageCode = languagePublication.Key;
-            var languageDir = $"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{languageCode}";
-            if (!Directory.Exists(languageDir))
-            {
-                Directory.CreateDirectory(languageDir);
-            }
-
-            var publicationsJson = JsonSerializer.Serialize(
-                languagePublication.Value.Select(publicationCode =>
-                {
-                    // Use localized publication name if available, otherwise fall back to English
-                    var name = localizedVocalNames.TryGetValue((languageCode, publicationCode), out var localizedName)
-                        ? localizedName
-                        : vocalsPublicationCodeToNameMappings[publicationCode];
-
-                    return new Publication
-                    {
-                        Code = publicationCode,
-                        Name = name
-                    };
-                }).OrderBy(x => x.Code));
-
-            File.WriteAllText($"{languageDir}/publications.json", publicationsJson);
-        }
-
-        var languagesJson = JsonSerializer.Serialize(
-            languageCodeToPublications.Select(x =>
-            {
-                var info = languageCodeToInfo[x.Key];
-                return new Language
-                {
-                    Code = x.Key,
-                    Name = info.Name,
-                    Direction = info.Direction
-                };
-            }).OrderBy(x => x.Code));
-
-        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/languages.json", languagesJson);
-    }
 
     private static Dictionary<string, string> melodyPublicationCodeToNameMappings = new([
         new KeyValuePair<string, string>("iam","Kingdom Melodies")
@@ -295,25 +251,33 @@ internal class MusicHarvester : BaseHarvester
                 return false;
             }
 
-            // Save each disc's tracks separately
-            foreach (var disc in discTracksMap)
+            // Save to database via persister if available, otherwise save to files
+            if (dataPersister != null)
             {
-                var discDir = $"{dir}/{disc.Key}";
-                var discFile = $"{discDir}/tracks.json";
-                SaveMusicTracks(discDir, discFile, disc.Value);
-                
-                // Save disc info (name) if available
-                if (discNamesMap.TryGetValue(disc.Key, out var discName))
-                {
-                    var discInfoFile = $"{discDir}/disc.json";
-                    var discInfo = new { Code = disc.Key, Name = discName };
-                    File.WriteAllText(discInfoFile, JsonSerializer.Serialize(discInfo));
-                }
+                await dataPersister.SaveMelodyMusicTracks(publicationCode, discTracksMap, discNamesMap);
             }
+            else
+            {
+                // Save each disc's tracks separately
+                foreach (var disc in discTracksMap)
+                {
+                    var discDir = $"{dir}/{disc.Key}";
+                    var discFile = $"{discDir}/tracks.json";
+                    SaveMusicTracks(discDir, discFile, disc.Value);
+                    
+                    // Save disc info (name) if available
+                    if (discNamesMap.TryGetValue(disc.Key, out var discName))
+                    {
+                        var discInfoFile = $"{discDir}/disc.json";
+                        var discInfo = new { Code = disc.Key, Name = discName };
+                        File.WriteAllText(discInfoFile, JsonSerializer.Serialize(discInfo));
+                    }
+                }
 
-            // Also save a main tracks.json with all tracks for backward compatibility
-            var allTracks = discTracksMap.Values.SelectMany(t => t).OrderBy(t => t.Number).ToList();
-            SaveMusicTracks(dir, $"{dir}/tracks.json", allTracks);
+                // Also save a main tracks.json with all tracks for backward compatibility
+                var allTracks = discTracksMap.Values.SelectMany(t => t).OrderBy(t => t.Number).ToList();
+                SaveMusicTracks(dir, $"{dir}/tracks.json", allTracks);
+            }
             
             return true;
         }
@@ -351,7 +315,15 @@ internal class MusicHarvester : BaseHarvester
                 }
             }
 
-            SaveMusicTracks(dir, file, musicTracks);
+            // Save to database via persister if available, otherwise save to files
+            if (dataPersister != null)
+            {
+                await dataPersister.SaveMusicTracks(publicationCode, languageCode, musicTracks);
+            }
+            else
+            {
+                SaveMusicTracks(dir, file, musicTracks);
+            }
             return true;
         }
     }
