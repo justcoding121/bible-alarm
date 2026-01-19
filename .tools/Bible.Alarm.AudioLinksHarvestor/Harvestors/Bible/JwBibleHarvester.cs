@@ -78,14 +78,13 @@ internal class JwBibleHarvester : BaseHarvester
     }
 
     /// <summary>
-    /// Filters discovered languages by excluding sign languages, excluding English (E) since it's already saved,
-    /// and applying test run filter if needed.
+    /// Filters discovered languages by excluding sign languages and applying test run filter if needed.
+    /// Note: English (E) is included in processing to ensure it's added to languageCodeToEditionsMapping.
     /// </summary>
     private Dictionary<string, LanguageInfo>? FilterLanguages(Dictionary<string, LanguageInfo> discoveredLanguages, bool isTestRun)
     {
         var filteredLanguages = discoveredLanguages
             .Where(lang => !ShouldSkipLanguage(lang.Value.Name))
-            .Where(lang => lang.Key != "E") // Exclude English (E) since we already saved language discovery for it
             .ToDictionary(x => x.Key, x => x.Value);
 
         if (filteredLanguages.Count == 0)
@@ -238,7 +237,7 @@ internal class JwBibleHarvester : BaseHarvester
         var discoveredLanguages = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
         
         // Use alllangs=1 and langwritten=E for discovery
-        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNum}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
+        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={bookNum}&fileformat=MP3&alllangs=1&langwritten=E";
 
         var jsonString = await DownloadUtility.GetAsync(harvestLink);
         using var doc = JsonDocument.Parse(jsonString);
@@ -287,7 +286,7 @@ internal class JwBibleHarvester : BaseHarvester
 
     /// <summary>
     /// Saves language discovery results for English (E) as JSON.
-    /// Structure: media/Audio/Bible/E/{publicationCode}/language-discovery.json
+    /// Structure: media/Bible/E/{publicationCode}/language-discovery.json
     /// </summary>
     private async Task SaveLanguageDiscoveryForEnglish(
         string publicationCode,
@@ -295,7 +294,7 @@ internal class JwBibleHarvester : BaseHarvester
     {
         // Normalize publication code for path consistency
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-        var englishDir = $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/E/{normalizedPublicationCode}";
+        var englishDir = $"{DirectoryHelper.IndexDirectory}/media/Bible/E/{normalizedPublicationCode}";
         DirectoryHelper.Ensure(englishDir);
 
         var languageDiscoveryFile = Path.Combine(englishDir, "language-discovery.json");
@@ -328,7 +327,7 @@ internal class JwBibleHarvester : BaseHarvester
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
         
-        var sectionsDirectory = $"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{normalizedLanguageCode}/{normalizedPublicationCode}";
+        var sectionsDirectory = $"{DirectoryHelper.IndexDirectory}/media/Bible/{normalizedLanguageCode}/{normalizedPublicationCode}";
         var sectionsIndex = $"{sectionsDirectory}/sections.json";
 
         var sectionNumberSectionMap = new Dictionary<int, BiblePublicationSection>();
@@ -648,8 +647,7 @@ internal class JwBibleHarvester : BaseHarvester
     private static void AdvanceToNextSection(ref int sectionNumber, ref string harvestLink, string publicationCode, string languageCode)
     {
         sectionNumber++;
-        // Use txtCMSLang={languageCode} to get localized publication names, section names, and track titles
-        harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}&txtCMSLang={languageCode}";
+        harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}";
     }
 
     private static void SaveSectionsAndTracks(

@@ -116,6 +116,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             () => stateHolder.Music, m => stateHolder.Music = m, scheduleId, isNewSchedule, stateHolder.MusicUpdated);
         SelectSongPublicationCommand = commandInitializer.CreateSelectSongPublicationCommand(
             () => stateHolder.Music, m => stateHolder.Music = m, scheduleId, isNewSchedule, stateHolder.MusicUpdated);
+        SelectMusicSectionCommand = commandInitializer.CreateSelectMusicSectionCommand(
+            () => stateHolder.Music, m => stateHolder.Music = m, scheduleId, isNewSchedule, stateHolder.MusicUpdated);
         SelectTrackCommand = commandInitializer.CreateSelectTrackCommand(
             () => stateHolder.Music, m => stateHolder.Music = m, scheduleId, isNewSchedule, stateHolder.MusicUpdated);
         SelectMusicLanguageCommand = commandInitializer.CreateSelectMusicLanguageCommand(
@@ -199,6 +201,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     public ICommand SelectMusicTypeCommand { get; private set; } = null!;
     public ICommand SelectMusicLanguageCommand { get; private set; } = null!;
     public ICommand SelectSongPublicationCommand { get; private set; } = null!;
+    public ICommand SelectMusicSectionCommand { get; private set; } = null!;
     public ICommand SelectTrackCommand { get; private set; } = null!;
     public ICommand ToggleRepeatCommand { get; private set; } = null!;
     public ICommand ToggleMusicEnabledCommand { get; private set; } = null!;
@@ -235,6 +238,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     public string MusicLanguageDisplayText => displayTextProvider.GetMusicLanguageDisplayText();
     public string SongPublicationDisplayText => displayTextProvider.GetSongPublicationDisplayText();
     public async Task<string> GetSongPublicationDisplayTextAsync() => await displayTextProvider.GetSongPublicationDisplayTextAsync();
+    public bool IsMusicSectionVisible => displayTextProvider.GetIsMusicSectionVisible();
+    public string MusicSectionDisplayText => displayTextProvider.GetMusicSectionDisplayText();
     public string TrackDisplayText => displayTextProvider.GetTrackDisplayText();
     public async Task<string> GetTrackDisplayTextAsync() => await displayTextProvider.GetTrackDisplayTextAsync();
     public bool IsRepeatEnabled => displayTextProvider.GetIsRepeatEnabled();

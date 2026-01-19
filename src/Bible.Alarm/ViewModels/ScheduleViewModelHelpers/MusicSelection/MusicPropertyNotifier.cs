@@ -31,6 +31,8 @@ public sealed class MusicPropertyNotifier
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicLanguageDisplayText));
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsSongPublicationVisible));
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
+        onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsMusicSectionVisible));
+        onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsRepeatEnabled));
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.HasTrackSelected));
@@ -53,6 +55,7 @@ public sealed class MusicPropertyNotifier
         bool musicTypeChanged,
         bool languageCodeChanged,
         bool publicationCodeChanged,
+        bool sectionNumberChanged,
         bool trackNumberChanged,
         bool repeatChanged,
         MusicType? musicType,
@@ -62,7 +65,8 @@ public sealed class MusicPropertyNotifier
         var notifyMusicType = musicTypeChanged;
         var notifyLanguage = musicTypeChanged || languageCodeChanged;
         var notifySongPublication = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
-        var notifyTrack = musicTypeChanged || languageCodeChanged || publicationCodeChanged || trackNumberChanged;
+        var notifySection = musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged;
+        var notifyTrack = musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged;
 
         // Music type change cascades to all below (including flow direction for RTL support)
         if (notifyMusicType)
@@ -70,42 +74,57 @@ public sealed class MusicPropertyNotifier
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicTypeDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsMusicLanguageVisible));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsSongPublicationVisible));
+            onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsMusicSectionVisible));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.ContentFlowDirection));
 
             // Clear cached values when music type changes
             displayTextProvider.ClearCaches();
 
-            // For vocals: notify language, song section, and track
+            // For vocals: notify language, music publication, section, and track
             // For melodies: only notify track
             if (musicType == MusicType.VocalMusic)
             {
                 onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicLanguageDisplayText));
                 onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
+                onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
 
                 // Signal to scroll to bottom when user selects vocals (only if music is enabled)
                 setShouldScrollToBottom?.Invoke(true);
             }
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
         }
-        // Language change (vocals only) cascades to song section, track, and flow direction
+        // Language change (vocals only) cascades to music publication, section, track, and flow direction
         else if (notifyLanguage && musicType == MusicType.VocalMusic)
         {
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.ContentFlowDirection));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicLanguageDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
+            onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsMusicSectionVisible));
+            onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
 
-            // Clear song section and track caches when language changes
+            // Clear music publication, section, and track caches when language changes
             displayTextProvider.ClearSongPublicationCache();
             displayTextProvider.ClearTrackCache();
         }
-        // Song section change cascades to track
+        // Music publication change cascades to section and track
         else if (notifySongPublication)
         {
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
+            onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsMusicSectionVisible));
+            onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
 
-            // Clear track cache when song section changes
+            // Clear section and track caches when music publication changes
+            displayTextProvider.ClearTrackCache();
+        }
+        // Section change cascades to track
+        else if (notifySection)
+        {
+            onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
+            onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
+
+            // Clear track cache when section changes
             displayTextProvider.ClearTrackCache();
         }
         // Track change only affects itself
@@ -118,7 +137,7 @@ public sealed class MusicPropertyNotifier
         }
 
         // Always notify repeat and has track selected if any music property changed
-        if (notifyMusicType || notifyLanguage || notifySongPublication || notifyTrack || repeatChanged)
+        if (notifyMusicType || notifyLanguage || notifySongPublication || notifySection || notifyTrack || repeatChanged)
         {
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsRepeatEnabled));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.HasTrackSelected));

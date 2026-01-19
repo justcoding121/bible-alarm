@@ -96,6 +96,8 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <!-- Divider -->
                 <BoxView Grid.Row="0"
@@ -229,7 +231,7 @@
                          Margin="0"
                          HorizontalOptions="Fill"
                          IsVisible="{Binding IsSongPublicationVisible}" />
-                <!-- Song Section Row (only visible when Music Type is Vocals) -->
+                <!-- Music Publication Selection Row -->
                 <core:SfEffectsView Grid.Row="5"
                                      TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                      TouchUpEffects="None"
@@ -291,9 +293,73 @@
                          HeightRequest="1"
                          BackgroundColor="{DynamicResource DividerColor}"
                          Margin="0"
+                         HorizontalOptions="Fill"
+                         IsVisible="{Binding IsMusicSectionVisible}" />
+                <!-- Music Section Row (only visible when sections exist for the publication) -->
+                <core:SfEffectsView Grid.Row="7"
+                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                     TouchUpEffects="None"
+                                     RippleBackground="{StaticResource PrimaryColor}"
+                                     HighlightBackground="{StaticResource PrimaryLightColor}"
+                                     RippleAnimationDuration="200"
+                                     ShouldIgnoreTouches="False"
+                                     IsVisible="{Binding IsMusicSectionVisible}"
+                                     FlowDirection="{Binding ContentFlowDirection}">
+                    <core:SfEffectsView.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SelectMusicSectionCommand}"
+                                              NumberOfTapsRequired="1" />
+                    </core:SfEffectsView.GestureRecognizers>
+                    <Grid x:Name="MusicSectionButton"
+                          Margin="0"
+                          Padding="16,16"
+                          BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                          MinimumHeightRequest="56"
+                          HorizontalOptions="Fill"
+                          VerticalOptions="Fill">
+                        <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0"
+                           FontSize="{DynamicResource LargeFontSize}"
+                           FontAttributes="None"
+                           HorizontalOptions="Fill"
+                           HorizontalTextAlignment="Start"
+                           LineBreakMode="WordWrap"
+                           MinimumHeightRequest="24"
+                           Text="{Binding MusicSectionDisplayText}"
+                           TextColor="{StaticResource PrimaryColor}"
+                           VerticalOptions="Center"
+                           VerticalTextAlignment="Center" />
+                    <Border Grid.Column="1"
+                            BackgroundColor="Transparent"
+                            MinimumHeightRequest="24"
+                            HorizontalOptions="End"
+                            Margin="8,0,0,0"
+                            StrokeThickness="0"
+                            VerticalOptions="Center"
+                            MinimumWidthRequest="24">
+                        <Label
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="{DynamicResource IconSmallFontSize}"
+                            HorizontalOptions="Center"
+                            HorizontalTextAlignment="Center"
+                            InputTransparent="True"
+                            Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            VerticalOptions="Center"
+                            VerticalTextAlignment="Center" />
+                    </Border>
+                    </Grid>
+                </core:SfEffectsView>
+                <!-- Divider -->
+                <BoxView Grid.Row="8"
+                         HeightRequest="1"
+                         BackgroundColor="{DynamicResource DividerColor}"
+                         Margin="0"
                          HorizontalOptions="Fill" />
                 <!-- Track Name Row -->
-                <core:SfEffectsView Grid.Row="7"
+                <core:SfEffectsView Grid.Row="9"
                                      TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                      TouchUpEffects="None"
                                      RippleBackground="{StaticResource PrimaryColor}"

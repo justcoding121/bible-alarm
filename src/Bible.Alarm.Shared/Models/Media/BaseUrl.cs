@@ -9,8 +9,8 @@ namespace Bible.Alarm.Shared.Models.Media;
 
     [Table("ApiUrls")]
     [Index(nameof(Url), IsUnique = true)]
-[Index(nameof(PathPrefix), IsUnique = true)]
-public sealed class BaseUrl : IComparable
+    [Index(nameof(PathPrefix))]
+    public sealed class BaseUrl : IComparable
 {
     [Key]
     public int Id { get; set; }

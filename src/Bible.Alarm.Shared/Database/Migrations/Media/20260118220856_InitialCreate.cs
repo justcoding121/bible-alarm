@@ -200,8 +200,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
             migrationBuilder.CreateIndex(
                 name: "IX_ApiUrls_PathPrefix",
                 table: "ApiUrls",
-                column: "PathPrefix",
-                unique: true);
+                column: "PathPrefix");
 
             migrationBuilder.CreateIndex(
                 name: "IX_BiblePublicationBaseUrl_BiblePublicationsId",

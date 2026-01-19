@@ -53,6 +53,9 @@ public class Program
             .MinimumLevel.Override("Bible.Alarm.AudioLinksHarvestor.Program", LogEventLevel.Information)
             // Show Information level for all harvesters to track progress
             .MinimumLevel.Override("Bible.Alarm.AudioLinksHarvestor.Harvestors", LogEventLevel.Information)
+            // Hide EF Core query logs
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
             .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 
@@ -62,6 +65,7 @@ public class Program
             builder.AddSerilog(Log.Logger);
             // Entity Framework Core logs only show warnings and errors
             builder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+            builder.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
         });
         services.AddSingleton(_ => Log.Logger);
 
@@ -243,12 +247,12 @@ public class Program
         ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping,
         IReadOnlyDictionary<(string LanguageCode, string PublicationCode), string>? localizedPublicationNames)
     {
-        if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible"))
+        if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Bible"))
         {
-            Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible");
+            Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Bible");
         }
 
-        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/languages.json", JsonSerializer.Serialize(
+        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Bible/languages.json", JsonSerializer.Serialize(
             languageCodeToEditionsMapping.Select(x =>
             {
                 var info = languageCodeToInfoMappings[x.Key];
@@ -265,12 +269,12 @@ public class Program
             // Normalize language code for path consistency (cross-platform safety)
             var normalizedLanguageCode = languageEditionsMap.Key.ToUpperInvariant();
             
-            if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{normalizedLanguageCode}"))
+            if (!Directory.Exists($"{DirectoryHelper.IndexDirectory}/media/Bible/{normalizedLanguageCode}"))
             {
-                Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{normalizedLanguageCode}");
+                Directory.CreateDirectory($"{DirectoryHelper.IndexDirectory}/media/Bible/{normalizedLanguageCode}");
             }
 
-            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Bible/{normalizedLanguageCode}/publications.json", JsonSerializer.Serialize(
+            File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Bible/{normalizedLanguageCode}/publications.json", JsonSerializer.Serialize(
             languageEditionsMap.Value.Select(publicationCode =>
             {
                 // Use localized publication name if available, otherwise fall back to English name

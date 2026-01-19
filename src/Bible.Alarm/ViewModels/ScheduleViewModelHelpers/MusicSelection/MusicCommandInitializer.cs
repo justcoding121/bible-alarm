@@ -147,6 +147,39 @@ public sealed class MusicCommandInitializer
         });
     }
 
+    public ICommand CreateSelectMusicSectionCommand(Func<AlarmMusic?> getMusic, Action<AlarmMusic?> setMusic, int scheduleId, bool isNewSchedule, bool musicUpdated)
+    {
+        return new AsyncRelayCommand(async () =>
+        {
+            // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
+            // No need to query AlarmDB again - only media index DB queries are needed for selection lists
+            var currentSchedule = state.Value.CurrentSchedule;
+            var loadedMusic = scheduleSelectionService.LoadMusicForSelection(
+                scheduleId,
+                isNewSchedule,
+                getMusic(),
+                currentSchedule?.MusicType,
+                currentSchedule?.MusicPublicationCode,
+                currentSchedule?.MusicLanguageCode,
+                currentSchedule?.MusicTrackNumber,
+                currentSchedule?.MusicRepeat);
+
+            setMusic(loadedMusic);
+
+            // Create view model and open modal
+            // Reuse SectionSelectionViewModel for music publications since they use the same BiblePublicationSection structure
+            var sectionSelectionViewModel = serviceProvider.GetRequiredService<Bible.Alarm.ViewModels.BiblePublications.SectionSelectionViewModel>();
+            await navigationService.OpenSectionSelectionModalAsync(sectionSelectionViewModel);
+
+            // Map entity to DTO before dispatching
+            if (loadedMusic != null)
+            {
+                var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
+                dispatcher.Dispatch(new SongPublicationSelectionAction(musicStateItem));
+            }
+        });
+    }
+
     public ICommand CreateSelectTrackCommand(Func<AlarmMusic?> getMusic, Action<AlarmMusic?> setMusic, int scheduleId, bool isNewSchedule, bool musicUpdated)
     {
         return new AsyncRelayCommand(async () =>

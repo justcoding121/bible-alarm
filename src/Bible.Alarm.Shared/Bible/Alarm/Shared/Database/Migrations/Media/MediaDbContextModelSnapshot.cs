@@ -50,8 +50,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PathPrefix")
-                        .IsUnique();
+                    b.HasIndex("PathPrefix");
 
                     b.HasIndex("Url")
                         .IsUnique();

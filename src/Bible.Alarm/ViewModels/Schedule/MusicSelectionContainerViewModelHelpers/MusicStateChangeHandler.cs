@@ -202,16 +202,10 @@ public sealed class MusicStateChangeHandler
         Action<bool> setShouldScrollToBottom,
         Action<string> onPropertyChanged)
     {
-        var (musicTypeChanged, languageCodeChanged, publicationCodeChanged, trackNumberChanged, repeatChanged) =
+        var (musicTypeChanged, languageCodeChanged, publicationCodeChanged, sectionNumberChanged, trackNumberChanged, repeatChanged) =
             stateTracker.DetectChanges(currentSchedule);
 
-        // Determine which properties need to be notified (cascading logic)
-        var notifyMusicType = musicTypeChanged;
-        var notifyLanguage = musicTypeChanged || languageCodeChanged;
-        var notifySongPublication = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
-        var notifyTrack = musicTypeChanged || languageCodeChanged || publicationCodeChanged || trackNumberChanged;
-
-        if (notifyMusicType || notifyLanguage || notifySongPublication || notifyTrack || repeatChanged)
+        if (musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged || repeatChanged)
         {
             // Update last values immediately to prevent duplicate detection
             stateTracker.UpdateFromSchedule(currentSchedule);
@@ -232,10 +226,11 @@ public sealed class MusicStateChangeHandler
             {
                 isPropertyChangeScheduled = false;
                 propertyNotifier.NotifyPropertiesChanged(
-                    notifyMusicType,
-                    notifyLanguage,
-                    notifySongPublication,
-                    notifyTrack,
+                    musicTypeChanged,
+                    languageCodeChanged,
+                    publicationCodeChanged,
+                    sectionNumberChanged,
+                    trackNumberChanged,
                     repeatChanged,
                     capturedMusicType,
                     shouldScroll => { if (capturedMusicEnabled) setShouldScrollToBottom(shouldScroll); });
@@ -297,6 +292,9 @@ public sealed class MusicStateChangeHandler
         var musicTypeChanged = stateHolder.Music?.MusicType != newMusic.MusicType;
         var languageCodeChanged = stateHolder.Music?.LanguageCode != newMusic.LanguageCode;
         var publicationCodeChanged = stateHolder.Music?.PublicationCode != newMusic.PublicationCode;
+        // Note: Section number is not stored in AlarmMusic entity, so we check from CurrentSchedule
+        var currentSchedule = state.Value.CurrentSchedule;
+        var sectionNumberChanged = currentSchedule?.MusicSectionNumber != stateTracker.LastMusicSectionNumber;
         var trackNumberChanged = stateHolder.Music?.TrackNumber != newMusic.TrackNumber;
 
         MainThread.BeginInvokeOnMainThread(() =>
@@ -310,6 +308,7 @@ public sealed class MusicStateChangeHandler
                 musicTypeChanged,
                 languageCodeChanged,
                 publicationCodeChanged,
+                sectionNumberChanged,
                 trackNumberChanged,
                 false,
                 newMusic.MusicType);

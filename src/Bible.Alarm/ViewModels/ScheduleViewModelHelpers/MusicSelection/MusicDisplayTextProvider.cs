@@ -87,7 +87,7 @@ public sealed class MusicDisplayTextProvider
 
     public bool GetIsSongPublicationVisible()
     {
-        // Songbook (publication) is always visible for both Music and Vocal Music types
+        // Music Publication Selection is always visible for both Music and Vocal Music types
         var currentSchedule = state.Value.CurrentSchedule;
         return currentSchedule != null && currentSchedule.MusicType.HasValue;
     }
@@ -96,11 +96,21 @@ public sealed class MusicDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
         // Language row is visible only when the selected music publication has a language
-        // This means VocalMusic type (which has LanguageId set)
-        return currentSchedule != null &&
-               currentSchedule.MusicType.HasValue &&
-               currentSchedule.MusicType.Value == MusicType.VocalMusic &&
-               !string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
+        // Check if music type is VocalMusic and if language exists for the publication
+        if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
+        {
+            return false;
+        }
+
+        // For VocalMusic type, language row is visible only if language exists for the publication
+        if (currentSchedule.MusicType.Value == MusicType.VocalMusic)
+        {
+            // Language row is visible if language code exists (indicating the publication has a language)
+            return !string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
+        }
+
+        // For Music type (Instrumental), no language row
+        return false;
     }
 
     public string GetMusicLanguageDisplayText()
@@ -289,6 +299,53 @@ public sealed class MusicDisplayTextProvider
         return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
             ? FlowDirection.RightToLeft
             : FlowDirection.LeftToRight;
+    }
+
+    /// <summary>
+    /// Determines if the music section row should be visible.
+    /// Section row is visible when:
+    /// - Music type is set
+    /// - Publication code is set
+    /// - For VocalMusic: language code is set
+    /// - Sections exist for the publication (indicated by MusicSectionNumber being set or sections being available)
+    /// </summary>
+    public bool GetIsMusicSectionVisible()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || !currentSchedule.MusicType.HasValue || string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
+        {
+            return false;
+        }
+
+        // For VocalMusic, we need language code
+        if (currentSchedule.MusicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(currentSchedule.MusicLanguageCode))
+        {
+            return false;
+        }
+
+        // Section row is visible if section number is set (indicating sections exist for this publication)
+        // This will be populated when sections are checked during publication selection
+        return currentSchedule.MusicSectionNumber.HasValue || !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionName);
+    }
+
+    /// <summary>
+    /// Gets the display text for the music section.
+    /// Returns the section name if available, otherwise empty string.
+    /// </summary>
+    public string GetMusicSectionDisplayText()
+    {
+        if (!GetIsMusicSectionVisible())
+        {
+            return string.Empty;
+        }
+
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.MusicSectionName))
+        {
+            return string.Empty;
+        }
+
+        return currentSchedule.MusicSectionName;
     }
 }
 

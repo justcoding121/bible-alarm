@@ -13,6 +13,7 @@ public sealed class MusicStateTracker
     // Track last values from CurrentSchedule to detect changes
     private MusicType? lastScheduleMusicType;
     private int? lastScheduleMusicTrackNumber;
+    private int? lastScheduleMusicSectionNumber;
     private string? lastScheduleMusicPublicationCode;
     private string? lastScheduleMusicLanguageCode;
     private bool lastScheduleMusicRepeat;
@@ -22,6 +23,7 @@ public sealed class MusicStateTracker
 
     public MusicType? LastScheduleMusicType => lastScheduleMusicType;
     public int? LastScheduleMusicTrackNumber => lastScheduleMusicTrackNumber;
+    public int? LastMusicSectionNumber => lastScheduleMusicSectionNumber;
     public string? LastScheduleMusicPublicationCode => lastScheduleMusicPublicationCode;
     public string? LastScheduleMusicLanguageCode => lastScheduleMusicLanguageCode;
     public bool LastScheduleMusicRepeat => lastScheduleMusicRepeat;
@@ -41,6 +43,7 @@ public sealed class MusicStateTracker
 
         lastScheduleMusicType = currentSchedule.MusicType;
         lastScheduleMusicTrackNumber = currentSchedule.MusicTrackNumber;
+        lastScheduleMusicSectionNumber = currentSchedule.MusicSectionNumber;
         lastScheduleMusicPublicationCode = currentSchedule.MusicPublicationCode;
         lastScheduleMusicLanguageCode = currentSchedule.MusicLanguageCode;
         lastScheduleMusicRepeat = currentSchedule.MusicRepeat ?? false;
@@ -61,6 +64,7 @@ public sealed class MusicStateTracker
 
         lastScheduleMusicType = currentSchedule.MusicType;
         lastScheduleMusicTrackNumber = currentSchedule.MusicTrackNumber;
+        lastScheduleMusicSectionNumber = currentSchedule.MusicSectionNumber;
         lastScheduleMusicPublicationCode = currentSchedule.MusicPublicationCode;
         lastScheduleMusicLanguageCode = currentSchedule.MusicLanguageCode;
         lastScheduleMusicRepeat = currentSchedule.MusicRepeat ?? false;
@@ -72,20 +76,21 @@ public sealed class MusicStateTracker
     /// <summary>
     /// Detects changes in music properties from CurrentSchedule.
     /// </summary>
-    public (bool musicTypeChanged, bool languageCodeChanged, bool publicationCodeChanged, bool trackNumberChanged, bool repeatChanged) DetectChanges(ScheduleStateItem? currentSchedule)
+    public (bool musicTypeChanged, bool languageCodeChanged, bool publicationCodeChanged, bool sectionNumberChanged, bool trackNumberChanged, bool repeatChanged) DetectChanges(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule == null)
         {
-            return (false, false, false, false, false);
+            return (false, false, false, false, false, false);
         }
 
         var musicTypeChanged = lastScheduleMusicType != currentSchedule.MusicType;
         var languageCodeChanged = lastScheduleMusicLanguageCode != currentSchedule.MusicLanguageCode;
         var publicationCodeChanged = lastScheduleMusicPublicationCode != currentSchedule.MusicPublicationCode;
+        var sectionNumberChanged = lastScheduleMusicSectionNumber != currentSchedule.MusicSectionNumber;
         var trackNumberChanged = lastScheduleMusicTrackNumber != currentSchedule.MusicTrackNumber;
         var repeatChanged = lastScheduleMusicRepeat != (currentSchedule.MusicRepeat ?? false);
 
-        return (musicTypeChanged, languageCodeChanged, publicationCodeChanged, trackNumberChanged, repeatChanged);
+        return (musicTypeChanged, languageCodeChanged, publicationCodeChanged, sectionNumberChanged, trackNumberChanged, repeatChanged);
     }
 
     /// <summary>

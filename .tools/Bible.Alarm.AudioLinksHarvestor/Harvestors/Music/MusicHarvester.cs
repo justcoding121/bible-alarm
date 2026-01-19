@@ -77,7 +77,7 @@ internal class MusicHarvester : BaseHarvester
         string jsonString;
         try
         {
-            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?booknum=0&output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E&txtCMSLang=E";
+            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?booknum=0&output=json&pub={publicationCode}&fileformat=MP3&alllangs=1&langwritten=E";
             jsonString = await DownloadUtility.GetAsync(harvestLink);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
@@ -215,11 +215,11 @@ internal class MusicHarvester : BaseHarvester
                 };
             }).OrderBy(x => x.Code));
 
-        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Music/Vocals/languages.json", languagesJson);
+        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/languages.json", languagesJson);
     }
 
     private static Dictionary<string, string> melodyPublicationCodeToNameMappings = new([
-        new KeyValuePair<string, string>("iam","Sing Praises to Jehovah (1984)")
+        new KeyValuePair<string, string>("iam","Kingdom Melodies")
     ]);
 
     internal async Task HarvestMusicMelodyLinks(bool isTestRun = false)
@@ -254,7 +254,7 @@ internal class MusicHarvester : BaseHarvester
             await HarvestMusicLinks(publication.Key, downloadCodes);
         }
 
-        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Audio/Music/Melodies/publications.json", JsonSerializer.Serialize(
+        File.WriteAllText($"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/publications.json", JsonSerializer.Serialize(
         melodyPublicationCodeToNameMappings.Select(x => new
         Publication
         {
@@ -266,61 +266,115 @@ internal class MusicHarvester : BaseHarvester
     private async Task<bool> HarvestMusicLinks(string publicationCode, List<string> publicationDownloadCodes, string? languageCode = null)
     {
         var dir = GetMusicDirectory(publicationCode, languageCode);
-        var file = $"{dir}/tracks.json";
 
-        var trackNumber = 1;
-        var musicTracks = new List<MusicTrack>();
-        string? localizedPubName = null;
-
-        foreach (var publicationDownloadCode in publicationDownloadCodes)
+        // For iam (Kingdom Melodies), save tracks grouped by disc
+        if (publicationCode == "iam" && languageCode == null)
         {
-            var result = await FetchAndProcessMusicFiles(publicationDownloadCode, publicationCode, languageCode, trackNumber, musicTracks);
-            trackNumber = result.TrackNumber;
+            var discTracksMap = new Dictionary<string, List<MusicTrack>>();
+            var discNamesMap = new Dictionary<string, string>();
 
-            // Capture localized publication name (only need it once per publication/language combo)
-            if (localizedPubName == null && result.LocalizedPubName != null)
+            foreach (var publicationDownloadCode in publicationDownloadCodes)
             {
-                localizedPubName = result.LocalizedPubName;
+                var discTracks = new List<MusicTrack>();
+                var result = await FetchAndProcessMusicFiles(publicationDownloadCode, publicationCode, languageCode, 1, discTracks);
+                
+                if (discTracks.Count > 0)
+                {
+                    discTracksMap[publicationDownloadCode] = discTracks;
+                    
+                    // Store disc name if available
+                    if (result.DiscName != null)
+                    {
+                        discNamesMap[publicationDownloadCode] = result.DiscName;
+                    }
+                }
             }
-        }
 
-        if (musicTracks.Count == 0)
-        {
-            return false;
-        }
-
-        // Store localized publication name for vocal music
-        if (languageCode != null && !string.IsNullOrEmpty(localizedPubName))
-        {
-            lock (localizedVocalNames)
+            if (discTracksMap.Count == 0)
             {
-                localizedVocalNames[(languageCode, publicationCode)] = localizedPubName;
+                return false;
             }
-        }
 
-        SaveMusicTracks(dir, file, musicTracks);
-        return true;
+            // Save each disc's tracks separately
+            foreach (var disc in discTracksMap)
+            {
+                var discDir = $"{dir}/{disc.Key}";
+                var discFile = $"{discDir}/tracks.json";
+                SaveMusicTracks(discDir, discFile, disc.Value);
+                
+                // Save disc info (name) if available
+                if (discNamesMap.TryGetValue(disc.Key, out var discName))
+                {
+                    var discInfoFile = $"{discDir}/disc.json";
+                    var discInfo = new { Code = disc.Key, Name = discName };
+                    File.WriteAllText(discInfoFile, JsonSerializer.Serialize(discInfo));
+                }
+            }
+
+            // Also save a main tracks.json with all tracks for backward compatibility
+            var allTracks = discTracksMap.Values.SelectMany(t => t).OrderBy(t => t.Number).ToList();
+            SaveMusicTracks(dir, $"{dir}/tracks.json", allTracks);
+            
+            return true;
+        }
+        else
+        {
+            // Original logic for other publications
+            var file = $"{dir}/tracks.json";
+            var trackNumber = 1;
+            var musicTracks = new List<MusicTrack>();
+            string? localizedPubName = null;
+
+            foreach (var publicationDownloadCode in publicationDownloadCodes)
+            {
+                var result = await FetchAndProcessMusicFiles(publicationDownloadCode, publicationCode, languageCode, trackNumber, musicTracks);
+                trackNumber = result.TrackNumber;
+
+                // Capture localized publication name (only need it once per publication/language combo)
+                if (localizedPubName == null && result.LocalizedPubName != null)
+                {
+                    localizedPubName = result.LocalizedPubName;
+                }
+            }
+
+            if (musicTracks.Count == 0)
+            {
+                return false;
+            }
+
+            // Store localized publication name for vocal music
+            if (languageCode != null && !string.IsNullOrEmpty(localizedPubName))
+            {
+                lock (localizedVocalNames)
+                {
+                    localizedVocalNames[(languageCode, publicationCode)] = localizedPubName;
+                }
+            }
+
+            SaveMusicTracks(dir, file, musicTracks);
+            return true;
+        }
     }
 
     private static string GetMusicDirectory(string publicationCode, string? languageCode)
     {
-        // Unified structure: media/Audio/Music/{Vocals|Melodies}/{languageCode?}/{publicationCode}
+        // Unified structure: media/Music/{Vocals|Melodies}/{languageCode?}/{publicationCode}
         if (languageCode == null)
         {
             // Melodies: no language
             var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-            return $"{DirectoryHelper.IndexDirectory}/media/Audio/Music/Melodies/{normalizedPublicationCode}";
+            return $"{DirectoryHelper.IndexDirectory}/media/Music/Melodies/{normalizedPublicationCode}";
         }
         else
         {
             // Vocals: with language
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
             var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-            return $"{DirectoryHelper.IndexDirectory}/media/Audio/Music/Vocals/{normalizedLanguageCode}/{normalizedPublicationCode}";
+            return $"{DirectoryHelper.IndexDirectory}/media/Music/Vocals/{normalizedLanguageCode}/{normalizedPublicationCode}";
         }
     }
 
-    private async Task<(int TrackNumber, string? LocalizedPubName)> FetchAndProcessMusicFiles(
+    private async Task<(int TrackNumber, string? LocalizedPubName, string? DiscName)> FetchAndProcessMusicFiles(
         string publicationDownloadCode,
         string publicationCode,
         string? languageCode,
@@ -335,12 +389,12 @@ internal class MusicHarvester : BaseHarvester
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
         {
-            return (trackNumber, null);
+            return (trackNumber, null, null);
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to fetch tracks for publication {PublicationCode}. Skipping.", publicationDownloadCode);
-            return (trackNumber, null);
+            return (trackNumber, null, null);
         }
 
         // Parse and process within the same scope to keep JsonDocument alive
@@ -349,27 +403,38 @@ internal class MusicHarvester : BaseHarvester
 
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
         {
-            return (trackNumber, null);
+            return (trackNumber, null, null);
         }
 
         var lc = languageCode ?? "E";
         if (!filesElement.TryGetProperty(lc, out var languageFiles) ||
             !languageFiles.TryGetProperty("MP3", out var musicFiles))
         {
-            return (trackNumber, null);
+            return (trackNumber, null, null);
         }
 
         // Extract localized publication name from pubName field
         string? localizedPubName = null;
+        string? discName = null;
         if (root.TryGetProperty("pubName", out var pubNameElement))
         {
             var rawName = pubNameElement.GetString();
             // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
-            localizedPubName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+            var decodedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+            
+            // For iam (Kingdom Melodies), pubName is the disc name (e.g., "Kingdom Melodies, Volume 1")
+            if (publicationCode == "iam" && languageCode == null)
+            {
+                discName = decodedName;
+            }
+            else
+            {
+                localizedPubName = decodedName;
+            }
         }
 
         var newTrackNumber = ProcessMusicFiles(musicFiles, publicationDownloadCode, languageCode, trackNumber, musicTracks);
-        return (newTrackNumber, localizedPubName);
+        return (newTrackNumber, localizedPubName, discName);
     }
 
     private static string BuildMusicHarvestLink(string publicationDownloadCode, string? languageCode)

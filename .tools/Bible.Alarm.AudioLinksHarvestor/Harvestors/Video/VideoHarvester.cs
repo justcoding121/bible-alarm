@@ -85,7 +85,7 @@ internal class VideoHarvester : BaseHarvester
         try
         {
             // Use track=1 to get all available languages
-            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&alllangs=1&track=1&langwritten=E&txtCMSLang=E";
+            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={publicationCode}&fileformat=MP4&alllangs=1&track=1&langwritten=E";
             jsonString = await DownloadUtility.GetAsync(harvestLink);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))

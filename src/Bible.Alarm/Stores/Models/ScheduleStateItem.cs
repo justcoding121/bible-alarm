@@ -54,6 +54,7 @@ public sealed class ScheduleStateItem : IComparable
     public MusicType? MusicType { get; set; }
     public string? MusicPublicationCode { get; set; }
     public string? MusicLanguageCode { get; set; }
+    public int? MusicSectionNumber { get; set; }
     public int? MusicTrackNumber { get; set; }
     public bool? MusicRepeat { get; set; }
 
@@ -110,11 +111,18 @@ public sealed class ScheduleStateItem : IComparable
     public string? MusicLanguageDirection { get; set; }
 
     /// <summary>
-    /// Music publication name (song section name) for display purposes (for vocals only).
+    /// Music publication name for display purposes.
     /// This is populated during bootstrap from vocal music service.
     /// Not persisted to database.
     /// </summary>
     public string? MusicPublicationName { get; set; }
+
+    /// <summary>
+    /// Music section name for display purposes (for publications with sections).
+    /// This is populated during bootstrap from music section service.
+    /// Not persisted to database.
+    /// </summary>
+    public string? MusicSectionName { get; set; }
 
     /// <summary>
     /// Music track name for display purposes.
