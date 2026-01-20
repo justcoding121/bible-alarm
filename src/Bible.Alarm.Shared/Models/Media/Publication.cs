@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Bible.Alarm.Shared.Models.Media;
 
+namespace Bible.Alarm.Shared.Models.Media;
+
 public class Publication : IComparable
 {
     [Required]
@@ -12,7 +14,8 @@ public class Publication : IComparable
 
     [Required]
     [MaxLength(50)]
-    public string Code { get; set; } = string.Empty;
+    [Column("PublicationCode")]
+    public string PublicationCode { get; set; } = string.Empty;
 
     public int CompareTo(object obj) => Name.CompareTo((obj as Publication).Name);
 }

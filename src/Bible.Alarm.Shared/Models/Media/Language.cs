@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Bible.Alarm.Shared.Models.Media;
 
 [Table("Languages")]
-[Index(nameof(Code), IsUnique = true)]
+[Index(nameof(LanguageCode), IsUnique = true)]
 public sealed class Language : IComparable
 {
     [Key]
@@ -14,7 +14,8 @@ public sealed class Language : IComparable
 
     [Required]
     [MaxLength(10)]
-    public string Code { get; set; } = string.Empty;
+    [Column("LanguageCode")]
+    public string LanguageCode { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(100)]

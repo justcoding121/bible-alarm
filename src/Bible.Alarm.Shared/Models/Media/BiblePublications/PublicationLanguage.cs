@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Bible.Alarm.Shared.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -36,6 +37,26 @@ public sealed class PublicationLanguage
     /// </summary>
     [Required]
     public Media.Language Language { get; set; } = null!;
+
+    /// <summary>
+    /// The type of harvesting logic to use for this publication.
+    /// Determined during discovery based on publication code and category.
+    /// </summary>
+    [Required]
+    public HarvestType HarvestType { get; set; }
+
+    /// <summary>
+    /// Foreign key to Category
+    /// </summary>
+    [Required]
+    [ForeignKey(nameof(Category))]
+    public int CategoryId { get; set; }
+
+    /// <summary>
+    /// Navigation property to Category
+    /// </summary>
+    [Required]
+    public Media.Category Category { get; set; } = null!;
 
     /// <summary>
     /// Navigation property to SectionLanguages (sections available in this language for this publication)

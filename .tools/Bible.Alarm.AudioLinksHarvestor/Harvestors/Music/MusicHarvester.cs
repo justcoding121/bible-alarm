@@ -61,9 +61,9 @@ internal class MusicHarvester : BaseHarvester
             if (dataPersister != null)
             {
                 var discoveredLanguages = languageEntries
-                    .Where(e => !e.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+                    .Where(e => !e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
                     .ToDictionary(
-                        e => e.Code,
+                        e => e.LanguageCode,
                         e => new LanguageInfo(e.Name, e.Direction));
                 
                 if (discoveredLanguages.Count > 0)
@@ -73,7 +73,7 @@ internal class MusicHarvester : BaseHarvester
             }
 
             // Verify English (E) is available (it will be seeded separately after discovery)
-            var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals("E", StringComparison.OrdinalIgnoreCase));
+            var englishEntry = languageEntries.FirstOrDefault(e => e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase));
             if (englishEntry == default)
             {
                 Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
@@ -86,7 +86,7 @@ internal class MusicHarvester : BaseHarvester
         }
     }
 
-    private async Task<List<(string Code, string Name, string Direction)>?> GetLanguageEntries(string publicationCode, string publicationName, bool isTestRun)
+    private async Task<List<(string LanguageCode, string Name, string Direction)>?> GetLanguageEntries(string publicationCode, string publicationName, bool isTestRun)
     {
         string jsonString;
         try
@@ -114,7 +114,7 @@ internal class MusicHarvester : BaseHarvester
     }
 
     private async Task ProcessLanguageEntries(
-        List<(string Code, string Name, string Direction)> languageEntries,
+        List<(string LanguageCode, string Name, string Direction)> languageEntries,
         string publicationCode,
         string publicationName,
         Dictionary<string, LanguageInfo> languageCodeToInfo,
@@ -143,7 +143,7 @@ internal class MusicHarvester : BaseHarvester
     }
 
     private async Task ProcessLanguageEntry(
-        (string Code, string Name, string Direction) entry,
+        (string LanguageCode, string Name, string Direction) entry,
         string publicationCode,
         string publicationName,
         Dictionary<string, LanguageInfo> languageCodeToInfo,

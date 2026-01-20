@@ -2,12 +2,16 @@
 
 using System;
 using System.Collections.Generic;
+using Bible.Alarm.Shared.Models.Enums;
 
 namespace Bible.Alarm.Shared.Helpers;
 
 /// <summary>
 /// Helper for determining content structure based on publication code.
-/// Drama publications have a flat Track structure, while Bible publications have Section → Track structure.
+/// There are three main harvesting types:
+/// 1. Bible (sectioned): Section → Track structure using booknum parameter
+/// 2. Drama (Mediator API): Flat tracks using Mediator API for discovery, then GETPUBMEDIALINKS with section codes
+/// 3. Flat (Music/Video): Flat tracks using GETPUBMEDIALINKS directly (MP3 for Music, MP4 for Video)
 /// </summary>
 public static class PublicationTypeHelper
 {
@@ -111,5 +115,31 @@ public static class PublicationTypeHelper
             "gnj" => "Good News According to Jesus",
             _ => "Bible Reading"
         };
+    }
+
+    /// <summary>
+    /// Determines the harvest type for a given publication code.
+    /// </summary>
+    public static HarvestType GetHarvestType(string? publicationCode)
+    {
+        if (string.IsNullOrEmpty(publicationCode))
+        {
+            return HarvestType.Sectioned; // Default to Bible structure
+        }
+
+        // Dramas use Mediator API
+        if (IsDrama(publicationCode))
+        {
+            return HarvestType.MediatorSectioned;
+        }
+
+        // Bible and iam (Kingdom Melodies) have sections
+        if (HasSectionStructure(publicationCode))
+        {
+            return HarvestType.Sectioned;
+        }
+
+        // Music and Video are flat
+        return HarvestType.Flat;
     }
 }

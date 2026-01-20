@@ -32,9 +32,9 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
             return await dbContext.BiblePublicationSections
                 .AsNoTracking()
                 .Include(x => x.UrlParams)
-                .Where(x => x.BiblePublication.Code == publicationCode
+                .Where(x => x.BiblePublication.PublicationCode == publicationCode
                             && x.BiblePublication.Language != null
-                            && x.BiblePublication.Language.Code == languageCode
+                            && x.BiblePublication.Language.LanguageCode == languageCode
                             && x.BookNum == sectionNumber)
                 .Select(x => x.Name)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -58,7 +58,7 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
                 .AsNoTracking()
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.UrlParams)
-                .Where(x => x.Language != null && x.Language.Code == languageCode && x.Code == publicationCode)
+                .Where(x => x.Language != null && x.Language.LanguageCode == languageCode && x.PublicationCode == publicationCode)
                 .SelectMany(x => x.Sections)
                 .OrderBy(x => x.BookNum ?? 0)
                 .ToListAsync(cancellationToken);
@@ -84,7 +84,7 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
                 .AsNoTracking()
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.UrlParams)
-                .Where(x => x.Language != null && x.Language.Code == languageCode && x.Code == publicationCode)
+                .Where(x => x.Language != null && x.Language.LanguageCode == languageCode && x.PublicationCode == publicationCode)
                 .SelectMany(x => x.Sections)
                 .Where(x => x.BookNum == sectionNumber)
                 .FirstOrDefaultAsync(cancellationToken);

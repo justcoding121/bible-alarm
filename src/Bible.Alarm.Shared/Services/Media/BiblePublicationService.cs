@@ -33,7 +33,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             return await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Sections)
-                .Where(x => x.Code == publicationCode && x.Language != null && x.Language.Code == languageCode)
+                .Where(x => x.PublicationCode == publicationCode && x.Language != null && x.Language.LanguageCode == languageCode)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
@@ -55,7 +55,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
-                .Where(x => x.Code == publicationCode && x.Language != null && x.Language.Code == languageCode)
+                .Where(x => x.PublicationCode == publicationCode && x.Language != null && x.Language.LanguageCode == languageCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
             logger.Debug("GetByLanguageAndCodeWithTracksAsync: Loaded publication={PublicationName}, TracksCount={TracksCount} for language={LanguageCode}, code={PublicationCode}",
@@ -80,7 +80,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             var publicationsList = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Where(x => x.Language != null && x.Language.Code == languageCode)
+                .Where(x => x.Language != null && x.Language.LanguageCode == languageCode)
                 .ToListAsync(cancellationToken);
 
             logger.Debug("GetByLanguageCodeAsync: Found {PublicationCount} publications for language={LanguageCode}",
@@ -91,14 +91,14 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             foreach (var publication in publicationsList)
             {
                 logger.Debug("GetByLanguageCodeAsync: Publication code={Code}, name={Name}",
-                    publication.Code, publication.Name);
-                if (!result.ContainsKey(publication.Code))
+                    publication.PublicationCode, publication.Name);
+                if (!result.ContainsKey(publication.PublicationCode))
                 {
-                    result[publication.Code] = publication;
+                    result[publication.PublicationCode] = publication;
                 }
                 else
                 {
-                    logger.Warning("Duplicate BiblePublication entry found. LanguageCode={LanguageCode}, Code={Code}", languageCode, publication.Code);
+                    logger.Warning("Duplicate BiblePublication entry found. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}", languageCode, publication.PublicationCode);
                 }
             }
             return result;
@@ -128,7 +128,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             logger.Information("BiblePublicationService.GetDistinctLanguagesAsync: Found {PublicationCount} Bible publications across {LanguageCount} distinct languages: {LanguageCodes}",
                 biblePublicationsCount, distinctLanguages.Count, string.Join(", ", distinctLanguages.Select(l => $"{l.Code}:{l.Name}")));
 
-            return distinctLanguages.ToDictionary(x => x.Code, x => x);
+            return distinctLanguages.ToDictionary(x => x.LanguageCode, x => x);
         }
         catch (Exception ex)
         {

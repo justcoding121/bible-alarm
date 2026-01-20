@@ -13,7 +13,7 @@ namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 public interface ILanguageContentService
 {
     /// <summary>
-    /// Fetches all tracks for a publication that has no sections (e.g., Music, Video).
+    /// Fetches all tracks for a flat-track publication (Music/Video - both use same GETPUBMEDIALINKS pattern).
     /// Deletes any existing data before inserting new.
     /// </summary>
     /// <param name="publicationCode">The publication code (e.g., "osg", "gnj")</param>

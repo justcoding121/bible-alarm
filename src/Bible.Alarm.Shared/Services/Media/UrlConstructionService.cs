@@ -209,9 +209,9 @@ public class UrlConstructionService : IUrlConstructionService
                 .ThenInclude(s => s!.UrlParams)
             .Include(t => t.UrlParams)
             .Where(t => t.Publication != null
-                && t.Publication.Code == publicationCode
+                && t.Publication.PublicationCode == publicationCode
                 && t.Publication.Language != null
-                && t.Publication.Language.Code == languageCode
+                && t.Publication.Language.LanguageCode == languageCode
                 && t.Number == trackNumber);
 
         // Filter by section if provided
@@ -262,7 +262,7 @@ public class UrlConstructionService : IUrlConstructionService
         // Filter by language if provided
         if (!string.IsNullOrEmpty(languageCode))
         {
-            query = query.Where(t => t.Publication!.Language != null && t.Publication.Language.Code == languageCode);
+            query = query.Where(t => t.Publication!.Language != null && t.Publication.Language.LanguageCode == languageCode);
         }
         else
         {

@@ -161,7 +161,7 @@ internal class DbSeeder : IDataPersister
         var normalizedCode = code.ToUpperInvariant();
 
         // Case-insensitive lookup by code only
-        var language = await db.Languages.FirstOrDefaultAsync(x => x.Code.ToUpper() == normalizedCode);
+        var language = await db.Languages.FirstOrDefaultAsync(x => x.LanguageCode.ToUpper() == normalizedCode);
         if (language == null)
         {
             // Language not found - fetch name and direction from /en/languages API
@@ -169,7 +169,7 @@ internal class DbSeeder : IDataPersister
             
             language = new Language
             {
-                Code = normalizedCode,
+                LanguageCode = normalizedCode,
                 Name = name ?? normalizedCode, // Use fetched name or code as fallback
                 Direction = direction
             };
@@ -442,7 +442,7 @@ internal class DbSeeder : IDataPersister
             {
                 BiblePublicationId = 0, // Will be set after publication is saved
                 Key = "pub",
-                Value = publication.Code,
+                Value = publication.PublicationCode,
                 IsQueryParam = true
             },
             new UrlParam
@@ -472,7 +472,7 @@ internal class DbSeeder : IDataPersister
         var biblePublication = new BiblePublication
         {
             Name = publication.Name,
-            Code = normalizedCode,
+            PublicationCode = normalizedCode,
             Language = newLanguage, // Optional - can be null
             CategoryId = categoryId,
             UrlParams = urlParams, // Optional - can be empty
@@ -757,6 +757,23 @@ internal class DbSeeder : IDataPersister
         // Get or create language
         var language = await GetOrCreateLanguageByCode(db, normalizedLanguageCode);
         
+        // Determine harvest type and category based on publication code
+        var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+        var categoryName = JwSourceHelper.GetCategoryName(normalizedPublicationCode);
+        
+        if (string.IsNullOrEmpty(categoryName))
+        {
+            logger.Warning("Category not found for publication code {PublicationCode}, defaulting to 'Bible'", publicationCode);
+            categoryName = "Bible";
+        }
+
+        var category = await db.Categories.FirstOrDefaultAsync(c => c.CategoryName == categoryName);
+        if (category == null)
+        {
+            logger.Warning("Category '{CategoryName}' not found in database for publication {PublicationCode}", categoryName, publicationCode);
+            return;
+        }
+        
         // Check if already exists
         var exists = await db.PublicationLanguages
             .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == language.Id);
@@ -766,9 +783,25 @@ internal class DbSeeder : IDataPersister
             var publicationLanguage = new Shared.Models.Media.BiblePublications.PublicationLanguage
             {
                 PublicationCode = normalizedPublicationCode,
-                Language = language
+                Language = language,
+                HarvestType = harvestType,
+                Category = category,
+                CategoryId = category.Id
             };
             db.PublicationLanguages.Add(publicationLanguage);
+        }
+        else
+        {
+            // Update existing entry with harvest type and category if missing
+            var existing = await db.PublicationLanguages
+                .FirstOrDefaultAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == language.Id);
+            
+            if (existing != null)
+            {
+                existing.HarvestType = harvestType;
+                existing.Category = category;
+                existing.CategoryId = category.Id;
+            }
         }
     }
 
@@ -777,8 +810,8 @@ internal class DbSeeder : IDataPersister
         // Get all English publications
         var englishPublications = await db.BiblePublications
             .Include(bp => bp.Language)
-            .Where(bp => bp.Language != null && bp.Language.Code == "E")
-            .Select(bp => bp.Code)
+            .Where(bp => bp.Language != null && bp.Language.LanguageCode == "E")
+            .Select(bp => bp.PublicationCode)
             .Distinct()
             .ToListAsync();
 
@@ -788,6 +821,23 @@ internal class DbSeeder : IDataPersister
         {
             var normalizedPublicationCode = publicationCode.ToLowerInvariant();
             
+            // Determine harvest type and category based on publication code
+            var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+            var categoryName = JwSourceHelper.GetCategoryName(normalizedPublicationCode);
+            
+            if (string.IsNullOrEmpty(categoryName))
+            {
+                logger.Warning("Category not found for publication code {PublicationCode}, defaulting to 'Bible'", publicationCode);
+                categoryName = "Bible";
+            }
+
+            var category = await db.Categories.FirstOrDefaultAsync(c => c.CategoryName == categoryName);
+            if (category == null)
+            {
+                logger.Warning("Category '{CategoryName}' not found in database for publication {PublicationCode}", categoryName, publicationCode);
+                continue;
+            }
+            
             var exists = await db.PublicationLanguages
                 .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == englishLanguage.Id);
 
@@ -796,9 +846,25 @@ internal class DbSeeder : IDataPersister
                 var publicationLanguage = new Shared.Models.Media.BiblePublications.PublicationLanguage
                 {
                     PublicationCode = normalizedPublicationCode,
-                    Language = englishLanguage
+                    Language = englishLanguage,
+                    HarvestType = harvestType,
+                    Category = category,
+                    CategoryId = category.Id
                 };
                 db.PublicationLanguages.Add(publicationLanguage);
+            }
+            else
+            {
+                // Update existing entry with harvest type and category if missing
+                var existing = await db.PublicationLanguages
+                    .FirstOrDefaultAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == englishLanguage.Id);
+                
+                if (existing != null)
+                {
+                    existing.HarvestType = harvestType;
+                    existing.Category = category;
+                    existing.CategoryId = category.Id;
+                }
             }
         }
     }
@@ -822,7 +888,7 @@ internal class DbSeeder : IDataPersister
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.Sections)
-                .FirstOrDefaultAsync(bp => bp.Code == normalizedPublicationCode && bp.Language != null && bp.Language.Code == "E");
+                .FirstOrDefaultAsync(bp => bp.PublicationCode == normalizedPublicationCode && bp.Language != null && bp.Language.LanguageCode == "E");
 
             if (englishPublication == null)
             {
@@ -885,10 +951,31 @@ internal class DbSeeder : IDataPersister
             if (publicationLanguage == null)
             {
                 logger.Warning("PublicationLanguage not found for {PublicationCode} and {LanguageCode}, creating it", normalizedPublicationCode, languageCode);
+                
+                // Determine harvest type and category based on publication code
+                var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+                var categoryName = JwSourceHelper.GetCategoryName(normalizedPublicationCode);
+                
+                if (string.IsNullOrEmpty(categoryName))
+                {
+                    logger.Warning("Category not found for publication code {PublicationCode}, defaulting to 'Bible'", publicationCode);
+                    categoryName = "Bible";
+                }
+
+                var category = await db.Categories.FirstOrDefaultAsync(c => c.CategoryName == categoryName);
+                if (category == null)
+                {
+                    logger.Warning("Category '{CategoryName}' not found in database for publication {PublicationCode}", categoryName, publicationCode);
+                    return; // Can't create SectionLanguage without PublicationLanguage
+                }
+                
                 publicationLanguage = new Shared.Models.Media.BiblePublications.PublicationLanguage
                 {
                     PublicationCode = normalizedPublicationCode,
-                    Language = language
+                    Language = language,
+                    HarvestType = harvestType,
+                    Category = category,
+                    CategoryId = category.Id
                 };
                 db.PublicationLanguages.Add(publicationLanguage);
                 await db.SaveChangesAsync(); // Save to get the ID
@@ -939,7 +1026,7 @@ internal class DbSeeder : IDataPersister
         // Get all publication codes from PublicationLanguages (these are the ones available for non-English)
         var publicationCodes = await db.PublicationLanguages
             .Include(pl => pl.Language)
-            .Where(pl => pl.Language.Code != "E") // Exclude English
+                .Where(pl => pl.Language.LanguageCode != "E") // Exclude English
             .Select(pl => pl.PublicationCode)
             .Distinct()
             .ToListAsync();
@@ -978,9 +1065,9 @@ internal class DbSeeder : IDataPersister
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.Category)
-                .FirstOrDefaultAsync(bp => bp.Code == publicationCodeForDb &&
+                .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCodeForDb &&
                                           bp.Language != null &&
-                                          bp.Language.Code == "E");
+                                          bp.Language.LanguageCode == "E");
 
             if (englishPublication == null)
             {
@@ -999,7 +1086,7 @@ internal class DbSeeder : IDataPersister
                 var isAvailable = await db.PublicationLanguages
                     .Include(pl => pl.Language)
                     .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode &&
-                                   pl.Language.Code == normalizedTestLanguageCode);
+                                   pl.Language.LanguageCode == normalizedTestLanguageCode);
 
                 if (!isAvailable)
                 {
@@ -1011,9 +1098,9 @@ internal class DbSeeder : IDataPersister
                 // Check if publication already exists for this language
                 var existing = await db.BiblePublications
                     .Include(bp => bp.Language)
-                    .AnyAsync(bp => bp.Code == normalizedPublicationCode &&
+                    .AnyAsync(bp => bp.PublicationCode == normalizedPublicationCode &&
                                   bp.Language != null &&
-                                  bp.Language.Code == normalizedTestLanguageCode);
+                                  bp.Language.LanguageCode == normalizedTestLanguageCode);
 
                 if (existing)
                 {
@@ -1030,7 +1117,7 @@ internal class DbSeeder : IDataPersister
                     var hasSections = await db.SectionLanguages
                         .Include(sl => sl.Language)
                         .AnyAsync(sl => sl.PublicationCode == normalizedPublicationCode &&
-                                      sl.Language.Code == "E");
+                                      sl.Language.LanguageCode == "E");
 
                     bool success;
                     if (hasSections)
@@ -1054,7 +1141,7 @@ internal class DbSeeder : IDataPersister
                             var sectionCodes = await db.SectionLanguages
                                 .Include(sl => sl.Language)
                                 .Where(sl => sl.PublicationCode == normalizedPublicationCode &&
-                                           sl.Language.Code == "E")
+                                           sl.Language.LanguageCode == "E")
                                 .Select(sl => sl.SectionCode)
                                 .Distinct()
                                 .OrderBy(sc => sc)
