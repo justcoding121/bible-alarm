@@ -256,7 +256,7 @@ public class UrlConstructionService : IUrlConstructionService
                 .ThenInclude(s => s!.UrlParams)
             .Include(t => t.UrlParams)
             .Where(t => t.Publication != null
-                && t.Publication.Code == publicationCode
+                && t.Publication.PublicationCode == publicationCode
                 && t.Number == trackNumber);
 
         // Filter by language if provided

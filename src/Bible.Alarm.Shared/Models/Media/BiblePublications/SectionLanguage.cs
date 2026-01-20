@@ -1,6 +1,7 @@
 #nullable enable
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Bible.Alarm.Shared.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -55,4 +56,10 @@ public sealed class SectionLanguage
     /// </summary>
     [Required]
     public PublicationLanguage PublicationLanguage { get; set; } = null!;
+
+    /// <summary>
+    /// The type of harvesting logic to use for this section.
+    /// Inherited from PublicationLanguage for consistency.
+    /// </summary>
+    public HarvestType? HarvestType { get; set; }
 }

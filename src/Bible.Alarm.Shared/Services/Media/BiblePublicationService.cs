@@ -126,7 +126,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .ToListAsync(cancellationToken);
 
             logger.Information("BiblePublicationService.GetDistinctLanguagesAsync: Found {PublicationCount} Bible publications across {LanguageCount} distinct languages: {LanguageCodes}",
-                biblePublicationsCount, distinctLanguages.Count, string.Join(", ", distinctLanguages.Select(l => $"{l.Code}:{l.Name}")));
+                biblePublicationsCount, distinctLanguages.Count, string.Join(", ", distinctLanguages.Select(l => $"{l.LanguageCode}:{l.Name}")));
 
             return distinctLanguages.ToDictionary(x => x.LanguageCode, x => x);
         }

@@ -39,8 +39,8 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 .Include(x => x.Language)
                 .Where(x => x.Category.CategoryName == MusicCategoryName 
                     && x.LanguageId != null 
-                    && x.Language!.Code == languageCode 
-                    && x.Code == publicationCode)
+                    && x.Language!.LanguageCode == languageCode 
+                    && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
             // VocalMusic is a subclass of BiblePublication, so we can return the publication directly
@@ -68,20 +68,20 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 .Include(x => x.Language)
                 .Where(x => x.Category.CategoryName == MusicCategoryName 
                     && x.LanguageId != null 
-                    && x.Language!.Code == languageCode)
+                    && x.Language!.LanguageCode == languageCode)
                 .ToListAsync(cancellationToken);
 
             // Handle potential duplicates gracefully - use first occurrence
             var result = new Dictionary<string, VocalMusic>();
             foreach (var vm in vocalMusicList)
             {
-                if (!result.ContainsKey(vm.Code))
+                if (!result.ContainsKey(vm.PublicationCode))
                 {
-                    result[vm.Code] = new VocalMusic { Publication = vm };
+                    result[vm.PublicationCode] = new VocalMusic { Publication = vm };
                 }
                 else
                 {
-                    logger.Warning("Duplicate VocalMusic entry found. LanguageCode={LanguageCode}, Code={Code}", languageCode, vm.Code);
+                    logger.Warning("Duplicate VocalMusic entry found. LanguageCode={LanguageCode}, Code={Code}", languageCode, vm.PublicationCode);
                 }
             }
             return result;
@@ -109,7 +109,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            return languages.ToDictionary(x => x.Code, x => x);
+            return languages.ToDictionary(x => x.LanguageCode, x => x);
         }
         catch (Exception ex)
         {
@@ -132,8 +132,8 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .Where(x => x.Category.CategoryName == MusicCategoryName 
                     && x.LanguageId != null 
-                    && x.Language!.Code == languageCode 
-                    && x.Code == publicationCode)
+                    && x.Language!.LanguageCode == languageCode 
+                    && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (publication == null)

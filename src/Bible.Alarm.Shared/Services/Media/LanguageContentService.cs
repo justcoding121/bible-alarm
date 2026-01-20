@@ -147,7 +147,7 @@ public sealed class LanguageContentService : ILanguageContentService
 
                     return await FetchFlatPublicationTracksAsync(
                         db, normalizedPublicationCode, normalizedLanguageCode, englishPublication,
-                        isVideo, isMusic, fileFormat, trackParam, cancellationToken);
+                        isVideo, isMusic, fileFormat, trackParam, null, cancellationToken);
 
                 case Models.Enums.HarvestType.Sectioned:
                 default:
@@ -579,7 +579,7 @@ public sealed class LanguageContentService : ILanguageContentService
             var sectionCodes = await db.SectionLanguages
                 .Include(sl => sl.Language)
                 .Where(sl => sl.PublicationCode == normalizedPublicationCode &&
-                           sl.Language.Code == normalizedLanguageCode)
+                           sl.Language.LanguageCode == normalizedLanguageCode)
                 .Select(sl => sl.SectionCode)
                 .Distinct()
                 .OrderBy(sc => sc)
@@ -1180,22 +1180,23 @@ public sealed class LanguageContentService : ILanguageContentService
             if (publicationLanguage == null)
             {
                 // Create PublicationLanguage if it doesn't exist (shouldn't happen during normal flow, but handle it)
-                var categoryName = JwSourceHelper.GetCategoryName(publicationCode);
-                if (categoryName == null)
+                var tempCategoryName = JwSourceHelper.GetCategoryName(publicationCode);
+                if (tempCategoryName == null)
                 {
                     logger.Warning("Unknown publication type for {PublicationCode}", publicationCode);
                     return false;
                 }
 
-                category = await db.Categories
-                    .FirstOrDefaultAsync(c => c.CategoryName == categoryName, cancellationToken);
+                var tempCategory = await db.Categories
+                    .FirstOrDefaultAsync(c => c.CategoryName == tempCategoryName, cancellationToken);
                 
-                if (category == null)
+                if (tempCategory == null)
                 {
-                    logger.Warning("Category {CategoryName} not found in database", categoryName);
+                    logger.Warning("Category {CategoryName} not found in database", tempCategoryName);
                     return false;
                 }
 
+                category = tempCategory;
                 harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
                 
                 // Get or create English language
@@ -1634,42 +1635,6 @@ public sealed class LanguageContentService : ILanguageContentService
         return await FetchFlatPublicationTracksAsync(
             db, normalizedPublicationCode, normalizedLanguageCode, tempEnglishPublication,
             isVideo, isMusic, fileFormat, trackParam, language, cancellationToken);
-        var publication = new BiblePublication
-        {
-            PublicationCode = normalizedPublicationCode,
-            Name = publicationName,
-            Language = language,
-            Category = category,
-            CategoryId = category.Id,
-            LanguageId = language.Id,
-            IsVideo = isVideo,
-            Tracks = tracks,
-            Sections = new List<BiblePublicationSection>()
-        };
-
-        // Set publication reference on tracks
-        foreach (var track in tracks)
-        {
-            track.Publication = publication;
-        }
-
-        // Add BaseUrl reference to tracks via UrlParams
-        foreach (var track in tracks)
-        {
-            foreach (var urlParam in track.UrlParams)
-            {
-                urlParam.BaseUrl = finalBaseUrl;
-                urlParam.BaseUrlId = finalBaseUrl.Id;
-            }
-        }
-
-        db.BiblePublications.Add(publication);
-        await db.SaveChangesAsync(cancellationToken);
-
-        logger.Information("Successfully seeded {Count} tracks for English publication {PublicationCode}",
-            tracks.Count, normalizedPublicationCode);
-
-        return true;
     }
 
     private async Task<bool> FetchEnglishDramaPublicationAsync(
@@ -1928,7 +1893,7 @@ public sealed class LanguageContentService : ILanguageContentService
         var publicationName = localizedPubName ?? publicationCodeForDb;
         var publication = new BiblePublication
         {
-            Code = publicationCodeForDb,
+            PublicationCode = publicationCodeForDb,
             Name = publicationName,
             Language = language,
             Category = category,
@@ -2206,7 +2171,7 @@ public sealed class LanguageContentService : ILanguageContentService
 
         // Get language and category
         var language = await db.Languages
-            .FirstOrDefaultAsync(l => l.Code == normalizedLanguageCode, cancellationToken);
+            .FirstOrDefaultAsync(l => l.LanguageCode == normalizedLanguageCode, cancellationToken);
         
         if (language == null)
         {
@@ -2227,7 +2192,7 @@ public sealed class LanguageContentService : ILanguageContentService
         var publicationName = localizedPubName ?? publicationCodeForDb;
         var publication = new BiblePublication
         {
-            Code = publicationCodeForDb,
+            PublicationCode = publicationCodeForDb,
             Name = publicationName,
             Language = language,
             Category = category,

@@ -39,7 +39,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .Where(x => x.Category.CategoryName == MusicCategoryName 
                     && x.LanguageId == null 
-                    && x.Code == publicationCode)
+                    && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
             // MelodyMusic is a subclass of BiblePublication, so we can return the publication directly
@@ -70,13 +70,13 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             var result = new Dictionary<string, MelodyMusic>();
             foreach (var melody in melodyList)
             {
-                if (!result.ContainsKey(melody.Code))
+                if (!result.ContainsKey(melody.PublicationCode))
                 {
-                    result[melody.Code] = new MelodyMusic { Publication = melody };
+                    result[melody.PublicationCode] = new MelodyMusic { Publication = melody };
                 }
                 else
                 {
-                    logger.Warning("Duplicate MelodyMusic entry found. Code={Code}", melody.Code);
+                    logger.Warning("Duplicate MelodyMusic entry found. Code={Code}", melody.PublicationCode);
                 }
             }
             return result;
@@ -101,7 +101,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .Where(x => x.Category.CategoryName == MusicCategoryName 
                     && x.LanguageId == null 
-                    && x.Code == publicationCode)
+                    && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (publication == null)

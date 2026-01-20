@@ -42,8 +42,7 @@ public sealed class PublicationLanguage
     /// The type of harvesting logic to use for this publication.
     /// Determined during discovery based on publication code and category.
     /// </summary>
-    [Required]
-    public HarvestType HarvestType { get; set; }
+    public HarvestType? HarvestType { get; set; }
 
     /// <summary>
     /// Foreign key to Category

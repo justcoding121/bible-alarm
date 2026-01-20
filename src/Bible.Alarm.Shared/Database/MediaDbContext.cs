@@ -70,9 +70,9 @@ public class MediaDbContext : DbContext
 
         // Language relationship is already optional (LanguageId is nullable)
 
-        // Ensure Language.Code has a unique index (also defined via [Index] attribute on model)
+        // Ensure Language.LanguageCode has a unique index (also defined via [Index] attribute on model)
         modelBuilder.Entity<Language>()
-            .HasIndex(l => l.Code)
+            .HasIndex(l => l.LanguageCode)
             .IsUnique();
 
         // Configure PublicationLanguage relationships

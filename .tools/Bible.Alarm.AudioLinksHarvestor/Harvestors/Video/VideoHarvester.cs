@@ -76,9 +76,9 @@ internal class VideoHarvester : BaseHarvester
             if (dataPersister != null)
             {
                 var discoveredLanguages = languageEntries
-                    .Where(e => !e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+                    .Where(e => !e.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
                     .ToDictionary(
-                        e => e.LanguageCode,
+                        e => e.Code,
                         e => new LanguageInfo(e.Name, e.Direction));
                 
                 if (discoveredLanguages.Count > 0)
@@ -88,7 +88,7 @@ internal class VideoHarvester : BaseHarvester
             }
 
             // Verify English (E) is available (it will be seeded separately after discovery)
-            var englishEntry = languageEntries.FirstOrDefault(e => e.LanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase));
+            var englishEntry = languageEntries.FirstOrDefault(e => e.Code.Equals("E", StringComparison.OrdinalIgnoreCase));
             if (englishEntry == default)
             {
                 Logger.Warning("English (E) not found in discovered languages for publication {PublicationCode}. Skipping.", publicationCode);
@@ -96,8 +96,8 @@ internal class VideoHarvester : BaseHarvester
             }
 
             // Add English to language mappings (for reference, but don't process it here)
-            languageCodeToInfo[englishEntry.LanguageCode] = new LanguageInfo(englishEntry.Name, englishEntry.Direction);
-            AddPublicationToLanguage(englishEntry.LanguageCode, publicationCode, languageCodeToPublications);
+            languageCodeToInfo[englishEntry.Code] = new LanguageInfo(englishEntry.Name, englishEntry.Direction);
+            AddPublicationToLanguage(englishEntry.Code, publicationCode, languageCodeToPublications);
         }
     }
 

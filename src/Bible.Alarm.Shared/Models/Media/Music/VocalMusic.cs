@@ -16,7 +16,7 @@ public class VocalMusic
 
     // Expose BiblePublication properties for convenience
     public int Id => Publication.Id;
-    public string Code => Publication.Code;
+    public string Code => Publication.PublicationCode;
     public string Name => Publication.Name;
     public int CategoryId => Publication.CategoryId;
     public Category Category => Publication.Category;

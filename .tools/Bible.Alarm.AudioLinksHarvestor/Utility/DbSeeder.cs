@@ -54,8 +54,37 @@ internal class DbSeeder : IDataPersister
         using (var scope = scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+            
             await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode = DELETE;");
-            await db.Database.MigrateAsync();
+            
+            logger.Information("Applying database migrations...");
+            try
+            {
+                // MigrateAsync will create the database if it doesn't exist
+                await db.Database.MigrateAsync();
+                
+                // Verify the database was created and migrations were applied
+                var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
+                if (pendingMigrations.Any())
+                {
+                    logger.Warning("Warning: {Count} pending migrations found after migration", pendingMigrations.Count());
+                }
+                
+                var appliedMigrations = await db.Database.GetAppliedMigrationsAsync();
+                logger.Information("Applied {Count} migrations successfully", appliedMigrations.Count());
+                
+                // Verify that Categories table exists
+                var canConnect = await db.Database.CanConnectAsync();
+                if (!canConnect)
+                {
+                    throw new InvalidOperationException("Cannot connect to database after migration");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Failed to apply migrations");
+                throw;
+            }
         }
 
         // Seed default Categories and ApiUrls first
@@ -442,7 +471,7 @@ internal class DbSeeder : IDataPersister
             {
                 BiblePublicationId = 0, // Will be set after publication is saved
                 Key = "pub",
-                Value = publication.PublicationCode,
+                Value = publication.Code,
                 IsQueryParam = true
             },
             new UrlParam
@@ -995,7 +1024,8 @@ internal class DbSeeder : IDataPersister
                 PublicationCode = normalizedPublicationCode,
                 SectionCode = normalizedSectionCode,
                 Language = language,
-                PublicationLanguage = publicationLanguage
+                PublicationLanguage = publicationLanguage,
+                HarvestType = publicationLanguage.HarvestType
             };
             db.SectionLanguages.Add(sectionLanguage);
         }
