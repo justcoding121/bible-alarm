@@ -42,6 +42,13 @@ public sealed class MusicStateItem : IComparable
     public string? PublicationName { get; set; }
 
     /// <summary>
+    /// Section name for display purposes (for music publications with sections like Kingdom Melodies).
+    /// This is populated from the list item when user selects a section.
+    /// Not persisted to database.
+    /// </summary>
+    public string? SectionName { get; set; }
+
+    /// <summary>
     /// Track name for display purposes.
     /// This is populated from the list item when user selects a track.
     /// Not persisted to database.

@@ -205,7 +205,11 @@ public sealed class MusicStateChangeHandler
         var (musicTypeChanged, languageCodeChanged, publicationCodeChanged, sectionCodeChanged, trackNumberChanged, repeatChanged) =
             stateTracker.DetectChanges(currentSchedule);
 
-        if (musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged || repeatChanged)
+        // Also check for display name changes (publication name, section name) that don't trigger code changes
+        var publicationNameChanged = stateTracker.HasMusicPublicationNameChanged(currentSchedule);
+        var sectionNameChanged = stateTracker.HasMusicSectionNameChanged(currentSchedule);
+
+        if (musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged || repeatChanged || publicationNameChanged || sectionNameChanged)
         {
             // Update last values immediately to prevent duplicate detection
             stateTracker.UpdateFromSchedule(currentSchedule);
@@ -234,6 +238,19 @@ public sealed class MusicStateChangeHandler
                     repeatChanged,
                     capturedMusicType,
                     shouldScroll => { if (capturedMusicEnabled) setShouldScrollToBottom(shouldScroll); });
+
+                // Also notify display text properties if only display names changed (not codes)
+                if (!musicTypeChanged && !languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackNumberChanged && !repeatChanged)
+                {
+                    if (publicationNameChanged)
+                    {
+                        onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
+                    }
+                    if (sectionNameChanged)
+                    {
+                        onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
+                    }
+                }
             });
         }
     }

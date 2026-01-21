@@ -58,6 +58,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         var currentState = state.Value;
         BiblePublicationSchedule? initialCurrent = null;
         string? initialLanguageCode = null;
+        string? initialCategoryName = null;
         if (currentState.CurrentSchedule != null && !string.IsNullOrEmpty(currentState.CurrentSchedule.BiblePublicationLanguageCode))
         {
             // Create a minimal BiblePublicationSchedule from CurrentSchedule
@@ -70,8 +71,14 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
             initialLanguageCode = initialCurrent.LanguageCode;
+            initialCategoryName = currentSchedule.BiblePublicationCategoryName;
         }
-        stateHandler.InitializeCurrent(initialCurrent, initialLanguageCode);
+        else if (currentState.CurrentSchedule != null)
+        {
+            // Even if language code is not set, we should still track the category
+            initialCategoryName = currentState.CurrentSchedule.BiblePublicationCategoryName;
+        }
+        stateHandler.InitializeCurrent(initialCurrent, initialLanguageCode, initialCategoryName);
 
         // Set up event handlers
         state.StateChanged += OnBiblePublicationInitialized;

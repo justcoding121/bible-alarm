@@ -20,6 +20,8 @@ public sealed class MusicStateTracker
     private bool? lastMusicEnabled;
     private string? lastBibleLanguageDirection;
     private string? lastMusicLanguageDirection;
+    private string? lastMusicPublicationName;
+    private string? lastMusicSectionName;
 
     public MusicType? LastScheduleMusicType => lastScheduleMusicType;
     public int? LastScheduleMusicTrackNumber => lastScheduleMusicTrackNumber;
@@ -71,6 +73,34 @@ public sealed class MusicStateTracker
         lastMusicEnabled = currentSchedule.MusicEnabled;
         lastBibleLanguageDirection = currentSchedule.BiblePublicationLanguageDirection;
         lastMusicLanguageDirection = currentSchedule.MusicLanguageDirection;
+        lastMusicPublicationName = currentSchedule.MusicPublicationName;
+        lastMusicSectionName = currentSchedule.MusicSectionName;
+    }
+
+    /// <summary>
+    /// Checks if MusicPublicationName changed (display name, not code).
+    /// </summary>
+    public bool HasMusicPublicationNameChanged(ScheduleStateItem? currentSchedule)
+    {
+        if (currentSchedule == null)
+        {
+            return false;
+        }
+
+        return lastMusicPublicationName != currentSchedule.MusicPublicationName;
+    }
+
+    /// <summary>
+    /// Checks if MusicSectionName changed (display name, not code).
+    /// </summary>
+    public bool HasMusicSectionNameChanged(ScheduleStateItem? currentSchedule)
+    {
+        if (currentSchedule == null)
+        {
+            return false;
+        }
+
+        return lastMusicSectionName != currentSchedule.MusicSectionName;
     }
 
     /// <summary>

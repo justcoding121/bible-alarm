@@ -68,7 +68,7 @@
                                 Radius="4" 
                                 Opacity="0.2" />
                     </Border.Shadow>
-                    <Label Text="{x:Static fn:GlyphNames.Xmark}" 
+                    <Label Text="{x:Static fn:GlyphNames.ArrowLeft}" 
                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
                            FontSize="{DynamicResource IconStandardFontSize}"
                            TextColor="{DynamicResource TextSecondaryColor}"

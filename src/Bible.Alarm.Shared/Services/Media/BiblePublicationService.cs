@@ -74,18 +74,25 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
     }
 
-    public async Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default)
     {
         try
         {
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var publicationsList = await dbContext.BiblePublications
+            var query = dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Category)
-                .Where(x => x.Language != null && x.Language.LanguageCode == languageCode)
-                .ToListAsync(cancellationToken);
+                .Where(x => x.Language != null && x.Language.LanguageCode == languageCode);
+
+            // Filter by category if provided
+            if (!string.IsNullOrWhiteSpace(categoryName))
+            {
+                query = query.Where(x => x.Category != null && x.Category.CategoryName == categoryName);
+            }
+
+            var publicationsList = await query.ToListAsync(cancellationToken);
 
             logger.Debug("GetByLanguageCodeAsync: Found {PublicationCount} publications for language={LanguageCode}",
                 publicationsList.Count, languageCode);
@@ -114,29 +121,41 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
     }
 
-    public async Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null, CancellationToken cancellationToken = default)
     {
         try
         {
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var biblePublicationsCount = await dbContext.BiblePublications.CountAsync(cancellationToken);
-            var distinctLanguages = await dbContext.BiblePublications
+            // Use PublicationLanguage table for discovery - it's designed for this purpose
+            // This table tracks which languages are available for each publication code in each category
+            var query = dbContext.PublicationLanguages
                 .AsNoTracking()
-                .Where(x => x.Language != null)
+                .Include(x => x.Language)
+                .Include(x => x.Category)
+                .Where(x => x.Language != null);
+
+            // Filter by category if provided
+            if (!string.IsNullOrWhiteSpace(categoryName))
+            {
+                query = query.Where(x => x.Category != null && x.Category.CategoryName == categoryName);
+            }
+
+            var publicationLanguagesCount = await query.CountAsync(cancellationToken);
+            var distinctLanguages = await query
                 .Select(x => x.Language!)
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            logger.Information("BiblePublicationService.GetDistinctLanguagesAsync: Found {PublicationCount} Bible publications across {LanguageCount} distinct languages: {LanguageCodes}",
-                biblePublicationsCount, distinctLanguages.Count, string.Join(", ", distinctLanguages.Select(l => $"{l.LanguageCode}:{l.Name}")));
+            logger.Information("BiblePublicationService.GetDistinctLanguagesAsync: Found {PublicationLanguageCount} PublicationLanguage entries across {LanguageCount} distinct languages: {LanguageCodes}",
+                publicationLanguagesCount, distinctLanguages.Count, string.Join(", ", distinctLanguages.Select(l => $"{l.LanguageCode}:{l.Name}")));
 
             return distinctLanguages.ToDictionary(x => x.LanguageCode, x => x);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting distinct Languages from BiblePublications");
+            logger.Error(ex, "Error getting distinct Languages from PublicationLanguages");
             throw;
         }
     }

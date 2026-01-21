@@ -333,6 +333,36 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
+    public static ApplicationState OnMusicSectionSelected(ApplicationState state, Actions.Music.MusicSectionSelectedAction action)
+    {
+        // IMPORTANT: Update CurrentSchedule synchronously here to ensure schedule page shows
+        // the new section immediately when modal closes. The async effect runs too late.
+        var updatedCurrentSchedule = state.CurrentSchedule;
+        if (updatedCurrentSchedule != null && action.CurrentMusic != null)
+        {
+            var music = action.CurrentMusic;
+            updatedCurrentSchedule = updatedCurrentSchedule.DeepClone();
+            updatedCurrentSchedule.MusicType = music.MusicType;
+            updatedCurrentSchedule.MusicLanguageCode = music.LanguageCode;
+            updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
+            updatedCurrentSchedule.MusicSectionCode = music.SectionCode;
+            updatedCurrentSchedule.MusicTrackNumber = music.TrackNumber;
+            updatedCurrentSchedule.MusicRepeat = music.Repeat;
+            // Also update display names and language direction
+            updatedCurrentSchedule.MusicLanguageName = music.LanguageName;
+            updatedCurrentSchedule.MusicLanguageDirection = music.LanguageDirection;
+            updatedCurrentSchedule.MusicPublicationName = music.PublicationName;
+            updatedCurrentSchedule.MusicSectionName = music.SectionName;
+            updatedCurrentSchedule.MusicTrackName = music.TrackName;
+
+            Log.Debug("ApplicationReducer.OnMusicSectionSelected: Updated CurrentSchedule with MusicType={MusicType}, SectionCode={SectionCode}, SectionName={SectionName}, TrackNumber={TrackNumber}",
+                music.MusicType, music.SectionCode, music.SectionName, music.TrackNumber);
+        }
+
+        return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);
+    }
+
+    [ReducerMethod]
     public static ApplicationState OnCategorySelection(ApplicationState state, CategorySelectionAction action)
     {
         // Category selection updates CurrentSchedule

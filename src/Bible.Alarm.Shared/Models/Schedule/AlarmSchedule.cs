@@ -404,6 +404,9 @@ public sealed class AlarmSchedule : IComparable
                 throw new InvalidOperationException($"No tracks found in section {randomSection.SectionCode} for melody music publication {sample.Music.PublicationCode}");
             }
             
+            // Set the section code for the selected section
+            sample.Music.SectionCode = randomSection.SectionCode;
+            
             // Select a random track from the selected section
             var randomTrack = randomSection.Tracks[Random.Shared.Next(randomSection.Tracks.Count)];
             sample.Music.TrackNumber = randomTrack.Number;

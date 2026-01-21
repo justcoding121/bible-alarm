@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -95,22 +96,16 @@ public sealed class MusicDisplayTextProvider
     public bool GetIsMusicLanguageVisible()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        // Language row is visible only when the selected music publication has a language
-        // Check if music type is VocalMusic and if language exists for the publication
+        // Language row is visible only when music type is VocalMusic
+        // Show it whenever type is vocals, even if no language is selected yet (so user can select one)
         if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
         {
             return false;
         }
 
-        // For VocalMusic type, language row is visible only if language exists for the publication
-        if (currentSchedule.MusicType.Value == MusicType.VocalMusic)
-        {
-            // Language row is visible if language code exists (indicating the publication has a language)
-            return !string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
-        }
-
+        // For VocalMusic type, language row is always visible (allows user to select language)
         // For Music type (Instrumental), no language row
-        return false;
+        return currentSchedule.MusicType.Value == MusicType.VocalMusic;
     }
 
     public string GetMusicLanguageDisplayText()
@@ -307,7 +302,7 @@ public sealed class MusicDisplayTextProvider
     /// - Music type is set
     /// - Publication code is set
     /// - For VocalMusic: language code is set
-    /// - Sections exist for the publication (indicated by MusicSectionCode being set or sections being available)
+    /// - Sections exist for the publication (checked via PublicationTypeHelper.HasSectionStructure or if MusicSectionCode/MusicSectionName is set)
     /// </summary>
     public bool GetIsMusicSectionVisible()
     {
@@ -323,8 +318,15 @@ public sealed class MusicDisplayTextProvider
             return false;
         }
 
-        // Section row is visible if section code is set (indicating sections exist for this publication)
-        // This will be populated when sections are checked during publication selection
+        // Check if the publication has sections using PublicationTypeHelper
+        // This ensures section row is visible for publications with sections (e.g., "iam" Kingdom Melodies)
+        // even if no section is selected yet
+        if (PublicationTypeHelper.HasSectionStructure(currentSchedule.MusicPublicationCode))
+        {
+            return true;
+        }
+
+        // Also show section row if section code or name is set (for backward compatibility or when section is already selected)
         return !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode) || !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionName);
     }
 

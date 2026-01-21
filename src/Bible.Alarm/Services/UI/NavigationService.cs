@@ -141,6 +141,12 @@ public sealed class NavigationService(
         await modalHandler.OpenSectionSelectionModalAsync(navigation, bindingContext);
     }
 
+    public async Task OpenMusicSectionSelectionModalAsync(object bindingContext)
+    {
+        var navigation = GetNavigation();
+        await modalHandler.OpenMusicSectionSelectionModalAsync(navigation, bindingContext);
+    }
+
     public async Task OpenBiblePublicationTrackSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();

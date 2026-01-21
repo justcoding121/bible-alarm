@@ -26,6 +26,11 @@ public interface IMelodyMusicService : IDisposable
     /// Gets all tracks for a MelodyMusic release by publication code, with Source included.
     /// </summary>
     Task<SortedDictionary<int, MusicTrack>> GetTracksByCodeAsync(string publicationCode, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Gets tracks for a specific section in a music publication (e.g., "iam-1" section in Kingdom Melodies).
+    /// </summary>
+    Task<SortedDictionary<int, MusicTrack>> GetTracksBySectionCodeAsync(string publicationCode, string sectionCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates the URL for a MelodyMusic track's audio source.

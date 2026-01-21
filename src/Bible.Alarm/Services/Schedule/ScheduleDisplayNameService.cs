@@ -1,11 +1,14 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.Services.Schedule;
@@ -247,23 +250,119 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             }
         }
 
-        // Music publication name (for vocals)
-        if (music.MusicType == MusicType.VocalMusic &&
-            !string.IsNullOrWhiteSpace(music.LanguageCode) &&
-            !string.IsNullOrWhiteSpace(music.PublicationCode))
+        // Music publication name (for vocals and melodies)
+        if (!string.IsNullOrWhiteSpace(music.PublicationCode))
         {
             try
             {
-                var releases = await Task.Run(async () =>
-                    await mediaService.GetVocalMusicReleases(music.LanguageCode));
-                if (releases.TryGetValue(music.PublicationCode, out var release))
+                if (music.MusicType == MusicType.VocalMusic &&
+                    !string.IsNullOrWhiteSpace(music.LanguageCode))
                 {
-                    scheduleStateItem.MusicPublicationName = release.Name;
+                    // Populate for vocals
+                    var releases = await Task.Run(async () =>
+                        await mediaService.GetVocalMusicReleases(music.LanguageCode));
+                    if (releases.TryGetValue(music.PublicationCode, out var release))
+                    {
+                        scheduleStateItem.MusicPublicationName = release.Name;
+                    }
+                }
+                else if (music.MusicType == MusicType.Music)
+                {
+                    // Populate for melodies (instrumental music)
+                    var releases = await Task.Run(async () =>
+                        await mediaService.GetMelodyMusicReleases());
+                    if (releases.TryGetValue(music.PublicationCode, out var melodyRelease))
+                    {
+                        scheduleStateItem.MusicPublicationName = melodyRelease.Name;
+                    }
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating MusicPublicationName");
+            }
+        }
+
+        // Music section name (for publications with sections, e.g., "iam" Kingdom Melodies)
+        if (!string.IsNullOrWhiteSpace(music.SectionCode) &&
+            !string.IsNullOrWhiteSpace(music.PublicationCode))
+        {
+            try
+            {
+                if (music.MusicType == MusicType.VocalMusic)
+                {
+                    // For vocal music, we need language code and section number
+                    if (!string.IsNullOrWhiteSpace(music.LanguageCode))
+                    {
+                        var sectionNumber = await ConvertSectionCodeToIntAsync(
+                            music.SectionCode,
+                            music.LanguageCode,
+                            music.PublicationCode);
+
+                        if (sectionNumber > 0)
+                        {
+                            var biblePublicationSectionService = serviceProvider.GetRequiredService<IBiblePublicationSectionService>();
+                            var sectionName = await Task.Run(async () =>
+                                await biblePublicationSectionService.GetSectionNameAsync(
+                                    music.LanguageCode,
+                                    music.PublicationCode,
+                                    sectionNumber));
+
+                            if (!string.IsNullOrWhiteSpace(sectionName))
+                            {
+                                scheduleStateItem.MusicSectionName = sectionName;
+                            }
+                        }
+                    }
+                }
+                else if (music.MusicType == MusicType.Music)
+                {
+                    // For melodies, music publications are BiblePublications with Category=Music and LanguageId=null
+                    // Section codes are strings like "iam-1", "iam-2" - query directly by SectionCode (no need to convert to int)
+                    var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+                    using var scope = scopeFactory.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+                    // EF Core can't translate StringComparison.OrdinalIgnoreCase, so we need to load and filter in memory
+                    // or use ToLower() in the query. Using ToLower() is more efficient.
+                    var sectionCodeLower = music.SectionCode?.ToLowerInvariant();
+                    var section = await Task.Run(async () =>
+                    {
+                        var sections = await dbContext.BiblePublicationSections
+                            .AsNoTracking()
+                            .Include(x => x.BiblePublication)
+                                .ThenInclude(x => x.Category)
+                            .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode
+                                && x.BiblePublication.Category.CategoryName == "Music"
+                                && x.BiblePublication.LanguageId == null
+                                && x.SectionCode != null)
+                            .ToListAsync();
+
+                        // Filter in memory for case-insensitive comparison
+                        var matchingSection = sections.FirstOrDefault(x => 
+                            x.SectionCode != null && 
+                            x.SectionCode.Equals(music.SectionCode, StringComparison.OrdinalIgnoreCase));
+
+                        return matchingSection?.Name;
+                    });
+
+                    if (!string.IsNullOrWhiteSpace(section))
+                    {
+                        scheduleStateItem.MusicSectionName = section;
+                        logger.Debug("Populated MusicSectionName '{MusicSectionName}' for publication {PublicationCode}, section {SectionCode}",
+                            section, music.PublicationCode, music.SectionCode);
+                    }
+                    else
+                    {
+                        logger.Warning("Music section name not found for publication {PublicationCode}, section {SectionCode}",
+                            music.PublicationCode, music.SectionCode);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error populating MusicSectionName for publication {PublicationCode}, section {SectionCode}",
+                    music.PublicationCode, music.SectionCode);
             }
         }
 
@@ -330,15 +429,6 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
 
         // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
         // For non-numeric section codes, return 0
-        return 0;
-        {
-            logger.Warning(ex, "Error converting SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}",
-                sectionCode, languageCode, publicationCode);
-        }
-
-        // Fallback: return 0 if section not found
-        logger.Warning("Could not convert SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}, using 0",
-            sectionCode, languageCode, publicationCode);
         return 0;
     }
 }

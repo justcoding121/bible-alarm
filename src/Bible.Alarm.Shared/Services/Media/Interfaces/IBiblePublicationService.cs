@@ -24,13 +24,13 @@ public interface IBiblePublicationService : IDisposable
     Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all BiblePublications for a given language code.
+    /// Gets all BiblePublications for a given language code, optionally filtered by category.
     /// </summary>
-    Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, CancellationToken cancellationToken = default);
+    Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all distinct Languages from BiblePublications.
+    /// Gets all distinct Languages from BiblePublications, optionally filtered by category.
     /// </summary>
-    Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(CancellationToken cancellationToken = default);
+    Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null, CancellationToken cancellationToken = default);
 }
 

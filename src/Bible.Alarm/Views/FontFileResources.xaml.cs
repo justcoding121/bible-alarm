@@ -91,6 +91,8 @@ public sealed class GlyphNames
     public static string Stop = "\uf04d";
     public static string Left = "\uf053";
     public static string Right = "\uf054";
+    // Font Awesome arrow-left icon (for back/close buttons)
+    public static string ArrowLeft = "\uf060";
     public static string Language = "\uf1ab";
     public static string Bell = "\uf0f3";
     public static string Repeat = "\uf0e2";

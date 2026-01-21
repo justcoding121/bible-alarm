@@ -63,4 +63,56 @@ public interface ILanguageContentService
     Task<bool> SeedEnglishPublicationAsync(
         string publicationCode,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ensures a publication exists for the given language. If it doesn't exist, fetches it ad-hoc.
+    /// Returns true if publication exists or was successfully fetched, false otherwise.
+    /// </summary>
+    /// <param name="publicationCode">The publication code (e.g., "nwt", "osg", "Dramas")</param>
+    /// <param name="languageCode">The language code (e.g., "MY", "A")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if publication exists or was successfully fetched, false otherwise</returns>
+    Task<bool> EnsurePublicationExistsAsync(
+        string publicationCode,
+        string languageCode,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Fetches the first publication for a language with its first section and tracks (for sectioned publications)
+    /// or all tracks (for flat publications). Used when language is first selected.
+    /// </summary>
+    /// <param name="languageCode">The language code (e.g., "MY", "A")</param>
+    /// <param name="categoryName">Optional category name to filter publications (e.g., "Bible", "Music")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if first publication was successfully fetched, false otherwise</returns>
+    Task<bool> FetchFirstPublicationForLanguageAsync(
+        string languageCode,
+        string? categoryName = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ensures all publications for a language are downloaded. Fetches missing publications with their first section and tracks.
+    /// Used when publication list modal opens.
+    /// </summary>
+    /// <param name="languageCode">The language code (e.g., "MY", "A")</param>
+    /// <param name="categoryName">Optional category name to filter publications (e.g., "Bible", "Music")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if all publications are now available, false otherwise</returns>
+    Task<bool> EnsureAllPublicationsForLanguageAsync(
+        string languageCode,
+        string? categoryName = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ensures all sections for a publication are downloaded. Fetches missing sections.
+    /// Used when sections modal opens.
+    /// </summary>
+    /// <param name="publicationCode">The publication code (e.g., "nwt", "Dramas")</param>
+    /// <param name="languageCode">The language code (e.g., "MY", "A")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if all sections are now available, false otherwise</returns>
+    Task<bool> EnsureAllSectionsForPublicationAsync(
+        string publicationCode,
+        string languageCode,
+        CancellationToken cancellationToken = default);
 }

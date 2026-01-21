@@ -166,10 +166,9 @@ public sealed class MusicCommandInitializer
 
             setMusic(loadedMusic);
 
-            // Create view model and open modal
-            // Reuse SectionSelectionViewModel for music publications since they use the same BiblePublicationSection structure
-            var sectionSelectionViewModel = serviceProvider.GetRequiredService<Bible.Alarm.ViewModels.BiblePublications.SectionSelectionViewModel>();
-            await navigationService.OpenSectionSelectionModalAsync(sectionSelectionViewModel);
+            // Create dedicated MusicSectionSelectionViewModel for music section selection
+            var musicSectionSelectionViewModel = serviceProvider.GetRequiredService<Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModel>();
+            await navigationService.OpenMusicSectionSelectionModalAsync(musicSectionSelectionViewModel);
 
             // Map entity to DTO before dispatching
             if (loadedMusic != null)

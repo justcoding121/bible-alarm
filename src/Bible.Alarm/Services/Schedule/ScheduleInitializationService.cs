@@ -47,18 +47,21 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
         var scheduleStateItem = mapper.Map<ScheduleStateItem>(sampleSchedule);
 
         // Log the music type to verify it's Melodies (not Vocals)
-        logger.Information("InitializeNewScheduleAsync: Mapped sample schedule. MusicType={MusicType}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}",
+        logger.Information("InitializeNewScheduleAsync: Mapped sample schedule. MusicType={MusicType}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}, MusicSectionCode={SectionCode}",
             scheduleStateItem.MusicType?.ToString() ?? "null",
             scheduleStateItem.MusicTrackNumber?.ToString() ?? "null",
-            scheduleStateItem.MusicPublicationCode ?? "null");
+            scheduleStateItem.MusicPublicationCode ?? "null",
+            scheduleStateItem.MusicSectionCode ?? "null");
 
         // Populate display names before dispatching action
         logger.Debug("InitializeNewScheduleAsync: Populating display names for new schedule");
         await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, sampleSchedule);
-        logger.Debug("InitializeNewScheduleAsync: Display names populated. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}",
+        logger.Debug("InitializeNewScheduleAsync: Display names populated. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}, MusicPublicationName: {MusicPublicationName}, MusicSectionName: {MusicSectionName}",
             scheduleStateItem.BiblePublicationLanguageName ?? "null",
             scheduleStateItem.BiblePublicationName ?? "null",
-            scheduleStateItem.BiblePublicationSectionName ?? "null");
+            scheduleStateItem.BiblePublicationSectionName ?? "null",
+            scheduleStateItem.MusicPublicationName ?? "null",
+            scheduleStateItem.MusicSectionName ?? "null");
 
         return scheduleStateItem;
     }

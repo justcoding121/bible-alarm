@@ -107,6 +107,76 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
         }
     }
 
+    public async Task<SortedDictionary<int, BiblePublicationSection>> GetMusicSectionsByPublicationAsync(string publicationCode, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            // Load sections for music publications (Category=Music, LanguageId=null)
+            var sections = await dbContext.BiblePublications
+                .AsNoTracking()
+                .Include(x => x.Category)
+                .Include(x => x.Sections)
+                    .ThenInclude(s => s.UrlParams)
+                .Where(x => x.Category.CategoryName == "Music"
+                    && x.LanguageId == null
+                    && x.PublicationCode == publicationCode)
+                .SelectMany(x => x.Sections)
+                .ToListAsync(cancellationToken);
+
+            // Filter sections that have numeric SectionCode and order by it
+            // For music sections like "iam-1", "iam-2", we need to handle both numeric and non-numeric codes
+            var sectionsByNumber = new Dictionary<int, BiblePublicationSection>();
+            foreach (var section in sections)
+            {
+                // Try to parse SectionCode as int (for numeric codes)
+                if (int.TryParse(section.SectionCode, out var sectionNumber))
+                {
+                    if (!sectionsByNumber.ContainsKey(sectionNumber))
+                    {
+                        sectionsByNumber[sectionNumber] = section;
+                    }
+                }
+                else
+                {
+                    // For non-numeric codes like "iam-1", extract the number part
+                    // e.g., "iam-1" -> 1, "iam-2" -> 2
+                    var parts = section.SectionCode.Split('-');
+                    if (parts.Length > 1 && int.TryParse(parts[parts.Length - 1], out var extractedNumber))
+                    {
+                        if (!sectionsByNumber.ContainsKey(extractedNumber))
+                        {
+                            sectionsByNumber[extractedNumber] = section;
+                        }
+                    }
+                    else
+                    {
+                        // If we can't extract a number, use 0 as a fallback (will be sorted last)
+                        if (!sectionsByNumber.ContainsKey(0))
+                        {
+                            sectionsByNumber[0] = section;
+                        }
+                    }
+                }
+            }
+
+            // Sort by the extracted number
+            var sortedSections = sectionsByNumber
+                .OrderBy(kvp => kvp.Key)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            return new SortedDictionary<int, BiblePublicationSection>(sortedSections);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error getting Music sections by publication. PublicationCode={PublicationCode}",
+                publicationCode);
+            throw;
+        }
+    }
+
     public void Dispose()
     {
         if (isDisposed)

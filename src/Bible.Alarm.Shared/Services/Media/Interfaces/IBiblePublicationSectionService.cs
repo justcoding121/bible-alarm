@@ -21,6 +21,12 @@ public interface IBiblePublicationSectionService : IDisposable
     /// Gets all BiblePublicationSections for a given publication (by language code and publication code).
     /// </summary>
     Task<SortedDictionary<int, BiblePublicationSection>> GetSectionsByPublicationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Gets sections for music publications (Category=Music, LanguageId=null).
+    /// Used for instrumental music like Kingdom Melodies.
+    /// </summary>
+    Task<SortedDictionary<int, BiblePublicationSection>> GetMusicSectionsByPublicationAsync(string publicationCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a BiblePublicationSection by language code, publication code, and section number.

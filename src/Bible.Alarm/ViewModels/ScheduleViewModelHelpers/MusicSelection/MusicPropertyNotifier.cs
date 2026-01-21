@@ -81,17 +81,23 @@ public sealed class MusicPropertyNotifier
             displayTextProvider.ClearCaches();
 
             // For vocals: notify language, music publication, section, and track
-            // For melodies: only notify track
             if (musicType == MusicType.VocalMusic)
             {
                 onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicLanguageDisplayText));
                 onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
                 onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
+                onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
 
                 // Signal to scroll to bottom when user selects vocals (only if music is enabled)
                 setShouldScrollToBottom?.Invoke(true);
             }
-            onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
+            // For melodies (instrumental): notify publication, section, and track (no language)
+            else if (musicType == MusicType.Music)
+            {
+                onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
+                onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
+                onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
+            }
         }
         // Language change (vocals only) cascades to music publication, section, track, and flow direction
         else if (notifyLanguage && musicType == MusicType.VocalMusic)

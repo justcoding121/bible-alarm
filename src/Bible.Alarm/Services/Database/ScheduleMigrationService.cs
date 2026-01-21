@@ -1,13 +1,11 @@
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Services.Database;
 
 public sealed class ScheduleMigrationService(
-    ILogger logger,
-    IAlarmScheduleService alarmScheduleService)
+    ILogger logger)
     : IScheduleMigrationService, IDisposable
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();

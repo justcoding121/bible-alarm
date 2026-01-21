@@ -442,7 +442,28 @@ internal class JwBibleHarvester : BaseHarvester
                 {
                     var rawName = parentPubNameElement.GetString();
                     // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
-                    localizedPublicationName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                    var extractedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                    
+                    // Validate that the extracted name is not a known video/drama publication name
+                    // This prevents contamination from wrong API responses
+                    if (!string.IsNullOrEmpty(extractedName))
+                    {
+                        var knownVideoNames = new[] { "The Good News According to Jesus", "Good news according to Jesus" };
+                        var isVideoName = knownVideoNames.Any(vn => extractedName.Contains(vn, StringComparison.OrdinalIgnoreCase));
+                        
+                        if (isVideoName)
+                        {
+                            Logger.Warning("API returned video/drama publication name '{ExtractedName}' for Bible publication {PublicationCode} in language {LanguageCode}. This is likely an API error. Skipping this name and using fallback.",
+                                extractedName, publicationCode, languageCode);
+                            extractedName = null; // Don't use the wrong name
+                        }
+                        else
+                        {
+                            localizedPublicationName = extractedName;
+                            Logger.Debug("Extracted publication name '{ExtractedName}' for Bible publication {PublicationCode} in language {LanguageCode}",
+                                extractedName, publicationCode, languageCode);
+                        }
+                    }
                 }
 
                 ProcessSectionFiles(sectionFiles, doc.RootElement, sectionNumberSectionMap, sectionNumberTrackMap, ref sectionNumber, languageCode, sectionName);

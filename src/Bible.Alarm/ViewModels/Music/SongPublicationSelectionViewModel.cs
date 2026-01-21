@@ -225,6 +225,14 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
             return;
         }
 
+        // Handle instrumental music (no language needed)
+        if (current.MusicType == MusicType.Music)
+        {
+            await PopulateSongPublications(null); // null language code for instrumental music
+            return;
+        }
+
+        // Handle vocal music (requires language)
         var languageCode = current.LanguageCode;
 
         if (languageCode == null)
@@ -316,15 +324,18 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         // Check if language code changed (need to repopulate song sections)
         var languageChanged = stateManager.LastLanguageCode != newLanguageCode;
 
-        // Ensure languages are populated
-        if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
+        // For vocal music, ensure languages are populated
+        if (musicType.Value == MusicType.VocalMusic)
         {
-            await PopulateLanguages();
-        }
+            if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
+            {
+                await PopulateLanguages();
+            }
 
-        // Ensure search handler is set up (in case it wasn't set up during initialization)
-        // This is important when RefreshFromState is called before OnMusicInitialized
-        propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await PopulateLanguages(searchTerm));
+            // Ensure search handler is set up (in case it wasn't set up during initialization)
+            // This is important when RefreshFromState is called before OnMusicInitialized
+            propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await PopulateLanguages(searchTerm));
+        }
 
         // For Vocals, if no language is selected but languages are available, select based on current schedule
         string? languageCodeToUse = null;
@@ -369,11 +380,24 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
             languageCodeToUse = newLanguageCode;
         }
 
-        // Always repopulate song sections if:
-        // 1. We have a language code (for Vocals)
+        // For instrumental music, populate publications directly (no language needed)
+        if (musicType.Value == MusicType.Music)
+        {
+            if (propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0)
+            {
+                await PopulateSongPublications(null); // null language code for instrumental music
+            }
+            else
+            {
+                // Publications already populated, just set selected
+                SetSelectedSongPublication();
+            }
+        }
+        // For vocal music, always repopulate song sections if:
+        // 1. We have a language code
         // 2. Song sections aren't already populated
         // 3. Language code changed (cascade effect)
-        if (!string.IsNullOrEmpty(languageCodeToUse) &&
+        else if (!string.IsNullOrEmpty(languageCodeToUse) &&
             (propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0 || languageChanged))
         {
             await PopulateSongPublications(languageCodeToUse);
@@ -387,7 +411,7 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
     }
 
-    private async Task PopulateSongPublications(string languageCode)
+    private async Task PopulateSongPublications(string? languageCode)
     {
         await dataProvider.PopulateSongPublications(
             languageCode,

@@ -89,6 +89,9 @@ public static class ServiceRegistrationHelper
     {
         // Register HttpMessageHandler (same implementation for all platforms)
         services.AddSingleton<HttpMessageHandler, HttpClientHandler>();
+        
+        // Register HttpClient for LanguageContentService
+        services.AddSingleton<System.Net.Http.HttpClient>();
 
         // Register common services
         RegisterCommonServices(services);
@@ -152,6 +155,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IUrlConstructionService, UrlConstructionService>();
         services.AddSingleton<IMelodyMusicService, MelodyMusicService>();
         services.AddSingleton<IVocalMusicService, VocalMusicService>();
+        services.AddSingleton<ILanguageContentService, LanguageContentService>();
         services.AddSingleton<IBiblePublicationNavigationService, BiblePublicationNavigationService>();
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();
@@ -306,6 +310,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<CategorySelectionViewModel>();
         services.AddTransient<SectionSelectionViewModel>();
         services.AddTransient<ViewModels.BiblePublications.TrackSelectionViewModel>();
+        services.AddTransient<ViewModels.Music.MusicSectionSelectionViewModel>();
         services.AddTransient<AlarmViewModel>();
         services.AddTransient<BiblePublicationSelectionContainerViewModel>();
         services.AddTransient<MusicSelectionContainerViewModel>();
@@ -344,6 +349,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BiblePublicationSelectionModal>();
         services.AddTransient<SectionSelectionModal>();
         services.AddTransient<Views.Music.TrackSelectionModal>();
+        services.AddTransient<Views.Music.MusicSectionSelectionModal>();
         services.AddTransient<MusicSelectionModal>();
         services.AddTransient<SongPublicationSelectionModal>();
         services.AddTransient<Views.Bible.TrackSelectionModal>();

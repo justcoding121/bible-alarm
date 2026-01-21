@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.Music.TrackSelectionModal"
+    x:Class="Bible.Alarm.Views.Music.MusicSectionSelectionModal"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
     xmlns:music="clr-namespace:Bible.Alarm.ViewModels.Music"
+    xmlns:bible="clr-namespace:Bible.Alarm.ViewModels.BiblePublications"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
-    xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:sharedControls="clr-namespace:Bible.Alarm.Views.Shared;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
-    x:DataType="music:TrackSelectionViewModel"
+    xmlns:fn="clr-namespace:Bible.Alarm.Views"
+    x:DataType="music:MusicSectionSelectionViewModel"
     Padding="0,0,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
-        <converters:RepeatColorConverter x:Key="repeatColorConverter" />
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid
@@ -53,8 +53,8 @@
                 <Label
                     FontSize="{DynamicResource HeaderFontSize}"
                     FontAttributes="Bold"
-                    MinimumHeightRequest="56"
-                    Text="Select Track"
+                    MinimumHeightRequest="{DynamicResource IconLargeContainerSize}"
+                    Text="Select Section"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />
@@ -62,14 +62,14 @@
             
             <!-- Collection View -->
             <CollectionView
-                x:Name="trackCollectionView"
+                x:Name="sectionCollectionView"
                 Grid.Row="1"
                 Margin="0,8,0,20"
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
                 IsVisible="True"
-                ItemsSource="{Binding Tracks}"
+                ItemsSource="{Binding Sections}"
                 SelectionMode="None"
                 FlowDirection="{Binding ContentFlowDirection}">
                 <CollectionView.ItemsLayout>
@@ -83,7 +83,7 @@
                     </LinearItemsLayout>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="music:MusicTrackListViewItemModel">
+                        <DataTemplate x:DataType="bible:BiblePublicationSectionListViewItemModel">
                             <Grid Margin="16,0">
                                 <core:SfEffectsView
                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
@@ -93,7 +93,7 @@
                                     RippleAnimationDuration="200"
                                     ShouldIgnoreTouches="False">
                                     <core:SfEffectsView.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnTrackItemTapped" />
+                                        <TapGestureRecognizer Tapped="OnSectionItemTapped" />
                                     </core:SfEffectsView.GestureRecognizers>
                                     <Border
                                         BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -124,7 +124,6 @@
                                             BackgroundColor="Transparent">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             
                                             <Label
@@ -134,12 +133,10 @@
                                                 HorizontalTextAlignment="Start"
                                                 InputTransparent="True"
                                                 LineBreakMode="WordWrap"
-                                                MaxLines="2"
-                                                Text="{Binding Title}"
+                                                Text="{Binding Name}"
                                                 TextColor="{DynamicResource TextPrimaryColor}"
                                                 VerticalOptions="Center"
                                                 VerticalTextAlignment="Center" />
-                                            
                                         </Grid>
                                     </Border>
                                 </core:SfEffectsView>
@@ -222,7 +219,7 @@
                        VerticalOptions="Center" />
             </Border>
             
-            <!-- Busy Overlay -->
+            <!-- Busy Overlay - visibility controlled from code-behind to prevent binding race conditions -->
             <shared:BusyOverlay x:Name="BusyOverlay"
                                 Grid.Row="0"
                                 Grid.RowSpan="3"
@@ -230,4 +227,3 @@
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>
-

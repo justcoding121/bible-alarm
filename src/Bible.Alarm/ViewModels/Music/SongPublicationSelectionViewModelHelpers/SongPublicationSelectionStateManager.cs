@@ -116,7 +116,7 @@ public sealed class SongPublicationSelectionStateManager
     public void HandleMusicChanged(
         IState<ApplicationState> state,
         Action<bool> setBusy,
-        Func<string, Task> populateSongPublications,
+        Func<string?, Task> populateSongPublications,
         Action setSelectedSongPublication)
     {
         var stateValue = state.Value;
@@ -130,7 +130,13 @@ public sealed class SongPublicationSelectionStateManager
         var newMusicType = currentSchedule.MusicType;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
 
-        if (!newMusicType.HasValue || string.IsNullOrEmpty(newLanguageCode))
+        if (!newMusicType.HasValue)
+        {
+            return;
+        }
+
+        // For vocal music, language code is required
+        if (newMusicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(newLanguageCode))
         {
             return;
         }
@@ -156,7 +162,7 @@ public sealed class SongPublicationSelectionStateManager
             current = new AlarmMusic
             {
                 MusicType = newMusicType.Value,
-                LanguageCode = newLanguageCode,
+                LanguageCode = newLanguageCode ?? string.Empty,
                 PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
                 TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
                 Repeat = currentSchedule.MusicRepeat ?? false
@@ -165,12 +171,13 @@ public sealed class SongPublicationSelectionStateManager
         }
 
         // If music type or language changed, repopulate song sections
-        if (needsRepopulation && initComplete && newMusicType.Value == MusicType.VocalMusic)
+        if (needsRepopulation && initComplete)
         {
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                await populateSongPublications(newLanguageCode);
+                // For instrumental music, pass null; for vocal music, pass language code
+                await populateSongPublications(newMusicType.Value == MusicType.Music ? null : newLanguageCode);
                 await Task.Delay(100);
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
             });

@@ -407,15 +407,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
         // For non-numeric section codes, return 0
         return 0;
-        {
-            logger.Warning(ex, "Error converting SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}",
-                sectionCode, languageCode, publicationCode);
-        }
-
-        // Fallback: return 0 if section not found
-        logger.Warning("Could not convert SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}, using 0",
-            sectionCode, languageCode, publicationCode);
-        return 0;
     }
 
     private static int CalculateTrackIndex(int currentTrackNumber, int totalTracks, bool next)

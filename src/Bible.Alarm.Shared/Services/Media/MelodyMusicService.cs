@@ -72,7 +72,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 allTracks.AddRange(publication.Tracks);
             }
 
-            // Create a new publication object with all tracks combined
+            // Create a new publication object with all tracks combined AND sections
             var publicationWithTracks = new BiblePublication
             {
                 Id = publication.Id,
@@ -82,7 +82,8 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 CategoryId = publication.CategoryId,
                 IsVideo = publication.IsVideo,
                 Category = publication.Category,
-                Tracks = allTracks
+                Tracks = allTracks,
+                Sections = publication.Sections // Include sections so GetSampleSchedule can select a section
             };
 
             // MelodyMusic is a subclass of BiblePublication, so we can return the publication directly
@@ -198,6 +199,63 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
         catch (Exception ex)
         {
             logger.Error(ex, "Error getting MelodyMusic tracks. PublicationCode={PublicationCode}", publicationCode);
+            throw;
+        }
+    }
+
+    public async Task<SortedDictionary<int, MusicTrack>> GetTracksBySectionCodeAsync(string publicationCode, string sectionCode, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            // Get the publication with sections
+            var publication = await dbContext.BiblePublications
+                .AsNoTracking()
+                .Include(x => x.Category)
+                .Include(x => x.Sections)
+                    .ThenInclude(s => s.Tracks)
+                .Where(x => x.Category.CategoryName == MusicCategoryName 
+                    && x.LanguageId == null 
+                    && x.PublicationCode == publicationCode)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (publication == null)
+            {
+                return new SortedDictionary<int, MusicTrack>();
+            }
+
+            // Find the section by section code
+            var section = publication.Sections?.FirstOrDefault(s => 
+                s.SectionCode != null && 
+                s.SectionCode.Equals(sectionCode, StringComparison.OrdinalIgnoreCase));
+
+            if (section == null || section.Tracks == null || section.Tracks.Count == 0)
+            {
+                return new SortedDictionary<int, MusicTrack>();
+            }
+
+            // Map BiblePublicationTrack to MusicTrack
+            var musicTracks = section.Tracks
+                .OrderBy(t => t.Number)
+                .Select(t => new MusicTrack
+                {
+                    Number = t.Number,
+                    Title = t.Title,
+                    Url = string.Empty, // URLs are computed on-demand
+                    LookUpPath = string.Empty,
+                    DownloadCode = null,
+                    OriginalTrackNumber = null
+                })
+                .ToDictionary(x => x.Number, x => x);
+
+            return new SortedDictionary<int, MusicTrack>(musicTracks);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error getting MelodyMusic tracks by section. PublicationCode={PublicationCode}, SectionCode={SectionCode}", 
+                publicationCode, sectionCode);
             throw;
         }
     }

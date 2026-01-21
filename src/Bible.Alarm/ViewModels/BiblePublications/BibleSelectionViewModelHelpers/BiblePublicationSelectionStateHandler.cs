@@ -19,8 +19,9 @@ public sealed class BiblePublicationSelectionStateHandler
     private readonly IMapper mapper;
     private readonly BiblePublicationSelectionDataProvider dataProvider;
 
-    // Track last language code to detect changes
+    // Track last language code and category to detect changes
     private string? lastLanguageCode;
+    private string? lastCategoryName;
     private BiblePublicationSchedule? current;
     private BiblePublicationSchedule? lastCurrent;
     private bool initComplete;
@@ -37,36 +38,46 @@ public sealed class BiblePublicationSelectionStateHandler
         this.dataProvider = dataProvider;
     }
 
-    public void InitializeCurrent(BiblePublicationSchedule? initialCurrent, string? initialLanguageCode)
+    public void InitializeCurrent(BiblePublicationSchedule? initialCurrent, string? initialLanguageCode, string? initialCategoryName = null)
     {
         current = initialCurrent;
         lastLanguageCode = initialLanguageCode;
+        lastCategoryName = initialCategoryName;
     }
 
     public async Task HandleBiblePublicationInitializedAsync(Action<bool> setIsBusy, ObservableCollection<LanguageListViewItemModel>? languages, string? languageCode, Action? updateCurrentLanguage = null)
     {
         var stateValue = state.Value;
 
-        // If already initialized and languages are populated, ensure IsBusy is false and skip
-        if (initComplete && languages != null && languages.Count > 0)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
-            return;
-        }
-
         try
         {
             // Use CurrentSchedule as the source of truth, not CurrentBiblePublicationSchedule
             string? newLanguageCode = null;
+            string? newCategoryName = null;
             if (stateValue.CurrentSchedule != null)
             {
                 newLanguageCode = stateValue.CurrentSchedule.BiblePublicationLanguageCode;
+                newCategoryName = stateValue.CurrentSchedule.BiblePublicationCategoryName;
             }
 
-            // Update tracking variable
+            // Check if category changed (need to repopulate languages since they're filtered by category)
+            var categoryChanged = newCategoryName != lastCategoryName;
+
+            // If already initialized and languages are populated AND category hasn't changed, ensure IsBusy is false and skip
+            if (initComplete && languages != null && languages.Count > 0 && !categoryChanged)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+                return;
+            }
+
+            // Update tracking variables
             if (!string.IsNullOrEmpty(newLanguageCode))
             {
                 lastLanguageCode = newLanguageCode;
+            }
+            if (newCategoryName != null)
+            {
+                lastCategoryName = newCategoryName;
             }
 
             // Derive from CurrentSchedule (single source of truth)
@@ -101,7 +112,8 @@ public sealed class BiblePublicationSelectionStateHandler
 
             // Check if languages are already populated before setting IsBusy to true
             // This avoids unnecessary busy overlay toggling when languages are already loaded
-            var needsLanguagePopulation = languages == null || languages.Count == 0;
+            // Also repopulate if category changed (languages are filtered by category)
+            var needsLanguagePopulation = languages == null || languages.Count == 0 || categoryChanged;
 
             // Only set IsBusy to true if we actually need to populate languages
             // This prevents the quick show/hide toggle when languages are already populated
@@ -175,8 +187,10 @@ public sealed class BiblePublicationSelectionStateHandler
                 await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            // Log the exception for debugging
+            Serilog.Log.Warning(ex, "Error in HandleBiblePublicationInitializedAsync");
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
             // Don't set initComplete on error so it can retry
             // Don't re-throw - async void methods can't properly handle exceptions
@@ -195,23 +209,29 @@ public sealed class BiblePublicationSelectionStateHandler
 
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+        var newCategoryName = currentSchedule.BiblePublicationCategoryName;
 
         if (string.IsNullOrEmpty(newLanguageCode))
         {
             return;
         }
 
-        // Check if language code changed (need to repopulate publications)
+        // Check if language code or category changed (need to repopulate publications)
         var languageChanged = lastLanguageCode != newLanguageCode;
+        var categoryChanged = newCategoryName != lastCategoryName;
 
         // If no changes detected and we're already initialized, skip
-        if (!languageChanged && initComplete)
+        if (!languageChanged && !categoryChanged && initComplete)
         {
             return;
         }
 
-        // Update tracking variable
+        // Update tracking variables
         lastLanguageCode = newLanguageCode;
+        if (newCategoryName != null)
+        {
+            lastCategoryName = newCategoryName;
+        }
 
         // Derive from CurrentSchedule (single source of truth)
         // currentSchedule is already declared above
@@ -241,8 +261,8 @@ public sealed class BiblePublicationSelectionStateHandler
             lastCurrent = current;
         }
 
-        // If language changed, repopulate publications
-        if (languageChanged && initComplete)
+        // If language or category changed, repopulate publications
+        if ((languageChanged || categoryChanged) && initComplete)
         {
             await Task.Run(async () =>
             {
@@ -252,7 +272,7 @@ public sealed class BiblePublicationSelectionStateHandler
                     // Clear the mapping dictionary before repopulating
                     dataProvider.ClearPublicationVMsMapping();
                     // Pass languageChanged flag to PopulatePublications so it can select default publication
-                    await dataProvider.PopulatePublicationsAsync(newLanguageCode, publications, languageChanged);
+                    await dataProvider.PopulatePublicationsAsync(newLanguageCode, publications, languageChanged || categoryChanged);
                     await Task.Delay(100);
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
@@ -305,11 +325,17 @@ public sealed class BiblePublicationSelectionStateHandler
         var finalStateValue = state.Value;
         var currentSchedule = finalStateValue.CurrentSchedule!;
 
-        // Check if language code changed (need to repopulate publications)
+        // Check if language code or category changed (need to repopulate publications)
+        var newCategoryName = currentSchedule.BiblePublicationCategoryName;
         var languageChanged = lastLanguageCode != newLanguageCode;
+        var categoryChanged = newCategoryName != lastCategoryName;
 
-        // Update tracking variable
+        // Update tracking variables
         lastLanguageCode = newLanguageCode;
+        if (newCategoryName != null)
+        {
+            lastCategoryName = newCategoryName;
+        }
 
         // Update current from CurrentSchedule (single source of truth)
         if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
@@ -339,18 +365,19 @@ public sealed class BiblePublicationSelectionStateHandler
         // 1. Not initialized yet
         // 2. Publications collection is null or empty
         // 3. Language code changed (cascade effect)
-        if (!initComplete || publications == null || publications.Count == 0 || languageChanged)
+        // 4. Category changed (cascade effect - filter needs to be reapplied)
+        if (!initComplete || publications == null || publications.Count == 0 || languageChanged || categoryChanged)
         {
             initComplete = true;
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
             if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
             {
-                // Clear the mapping dictionary before repopulating if language changed
-                if (languageChanged)
+                // Clear the mapping dictionary before repopulating if language or category changed
+                if (languageChanged || categoryChanged)
                 {
                     dataProvider.ClearPublicationVMsMapping();
                 }
-                await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged);
+                await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged || categoryChanged);
             }
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));

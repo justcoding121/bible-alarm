@@ -50,6 +50,13 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         await navigation.PushModalAsync(modal, animated: false);
     }
 
+    public async Task OpenMusicSectionSelectionModalAsync(INavigation navigation, object bindingContext)
+    {
+        var modal = serviceProvider.GetRequiredService<Views.Music.MusicSectionSelectionModal>();
+        modal.BindingContext = bindingContext;
+        await navigation.PushModalAsync(modal, animated: false);
+    }
+
     public async Task OpenBiblePublicationTrackSelectionModalAsync(INavigation navigation, object bindingContext)
     {
         var modal = serviceProvider.GetRequiredService<Views.Bible.TrackSelectionModal>();

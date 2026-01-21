@@ -96,6 +96,68 @@ internal class DbSeeder : IDataPersister
         // Seed English using shared FetchAndSave* methods (same as used for other languages in test mode)
         // This happens after discovery tables are seeded, using the same methods that are used for on-demand fetching
         await SeedEnglish();
+        
+        // In test mode, also seed MY and A after English
+        if (isTestRun)
+        {
+            await SeedTestLanguages();
+        }
+    }
+
+    /// <summary>
+    /// Seeds test languages (MY and A) for all discovered publications in test mode.
+    /// Uses EnsurePublicationExistsAsync to seed each publication for each test language.
+    /// </summary>
+    private async Task SeedTestLanguages()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var httpClient = scope.ServiceProvider.GetRequiredService<System.Net.Http.HttpClient>();
+        var languageContentService = new LanguageContentService(scopeFactory, logger, httpClient);
+
+        var testLanguages = new[] { "MY", "A" };
+        logger.Information("=== Seeding test languages ({Languages}) for all discovered publications ===",
+            string.Join(", ", testLanguages));
+
+        // Get all discovered publication codes from PublicationLanguages
+        var publicationCodes = dataStore.PublicationLanguages.Keys.ToList();
+
+        // Note: "iam" (Kingdom Melodies) is not included here because it doesn't support ad-hoc fetching
+        // for other languages - it's only seeded once with null language for English
+
+        if (publicationCodes.Count == 0)
+        {
+            logger.Warning("No publications discovered, skipping test language seeding");
+            return;
+        }
+
+        logger.Information("Found {Count} publication(s) to seed test languages for", publicationCodes.Count);
+
+        foreach (var languageCode in testLanguages)
+        {
+            logger.Information("=== Seeding {LanguageCode} for all discovered publications ===", languageCode);
+
+            foreach (var publicationCode in publicationCodes.OrderBy(pc => pc))
+            {
+                logger.Information("Seeding {LanguageCode} for publication: {PublicationCode}", languageCode, publicationCode);
+
+                // Use EnsurePublicationExistsAsync to seed the publication for this language
+                // This will fetch the publication if it doesn't exist
+                var success = await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode);
+
+                if (success)
+                {
+                    logger.Information("✓ Successfully seeded {LanguageCode} for publication {PublicationCode}", languageCode, publicationCode);
+                }
+                else
+                {
+                    logger.Warning("✗ Failed to seed {LanguageCode} for publication {PublicationCode}", languageCode, publicationCode);
+                }
+            }
+
+            logger.Information("=== {LanguageCode} seeding completed ===", languageCode);
+        }
+
+        logger.Information("=== Test language seeding completed ===");
     }
 
     private async Task SeedDefaultCategoriesAndApiUrls()

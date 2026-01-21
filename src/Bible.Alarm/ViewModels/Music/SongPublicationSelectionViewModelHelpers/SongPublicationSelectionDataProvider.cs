@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
@@ -83,7 +84,7 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
     }
 
     public async Task PopulateSongPublications(
-        string languageCode,
+        string? languageCode,
         AlarmMusic? current,
         ObservableCollection<PublicationListViewItemModel> songPublications,
         Action<PublicationListViewItemModel?> setSelectedSongPublication)
@@ -91,39 +92,98 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (songPublicationVMs, newMapping, selectedSongPublication) = await Task.Run(async () =>
         {
-            var songPublicationsFromDb = await mediaService.GetVocalMusicReleases(languageCode);
+            Dictionary<string, VocalMusic>? vocalReleases = null;
+            Dictionary<string, MelodyMusic>? melodyReleases = null;
+            
+            // Determine which type of music to load based on current music type
+            if (current?.MusicType == MusicType.Music)
+            {
+                // Instrumental music - load melody releases (no language code needed)
+                melodyReleases = await mediaService.GetMelodyMusicReleases();
+            }
+            else if (!string.IsNullOrEmpty(languageCode))
+            {
+                // Vocal music - load vocal releases with language code
+                vocalReleases = await mediaService.GetVocalMusicReleases(languageCode);
+            }
+            else
+            {
+                // No music type or language code - return empty
+                return (new List<PublicationListViewItemModel>(), new Dictionary<string, PublicationListViewItemModel>(), (PublicationListViewItemModel?)null);
+            }
+
             var vms = new List<PublicationListViewItemModel>();
             var mapping = new Dictionary<string, PublicationListViewItemModel>();
             PublicationListViewItemModel? selected = null;
 
-            foreach (var release in songPublicationsFromDb.Values)
+            // Process vocal music releases
+            if (vocalReleases != null)
             {
-                // Skip duplicates - if code already exists, use the existing one
-                if (mapping.TryGetValue(release.Code, out var existingVm))
+                foreach (var release in vocalReleases.Values)
                 {
-                    // Still check if this duplicate matches the current publication code
+                    // Skip duplicates - if code already exists, use the existing one
+                    if (mapping.TryGetValue(release.Code, out var existingVm))
+                    {
+                        // Still check if this duplicate matches the current publication code
+                        if (current != null &&
+                            current.MusicType == MusicType.VocalMusic &&
+                            current.LanguageCode == languageCode &&
+                            current.PublicationCode == release.Code)
+                        {
+                            existingVm.IsSelected = true;
+                            selected = existingVm;
+                        }
+                        continue;
+                    }
+
+                    var songPublicationListViewItemModel = new PublicationListViewItemModel(release);
+                    vms.Add(songPublicationListViewItemModel);
+                    mapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
+
                     if (current != null &&
                         current.MusicType == MusicType.VocalMusic &&
                         current.LanguageCode == languageCode &&
                         current.PublicationCode == release.Code)
                     {
-                        existingVm.IsSelected = true;
-                        selected = existingVm;
+                        songPublicationListViewItemModel.IsSelected = true;
+                        selected = songPublicationListViewItemModel;
                     }
-                    continue;
                 }
+            }
 
-                var songPublicationListViewItemModel = new PublicationListViewItemModel(release);
-                vms.Add(songPublicationListViewItemModel);
-                mapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
-
-                if (current != null &&
-                    current.MusicType == MusicType.VocalMusic &&
-                    current.LanguageCode == languageCode &&
-                    current.PublicationCode == release.Code)
+            // Process melody music releases
+            if (melodyReleases != null)
+            {
+                foreach (var release in melodyReleases.Values)
                 {
-                    songPublicationListViewItemModel.IsSelected = true;
-                    selected = songPublicationListViewItemModel;
+                    var publicationCode = release.Publication.PublicationCode;
+                    
+                    // Skip duplicates - if code already exists, use the existing one
+                    if (mapping.TryGetValue(publicationCode, out var existingVm))
+                    {
+                        // Still check if this duplicate matches the current publication code
+                        if (current != null &&
+                            current.MusicType == MusicType.Music &&
+                            current.PublicationCode == publicationCode)
+                        {
+                            existingVm.IsSelected = true;
+                            selected = existingVm;
+                        }
+                        continue;
+                    }
+
+                    // Use the Publication property directly (BiblePublication is a Publication)
+                    var songPublicationListViewItemModel = new PublicationListViewItemModel(release.Publication);
+                    vms.Add(songPublicationListViewItemModel);
+                    mapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
+
+                    if (current != null &&
+                        current.MusicType == MusicType.Music &&
+                        current.PublicationCode == publicationCode)
+                    {
+                        songPublicationListViewItemModel.IsSelected = true;
+                        selected = songPublicationListViewItemModel;
+                    }
                 }
             }
 

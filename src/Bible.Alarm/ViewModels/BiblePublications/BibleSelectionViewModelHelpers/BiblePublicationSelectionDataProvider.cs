@@ -48,13 +48,15 @@ public sealed class BiblePublicationSelectionDataProvider
         // Prevent concurrent population which can cause duplicates
         await ConcurrencyHelper.ExecuteAsync(languagePopulationLock, async () =>
         {
-            // Capture current language code before Task.Run to avoid state access issues
+            // Capture current language code and category before Task.Run to avoid state access issues
             var currentLanguageCode = state.Value.CurrentSchedule?.BiblePublicationLanguageCode;
+            var currentCategoryName = state.Value.CurrentSchedule?.BiblePublicationCategoryName;
 
             // Do ALL processing on background thread to avoid blocking spinner animation
+            // Languages ARE filtered by category - show only languages that have publications in the selected category
             var languageVMs = await Task.Run(async () =>
             {
-                var languagesData = await mediaService.GetBiblePublicationLanguages();
+                var languagesData = await mediaService.GetBiblePublicationLanguages(currentCategoryName);
                 var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
                 Log.Debug("PopulateLanguagesAsync: Loaded {LanguageCount} languages from GetBiblePublicationLanguages: {LanguageCodes}",
@@ -134,11 +136,12 @@ public sealed class BiblePublicationSelectionDataProvider
         var currentPublicationCode = stateValue.CurrentSchedule?.BiblePublicationCode;
         var currentLanguageName = stateValue.CurrentSchedule?.BiblePublicationLanguageName;
         var currentLanguageDirection = stateValue.CurrentSchedule?.BiblePublicationLanguageDirection;
+        var currentCategoryName = stateValue.CurrentSchedule?.BiblePublicationCategoryName;
 
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (publicationVMs, newMapping, defaultPublication) = await Task.Run(async () =>
         {
-            var publicationsData = await mediaService.GetBiblePublications(languageCode);
+            var publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName);
             var vms = new List<PublicationListViewItemModel>();
             var mapping = new Dictionary<string, PublicationListViewItemModel>();
 
