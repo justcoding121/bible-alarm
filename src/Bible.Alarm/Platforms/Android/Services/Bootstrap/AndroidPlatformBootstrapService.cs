@@ -121,7 +121,6 @@ public class AndroidPlatformBootstrapService : IPlatformBootstrapService
     private static void VerifyBackgroundTasks(Context context)
     {
         SchedulerSetupTask(context);
-        UpdateMediaIndexJobTask(context);
     }
 
     private static bool SchedulerSetupTask(Context context)
@@ -151,31 +150,4 @@ public class AndroidPlatformBootstrapService : IPlatformBootstrapService
         return success;
     }
 
-    private static bool UpdateMediaIndexJobTask(Context context)
-    {
-        // Update media index every 24 hours (1440 minutes)
-        using var jobBuilder = context.CreateJobBuilderUsingJobId<UpdateMediaIndexJob>(UpdateMediaIndexJob.JobId, 1440);
-        var jobInfo = jobBuilder.Build();
-
-        var jobScheduler = (JobScheduler?)context.GetSystemService(Context.JobSchedulerService);
-        if (jobScheduler == null || jobInfo == null)
-        {
-            logger.Warning("Failed to schedule UpdateMediaIndexJob - JobScheduler or JobInfo is null");
-            return false;
-        }
-
-        var scheduleResult = jobScheduler.Schedule(jobInfo);
-        var success = JobScheduler.ResultSuccess == scheduleResult;
-
-        if (success)
-        {
-            logger.Debug("UpdateMediaIndexJob scheduled successfully");
-        }
-        else
-        {
-            logger.Warning("Failed to schedule UpdateMediaIndexJob - result: {Result}", scheduleResult);
-        }
-
-        return success;
-    }
 }

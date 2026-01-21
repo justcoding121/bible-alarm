@@ -1,6 +1,5 @@
 #nullable enable
 
-using Bible.Alarm.Platforms.Windows.Services.BackgroundTasks;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Serilog;
 
@@ -9,7 +8,6 @@ namespace Bible.Alarm.Platforms.Windows.Helpers;
 /// <summary>
 /// Manages periodic background tasks for Windows (similar to Android JobScheduler).
 /// - SchedulerService: Runs every 30 minutes (like Android SchedulerJob)
-/// - UpdateMediaIndexBackgroundTask: Runs every 24 hours (like Android UpdateMediaIndexJob)
 /// </summary>
 public sealed class WindowsPeriodicBackgroundTasks : IDisposable
 {
@@ -18,7 +16,6 @@ public sealed class WindowsPeriodicBackgroundTasks : IDisposable
 
     // Periodic timers for Windows background tasks
     private PeriodicTimer? schedulerTimer; // Runs every 30 minutes (like Android SchedulerJob)
-    private PeriodicTimer? mediaIndexTimer; // Runs every 24 hours (like Android UpdateMediaIndexJob)
     private CancellationTokenSource? timersCancellationTokenSource;
     private readonly object timersLock = new();
     private bool isDisposed;
@@ -52,13 +49,7 @@ public sealed class WindowsPeriodicBackgroundTasks : IDisposable
             schedulerTimer = new PeriodicTimer(TimeSpan.FromMinutes(30));
             _ = RunSchedulerTaskAsync(schedulerTimer, cancellationToken);
 
-            // Run media index update task immediately on start
-            _ = RunMediaIndexUpdateTaskOnceAsync(cancellationToken);
-            // Then start periodic timer (every 24 hours, like Android UpdateMediaIndexJob)
-            mediaIndexTimer = new PeriodicTimer(TimeSpan.FromHours(24));
-            _ = RunMediaIndexUpdateTaskAsync(mediaIndexTimer, cancellationToken);
-
-            logger.Information("Started periodic background tasks for Windows: Scheduler (30 min), MediaIndex (24 hours) - running immediately on start");
+            logger.Information("Started periodic background tasks for Windows: Scheduler (30 min) - running immediately on start");
         }
     }
 
@@ -111,52 +102,6 @@ public sealed class WindowsPeriodicBackgroundTasks : IDisposable
         }
     }
 
-    /// <summary>
-    /// Runs the media index update task once immediately on app start.
-    /// </summary>
-    private async Task RunMediaIndexUpdateTaskOnceAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            logger.Debug("Running media index update task immediately on app start");
-            await UpdateMediaIndexBackgroundTask.HandleAsync();
-        }
-        catch (Exception e)
-        {
-            logger.Error(e, "Error running media index update task on app start");
-        }
-    }
-
-    /// <summary>
-    /// Runs the media index update task periodically (every 24 hours, like Android UpdateMediaIndexJob)
-    /// </summary>
-    private async Task RunMediaIndexUpdateTaskAsync(PeriodicTimer timer, CancellationToken cancellationToken)
-    {
-        try
-        {
-            while (await timer.WaitForNextTickAsync(cancellationToken))
-            {
-                try
-                {
-                    logger.Debug("Windows periodic media index update task running (every 24 hours)");
-                    await UpdateMediaIndexBackgroundTask.HandleAsync();
-                }
-                catch (Exception e)
-                {
-                    logger.Error(e, "Error in Windows periodic media index update task");
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected when timer is stopped
-            logger.Debug("Windows media index update timer stopped");
-        }
-        catch (Exception e)
-        {
-            logger.Error(e, "Unexpected error in Windows media index update timer");
-        }
-    }
 
     public void Dispose()
     {
@@ -176,9 +121,6 @@ public sealed class WindowsPeriodicBackgroundTasks : IDisposable
 
             schedulerTimer?.Dispose();
             schedulerTimer = null;
-
-            mediaIndexTimer?.Dispose();
-            mediaIndexTimer = null;
 
             logger.Debug("Stopped and disposed Windows periodic background task timers");
         }

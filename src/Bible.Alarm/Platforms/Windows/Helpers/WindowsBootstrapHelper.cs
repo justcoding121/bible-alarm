@@ -39,7 +39,6 @@ public class WindowsBootstrapHelper
         IsBackgroundTaskEnabled = true;
 
         // Note: Media index update background task handler is available at:
-        // Platforms.Windows.Services.BackgroundTasks.UpdateMediaIndexBackgroundTask
         // This can be called from Windows Task Scheduler or app lifecycle events
         // WinUI 3 doesn't support UWP background tasks the same way as UWP
 

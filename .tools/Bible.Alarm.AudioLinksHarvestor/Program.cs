@@ -8,9 +8,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Amazon;
-using Amazon.S3;
-using Amazon.S3.Model;
 using Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible;
 using Bible.Alarm.AudioLinksHarvestor.Harvestors.Drama;
 using Bible.Alarm.AudioLinksHarvestor.Harvestors.Music;
@@ -227,14 +224,8 @@ public class Program
                 throw new ApplicationException($"New index file size ({newIndexFileSize / 1024}kb) is significantly smaller than old index file size ({originalIndexFileSize / 1024}kb). This could indicate data loss.");
             }
 
-            if (!isTestRun)
-            {
-                await PublishToCloudFront(logger);
-            }
-            else
-            {
-                logger.Information("=== TEST RUN: Skipping cloud publishing ===");
-            }
+            // Media index is now packaged with the app only, updated on app updates
+            // No longer publishing to AWS S3/CloudFront
         }
         catch (Exception ex)
         {
@@ -320,53 +311,4 @@ public class Program
         }
     }
 
-    private static async Task PublishToCloudFront(ILogger logger)
-    {
-        var keyPrefix = "bible-alarm/media-index";
-        var bucketName = "jthomas.info";
-        using var s3Client = new AmazonS3Client(RegionEndpoint.GetBySystemName("ca-central-1"));
-
-        var listObjectsResponse = await s3Client.ListObjectsAsync(new ListObjectsRequest
-        {
-            Prefix = $"{keyPrefix}/",
-            BucketName = bucketName
-        });
-
-        var utcTime = DateTime.UtcNow;
-        // Use new file name format with prefix (e.g., "v2-7-1-2024.zip")
-        var fileName = $"{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}{utcTime.Day}-{utcTime.Month}-{utcTime.Year}.zip";
-        var keyName = $"{keyPrefix}/{fileName}";
-        await s3Client.PutObjectAsync(new PutObjectRequest
-        {
-            BucketName = bucketName,
-            Key = keyName,
-            FilePath = $"{DirectoryHelper.IndexDirectory}/index.zip",
-
-        });
-
-        // Only delete files with the new prefix format to preserve pre-migration files
-        if (listObjectsResponse.S3Objects.Count > 0)
-        {
-            var deleteObjectsRequest = new DeleteObjectsRequest
-            {
-                BucketName = bucketName
-            };
-
-            listObjectsResponse.S3Objects.ForEach(x =>
-            {
-                // Only delete files with the new prefix format (v2-), preserve old format files
-                if (x.Key != keyName && x.Key.Contains($"{keyPrefix}/{AppConstants.ApiEndpoints.MediaIndexFileNamePrefix}"))
-                {
-                    deleteObjectsRequest.AddKey(x.Key);
-                }
-            });
-
-            if (deleteObjectsRequest.Objects.Count > 0)
-            {
-                await s3Client.DeleteObjectsAsync(deleteObjectsRequest);
-            }
-
-        }
-
-    }
 }

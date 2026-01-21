@@ -43,7 +43,6 @@ public class AndroidBootstrapHelper
     private static void VerifyBackgroundTasks(Context context)
     {
         SchedulerSetupTask(context);
-        UpdateMediaIndexJobTask(context);
     }
 
     private static bool SchedulerSetupTask(Context context)
@@ -68,28 +67,6 @@ public class AndroidBootstrapHelper
     }
 
 
-    private static bool UpdateMediaIndexJobTask(Context context)
-    {
-        // Update media index every 24 hours (1440 minutes)
-        using var jobBuilder = context.CreateJobBuilderUsingJobId<UpdateMediaIndexJob>(UpdateMediaIndexJob.JobId, 1440);
-        var jobInfo = jobBuilder.Build();
-
-        var jobScheduler = (JobScheduler)context.GetSystemService(Context.JobSchedulerService);
-        if (jobScheduler == null)
-        {
-            return false;
-        }
-
-        if (jobInfo == null)
-        {
-            return false;
-        }
-
-        var scheduleResult = jobScheduler.Schedule(jobInfo);
-
-        return JobScheduler.ResultSuccess == scheduleResult;
-
-    }
 
     private static void CreateNotificationChannel()
     {
