@@ -43,20 +43,17 @@ public sealed class BiblePublicationSection : IComparable
     public List<BiblePublicationTrack> Tracks { get; set; } = [];
 
     /// <summary>
-    /// Helper property to get the booknum value from UrlParams.
-    /// Returns null if not found or cannot be parsed.
+    /// Gets the section number by parsing SectionCode.
+    /// Returns null if SectionCode cannot be parsed as an integer.
+    /// Note: UrlParams["booknum"] is only used for URL construction, not for business logic.
     /// </summary>
-    public int? BookNum
+    public int? GetSectionNumber()
     {
-        get
+        if (int.TryParse(SectionCode, out var sectionNumber))
         {
-            var booknumParam = UrlParams.FirstOrDefault(p => p.Key.Equals("booknum", StringComparison.OrdinalIgnoreCase));
-            if (booknumParam != null && int.TryParse(booknumParam.Value, out var booknum))
-            {
-                return booknum;
-            }
-            return null;
+            return sectionNumber;
         }
+        return null;
     }
 
     public int CompareTo(object obj)

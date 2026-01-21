@@ -73,6 +73,10 @@ public class ScheduleUpdateHandler
             {
                 await displayNamePopulator.PopulateMusicPublicationNameAsync(scheduleStateItem, action.Schedule);
             }
+            if (string.IsNullOrWhiteSpace(scheduleStateItem.MusicSectionName))
+            {
+                await displayNamePopulator.PopulateMusicSectionNameAsync(scheduleStateItem, action.Schedule);
+            }
             if (string.IsNullOrWhiteSpace(scheduleStateItem.MusicTrackName))
             {
                 await displayNamePopulator.PopulateMusicTrackNameAsync(scheduleStateItem, action.Schedule);

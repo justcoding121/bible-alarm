@@ -33,18 +33,60 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
+            // Melody music is now stored as a sectioned publication (e.g., iam has sections like "iam-1", "iam-2")
+            // Include sections and their tracks
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Category)
+                .Include(x => x.Sections)
+                    .ThenInclude(s => s.Tracks)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .Where(x => x.Category.CategoryName == MusicCategoryName 
                     && x.LanguageId == null 
                     && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
+            if (publication == null)
+            {
+                return null;
+            }
+
+            // Collect all tracks from sections and direct tracks
+            var allTracks = new List<BiblePublicationTrack>();
+            
+            // Add tracks from sections (for sectioned melody music like iam)
+            if (publication.Sections != null)
+            {
+                foreach (var section in publication.Sections)
+                {
+                    if (section.Tracks != null)
+                    {
+                        allTracks.AddRange(section.Tracks);
+                    }
+                }
+            }
+            
+            // Add direct tracks (for non-sectioned melody music, if any)
+            if (publication.Tracks != null)
+            {
+                allTracks.AddRange(publication.Tracks);
+            }
+
+            // Create a new publication object with all tracks combined
+            var publicationWithTracks = new BiblePublication
+            {
+                Id = publication.Id,
+                PublicationCode = publication.PublicationCode,
+                Name = publication.Name,
+                LanguageId = publication.LanguageId,
+                CategoryId = publication.CategoryId,
+                IsVideo = publication.IsVideo,
+                Category = publication.Category,
+                Tracks = allTracks
+            };
+
             // MelodyMusic is a subclass of BiblePublication, so we can return the publication directly
-            // The publication is already filtered to be Music category without LanguageId
-            return publication != null ? new MelodyMusic { Publication = publication } : null;
+            return new MelodyMusic { Publication = publicationWithTracks };
         }
         catch (Exception ex)
         {
@@ -95,9 +137,13 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
+            // Melody music is now stored as a sectioned publication (e.g., iam has sections like "iam-1", "iam-2")
+            // Include sections and their tracks
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Category)
+                .Include(x => x.Sections)
+                    .ThenInclude(s => s.Tracks)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .Where(x => x.Category.CategoryName == MusicCategoryName 
                     && x.LanguageId == null 
@@ -109,17 +155,43 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 return new SortedDictionary<int, MusicTrack>();
             }
 
-            var tracks = publication.Tracks.OrderBy(t => t.Number).ToList();
-            // Map BiblePublicationTrack to MusicTrack
-            var musicTracks = tracks.Select(t => new MusicTrack
+            // Collect all tracks from sections and direct tracks
+            var allTracks = new List<BiblePublicationTrack>();
+            
+            // Add tracks from sections (for sectioned melody music like iam)
+            if (publication.Sections != null)
             {
-                Number = t.Number,
-                Title = t.Title,
-                Url = string.Empty, // URLs are computed on-demand
-                LookUpPath = string.Empty,
-                DownloadCode = null,
-                OriginalTrackNumber = null
-            }).ToDictionary(x => x.Number, x => x);
+                foreach (var section in publication.Sections)
+                {
+                    if (section.Tracks != null)
+                    {
+                        allTracks.AddRange(section.Tracks);
+                    }
+                }
+            }
+            
+            // Add direct tracks (for non-sectioned melody music, if any)
+            if (publication.Tracks != null)
+            {
+                allTracks.AddRange(publication.Tracks);
+            }
+
+            // Map BiblePublicationTrack to MusicTrack
+            // Handle duplicate track numbers by taking the first occurrence
+            var musicTracks = allTracks
+                .OrderBy(t => t.Number)
+                .GroupBy(t => t.Number)
+                .Select(g => g.First())
+                .Select(t => new MusicTrack
+                {
+                    Number = t.Number,
+                    Title = t.Title,
+                    Url = string.Empty, // URLs are computed on-demand
+                    LookUpPath = string.Empty,
+                    DownloadCode = null,
+                    OriginalTrackNumber = null
+                })
+                .ToDictionary(x => x.Number, x => x);
             
             return new SortedDictionary<int, MusicTrack>(musicTracks);
         }

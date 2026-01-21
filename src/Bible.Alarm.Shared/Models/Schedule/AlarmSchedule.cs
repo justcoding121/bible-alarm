@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
@@ -163,11 +164,6 @@ public sealed class AlarmSchedule : IComparable
             throw new InvalidOperationException("No Bible publications found in database");
         }
 
-        // Default to English, fallback to first available language with a sectioned publication
-        const string DefaultLanguageCode = "E";
-        string? bibleLanguageCode = null;
-        string? biblePublicationCode = null;
-        
         // Priority codes for Bible publications (lower = higher priority)
         // Prefer nwt (2013 NWT) over bi12 (1984 NWT)
         string[] priorityPublicationCodes = ["nwt", "bi12"];
@@ -182,12 +178,37 @@ public sealed class AlarmSchedule : IComparable
             }
             return priorityPublicationCodes.Length; // Others come after priority publications
         }
+
+        // Optimize: Load publications with sections in one call to get both publication info and sections
+        // For new schedules, prefer "nwt" with English "E", then fallback to first available language with a sectioned publication
+        const string DefaultLanguageCode = "E";
+        const string PreferredPublicationCode = "nwt";
+        string? bibleLanguageCode = null;
+        string? biblePublicationCode = null;
+        BiblePublication? selectedBible = null;
         
-        // Try English first
+        // Try English "E" with "nwt" first (for new schedules)
         if (bibleLanguages.ContainsKey(DefaultLanguageCode))
         {
             var englishPublications = await biblePublicationService.GetByLanguageCodeAsync(DefaultLanguageCode);
-            if (englishPublications != null)
+            if (englishPublications != null && englishPublications.ContainsKey(PreferredPublicationCode))
+            {
+                // Try "nwt" first
+                if (PublicationTypeHelper.HasSectionStructure(PreferredPublicationCode))
+                {
+                    var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                        DefaultLanguageCode, PreferredPublicationCode);
+                    if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
+                    {
+                        bibleLanguageCode = DefaultLanguageCode;
+                        biblePublicationCode = PreferredPublicationCode;
+                        selectedBible = biblePub;
+                    }
+                }
+            }
+            
+            // If "nwt" not available, try other English publications
+            if (selectedBible == null && englishPublications != null)
             {
                 // Sort publications by priority: nwt first, then bi12, then others
                 var sortedPublications = englishPublications
@@ -199,16 +220,23 @@ public sealed class AlarmSchedule : IComparable
                 {
                     if (PublicationTypeHelper.HasSectionStructure(pub.Key))
                     {
-                        bibleLanguageCode = DefaultLanguageCode;
-                        biblePublicationCode = pub.Key;
-                        break;
+                        // Load with sections in one call - this includes Category
+                        var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                            DefaultLanguageCode, pub.Key);
+                        if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
+                        {
+                            bibleLanguageCode = DefaultLanguageCode;
+                            biblePublicationCode = pub.Key;
+                            selectedBible = biblePub;
+                            break;
+                        }
                     }
                 }
             }
         }
         
         // Fallback: find any language with a sectioned publication
-        if (bibleLanguageCode == null)
+        if (selectedBible == null)
         {
             foreach (var lang in bibleLanguages)
             {
@@ -228,25 +256,32 @@ public sealed class AlarmSchedule : IComparable
                 {
                     if (PublicationTypeHelper.HasSectionStructure(pub.Key))
                     {
-                        bibleLanguageCode = lang.Key;
-                        biblePublicationCode = pub.Key;
-                        break;
+                        // Load with sections in one call - this includes Category
+                        var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                            lang.Key, pub.Key);
+                        if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
+                        {
+                            bibleLanguageCode = lang.Key;
+                            biblePublicationCode = pub.Key;
+                            selectedBible = biblePub;
+                            break;
+                        }
                     }
                 }
                 
-                if (bibleLanguageCode != null)
+                if (selectedBible != null)
                 {
                     break;
                 }
             }
         }
 
-        if (bibleLanguageCode == null || biblePublicationCode == null)
+        if (selectedBible == null || bibleLanguageCode == null || biblePublicationCode == null)
         {
             throw new InvalidOperationException("No sectioned Bible publication found in database for sample schedule");
         }
 
-        // Get first available melody music from database
+        // Get first available melody music from database that has tracks
         var melodyQueryStart = DateTime.UtcNow;
         var melodyReleases = await melodyMusicService.GetAllAsync();
         Log.Information("[PERF] GetSampleSchedule: Melody releases query took {ElapsedMs}ms", (DateTime.UtcNow - melodyQueryStart).TotalMilliseconds);
@@ -256,8 +291,22 @@ public sealed class AlarmSchedule : IComparable
             throw new InvalidOperationException("No melody music found in database");
         }
 
-        var firstMelody = melodyReleases.FirstOrDefault();
-        var melodyPublicationCode = firstMelody.Key;
+        // Find a melody music publication that has tracks
+        string? melodyPublicationCode = null;
+        foreach (var melody in melodyReleases)
+        {
+            var musicWithTracks = await melodyMusicService.GetByCodeWithTracksAsync(melody.Key);
+            if (musicWithTracks?.Tracks != null && musicWithTracks.Tracks.Count > 0)
+            {
+                melodyPublicationCode = melody.Key;
+                break;
+            }
+        }
+
+        if (melodyPublicationCode == null)
+        {
+            throw new InvalidOperationException("No melody music with tracks found in database");
+        }
 
         // Create sample schedule disabled by default - user must explicitly enable it
         var sample = new AlarmSchedule
@@ -284,26 +333,26 @@ public sealed class AlarmSchedule : IComparable
             }
         };
 
-        var bibleQueryStartTime = DateTime.UtcNow;
-        var bible = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-            sample.BiblePublicationSchedule.LanguageCode,
-            sample.BiblePublicationSchedule.PublicationCode);
-        var bibleQueryElapsed = (DateTime.UtcNow - bibleQueryStartTime).TotalMilliseconds;
-        Log.Information("[PERF] GetSampleSchedule: Bible sections query took {ElapsedMs}ms", bibleQueryElapsed);
-
-        if (bible == null)
-        {
-            throw new InvalidOperationException("Bible publication not found for sample schedule");
-        }
-
-        if (bible.Sections == null || bible.Sections.Count == 0)
+        // Use the already-loaded bible publication (no additional DB call needed)
+        // selectedBible is guaranteed to be non-null here due to the check above
+        if (selectedBible.Sections == null || selectedBible.Sections.Count == 0)
         {
             throw new InvalidOperationException($"No sections found for Bible publication {biblePublicationCode}");
         }
 
         // Use Random.Shared for thread-safe random number generation
         // Safe for non-cryptographic use (selecting sample sections/tracks)
-        var section = bible.Sections[Random.Shared.Next(bible.Sections.Count)];
+        // Only select sections that have tracks
+        var sectionsWithTracks = selectedBible.Sections
+            .Where(s => s.Tracks != null && s.Tracks.Count > 0)
+            .ToList();
+        
+        if (sectionsWithTracks.Count == 0)
+        {
+            throw new InvalidOperationException($"No sections with tracks found for Bible publication {biblePublicationCode}");
+        }
+        
+        var section = sectionsWithTracks[Random.Shared.Next(sectionsWithTracks.Count)];
         if (sample.BiblePublicationSchedule == null)
         {
             throw new InvalidOperationException("BiblePublicationSchedule is null in sample schedule");
@@ -311,6 +360,11 @@ public sealed class AlarmSchedule : IComparable
 
         // Use SectionCode directly to match media index db
         sample.BiblePublicationSchedule.SectionCode = section.SectionCode;
+        
+        // Get the first track of the selected section (book)
+        // We already verified the section has tracks above
+        var firstTrack = section.Tracks!.OrderBy(t => t.Number).First();
+        sample.BiblePublicationSchedule.TrackNumber = firstTrack.Number;
 
         if (sample.Music == null)
         {
@@ -322,13 +376,38 @@ public sealed class AlarmSchedule : IComparable
         var musicQueryElapsed = (DateTime.UtcNow - musicQueryStartTime).TotalMilliseconds;
         Log.Information("[PERF] GetSampleSchedule: Music tracks query took {ElapsedMs}ms", musicQueryElapsed);
 
-        if (music == null)
+        if (music == null || music.Publication == null)
         {
             throw new InvalidOperationException("Melody music not found for sample schedule");
         }
 
-        var track = music.Tracks[Random.Shared.Next(music.Tracks.Count)];
-        sample.Music.TrackNumber = track.Number;
+        // Melody music is now sectioned (e.g., iam has sections like "iam-1", "iam-2")
+        // Select a random section, then a random track from that section
+        if (music.Publication.Sections == null || music.Publication.Sections.Count == 0)
+        {
+            // Fallback: if no sections, try direct tracks (for backward compatibility)
+            if (music.Tracks == null || music.Tracks.Count == 0)
+            {
+                throw new InvalidOperationException($"No sections or tracks found for melody music publication {sample.Music.PublicationCode}");
+            }
+            
+            var track = music.Tracks[Random.Shared.Next(music.Tracks.Count)];
+            sample.Music.TrackNumber = track.Number;
+        }
+        else
+        {
+            // Select a random section
+            var randomSection = music.Publication.Sections[Random.Shared.Next(music.Publication.Sections.Count)];
+            
+            if (randomSection.Tracks == null || randomSection.Tracks.Count == 0)
+            {
+                throw new InvalidOperationException($"No tracks found in section {randomSection.SectionCode} for melody music publication {sample.Music.PublicationCode}");
+            }
+            
+            // Select a random track from the selected section
+            var randomTrack = randomSection.Tracks[Random.Shared.Next(randomSection.Tracks.Count)];
+            sample.Music.TrackNumber = randomTrack.Number;
+        }
 
         var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
         Log.Information("[PERF] GetSampleSchedule: Completed in {ElapsedMs}ms", totalElapsed);

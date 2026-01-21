@@ -1,11 +1,14 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.Stores.Effects.Services;
@@ -133,11 +136,34 @@ public sealed class ScheduleDisplayNamePopulator
                 biblePublication.LanguageCode,
                 biblePublication.PublicationCode);
 
-            if (publication != null && !string.IsNullOrWhiteSpace(publication.Name))
+            if (publication != null)
             {
-                scheduleStateItem.BiblePublicationName = publication.Name;
-                Log.Debug("ScheduleEffects: Set BiblePublicationName '{BiblePublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                    publication.Name, schedule.Id, biblePublication.PublicationCode);
+                if (!string.IsNullOrWhiteSpace(publication.Name))
+                {
+                    scheduleStateItem.BiblePublicationName = publication.Name;
+                    Log.Debug("ScheduleEffects: Set BiblePublicationName '{BiblePublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                        publication.Name, schedule.Id, biblePublication.PublicationCode);
+                }
+
+                // Populate category from publication
+                if (publication.Category != null)
+                {
+                    scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
+                    scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
+                    Log.Debug("ScheduleEffects: Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                        publication.CategoryId, publication.Category.CategoryName, schedule.Id, biblePublication.PublicationCode);
+                }
+                else
+                {
+                    // Fallback: derive category name from publication code
+                    var categoryName = JwSourceHelper.GetCategoryName(biblePublication.PublicationCode);
+                    if (!string.IsNullOrWhiteSpace(categoryName))
+                    {
+                        scheduleStateItem.BiblePublicationCategoryName = categoryName;
+                        Log.Debug("ScheduleEffects: Set BiblePublicationCategoryName='{CategoryName}' from publication code for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                            categoryName, schedule.Id, biblePublication.PublicationCode);
+                    }
+                }
             }
         }
         catch (Exception ex)
@@ -279,6 +305,16 @@ public sealed class ScheduleDisplayNamePopulator
                 Log.Debug("ScheduleEffects: Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
                     track.Title, scheduleId, biblePublication.TrackNumber);
             }
+
+            // Populate category from publication (for non-sectioned publications that weren't loaded earlier)
+            if (publication.Category != null && 
+                (scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)))
+            {
+                scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
+                scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
+                Log.Debug("ScheduleEffects: Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for non-sectioned publication in schedule {ScheduleId}",
+                    publication.CategoryId, publication.Category.CategoryName, scheduleId);
+            }
         }
     }
 
@@ -330,7 +366,7 @@ public sealed class ScheduleDisplayNamePopulator
     }
 
     /// <summary>
-    /// Populate MusicPublicationName from vocal music releases if Music exists and is Vocals.
+    /// Populate MusicPublicationName from music releases (vocals or melodies).
     /// </summary>
     public async Task PopulateMusicPublicationNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
@@ -342,25 +378,140 @@ public sealed class ScheduleDisplayNamePopulator
         try
         {
             var music = schedule.Music;
-            // Only populate for vocals (melodies don't have publication name in the same way)
-            if (music.MusicType != MusicType.VocalMusic ||
-                string.IsNullOrWhiteSpace(music.LanguageCode) ||
-                string.IsNullOrWhiteSpace(music.PublicationCode))
+            if (string.IsNullOrWhiteSpace(music.PublicationCode))
             {
                 return;
             }
 
-            var releases = await mediaService.GetVocalMusicReleases(music.LanguageCode);
-            if (releases.TryGetValue(music.PublicationCode, out var release))
+            if (music.MusicType == MusicType.VocalMusic)
             {
-                scheduleStateItem.MusicPublicationName = release.Name;
-                Log.Debug("ScheduleEffects: Set MusicPublicationName '{MusicPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                    release.Name, schedule.Id, music.PublicationCode);
+                // Populate for vocals
+                if (string.IsNullOrWhiteSpace(music.LanguageCode))
+                {
+                    return;
+                }
+
+                var releases = await mediaService.GetVocalMusicReleases(music.LanguageCode);
+                if (releases.TryGetValue(music.PublicationCode, out var release))
+                {
+                    scheduleStateItem.MusicPublicationName = release.Name;
+                    Log.Debug("ScheduleEffects: Set MusicPublicationName '{MusicPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                        release.Name, schedule.Id, music.PublicationCode);
+                }
+            }
+            else if (music.MusicType == MusicType.Music)
+            {
+                // Populate for melodies
+                var releases = await mediaService.GetMelodyMusicReleases();
+                if (releases.TryGetValue(music.PublicationCode, out var melodyRelease))
+                {
+                    scheduleStateItem.MusicPublicationName = melodyRelease.Name;
+                    Log.Debug("ScheduleEffects: Set MusicPublicationName '{MusicPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                        melodyRelease.Name, schedule.Id, music.PublicationCode);
+                }
             }
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "ScheduleEffects: Error populating MusicPublicationName for schedule {ScheduleId}", schedule.Id);
+        }
+    }
+
+    /// <summary>
+    /// Populate MusicSectionName from music sections if Music exists and has a section code.
+    /// </summary>
+    public async Task PopulateMusicSectionNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
+    {
+        if (schedule.Music == null || biblePublicationSectionService == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var music = schedule.Music;
+            if (string.IsNullOrWhiteSpace(music.SectionCode) ||
+                string.IsNullOrWhiteSpace(music.PublicationCode))
+            {
+                return;
+            }
+
+            // Convert SectionCode to int for lookup
+            var sectionNumber = await ConvertSectionCodeToIntAsync(
+                music.SectionCode,
+                music.LanguageCode ?? string.Empty, // For melodies, LanguageCode is null
+                music.PublicationCode);
+
+            if (sectionNumber <= 0)
+            {
+                return;
+            }
+
+            // For vocal music, we need language code
+            if (music.MusicType == MusicType.VocalMusic)
+            {
+                if (string.IsNullOrWhiteSpace(music.LanguageCode))
+                {
+                    return;
+                }
+
+                var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
+                    music.LanguageCode,
+                    music.PublicationCode,
+                    sectionNumber);
+
+                if (!string.IsNullOrWhiteSpace(sectionName))
+                {
+                    scheduleStateItem.MusicSectionName = sectionName;
+                    Log.Debug("ScheduleEffects: Set MusicSectionName '{MusicSectionName}' for schedule {ScheduleId} (SectionCode: {SectionCode})",
+                        sectionName, schedule.Id, music.SectionCode);
+                }
+            }
+            else if (music.MusicType == MusicType.Music)
+            {
+                // For melodies, music publications are BiblePublications with Category=Music and LanguageId=null
+                // We need to query sections directly from the database since LanguageId is null
+                // Query BiblePublicationSections directly by publication code and section number
+                try
+                {
+                    var serviceProvider = MauiAppHolder.Services;
+                    if (serviceProvider == null)
+                    {
+                        Log.Warning("ScheduleEffects: ServiceProvider not available for music section lookup in schedule {ScheduleId}", schedule.Id);
+                        return;
+                    }
+
+                    var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+                    using var scope = scopeFactory.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+                    var section = await dbContext.BiblePublicationSections
+                        .AsNoTracking()
+                        .Include(x => x.BiblePublication)
+                            .ThenInclude(x => x.Category)
+                        .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode
+                            && x.BiblePublication.Category.CategoryName == "Music"
+                            && x.BiblePublication.LanguageId == null
+                            && x.SectionCode != null && x.SectionCode.Equals(music.SectionCode, StringComparison.OrdinalIgnoreCase))
+                        .Select(x => x.Name)
+                        .FirstOrDefaultAsync();
+
+                    if (!string.IsNullOrWhiteSpace(section))
+                    {
+                        scheduleStateItem.MusicSectionName = section;
+                        Log.Debug("ScheduleEffects: Set MusicSectionName '{MusicSectionName}' for schedule {ScheduleId} (SectionCode: {SectionCode})",
+                            section, schedule.Id, music.SectionCode);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "ScheduleEffects: Error querying music section for melody in schedule {ScheduleId}", schedule.Id);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "ScheduleEffects: Error populating MusicSectionName for schedule {ScheduleId}", schedule.Id);
         }
     }
 
@@ -426,7 +577,7 @@ public sealed class ScheduleDisplayNamePopulator
 
     /// <summary>
     /// Converts SectionCode (string) to the int section number needed for media service calls.
-    /// Tries to parse SectionCode to int, or finds the section by SectionCode and uses its BookNum.
+    /// Tries to parse SectionCode to int.
     /// Returns 0 for null/empty (non-sectioned publications).
     /// </summary>
     private async Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
@@ -442,28 +593,8 @@ public sealed class ScheduleDisplayNamePopulator
             return sectionNumber;
         }
 
-        // If parsing fails, find the section by SectionCode and use its BookNum
-        if (mediaService != null)
-        {
-            try
-            {
-                var sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
-                var section = sections.Values.FirstOrDefault(s => s.SectionCode.Equals(sectionCode, StringComparison.OrdinalIgnoreCase));
-                if (section != null && section.BookNum.HasValue)
-                {
-                    return section.BookNum.Value;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Error converting SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}",
-                    sectionCode, languageCode, publicationCode);
-            }
-        }
-
-        // Fallback: return 0 if section not found
-        Log.Warning("Could not convert SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}, using 0",
-            sectionCode, languageCode, publicationCode);
+        // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
+        // For non-numeric section codes, return 0
         return 0;
     }
 }

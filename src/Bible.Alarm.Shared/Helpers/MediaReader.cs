@@ -34,10 +34,10 @@ public class MediaReader(string indexRoot)
         var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, "sections.json");
         var biblePublicationSections = await File.ReadAllTextAsync(sectionsIndex);
         var sections = JsonSerializer.Deserialize<IEnumerable<BiblePublicationSection>>(biblePublicationSections)!;
-        // Use BookNum if available (from UrlParams), otherwise try to parse SectionCode
+        // Use SectionCode to get section number
         return new SortedDictionary<int, BiblePublicationSection>(sections
-            .Where(s => s.BookNum.HasValue || int.TryParse(s.SectionCode, out _))
-            .ToDictionary(x => x.BookNum ?? (int.TryParse(x.SectionCode, out var num) ? num : 0), x => x));
+            .Where(s => int.TryParse(s.SectionCode, out _))
+            .ToDictionary(x => int.TryParse(x.SectionCode, out var num) ? num : 0, x => x));
     }
 
     public async Task<SortedDictionary<int, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode,

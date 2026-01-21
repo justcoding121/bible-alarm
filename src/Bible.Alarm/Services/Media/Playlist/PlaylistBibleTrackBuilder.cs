@@ -38,7 +38,7 @@ public class PlaylistBiblePublicationTrackBuilder
 
     /// <summary>
     /// Converts SectionCode (string) to the int section number needed for media service calls.
-    /// Tries to parse SectionCode to int, or finds the section by SectionCode and uses its BookNum.
+    /// Tries to parse SectionCode to int.
     /// Returns 0 for null/empty (non-sectioned publications).
     /// </summary>
     private async Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
@@ -54,13 +54,9 @@ public class PlaylistBiblePublicationTrackBuilder
             return sectionNumber;
         }
 
-        // If parsing fails, find the section by SectionCode and use its BookNum
-        var sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
-        var section = sections.Values.FirstOrDefault(s => s.SectionCode.Equals(sectionCode, StringComparison.OrdinalIgnoreCase));
-        if (section != null && section.BookNum.HasValue)
-        {
-            return section.BookNum.Value;
-        }
+        // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
+        // For non-numeric section codes, return 0
+        return 0;
 
         // Fallback: return 0 if section not found
         logger.Warning("[PlaylistBuild] Could not convert SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}, using 0",
@@ -411,8 +407,8 @@ public class PlaylistBiblePublicationTrackBuilder
         }
 
         // Compute URL on-demand using TrackMetadata
-        // Use BookNum if available, otherwise try to parse SectionCode
-        var sectionNumber = next.Key?.BookNum ?? (next.Key != null && int.TryParse(next.Key.SectionCode, out var num) ? num : 0);
+        // Parse SectionCode to get section number
+        var sectionNumber = next.Key != null && int.TryParse(next.Key.SectionCode, out var num) ? num : 0;
         var trackMetadata = new TrackMetadata
         {
             IsBibleContent = true,

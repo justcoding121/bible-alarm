@@ -44,7 +44,8 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
                 return new SortedDictionary<int, BiblePublicationTrack>();
             }
 
-            var section = publication.Sections.FirstOrDefault(s => s.BookNum == sectionNumber);
+            var sectionCodeString = sectionNumber.ToString();
+            var section = publication.Sections.FirstOrDefault(s => s.SectionCode == sectionCodeString);
             if (section == null)
             {
                 return new SortedDictionary<int, BiblePublicationTrack>();
@@ -77,8 +78,9 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
                 .Where(x => x.Language != null && x.Language.LanguageCode == languageCode && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
+            var sectionCodeString = sectionNumber.ToString();
             return publication?.Sections
-                .FirstOrDefault(s => s.BookNum == sectionNumber)?
+                .FirstOrDefault(s => s.SectionCode == sectionCodeString)?
                 .Tracks.FirstOrDefault(t => t.Number == trackNumber);
         }
         catch (Exception ex)

@@ -39,12 +39,14 @@ public sealed class DatabaseSeedService(
 
                 return true; // Schedule was seeded
             }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("No Bible publications found"))
+            catch (InvalidOperationException ex) when (ex.Message.Contains("No Bible publications found") || 
+                                                       ex.Message.Contains("No sectioned Bible publication"))
             {
                 // Bible publications not yet available (Media database may still be initializing)
-                // This is expected during early bootstrap - the schedule will be seeded later when publications are available
+                // This is expected during early bootstrap or when test data doesn't include sectioned publications
+                // The schedule will be seeded later when publications are available
                 logger.Warning("Cannot seed default alarm schedule yet - Bible publications not available. " +
-                    "This is normal during early bootstrap. Schedule will be created when publications are loaded.");
+                    "This is normal during early bootstrap or when using test data. Schedule will be created when publications are loaded.");
                 return false; // No seeding occurred, will retry later
             }
         }

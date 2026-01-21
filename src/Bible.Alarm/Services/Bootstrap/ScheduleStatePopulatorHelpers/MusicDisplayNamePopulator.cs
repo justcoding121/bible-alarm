@@ -68,6 +68,25 @@ internal sealed class MusicDisplayNamePopulator
             }
         }
 
+        // Populate vocal music section name if section code exists
+        if (!string.IsNullOrWhiteSpace(music.SectionCode) &&
+            !string.IsNullOrWhiteSpace(music.LanguageCode) &&
+            !string.IsNullOrWhiteSpace(music.PublicationCode))
+        {
+            // For vocal music with sections, we need to get the section name from the BiblePublication
+            // Since vocals are BiblePublications with Category=Music and LanguageId!=null,
+            // we can use the same section lookup mechanism
+            // Note: Music sections use SectionCode (string) which may need conversion
+            if (int.TryParse(music.SectionCode, out var sectionNum) && sectionNum > 0)
+            {
+                // For music publications, sections are typically identified by SectionCode
+                // We'll need to look up the section name from the BiblePublicationSections table
+                // For now, we'll log that we need to populate this
+                Log.Logger.Debug("Vocal music section code '{SectionCode}' found for schedule {ScheduleId} (LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}), section name lookup needed",
+                    music.SectionCode, schedule.Id, music.LanguageCode, music.PublicationCode);
+            }
+        }
+
         // Use cached vocal tracks
         if (music.TrackNumber > 0 &&
             !string.IsNullOrWhiteSpace(music.LanguageCode) &&
@@ -90,9 +109,38 @@ internal sealed class MusicDisplayNamePopulator
         AlarmMusic music,
         LookupDataLoader.LookupData lookupData)
     {
+        // Populate melody publication name
+        if (!string.IsNullOrWhiteSpace(music.PublicationCode))
+        {
+            if (lookupData.MelodyReleases.TryGetValue(music.PublicationCode, out var melodyRelease))
+            {
+                scheduleStateItem.MusicPublicationName = melodyRelease.Name;
+                Log.Logger.Debug("Set MusicPublicationName '{MusicPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                    melodyRelease.Name, schedule.Id, music.PublicationCode);
+            }
+        }
+
+        // Populate melody section name if section code exists (e.g., "iam" Kingdom Melodies discs)
+        if (!string.IsNullOrWhiteSpace(music.SectionCode) &&
+            !string.IsNullOrWhiteSpace(music.PublicationCode))
+        {
+            // For melodies with sections, we need to get the section name from the BiblePublication
+            // Since melodies are BiblePublications with Category=Music and LanguageId=null,
+            // we can use the same section lookup mechanism
+            // Note: Music sections use SectionCode (string) which may need conversion
+            if (int.TryParse(music.SectionCode, out var sectionNum) && sectionNum > 0)
+            {
+                // For music publications, sections are typically identified by SectionCode
+                // We'll need to look up the section name from the BiblePublicationSections table
+                // For now, we'll log that we need to populate this
+                Log.Logger.Debug("Music section code '{SectionCode}' found for schedule {ScheduleId} (PublicationCode: {PublicationCode}), section name lookup needed",
+                    music.SectionCode, schedule.Id, music.PublicationCode);
+            }
+        }
+
+        // Use cached melody tracks
         if (!string.IsNullOrWhiteSpace(music.PublicationCode) && music.TrackNumber > 0)
         {
-            // Use cached melody tracks
             if (lookupData.MelodyTracks.TryGetValue(music.PublicationCode, out var tracks) &&
                 tracks.TryGetValue(music.TrackNumber, out var track))
             {

@@ -73,12 +73,34 @@ internal sealed class BiblePublicationDisplayNamePopulator
             !string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
         {
             var publicationKey = (biblePublication.LanguageCode, biblePublication.PublicationCode);
-            if (lookupData.Publications.TryGetValue(publicationKey, out var publication) &&
-                !string.IsNullOrWhiteSpace(publication.Name))
+            if (lookupData.Publications.TryGetValue(publicationKey, out var publication))
             {
-                scheduleStateItem.BiblePublicationName = publication.Name;
-                Log.Logger.Debug("Set BiblePublicationName '{BiblePublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                    publication.Name, schedule.Id, biblePublication.PublicationCode);
+                if (!string.IsNullOrWhiteSpace(publication.Name))
+                {
+                    scheduleStateItem.BiblePublicationName = publication.Name;
+                    Log.Logger.Debug("Set BiblePublicationName '{BiblePublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                        publication.Name, schedule.Id, biblePublication.PublicationCode);
+                }
+
+                // Populate category from publication
+                if (publication.Category != null)
+                {
+                    scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
+                    scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
+                    Log.Logger.Debug("Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                        publication.CategoryId, publication.Category.CategoryName, schedule.Id, biblePublication.PublicationCode);
+                }
+                else
+                {
+                    // Fallback: derive category name from publication code
+                    var categoryName = JwSourceHelper.GetCategoryName(biblePublication.PublicationCode);
+                    if (!string.IsNullOrWhiteSpace(categoryName))
+                    {
+                        scheduleStateItem.BiblePublicationCategoryName = categoryName;
+                        Log.Logger.Debug("Set BiblePublicationCategoryName='{CategoryName}' from publication code for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                            categoryName, schedule.Id, biblePublication.PublicationCode);
+                    }
+                }
             }
         }
     }
@@ -134,6 +156,16 @@ internal sealed class BiblePublicationDisplayNamePopulator
                 scheduleStateItem.BiblePublicationTrackTitle = track.Title;
                 Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
                     track.Title, schedule.Id, biblePublication.TrackNumber);
+            }
+
+            // Populate category from publication (for non-sectioned publications that weren't loaded earlier)
+            if (publication.Category != null && 
+                (scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)))
+            {
+                scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
+                scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
+                Log.Logger.Debug("Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for non-sectioned publication in schedule {ScheduleId}",
+                    publication.CategoryId, publication.Category.CategoryName, schedule.Id);
             }
         }
     }

@@ -246,7 +246,7 @@ public sealed class BiblePublicationSelectionDataProvider
 
             var firstSectionKvp = sections.First();
             var firstSection = firstSectionKvp.Value;
-            var firstSectionNumber = firstSectionKvp.Key; // Use the dictionary key (BookNum)
+            var firstSectionNumber = firstSectionKvp.Key; // Use the dictionary key (parsed from SectionCode)
             Log.Debug("DispatchDefaultPublicationAsync: First section number={SectionNumber}, name={SectionName}",
                 firstSectionNumber, firstSection.Name);
 

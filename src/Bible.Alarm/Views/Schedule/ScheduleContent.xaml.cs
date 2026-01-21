@@ -45,8 +45,8 @@ public partial class ScheduleContent : ContentView
         // Height is now dynamic (no HeightRequest) to properly support large accessibility font sizes
         // Buttons use FlexLayout with wrapping to handle narrow widths with large fonts
         // On WinUI, buttons are inside SfEffectsView; on Android/iOS, they're separate buttons
-        Button? cancelButton = platform == DevicePlatform.WinUI ? CancelButton : CancelButtonNoEffects;
-        Button? saveButton = platform == DevicePlatform.WinUI ? SaveButton : SaveButtonNoEffects;
+        Border? cancelButton = platform == DevicePlatform.WinUI ? CancelButton : CancelButtonNoEffects;
+        Border? saveButton = platform == DevicePlatform.WinUI ? SaveButton : SaveButtonNoEffects;
         
         if (platform == DevicePlatform.WinUI)
         {
@@ -121,7 +121,7 @@ public partial class ScheduleContent : ContentView
         // FontSize is now set via XAML using ButtonFontSize resource which scales with accessibility settings
         // Height is now dynamic (no HeightRequest) to properly support large accessibility font sizes
         // On WinUI, button is inside SfEffectsView; on Android/iOS, it's a separate button
-        Button? deleteButton = platform == DevicePlatform.WinUI ? DeleteButton : DeleteButtonNoEffects;
+        Border? deleteButton = platform == DevicePlatform.WinUI ? DeleteButton : DeleteButtonNoEffects;
         if (deleteButton != null)
         {
             if (platform == DevicePlatform.WinUI)

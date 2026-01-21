@@ -127,6 +127,11 @@ internal sealed class LookupDataLoader
             }
         }).ToList();
 
+        // Load melody releases for publication names
+        var melodyReleasesTask = mediaService != null && keys.MelodyPublicationCodes.Any()
+            ? mediaService.GetMelodyMusicReleases()
+            : Task.FromResult<Dictionary<string, MelodyMusic>>(new Dictionary<string, MelodyMusic>());
+
         // Wait for all batch loads to complete in parallel
         await Task.WhenAll(
             Task.WhenAll(publicationTasks),
@@ -134,7 +139,8 @@ internal sealed class LookupDataLoader
             vocalLanguagesTask,
             Task.WhenAll(vocalReleasesTasks),
             Task.WhenAll(vocalTracksTasks),
-            Task.WhenAll(melodyTracksTasks));
+            Task.WhenAll(melodyTracksTasks),
+            melodyReleasesTask);
 
         // Build lookup dictionaries
         var publicationsDict = publicationTasks
@@ -157,13 +163,16 @@ internal sealed class LookupDataLoader
         var melodyTracksDict = (await Task.WhenAll(melodyTracksTasks))
             .ToDictionary(t => t.PublicationCode, t => t.Tracks);
 
+        var melodyReleasesDict = await melodyReleasesTask;
+
         return new LookupData(
             Publications: publicationsDict,
             Sections: sectionsDict,
             VocalLanguages: vocalLanguagesDict,
             VocalReleases: vocalReleasesDict,
             VocalTracks: vocalTracksDict,
-            MelodyTracks: melodyTracksDict);
+            MelodyTracks: melodyTracksDict,
+            MelodyReleases: melodyReleasesDict);
     }
 
     public sealed record LookupData(
@@ -172,6 +181,7 @@ internal sealed class LookupDataLoader
         Dictionary<string, Language> VocalLanguages,
         Dictionary<(string LanguageCode, string PublicationCode), VocalMusic> VocalReleases,
         Dictionary<(string LanguageCode, string PublicationCode), SortedDictionary<int, MusicTrack>> VocalTracks,
-        Dictionary<string, SortedDictionary<int, MusicTrack>> MelodyTracks);
+        Dictionary<string, SortedDictionary<int, MusicTrack>> MelodyTracks,
+        Dictionary<string, MelodyMusic> MelodyReleases);
 }
 

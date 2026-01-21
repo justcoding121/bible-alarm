@@ -388,7 +388,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
     /// <summary>
     /// Converts SectionCode (string) to the int section number needed for media service calls.
-    /// Tries to parse SectionCode to int, or finds the section by SectionCode and uses its BookNum.
+    /// Tries to parse SectionCode to int.
     /// Returns 0 for null/empty (non-sectioned publications).
     /// </summary>
     private async Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
@@ -404,17 +404,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             return sectionNumber;
         }
 
-        // If parsing fails, find the section by SectionCode and use its BookNum
-        try
-        {
-            var sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
-            var section = sections.Values.FirstOrDefault(s => s.SectionCode.Equals(sectionCode, StringComparison.OrdinalIgnoreCase));
-            if (section != null && section.BookNum.HasValue)
-            {
-                return section.BookNum.Value;
-            }
-        }
-        catch (Exception ex)
+        // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
+        // For non-numeric section codes, return 0
+        return 0;
         {
             logger.Warning(ex, "Error converting SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}",
                 sectionCode, languageCode, publicationCode);

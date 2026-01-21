@@ -29,13 +29,15 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
+            // Use SectionCode directly since BookNum is the same as SectionCode
+            var sectionCodeString = sectionNumber.ToString();
             return await dbContext.BiblePublicationSections
                 .AsNoTracking()
                 .Include(x => x.UrlParams)
                 .Where(x => x.BiblePublication.PublicationCode == publicationCode
                             && x.BiblePublication.Language != null
                             && x.BiblePublication.Language.LanguageCode == languageCode
-                            && x.BookNum == sectionNumber)
+                            && x.SectionCode == sectionCodeString)
                 .Select(x => x.Name)
                 .FirstOrDefaultAsync(cancellationToken);
         }
@@ -54,16 +56,22 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
+            // Load sections, then filter/order by SectionCode
             var sections = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.UrlParams)
                 .Where(x => x.Language != null && x.Language.LanguageCode == languageCode && x.PublicationCode == publicationCode)
                 .SelectMany(x => x.Sections)
-                .OrderBy(x => x.BookNum ?? 0)
                 .ToListAsync(cancellationToken);
 
-            return new SortedDictionary<int, BiblePublicationSection>(sections.Where(s => s.BookNum.HasValue).ToDictionary(x => x.BookNum!.Value, x => x));
+            // Filter sections that have numeric SectionCode and order by it
+            var sectionsByNumber = sections
+                .Where(s => int.TryParse(s.SectionCode, out _))
+                .OrderBy(x => int.TryParse(x.SectionCode, out var code) ? code : int.MaxValue)
+                .ToDictionary(x => int.TryParse(x.SectionCode, out var code) ? code : 0, x => x);
+
+            return new SortedDictionary<int, BiblePublicationSection>(sectionsByNumber);
         }
         catch (Exception ex)
         {
@@ -80,13 +88,15 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
+            // Use SectionCode directly since BookNum is the same as SectionCode
+            var sectionCodeString = sectionNumber.ToString();
             return await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.UrlParams)
                 .Where(x => x.Language != null && x.Language.LanguageCode == languageCode && x.PublicationCode == publicationCode)
                 .SelectMany(x => x.Sections)
-                .Where(x => x.BookNum == sectionNumber)
+                .Where(x => x.SectionCode == sectionCodeString)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)

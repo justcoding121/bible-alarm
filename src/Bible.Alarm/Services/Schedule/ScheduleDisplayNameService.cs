@@ -72,7 +72,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             }
         }
 
-        // Publication name
+        // Publication name and category
         if (!string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
             !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode) &&
             BiblePublicationService != null)
@@ -84,14 +84,37 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         biblePublicationSchedule.LanguageCode,
                         biblePublicationSchedule.PublicationCode));
 
-                if (publication != null && !string.IsNullOrWhiteSpace(publication.Name))
+                if (publication != null)
                 {
-                    scheduleStateItem.BiblePublicationName = publication.Name;
+                    if (!string.IsNullOrWhiteSpace(publication.Name))
+                    {
+                        scheduleStateItem.BiblePublicationName = publication.Name;
+                    }
+
+                    // Populate category from publication
+                    if (publication.Category != null)
+                    {
+                        scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
+                        scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
+                        logger.Debug("Populated BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName={CategoryName} for schedule {ScheduleId}",
+                            publication.CategoryId, publication.Category.CategoryName, scheduleStateItem.Id);
+                    }
+                    else
+                    {
+                        // Fallback: derive category name from publication code
+                        var categoryName = JwSourceHelper.GetCategoryName(biblePublicationSchedule.PublicationCode);
+                        if (!string.IsNullOrWhiteSpace(categoryName))
+                        {
+                            scheduleStateItem.BiblePublicationCategoryName = categoryName;
+                            logger.Debug("Populated BiblePublicationCategoryName={CategoryName} from publication code for schedule {ScheduleId}",
+                                categoryName, scheduleStateItem.Id);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Error populating BiblePublicationName");
+                logger.Warning(ex, "Error populating BiblePublicationName and Category");
             }
         }
 
@@ -175,6 +198,16 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         if (track != null && !string.IsNullOrWhiteSpace(track.Title))
                         {
                             scheduleStateItem.BiblePublicationTrackTitle = track.Title;
+                        }
+
+                        // Populate category from publication (for non-sectioned publications that weren't loaded earlier)
+                        if (publication.Category != null && 
+                            (scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)))
+                        {
+                            scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
+                            scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
+                            logger.Debug("Populated BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName={CategoryName} for non-sectioned publication in schedule {ScheduleId}",
+                                publication.CategoryId, publication.Category.CategoryName, scheduleStateItem.Id);
                         }
                     }
                 }
@@ -279,7 +312,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
 
     /// <summary>
     /// Converts SectionCode (string) to the int section number needed for media service calls.
-    /// Tries to parse SectionCode to int, or finds the section by SectionCode and uses its BookNum.
+    /// Tries to parse SectionCode to int.
     /// Returns 0 for null/empty (non-sectioned publications).
     /// </summary>
     private async Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
@@ -295,18 +328,9 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             return sectionNumber;
         }
 
-        // If parsing fails, find the section by SectionCode and use its BookNum
-        try
-        {
-            var sections = await Task.Run(async () =>
-                await mediaService.GetBiblePublicationSections(languageCode, publicationCode));
-            var section = sections.Values.FirstOrDefault(s => s.SectionCode.Equals(sectionCode, StringComparison.OrdinalIgnoreCase));
-            if (section != null && section.BookNum.HasValue)
-            {
-                return section.BookNum.Value;
-            }
-        }
-        catch (Exception ex)
+        // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
+        // For non-numeric section codes, return 0
+        return 0;
         {
             logger.Warning(ex, "Error converting SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}",
                 sectionCode, languageCode, publicationCode);

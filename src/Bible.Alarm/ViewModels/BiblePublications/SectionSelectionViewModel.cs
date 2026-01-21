@@ -433,8 +433,8 @@ public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSec
     public string Name => System.Net.WebUtility.HtmlDecode(section.Name).Replace('\u00A0', ' ');
     /// <summary>
     /// Gets the section number for sorting/comparison.
-    /// Tries to parse SectionCode as int, or uses BookNum if available.
-    /// Returns 0 if neither can be determined.
+    /// Tries to parse SectionCode as int.
+    /// Returns 0 if SectionCode cannot be parsed.
     /// </summary>
     public int Number
     {
@@ -444,7 +444,7 @@ public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSec
             {
                 return num;
             }
-            return section.BookNum ?? 0;
+            return 0;
         }
     }
 

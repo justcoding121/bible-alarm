@@ -32,7 +32,9 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             return await dbContext.BiblePublications
                 .AsNoTracking()
+                .Include(x => x.Category)
                 .Include(x => x.Sections)
+                    .ThenInclude(s => s.Tracks)
                 .Where(x => x.PublicationCode == publicationCode && x.Language != null && x.Language.LanguageCode == languageCode)
                 .FirstOrDefaultAsync(cancellationToken);
         }
@@ -54,6 +56,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             // Load publication with only non-sectioned tracks (tracks directly under publication, not under a section)
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
+                .Include(x => x.Category)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .Where(x => x.PublicationCode == publicationCode && x.Language != null && x.Language.LanguageCode == languageCode)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -80,6 +83,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
 
             var publicationsList = await dbContext.BiblePublications
                 .AsNoTracking()
+                .Include(x => x.Category)
                 .Where(x => x.Language != null && x.Language.LanguageCode == languageCode)
                 .ToListAsync(cancellationToken);
 

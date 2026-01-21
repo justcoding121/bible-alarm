@@ -48,6 +48,7 @@ public class ScheduleAddHandler
             // Populate music display properties if Music exists
             await displayNamePopulator.PopulateMusicLanguageNameAsync(scheduleStateItem, action.Schedule);
             await displayNamePopulator.PopulateMusicPublicationNameAsync(scheduleStateItem, action.Schedule);
+            await displayNamePopulator.PopulateMusicSectionNameAsync(scheduleStateItem, action.Schedule);
             await displayNamePopulator.PopulateMusicTrackNameAsync(scheduleStateItem, action.Schedule);
 
             // Dispatch success action with DTO (reducer will handle this)

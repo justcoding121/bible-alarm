@@ -860,11 +860,9 @@ public sealed class LanguageContentService : ILanguageContentService
                     .Where(s => s.BiblePublicationId == publication.Id)
                     .ToListAsync(cancellationToken);
                 
+                // Find section by SectionCode (UrlParams["booknum"] is only for URL construction)
                 section = allSections.FirstOrDefault(s =>
-                    s.UrlParams.Any(up => up.Key.Equals("booknum", StringComparison.OrdinalIgnoreCase) &&
-                                         up.Value == normalizedSectionCode) ||
-                    s.UrlParams.Any(up => up.Key.Equals("pub", StringComparison.OrdinalIgnoreCase) &&
-                                         up.Value.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase)));
+                    s.SectionCode.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
             }
 
             if (section == null)
@@ -1498,6 +1496,119 @@ public sealed class LanguageContentService : ILanguageContentService
                         }
                     }
                 }
+                // For Bible publications, fetch tracks from the API response
+                else if (isBible)
+                {
+                    // Parse tracks from files.{languageCode}.MP3
+                    if (filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) &&
+                        languageFiles.TryGetProperty("MP3", out var mp3Files))
+                    {
+                        var trackNumber = 1;
+                        foreach (var trackFile in mp3Files.EnumerateArray())
+                        {
+                            if (!trackFile.TryGetProperty("file", out var fileElement) ||
+                                !fileElement.TryGetProperty("url", out var urlElement))
+                            {
+                                continue;
+                            }
+
+                            var url = urlElement.GetString();
+                            if (string.IsNullOrEmpty(url))
+                            {
+                                continue;
+                            }
+
+                            // Get track number from API (original track number within the book)
+                            int originalTrackNumber = 0;
+                            if (trackFile.TryGetProperty("track", out var trackElement))
+                            {
+                                originalTrackNumber = trackElement.GetInt32();
+                            }
+
+                            if (originalTrackNumber == 0)
+                            {
+                                continue;
+                            }
+
+                            // Get title
+                            string title = "Unknown";
+                            if (trackFile.TryGetProperty("title", out var titleElement))
+                            {
+                                var rawTitle = titleElement.GetString();
+                                title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+                            }
+
+                            // Skip audio descriptions
+                            if (title.Contains("audio descriptions", StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
+                            // Create track with URL params
+                            var trackUrlParams = new List<UrlParam>
+                            {
+                                new UrlParam
+                                {
+                                    Key = "pub",
+                                    Value = normalizedPublicationCode,
+                                    IsQueryParam = true,
+                                    BaseUrl = baseUrl,
+                                    BaseUrlId = baseUrl.Id
+                                },
+                                new UrlParam
+                                {
+                                    Key = "booknum",
+                                    Value = sectionCode,
+                                    IsQueryParam = true,
+                                    BaseUrl = baseUrl,
+                                    BaseUrlId = baseUrl.Id
+                                },
+                                new UrlParam
+                                {
+                                    Key = "track",
+                                    Value = originalTrackNumber.ToString(),
+                                    IsQueryParam = true,
+                                    BaseUrl = baseUrl,
+                                    BaseUrlId = baseUrl.Id
+                                },
+                                new UrlParam
+                                {
+                                    Key = "fileformat",
+                                    Value = "mp3",
+                                    IsQueryParam = true,
+                                    BaseUrl = baseUrl,
+                                    BaseUrlId = baseUrl.Id
+                                },
+                                new UrlParam
+                                {
+                                    Key = "alllangs",
+                                    Value = "0",
+                                    IsQueryParam = true,
+                                    BaseUrl = baseUrl,
+                                    BaseUrlId = baseUrl.Id
+                                },
+                                new UrlParam
+                                {
+                                    Key = "langwritten",
+                                    Value = normalizedLanguageCode,
+                                    IsQueryParam = true,
+                                    BaseUrl = baseUrl,
+                                    BaseUrlId = baseUrl.Id
+                                }
+                            };
+
+                            var track = new BiblePublicationTrack
+                            {
+                                Number = trackNumber,
+                                Title = title,
+                                UrlParams = trackUrlParams
+                            };
+
+                            section.Tracks.Add(track);
+                            trackNumber++;
+                        }
+                    }
+                }
 
                 // Add URL params based on type
                 if (isBible)
@@ -1562,8 +1673,24 @@ public sealed class LanguageContentService : ILanguageContentService
             return false;
         }
 
-        // Create publication
+        // Create publication first (without tracks yet for Bible publications)
         var publicationName = localizedPubName ?? normalizedPublicationCode;
+        
+        // For Bible publications, temporarily remove tracks from sections before saving
+        // We'll add them back after sections have IDs to avoid foreign key constraint errors
+        var tracksBySection = new Dictionary<BiblePublicationSection, List<BiblePublicationTrack>>();
+        if (isBible && !isIamPublication)
+        {
+            foreach (var section in sections)
+            {
+                if (section.Tracks.Count > 0)
+                {
+                    tracksBySection[section] = section.Tracks.ToList();
+                    section.Tracks.Clear();
+                }
+            }
+        }
+        
         var publication = new BiblePublication
         {
             PublicationCode = normalizedPublicationCode,
@@ -1577,21 +1704,54 @@ public sealed class LanguageContentService : ILanguageContentService
             Sections = sections
         };
 
-        // Set publication reference on sections and tracks
+        // Set publication reference on sections and tracks (for iam and non-Bible, tracks are already in sections)
         foreach (var section in sections)
         {
             section.BiblePublication = publication;
             
-            // Set publication reference on tracks (for iam, tracks are already in sections)
-            foreach (var track in section.Tracks)
+            // For iam and other non-Bible publications, set references on tracks now
+            // (Bible publications will set references after sections have IDs)
+            if (!isBible || isIamPublication)
             {
-                track.Publication = publication;
-                track.Section = section;
+                foreach (var track in section.Tracks)
+                {
+                    track.Publication = publication;
+                    track.Section = section;
+                }
             }
         }
 
+        // Save publication and sections first so they get IDs
         db.BiblePublications.Add(publication);
         await db.SaveChangesAsync(cancellationToken);
+        
+        // For Bible publications, now add tracks back with proper foreign key IDs
+        if (isBible && !isIamPublication && tracksBySection.Count > 0)
+        {
+            foreach (var kvp in tracksBySection)
+            {
+                var section = kvp.Key;
+                var tracks = kvp.Value;
+                
+                foreach (var track in tracks)
+                {
+                    track.Publication = publication;
+                    track.Section = section;
+                    track.BiblePublicationId = publication.Id;
+                    track.BiblePublicationSectionId = section.Id;
+                }
+                
+                // Add tracks to section and to DbContext
+                foreach (var track in tracks)
+                {
+                    section.Tracks.Add(track);
+                }
+                db.BiblePublicationTracks.AddRange(tracks);
+            }
+            
+            // Save tracks
+            await db.SaveChangesAsync(cancellationToken);
+        }
 
         logger.Information("Successfully seeded {Count} sections for English publication {PublicationCode}",
             sections.Count, normalizedPublicationCode);
