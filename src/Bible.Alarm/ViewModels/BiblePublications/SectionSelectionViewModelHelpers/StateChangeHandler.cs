@@ -94,7 +94,7 @@ public class StateChangeHandler
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -108,7 +108,7 @@ public class StateChangeHandler
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionNumber = currentSchedule?.BiblePublicationSectionNumber ?? 1,
+                SectionCode = (currentSchedule?.BiblePublicationSectionNumber ?? 1).ToString(),
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
             setCurrent(newCurrent);

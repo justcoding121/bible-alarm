@@ -67,7 +67,7 @@ public sealed class ScheduleSelectionService
                 Id = 0, // Will be set when saved
                 LanguageCode = languageCode,
                 PublicationCode = publicationCode,
-                SectionNumber = sectionNumber.Value,
+                SectionCode = sectionNumber.Value.ToString(),
                 TrackNumber = trackNumber.Value,
                 FinishedDuration = finishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = scheduleId

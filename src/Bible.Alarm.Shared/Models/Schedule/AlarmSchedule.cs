@@ -280,7 +280,7 @@ public sealed class AlarmSchedule : IComparable
                 TrackNumber = 1,
                 LanguageCode = bibleLanguageCode,
                 PublicationCode = biblePublicationCode,
-                SectionNumber = 1 // Will be updated below with a random section
+                SectionCode = "1" // Will be updated below with a random section
             }
         };
 
@@ -309,24 +309,8 @@ public sealed class AlarmSchedule : IComparable
             throw new InvalidOperationException("BiblePublicationSchedule is null in sample schedule");
         }
 
-        // Try to parse SectionCode to int for SectionNumber, or use BookNum
-        if (int.TryParse(section.SectionCode, out var sectionNumberInt))
-        {
-            sample.BiblePublicationSchedule.SectionNumber = sectionNumberInt;
-        }
-        else if (section.BookNum.HasValue)
-        {
-            sample.BiblePublicationSchedule.SectionNumber = section.BookNum.Value;
-        }
-        else
-        {
-            // Fallback: try to get from UrlParams
-            var booknumParam = section.UrlParams.FirstOrDefault(p => p.Key.Equals("booknum", StringComparison.OrdinalIgnoreCase));
-            if (booknumParam != null && int.TryParse(booknumParam.Value, out var booknum))
-            {
-                sample.BiblePublicationSchedule.SectionNumber = booknum;
-            }
-        }
+        // Use SectionCode directly to match media index db
+        sample.BiblePublicationSchedule.SectionCode = section.SectionCode;
 
         if (sample.Music == null)
         {

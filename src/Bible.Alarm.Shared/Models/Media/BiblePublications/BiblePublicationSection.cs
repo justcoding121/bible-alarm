@@ -66,17 +66,29 @@ public sealed class BiblePublicationSection : IComparable
             return 1;
         }
         
-        // For Bible sections, try to compare by BookNum (from UrlParams) for proper ordering
-        // Otherwise compare by SectionCode
-        var thisBookNum = BookNum;
-        var otherBookNum = other.BookNum;
+        // Natural sort: if SectionCode is numeric, sort as int; otherwise sort as string
+        var thisIsNumeric = int.TryParse(SectionCode, out var thisNum);
+        var otherIsNumeric = int.TryParse(other.SectionCode, out var otherNum);
         
-        if (thisBookNum.HasValue && otherBookNum.HasValue)
+        if (thisIsNumeric && otherIsNumeric)
         {
-            return thisBookNum.Value.CompareTo(otherBookNum.Value);
+            // Both are numeric - compare as integers
+            return thisNum.CompareTo(otherNum);
         }
         
-        // Fallback to string comparison of SectionCode
+        if (thisIsNumeric && !otherIsNumeric)
+        {
+            // This is numeric, other is not - numeric comes first
+            return -1;
+        }
+        
+        if (!thisIsNumeric && otherIsNumeric)
+        {
+            // This is not numeric, other is - numeric comes first
+            return 1;
+        }
+        
+        // Both are non-numeric - compare as strings
         return string.Compare(SectionCode, other.SectionCode, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -132,7 +132,8 @@ public sealed class LanguageContentService : ILanguageContentService
             var isVideo = categoryName.Equals("Dramas", StringComparison.OrdinalIgnoreCase) && 
                          PublicationTypeHelper.IsVideo(normalizedPublicationCode);
 
-            switch (publicationLanguage.HarvestType)
+            var harvestType = publicationLanguage.HarvestType ?? PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+            switch (harvestType)
             {
                 case Models.Enums.HarvestType.MediatorSectioned:
                     // Drama publications use Mediator API
@@ -1223,7 +1224,7 @@ public sealed class LanguageContentService : ILanguageContentService
             else
             {
                 category = publicationLanguage.Category;
-                harvestType = publicationLanguage.HarvestType;
+                harvestType = publicationLanguage.HarvestType ?? PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
             }
 
             var categoryName = category.CategoryName;

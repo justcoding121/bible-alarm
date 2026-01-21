@@ -31,7 +31,9 @@ public sealed class TrackChangeDetector(
         }
 
         var biblePublicationSchedule = scheduleBeforeUpdate.BiblePublicationSchedule;
-        return biblePublicationSchedule.SectionNumber != trackMetadata.SectionNumber ||
+        // Convert SectionCode to int for comparison
+        var scheduleSectionNumber = !string.IsNullOrEmpty(biblePublicationSchedule.SectionCode) && int.TryParse(biblePublicationSchedule.SectionCode, out var num) ? num : 0;
+        return scheduleSectionNumber != trackMetadata.SectionNumber ||
                biblePublicationSchedule.TrackNumber != trackMetadata.TrackNumber;
     }
 }

@@ -263,8 +263,11 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             return;
         }
 
-        // Use 0 for non-sectioned publications (sectionNumber is null or 0)
-        var sectionNumber = schedule.BiblePublicationSchedule.SectionNumber ?? 0;
+        // Convert SectionCode to int for track navigator
+        var sectionNumber = await ConvertSectionCodeToIntAsync(
+            schedule.BiblePublicationSchedule.SectionCode,
+            schedule.BiblePublicationSchedule.LanguageCode,
+            schedule.BiblePublicationSchedule.PublicationCode);
 
         var next = await trackNavigator.GetNextBiblePublicationTrack(
             schedule.BiblePublicationSchedule.LanguageCode,
@@ -284,8 +287,11 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             return;
         }
 
-        // Use 0 for non-sectioned publications (sectionNumber is null or 0)
-        var sectionNumber = schedule.BiblePublicationSchedule.SectionNumber ?? 0;
+        // Convert SectionCode to int for track navigator
+        var sectionNumber = await ConvertSectionCodeToIntAsync(
+            schedule.BiblePublicationSchedule.SectionCode,
+            schedule.BiblePublicationSchedule.LanguageCode,
+            schedule.BiblePublicationSchedule.PublicationCode);
 
         var previous = await trackNavigator.GetPreviousBiblePublicationTrack(
             schedule.BiblePublicationSchedule.LanguageCode,
@@ -378,6 +384,46 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var vocalTrack = vocalTracks[vocalTrackIndex];
 
         return await CreateVocalMusicPlayItem(schedule, vocalMusic, vocalTrack);
+    }
+
+    /// <summary>
+    /// Converts SectionCode (string) to the int section number needed for media service calls.
+    /// Tries to parse SectionCode to int, or finds the section by SectionCode and uses its BookNum.
+    /// Returns 0 for null/empty (non-sectioned publications).
+    /// </summary>
+    private async Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
+    {
+        if (string.IsNullOrEmpty(sectionCode))
+        {
+            return 0;
+        }
+
+        // Try to parse SectionCode directly to int
+        if (int.TryParse(sectionCode, out var sectionNumber))
+        {
+            return sectionNumber;
+        }
+
+        // If parsing fails, find the section by SectionCode and use its BookNum
+        try
+        {
+            var sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
+            var section = sections.Values.FirstOrDefault(s => s.SectionCode.Equals(sectionCode, StringComparison.OrdinalIgnoreCase));
+            if (section != null && section.BookNum.HasValue)
+            {
+                return section.BookNum.Value;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error converting SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}",
+                sectionCode, languageCode, publicationCode);
+        }
+
+        // Fallback: return 0 if section not found
+        logger.Warning("Could not convert SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}, using 0",
+            sectionCode, languageCode, publicationCode);
+        return 0;
     }
 
     private static int CalculateTrackIndex(int currentTrackNumber, int totalTracks, bool next)

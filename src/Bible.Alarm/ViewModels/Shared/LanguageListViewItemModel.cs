@@ -6,7 +6,7 @@ namespace Bible.Alarm.ViewModels.Shared;
 public sealed class LanguageListViewItemModel(Language language) : ObservableObject, IComparable
 {
     public string Name { get; set; } = language.Name;
-    public string Code { get; set; } = language.Code;
+    public string Code { get; set; } = language.LanguageCode;
     public string Direction { get; set; } = language.Direction;
 
     private bool isSelected;

@@ -23,8 +23,9 @@ public sealed class ScheduleUpdater(
             s =>
             {
                 var brs = s.BiblePublicationSchedule ?? throw new ArgumentException($"BiblePublicationSchedule is null for schedule {scheduleId}");
-                // For non-sectioned publications, keep section as null or 0
-                brs.SectionNumber = next.Key?.Number;
+                // For non-sectioned publications, keep section as null
+                // Use SectionCode from the section, or null if section is null
+                brs.SectionCode = next.Key?.SectionCode;
                 brs.TrackNumber = next.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
             },
@@ -42,8 +43,9 @@ public sealed class ScheduleUpdater(
             s =>
             {
                 var brs = s.BiblePublicationSchedule ?? throw new ArgumentException($"BiblePublicationSchedule is null for schedule {scheduleId}");
-                // For non-sectioned publications, keep section as null or 0
-                brs.SectionNumber = previous.Key?.Number;
+                // For non-sectioned publications, keep section as null
+                // Use SectionCode from the section, or null if section is null
+                brs.SectionCode = previous.Key?.SectionCode;
                 brs.TrackNumber = previous.Value.Number;
                 brs.FinishedDuration = TimeSpan.Zero;
             },

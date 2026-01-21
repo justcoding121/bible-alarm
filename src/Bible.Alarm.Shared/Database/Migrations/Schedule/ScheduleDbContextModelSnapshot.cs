@@ -176,8 +176,9 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.Property<int>("AlarmScheduleId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("SectionNumber")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("SectionCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("TrackNumber")
                         .HasColumnType("INTEGER");

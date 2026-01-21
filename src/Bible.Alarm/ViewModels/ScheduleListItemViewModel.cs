@@ -402,7 +402,7 @@ public sealed class ScheduleListItemViewModel(
         logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - ScheduleId: {ScheduleId}, CurrentPublicationCode: {PublicationCode}, CurrentSectionNumber: {SectionNumber}, CurrentTrackNumber: {TrackNumber}",
             schedule.Id,
             schedule.BiblePublicationSchedule?.PublicationCode ?? "null",
-            schedule.BiblePublicationSchedule?.SectionNumber?.ToString() ?? "null",
+            schedule.BiblePublicationSchedule?.SectionCode ?? "null",
             schedule.BiblePublicationSchedule?.TrackNumber.ToString() ?? "null");
 
         var changeInfo = stateHandler.HandleApplicationStateChanged(schedule.Id, schedule);

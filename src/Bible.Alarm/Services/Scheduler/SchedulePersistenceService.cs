@@ -123,7 +123,7 @@ public sealed class SchedulePersistenceService(
     {
         if (schedule.BiblePublicationSchedule != null && existing.BiblePublicationSchedule != null)
         {
-            existing.BiblePublicationSchedule.SectionNumber = schedule.BiblePublicationSchedule.SectionNumber;
+            existing.BiblePublicationSchedule.SectionCode = schedule.BiblePublicationSchedule.SectionCode;
             existing.BiblePublicationSchedule.TrackNumber = schedule.BiblePublicationSchedule.TrackNumber;
             existing.BiblePublicationSchedule.LanguageCode = schedule.BiblePublicationSchedule.LanguageCode;
             existing.BiblePublicationSchedule.PublicationCode = schedule.BiblePublicationSchedule.PublicationCode;

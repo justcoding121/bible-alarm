@@ -27,9 +27,10 @@ internal sealed class LookupDataCollector
                 if (!string.IsNullOrWhiteSpace(br.LanguageCode) && !string.IsNullOrWhiteSpace(br.PublicationCode))
                 {
                     publicationKeys.Add((br.LanguageCode, br.PublicationCode));
-                    if (br.SectionNumber.HasValue && br.SectionNumber.Value > 0)
+                    // Convert SectionCode to int for lookup key
+                    if (!string.IsNullOrEmpty(br.SectionCode) && int.TryParse(br.SectionCode, out var sectionNum) && sectionNum > 0)
                     {
-                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, br.SectionNumber.Value));
+                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, sectionNum));
                     }
                 }
             }

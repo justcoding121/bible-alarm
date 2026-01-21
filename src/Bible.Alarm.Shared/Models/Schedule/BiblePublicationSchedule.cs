@@ -23,11 +23,12 @@ public class BiblePublicationSchedule
     public string PublicationCode { get; set; } = string.Empty;
 
     /// <summary>
-    /// Section number for publications with sections.
+    /// Section code for publications with sections (e.g., "1" for book 1, "gen" for Genesis, section code for dramas).
     /// Null for publications without sections (e.g., dramas, videos).
+    /// Matches BiblePublicationSection.SectionCode for consistency.
     /// </summary>
-    [Range(1, 500)]
-    public int? SectionNumber { get; set; }
+    [MaxLength(50)]
+    public string? SectionCode { get; set; }
 
     /// <summary>
     /// Track number for traditional Bible readings, or track/part number for dramas.

@@ -69,6 +69,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Bible.Alarm.ViewModels.BiblePublications;
+using Bible.Alarm.ViewModels.Categories;
 #if WINDOWS
 using Bible.Alarm.Platforms.Windows.Services.UI;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;

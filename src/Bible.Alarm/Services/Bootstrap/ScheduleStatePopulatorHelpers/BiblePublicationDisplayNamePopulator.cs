@@ -89,16 +89,19 @@ internal sealed class BiblePublicationDisplayNamePopulator
         BiblePublicationSchedule biblePublication,
         LookupDataLoader.LookupData lookupData)
     {
-        if (biblePublication.SectionNumber.HasValue && biblePublication.SectionNumber.Value > 0 &&
+        // Convert SectionCode to int for lookup key
+        if (!string.IsNullOrEmpty(biblePublication.SectionCode) && 
+            int.TryParse(biblePublication.SectionCode, out var sectionNum) && 
+            sectionNum > 0 &&
             !string.IsNullOrWhiteSpace(biblePublication.LanguageCode) &&
             !string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
         {
-            var sectionKey = (biblePublication.LanguageCode, biblePublication.PublicationCode, biblePublication.SectionNumber.Value);
+            var sectionKey = (biblePublication.LanguageCode, biblePublication.PublicationCode, sectionNum);
             if (lookupData.Sections.TryGetValue(sectionKey, out var sectionName))
             {
                 scheduleStateItem.BiblePublicationSectionName = sectionName;
-                Log.Logger.Debug("Set BiblePublicationSectionName '{BiblePublicationSectionName}' for schedule {ScheduleId} (SectionNumber: {SectionNumber})",
-                    sectionName, schedule.Id, biblePublication.SectionNumber);
+                Log.Logger.Debug("Set BiblePublicationSectionName '{BiblePublicationSectionName}' for schedule {ScheduleId} (SectionCode: {SectionCode})",
+                    sectionName, schedule.Id, biblePublication.SectionCode);
             }
         }
     }

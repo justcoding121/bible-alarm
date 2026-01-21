@@ -145,9 +145,9 @@ public sealed class BiblePublicationSelectionDataProvider
             foreach (var publication in publicationsData.Values)
             {
                 // Skip duplicates - if code already exists, use the existing one
-                if (mapping.TryGetValue(publication.Code, out var existingVm))
+                if (mapping.TryGetValue(publication.PublicationCode, out var existingVm))
                 {
-                    if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == publication.Code)
+                    if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == publication.PublicationCode)
                     {
                         existingVm.IsSelected = true;
                     }
@@ -159,7 +159,7 @@ public sealed class BiblePublicationSelectionDataProvider
                 mapping[publicationVm.Code] = publicationVm;
 
                 // Check if this publication matches the current publication code
-                if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == publication.Code)
+                if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == publication.PublicationCode)
                 {
                     publicationVm.IsSelected = true;
                 }
@@ -244,15 +244,17 @@ public sealed class BiblePublicationSelectionDataProvider
                 return;
             }
 
-            var firstSection = sections.Values.First();
+            var firstSectionKvp = sections.First();
+            var firstSection = firstSectionKvp.Value;
+            var firstSectionNumber = firstSectionKvp.Key; // Use the dictionary key (BookNum)
             Log.Debug("DispatchDefaultPublicationAsync: First section number={SectionNumber}, name={SectionName}",
-                firstSection.Number, firstSection.Name);
+                firstSectionNumber, firstSection.Name);
 
-            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, defaultPublication.Code, firstSection.Number);
+            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, defaultPublication.Code, firstSectionNumber);
             if (tracks == null || tracks.Count == 0)
             {
                 Log.Warning("DispatchDefaultPublicationAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, section={SectionNumber}",
-                    languageCode, defaultPublication.Code, firstSection.Number);
+                    languageCode, defaultPublication.Code, firstSectionNumber);
                 return;
             }
 
@@ -264,7 +266,7 @@ public sealed class BiblePublicationSelectionDataProvider
             {
                 LanguageCode = languageCode,
                 PublicationCode = defaultPublication.Code,
-                SectionNumber = firstSection.Number,
+                SectionNumber = firstSectionNumber,
                 TrackNumber = firstTrack.Number,
                 LanguageName = languageName,
                 LanguageDirection = languageDirection,
@@ -274,7 +276,7 @@ public sealed class BiblePublicationSelectionDataProvider
             };
 
             Log.Information("DispatchDefaultPublicationAsync: Dispatching TrackSelectedAction for publication={PublicationCode}, section={SectionNumber}/{SectionName}, track={TrackNumber}/{TrackTitle}",
-                defaultPublication.Code, firstSection.Number, firstSection.Name, firstTrack.Number, firstTrack.Title);
+                defaultPublication.Code, firstSectionNumber, firstSection.Name, firstTrack.Number, firstTrack.Title);
             
             dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
         }

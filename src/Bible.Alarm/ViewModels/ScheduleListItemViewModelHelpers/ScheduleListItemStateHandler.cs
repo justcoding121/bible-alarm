@@ -75,7 +75,7 @@ public sealed class ScheduleListItemStateHandler(
 
     private ScheduleChangeInfo DetectScheduleChanges(ScheduleStateItem updatedScheduleItem, AlarmSchedule currentSchedule)
     {
-        var oldSectionNumber = currentSchedule.BiblePublicationSchedule?.SectionNumber;
+        var oldSectionCode = currentSchedule.BiblePublicationSchedule?.SectionCode;
         var oldTrackNumber = currentSchedule.BiblePublicationSchedule?.TrackNumber;
         var oldDaysOfWeek = currentSchedule.DaysOfWeek;
         var oldIsEnabled = currentSchedule.IsEnabled;
@@ -118,7 +118,7 @@ public sealed class ScheduleListItemStateHandler(
         var anyBibleSchedulePropertyChanged = biblePublicationCodeChanged ||
                                              biblePublicationLanguageCodeChanged ||
                                              biblePublicationScheduleIdChanged ||
-                                             oldSectionNumber != updatedSchedule.BiblePublicationSchedule?.SectionNumber ||
+                                             oldSectionCode != updatedSchedule.BiblePublicationSchedule?.SectionCode ||
                                              oldTrackNumber != updatedSchedule.BiblePublicationSchedule?.TrackNumber ||
                                              lastKnownBiblePublicationLanguageName != newBiblePublicationLanguageName ||
                                              lastKnownSectionName != newSectionName ||
@@ -155,7 +155,7 @@ public sealed class ScheduleListItemStateHandler(
         {
             UpdatedSchedule = updatedSchedule,
             TrackChanged = trackChanged,
-            SectionNumberChanged = oldSectionNumber != updatedSchedule.BiblePublicationSchedule?.SectionNumber,
+            SectionNumberChanged = oldSectionCode != updatedSchedule.BiblePublicationSchedule?.SectionCode,
             TrackNumberChanged = oldTrackNumber != updatedSchedule.BiblePublicationSchedule?.TrackNumber,
             BiblePublicationLanguageNameChanged = lastKnownBiblePublicationLanguageName != newBiblePublicationLanguageName,
             SectionNameChanged = lastKnownSectionName != newSectionName,
@@ -177,7 +177,7 @@ public sealed class ScheduleListItemStateHandler(
     {
         if (currentSchedule.BiblePublicationSchedule != null && updatedSchedule.BiblePublicationSchedule != null)
         {
-            return currentSchedule.BiblePublicationSchedule.SectionNumber != updatedSchedule.BiblePublicationSchedule.SectionNumber ||
+            return currentSchedule.BiblePublicationSchedule.SectionCode != updatedSchedule.BiblePublicationSchedule.SectionCode ||
                    currentSchedule.BiblePublicationSchedule.TrackNumber != updatedSchedule.BiblePublicationSchedule.TrackNumber;
         }
 

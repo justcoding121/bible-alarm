@@ -9,10 +9,48 @@ public sealed class BiblePublicationNavigationService(
     IServiceScopeFactory scopeFactory)
     : IBiblePublicationNavigationService
 {
+    /// <summary>
+    /// Converts SectionCode (string) to int for media service calls.
+    /// Tries to parse SectionCode to int, or finds the section and uses its BookNum.
+    /// Returns 0 for null/empty (non-sectioned publications).
+    /// </summary>
+    private async Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
+    {
+        if (string.IsNullOrEmpty(sectionCode))
+        {
+            return 0;
+        }
+
+        // Try to parse SectionCode directly to int
+        if (int.TryParse(sectionCode, out var sectionNumber))
+        {
+            return sectionNumber;
+        }
+
+        // If parsing fails, find the section by SectionCode and use its BookNum
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var mediaService = scope.ServiceProvider.GetRequiredService<IMediaService>();
+            var sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
+            var section = sections.Values.FirstOrDefault(s => s.SectionCode.Equals(sectionCode, StringComparison.OrdinalIgnoreCase));
+            if (section != null && section.BookNum.HasValue)
+            {
+                return section.BookNum.Value;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error converting SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}",
+                sectionCode, languageCode, publicationCode);
+        }
+
+        return 0;
+    }
 
     public async Task<bool> MoveToPreviousSectionAsync(BiblePublicationSchedule schedule)
     {
-        if (schedule == null || !schedule.SectionNumber.HasValue)
+        if (schedule == null || string.IsNullOrEmpty(schedule.SectionCode))
         {
             return false;
         }
@@ -21,17 +59,22 @@ public sealed class BiblePublicationNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
+            var sectionNumber = await ConvertSectionCodeToIntAsync(
+                schedule.SectionCode,
+                schedule.LanguageCode,
+                schedule.PublicationCode);
+            
             var nextSection = await playlistService.GetPreviousBiblePublicationSection(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                schedule.SectionNumber.Value);
+                sectionNumber);
 
             if (nextSection.Value == null)
             {
                 return false;
             }
 
-            schedule.SectionNumber = nextSection.Value.Number;
+            schedule.SectionCode = nextSection.Value.SectionCode;
             schedule.TrackNumber = 1;
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
@@ -45,7 +88,7 @@ public sealed class BiblePublicationNavigationService(
 
     public async Task<bool> MoveToNextSectionAsync(BiblePublicationSchedule schedule)
     {
-        if (schedule == null || !schedule.SectionNumber.HasValue)
+        if (schedule == null || string.IsNullOrEmpty(schedule.SectionCode))
         {
             return false;
         }
@@ -54,17 +97,22 @@ public sealed class BiblePublicationNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
+            var sectionNumber = await ConvertSectionCodeToIntAsync(
+                schedule.SectionCode,
+                schedule.LanguageCode,
+                schedule.PublicationCode);
+            
             var nextSection = await playlistService.GetNextBiblePublicationSection(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                schedule.SectionNumber.Value);
+                sectionNumber);
 
             if (nextSection.Value == null)
             {
                 return false;
             }
 
-            schedule.SectionNumber = nextSection.Value.Number;
+            schedule.SectionCode = nextSection.Value.SectionCode;
             schedule.TrackNumber = 1;
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
@@ -78,7 +126,7 @@ public sealed class BiblePublicationNavigationService(
 
     public async Task<bool> MoveToPreviousTrackAsync(BiblePublicationSchedule schedule)
     {
-        if (schedule == null || !schedule.SectionNumber.HasValue)
+        if (schedule == null || string.IsNullOrEmpty(schedule.SectionCode))
         {
             return false;
         }
@@ -87,10 +135,15 @@ public sealed class BiblePublicationNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
+            var sectionNumber = await ConvertSectionCodeToIntAsync(
+                schedule.SectionCode,
+                schedule.LanguageCode,
+                schedule.PublicationCode);
+            
             var prevTrack = await playlistService.GetPreviousBiblePublicationTrack(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                schedule.SectionNumber.Value,
+                sectionNumber,
                 schedule.TrackNumber);
 
             if (prevTrack.Key == null || prevTrack.Value == null)
@@ -98,7 +151,7 @@ public sealed class BiblePublicationNavigationService(
                 return false;
             }
 
-            schedule.SectionNumber = prevTrack.Key.Number;
+            schedule.SectionCode = prevTrack.Key?.SectionCode;
             schedule.TrackNumber = prevTrack.Value.Number;
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
@@ -112,7 +165,7 @@ public sealed class BiblePublicationNavigationService(
 
     public async Task<bool> MoveToNextTrackAsync(BiblePublicationSchedule schedule)
     {
-        if (schedule == null || !schedule.SectionNumber.HasValue)
+        if (schedule == null || string.IsNullOrEmpty(schedule.SectionCode))
         {
             return false;
         }
@@ -121,10 +174,15 @@ public sealed class BiblePublicationNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
+            var sectionNumber = await ConvertSectionCodeToIntAsync(
+                schedule.SectionCode,
+                schedule.LanguageCode,
+                schedule.PublicationCode);
+            
             var nextTrack = await playlistService.GetNextBiblePublicationTrack(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                schedule.SectionNumber.Value,
+                sectionNumber,
                 schedule.TrackNumber);
 
             if (nextTrack.Key == null || nextTrack.Value == null)
@@ -132,7 +190,7 @@ public sealed class BiblePublicationNavigationService(
                 return false;
             }
 
-            schedule.SectionNumber = nextTrack.Key.Number;
+            schedule.SectionCode = nextTrack.Key?.SectionCode;
             schedule.TrackNumber = nextTrack.Value.Number;
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;

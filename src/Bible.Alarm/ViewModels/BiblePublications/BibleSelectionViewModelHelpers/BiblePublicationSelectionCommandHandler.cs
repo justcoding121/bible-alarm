@@ -90,7 +90,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                 currentLanguage = new LanguageListViewItemModel(new Language
                 {
                     Id = 0,
-                    Code = languageCode,
+                    LanguageCode = languageCode,
                     Name = languageCode
                 });
             }

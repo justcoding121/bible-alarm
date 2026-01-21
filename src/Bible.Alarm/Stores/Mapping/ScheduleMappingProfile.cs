@@ -18,7 +18,8 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.BiblePublicationScheduleId, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (int?)src.BiblePublicationSchedule.Id : null))
             .ForMember(dest => dest.BiblePublicationLanguageCode, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.LanguageCode : null))
             .ForMember(dest => dest.BiblePublicationCode, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.PublicationCode : null))
-            .ForMember(dest => dest.BiblePublicationSectionNumber, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.SectionNumber : null))
+            .ForMember(dest => dest.BiblePublicationSectionNumber, opt => opt.MapFrom(src => 
+                src.BiblePublicationSchedule != null ? ConvertSectionCodeToInt(src.BiblePublicationSchedule.SectionCode) : null))
             .ForMember(dest => dest.BiblePublicationTrackNumber, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (int?)src.BiblePublicationSchedule.TrackNumber : null))
             .ForMember(dest => dest.BiblePublicationFinishedDuration, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (TimeSpan?)src.BiblePublicationSchedule.FinishedDuration : null))
             .ForMember(dest => dest.MusicId, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.Id : null))
@@ -38,7 +39,7 @@ public class ScheduleMappingProfile : Profile
                 Id = src.BiblePublicationScheduleId.Value,
                 LanguageCode = src.BiblePublicationLanguageCode ?? string.Empty,
                 PublicationCode = src.BiblePublicationCode ?? string.Empty,
-                SectionNumber = src.BiblePublicationSectionNumber,
+                SectionCode = src.BiblePublicationSectionNumber.HasValue ? src.BiblePublicationSectionNumber.Value.ToString() : null,
                 TrackNumber = src.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = src.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = src.Id
@@ -72,6 +73,25 @@ public class ScheduleMappingProfile : Profile
         // Map BiblePublicationStateItem back to BiblePublicationSchedule
         CreateMap<BiblePublicationStateItem, BiblePublicationSchedule>()
             .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore()); // Not stored in state
+    }
+
+    /// <summary>
+    /// Helper method to convert SectionCode (string) to int? for state DTOs.
+    /// Tries to parse SectionCode to int. Returns null if parsing fails or SectionCode is null/empty.
+    /// </summary>
+    private static int? ConvertSectionCodeToInt(string? sectionCode)
+    {
+        if (string.IsNullOrEmpty(sectionCode))
+        {
+            return null;
+        }
+
+        if (int.TryParse(sectionCode, out var sectionNum))
+        {
+            return sectionNum;
+        }
+
+        return null;
     }
 }
 

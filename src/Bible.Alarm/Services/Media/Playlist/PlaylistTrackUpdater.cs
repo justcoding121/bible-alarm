@@ -25,7 +25,9 @@ public static class PlaylistTrackUpdater
         var biblePublicationSchedule = schedule.BiblePublicationSchedule ??
             throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {schedule.Id}");
 
-        biblePublicationSchedule.SectionNumber = trackMetadata.SectionNumber;
+        // Convert SectionNumber (int) to SectionCode (string)
+        // For non-sectioned publications (SectionNumber == 0), set SectionCode to null
+        biblePublicationSchedule.SectionCode = trackMetadata.SectionNumber > 0 ? trackMetadata.SectionNumber.ToString() : null;
         biblePublicationSchedule.TrackNumber = trackMetadata.TrackNumber;
         biblePublicationSchedule.LanguageCode = trackMetadata.LanguageCode;
         biblePublicationSchedule.PublicationCode = trackMetadata.PublicationCode;
@@ -54,7 +56,8 @@ public static class PlaylistTrackUpdater
         }
 
         // For non-sectioned publications, Key (section) will be null
-        biblePublicationSchedule.SectionNumber = nextTrack.Value.Key?.Number;
+        // Use SectionCode from the section, or null if section is null
+        biblePublicationSchedule.SectionCode = nextTrack.Value.Key?.SectionCode;
         biblePublicationSchedule.TrackNumber = nextTrack.Value.Value.Number;
         biblePublicationSchedule.LanguageCode = trackMetadata.LanguageCode;
         biblePublicationSchedule.PublicationCode = trackMetadata.PublicationCode;

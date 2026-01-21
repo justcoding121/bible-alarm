@@ -15,16 +15,17 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 name: "BibleReadingSchedules",
                 newName: "BiblePublicationSchedules");
 
-            // Rename BookNumber to SectionNumber and make it nullable
+            // Rename BookNumber to SectionCode and change type to string to match media index db
             migrationBuilder.RenameColumn(
                 name: "BookNumber",
                 table: "BiblePublicationSchedules",
-                newName: "SectionNumber");
+                newName: "SectionCode");
 
-            migrationBuilder.AlterColumn<int>(
-                name: "SectionNumber",
+            migrationBuilder.AlterColumn<string>(
+                name: "SectionCode",
                 table: "BiblePublicationSchedules",
-                type: "INTEGER",
+                type: "TEXT",
+                maxLength: 50,
                 nullable: true,
                 oldClrType: typeof(int),
                 oldType: "INTEGER");
@@ -251,17 +252,18 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 newName: "ChapterNumber");
 
             migrationBuilder.AlterColumn<int>(
-                name: "SectionNumber",
+                name: "SectionCode",
                 table: "BiblePublicationSchedules",
                 type: "INTEGER",
                 nullable: false,
                 defaultValue: 0,
-                oldClrType: typeof(int),
-                oldType: "INTEGER",
+                oldClrType: typeof(string),
+                oldType: "TEXT",
+                oldMaxLength: 50,
                 oldNullable: true);
 
             migrationBuilder.RenameColumn(
-                name: "SectionNumber",
+                name: "SectionCode",
                 table: "BiblePublicationSchedules",
                 newName: "BookNumber");
 

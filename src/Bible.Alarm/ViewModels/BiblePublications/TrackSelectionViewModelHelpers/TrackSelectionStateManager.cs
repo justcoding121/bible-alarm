@@ -76,7 +76,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -89,7 +89,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionNumber = effectiveSectionNumber,
+                SectionCode = effectiveSectionNumber.ToString(),
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
@@ -157,7 +157,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -170,7 +170,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionNumber = effectiveSectionNumber,
+                SectionCode = effectiveSectionNumber.ToString(),
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
@@ -227,7 +227,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -238,7 +238,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionNumber = newSectionNumber.Value,
+                SectionCode = newSectionNumber.Value.ToString(),
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
         }
@@ -285,7 +285,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -296,7 +296,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionNumber = effectiveSectionNumber,
+                SectionCode = effectiveSectionNumber.ToString(),
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
         }

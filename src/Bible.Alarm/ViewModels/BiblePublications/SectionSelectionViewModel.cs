@@ -228,7 +228,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionNumber = currentSchedule.BiblePublicationSectionNumber,
+                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -241,7 +241,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionNumber = currentSchedule?.BiblePublicationSectionNumber ?? 1,
+                SectionCode = (currentSchedule?.BiblePublicationSectionNumber ?? 1).ToString(),
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
@@ -305,7 +305,10 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
         // Find the section from the Sections collection (same instance as in ItemsSource)
         // This matches the pattern used in TrackSelectionViewModel
-        var section = Sections.FirstOrDefault(b => b.Number == current.SectionNumber);
+        // Compare SectionCode (string) with Number (int) by converting Number to string or parsing SectionCode
+        var section = Sections.FirstOrDefault(b => 
+            !string.IsNullOrEmpty(current.SectionCode) && 
+            (b.Number.ToString() == current.SectionCode || (int.TryParse(current.SectionCode, out var num) && num == b.Number)));
         if (section != null)
         {
             SelectedSection = section;
@@ -372,12 +375,15 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 vms.Add(sectionVm);
                 mapping[sectionVm.Number] = sectionVm;
 
-                if (current != null && current.SectionNumber == section.UrlParams.BookNum)
+                if (current != null && current.SectionCode == section.SectionCode)
                 {
                     selected = sectionVm;
                     selected.IsSelected = true;
                 }
             }
+
+            // Sort using natural sort (numeric sections as int, non-numeric as string)
+            vms.Sort();
 
             return (vms, mapping, selected);
         });
@@ -420,7 +426,53 @@ public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSec
     /// Gets the section name with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
     /// </summary>
     public string Name => System.Net.WebUtility.HtmlDecode(section.Name).Replace('\u00A0', ' ');
-    public int Number => section.UrlParams.BookNum ?? 0;
+    /// <summary>
+    /// Gets the section number for sorting/comparison.
+    /// Tries to parse SectionCode as int, or uses BookNum if available.
+    /// Returns 0 if neither can be determined.
+    /// </summary>
+    public int Number
+    {
+        get
+        {
+            if (int.TryParse(section.SectionCode, out var num))
+            {
+                return num;
+            }
+            return section.BookNum ?? 0;
+        }
+    }
 
-    public int CompareTo(object? obj) => obj is not BiblePublicationSectionListViewItemModel other ? 1 : Number.CompareTo(other.Number);
+    public int CompareTo(object? obj)
+    {
+        if (obj is not BiblePublicationSectionListViewItemModel other)
+        {
+            return 1;
+        }
+        
+        // Natural sort: if SectionCode is numeric, sort as int; otherwise sort as string
+        var thisIsNumeric = int.TryParse(section.SectionCode, out var thisNum);
+        var otherIsNumeric = int.TryParse(other.section.SectionCode, out var otherNum);
+        
+        if (thisIsNumeric && otherIsNumeric)
+        {
+            // Both are numeric - compare as integers
+            return thisNum.CompareTo(otherNum);
+        }
+        
+        if (thisIsNumeric && !otherIsNumeric)
+        {
+            // This is numeric, other is not - numeric comes first
+            return -1;
+        }
+        
+        if (!thisIsNumeric && otherIsNumeric)
+        {
+            // This is not numeric, other is - numeric comes first
+            return 1;
+        }
+        
+        // Both are non-numeric - compare as strings
+        return string.Compare(section.SectionCode, other.section.SectionCode, StringComparison.OrdinalIgnoreCase);
+    }
 }

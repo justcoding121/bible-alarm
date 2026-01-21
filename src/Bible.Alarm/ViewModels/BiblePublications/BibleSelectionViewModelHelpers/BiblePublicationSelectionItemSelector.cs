@@ -185,24 +185,26 @@ public sealed class BiblePublicationSelectionItemSelector
     private async Task<(int SectionNumber, int TrackNumber, string SectionName, string TrackTitle)>
         GetFirstSectionAndTrackFromSectionsAsync(string languageCode, string publicationCode, SortedDictionary<int, BiblePublicationSection> sections)
     {
-        var firstSection = sections.Values.First();
+        var firstSectionKvp = sections.First();
+        var firstSection = firstSectionKvp.Value;
+        var firstSectionNumber = firstSectionKvp.Key; // Use the dictionary key (BookNum)
         Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First section number={SectionNumber}, name={SectionName}",
-            firstSection.Number, firstSection.Name);
+            firstSectionNumber, firstSection.Name);
 
         var tracks = await Task.Run(async () =>
-            await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSection.Number));
+            await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionNumber));
 
         if (tracks == null || tracks.Count == 0)
         {
             Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, section={SectionNumber}",
-                languageCode, publicationCode, firstSection.Number);
+                languageCode, publicationCode, firstSectionNumber);
             return (0, 0, string.Empty, string.Empty);
         }
 
         var firstTrack = tracks.Values.First();
         Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First track number={TrackNumber}, title={TrackTitle}",
             firstTrack.Number, firstTrack.Title);
-        return (firstSection.Number, firstTrack.Number, firstSection.Name, firstTrack.Title);
+        return (firstSectionNumber, firstTrack.Number, firstSection.Name, firstTrack.Title);
     }
 
     /// <summary>

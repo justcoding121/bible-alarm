@@ -95,13 +95,18 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             }
         }
 
-        // Section name - for non-sectioned publications (SectionNumber is null or 0), clear the section name
-        if (!biblePublicationSchedule.SectionNumber.HasValue || biblePublicationSchedule.SectionNumber == 0)
+        // Section name - for non-sectioned publications (SectionCode is null or empty), clear the section name
+        var sectionNumber = await ConvertSectionCodeToIntAsync(
+            biblePublicationSchedule.SectionCode,
+            biblePublicationSchedule.LanguageCode,
+            biblePublicationSchedule.PublicationCode);
+        
+        if (sectionNumber == 0)
         {
             // Non-sectioned publication - clear section name
             scheduleStateItem.BiblePublicationSectionName = null;
         }
-        else if (biblePublicationSchedule.SectionNumber > 0 &&
+        else if (sectionNumber > 0 &&
             !string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
             !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode))
         {
@@ -112,7 +117,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                     await biblePublicationSectionService.GetSectionNameAsync(
                         biblePublicationSchedule.LanguageCode,
                         biblePublicationSchedule.PublicationCode,
-                        biblePublicationSchedule.SectionNumber.Value));
+                        sectionNumber));
 
                 if (!string.IsNullOrWhiteSpace(sectionName))
                 {
@@ -135,13 +140,17 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 if (PublicationTypeHelper.HasSectionStructure(biblePublicationSchedule.PublicationCode))
                 {
                     // Sectioned publications (traditional Bible) - load track from section
-                    if (biblePublicationSchedule.SectionNumber.HasValue)
+                    var sectionNum = await ConvertSectionCodeToIntAsync(
+                        biblePublicationSchedule.SectionCode,
+                        biblePublicationSchedule.LanguageCode,
+                        biblePublicationSchedule.PublicationCode);
+                    if (sectionNum > 0)
                     {
                         var tracks = await Task.Run(async () =>
                             await mediaService.GetBiblePublicationTracks(
                                 biblePublicationSchedule.LanguageCode,
                                 biblePublicationSchedule.PublicationCode,
-                                biblePublicationSchedule.SectionNumber.Value));
+                                sectionNum));
 
                         if (tracks != null && tracks.TryGetValue(biblePublicationSchedule.TrackNumber, out var track))
                         {
@@ -266,6 +275,47 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 logger.Warning(ex, "Error populating MusicTrackName");
             }
         }
+    }
+
+    /// <summary>
+    /// Converts SectionCode (string) to the int section number needed for media service calls.
+    /// Tries to parse SectionCode to int, or finds the section by SectionCode and uses its BookNum.
+    /// Returns 0 for null/empty (non-sectioned publications).
+    /// </summary>
+    private async Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
+    {
+        if (string.IsNullOrEmpty(sectionCode))
+        {
+            return 0;
+        }
+
+        // Try to parse SectionCode directly to int
+        if (int.TryParse(sectionCode, out var sectionNumber))
+        {
+            return sectionNumber;
+        }
+
+        // If parsing fails, find the section by SectionCode and use its BookNum
+        try
+        {
+            var sections = await Task.Run(async () =>
+                await mediaService.GetBiblePublicationSections(languageCode, publicationCode));
+            var section = sections.Values.FirstOrDefault(s => s.SectionCode.Equals(sectionCode, StringComparison.OrdinalIgnoreCase));
+            if (section != null && section.BookNum.HasValue)
+            {
+                return section.BookNum.Value;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error converting SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}",
+                sectionCode, languageCode, publicationCode);
+        }
+
+        // Fallback: return 0 if section not found
+        logger.Warning("Could not convert SectionCode {SectionCode} to int for {LanguageCode}/{PublicationCode}, using 0",
+            sectionCode, languageCode, publicationCode);
+        return 0;
     }
 }
 

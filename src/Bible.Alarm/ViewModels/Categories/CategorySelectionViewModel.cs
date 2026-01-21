@@ -79,6 +79,11 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         set => SetProperty(ref selectedCategory, value);
     }
 
+    public object? SelectedItem
+    {
+        get => selectedCategory;
+    }
+
     public bool IsBusy
     {
         get => isBusy;

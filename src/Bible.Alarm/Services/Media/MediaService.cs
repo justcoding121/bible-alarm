@@ -92,7 +92,7 @@ public sealed class MediaService(
             Serilog.Log.Debug("MediaService.GetVocalMusicLanguages: No vocal languages found, falling back to English");
             result = new Dictionary<string, Language>
             {
-                ["E"] = new Language { Code = "E", Name = "English" }
+                ["E"] = new Language { LanguageCode = "E", Name = "English" }
             };
         }
 
