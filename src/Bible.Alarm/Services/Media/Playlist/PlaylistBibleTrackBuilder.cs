@@ -76,7 +76,7 @@ public class PlaylistBiblePublicationTrackBuilder
     {
         var initialTrackInfo = await GetInitialTrackInfo(biblePublicationSchedule);
         var result = new List<PlayItem>();
-        var numberOfTracksToRead = schedule.NumberOfTracksToRead;
+        var numberOfTracksToRead = schedule.NumberOfTracksToPlay;
         var markedSeekTrack = false;
 
         // Limit to available tracks to prevent wrapping/duplicates for both sectioned and non-sectioned publications

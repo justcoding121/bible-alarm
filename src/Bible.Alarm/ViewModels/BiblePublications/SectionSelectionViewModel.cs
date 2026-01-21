@@ -423,6 +423,11 @@ public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSec
     }
 
     /// <summary>
+    /// Exposes the underlying section for comparison.
+    /// </summary>
+    public BiblePublicationSection Section => section;
+
+    /// <summary>
     /// Gets the section name with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
     /// </summary>
     public string Name => System.Net.WebUtility.HtmlDecode(section.Name).Replace('\u00A0', ' ');
@@ -452,7 +457,7 @@ public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSec
         
         // Natural sort: if SectionCode is numeric, sort as int; otherwise sort as string
         var thisIsNumeric = int.TryParse(section.SectionCode, out var thisNum);
-        var otherIsNumeric = int.TryParse(other.section.SectionCode, out var otherNum);
+        var otherIsNumeric = int.TryParse(other.Section.SectionCode, out var otherNum);
         
         if (thisIsNumeric && otherIsNumeric)
         {
@@ -473,6 +478,6 @@ public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSec
         }
         
         // Both are non-numeric - compare as strings
-        return string.Compare(section.SectionCode, other.section.SectionCode, StringComparison.OrdinalIgnoreCase);
+        return string.Compare(section.SectionCode, other.Section.SectionCode, StringComparison.OrdinalIgnoreCase);
     }
 }

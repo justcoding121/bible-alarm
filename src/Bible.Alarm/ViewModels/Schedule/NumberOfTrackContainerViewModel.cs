@@ -79,7 +79,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             // Dispatch update to state
             if (CurrentNumberOfTracks != null)
             {
-                DispatchScheduleUpdate(s => s.NumberOfTracksToRead = CurrentNumberOfTracks.Value);
+                DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = CurrentNumberOfTracks.Value);
             }
 
             // Explicitly notify property changes to ensure UI binding updates
@@ -244,7 +244,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                         PopulateNumberOfTracksListView(newDefault);
                         
                         // Dispatch update to state
-                        DispatchScheduleUpdate(s => s.NumberOfTracksToRead = newDefault);
+                        DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = newDefault);
                     }
                 }
                 lastPublicationCode = newPublicationCode;
@@ -459,7 +459,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
         // Default: 3 for chapters (sectioned), 1 for episodes (non-sectioned)
         var defaultTracks = hasSectionStructure ? 3 : 1;
-        var numberOfTracks = preservedSelection ?? currentSchedule?.NumberOfTracksToRead ?? defaultTracks;
+        var numberOfTracks = preservedSelection ?? currentSchedule?.NumberOfTracksToPlay ?? defaultTracks;
 
         // Determine maximum number of tracks to show
         int maxTracks = 21; // Default for sectioned publications
@@ -559,7 +559,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             NotificationEnabled = source.NotificationEnabled,
             MusicEnabled = source.MusicEnabled,
             SnoozeMinutes = source.SnoozeMinutes,
-            NumberOfTracksToRead = source.NumberOfTracksToRead,
+            NumberOfTracksToPlay = source.NumberOfTracksToPlay,
             AlwaysPlayFromStart = source.AlwaysPlayFromStart,
             CurrentPlayItem = source.CurrentPlayItem,
             LatestAlarmNotificationId = source.LatestAlarmNotificationId,
@@ -570,6 +570,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             BiblePublicationTrackNumber = source.BiblePublicationTrackNumber,
             BiblePublicationFinishedDuration = source.BiblePublicationFinishedDuration,
             MusicId = source.MusicId,
+            MusicSectionCode = source.MusicSectionCode,
             MusicType = source.MusicType,
             MusicPublicationCode = source.MusicPublicationCode,
             MusicLanguageCode = source.MusicLanguageCode,

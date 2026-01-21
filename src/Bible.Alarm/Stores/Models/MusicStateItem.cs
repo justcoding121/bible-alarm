@@ -14,6 +14,7 @@ public sealed class MusicStateItem : IComparable
     public MusicType MusicType { get; set; }
     public string PublicationCode { get; set; } = string.Empty;
     public string? LanguageCode { get; set; }
+    public string? SectionCode { get; set; } // Section code for music publications with sections
     public int TrackNumber { get; set; }
     public bool Repeat { get; set; }
     public int AlarmScheduleId { get; set; }

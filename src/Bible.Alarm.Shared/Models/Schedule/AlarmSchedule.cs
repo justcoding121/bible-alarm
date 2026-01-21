@@ -74,7 +74,7 @@ public sealed class AlarmSchedule : IComparable
 
     [Required]
     [Range(1, 10)]
-    public int NumberOfTracksToRead { get; set; } = 3;
+    public int NumberOfTracksToPlay { get; set; } = 3;
 
     [Required]
     public bool AlwaysPlayFromStart { get; set; } = false;

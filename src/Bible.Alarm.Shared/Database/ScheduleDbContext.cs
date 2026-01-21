@@ -45,4 +45,27 @@ public class ScheduleDbContext : DbContext
         }
 #endif
     }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Configure BiblePublicationSchedule relationship (for Bible reading schedules)
+        // This is the one-to-one relationship where CategoryId is null (Bible schedules)
+        modelBuilder.Entity<BiblePublicationSchedule>()
+            .HasOne(bps => bps.AlarmSchedule)
+            .WithOne(aschedule => aschedule.BiblePublicationSchedule)
+            .HasForeignKey<BiblePublicationSchedule>(bps => bps.AlarmScheduleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure AlarmMusic relationship (obsolete, but kept for backward compatibility)
+        modelBuilder.Entity<AlarmMusic>()
+            .HasOne(am => am.AlarmSchedule)
+            .WithOne(aschedule => aschedule.Music)
+            .HasForeignKey<AlarmMusic>(am => am.AlarmScheduleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // MusicBiblePublicationSchedule is marked as [NotMapped] and will be queried manually
+        // using CategoryId filter, so no relationship configuration needed here
+    }
 }

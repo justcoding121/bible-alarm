@@ -26,6 +26,7 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.MusicType, opt => opt.MapFrom(src => src.Music != null ? (MusicType?)src.Music.MusicType : null))
             .ForMember(dest => dest.MusicPublicationCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.PublicationCode : null))
             .ForMember(dest => dest.MusicLanguageCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.LanguageCode : null))
+            .ForMember(dest => dest.MusicSectionCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.SectionCode : null))
             .ForMember(dest => dest.MusicTrackNumber, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.TrackNumber : null))
             .ForMember(dest => dest.MusicRepeat, opt => opt.MapFrom(src => src.Music != null ? (bool?)src.Music.Repeat : null))
             .ForMember(dest => dest.BiblePublicationLanguageName, opt => opt.Ignore()) // Set manually during bootstrap
@@ -50,6 +51,7 @@ public class ScheduleMappingProfile : Profile
                 MusicType = src.MusicType ?? MusicType.Music,
                 PublicationCode = src.MusicPublicationCode ?? string.Empty,
                 LanguageCode = src.MusicLanguageCode,
+                SectionCode = src.MusicSectionCode,
                 TrackNumber = src.MusicTrackNumber ?? 0,
                 Repeat = src.MusicRepeat ?? false,
                 AlarmScheduleId = src.Id

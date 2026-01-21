@@ -60,7 +60,7 @@ public static class ScheduleStateSyncHelper
                current.Second == action.Second &&
                current.DaysOfWeek == action.DaysOfWeek &&
                current.MusicEnabled == action.MusicEnabled &&
-               current.NumberOfTracksToRead == action.NumberOfTracksToRead &&
+               current.NumberOfTracksToPlay == action.NumberOfTracksToPlay &&
                current.AlwaysPlayFromStart == action.AlwaysPlayFromStart;
     }
 
@@ -186,6 +186,7 @@ public static class ScheduleStateSyncHelper
             MusicType = updatedCurrentSchedule.MusicType.Value,
             PublicationCode = updatedCurrentSchedule.MusicPublicationCode ?? string.Empty,
             LanguageCode = updatedCurrentSchedule.MusicLanguageCode ?? string.Empty,
+            SectionCode = updatedCurrentSchedule.MusicSectionCode,
             TrackNumber = updatedCurrentSchedule.MusicTrackNumber.Value,
             Repeat = updatedCurrentSchedule.MusicRepeat ?? false,
             AlarmScheduleId = updatedCurrentSchedule.Id,

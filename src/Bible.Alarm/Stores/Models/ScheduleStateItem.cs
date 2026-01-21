@@ -21,7 +21,7 @@ public sealed class ScheduleStateItem : IComparable
     public bool NotificationEnabled { get; set; }
     public bool MusicEnabled { get; set; }
     public int SnoozeMinutes { get; set; }
-    public int NumberOfTracksToRead { get; set; }
+    public int NumberOfTracksToPlay { get; set; }
     public bool AlwaysPlayFromStart { get; set; }
     public PlayType CurrentPlayItem { get; set; }
     public long LatestAlarmNotificationId { get; set; }
@@ -49,12 +49,12 @@ public sealed class ScheduleStateItem : IComparable
     public int? BiblePublicationTrackNumber { get; set; }
     public TimeSpan? BiblePublicationFinishedDuration { get; set; }
 
-    // Music properties (flattened)
+    // Music properties (flattened from AlarmMusic)
     public int? MusicId { get; set; }
     public MusicType? MusicType { get; set; }
     public string? MusicPublicationCode { get; set; }
     public string? MusicLanguageCode { get; set; }
-    public int? MusicSectionNumber { get; set; }
+    public string? MusicSectionCode { get; set; } // Section code for music publications with sections
     public int? MusicTrackNumber { get; set; }
     public bool? MusicRepeat { get; set; }
 

@@ -44,7 +44,7 @@ public static class ScheduleEntityUpdater
         existing.MusicEnabled = dbSchedule.MusicEnabled;
         existing.NotificationEnabled = dbSchedule.NotificationEnabled;
         existing.AlwaysPlayFromStart = dbSchedule.AlwaysPlayFromStart;
-        existing.NumberOfTracksToRead = dbSchedule.NumberOfTracksToRead;
+        existing.NumberOfTracksToPlay = dbSchedule.NumberOfTracksToPlay;
         existing.Name = dbSchedule.Name;
         existing.SnoozeMinutes = dbSchedule.SnoozeMinutes;
     }
@@ -102,6 +102,7 @@ public static class ScheduleEntityUpdater
                 MusicType = dbSchedule.Music.MusicType,
                 PublicationCode = dbSchedule.Music.PublicationCode,
                 LanguageCode = dbSchedule.Music.LanguageCode,
+                SectionCode = dbSchedule.Music.SectionCode,
                 TrackNumber = dbSchedule.Music.TrackNumber,
                 Repeat = dbSchedule.Music.Repeat,
                 AlarmScheduleId = existing.Id
@@ -118,6 +119,7 @@ public static class ScheduleEntityUpdater
             existing.Music.MusicType = dbSchedule.Music.MusicType;
             existing.Music.PublicationCode = dbSchedule.Music.PublicationCode;
             existing.Music.LanguageCode = dbSchedule.Music.LanguageCode;
+            existing.Music.SectionCode = dbSchedule.Music.SectionCode;
             existing.Music.TrackNumber = dbSchedule.Music.TrackNumber;
             existing.Music.Repeat = dbSchedule.Music.Repeat;
 
@@ -162,6 +164,7 @@ public static class ScheduleEntityUpdater
             MusicType = schedule.MusicType!.Value,
             PublicationCode = schedule.MusicPublicationCode ?? string.Empty,
             LanguageCode = schedule.MusicLanguageCode,
+            SectionCode = schedule.MusicSectionCode,
             TrackNumber = schedule.MusicTrackNumber!.Value,
             Repeat = schedule.MusicRepeat ?? false,
             AlarmScheduleId = alarmScheduleId
@@ -181,6 +184,7 @@ public static class ScheduleEntityUpdater
         existing.Music.MusicType = schedule.MusicType!.Value;
         existing.Music.PublicationCode = schedule.MusicPublicationCode ?? string.Empty;
         existing.Music.LanguageCode = schedule.MusicLanguageCode;
+        existing.Music.SectionCode = schedule.MusicSectionCode;
         existing.Music.TrackNumber = schedule.MusicTrackNumber!.Value;
         existing.Music.Repeat = schedule.MusicRepeat ?? false;
 

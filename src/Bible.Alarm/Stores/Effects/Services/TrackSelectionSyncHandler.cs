@@ -269,7 +269,7 @@ public sealed class TrackSelectionSyncHandler
             NotificationEnabled = currentSchedule.NotificationEnabled,
             MusicEnabled = currentSchedule.MusicEnabled,
             SnoozeMinutes = currentSchedule.SnoozeMinutes,
-            NumberOfTracksToRead = currentSchedule.NumberOfTracksToRead,
+            NumberOfTracksToPlay = currentSchedule.NumberOfTracksToPlay,
             AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart,
             CurrentPlayItem = currentSchedule.CurrentPlayItem,
             LatestAlarmNotificationId = currentSchedule.LatestAlarmNotificationId
@@ -294,11 +294,12 @@ public sealed class TrackSelectionSyncHandler
         // If music type changed or Id is 0 (new selection), set MusicId to null or action's Id
         // Otherwise preserve the existing MusicId
         updatedSchedule.MusicId = (musicTypeChanged || actionMusic.Id == 0)
-            ? (actionMusic.Id > 0 ? actionMusic.Id : null)
+            ? (actionMusic.Id > 0 ? (int?)actionMusic.Id : null)
             : currentSchedule.MusicId;
         updatedSchedule.MusicType = actionMusic.MusicType;
         updatedSchedule.MusicPublicationCode = actionMusic.PublicationCode;
         updatedSchedule.MusicLanguageCode = actionMusic.LanguageCode;
+        updatedSchedule.MusicSectionCode = actionMusic.SectionCode;
         updatedSchedule.MusicTrackNumber = actionMusic.TrackNumber;
         updatedSchedule.MusicRepeat = actionMusic.Repeat;
         // Preserve music display names from current schedule (will be repopulated if needed)

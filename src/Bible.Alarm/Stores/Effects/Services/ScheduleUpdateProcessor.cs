@@ -58,13 +58,13 @@ public sealed class ScheduleUpdateProcessor
         // Map and run database update on background thread to avoid blocking UI
         var savedSchedule = await Task.Run(async () =>
         {
-            Log.Information("UpdateScheduleInDatabaseAsync: action.Schedule.NumberOfTracksToRead={NumberOfTracksToRead}, action.Schedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
-                action.Schedule!.NumberOfTracksToRead, action.Schedule.AlwaysPlayFromStart);
+            Log.Information("UpdateScheduleInDatabaseAsync: action.Schedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, action.Schedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+                action.Schedule!.NumberOfTracksToPlay, action.Schedule.AlwaysPlayFromStart);
             
             var dbSchedule = mapper.Map<AlarmSchedule>(action.Schedule!);
             
-            Log.Information("UpdateScheduleInDatabaseAsync: After mapping - dbSchedule.NumberOfTracksToRead={NumberOfTracksToRead}, dbSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
-                dbSchedule.NumberOfTracksToRead, dbSchedule.AlwaysPlayFromStart);
+            Log.Information("UpdateScheduleInDatabaseAsync: After mapping - dbSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, dbSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+                dbSchedule.NumberOfTracksToPlay, dbSchedule.AlwaysPlayFromStart);
             
             return await alarmScheduleService!.UpdateScheduleByIdAsync(
                 action.Schedule.Id,
@@ -73,8 +73,8 @@ public sealed class ScheduleUpdateProcessor
         });
 
         LogScheduleUpdateResult(savedSchedule);
-        Log.Information("UpdateScheduleInDatabaseAsync: After save - savedSchedule.NumberOfTracksToRead={NumberOfTracksToRead}, savedSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
-            savedSchedule.NumberOfTracksToRead, savedSchedule.AlwaysPlayFromStart);
+        Log.Information("UpdateScheduleInDatabaseAsync: After save - savedSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, savedSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            savedSchedule.NumberOfTracksToPlay, savedSchedule.AlwaysPlayFromStart);
         return savedSchedule;
     }
 
@@ -185,6 +185,7 @@ public sealed class ScheduleUpdateProcessor
             scheduleStateItem.MusicLanguageCode = actionSchedule.MusicLanguageCode;
             scheduleStateItem.MusicRepeat = actionSchedule.MusicRepeat;
             scheduleStateItem.MusicId = actionSchedule.MusicId;
+            scheduleStateItem.MusicSectionCode = actionSchedule.MusicSectionCode;
         }
     }
 }

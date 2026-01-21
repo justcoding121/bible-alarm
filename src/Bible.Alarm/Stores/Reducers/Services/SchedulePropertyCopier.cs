@@ -28,7 +28,7 @@ public static class SchedulePropertyCopier
         target.NotificationEnabled = source.NotificationEnabled;
         target.MusicEnabled = source.MusicEnabled;
         target.SnoozeMinutes = source.SnoozeMinutes;
-        target.NumberOfTracksToRead = source.NumberOfTracksToRead;
+        target.NumberOfTracksToPlay = source.NumberOfTracksToPlay;
         target.AlwaysPlayFromStart = source.AlwaysPlayFromStart;
         target.CurrentPlayItem = source.CurrentPlayItem;
         target.LatestAlarmNotificationId = source.LatestAlarmNotificationId;
@@ -43,6 +43,7 @@ public static class SchedulePropertyCopier
 
         // Music properties
         target.MusicId = source.MusicId;
+        target.MusicSectionCode = source.MusicSectionCode;
         target.MusicType = source.MusicType;
         target.MusicPublicationCode = source.MusicPublicationCode;
         target.MusicLanguageCode = source.MusicLanguageCode;

@@ -27,6 +27,14 @@ public class AlarmMusic
     [MaxLength(10)]
     public string? LanguageCode { get; set; }
 
+    /// <summary>
+    /// Section code for music publications with sections (e.g., "iam" Kingdom Melodies discs).
+    /// Null for music publications without sections.
+    /// Matches BiblePublicationSection.SectionCode for consistency.
+    /// </summary>
+    [MaxLength(50)]
+    public string? SectionCode { get; set; }
+
     [Required]
     [Range(1, 500)]
     public int TrackNumber { get; set; }

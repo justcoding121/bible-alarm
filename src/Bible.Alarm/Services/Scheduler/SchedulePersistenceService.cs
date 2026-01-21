@@ -140,7 +140,7 @@ public sealed class SchedulePersistenceService(
         existing.MusicEnabled = schedule.MusicEnabled;
         existing.NotificationEnabled = schedule.NotificationEnabled;
         existing.AlwaysPlayFromStart = schedule.AlwaysPlayFromStart;
-        existing.NumberOfTracksToRead = schedule.NumberOfTracksToRead;
+        existing.NumberOfTracksToPlay = schedule.NumberOfTracksToPlay;
         existing.Name = schedule.Name;
         existing.Second = schedule.Second;
         existing.SnoozeMinutes = schedule.SnoozeMinutes;

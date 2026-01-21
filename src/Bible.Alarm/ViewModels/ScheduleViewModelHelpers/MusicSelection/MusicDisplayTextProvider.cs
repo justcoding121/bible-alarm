@@ -307,7 +307,7 @@ public sealed class MusicDisplayTextProvider
     /// - Music type is set
     /// - Publication code is set
     /// - For VocalMusic: language code is set
-    /// - Sections exist for the publication (indicated by MusicSectionNumber being set or sections being available)
+    /// - Sections exist for the publication (indicated by MusicSectionCode being set or sections being available)
     /// </summary>
     public bool GetIsMusicSectionVisible()
     {
@@ -323,9 +323,9 @@ public sealed class MusicDisplayTextProvider
             return false;
         }
 
-        // Section row is visible if section number is set (indicating sections exist for this publication)
+        // Section row is visible if section code is set (indicating sections exist for this publication)
         // This will be populated when sections are checked during publication selection
-        return currentSchedule.MusicSectionNumber.HasValue || !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionName);
+        return !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode) || !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionName);
     }
 
     /// <summary>

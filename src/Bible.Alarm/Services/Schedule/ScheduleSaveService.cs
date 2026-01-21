@@ -26,24 +26,24 @@ public sealed class ScheduleSaveService : IScheduleSaveService
     {
         logger.Information("PrepareModelForSave: Starting. musicUpdated={MusicUpdated}, IsNewSchedule={IsNewSchedule}", musicUpdated, isNewSchedule);
 
-        logger.Information("PrepareModelForSave: CurrentSchedule state - MusicType={MusicType}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicId={MusicId}, NumberOfTracksToRead={NumberOfTracksToRead}, AlwaysPlayFromStart={AlwaysPlayFromStart}",
+        logger.Information("PrepareModelForSave: CurrentSchedule state - MusicType={MusicType}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicId={MusicId}, NumberOfTracksToPlay={NumberOfTracksToPlay}, AlwaysPlayFromStart={AlwaysPlayFromStart}",
             currentSchedule?.MusicType?.ToString() ?? "null",
             currentSchedule?.MusicTrackNumber?.ToString() ?? "null",
             currentSchedule?.MusicPublicationCode ?? "null",
             currentSchedule?.MusicLanguageCode ?? "null",
             currentSchedule?.MusicId?.ToString() ?? "null",
-            currentSchedule?.NumberOfTracksToRead ?? 0,
+            currentSchedule?.NumberOfTracksToPlay ?? 0,
             currentSchedule?.AlwaysPlayFromStart ?? false);
 
         var model = mapper.Map<AlarmSchedule>(currentSchedule);
         
-        // Explicitly ensure NumberOfTracksToRead and AlwaysPlayFromStart are set from currentSchedule state
+        // Explicitly ensure NumberOfTracksToPlay and AlwaysPlayFromStart are set from currentSchedule state
         // (AutoMapper should handle this, but we explicitly set it to be safe)
-        model.NumberOfTracksToRead = currentSchedule?.NumberOfTracksToRead ?? 0;
+        model.NumberOfTracksToPlay = currentSchedule?.NumberOfTracksToPlay ?? 0;
         model.AlwaysPlayFromStart = currentSchedule?.AlwaysPlayFromStart ?? false;
         
-        logger.Information("PrepareModelForSave: After mapping - model.NumberOfTracksToRead={NumberOfTracksToRead}, model.AlwaysPlayFromStart={AlwaysPlayFromStart}",
-            model.NumberOfTracksToRead, model.AlwaysPlayFromStart);
+        logger.Information("PrepareModelForSave: After mapping - model.NumberOfTracksToPlay={NumberOfTracksToPlay}, model.AlwaysPlayFromStart={AlwaysPlayFromStart}",
+            model.NumberOfTracksToPlay, model.AlwaysPlayFromStart);
 
         logger.Information("PrepareModelForSave: After GetModel() - model.Music={HasMusic}, model.Music?.MusicType={MusicType}, model.Music?.TrackNumber={TrackNumber}, model.Music?.PublicationCode={PublicationCode}, model.Music?.LanguageCode={LanguageCode}",
             model.Music != null ? "not null" : "null",
@@ -71,6 +71,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
                         MusicType = currentSchedule.MusicType.Value,
                         PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
                         LanguageCode = currentSchedule.MusicLanguageCode,
+                        SectionCode = currentSchedule.MusicSectionCode,
                         TrackNumber = currentSchedule.MusicTrackNumber.Value,
                         Repeat = currentSchedule.MusicRepeat ?? false,
                         AlarmScheduleId = model.Id
@@ -85,6 +86,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
                     model.Music.MusicType = currentSchedule.MusicType.Value;
                     model.Music.PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty;
                     model.Music.LanguageCode = currentSchedule.MusicLanguageCode;
+                    model.Music.SectionCode = currentSchedule.MusicSectionCode;
                     model.Music.TrackNumber = currentSchedule.MusicTrackNumber.Value;
                     model.Music.Repeat = currentSchedule.MusicRepeat ?? false;
                     if (currentSchedule.MusicId.HasValue)
@@ -159,15 +161,15 @@ public sealed class ScheduleSaveService : IScheduleSaveService
 
         var scheduleStateItem = mapper.Map<ScheduleStateItem>(model);
 
-        // Ensure MusicEnabled, NumberOfTracksToRead, AlwaysPlayFromStart, and all display names are set from CurrentSchedule state
+        // Ensure MusicEnabled, NumberOfTracksToPlay, AlwaysPlayFromStart, and all display names are set from CurrentSchedule state
         // Disable music when Music category is selected (Music category publications don't use the music selection container)
         var isMusicCategory = !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
                               string.Equals(currentSchedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase);
         scheduleStateItem.MusicEnabled = isMusicCategory ? false : currentSchedule.MusicEnabled;
-        scheduleStateItem.NumberOfTracksToRead = currentSchedule.NumberOfTracksToRead;
+        scheduleStateItem.NumberOfTracksToPlay = currentSchedule.NumberOfTracksToPlay;
         scheduleStateItem.AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
-        logger.Information("PrepareScheduleStateItem: Set scheduleStateItem.MusicEnabled={MusicEnabled}, NumberOfTracksToRead={NumberOfTracksToRead}, and AlwaysPlayFromStart={AlwaysPlayFromStart} from CurrentSchedule state",
-            scheduleStateItem.MusicEnabled, scheduleStateItem.NumberOfTracksToRead, scheduleStateItem.AlwaysPlayFromStart);
+        logger.Information("PrepareScheduleStateItem: Set scheduleStateItem.MusicEnabled={MusicEnabled}, NumberOfTracksToPlay={NumberOfTracksToPlay}, and AlwaysPlayFromStart={AlwaysPlayFromStart} from CurrentSchedule state",
+            scheduleStateItem.MusicEnabled, scheduleStateItem.NumberOfTracksToPlay, scheduleStateItem.AlwaysPlayFromStart);
 
         // Preserve all display names from CurrentSchedule state
         scheduleStateItem.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;
@@ -210,6 +212,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
                 scheduleStateItem.MusicLanguageCode = currentSchedule.MusicLanguageCode;
                 scheduleStateItem.MusicRepeat = currentSchedule.MusicRepeat;
                 scheduleStateItem.MusicId = currentSchedule.MusicId;
+                scheduleStateItem.MusicSectionCode = currentSchedule.MusicSectionCode;
                 scheduleStateItem.MusicLanguageName = currentSchedule.MusicLanguageName;
                 scheduleStateItem.MusicPublicationName = currentSchedule.MusicPublicationName;
                 scheduleStateItem.MusicTrackName = currentSchedule.MusicTrackName;
@@ -256,6 +259,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             scheduleStateItem.MusicLanguageCode = currentSchedule.MusicLanguageCode;
             scheduleStateItem.MusicRepeat = currentSchedule.MusicRepeat;
             scheduleStateItem.MusicId = currentSchedule.MusicId;
+            scheduleStateItem.MusicSectionCode = currentSchedule.MusicSectionCode;
             scheduleStateItem.MusicLanguageName = currentSchedule.MusicLanguageName;
             scheduleStateItem.MusicPublicationName = currentSchedule.MusicPublicationName;
             scheduleStateItem.MusicTrackName = currentSchedule.MusicTrackName;

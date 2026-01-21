@@ -202,10 +202,10 @@ public sealed class MusicStateChangeHandler
         Action<bool> setShouldScrollToBottom,
         Action<string> onPropertyChanged)
     {
-        var (musicTypeChanged, languageCodeChanged, publicationCodeChanged, sectionNumberChanged, trackNumberChanged, repeatChanged) =
+        var (musicTypeChanged, languageCodeChanged, publicationCodeChanged, sectionCodeChanged, trackNumberChanged, repeatChanged) =
             stateTracker.DetectChanges(currentSchedule);
 
-        if (musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged || repeatChanged)
+        if (musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged || repeatChanged)
         {
             // Update last values immediately to prevent duplicate detection
             stateTracker.UpdateFromSchedule(currentSchedule);
@@ -229,7 +229,7 @@ public sealed class MusicStateChangeHandler
                     musicTypeChanged,
                     languageCodeChanged,
                     publicationCodeChanged,
-                    sectionNumberChanged,
+                    sectionCodeChanged,
                     trackNumberChanged,
                     repeatChanged,
                     capturedMusicType,
@@ -292,9 +292,9 @@ public sealed class MusicStateChangeHandler
         var musicTypeChanged = stateHolder.Music?.MusicType != newMusic.MusicType;
         var languageCodeChanged = stateHolder.Music?.LanguageCode != newMusic.LanguageCode;
         var publicationCodeChanged = stateHolder.Music?.PublicationCode != newMusic.PublicationCode;
-        // Note: Section number is not stored in AlarmMusic entity, so we check from CurrentSchedule
+        // Check section code from CurrentSchedule (now stored in AlarmMusic.SectionCode)
         var currentSchedule = state.Value.CurrentSchedule;
-        var sectionNumberChanged = currentSchedule?.MusicSectionNumber != stateTracker.LastMusicSectionNumber;
+        var sectionCodeChanged = currentSchedule?.MusicSectionCode != stateTracker.LastMusicSectionCode;
         var trackNumberChanged = stateHolder.Music?.TrackNumber != newMusic.TrackNumber;
 
         MainThread.BeginInvokeOnMainThread(() =>
@@ -308,7 +308,7 @@ public sealed class MusicStateChangeHandler
                 musicTypeChanged,
                 languageCodeChanged,
                 publicationCodeChanged,
-                sectionNumberChanged,
+                sectionCodeChanged,
                 trackNumberChanged,
                 false,
                 newMusic.MusicType);

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -36,11 +36,11 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 table: "BiblePublicationSchedules",
                 newName: "TrackNumber");
 
-            // Rename NumberOfChaptersToRead to NumberOfTracksToRead
+            // Rename NumberOfChaptersToRead to NumberOfTracksToPlay
             migrationBuilder.RenameColumn(
                 name: "NumberOfChaptersToRead",
                 table: "AlarmSchedules",
-                newName: "NumberOfTracksToRead");
+                newName: "NumberOfTracksToPlay");
 
             // Add MaxLength constraints
             migrationBuilder.AlterColumn<string>(
@@ -97,6 +97,14 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 oldType: "TEXT",
                 oldNullable: true);
 
+            // Add SectionCode column to AlarmMusic for music publications with sections
+            migrationBuilder.AddColumn<string>(
+                name: "SectionCode",
+                table: "AlarmMusic",
+                type: "TEXT",
+                maxLength: 50,
+                nullable: true);
+
             migrationBuilder.AlterColumn<string>(
                 name: "Key",
                 table: "GeneralSettings",
@@ -119,7 +127,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 table: "AlarmSchedules",
                 columns: new[] { "Hour", "Minute" });
 
-            // Create new index (this index didn't exist before, so we create it)
             migrationBuilder.CreateIndex(
                 name: "IX_AlarmMusic_PublicationCode_LanguageCode",
                 table: "AlarmMusic",
@@ -145,6 +152,9 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 table: "GeneralSettings",
                 column: "Key",
                 unique: true);
+
+            // Disable music for all existing alarms to ensure users re-select with new SectionCode logic
+            migrationBuilder.Sql("UPDATE AlarmSchedules SET MusicEnabled = 0 WHERE MusicEnabled = 1");
         }
 
         /// <inheritdoc />
@@ -189,6 +199,11 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 oldType: "TEXT",
                 oldMaxLength: 255,
                 oldNullable: false);
+
+            // Remove SectionCode column from AlarmMusic
+            migrationBuilder.DropColumn(
+                name: "SectionCode",
+                table: "AlarmMusic");
 
             migrationBuilder.AlterColumn<string>(
                 name: "LanguageCode",
@@ -242,7 +257,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 
             // Rename columns back
             migrationBuilder.RenameColumn(
-                name: "NumberOfTracksToRead",
+                name: "NumberOfTracksToPlay",
                 table: "AlarmSchedules",
                 newName: "NumberOfChaptersToRead");
 
