@@ -115,4 +115,9 @@ public sealed class GlyphNames
     public static string Bible = "\uf647";
     // Font Awesome folder icon (for category selection)
     public static string Folder = "\uf07b";
+    // Font Awesome xmark icon (for cancel/close buttons)
+    public static string Xmark = "\uf00d";
+    // Font Awesome floppy-disk icon (for save buttons)
+    public static string FloppyDisk = "\uf0c7";
+    // Note: Trash icon already exists above for delete buttons
 }

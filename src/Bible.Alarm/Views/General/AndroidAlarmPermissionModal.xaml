@@ -157,9 +157,16 @@
                             FontAttributes="Bold"
                             HorizontalOptions="Fill"
                             Padding="20,12"
-                            Text="CLOSE"
                             TextColor="{DynamicResource PrimaryTextColor}"
                             VerticalOptions="Fill">
+                            <Button.Text>
+                                <FormattedString>
+                                    <Span Text="{x:Static fn:GlyphNames.Xmark}" 
+                                          FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                                          FontSize="{DynamicResource ButtonFontSize}" />
+                                    <Span Text=" CLOSE" />
+                                </FormattedString>
+                            </Button.Text>
                             <Button.Shadow>
                                 <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
                                         Offset="0,2"

@@ -9,6 +9,7 @@
              xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
              xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
              xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared;assembly=Bible.Alarm"
+             xmlns:fn="clr-namespace:Bible.Alarm.Views"
              x:DataType="vm:ScheduleViewModel"
              HorizontalOptions="Fill"
              VerticalOptions="Fill">
@@ -59,10 +60,17 @@
                         FontAttributes="Bold"
                         HorizontalOptions="Fill"
                         VerticalOptions="Fill"
-                        Text="CANCEL"
                         TextColor="{DynamicResource TextSecondaryColor}"
                         InputTransparent="True"
                         IsEnabled="False">
+                    <Button.Text>
+                        <FormattedString>
+                            <Span Text="{x:Static fn:GlyphNames.Xmark}" 
+                                  FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                                  FontSize="{DynamicResource ButtonFontSize}" />
+                            <Span Text=" CANCEL" />
+                        </FormattedString>
+                    </Button.Text>
                     <Button.Shadow>
                         <Shadow Brush="#20000000" 
                                 Offset="0,2" 
@@ -83,9 +91,16 @@
                     FontAttributes="Bold"
                     HorizontalOptions="Fill"
                     HeightRequest="{DynamicResource IconStandardContainerSize}"
-                    Text="CANCEL"
                     TextColor="{DynamicResource TextSecondaryColor}"
                     IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
+                <Button.Text>
+                    <FormattedString>
+                        <Span Text="{x:Static fn:GlyphNames.Xmark}" 
+                              FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                              FontSize="{DynamicResource ButtonFontSize}" />
+                        <Span Text=" CANCEL" />
+                    </FormattedString>
+                </Button.Text>
                 <Button.Shadow>
                     <Shadow Brush="#20000000" 
                             Offset="0,2" 
@@ -121,10 +136,17 @@
                         FontAttributes="Bold"
                         HorizontalOptions="Fill"
                         VerticalOptions="Fill"
-                        Text="SAVE"
                         TextColor="White"
                         InputTransparent="True"
                         IsEnabled="False">
+                    <Button.Text>
+                        <FormattedString>
+                            <Span Text="{x:Static fn:GlyphNames.FloppyDisk}" 
+                                  FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                                  FontSize="{DynamicResource ButtonFontSize}" />
+                            <Span Text=" SAVE" />
+                        </FormattedString>
+                    </Button.Text>
                     <Button.Shadow>
                         <Shadow Brush="#40000000" 
                                 Offset="0,2" 
@@ -145,9 +167,16 @@
                     FontAttributes="Bold"
                     HorizontalOptions="Fill"
                     HeightRequest="{DynamicResource IconStandardContainerSize}"
-                    Text="SAVE"
                     TextColor="White"
                     IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
+                <Button.Text>
+                    <FormattedString>
+                        <Span Text="{x:Static fn:GlyphNames.FloppyDisk}" 
+                              FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                              FontSize="{DynamicResource ButtonFontSize}" />
+                        <Span Text=" SAVE" />
+                    </FormattedString>
+                </Button.Text>
                 <Button.Shadow>
                     <Shadow Brush="#40000000" 
                             Offset="0,2" 
@@ -205,10 +234,17 @@
                             FontAttributes="Bold"
                             HorizontalOptions="Fill"
                             VerticalOptions="Fill"
-                            Text="DELETE"
                             TextColor="White"
                             InputTransparent="True"
                             IsEnabled="False">
+                        <Button.Text>
+                            <FormattedString>
+                                <Span Text="{x:Static fn:GlyphNames.Trash}" 
+                                      FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                                      FontSize="{DynamicResource ButtonFontSize}" />
+                                <Span Text=" DELETE" />
+                            </FormattedString>
+                        </Button.Text>
                         <Button.Shadow>
                             <Shadow Brush="#40000000" 
                                     Offset="0,2" 
@@ -229,8 +265,15 @@
                         FontAttributes="Bold"
                         HorizontalOptions="Fill"
                         HeightRequest="{DynamicResource IconStandardContainerSize}"
-                        Text="DELETE"
                         TextColor="White">
+                    <Button.Text>
+                        <FormattedString>
+                            <Span Text="{x:Static fn:GlyphNames.Trash}" 
+                                  FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                                  FontSize="{DynamicResource ButtonFontSize}" />
+                            <Span Text=" DELETE" />
+                        </FormattedString>
+                    </Button.Text>
                     <Button.Shadow>
                         <Shadow Brush="#40000000" 
                                 Offset="0,2" 

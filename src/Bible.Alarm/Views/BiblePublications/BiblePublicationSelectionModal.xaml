@@ -14,6 +14,7 @@
     xmlns:sharedControls="clr-namespace:Bible.Alarm.Views.Shared;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
+    xmlns:fn="clr-namespace:Bible.Alarm.Views"
     x:DataType="bible:BiblePublicationSelectionViewModel"
     Padding="0,0,0,0">
     <ContentPage.Resources>
@@ -175,10 +176,17 @@
                     HorizontalOptions="Fill"
                     VerticalOptions="Fill"
                     Padding="20,12"
-                    Text="CLOSE"
                     TextColor="{AppThemeBinding Light=#212529, Dark=White}"
                     InputTransparent="True"
                     IsEnabled="False">
+                    <Button.Text>
+                        <FormattedString>
+                            <Span Text="{x:Static fn:GlyphNames.Xmark}" 
+                                  FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                                  FontSize="{DynamicResource ButtonFontSize}" />
+                            <Span Text=" CLOSE" />
+                        </FormattedString>
+                    </Button.Text>
                     <Button.Shadow>
                         <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
                                 Offset="0,2"
@@ -200,11 +208,18 @@
                 FontAttributes="Bold"
                 HorizontalOptions="Fill"
                 Padding="{OnPlatform Android='20,6,20,10', iOS='20,12', Default='20,12'}"
-                Text="CLOSE"
                 TextColor="{DynamicResource PrimaryTextColor}"
                 VerticalOptions="Center"
                 HeightRequest="{DynamicResource IconStandardContainerSize}"
                 IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
+                <Button.Text>
+                    <FormattedString>
+                        <Span Text="{x:Static fn:GlyphNames.Xmark}" 
+                              FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                              FontSize="{DynamicResource ButtonFontSize}" />
+                        <Span Text=" CLOSE" />
+                    </FormattedString>
+                </Button.Text>
                 <Button.Shadow>
                     <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
                             Offset="0,2"
