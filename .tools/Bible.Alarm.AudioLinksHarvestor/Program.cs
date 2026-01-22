@@ -146,6 +146,17 @@ public class Program
                 var biblePublicationCodeToNameMappings = JwSourceHelper.BiblePublicationCodes.ToDictionary(
                     code => code, 
                     code => code); // Temporary name, will be replaced by API response
+
+                // === PHASE 1: DISCOVERY ===
+                // Discover all languages for all publications and sections using alllangs=1 and langwritten=E
+                logger.Information("=== PHASE 1: DISCOVERY ===");
+                await bibleHarvester.DiscoverLanguages(biblePublicationCodeToNameMappings, isTestRun);
+                // TODO: Add discovery methods for Music, Drama, Video harvesters
+                logger.Information("=== DISCOVERY PHASE COMPLETED ===\n");
+
+                // === PHASE 2: HARVESTING ===
+                // Now harvest content for discovered languages
+                logger.Information("=== PHASE 2: HARVESTING ===");
                 bibleTasks.Add(bibleHarvester.HarvestBibleLinks(biblePublicationCodeToNameMappings, languageCodeToInfoMappings, languageCodeToEditionsMapping, isTestRun));
 
                 var musicTasks = new List<Task>
@@ -165,6 +176,7 @@ public class Program
                 };
 
                 await Task.WhenAll([.. bibleTasks, .. musicTasks, .. dramaTasks, .. videoTasks]);
+                logger.Information("=== HARVESTING PHASE COMPLETED ===\n");
 
                 // Capture localized publication names from Bible harvester
                 localizedPublicationNames = bibleHarvester.LocalizedPublicationNames;

@@ -160,6 +160,47 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
     }
 
+    public async Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+
+            // Query PublicationLanguages table for discovery - shows all available publications
+            var query = dbContext.PublicationLanguages
+                .AsNoTracking()
+                .Include(x => x.Language)
+                .Include(x => x.Category)
+                .Where(x => x.Language != null && x.Language.LanguageCode == normalizedLanguageCode);
+
+            // Filter by category if provided
+            if (!string.IsNullOrWhiteSpace(categoryName))
+            {
+                query = query.Where(x => x.Category != null && x.Category.CategoryName == categoryName);
+            }
+
+            var publicationCodes = await query
+                .Select(x => x.PublicationCode)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync(cancellationToken);
+
+            logger.Debug("GetAvailablePublicationCodesAsync: Found {Count} available publication codes for language={LanguageCode}, category={CategoryName}",
+                publicationCodes.Count, languageCode, categoryName ?? "all");
+
+            return publicationCodes;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error getting available publication codes from PublicationLanguages. LanguageCode={LanguageCode}, CategoryName={CategoryName}",
+                languageCode, categoryName);
+            throw;
+        }
+    }
+
     public void Dispose()
     {
         if (isDisposed)

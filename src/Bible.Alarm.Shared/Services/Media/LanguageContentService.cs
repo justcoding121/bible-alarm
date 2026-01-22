@@ -91,11 +91,12 @@ public sealed class LanguageContentService : ILanguageContentService
             }
 
             // Get PublicationLanguage to determine harvest type and category
+            // Use case-sensitive code for dramas when querying database
             var publicationLanguage = await db.PublicationLanguages
                 .Include(pl => pl.Language)
                 .Include(pl => pl.Category)
                 .FirstOrDefaultAsync(
-                    pl => pl.PublicationCode == normalizedPublicationCode &&
+                    pl => pl.PublicationCode == publicationCodeForDb &&
                           pl.Language.LanguageCode == normalizedLanguageCode,
                     cancellationToken);
 
@@ -183,6 +184,15 @@ public sealed class LanguageContentService : ILanguageContentService
     {
         var tracks = new List<BiblePublicationTrack>();
         string? localizedPubName = null;
+        
+        // For videos, fetch localized name from Mediator API (similar to dramas)
+        // The GETPUBMEDIALINKS API might return English name even when requesting other languages
+        if (isVideo && !normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        {
+            localizedPubName = await FetchVideoLocalizedNameFromMediatorAsync(
+                normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
+        }
+        
         var trackNumber = 1;
         var consecutiveFailures = 0;
         const int MaxConsecutiveFailures = 3;
@@ -227,10 +237,31 @@ public sealed class LanguageContentService : ILanguageContentService
                 }
 
                 // Extract localized publication name (only once)
+                // For videos, we already tried Mediator API first, so only use pubName as fallback
+                // For videos, validate that pubName is not in English when requesting non-English language
                 if (localizedPubName == null && root.TryGetProperty("pubName", out var pubNameElement))
                 {
                     var rawName = pubNameElement.GetString();
-                    localizedPubName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                    var extractedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                    
+                    // For videos, if we're requesting a non-English language and the name is in English, skip it
+                    // This prevents using English names for non-English languages
+                    if (isVideo && !normalizedLanguageCode.Equals("E", StringComparison.OrdinalIgnoreCase) && 
+                        !string.IsNullOrEmpty(extractedName))
+                    {
+                        // Check if the name contains known English video names
+                        var knownEnglishNames = new[] { "The Good News According to Jesus", "Good news according to Jesus" };
+                        var isEnglishName = knownEnglishNames.Any(en => extractedName.Contains(en, StringComparison.OrdinalIgnoreCase));
+                        
+                        if (isEnglishName)
+                        {
+                            logger.Debug("API returned English name '{ExtractedName}' for video {PublicationCode} in language {LanguageCode}. Skipping and using fallback.",
+                                extractedName, normalizedPublicationCode, normalizedLanguageCode);
+                            extractedName = null; // Don't use the English name
+                        }
+                    }
+                    
+                    localizedPubName = extractedName;
                 }
 
                 // Get BaseUrl for tracks
@@ -562,10 +593,11 @@ public sealed class LanguageContentService : ILanguageContentService
             }
 
             // Check if language is available
+            // Use case-sensitive code for dramas when querying database
             var isAvailable = await db.PublicationLanguages
                 .Include(pl => pl.Language)
                 .AnyAsync(
-                    pl => pl.PublicationCode == normalizedPublicationCode &&
+                    pl => pl.PublicationCode == publicationCodeForDb &&
                           pl.Language.LanguageCode == normalizedLanguageCode,
                     cancellationToken);
 
@@ -577,9 +609,10 @@ public sealed class LanguageContentService : ILanguageContentService
             }
 
             // Get all section codes from SectionLanguages for this publication+language
+            // Use case-sensitive code for dramas when querying database
             var sectionCodes = await db.SectionLanguages
                 .Include(sl => sl.Language)
-                .Where(sl => sl.PublicationCode == normalizedPublicationCode &&
+                .Where(sl => sl.PublicationCode == publicationCodeForDb &&
                            sl.Language.LanguageCode == normalizedLanguageCode)
                 .Select(sl => sl.SectionCode)
                 .Distinct()
@@ -843,6 +876,20 @@ public sealed class LanguageContentService : ILanguageContentService
             var normalizedSectionCode = sectionCode.ToLowerInvariant();
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
+            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
+            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
+            else
+            {
+                publicationCodeForDb = normalizedPublicationCode;
+            }
+
             // Get the publication for this language
             var publication = await db.BiblePublications
                 .Include(bp => bp.Language)
@@ -850,7 +897,7 @@ public sealed class LanguageContentService : ILanguageContentService
                 .Include(bp => bp.Sections)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(
-                    bp => bp.PublicationCode == normalizedPublicationCode &&
+                    bp => bp.PublicationCode == publicationCodeForDb &&
                           bp.Language != null &&
                           bp.Language.LanguageCode == normalizedLanguageCode,
                     cancellationToken);
@@ -890,10 +937,11 @@ public sealed class LanguageContentService : ILanguageContentService
             }
 
             // Check if language is available for this section
+            // Use case-sensitive code for dramas when querying database
             var isAvailable = await db.SectionLanguages
                 .Include(sl => sl.Language)
                 .AnyAsync(
-                    sl => sl.PublicationCode == normalizedPublicationCode &&
+                    sl => sl.PublicationCode == publicationCodeForDb &&
                           sl.SectionCode == normalizedSectionCode &&
                           sl.Language.LanguageCode == normalizedLanguageCode,
                     cancellationToken);
@@ -1182,11 +1230,12 @@ public sealed class LanguageContentService : ILanguageContentService
 
             // Determine category from publication code using centralized mapping
             // Get or create PublicationLanguage to determine harvest type and category
+            // Use case-sensitive code for dramas when querying database
             var publicationLanguage = await db.PublicationLanguages
                 .Include(pl => pl.Category)
                 .Include(pl => pl.Language)
                 .FirstOrDefaultAsync(
-                    pl => pl.PublicationCode == normalizedPublicationCode &&
+                    pl => pl.PublicationCode == publicationCodeForDb &&
                           pl.Language.LanguageCode == normalizedLanguageCode,
                     cancellationToken);
 
@@ -2466,12 +2515,13 @@ public sealed class LanguageContentService : ILanguageContentService
             }
 
             // Publication doesn't exist - check if it's available in PublicationLanguage
+            // Use case-sensitive code for dramas when querying database
             var publicationLanguage = await db.PublicationLanguages
                 .AsNoTracking()
                 .Include(pl => pl.Language)
                 .Include(pl => pl.Category)
                 .FirstOrDefaultAsync(
-                    pl => pl.PublicationCode == normalizedPublicationCode &&
+                    pl => pl.PublicationCode == publicationCodeForDb &&
                           pl.Language != null &&
                           pl.Language.LanguageCode == normalizedLanguageCode,
                     cancellationToken);
@@ -2562,11 +2612,12 @@ public sealed class LanguageContentService : ILanguageContentService
             // Try each publication until one succeeds
             foreach (var publicationCode in sortedPublications)
             {
-                // Check if publication already exists
+                // publicationCode from PublicationLanguages is already case-sensitive for dramas
+                // Use it as-is for database queries
                 var normalizedPublicationCode = publicationCode.ToLowerInvariant();
                 var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
                 var publicationCodeForDb = isDrama
-                    ? (normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? "Dramas" : "DramaticBibleReadings")
+                    ? publicationCode // Already case-sensitive from database
                     : normalizedPublicationCode;
 
                 var existing = await db.BiblePublications
@@ -2586,12 +2637,13 @@ public sealed class LanguageContentService : ILanguageContentService
                 }
 
                 // Get PublicationLanguage to determine harvest type
+                // Use case-sensitive code for dramas when querying database
                 var publicationLanguage = await db.PublicationLanguages
                     .AsNoTracking()
                     .Include(pl => pl.Language)
                     .Include(pl => pl.Category)
                     .FirstOrDefaultAsync(
-                        pl => pl.PublicationCode == normalizedPublicationCode &&
+                        pl => pl.PublicationCode == publicationCodeForDb &&
                               pl.Language != null &&
                               pl.Language.LanguageCode == normalizedLanguageCode,
                         cancellationToken);
@@ -2661,11 +2713,26 @@ public sealed class LanguageContentService : ILanguageContentService
             var normalizedPublicationCode = publicationCode.ToLowerInvariant();
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
+            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
+            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
+            else
+            {
+                publicationCodeForDb = normalizedPublicationCode;
+            }
+
             // Get first section code from SectionLanguages
+            // Use case-sensitive code for dramas when querying database
             var firstSectionCode = await db.SectionLanguages
                 .AsNoTracking()
                 .Include(sl => sl.Language)
-                .Where(sl => sl.PublicationCode == normalizedPublicationCode &&
+                .Where(sl => sl.PublicationCode == publicationCodeForDb &&
                            sl.Language != null &&
                            sl.Language.LanguageCode == normalizedLanguageCode)
                 .OrderBy(sl => sl.SectionCode)
@@ -2679,12 +2746,7 @@ public sealed class LanguageContentService : ILanguageContentService
                 return false;
             }
 
-            // Check if publication exists
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
-            var publicationCodeForDb = isDrama
-                ? (normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? "Dramas" : "DramaticBibleReadings")
-                : normalizedPublicationCode;
-
+            // Check if publication exists (publicationCodeForDb already set above)
             var existingPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.Category)
@@ -2799,26 +2861,19 @@ public sealed class LanguageContentService : ILanguageContentService
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            // Get existing publications
+            // Get existing publications (use case-sensitive codes as stored in database)
             var existingPublications = await db.BiblePublications
                 .AsNoTracking()
                 .Include(bp => bp.Language)
                 .Where(bp => bp.Language != null && bp.Language.LanguageCode == normalizedLanguageCode)
-                .Select(bp => bp.PublicationCode.ToLowerInvariant())
+                .Select(bp => bp.PublicationCode) // Keep case-sensitive for dramas
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
             // Find missing publications
+            // availablePublications already contains case-sensitive codes for dramas from PublicationLanguages
             var missingPublications = availablePublications
-                .Where(pub =>
-                {
-                    var normalized = pub.ToLowerInvariant();
-                    var isDrama = PublicationTypeHelper.IsDrama(normalized);
-                    var pubCodeForDb = isDrama
-                        ? (normalized.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? "Dramas" : "DramaticBibleReadings")
-                        : normalized;
-                    return !existingPublications.Contains(pubCodeForDb.ToLowerInvariant());
-                })
+                .Where(pub => !existingPublications.Contains(pub)) // Direct comparison (case-sensitive for dramas)
                 .ToList();
 
             if (missingPublications.Count == 0)
@@ -2833,11 +2888,13 @@ public sealed class LanguageContentService : ILanguageContentService
             // Fetch each missing publication with first section + tracks
             foreach (var publicationCode in missingPublications)
             {
+                // publicationCode from PublicationLanguages is already case-sensitive for dramas
+                // Use it as-is when querying
                 var publicationLanguage = await db.PublicationLanguages
                     .AsNoTracking()
                     .Include(pl => pl.Category)
                     .FirstOrDefaultAsync(
-                        pl => pl.PublicationCode == publicationCode.ToLowerInvariant() &&
+                        pl => pl.PublicationCode == publicationCode &&
                               pl.Language != null &&
                               pl.Language.LanguageCode == normalizedLanguageCode,
                         cancellationToken);
@@ -2923,10 +2980,11 @@ public sealed class LanguageContentService : ILanguageContentService
             }
 
             // Get all available sections from SectionLanguages
+            // Use case-sensitive code for dramas when querying database
             var availableSectionCodes = await db.SectionLanguages
                 .AsNoTracking()
                 .Include(sl => sl.Language)
-                .Where(sl => sl.PublicationCode == normalizedPublicationCode &&
+                .Where(sl => sl.PublicationCode == publicationCodeForDb &&
                            sl.Language != null &&
                            sl.Language.LanguageCode == normalizedLanguageCode)
                 .Select(sl => sl.SectionCode)
@@ -2965,5 +3023,65 @@ public sealed class LanguageContentService : ILanguageContentService
                 publicationCode, languageCode);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Fetches localized publication name for videos from Mediator API.
+    /// Maps publication codes to Mediator API category keys (e.g., "gnj" -> "DramasGoodNews").
+    /// </summary>
+    private async Task<string?> FetchVideoLocalizedNameFromMediatorAsync(
+        string normalizedPublicationCode,
+        string normalizedLanguageCode,
+        CancellationToken cancellationToken = default)
+    {
+        // Map video publication codes to Mediator API category keys
+        string? categoryKey = normalizedPublicationCode.ToLowerInvariant() switch
+        {
+            "gnj" => "DramasGoodNews",
+            _ => null
+        };
+
+        if (categoryKey == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var categoryUrl = $"{AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl}/categories/{normalizedLanguageCode}/{categoryKey}?detailed=1";
+            var response = await httpClient.GetAsync(categoryUrl, cancellationToken);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.Debug("Failed to fetch video category {CategoryKey} for language {LanguageCode}: {StatusCode}",
+                    categoryKey, normalizedLanguageCode, response.StatusCode);
+                return null;
+            }
+
+            var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
+            using var doc = JsonDocument.Parse(jsonString);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("category", out var category) &&
+                category.TryGetProperty("name", out var nameElement))
+            {
+                var rawName = nameElement.GetString();
+                var localizedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+                
+                if (!string.IsNullOrEmpty(localizedName))
+                {
+                    logger.Debug("Fetched localized name '{LocalizedName}' for video {PublicationCode} in language {LanguageCode} from Mediator API",
+                        localizedName, normalizedPublicationCode, normalizedLanguageCode);
+                    return localizedName;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to fetch localized name for video {PublicationCode} in language {LanguageCode} from Mediator API",
+                normalizedPublicationCode, normalizedLanguageCode);
+        }
+
+        return null;
     }
 }

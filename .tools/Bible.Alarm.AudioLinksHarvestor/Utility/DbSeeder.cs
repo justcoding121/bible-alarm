@@ -40,6 +40,11 @@ internal class DbSeeder : IDataPersister
     private readonly object languagesCacheLock = new object(); // Lock for thread-safe cache access
     private Task<JsonDocument>? languagesCacheTask; // Task for async-safe cache loading
 
+    /// <summary>
+    /// Exposes the PublicationLanguages data store for access by harvesters after discovery phase.
+    /// </summary>
+    public IReadOnlyDictionary<string, Dictionary<string, LanguageInfo>> PublicationLanguages => dataStore.PublicationLanguages;
+
     public DbSeeder(ILogger logger, IServiceScopeFactory scopeFactory, DownloadUtility downloadUtility, bool isTestRun = false)
     {
         this.logger = logger;
@@ -90,12 +95,19 @@ internal class DbSeeder : IDataPersister
         // Seed default Categories and ApiUrls first
         await SeedDefaultCategoriesAndApiUrls();
         
+        // Seed ALL languages from jw.org /en/languages API to Languages table
+        await SeedAllLanguagesFromJwOrg();
+        
         // Seed discovered languages for on-demand fetching (discovery tables)
-        await SeedDiscoveredLanguages();
+        // Note: Only seed PublicationLanguages here - SectionLanguages needs English publications to exist first
+        await SeedPublicationLanguages();
         
         // Seed English using shared FetchAndSave* methods (same as used for other languages in test mode)
         // This happens after discovery tables are seeded, using the same methods that are used for on-demand fetching
         await SeedEnglish();
+        
+        // Now seed SectionLanguages after English publications exist (needed for section lookup)
+        await SeedSectionLanguages();
         
         // In test mode, also seed MY and A after English
         if (isTestRun)
@@ -431,6 +443,130 @@ internal class DbSeeder : IDataPersister
     }
 
     /// <summary>
+    /// Seeds ALL languages from jw.org /en/languages API to the Languages table.
+    /// This ensures all languages are available in the database, not just discovered ones.
+    /// </summary>
+    private async Task SeedAllLanguagesFromJwOrg()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        logger.Information("=== Seeding all languages from jw.org /en/languages API ===");
+
+        try
+        {
+            // Load the languages cache (this will fetch from API if not already cached)
+            var cache = await LoadLanguagesCacheAsync();
+            var root = cache.RootElement;
+
+            // Handle both array and object responses
+            JsonElement languagesArray;
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                languagesArray = root;
+            }
+            else if (root.ValueKind == JsonValueKind.Object)
+            {
+                // Try common property names that might contain the languages array
+                if (root.TryGetProperty("languages", out var languagesProp) && languagesProp.ValueKind == JsonValueKind.Array)
+                {
+                    languagesArray = languagesProp;
+                }
+                else if (root.TryGetProperty("data", out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
+                {
+                    languagesArray = dataProp;
+                }
+                else
+                {
+                    logger.Warning("Expected JSON array or object with 'languages'/'data' array from /en/languages endpoint");
+                    return;
+                }
+            }
+            else
+            {
+                logger.Warning("Expected JSON array or object from /en/languages endpoint, got {ValueKind}", root.ValueKind);
+                return;
+            }
+
+            var languagesSeeded = 0;
+            var languagesSkipped = 0;
+
+            // Process all languages from the API response
+            foreach (var langElement in languagesArray.EnumerateArray())
+            {
+                if (!langElement.TryGetProperty("langcode", out var langcodeElement))
+                {
+                    continue;
+                }
+
+                var langcode = langcodeElement.GetString();
+                if (string.IsNullOrWhiteSpace(langcode))
+                {
+                    continue;
+                }
+
+                var normalizedCode = langcode.ToUpperInvariant();
+
+                // Check if language already exists
+                var existingLanguage = await db.Languages
+                    .FirstOrDefaultAsync(l => l.LanguageCode == normalizedCode);
+
+                if (existingLanguage != null)
+                {
+                    languagesSkipped++;
+                    continue;
+                }
+
+                // Extract name and direction
+                var name = normalizedCode; // Default to code if name not found
+                if (langElement.TryGetProperty("name", out var nameElement))
+                {
+                    var rawName = nameElement.GetString();
+                    if (!string.IsNullOrWhiteSpace(rawName))
+                    {
+                        name = WebUtility.HtmlDecode(rawName);
+                        // Truncate if too long (max 100 characters)
+                        if (name.Length > 100)
+                        {
+                            name = name.Substring(0, 100);
+                        }
+                    }
+                }
+
+                var direction = "ltr";
+                if (langElement.TryGetProperty("direction", out var directionElement))
+                {
+                    var dirValue = directionElement.GetString();
+                    if (!string.IsNullOrWhiteSpace(dirValue))
+                    {
+                        direction = dirValue;
+                    }
+                }
+
+                // Create and add language
+                var language = new Language
+                {
+                    LanguageCode = normalizedCode,
+                    Name = name,
+                    Direction = direction
+                };
+                db.Languages.Add(language);
+                languagesSeeded++;
+            }
+
+            await db.SaveChangesAsync();
+
+            logger.Information("✓ Seeded {SeededCount} languages from jw.org API ({SkippedCount} already existed)",
+                languagesSeeded, languagesSkipped);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to seed all languages from jw.org API");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Fetches language name and direction from the Mediator API.
     /// Uses the Dramas category as it's commonly available across languages.
     /// This is kept as a fallback but /en/languages API is preferred.
@@ -646,17 +782,9 @@ internal class DbSeeder : IDataPersister
         string publicationCode,
         Dictionary<string, LanguageInfo> discoveredLanguages)
     {
-        // Include all discovered languages (including English) - English will be seeded separately but should be tracked
+        // Save ALL discovered languages (including English) - English will be seeded separately but should be tracked
+        // Test mode filtering only applies to which languages get seeded (content downloaded), not which languages get saved to discovery tables
         var languagesToSave = discoveredLanguages;
-        
-        // In test mode, only save test languages (MY and A) plus English
-        if (isTestRun)
-        {
-            var testLanguages = new[] { "MY", "A", "E" };
-            languagesToSave = languagesToSave
-                .Where(kvp => testLanguages.Contains(kvp.Key, StringComparer.OrdinalIgnoreCase))
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        }
         
         if (languagesToSave.Count > 0)
         {
@@ -682,17 +810,9 @@ internal class DbSeeder : IDataPersister
         string sectionCode,
         Dictionary<string, LanguageInfo> discoveredLanguages)
     {
-        // Include all discovered languages (including English) - English will be seeded separately but should be tracked
+        // Save ALL discovered languages (including English) - English will be seeded separately but should be tracked
+        // Test mode filtering only applies to which languages get seeded (content downloaded), not which languages get saved to discovery tables
         var languagesToSave = discoveredLanguages;
-        
-        // In test mode, only save test languages (MY and A) plus English
-        if (isTestRun)
-        {
-            var testLanguages = new[] { "MY", "A", "E" };
-            languagesToSave = languagesToSave
-                .Where(kvp => testLanguages.Contains(kvp.Key, StringComparer.OrdinalIgnoreCase))
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        }
         
         if (languagesToSave.Count > 0)
         {
@@ -769,16 +889,23 @@ internal class DbSeeder : IDataPersister
         logger.Information("=== English seeding completed ===");
     }
 
-    private async Task SeedDiscoveredLanguages()
+    private async Task SeedPublicationLanguages()
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        await SeedPublicationLanguages(db);
-        await SeedSectionLanguages(db);
+        await SeedPublicationLanguagesInternal(db);
     }
 
-    private async Task SeedPublicationLanguages(MediaDbContext db)
+    private async Task SeedSectionLanguages()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        await SeedSectionLanguagesInternal(db);
+    }
+
+    private async Task SeedPublicationLanguagesInternal(MediaDbContext db)
     {
         // Get all distinct languages discovered across all publications
         var allDiscoveredLanguageCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -825,14 +952,12 @@ internal class DbSeeder : IDataPersister
 
         foreach (var (publicationCode, languages) in dataStore.PublicationLanguages)
         {
-            // Normalize to lowercase to match how publications are stored in the database
-            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
-            
+            // Pass the original publicationCode (from dataStore) so SeedLanguageForPublication can determine case-sensitive code
             // Seed discovered languages (including E - it should be in the table)
             // Note: We don't need English publication to exist yet - we're just populating the discovery table
             foreach (var (languageCode, languageInfo) in languages)
             {
-                await SeedLanguageForPublication(db, normalizedPublicationCode, languageCode);
+                await SeedLanguageForPublication(db, publicationCode, languageCode);
             }
         }
 
@@ -844,6 +969,20 @@ internal class DbSeeder : IDataPersister
     {
         var normalizedPublicationCode = publicationCode.ToLowerInvariant();
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
+
+        // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
+        var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+        string publicationCodeForDb;
+        if (isDrama)
+        {
+            publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                ? "Dramas"
+                : "DramaticBibleReadings";
+        }
+        else
+        {
+            publicationCodeForDb = normalizedPublicationCode;
+        }
 
         // Get or create language
         var language = await GetOrCreateLanguageByCode(db, normalizedLanguageCode);
@@ -865,15 +1004,15 @@ internal class DbSeeder : IDataPersister
             return;
         }
         
-        // Check if already exists
+        // Check if already exists (use case-sensitive code for dramas)
         var exists = await db.PublicationLanguages
-            .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == language.Id);
+            .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == language.Id);
 
         if (!exists)
         {
             var publicationLanguage = new Shared.Models.Media.BiblePublications.PublicationLanguage
             {
-                PublicationCode = normalizedPublicationCode,
+                PublicationCode = publicationCodeForDb, // Use case-sensitive code for dramas
                 Language = language,
                 HarvestType = harvestType,
                 Category = category,
@@ -885,7 +1024,7 @@ internal class DbSeeder : IDataPersister
         {
             // Update existing entry with harvest type and category if missing
             var existing = await db.PublicationLanguages
-                .FirstOrDefaultAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == language.Id);
+                .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == language.Id);
             
             if (existing != null)
             {
@@ -960,7 +1099,7 @@ internal class DbSeeder : IDataPersister
         }
     }
 
-    private async Task SeedSectionLanguages(MediaDbContext db)
+    private async Task SeedSectionLanguagesInternal(MediaDbContext db)
     {
         if (dataStore.SectionLanguages.Count == 0)
         {
@@ -971,45 +1110,69 @@ internal class DbSeeder : IDataPersister
 
         foreach (var ((publicationCode, sectionCode), languages) in dataStore.SectionLanguages)
         {
-            // Normalize to lowercase to match how publications are stored in the database
+            // Normalize to lowercase for lookup, but use case-sensitive code for dramas in database
             var normalizedPublicationCode = publicationCode.ToLowerInvariant();
             var normalizedSectionCode = sectionCode.ToLowerInvariant();
 
+            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
+            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
+            else
+            {
+                publicationCodeForDb = normalizedPublicationCode;
+            }
+
             // Verify English publication exists (it should be seeded by now, but skip silently if not)
+            // Note: We still seed section languages even if English publication doesn't exist,
+            // as the discovery phase already found which languages are available for each section
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.Sections)
-                .FirstOrDefaultAsync(bp => bp.PublicationCode == normalizedPublicationCode && bp.Language != null && bp.Language.LanguageCode == "E");
+                    .ThenInclude(s => s.UrlParams)
+                .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCodeForDb && bp.Language != null && bp.Language.LanguageCode == "E");
 
-            if (englishPublication == null)
+            // Try to find section in English publication for reference (but don't require it)
+            // Note: englishPublication.Sections returns Shared.Models.Media.BiblePublications.BiblePublicationSection, not the harvester model
+            Shared.Models.Media.BiblePublications.BiblePublicationSection? section = null;
+            if (englishPublication != null)
             {
-                // Skip silently - English publication will be seeded later, section languages will be seeded then
-                continue;
+                // Find section by SectionCode
+                section = englishPublication.Sections.FirstOrDefault(s => s.SectionCode == normalizedSectionCode);
+                
+                if (section == null)
+                {
+                    // Try to find by UrlParam booknum or section code as fallback
+                    section = englishPublication.Sections.FirstOrDefault(s => 
+                        s.UrlParams.Any(up => up.Key.Equals("booknum", StringComparison.OrdinalIgnoreCase) && 
+                                             up.Value == normalizedSectionCode) ||
+                        s.UrlParams.Any(up => up.Key.Equals("pub", StringComparison.OrdinalIgnoreCase) && 
+                                             up.Value.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase)));
+                }
+
+                if (section == null)
+                {
+                    logger.Debug("Section {SectionCode} not found in English publication {PublicationCode}, but seeding discovered languages anyway", 
+                        sectionCode, publicationCode);
+                }
+            }
+            else
+            {
+                logger.Debug("English publication {PublicationCode} not found, but seeding discovered section languages anyway", 
+                    publicationCode);
             }
 
-            // Find section by SectionCode
-            var section = englishPublication.Sections.FirstOrDefault(s => s.SectionCode == normalizedSectionCode);
-            
-            if (section == null)
-            {
-                // Try to find by UrlParam booknum or section code as fallback
-                section = englishPublication.Sections.FirstOrDefault(s => 
-                    s.UrlParams.Any(up => up.Key.Equals("booknum", StringComparison.OrdinalIgnoreCase) && 
-                                         up.Value == normalizedSectionCode) ||
-                    s.UrlParams.Any(up => up.Key.Equals("pub", StringComparison.OrdinalIgnoreCase) && 
-                                         up.Value.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase)));
-            }
-
-            if (section == null)
-            {
-                logger.Warning("Section {SectionCode} not found in publication {PublicationCode}, skipping", sectionCode, publicationCode);
-                continue;
-            }
-
-            // Seed all discovered languages for this section (including E)
+            // Seed ALL discovered languages for this section (including E)
+            // The discovery phase already found which languages are available, so we save all of them
+            // Pass the original publicationCode (from dataStore) so SeedLanguageForSection can determine case-sensitive code
             foreach (var (languageCode, languageInfo) in languages)
             {
-                await SeedLanguageForSection(db, normalizedPublicationCode, normalizedSectionCode, languageCode);
+                await SeedLanguageForSection(db, publicationCode, normalizedSectionCode, languageCode);
             }
         }
 
@@ -1023,25 +1186,39 @@ internal class DbSeeder : IDataPersister
         var normalizedPublicationCode = publicationCode.ToLowerInvariant();
         var normalizedSectionCode = sectionCode.ToLowerInvariant();
 
+        // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
+        var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+        string publicationCodeForDb;
+        if (isDrama)
+        {
+            publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                ? "Dramas"
+                : "DramaticBibleReadings";
+        }
+        else
+        {
+            publicationCodeForDb = normalizedPublicationCode;
+        }
+
         // Get or create language
         var language = await GetOrCreateLanguageByCode(db, normalizedLanguageCode);
         
         // Get the PublicationLanguage for this publication and language
         // Check both in database and in the current context (uncommitted changes)
         var publicationLanguage = await db.PublicationLanguages
-            .FirstOrDefaultAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == language.Id);
+            .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == language.Id);
 
         if (publicationLanguage == null)
         {
             // Also check if it's being tracked in the context but not yet saved
             publicationLanguage = db.ChangeTracker.Entries<Shared.Models.Media.BiblePublications.PublicationLanguage>()
-                .Where(e => e.Entity.PublicationCode == publicationCode && e.Entity.LanguageId == language.Id)
+                .Where(e => e.Entity.PublicationCode == publicationCodeForDb && e.Entity.LanguageId == language.Id)
                 .Select(e => e.Entity)
                 .FirstOrDefault();
 
             if (publicationLanguage == null)
             {
-                logger.Warning("PublicationLanguage not found for {PublicationCode} and {LanguageCode}, creating it", normalizedPublicationCode, languageCode);
+                logger.Warning("PublicationLanguage not found for {PublicationCode} and {LanguageCode}, creating it", publicationCodeForDb, languageCode);
                 
                 // Determine harvest type and category based on publication code
                 var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
@@ -1062,7 +1239,7 @@ internal class DbSeeder : IDataPersister
                 
                 publicationLanguage = new Shared.Models.Media.BiblePublications.PublicationLanguage
                 {
-                    PublicationCode = normalizedPublicationCode,
+                    PublicationCode = publicationCodeForDb, // Use case-sensitive code for dramas
                     Language = language,
                     HarvestType = harvestType,
                     Category = category,
@@ -1073,9 +1250,9 @@ internal class DbSeeder : IDataPersister
             }
         }
         
-        // Check if already exists
+        // Check if already exists (use case-sensitive code for dramas)
         var exists = await db.SectionLanguages
-            .AnyAsync(sl => sl.PublicationCode == normalizedPublicationCode && 
+            .AnyAsync(sl => sl.PublicationCode == publicationCodeForDb && 
                            sl.SectionCode == normalizedSectionCode && 
                            sl.LanguageId == language.Id);
 
@@ -1083,7 +1260,7 @@ internal class DbSeeder : IDataPersister
         {
             var sectionLanguage = new Shared.Models.Media.BiblePublications.SectionLanguage
             {
-                PublicationCode = normalizedPublicationCode,
+                PublicationCode = publicationCodeForDb, // Use case-sensitive code for dramas
                 SectionCode = normalizedSectionCode,
                 Language = language,
                 PublicationLanguage = publicationLanguage,

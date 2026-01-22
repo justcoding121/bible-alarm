@@ -39,16 +39,20 @@ internal class JwBibleHarvester : BaseHarvester
     /// </summary>
     public IReadOnlyDictionary<(string LanguageCode, string PublicationCode), string> LocalizedPublicationNames => localizedPublicationNames;
 
-    internal async Task HarvestBibleLinks(
+    /// <summary>
+    /// Discovery phase: Discovers all languages for all publications and sections using alllangs=1 and langwritten=E.
+    /// This runs FIRST before any harvesting or seeding.
+    /// </summary>
+    internal async Task DiscoverLanguages(
         Dictionary<string, string> biblePublicationCodeToNameMappings,
-        ConcurrentDictionary<string, LanguageInfo> languageCodeToInfoMappings,
-        ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping,
         bool isTestRun = false)
     {
+        Logger.Information("=== DISCOVERY PHASE: Discovering languages for all publications and sections ===");
+        
         foreach (var publication in biblePublicationCodeToNameMappings)
         {
             var publicationCode = publication.Key;
-            Logger.Information("Starting harvest for publication: {PublicationCode} ({PublicationName})", publicationCode, publication.Value);
+            Logger.Information("Discovering languages for publication: {PublicationCode} ({PublicationName})", publicationCode, publication.Value);
 
             // Discover languages for each book (1-66) and save for English
             var allDiscoveredLanguages = await DiscoverLanguagesForAllBooks(publicationCode, publication.Value, isTestRun);
@@ -60,7 +64,6 @@ internal class JwBibleHarvester : BaseHarvester
             }
 
             // Save language discovery results for English
-            // Save language discovery
             if (dataPersister != null)
             {
                 var languageCodeToNameMapping = allDiscoveredLanguages.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Name);
@@ -75,6 +78,61 @@ internal class JwBibleHarvester : BaseHarvester
             if (dataPersister != null)
             {
                 await dataPersister.SavePublicationLanguages(publicationCode, allDiscoveredLanguages);
+            }
+        }
+        
+        Logger.Information("=== DISCOVERY PHASE COMPLETED ===");
+    }
+
+    internal async Task HarvestBibleLinks(
+        Dictionary<string, string> biblePublicationCodeToNameMappings,
+        ConcurrentDictionary<string, LanguageInfo> languageCodeToInfoMappings,
+        ConcurrentDictionary<string, List<string>> languageCodeToEditionsMapping,
+        bool isTestRun = false)
+    {
+        foreach (var publication in biblePublicationCodeToNameMappings)
+        {
+            var publicationCode = publication.Key;
+            Logger.Information("Starting harvest for publication: {PublicationCode} ({PublicationName})", publicationCode, publication.Value);
+
+            // Discovery already happened in Phase 1, so get discovered languages from dataPersister
+            // If dataPersister is not available or doesn't have the data, fall back to discovery
+            Dictionary<string, LanguageInfo>? allDiscoveredLanguages = null;
+            
+            if (dataPersister is DbSeeder dbSeeder)
+            {
+                // Try to get discovered languages from the data store
+                var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+                if (dbSeeder.PublicationLanguages.TryGetValue(normalizedPublicationCode, out var discoveredLangs))
+                {
+                    allDiscoveredLanguages = discoveredLangs;
+                    Logger.Debug("Using discovered languages from discovery phase for publication {PublicationCode}", publicationCode);
+                }
+            }
+
+            // Fallback: If discovery data not available, discover now (shouldn't happen if discovery phase ran)
+            if (allDiscoveredLanguages == null || allDiscoveredLanguages.Count == 0)
+            {
+                Logger.Warning("No discovered languages found for publication {PublicationCode} in data store. Running discovery now...", publicationCode);
+                allDiscoveredLanguages = await DiscoverLanguagesForAllBooks(publicationCode, publication.Value, isTestRun);
+                
+                if (allDiscoveredLanguages == null || allDiscoveredLanguages.Count == 0)
+                {
+                    Logger.Warning("No languages discovered for publication {PublicationCode}. Skipping.", publicationCode);
+                    continue;
+                }
+
+                // Save discovered languages if not already saved
+                if (dataPersister != null)
+                {
+                    await dataPersister.SavePublicationLanguages(publicationCode, allDiscoveredLanguages);
+                }
+            }
+            
+            if (allDiscoveredLanguages == null || allDiscoveredLanguages.Count == 0)
+            {
+                Logger.Warning("No languages available for publication {PublicationCode}. Skipping.", publicationCode);
+                continue;
             }
 
             // Verify English (E) is available (it will be seeded separately after discovery)

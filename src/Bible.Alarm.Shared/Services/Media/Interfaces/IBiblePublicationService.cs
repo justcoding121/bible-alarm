@@ -32,5 +32,11 @@ public interface IBiblePublicationService : IDisposable
     /// Gets all distinct Languages from BiblePublications, optionally filtered by category.
     /// </summary>
     Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all available publication codes from PublicationLanguages for a given language and category.
+    /// This shows all discovered publications, even if not yet downloaded.
+    /// </summary>
+    Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default);
 }
 

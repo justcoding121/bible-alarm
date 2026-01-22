@@ -47,60 +47,102 @@ public sealed class MediaService(
     {
         await mediaIndexService.Verify();
         
-        // First, try to get publications from database
-        var publications = await BiblePublicationService.GetByLanguageCodeAsync(languageCode, categoryName, cancellationTokenSource.Token);
+        // Step 1: Get all available publication codes from PublicationLanguages (discovery table)
+        // This shows all publications that are available for this language/category, even if not yet downloaded
+        var availablePublicationCodes = await BiblePublicationService.GetAvailablePublicationCodesAsync(
+            languageCode, categoryName, cancellationTokenSource.Token);
         
-        // If no publications found and language is not English (E), fetch first publication with first section + tracks
-        // English publications are pre-harvested by the harvester
-        if (publications.Count == 0 && !string.IsNullOrEmpty(languageCode) && 
-            !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        Log.Debug("GetBiblePublications: Found {Count} available publication codes from PublicationLanguages for language={LanguageCode}, category={CategoryName}",
+            availablePublicationCodes.Count, languageCode, categoryName ?? "all");
+        
+        // Step 2: Get downloaded publications from BiblePublications table
+        var downloadedPublications = await BiblePublicationService.GetByLanguageCodeAsync(
+            languageCode, categoryName, cancellationTokenSource.Token);
+        
+        Log.Debug("GetBiblePublications: Found {Count} downloaded publications for language={LanguageCode}, category={CategoryName}",
+            downloadedPublications.Count, languageCode, categoryName ?? "all");
+        
+        // Step 3: Merge - use downloaded publications where available, create placeholders for others
+        var result = new Dictionary<string, BiblePublication>();
+        
+        // Add downloaded publications
+        foreach (var downloadedPub in downloadedPublications.Values)
         {
-            Log.Information("No publications found for language {LanguageCode}, fetching first publication with first section", languageCode);
+            result[downloadedPub.PublicationCode] = downloadedPub;
+        }
+        
+        // Create placeholders for publications that are available but not yet downloaded
+        // We need to get Category and Language from PublicationLanguages to create proper placeholders
+        using var scope = scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+        
+        var normalizedLanguageCode = languageCode.ToUpperInvariant();
+        var missingPublicationCodes = availablePublicationCodes
+            .Where(code => !result.ContainsKey(code))
+            .ToList();
+        
+        if (missingPublicationCodes.Count > 0)
+        {
+            Log.Debug("GetBiblePublications: Creating placeholders for {Count} publications not yet downloaded", missingPublicationCodes.Count);
             
-            try
+            // Get Category and Language info from PublicationLanguages for missing publications
+            var publicationLanguageInfo = await dbContext.PublicationLanguages
+                .AsNoTracking()
+                .Include(pl => pl.Category)
+                .Include(pl => pl.Language)
+                .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode &&
+                             missingPublicationCodes.Contains(pl.PublicationCode))
+                .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryName == categoryName))
+                .ToListAsync(cancellationTokenSource.Token);
+            
+            foreach (var plInfo in publicationLanguageInfo)
             {
-                // Fetch first publication with first section + tracks
-                var fetchSuccess = await languageContentService.FetchFirstPublicationForLanguageAsync(
-                    languageCode, categoryName, cancellationTokenSource.Token);
+                if (plInfo.Category == null || plInfo.Language == null)
+                    continue;
                 
-                if (fetchSuccess)
+                // Create placeholder BiblePublication
+                var placeholder = new BiblePublication
                 {
-                    // Re-query database to get the fetched publication
-                    publications = await BiblePublicationService.GetByLanguageCodeAsync(
-                        languageCode, categoryName, cancellationTokenSource.Token);
-                    
-                    Log.Information("Successfully fetched and loaded {Count} publications for language {LanguageCode}", 
-                        publications.Count, languageCode);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Failed to fetch first publication for language {LanguageCode}", languageCode);
-            }
-        }
-        else if (publications.Count > 0 && !string.IsNullOrEmpty(languageCode) && 
-                 !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
-        {
-            // Publications exist - ensure all publications for this language are downloaded
-            // This is called when publication modal opens
-            Log.Information("Ensuring all publications are downloaded for language {LanguageCode}", languageCode);
-            
-            try
-            {
-                await languageContentService.EnsureAllPublicationsForLanguageAsync(
-                    languageCode, categoryName, cancellationTokenSource.Token);
+                    Id = 0, // Not saved yet
+                    PublicationCode = plInfo.PublicationCode,
+                    Name = plInfo.PublicationCode, // Placeholder name - will be updated when downloaded
+                    CategoryId = plInfo.CategoryId,
+                    Category = plInfo.Category,
+                    LanguageId = plInfo.LanguageId,
+                    Language = plInfo.Language,
+                    Sections = new List<BiblePublicationSection>(),
+                    Tracks = new List<BiblePublicationTrack>(),
+                    IsVideo = false // Will be set correctly when downloaded
+                };
                 
-                // Re-query to get any newly fetched publications
-                publications = await BiblePublicationService.GetByLanguageCodeAsync(
-                    languageCode, categoryName, cancellationTokenSource.Token);
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Failed to ensure all publications for language {LanguageCode}", languageCode);
+                result[placeholder.PublicationCode] = placeholder;
             }
         }
         
-        return publications;
+        Log.Information("GetBiblePublications: Returning {TotalCount} publications ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}, category={CategoryName}",
+            result.Count, downloadedPublications.Count, result.Count - downloadedPublications.Count, languageCode, categoryName ?? "all");
+        
+        // Step 4: If language is not English and publications modal is opened, ensure all are downloaded in background
+        // (This happens when user opens the publication modal)
+        if (!string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        {
+            // Fire and forget - don't block the UI
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    Log.Information("Background: Ensuring all publications are downloaded for language {LanguageCode}", languageCode);
+                    await languageContentService.EnsureAllPublicationsForLanguageAsync(
+                        languageCode, categoryName, cancellationTokenSource.Token);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Background: Failed to ensure all publications for language {LanguageCode}", languageCode);
+                }
+            });
+        }
+        
+        return result;
     }
     
     private static int GetPublicationSortPriority(string code)
@@ -238,58 +280,107 @@ public sealed class MediaService(
     {
         await mediaIndexService.Verify();
         
-        // First, try to get vocal music releases from database
-        var releases = await vocalMusicService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
+        // Step 1: Get all available publication codes from PublicationLanguages for Music category (discovery table)
+        // This shows all vocal music publications that are available for this language, even if not yet downloaded
+        // Note: We filter for publications that have LanguageId (vocal music, not instrumental "iam")
+        var availablePublicationCodes = await BiblePublicationService.GetAvailablePublicationCodesAsync(
+            languageCode, "Music", cancellationTokenSource.Token);
         
-        // If no releases found and language is not English (E), fetch first release with first section + tracks
-        // English vocal music is pre-harvested by the harvester
-        if (releases.Count == 0 && !string.IsNullOrEmpty(languageCode) && 
-            !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        // Filter out "iam" (Kingdom Melodies) as it's instrumental music (LanguageId = null)
+        var vocalPublicationCodes = availablePublicationCodes
+            .Where(code => !code.Equals("iam", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        
+        Log.Debug("GetVocalMusicReleases: Found {Count} available vocal music publication codes from PublicationLanguages for language={LanguageCode}",
+            vocalPublicationCodes.Count, languageCode);
+        
+        // Step 2: Get downloaded vocal music releases from BiblePublications table
+        var downloadedReleases = await vocalMusicService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
+        
+        Log.Debug("GetVocalMusicReleases: Found {Count} downloaded vocal music releases for language={LanguageCode}",
+            downloadedReleases.Count, languageCode);
+        
+        // Step 3: Merge - use downloaded releases where available, create placeholders for others
+        var result = new Dictionary<string, VocalMusic>();
+        
+        // Add downloaded releases
+        foreach (var downloadedRelease in downloadedReleases.Values)
         {
-            Log.Information("No vocal music releases found for language {LanguageCode}, fetching first release with first section", languageCode);
+            result[downloadedRelease.Code] = downloadedRelease;
+        }
+        
+        // Create placeholders for publications that are available but not yet downloaded
+        using var scope = scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+        
+        var normalizedLanguageCode = languageCode.ToUpperInvariant();
+        var missingPublicationCodes = vocalPublicationCodes
+            .Where(code => !result.ContainsKey(code))
+            .ToList();
+        
+        if (missingPublicationCodes.Count > 0)
+        {
+            Log.Debug("GetVocalMusicReleases: Creating placeholders for {Count} vocal music releases not yet downloaded", missingPublicationCodes.Count);
             
-            try
+            // Get Category and Language info from PublicationLanguages for missing publications
+            var publicationLanguageInfo = await dbContext.PublicationLanguages
+                .AsNoTracking()
+                .Include(pl => pl.Category)
+                .Include(pl => pl.Language)
+                .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode &&
+                             pl.Category != null && pl.Category.CategoryName == "Music" &&
+                             missingPublicationCodes.Contains(pl.PublicationCode))
+                .ToListAsync(cancellationTokenSource.Token);
+            
+            foreach (var plInfo in publicationLanguageInfo)
             {
-                // Fetch first publication with first section + tracks (Music category)
-                var fetchSuccess = await languageContentService.FetchFirstPublicationForLanguageAsync(
-                    languageCode, "Music", cancellationTokenSource.Token);
+                if (plInfo.Category == null || plInfo.Language == null)
+                    continue;
                 
-                if (fetchSuccess)
+                // Create placeholder BiblePublication for vocal music
+                var placeholderPublication = new BiblePublication
                 {
-                    // Re-query database to get the fetched release
-                    releases = await vocalMusicService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
-                    
-                    Log.Information("Successfully fetched and loaded {Count} vocal music releases for language {LanguageCode}", 
-                        releases.Count, languageCode);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Failed to fetch first vocal music release for language {LanguageCode}", languageCode);
-            }
-        }
-        else if (releases.Count > 0 && !string.IsNullOrEmpty(languageCode) && 
-                 !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
-        {
-            // Releases exist - ensure all publications for this language are downloaded
-            // This is called when publication modal opens
-            Log.Information("Ensuring all vocal music releases are downloaded for language {LanguageCode}", languageCode);
-            
-            try
-            {
-                await languageContentService.EnsureAllPublicationsForLanguageAsync(
-                    languageCode, "Music", cancellationTokenSource.Token);
+                    Id = 0, // Not saved yet
+                    PublicationCode = plInfo.PublicationCode,
+                    Name = plInfo.PublicationCode, // Placeholder name - will be updated when downloaded
+                    CategoryId = plInfo.CategoryId,
+                    Category = plInfo.Category,
+                    LanguageId = plInfo.LanguageId,
+                    Language = plInfo.Language,
+                    Sections = new List<BiblePublicationSection>(),
+                    Tracks = new List<BiblePublicationTrack>(),
+                    IsVideo = false
+                };
                 
-                // Re-query to get any newly fetched releases
-                releases = await vocalMusicService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Failed to ensure all vocal music releases for language {LanguageCode}", languageCode);
+                var placeholder = new VocalMusic { Publication = placeholderPublication };
+                result[placeholder.Code] = placeholder;
             }
         }
         
-        return releases;
+        Log.Information("GetVocalMusicReleases: Returning {TotalCount} vocal music releases ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}",
+            result.Count, downloadedReleases.Count, result.Count - downloadedReleases.Count, languageCode);
+        
+        // Step 4: If language is not English and publications modal is opened, ensure all are downloaded in background
+        // (This happens when user opens the publication modal)
+        if (!string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        {
+            // Fire and forget - don't block the UI
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    Log.Information("Background: Ensuring all vocal music releases are downloaded for language {LanguageCode}", languageCode);
+                    await languageContentService.EnsureAllPublicationsForLanguageAsync(
+                        languageCode, "Music", cancellationTokenSource.Token);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Background: Failed to ensure all vocal music releases for language {LanguageCode}", languageCode);
+                }
+            });
+        }
+        
+        return result;
     }
 
     public async Task<SortedDictionary<int, MusicTrack>>

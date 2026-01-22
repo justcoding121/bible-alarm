@@ -100,20 +100,52 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var languages = await dbContext.BiblePublications
+            // Use PublicationLanguage table for discovery - it's designed for this purpose
+            // This table tracks which languages are available for each publication code in the Music category
+            // Filter for Music category and publications that have LanguageId (vocal music, not instrumental)
+            var query = dbContext.PublicationLanguages
                 .AsNoTracking()
-                .Include(x => x.Category)
                 .Include(x => x.Language)
-                .Where(x => x.Category.CategoryName == MusicCategoryName && x.LanguageId != null)
+                .Include(x => x.Category)
+                .Where(x => x.Category != null && x.Category.CategoryName == MusicCategoryName && x.Language != null);
+
+            // For vocal music, we need to check if the publication has LanguageId in BiblePublications
+            // But since we're querying PublicationLanguages, we can't directly filter by LanguageId
+            // Instead, we'll get all Music languages from PublicationLanguages, then filter out instrumental ones
+            // Instrumental music (iam) has LanguageId = null, so we exclude it
+            var publicationLanguagesCount = await query.CountAsync(cancellationToken);
+            var distinctLanguages = await query
                 .Select(x => x.Language!)
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            return languages.ToDictionary(x => x.LanguageCode, x => x);
+            // Filter out languages that only have instrumental music (iam) - check if any vocal music exists
+            // We do this by checking if there's a BiblePublication with LanguageId for this language in Music category
+            var vocalLanguages = new List<Language>();
+            foreach (var lang in distinctLanguages)
+            {
+                var hasVocalMusic = await dbContext.BiblePublications
+                    .AsNoTracking()
+                    .Include(x => x.Category)
+                    .Include(x => x.Language)
+                    .AnyAsync(x => x.Category.CategoryName == MusicCategoryName 
+                        && x.LanguageId != null 
+                        && x.Language!.LanguageCode == lang.LanguageCode, cancellationToken);
+                
+                if (hasVocalMusic)
+                {
+                    vocalLanguages.Add(lang);
+                }
+            }
+
+            logger.Information("VocalMusicService.GetDistinctLanguagesAsync: Found {PublicationLanguageCount} PublicationLanguage entries across {LanguageCount} distinct vocal music languages: {LanguageCodes}",
+                publicationLanguagesCount, vocalLanguages.Count, string.Join(", ", vocalLanguages.Select(l => $"{l.LanguageCode}:{l.Name}")));
+
+            return vocalLanguages.ToDictionary(x => x.LanguageCode, x => x);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting distinct Languages from VocalMusic");
+            logger.Error(ex, "Error getting distinct Languages from PublicationLanguages for Music category");
             throw;
         }
     }

@@ -153,8 +153,8 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 column: "Key",
                 unique: true);
 
-            // Disable music for all existing alarms to ensure users re-select with new SectionCode logic
-            migrationBuilder.Sql("UPDATE AlarmSchedules SET MusicEnabled = 0 WHERE MusicEnabled = 1");
+            // Delete all alarm schedules so bootstrap will re-seed alarms in the new format
+            migrationBuilder.Sql("DELETE FROM AlarmSchedules");
         }
 
         /// <inheritdoc />
