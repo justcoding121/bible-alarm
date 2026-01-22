@@ -43,7 +43,7 @@ public sealed class MediaService(
         return await BiblePublicationService.GetDistinctLanguagesAsync(categoryName, cancellationTokenSource.Token);
     }
 
-    public async Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null)
+    public async Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false)
     {
         await mediaIndexService.Verify();
         
@@ -122,16 +122,17 @@ public sealed class MediaService(
         Log.Information("GetBiblePublications: Returning {TotalCount} publications ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}, category={CategoryName}",
             result.Count, downloadedPublications.Count, result.Count - downloadedPublications.Count, languageCode, categoryName ?? "all");
         
-        // Step 4: If language is not English and publications modal is opened, ensure all are downloaded in background
-        // (This happens when user opens the publication modal)
-        if (!string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        // Step 4: Download publications based on downloadAll flag
+        // - If downloadAll=true (publication modal opened): download all publications with their first sections and tracks
+        // - If downloadAll=false (language selected): don't download here (will be done in cascade)
+        if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
         {
             // Fire and forget - don't block the UI
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    Log.Information("Background: Ensuring all publications are downloaded for language {LanguageCode}", languageCode);
+                    Log.Information("Background: Ensuring all publications are downloaded for language {LanguageCode} (publication modal opened)", languageCode);
                     await languageContentService.EnsureAllPublicationsForLanguageAsync(
                         languageCode, categoryName, cancellationTokenSource.Token);
                 }
@@ -276,7 +277,7 @@ public sealed class MediaService(
         return result;
     }
 
-    public async Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode)
+    public async Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode, bool downloadAll = false)
     {
         await mediaIndexService.Verify();
         
@@ -360,16 +361,17 @@ public sealed class MediaService(
         Log.Information("GetVocalMusicReleases: Returning {TotalCount} vocal music releases ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}",
             result.Count, downloadedReleases.Count, result.Count - downloadedReleases.Count, languageCode);
         
-        // Step 4: If language is not English and publications modal is opened, ensure all are downloaded in background
-        // (This happens when user opens the publication modal)
-        if (!string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        // Step 4: Download publications based on downloadAll flag
+        // - If downloadAll=true (publication modal opened): download all publications with their first sections and tracks
+        // - If downloadAll=false (language selected): don't download here (will be done in cascade)
+        if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
         {
             // Fire and forget - don't block the UI
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    Log.Information("Background: Ensuring all vocal music releases are downloaded for language {LanguageCode}", languageCode);
+                    Log.Information("Background: Ensuring all vocal music releases are downloaded for language {LanguageCode} (publication modal opened)", languageCode);
                     await languageContentService.EnsureAllPublicationsForLanguageAsync(
                         languageCode, "Music", cancellationTokenSource.Token);
                 }

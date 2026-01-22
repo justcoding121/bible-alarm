@@ -272,7 +272,8 @@ public sealed class BiblePublicationSelectionStateHandler
                     // Clear the mapping dictionary before repopulating
                     dataProvider.ClearPublicationVMsMapping();
                     // Pass languageChanged flag to PopulatePublications so it can select default publication
-                    await dataProvider.PopulatePublicationsAsync(newLanguageCode, publications, languageChanged || categoryChanged);
+                    // When language changes, don't download all publications yet (only first publication in cascade)
+                await dataProvider.PopulatePublicationsAsync(newLanguageCode, publications, languageChanged || categoryChanged, downloadAll: false);
                     await Task.Delay(100);
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
@@ -377,7 +378,8 @@ public sealed class BiblePublicationSelectionStateHandler
                 {
                     dataProvider.ClearPublicationVMsMapping();
                 }
-                await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged || categoryChanged);
+                // When publication modal opens, download all publications with first sections and tracks
+                await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged || categoryChanged, downloadAll: true);
             }
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));

@@ -24,6 +24,7 @@ public sealed class BiblePublicationSelectionCommandHandler
 {
     private readonly IMediaService mediaService;
     private readonly IBiblePublicationService? biblePublicationService;
+    private readonly ILanguageContentService? languageContentService;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
@@ -35,10 +36,12 @@ public sealed class BiblePublicationSelectionCommandHandler
         IDispatcher dispatcher,
         INavigationService navigationService,
         IMapper mapper,
-        IBiblePublicationService? biblePublicationService = null)
+        IBiblePublicationService? biblePublicationService = null,
+        ILanguageContentService? languageContentService = null)
     {
         this.mediaService = mediaService;
         this.biblePublicationService = biblePublicationService;
+        this.languageContentService = languageContentService;
         this.state = state;
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
@@ -98,7 +101,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             Log.Debug("CreateSectionSelectionCommand: Calling GetSectionAndTrackForPublicationAsync for publication={PublicationCode}, language={LanguageCode}",
                 x.Code, currentLanguage.Code);
 
-            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService);
+            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, languageContentService);
             var (sectionNumber, trackNumber, sectionName, trackTitle) = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage);
 
             Log.Debug("CreateSectionSelectionCommand: Result sectionNumber={SectionNumber}, trackNumber={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
@@ -165,7 +168,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             updateSelectedLanguage(x);
             await navigationService.PopModalAsync();
 
-            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService);
+            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, languageContentService);
             var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle) =
                 await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x);
 

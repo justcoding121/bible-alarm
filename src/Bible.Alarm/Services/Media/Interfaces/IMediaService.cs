@@ -7,7 +7,7 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 public interface IMediaService : IDisposable
 {
     Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null);
-    Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null);
+    Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false);
     Task<SortedDictionary<int, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode);
     Task<SortedDictionary<int, BiblePublicationSection>> GetMusicSections(string publicationCode);
     Task<BiblePublicationSection> GetBiblePublicationSection(string languageCode, string versionCode, int sectionNumber);
@@ -17,7 +17,7 @@ public interface IMediaService : IDisposable
     Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode);
     Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracksBySection(string publicationCode, string sectionCode);
     Task<Dictionary<string, Language>> GetVocalMusicLanguages();
-    Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode);
+    Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode, bool downloadAll = false);
     Task<SortedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode);
     Task UpdateBiblePublicationTrackUrl(string languageCode, string versionCode, int sectionNumber, int trackNumber, string url);
     Task UpdateVocalTrackUrl(string languageCode, string publicationCode, int trackNumber, string url);

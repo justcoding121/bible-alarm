@@ -38,5 +38,11 @@ public interface IBiblePublicationService : IDisposable
     /// This shows all discovered publications, even if not yet downloaded.
     /// </summary>
     Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the first available publication code by ID order from PublicationLanguages for a given language and category.
+    /// Used for cascade downloading when a language is selected.
+    /// </summary>
+    Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default);
 }
 

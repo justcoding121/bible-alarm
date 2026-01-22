@@ -18,6 +18,7 @@ public sealed class BiblePublicationSelectionItemSelector
 {
     private readonly IMediaService mediaService;
     private readonly IBiblePublicationService? biblePublicationService;
+    private readonly ILanguageContentService? languageContentService;
     private readonly IState<ApplicationState> state;
 
     // Priority codes for Bible publications: nwt (2013 NWT), bi12 (1984 NWT)
@@ -26,11 +27,13 @@ public sealed class BiblePublicationSelectionItemSelector
     public BiblePublicationSelectionItemSelector(
         IMediaService mediaService,
         IState<ApplicationState> state,
-        IBiblePublicationService? biblePublicationService = null)
+        IBiblePublicationService? biblePublicationService = null,
+        ILanguageContentService? languageContentService = null)
     {
         this.mediaService = mediaService;
         this.state = state;
         this.biblePublicationService = biblePublicationService;
+        this.languageContentService = languageContentService;
     }
 
     /// <summary>
@@ -90,37 +93,70 @@ public sealed class BiblePublicationSelectionItemSelector
     {
         Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Starting for language={LanguageCode}", language.Code);
 
-        // Get all publications for this language
-        var publications = await Task.Run(async () =>
-            await mediaService.GetBiblePublications(language.Code));
-
-        Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Found {PublicationCount} publications for language={LanguageCode}",
-            publications?.Count ?? 0, language.Code);
-
-        if (publications == null || publications.Count == 0)
+        // Step 1: Get the first publication code by ID order from PublicationLanguages
+        // This is the publication that should be downloaded when language is selected
+        string? firstPublicationCode = null;
+        if (biblePublicationService != null)
         {
-            Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: No publications found for language={LanguageCode}", language.Code);
+            var stateValue = state.Value;
+            var categoryName = stateValue.CurrentSchedule?.BiblePublicationCategoryName;
+            firstPublicationCode = await Task.Run(async () =>
+                await biblePublicationService.GetFirstPublicationCodeByOrderAsync(language.Code, categoryName));
+        }
+
+        if (string.IsNullOrEmpty(firstPublicationCode))
+        {
+            Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: No first publication found for language={LanguageCode}", language.Code);
             return (null, 0, 0, string.Empty, string.Empty, string.Empty);
         }
 
-        // Select preferred publication: nwt first, then bi12, then first available
-        string publicationCode;
-        string publicationName;
-        KeyValuePair<string, BiblePublication>? preferredPublication = null;
+        Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: First publication by ID order={PublicationCode} for language={LanguageCode}",
+            firstPublicationCode, language.Code);
 
-        foreach (var priorityCode in PriorityPublicationCodes)
+        // Step 2: Download the first publication with its first section (if sectioned) and tracks
+        // This happens when language is selected (cascade)
+        // EnsurePublicationExistsAsync will download the publication, its first section (by ID order from SectionLanguages), and tracks
+        var stateValue2 = state.Value;
+        var categoryName2 = stateValue2.CurrentSchedule?.BiblePublicationCategoryName;
+        
+        // Download the first publication if not English and languageContentService is available
+        if (languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
         {
-            if (publications.TryGetValue(priorityCode, out var pub))
+            Log.Information("Downloading first publication {PublicationCode} (by ID order) for language {LanguageCode} (cascade)", 
+                firstPublicationCode, language.Code);
+            
+            try
             {
-                preferredPublication = new KeyValuePair<string, BiblePublication>(priorityCode, pub);
-                break;
+                // EnsurePublicationExistsAsync downloads the publication with its first section (by ID order) and tracks
+                var fetchSuccess = await languageContentService.EnsurePublicationExistsAsync(
+                    firstPublicationCode, language.Code);
+                
+                if (!fetchSuccess)
+                {
+                    Log.Warning("Failed to download first publication {PublicationCode} for language {LanguageCode}", 
+                        firstPublicationCode, language.Code);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Error downloading first publication {PublicationCode} for language {LanguageCode}", 
+                    firstPublicationCode, language.Code);
             }
         }
 
-        // Fall back to first publication if no priority publications found
-        var selectedPublication = preferredPublication ?? publications.First();
-        publicationCode = selectedPublication.Key;
-        publicationName = selectedPublication.Value.Name;
+        // Step 3: Get the downloaded publication
+        var publications = await Task.Run(async () =>
+            await mediaService.GetBiblePublications(language.Code, categoryName2, downloadAll: false));
+
+        if (publications == null || !publications.TryGetValue(firstPublicationCode, out var publication))
+        {
+            Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: Publication {PublicationCode} not found for language={LanguageCode}", 
+                firstPublicationCode, language.Code);
+            return (null, 0, 0, string.Empty, string.Empty, string.Empty);
+        }
+
+        var publicationCode = firstPublicationCode;
+        var publicationName = publication.Name;
 
         Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Selected publication code={PublicationCode}, name={PublicationName}",
             publicationCode, publicationName);

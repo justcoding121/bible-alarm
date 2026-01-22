@@ -127,7 +127,8 @@ public sealed class BiblePublicationSelectionDataProvider
     public async Task PopulatePublicationsAsync(
         string languageCode,
         ObservableCollection<PublicationListViewItemModel>? publications,
-        bool languageChanged)
+        bool languageChanged,
+        bool downloadAll = false)
     {
         if (publications == null) return;
 
@@ -141,7 +142,9 @@ public sealed class BiblePublicationSelectionDataProvider
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (publicationVMs, newMapping, defaultPublication) = await Task.Run(async () =>
         {
-            var publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName);
+            // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
+            // downloadAll=false when language changes (only download first publication in cascade)
+            var publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll);
             var vms = new List<PublicationListViewItemModel>();
             var mapping = new Dictionary<string, PublicationListViewItemModel>();
 

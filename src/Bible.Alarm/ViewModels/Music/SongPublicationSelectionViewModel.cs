@@ -5,6 +5,7 @@ using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
@@ -25,6 +26,7 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
     private readonly IDispatcher dispatcher;
     private readonly INavigationService navigationService;
     private readonly IMapper mapper;
+    private readonly IServiceProvider serviceProvider;
 
     // Helper classes
     private readonly SongPublicationSelectionStateManager stateManager;
@@ -39,7 +41,8 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         IState<ApplicationState> state,
         IDispatcher dispatcher,
         INavigationService navigationService,
-        IMapper mapper)
+        IMapper mapper,
+        IServiceProvider serviceProvider)
     {
         this.logger = logger;
         this.mediaService = mediaService;
@@ -47,10 +50,13 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
         this.mapper = mapper;
+        this.serviceProvider = serviceProvider;
 
         // Initialize helper classes
         stateManager = new SongPublicationSelectionStateManager();
-        dataProvider = new SongPublicationSelectionDataProvider(mediaService);
+        var biblePublicationService = serviceProvider.GetService<IBiblePublicationService>();
+        var languageContentService = serviceProvider.GetService<ILanguageContentService>();
+        dataProvider = new SongPublicationSelectionDataProvider(mediaService, biblePublicationService, languageContentService);
         commandHandler = new SongPublicationSelectionCommandHandler(navigationService, state, dispatcher);
         propertyManager = new SongPublicationSelectionPropertyManager();
 
@@ -248,7 +254,8 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         }
 
         await PopulateLanguages();
-        await PopulateSongPublications(languageCode);
+        // When initializing, don't download all publications yet (only first publication in cascade)
+        await PopulateSongPublications(languageCode, downloadAll: false);
 
         propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await PopulateLanguages(searchTerm));
     }
@@ -400,7 +407,10 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         else if (!string.IsNullOrEmpty(languageCodeToUse) &&
             (propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0 || languageChanged))
         {
-            await PopulateSongPublications(languageCodeToUse);
+            // When RefreshFromState is called (publication modal opens), download all publications
+            // When language changes (cascade), don't download all yet (only first publication in cascade)
+            bool isModalOpening = propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0;
+            await PopulateSongPublications(languageCodeToUse, downloadAll: isModalOpening);
         }
         else if (!string.IsNullOrEmpty(languageCodeToUse))
         {
@@ -411,13 +421,14 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
     }
 
-    private async Task PopulateSongPublications(string? languageCode)
+    private async Task PopulateSongPublications(string? languageCode, bool downloadAll = false)
     {
         await dataProvider.PopulateSongPublications(
             languageCode,
             stateManager.Current,
             propertyManager.SongPublications,
-            songPublication => propertyManager.SelectedSongPublication = songPublication);
+            songPublication => propertyManager.SelectedSongPublication = songPublication,
+            downloadAll);
     }
 
     private void UpdateSelectedLanguage(LanguageListViewItemModel language)

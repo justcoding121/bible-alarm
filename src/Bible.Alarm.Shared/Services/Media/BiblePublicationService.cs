@@ -201,6 +201,47 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
     }
 
+    public async Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+
+            // Query PublicationLanguages table ordered by Id (first by ID order)
+            var query = dbContext.PublicationLanguages
+                .AsNoTracking()
+                .Include(x => x.Language)
+                .Include(x => x.Category)
+                .Where(x => x.Language != null && x.Language.LanguageCode == normalizedLanguageCode);
+
+            // Filter by category if provided
+            if (!string.IsNullOrWhiteSpace(categoryName))
+            {
+                query = query.Where(x => x.Category != null && x.Category.CategoryName == categoryName);
+            }
+
+            // Order by Id to get the first publication by ID order
+            var firstPublicationCode = await query
+                .OrderBy(x => x.Id)
+                .Select(x => x.PublicationCode)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            logger.Debug("GetFirstPublicationCodeByOrderAsync: Found first publication code={PublicationCode} for language={LanguageCode}, category={CategoryName}",
+                firstPublicationCode ?? "(null)", languageCode, categoryName ?? "all");
+
+            return firstPublicationCode;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error getting first publication code by order from PublicationLanguages. LanguageCode={LanguageCode}, CategoryName={CategoryName}",
+                languageCode, categoryName);
+            throw;
+        }
+    }
+
     public void Dispose()
     {
         if (isDisposed)

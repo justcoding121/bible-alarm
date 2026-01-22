@@ -5,6 +5,7 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 
@@ -13,7 +14,10 @@ namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
 /// <summary>
 /// Handles data population for SongPublicationSelectionViewModel.
 /// </summary>
-public sealed class SongPublicationSelectionDataProvider(IMediaService mediaService)
+public sealed class SongPublicationSelectionDataProvider(
+    IMediaService mediaService,
+    IBiblePublicationService? biblePublicationService = null,
+    ILanguageContentService? languageContentService = null)
 {
     private readonly Dictionary<string, PublicationListViewItemModel> songPublicationVMsMapping = [];
     private readonly SemaphoreSlim languagePopulationLock = new(1, 1);
@@ -87,7 +91,8 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
         string? languageCode,
         AlarmMusic? current,
         ObservableCollection<PublicationListViewItemModel> songPublications,
-        Action<PublicationListViewItemModel?> setSelectedSongPublication)
+        Action<PublicationListViewItemModel?> setSelectedSongPublication,
+        bool downloadAll = false)
     {
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (songPublicationVMs, newMapping, selectedSongPublication) = await Task.Run(async () =>
@@ -104,7 +109,9 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
             else if (!string.IsNullOrEmpty(languageCode))
             {
                 // Vocal music - load vocal releases with language code
-                vocalReleases = await mediaService.GetVocalMusicReleases(languageCode);
+                // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
+                // downloadAll=false when language changes (only download first publication in cascade)
+                vocalReleases = await mediaService.GetVocalMusicReleases(languageCode, downloadAll);
             }
             else
             {
@@ -268,8 +275,92 @@ public sealed class SongPublicationSelectionDataProvider(IMediaService mediaServ
         LanguageListViewItemModel language,
         ScheduleStateItem? currentSchedule)
     {
+        // Step 1: Get the first publication code by ID order from PublicationLanguages for Music category
+        // This is the publication that should be downloaded when language is selected
+        // Filter out "iam" (Kingdom Melodies) as it's instrumental music
+        string? firstPublicationCode = null;
+        if (biblePublicationService != null)
+        {
+            var availablePublicationCodes = await Task.Run(async () =>
+                await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, "Music"));
+            
+            // Filter out "iam" and get first by ID order
+            var vocalPublicationCodes = availablePublicationCodes
+                .Where(code => !code.Equals("iam", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            
+            if (vocalPublicationCodes.Count > 0)
+            {
+                // Get first publication code by ID order from PublicationLanguages
+                // This may return "iam", so we need to filter it out and get the next one
+                var firstByOrder = await Task.Run(async () =>
+                    await biblePublicationService.GetFirstPublicationCodeByOrderAsync(language.Code, "Music"));
+                
+                // If first is "iam", we need to get the next vocal publication
+                if (firstByOrder != null && firstByOrder.Equals("iam", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Get all publication codes and find the next one after "iam"
+                    var allCodes = await Task.Run(async () =>
+                        await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, "Music"));
+                    
+                    var iamIndex = allCodes.IndexOf(firstByOrder);
+                    if (iamIndex >= 0 && iamIndex + 1 < allCodes.Count)
+                    {
+                        firstPublicationCode = allCodes[iamIndex + 1];
+                    }
+                    else
+                    {
+                        // Fallback: use first from vocal list
+                        firstPublicationCode = vocalPublicationCodes.FirstOrDefault();
+                    }
+                }
+                else
+                {
+                    // First is not "iam", use it
+                    firstPublicationCode = firstByOrder;
+                }
+            }
+        }
+
+        if (string.IsNullOrEmpty(firstPublicationCode))
+        {
+            Serilog.Log.Warning("GetFirstSongPublicationAndTrackForLanguageAsync: No first publication found for language={LanguageCode}", language.Code);
+            return (null, 0, string.Empty, string.Empty);
+        }
+
+        Serilog.Log.Debug("GetFirstSongPublicationAndTrackForLanguageAsync: First publication by ID order={PublicationCode} for language={LanguageCode}",
+            firstPublicationCode, language.Code);
+
+        // Step 2: Download the first publication with its first section (if sectioned) and tracks
+        // This happens when language is selected (cascade)
+        // EnsurePublicationExistsAsync will download the publication, its first section (by ID order from SectionLanguages), and tracks
+        if (languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+        {
+            Serilog.Log.Information("Downloading first vocal music publication {PublicationCode} (by ID order) for language {LanguageCode} (cascade)",
+                firstPublicationCode, language.Code);
+
+            try
+            {
+                // EnsurePublicationExistsAsync downloads the publication with its first section (by ID order) and tracks
+                var fetchSuccess = await languageContentService.EnsurePublicationExistsAsync(
+                    firstPublicationCode, language.Code);
+
+                if (!fetchSuccess)
+                {
+                    Serilog.Log.Warning("Failed to download first vocal music publication {PublicationCode} for language {LanguageCode}",
+                        firstPublicationCode, language.Code);
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning(ex, "Error downloading first vocal music publication {PublicationCode} for language {LanguageCode}",
+                    firstPublicationCode, language.Code);
+            }
+        }
+
+        // Step 3: Get the downloaded publication
         var songPublications = await Task.Run(async () =>
-            await mediaService.GetVocalMusicReleases(language.Code));
+            await mediaService.GetVocalMusicReleases(language.Code, downloadAll: false));
 
         if (songPublications == null || songPublications.Count == 0)
         {
