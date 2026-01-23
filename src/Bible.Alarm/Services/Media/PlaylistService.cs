@@ -374,6 +374,10 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         {
             throw new InvalidOperationException("Schedule music is null");
         }
+        if (vocalMusic.LanguageCode == null)
+        {
+            throw new InvalidOperationException("LanguageCode is null for vocal music");
+        }
         var vocalTracks = await mediaService.GetVocalMusicTracks(vocalMusic.LanguageCode, vocalMusic.PublicationCode);
         if (vocalTracks.Count == 0)
         {

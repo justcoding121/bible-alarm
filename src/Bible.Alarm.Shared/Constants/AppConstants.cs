@@ -7,8 +7,6 @@ namespace Bible.Alarm.Shared.Constants;
 /// </summary>
 public static class AppConstants
 {
-    #region API Endpoints and URLs
-
     /// <summary>
     /// JW.org API endpoints for media content
     /// </summary>
@@ -36,10 +34,6 @@ public static class AppConstants
         public const string MediaIndexFileNamePrefix = "v2-";
     }
 
-    #endregion
-
-    #region Database Configuration
-
     /// <summary>
     /// Database configuration constants
     /// </summary>
@@ -65,10 +59,6 @@ public static class AppConstants
         /// </summary>
         public const string MediaIndexDatabaseConnectionStringFormat = "Filename={0}";
     }
-
-    #endregion
-
-    #region File System Paths
 
     /// <summary>
     /// File system path constants
@@ -101,10 +91,6 @@ public static class AppConstants
         public const string TempExtractionDirectoryName = "tmp";
     }
 
-    #endregion
-
-    #region Application Settings
-
     /// <summary>
     /// Application settings and configuration constants
     /// </summary>
@@ -115,10 +101,6 @@ public static class AppConstants
         /// </summary>
         public const string ApplicationName = "Bible-Alarm";
     }
-
-    #endregion
-
-    #region Cache and Download Settings
 
     /// <summary>
     /// Cache and download configuration constants
@@ -153,10 +135,6 @@ public static class AppConstants
         public const int LogFileRetentionDays = 7;
     }
 
-    #endregion
-
-    #region General Settings Keys
-
     /// <summary>
     /// General settings keys used throughout the application
     /// </summary>
@@ -188,10 +166,6 @@ public static class AppConstants
         public const string AndroidBatteryOptimizationExclusionPromptShown = "AndroidBatteryOptimizationExclusionPromptShown";
     }
 
-    #endregion
-
-    #region Logging Configuration
-
     /// <summary>
     /// Logging configuration constants
     /// </summary>
@@ -212,10 +186,6 @@ public static class AppConstants
         /// </summary>
         public const string DebugEnvironment = "DEBUG";
     }
-
-    #endregion
-
-    #region Media Configuration
 
     /// <summary>
     /// Media-related configuration constants
@@ -243,10 +213,6 @@ public static class AppConstants
         public const string MediaFileExtension = ".mp3";
     }
 
-    #endregion
-
-    #region Platform-Specific Settings
-
     /// <summary>
     /// Platform-specific configuration constants
     /// </summary>
@@ -267,6 +233,4 @@ public static class AppConstants
         /// </summary>
         public const string Windows = "Windows";
     }
-
-    #endregion
 }

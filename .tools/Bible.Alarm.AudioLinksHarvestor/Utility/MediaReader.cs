@@ -167,8 +167,6 @@ public class MediaReader(string indexRoot)
                                                 .ToDictionary(x => x.Number, x => x));
     }
 
-    #region Drama
-
     public async Task<Dictionary<string, Language>> GetDramaLanguages()
     {
         var root = indexRoot;
@@ -229,10 +227,6 @@ public class MediaReader(string indexRoot)
             .ToDictionary(x => x.Number, x => x));
     }
 
-    #endregion
-
-    #region Video
-
     public async Task<Dictionary<string, Language>> GetVideoLanguages()
     {
         var root = indexRoot;
@@ -270,8 +264,6 @@ public class MediaReader(string indexRoot)
         return new SortedDictionary<int, VideoEpisode>(JsonSerializer.Deserialize<IEnumerable<VideoEpisode>>(videoEpisodes)!
             .ToDictionary(x => x.Number, x => x));
     }
-
-    #endregion
 
 }
 

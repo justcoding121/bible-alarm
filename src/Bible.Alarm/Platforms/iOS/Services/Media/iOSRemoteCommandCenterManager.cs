@@ -134,8 +134,6 @@ public sealed class iOSRemoteCommandCenterManager : IDisposable
         }
     }
 
-    #region Command Handlers
-
     private MPRemoteCommandHandlerStatus HandlePlayCommand(MPRemoteCommandEvent evt)
     {
         logger.Debug("[iOS Media] Play command received");
@@ -201,8 +199,6 @@ public sealed class iOSRemoteCommandCenterManager : IDisposable
 
         return MPRemoteCommandHandlerStatus.CommandFailed;
     }
-
-    #endregion
 
     public void Dispose()
     {

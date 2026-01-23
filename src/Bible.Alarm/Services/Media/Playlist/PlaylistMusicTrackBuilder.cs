@@ -59,6 +59,10 @@ public class PlaylistMusicTrackBuilder
     private async Task<PlayItem> GetNextVocalTrackAsync(AlarmSchedule schedule, bool next)
     {
         var vocalMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
+        if (vocalMusic.LanguageCode == null)
+        {
+            throw new InvalidOperationException("LanguageCode is null for vocal music");
+        }
         var vocalTracks = await mediaService.GetVocalMusicTracks(vocalMusic.LanguageCode, vocalMusic.PublicationCode);
         var trackIndex = CalculateTrackIndex(vocalMusic.TrackNumber, vocalTracks.Count, next);
         var vocalTrack = vocalTracks[trackIndex];

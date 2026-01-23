@@ -1,3 +1,4 @@
+#nullable enable annotations
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;

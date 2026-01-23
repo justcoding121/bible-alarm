@@ -812,7 +812,6 @@ public partial class MediaManager : Object, IPlayerListener
         return mediaItem;
     }
 
-    #region PlayerListener implementation method stubs
     public void OnAudioAttributesChanged(AudioAttributes? audioAttributes) { }
     public void OnAudioSessionIdChanged(int audioSessionId) { }
     public void OnAvailableCommandsChanged(PlayerCommands? player) { }
@@ -842,7 +841,6 @@ public partial class MediaManager : Object, IPlayerListener
     public void OnTimelineChanged(Timeline? timeline, int reason) { }
     public void OnTrackSelectionParametersChanged(TrackSelectionParameters? trackSelectionParameters) { }
     public void OnTracksChanged(Tracks? tracks) { }
-    #endregion
 
     static class PlaybackState
     {

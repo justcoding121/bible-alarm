@@ -378,7 +378,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
 
     /// <summary>
     /// Device size categories based on screen width in density-independent pixels
-    /// Following industry standards: phones < 600dp, tablets 600-960dp, desktop > 960dp
+    /// Following industry standards: phones less than 600dp, tablets 600-960dp, desktop greater than 960dp
     /// </summary>
     private enum DeviceSizeCategory
     {

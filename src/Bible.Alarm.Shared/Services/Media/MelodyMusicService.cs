@@ -83,7 +83,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 IsVideo = publication.IsVideo,
                 Category = publication.Category,
                 Tracks = allTracks,
-                Sections = publication.Sections // Include sections so GetSampleSchedule can select a section
+                Sections = publication.Sections ?? new List<BiblePublicationSection>() // Include sections so GetSampleSchedule can select a section
             };
 
             // MelodyMusic is a subclass of BiblePublication, so we can return the publication directly
