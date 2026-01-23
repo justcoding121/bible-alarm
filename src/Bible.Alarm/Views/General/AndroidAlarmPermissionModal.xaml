@@ -165,7 +165,7 @@
                                         Radius="4" />
                             </Border.Shadow>
                             <HorizontalStackLayout Spacing="4" HorizontalOptions="Center" VerticalOptions="Center">
-                                <Label Text="{x:Static fn:GlyphNames.ArrowLeft}" 
+                                <Label Text="{x:Static fn:GlyphNames.Xmark}" 
                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
                                        FontSize="{DynamicResource ButtonFontSize}"
                                        TextColor="{DynamicResource PrimaryTextColor}"
