@@ -59,36 +59,54 @@ internal sealed class DramaTrackParser
         BaseUrl baseUrl,
         string normalizedLanguageCode)
     {
-        if (!trackFile.TryGetProperty("file", out var fileElement) ||
-            !fileElement.TryGetProperty("url", out var urlElement))
+        // Handle both cases: file can be a string (direct URL) or an object with a "url" property
+        if (!trackFile.TryGetProperty("file", out var fileElement))
         {
             return null;
         }
 
-        var url = urlElement.GetString();
+        string? url = null;
+        if (fileElement.ValueKind == JsonValueKind.String)
+        {
+            url = fileElement.GetString();
+        }
+        else if (fileElement.ValueKind == JsonValueKind.Object && fileElement.TryGetProperty("url", out var urlElement))
+        {
+            url = urlElement.GetString();
+        }
+
         if (string.IsNullOrEmpty(url))
         {
             return null;
         }
 
         // Get track number from API (original track number within the section)
-        int originalTrackNumber = 0;
+        // If not present, use the sequential trackNumber parameter
+        int originalTrackNumber = trackNumber; // Default to sequential number
         if (trackFile.TryGetProperty("track", out var trackElement))
         {
             originalTrackNumber = trackElement.GetInt32();
+            // If track property exists but is 0, use sequential number instead
+            if (originalTrackNumber == 0)
+            {
+                originalTrackNumber = trackNumber;
+            }
         }
 
-        if (originalTrackNumber == 0)
-        {
-            return null;
-        }
-
-        // Get title
+        // Get title - handle both string and object formats
         string title = "Unknown";
         if (trackFile.TryGetProperty("title", out var titleElement))
         {
-            var rawTitle = titleElement.GetString();
-            title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+            if (titleElement.ValueKind == JsonValueKind.String)
+            {
+                var rawTitle = titleElement.GetString();
+                title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+            }
+            else if (titleElement.ValueKind == JsonValueKind.Object && titleElement.TryGetProperty("text", out var titleTextElement))
+            {
+                var rawTitle = titleTextElement.GetString();
+                title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
+            }
         }
 
         // Skip audio descriptions

@@ -115,4 +115,20 @@ public interface ILanguageContentService
         string publicationCode,
         string languageCode,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Fetches only the first section when creating a new publication.
+    /// This avoids fetching all sections when we only need the first one.
+    /// Used when opening publication list modal - we only need first section for each publication.
+    /// </summary>
+    /// <param name="publicationCode">The publication code (e.g., "nwt", "Dramas")</param>
+    /// <param name="firstSectionCode">The first section code to fetch</param>
+    /// <param name="languageCode">The language code (e.g., "MY", "A")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if first section was successfully fetched, false otherwise</returns>
+    Task<bool> FetchFirstSectionOnlyAsync(
+        string publicationCode,
+        string firstSectionCode,
+        string languageCode,
+        CancellationToken cancellationToken = default);
 }

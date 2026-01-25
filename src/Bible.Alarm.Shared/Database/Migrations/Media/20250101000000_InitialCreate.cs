@@ -87,7 +87,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     PublicationCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    LanguageId = table.Column<int>(type: "INTEGER", nullable: false),
+                    LanguageId = table.Column<int>(type: "INTEGER", nullable: true),
                     HarvestType = table.Column<int>(type: "INTEGER", nullable: true),
                     CategoryId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
@@ -164,7 +164,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .Annotation("Sqlite:Autoincrement", true),
                     PublicationCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     SectionCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    LanguageId = table.Column<int>(type: "INTEGER", nullable: false),
+                    LanguageId = table.Column<int>(type: "INTEGER", nullable: true),
                     PublicationLanguageId = table.Column<int>(type: "INTEGER", nullable: false),
                     HarvestType = table.Column<int>(type: "INTEGER", nullable: true)
                 },
@@ -283,6 +283,13 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 columns: new[] { "PublicationCode", "LanguageId" },
                 unique: true);
 
+            // Filtered unique index: Only one entry per publication/category when LanguageId IS NULL
+            // SQLite supports partial indexes with WHERE clause
+            migrationBuilder.Sql(
+                "CREATE UNIQUE INDEX IF NOT EXISTS IX_PublicationLanguages_PublicationCode_CategoryId_WhereLanguageIdNull " +
+                "ON PublicationLanguages(PublicationCode, CategoryId) " +
+                "WHERE LanguageId IS NULL");
+
             migrationBuilder.CreateIndex(
                 name: "IX_SectionLanguages_LanguageId",
                 table: "SectionLanguages",
@@ -298,6 +305,13 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 table: "SectionLanguages",
                 columns: new[] { "PublicationCode", "SectionCode", "LanguageId" },
                 unique: true);
+
+            // Filtered unique index: Only one entry per publication/section when LanguageId IS NULL
+            // SQLite supports partial indexes with WHERE clause
+            migrationBuilder.Sql(
+                "CREATE UNIQUE INDEX IF NOT EXISTS IX_SectionLanguages_PublicationCode_SectionCode_WhereLanguageIdNull " +
+                "ON SectionLanguages(PublicationCode, SectionCode) " +
+                "WHERE LanguageId IS NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UrlParams_BaseUrlId",

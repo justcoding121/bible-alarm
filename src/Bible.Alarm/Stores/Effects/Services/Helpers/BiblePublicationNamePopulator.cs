@@ -142,24 +142,33 @@ internal sealed class BiblePublicationNamePopulator
                         publication.Name, schedule.Id, biblePublication.PublicationCode);
                 }
 
-                // Populate category from publication
-                if (publication.Category != null)
+                // Only populate category if it's not already set (initial population from DB)
+                // Category can only be changed via CategorySelectionAction, not from publication
+                if ((scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)))
                 {
-                    scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
-                    scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
-                    Log.Debug("ScheduleEffects: Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                        publication.CategoryId, publication.Category.CategoryName, schedule.Id, biblePublication.PublicationCode);
+                    if (publication.Category != null)
+                    {
+                        scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
+                        scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
+                        Log.Debug("ScheduleEffects: Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode}) - initial population",
+                            publication.CategoryId, publication.Category.CategoryName, schedule.Id, biblePublication.PublicationCode);
+                    }
+                    else
+                    {
+                        // Fallback: derive category name from publication code
+                        var categoryName = JwSourceHelper.GetCategoryName(biblePublication.PublicationCode);
+                        if (!string.IsNullOrWhiteSpace(categoryName))
+                        {
+                            scheduleStateItem.BiblePublicationCategoryName = categoryName;
+                            Log.Debug("ScheduleEffects: Set BiblePublicationCategoryName='{CategoryName}' from publication code for schedule {ScheduleId} (PublicationCode: {PublicationCode}) - initial population",
+                                categoryName, schedule.Id, biblePublication.PublicationCode);
+                        }
+                    }
                 }
                 else
                 {
-                    // Fallback: derive category name from publication code
-                    var categoryName = JwSourceHelper.GetCategoryName(biblePublication.PublicationCode);
-                    if (!string.IsNullOrWhiteSpace(categoryName))
-                    {
-                        scheduleStateItem.BiblePublicationCategoryName = categoryName;
-                        Log.Debug("ScheduleEffects: Set BiblePublicationCategoryName='{CategoryName}' from publication code for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                            categoryName, schedule.Id, biblePublication.PublicationCode);
-                    }
+                    Log.Debug("ScheduleEffects: Preserving existing category '{CategoryName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                        scheduleStateItem.BiblePublicationCategoryName, schedule.Id, biblePublication.PublicationCode);
                 }
             }
         }
@@ -303,14 +312,20 @@ internal sealed class BiblePublicationNamePopulator
                     track.Title, scheduleId, biblePublication.TrackNumber);
             }
 
-            // Populate category from publication (for non-sectioned publications that weren't loaded earlier)
+            // Only populate category if it's not already set (initial population from DB)
+            // Category can only be changed via CategorySelectionAction, not from publication
             if (publication.Category != null && 
                 (scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)))
             {
                 scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
                 scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
-                Log.Debug("ScheduleEffects: Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for non-sectioned publication in schedule {ScheduleId}",
+                Log.Debug("ScheduleEffects: Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for non-sectioned publication in schedule {ScheduleId} - initial population",
                     publication.CategoryId, publication.Category.CategoryName, scheduleId);
+            }
+            else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName))
+            {
+                Log.Debug("ScheduleEffects: Preserving existing category '{CategoryName}' for non-sectioned publication in schedule {ScheduleId}",
+                    scheduleStateItem.BiblePublicationCategoryName, scheduleId);
             }
         }
     }

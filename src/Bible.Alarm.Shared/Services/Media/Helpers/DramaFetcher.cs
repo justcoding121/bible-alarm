@@ -49,14 +49,22 @@ internal sealed class DramaFetcher
         var (localizedPubName, sectionCodes) = await mediatorApiClient.FetchCategoryAndSectionsAsync(
             normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
 
+        logger.Information("DramaFetcher: Found {SectionCount} sections for publication {PublicationCode} in language {LanguageCode}",
+            sectionCodes.Count, normalizedPublicationCode, normalizedLanguageCode);
+
         if (sectionCodes.Count == 0)
         {
+            logger.Warning("DramaFetcher: No sections found for publication {PublicationCode} in language {LanguageCode}",
+                normalizedPublicationCode, normalizedLanguageCode);
             return false;
         }
 
         // Fetch tracks for all sections
         var tracks = await trackFetcher.FetchTracksForSectionsAsync(
             db, sectionCodes, normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
+        
+        logger.Information("DramaFetcher: Fetched {TrackCount} tracks total from {SectionCount} sections for publication {PublicationCode} in language {LanguageCode}",
+            tracks.Count, sectionCodes.Count, normalizedPublicationCode, normalizedLanguageCode);
 
         if (tracks.Count == 0)
         {
@@ -98,14 +106,22 @@ internal sealed class DramaFetcher
         var (localizedPubName, sectionCodes) = await mediatorApiClient.FetchCategoryAndSectionsAsync(
             normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
 
+        logger.Information("DramaFetcher: Found {SectionCount} sections for publication {PublicationCode} in language {LanguageCode}",
+            sectionCodes.Count, normalizedPublicationCode, normalizedLanguageCode);
+
         if (sectionCodes.Count == 0)
         {
+            logger.Warning("DramaFetcher: No sections found for publication {PublicationCode} in language {LanguageCode}",
+                normalizedPublicationCode, normalizedLanguageCode);
             return false;
         }
 
         // Fetch tracks for all sections
         var tracks = await trackFetcher.FetchTracksForSectionsAsync(
             db, sectionCodes, normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
+        
+        logger.Information("DramaFetcher: Fetched {TrackCount} tracks total from {SectionCount} sections for publication {PublicationCode} in language {LanguageCode}",
+            tracks.Count, sectionCodes.Count, normalizedPublicationCode, normalizedLanguageCode);
 
         // Build and save publication
         var publicationCodeForDb = publicationBuilder.GetPublicationCodeForDb(normalizedPublicationCode);

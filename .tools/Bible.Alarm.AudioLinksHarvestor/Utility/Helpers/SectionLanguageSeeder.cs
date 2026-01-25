@@ -106,6 +106,11 @@ internal sealed class SectionLanguageSeeder
 
         await db.SaveChangesAsync();
         logger.Information("Seeded section languages");
+
+        // Seed sections for publications without language (LanguageId == null) - data-driven, not hard-coded
+        await SeedSectionsWithoutLanguage(db);
+        await db.SaveChangesAsync();
+        logger.Information("Seeded section languages for publications without language");
     }
 
     private async Task SeedLanguageForSection(MediaDbContext db, string publicationCode, string sectionCode, string languageCode)
@@ -195,6 +200,130 @@ internal sealed class SectionLanguageSeeder
                 HarvestType = publicationLanguage.HarvestType
             };
             db.SectionLanguages.Add(sectionLanguage);
+        }
+    }
+
+    /// <summary>
+    /// Seeds SectionLanguage entries for sections of publications without language (LanguageId == null).
+    /// This is data-driven - finds all sections of publications in BiblePublications with LanguageId == null
+    /// and creates corresponding SectionLanguage entries with LanguageId == null.
+    /// </summary>
+    private async Task SeedSectionsWithoutLanguage(MediaDbContext db)
+    {
+        // Get all publications without language (LanguageId == null) with their sections - data-driven, not hard-coded
+        var publicationsWithoutLanguage = await db.BiblePublications
+            .AsNoTracking()
+            .Include(bp => bp.Category)
+            .Include(bp => bp.Sections)
+            .Where(bp => bp.LanguageId == null)
+            .ToListAsync();
+
+        if (publicationsWithoutLanguage.Count == 0)
+        {
+            logger.Debug("No publications without language found to seed sections");
+            return;
+        }
+
+        logger.Information("Seeding SectionLanguage entries for sections of {Count} publication(s) without language", publicationsWithoutLanguage.Count);
+
+        foreach (var publication in publicationsWithoutLanguage)
+        {
+            if (publication.Category == null)
+            {
+                logger.Warning("Category not found for publication {PublicationCode} without language, skipping", publication.PublicationCode);
+                continue;
+            }
+
+            // Normalize publication code for database (case-sensitive for dramas)
+            var normalizedPublicationCode = publication.PublicationCode.ToLowerInvariant();
+            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
+            else
+            {
+                publicationCodeForDb = normalizedPublicationCode;
+            }
+
+            // Get or create PublicationLanguage entry with LanguageId == null for this publication
+            var publicationLanguage = await db.PublicationLanguages
+                .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null);
+
+            if (publicationLanguage == null)
+            {
+                // Also check if it's being tracked in the context but not yet saved
+                publicationLanguage = db.ChangeTracker.Entries<PublicationLanguage>()
+                    .Where(e => e.Entity.PublicationCode == publicationCodeForDb && e.Entity.LanguageId == null)
+                    .Select(e => e.Entity)
+                    .FirstOrDefault();
+
+                if (publicationLanguage == null)
+                {
+                    logger.Warning("PublicationLanguage with LanguageId == null not found for {PublicationCode}, creating it", publicationCodeForDb);
+                    
+                    // Query Category from database to ensure it's tracked
+                    var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == publication.Category.Id);
+                    if (category == null)
+                    {
+                        logger.Warning("Category with Id {CategoryId} not found in database for publication {PublicationCode}, skipping", publication.Category.Id, publicationCodeForDb);
+                        continue;
+                    }
+                    
+                    // Determine harvest type based on publication code
+                    var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+
+                    publicationLanguage = new PublicationLanguage
+                    {
+                        PublicationCode = publicationCodeForDb,
+                        LanguageId = null, // No language FK for publications without language
+                        Language = null,
+                        HarvestType = harvestType,
+                        Category = category,
+                        CategoryId = category.Id
+                    };
+                    db.PublicationLanguages.Add(publicationLanguage);
+                    await db.SaveChangesAsync(); // Save to get the ID
+                }
+            }
+
+            // Seed sections for this publication without language
+            if (publication.Sections == null || publication.Sections.Count == 0)
+            {
+                logger.Debug("No sections found for publication {PublicationCode} without language", publicationCodeForDb);
+                continue;
+            }
+
+            foreach (var section in publication.Sections)
+            {
+                var normalizedSectionCode = section.SectionCode.ToLowerInvariant();
+
+                // Check if already exists (with LanguageId == null)
+                var exists = await db.SectionLanguages
+                    .AnyAsync(sl => sl.PublicationCode == publicationCodeForDb && 
+                                   sl.SectionCode == normalizedSectionCode && 
+                                   sl.LanguageId == null);
+
+                if (!exists)
+                {
+                    var sectionLanguage = new SectionLanguage
+                    {
+                        PublicationCode = publicationCodeForDb,
+                        SectionCode = normalizedSectionCode,
+                        LanguageId = null, // No language FK for sections of publications without language
+                        Language = null,
+                        PublicationLanguage = publicationLanguage,
+                        PublicationLanguageId = publicationLanguage.Id,
+                        HarvestType = publicationLanguage.HarvestType
+                    };
+                    db.SectionLanguages.Add(sectionLanguage);
+                    logger.Debug("Added SectionLanguage entry for {PublicationCode}/{SectionCode} without language",
+                        publicationCodeForDb, normalizedSectionCode);
+                }
+            }
         }
     }
 }

@@ -49,7 +49,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
         // Initialize services
         dataProvider = new BiblePublicationSelectionDataProvider(mediaService, state, dispatcher);
-        stateHandler = new BiblePublicationSelectionStateHandler(mediaService, state, mapper, dataProvider);
+        stateHandler = new BiblePublicationSelectionStateHandler(mediaService, state, mapper, dataProvider, scopeFactory);
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
         commandHandler = new BiblePublicationSelectionCommandHandler(mediaService, state, dispatcher, navigationService, mapper, biblePublicationService, languageContentService);
         propertyManager = new BiblePublicationSelectionPropertyManager(state, dataProvider, stateHandler);

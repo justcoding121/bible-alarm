@@ -107,21 +107,21 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
         }
     }
 
-    public async Task<SortedDictionary<int, BiblePublicationSection>> GetMusicSectionsByPublicationAsync(string publicationCode, CancellationToken cancellationToken = default)
+    public async Task<SortedDictionary<int, BiblePublicationSection>> GetSectionsByPublicationWithoutLanguageAsync(string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Load sections for music publications (Category=Music, LanguageId=null)
+            // Load sections for publications without language (LanguageId=null)
+            // This is data-driven - works for any publication with LanguageId=null, not just Music
             var sections = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Category)
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.UrlParams)
-                .Where(x => x.Category.CategoryName == "Music"
-                    && x.LanguageId == null
+                .Where(x => x.LanguageId == null
                     && x.PublicationCode == publicationCode)
                 .SelectMany(x => x.Sections)
                 .ToListAsync(cancellationToken);
@@ -171,7 +171,7 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting Music sections by publication. PublicationCode={PublicationCode}",
+            logger.Error(ex, "Error getting sections for publication without language. PublicationCode={PublicationCode}",
                 publicationCode);
             throw;
         }

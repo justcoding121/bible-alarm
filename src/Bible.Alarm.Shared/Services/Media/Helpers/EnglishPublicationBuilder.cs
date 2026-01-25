@@ -32,7 +32,7 @@ internal sealed class EnglishPublicationBuilder
         Category category,
         bool isVideo,
         bool isBible,
-        bool isIamPublication,
+        bool publicationWithoutLanguage,
         List<BiblePublicationSection> sections,
         CancellationToken cancellationToken)
     {
@@ -46,8 +46,9 @@ internal sealed class EnglishPublicationBuilder
         
         // For Bible publications, temporarily remove tracks from sections before saving
         // We'll add them back after sections have IDs to avoid foreign key constraint errors
+        // Publications without language (like instrumental music) also have tracks in sections already
         var tracksBySection = new Dictionary<BiblePublicationSection, List<BiblePublicationTrack>>();
-        if (isBible && !isIamPublication)
+        if (isBible && !publicationWithoutLanguage)
         {
             foreach (var section in sections)
             {
@@ -63,23 +64,24 @@ internal sealed class EnglishPublicationBuilder
         {
             PublicationCode = normalizedPublicationCode,
             Name = finalPublicationName,
-            Language = language, // null for "iam"
+            Language = language, // null for publications without language
             Category = category,
             CategoryId = category.Id,
-            LanguageId = language?.Id, // null for "iam"
+            LanguageId = language?.Id, // null for publications without language
             IsVideo = isVideo,
             Tracks = new List<BiblePublicationTrack>(),
             Sections = sections
         };
 
-        // Set publication reference on sections and tracks (for iam and non-Bible, tracks are already in sections)
+        // Set publication reference on sections and tracks
+        // For publications without language and non-Bible publications, tracks are already in sections
         foreach (var section in sections)
         {
             section.BiblePublication = publication;
             
-            // For iam and other non-Bible publications, set references on tracks now
+            // For publications without language and other non-Bible publications, set references on tracks now
             // (Bible publications will set references after sections have IDs)
-            if (!isBible || isIamPublication)
+            if (!isBible || publicationWithoutLanguage)
             {
                 foreach (var track in section.Tracks)
                 {
@@ -94,7 +96,7 @@ internal sealed class EnglishPublicationBuilder
         await db.SaveChangesAsync(cancellationToken);
         
         // For Bible publications, now add tracks back with proper foreign key IDs
-        if (isBible && !isIamPublication && tracksBySection.Count > 0)
+        if (isBible && !publicationWithoutLanguage && tracksBySection.Count > 0)
         {
             foreach (var kvp in tracksBySection)
             {

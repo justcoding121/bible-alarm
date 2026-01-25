@@ -10,7 +10,7 @@ public interface IMediaService : IDisposable
     Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null);
     Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false);
     Task<SortedDictionary<int, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode);
-    Task<SortedDictionary<int, BiblePublicationSection>> GetMusicSections(string publicationCode);
+    Task<SortedDictionary<int, BiblePublicationSection>> GetSectionsForPublicationWithoutLanguage(string publicationCode);
     Task<BiblePublicationSection> GetBiblePublicationSection(string languageCode, string versionCode, int sectionNumber);
     Task<SortedDictionary<int, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, int sectionNumber);
     Task<BiblePublicationTrack> GetBiblePublicationTrack(string languageCode, string versionCode, int sectionNumber, int trackNumber);

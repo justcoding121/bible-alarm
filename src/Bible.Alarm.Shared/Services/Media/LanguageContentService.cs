@@ -63,31 +63,53 @@ public sealed class LanguageContentService : ILanguageContentService
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            // "iam" (Kingdom Melodies) doesn't support ad-hoc fetching - it's only seeded once with null language
-            if (normalizedPublicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
-            {
-                logger.Warning("Publication {PublicationCode} (Kingdom Melodies) doesn't support ad-hoc fetching", publicationCode);
-                return false;
-            }
-
             // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            // For others (e.g., "gnj"), preserve exact case
+            var lowerCode = publicationCode.ToLowerInvariant();
+            var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
             string publicationCodeForDb;
             if (isDrama)
             {
-                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                publicationCodeForDb = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
                     ? "Dramas"
                     : "DramaticBibleReadings";
             }
             else
             {
-                publicationCodeForDb = normalizedPublicationCode;
+                publicationCodeForDb = publicationCode; // Preserve exact case (e.g., "gnj")
             }
 
-            // Verify English publication exists
+            // Get PublicationLanguage to determine harvest type and category
+            // HarvestType is sufficient to determine if ad-hoc fetching is possible
+            // Use case-sensitive code for dramas when querying database
+            var publicationLanguage = await db.PublicationLanguages
+                .Include(pl => pl.Language)
+                .Include(pl => pl.Category)
+                .FirstOrDefaultAsync(
+                    pl => pl.PublicationCode == publicationCodeForDb &&
+                          pl.Language != null &&
+                          pl.Language.LanguageCode == normalizedLanguageCode,
+                    cancellationToken);
+
+            if (publicationLanguage == null)
+            {
+                logger.Warning("Language {LanguageCode} is not available for publication {PublicationCode} (not in PublicationLanguages)",
+                    languageCode, publicationCode);
+                return false;
+            }
+
+            // If PublicationLanguage has LanguageId == null, it means the publication doesn't have language-specific content
+            // and can't be ad-hoc fetched with a language code
+            if (publicationLanguage.LanguageId == null)
+            {
+                logger.Warning("Publication {PublicationCode} doesn't support ad-hoc fetching with language code (has LanguageId = NULL in PublicationLanguages)",
+                    publicationCode);
+                return false;
+            }
+
+            // Verify English publication exists (needed as template for ad-hoc fetching)
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.Category)
@@ -99,24 +121,7 @@ public sealed class LanguageContentService : ILanguageContentService
 
             if (englishPublication == null)
             {
-                logger.Warning("English publication {PublicationCode} not found", publicationCode);
-                return false;
-            }
-
-            // Get PublicationLanguage to determine harvest type and category
-            // Use case-sensitive code for dramas when querying database
-            var publicationLanguage = await db.PublicationLanguages
-                .Include(pl => pl.Language)
-                .Include(pl => pl.Category)
-                .FirstOrDefaultAsync(
-                    pl => pl.PublicationCode == publicationCodeForDb &&
-                          pl.Language.LanguageCode == normalizedLanguageCode,
-                    cancellationToken);
-
-            if (publicationLanguage == null)
-            {
-                logger.Warning("Language {LanguageCode} is not available for publication {PublicationCode}",
-                    languageCode, publicationCode);
+                logger.Warning("English publication {PublicationCode} not found (required as template for ad-hoc fetching)", publicationCode);
                 return false;
             }
 
@@ -144,9 +149,9 @@ public sealed class LanguageContentService : ILanguageContentService
             var category = publicationLanguage.Category;
             var categoryName = category.CategoryName;
             var isVideo = categoryName.Equals("Dramas", StringComparison.OrdinalIgnoreCase) && 
-                         PublicationTypeHelper.IsVideo(normalizedPublicationCode);
+                         PublicationTypeHelper.IsVideo(lowerCode);
 
-            var harvestType = publicationLanguage.HarvestType ?? PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+            var harvestType = publicationLanguage.HarvestType ?? PublicationTypeHelper.GetHarvestType(lowerCode);
             switch (harvestType)
             {
                 case Models.Enums.HarvestType.MediatorSectioned:
@@ -161,7 +166,7 @@ public sealed class LanguageContentService : ILanguageContentService
                     var trackParam = isVideo ? "&track=" : "";
 
                     return await flatPublicationFetcher.FetchFlatPublicationTracksAsync(
-                        db, normalizedPublicationCode, normalizedLanguageCode, englishPublication,
+                        db, publicationCodeForDb, normalizedLanguageCode, englishPublication,
                         isVideo, isMusic, fileFormat, trackParam, null, cancellationToken);
 
                 case Models.Enums.HarvestType.Sectioned:
@@ -191,31 +196,53 @@ public sealed class LanguageContentService : ILanguageContentService
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            // "iam" (Kingdom Melodies) doesn't support ad-hoc fetching - it's only seeded once with null language
-            if (normalizedPublicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
-            {
-                logger.Warning("Publication {PublicationCode} (Kingdom Melodies) doesn't support ad-hoc fetching", publicationCode);
-                return false;
-            }
-
             // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            // For others (e.g., "gnj"), preserve exact case
+            var lowerCode = publicationCode.ToLowerInvariant();
+            var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
             string publicationCodeForDb;
             if (isDrama)
             {
-                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                publicationCodeForDb = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
                     ? "Dramas"
                     : "DramaticBibleReadings";
             }
             else
             {
-                publicationCodeForDb = normalizedPublicationCode;
+                publicationCodeForDb = publicationCode; // Preserve exact case (e.g., "gnj")
             }
 
-            // Verify English publication exists
+            // Get PublicationLanguage to determine harvest type
+            // HarvestType is sufficient to determine if ad-hoc fetching is possible
+            // Use case-sensitive code for dramas when querying database
+            var publicationLanguage = await db.PublicationLanguages
+                .AsNoTracking()
+                .Include(pl => pl.Language)
+                .FirstOrDefaultAsync(
+                    pl => pl.PublicationCode == publicationCodeForDb &&
+                          pl.Language != null &&
+                          pl.Language.LanguageCode == normalizedLanguageCode,
+                    cancellationToken);
+
+            if (publicationLanguage == null)
+            {
+                logger.Warning("Language {LanguageCode} is not available for publication {PublicationCode} (not in PublicationLanguages)",
+                    languageCode, publicationCode);
+                return false;
+            }
+
+            // If PublicationLanguage has LanguageId == null, it means the publication doesn't have language-specific content
+            // and can't be ad-hoc fetched with a language code
+            if (publicationLanguage.LanguageId == null)
+            {
+                logger.Warning("Publication {PublicationCode} doesn't support ad-hoc fetching with language code (has LanguageId = NULL in PublicationLanguages)",
+                    publicationCode);
+                return false;
+            }
+
+            // Verify English publication exists (needed as template for ad-hoc fetching)
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.Category)
@@ -229,23 +256,7 @@ public sealed class LanguageContentService : ILanguageContentService
 
             if (englishPublication == null)
             {
-                logger.Warning("English publication {PublicationCode} not found", publicationCode);
-                return false;
-            }
-
-            // Check if language is available
-            // Use case-sensitive code for dramas when querying database
-            var isAvailable = await db.PublicationLanguages
-                .Include(pl => pl.Language)
-                .AnyAsync(
-                    pl => pl.PublicationCode == publicationCodeForDb &&
-                          pl.Language.LanguageCode == normalizedLanguageCode,
-                    cancellationToken);
-
-            if (!isAvailable)
-            {
-                logger.Warning("Language {LanguageCode} is not available for publication {PublicationCode}",
-                    languageCode, publicationCode);
+                logger.Warning("English publication {PublicationCode} not found (required as template for ad-hoc fetching)", publicationCode);
                 return false;
             }
 
@@ -292,7 +303,7 @@ public sealed class LanguageContentService : ILanguageContentService
             }
 
             return await sectionFetcher.FetchPublicationSectionsAsync(
-                db, normalizedPublicationCode, normalizedLanguageCode, publicationCodeForDb,
+                db, publicationCodeForDb, normalizedLanguageCode, publicationCodeForDb,
                 englishPublication, sectionCodes, cancellationToken);
         }
         catch (Exception ex)
@@ -460,6 +471,114 @@ public sealed class LanguageContentService : ILanguageContentService
         CancellationToken cancellationToken = default)
     {
         return await publicationEnsurer.EnsureAllSectionsForPublicationAsync(publicationCode, languageCode, cancellationToken);
+    }
+
+    public async Task<bool> FetchFirstSectionOnlyAsync(
+        string publicationCode,
+        string firstSectionCode,
+        string languageCode,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+
+            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
+            var lowerCode = publicationCode.ToLowerInvariant();
+            var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                publicationCodeForDb = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
+            else
+            {
+                publicationCodeForDb = publicationCode;
+            }
+
+            // Get PublicationLanguage to determine category
+            var publicationLanguage = await db.PublicationLanguages
+                .AsNoTracking()
+                .Include(pl => pl.Language)
+                .FirstOrDefaultAsync(
+                    pl => pl.PublicationCode == publicationCodeForDb &&
+                          pl.Language != null &&
+                          pl.Language.LanguageCode == normalizedLanguageCode,
+                    cancellationToken);
+
+            if (publicationLanguage == null)
+            {
+                logger.Warning("Language {LanguageCode} is not available for publication {PublicationCode} (not in PublicationLanguages)",
+                    languageCode, publicationCode);
+                return false;
+            }
+
+            // Get English publication as template
+            var englishPublication = await db.BiblePublications
+                .Include(bp => bp.Language)
+                .Include(bp => bp.Category)
+                .Include(bp => bp.Sections)
+                .AsSplitQuery()
+                .FirstOrDefaultAsync(
+                    bp => bp.PublicationCode == publicationCodeForDb &&
+                          bp.Language != null &&
+                          bp.Language.LanguageCode == "E",
+                    cancellationToken);
+
+            if (englishPublication == null)
+            {
+                logger.Warning("English publication {PublicationCode} not found (required as template)", publicationCode);
+                return false;
+            }
+
+            // Check if publication already exists and if first section exists
+            var existingPublication = await db.BiblePublications
+                .Include(bp => bp.Language)
+                .Include(bp => bp.Sections)
+                .FirstOrDefaultAsync(
+                    bp => bp.PublicationCode == publicationCodeForDb &&
+                          bp.Language != null &&
+                          bp.Language.LanguageCode == normalizedLanguageCode,
+                    cancellationToken);
+
+            if (existingPublication != null)
+            {
+                // Check if first section already exists
+                var firstSectionExists = existingPublication.Sections
+                    .Any(s => s.SectionCode.Equals(firstSectionCode, StringComparison.OrdinalIgnoreCase));
+                
+                if (firstSectionExists)
+                {
+                    logger.Debug("Publication {PublicationCode} for language {LanguageCode} already exists with first section",
+                        publicationCode, languageCode);
+                    return true;
+                }
+                
+                // Publication exists but first section doesn't - we need to add it
+                // For now, we'll fetch all sections (this is a rare case)
+                // TODO: Optimize to add only the first section to existing publication
+                logger.Debug("Publication {PublicationCode} exists but first section doesn't, fetching all sections",
+                    publicationCode);
+                return await FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken);
+            }
+
+            // Fetch only the first section - pass only firstSectionCode to section fetcher
+            var sectionCodes = new List<string> { firstSectionCode };
+            return await sectionFetcher.FetchPublicationSectionsAsync(
+                db, publicationCodeForDb, normalizedLanguageCode, publicationCodeForDb,
+                englishPublication, sectionCodes, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error fetching first section only for {PublicationCode} in language {LanguageCode}",
+                publicationCode, languageCode);
+            return false;
+        }
     }
 
     // Method moved to VideoLocalizedNameFetcher helper class

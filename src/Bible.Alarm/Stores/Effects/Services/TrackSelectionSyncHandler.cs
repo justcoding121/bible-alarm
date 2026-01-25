@@ -110,15 +110,80 @@ public sealed class TrackSelectionSyncHandler
             }
 
             // Detect if language or publication changed - if so, we should NOT preserve old names
+            // Language code can ONLY be changed by:
+            // 1. Category change (will default language to E)
+            // 2. By user explicitly changing the language
+            // 
+            // IMPORTANT: When user selects a publication with no language (null), the current language stays the same.
+            // The publication's language code (null) will be used in queries, but the schedule's language code doesn't change.
             var languageChanged = !string.IsNullOrEmpty(biblePub.LanguageCode) && 
+                                  !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode) &&
                                   biblePub.LanguageCode != currentSchedule.BiblePublicationLanguageCode;
+            
             var publicationChanged = !string.IsNullOrEmpty(biblePub.PublicationCode) && 
                                      biblePub.PublicationCode != currentSchedule.BiblePublicationCode;
 
             // Create updated schedule with Bible publication properties
             var updatedSchedule = currentSchedule.DeepClone();
             updatedSchedule.BiblePublicationScheduleId = biblePub.Id > 0 ? biblePub.Id : currentSchedule.BiblePublicationScheduleId;
-            updatedSchedule.BiblePublicationLanguageCode = biblePub.LanguageCode;
+            
+            // ALWAYS preserve category - category can only be changed via CategorySelectionAction
+            // DeepClone() already preserves the category, but explicitly ensure it's never null/empty
+            // EXCEPTION: If category is null in current schedule but BiblePublicationStateItem has one, use it
+            // This handles cases where DispatchDefaultPublicationAsync is called and the category needs to be set
+            if (string.IsNullOrWhiteSpace(updatedSchedule.BiblePublicationCategoryName))
+            {
+                // Category is null - try to get it from BiblePublicationStateItem
+                if (!string.IsNullOrWhiteSpace(biblePub.CategoryName))
+                {
+                    updatedSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
+                    updatedSchedule.BiblePublicationCategoryName = biblePub.CategoryName;
+                    Log.Debug("TrackSelectionSyncHandler: Set category={CategoryName} from BiblePublicationStateItem (was null)",
+                        biblePub.CategoryName);
+                }
+                else
+                {
+                    // Category is null in both - this should not happen, but preserve what we can
+                    Log.Error("TrackSelectionSyncHandler: Category is null in both current schedule and BiblePublicationStateItem. Category must always be selected.");
+                }
+            }
+            else
+            {
+                // Category exists - ALWAYS preserve it (DeepClone already did this, but be explicit)
+                // Category can only be changed via CategorySelectionAction
+                // Ensure CategoryId is also preserved
+                if (!updatedSchedule.BiblePublicationCategoryId.HasValue && biblePub.CategoryId.HasValue)
+                {
+                    // CategoryId might be missing even though CategoryName exists - preserve it
+                    updatedSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
+                }
+            }
+            
+            // Language code can ONLY be changed by:
+            // 1. Category change (will default language to E)
+            // 2. By user explicitly changing the language
+            // 
+            // IMPORTANT: When user selects a publication with no language (null), the current language stays the same.
+            // The publication's language code (null) will be used in queries, but the schedule's language code doesn't change.
+            if (languageChanged)
+            {
+                // Language changed - update language code and display names
+                // This only happens when: category change or user explicitly changed the language
+                updatedSchedule.BiblePublicationLanguageCode = biblePub.LanguageCode;
+                updatedSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
+                    ? biblePub.LanguageName 
+                    : updatedSchedule.BiblePublicationLanguageName ?? string.Empty;
+                updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
+                    ? biblePub.LanguageDirection 
+                    : updatedSchedule.BiblePublicationLanguageDirection ?? "ltr";
+            }
+            else
+            {
+                // Language did not change - ALWAYS preserve language (code, name, direction)
+                // Language can only be changed via CategorySelectionAction or explicit user language selection
+                // Even when selecting a publication without language, the current language stays the same
+            }
+            
             updatedSchedule.BiblePublicationCode = biblePub.PublicationCode;
             updatedSchedule.BiblePublicationSectionNumber = biblePub.SectionNumber;
             updatedSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
@@ -129,9 +194,7 @@ public sealed class TrackSelectionSyncHandler
             // When language or publication changes, always use new values (or clear if empty)
             if (languageChanged)
             {
-                // Language changed - always use new values, don't preserve old ones
-                updatedSchedule.BiblePublicationLanguageName = biblePub.LanguageName ?? string.Empty;
-                updatedSchedule.BiblePublicationLanguageDirection = biblePub.LanguageDirection ?? "ltr";
+                // Language changed - update display names
                 updatedSchedule.BiblePublicationName = biblePub.PublicationName ?? string.Empty;
                 updatedSchedule.BiblePublicationSectionName = biblePub.SectionName ?? string.Empty;
                 updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;

@@ -1,11 +1,15 @@
 #nullable enable
+using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
@@ -18,8 +22,10 @@ public sealed class BiblePublicationSelectionItemSelector
 {
     private readonly IMediaService mediaService;
     private readonly IBiblePublicationService? biblePublicationService;
+    private readonly IBiblePublicationSectionService? biblePublicationSectionService;
     private readonly ILanguageContentService? languageContentService;
     private readonly IState<ApplicationState> state;
+    private readonly IServiceScopeFactory scopeFactory;
 
     // Priority codes for Bible publications: nwt (2013 NWT), bi12 (1984 NWT)
     private static readonly string[] PriorityPublicationCodes = ["nwt", "bi12"];
@@ -28,12 +34,17 @@ public sealed class BiblePublicationSelectionItemSelector
         IMediaService mediaService,
         IState<ApplicationState> state,
         IBiblePublicationService? biblePublicationService = null,
-        ILanguageContentService? languageContentService = null)
+        IBiblePublicationSectionService? biblePublicationSectionService = null,
+        ILanguageContentService? languageContentService = null,
+        IServiceScopeFactory? scopeFactory = null)
     {
         this.mediaService = mediaService;
         this.state = state;
         this.biblePublicationService = biblePublicationService;
+        this.biblePublicationSectionService = biblePublicationSectionService;
         this.languageContentService = languageContentService;
+        this.scopeFactory = scopeFactory ?? ServiceProviderManager.GetService<IServiceScopeFactory>() 
+            ?? throw new InvalidOperationException("IServiceScopeFactory is required but not available");
     }
 
     /// <summary>
@@ -93,84 +104,175 @@ public sealed class BiblePublicationSelectionItemSelector
     {
         Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Starting for language={LanguageCode}", language.Code);
 
-        // Step 1: Get the first publication code by ID order from PublicationLanguages
-        // This is the publication that should be downloaded when language is selected
-        string? firstPublicationCode = null;
-        if (biblePublicationService != null)
-        {
-            var stateValue = state.Value;
-            var categoryName = stateValue.CurrentSchedule?.BiblePublicationCategoryName;
-            firstPublicationCode = await Task.Run(async () =>
-                await biblePublicationService.GetFirstPublicationCodeByOrderAsync(language.Code, categoryName));
-        }
+        // Step 1: Get publications and find the first one that can be queried with a language
+        // Some publications (like "iam" for Music) have LanguageId = NULL and can't be queried with a language
+        var stateValue = state.Value;
+        var categoryName = stateValue.CurrentSchedule?.BiblePublicationCategoryName;
+        
+        // Get all available publications for this language and category
+        var publications = await Task.Run(async () =>
+            await mediaService.GetBiblePublications(language.Code, categoryName, downloadAll: false));
 
-        if (string.IsNullOrEmpty(firstPublicationCode))
+        if (publications == null || publications.Count == 0)
         {
-            Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: No first publication found for language={LanguageCode}", language.Code);
+            Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: No publications found for language={LanguageCode}, category={CategoryName}", 
+                language.Code, categoryName ?? "(null)");
             return (null, 0, 0, string.Empty, string.Empty, string.Empty);
         }
 
-        Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: First publication by ID order={PublicationCode} for language={LanguageCode}",
-            firstPublicationCode, language.Code);
-
-        // Step 2: Download the first publication with its first section (if sectioned) and tracks
-        // This happens when language is selected (cascade)
-        // EnsurePublicationExistsAsync will download the publication, its first section (by ID order from SectionLanguages), and tracks
-        var stateValue2 = state.Value;
-        var categoryName2 = stateValue2.CurrentSchedule?.BiblePublicationCategoryName;
+        // Find the first publication - prioritize publications without LanguageId (like "iam" for Music)
+        // Publications without LanguageId don't need a language, so the language row should be hidden
+        string? publicationCode = null;
+        BiblePublication? publication = null;
+        bool publicationWithoutLanguage = false;
         
-        // Download the first publication if not English and languageContentService is available
-        if (languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+        if (biblePublicationService != null)
         {
-            Log.Information("Downloading first publication {PublicationCode} (by ID order) for language {LanguageCode} (cascade)", 
-                firstPublicationCode, language.Code);
-            
+            // Iterate through publications in order
+            foreach (var pubKvp in publications.OrderBy(p => p.Key))
+            {
+                var pubCode = pubKvp.Key;
+                var pub = pubKvp.Value;
+                
+                // Check if this publication has LanguageId = null (doesn't need a language)
+                // This is data-driven, not hard-coded
+                if (pub.LanguageId == null)
+                {
+                    // Publication without language - select it and clear language
+                    publicationCode = pubCode;
+                    publication = pub;
+                    publicationWithoutLanguage = true;
+                    Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Selected publication={PublicationCode} (has LanguageId=null, doesn't need language)",
+                        publicationCode);
+                    break;
+                }
+                
+                // Publication has LanguageId - try to harvest if needed
+                if (languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        await languageContentService.EnsurePublicationExistsAsync(pubCode, language.Code);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Debug(ex, "Failed to harvest publication={PublicationCode} for language={LanguageCode}, trying next", 
+                            pubCode, language.Code);
+                        continue;
+                    }
+                }
+                
+                // Check if this publication can be queried with a language (has LanguageId)
+                // Re-query from database to get the actual publication with correct localized name (not placeholder)
+                BiblePublication? queriedPub = null;
+                var canQueryWithLanguage = await Task.Run(async () =>
+                {
+                    queriedPub = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(language.Code, pubCode);
+                    return queriedPub != null;
+                });
+                
+                if (canQueryWithLanguage && queriedPub != null)
+                {
+                    publicationCode = pubCode;
+                    publication = queriedPub; // Use the queried publication with correct localized name, not the placeholder
+                    Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Selected publication={PublicationCode} (can be queried with language={LanguageCode})",
+                        publicationCode, language.Code);
+                    break;
+                }
+                else
+                {
+                    Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Skipping publication={PublicationCode} (cannot be queried with language={LanguageCode})",
+                        pubCode, language.Code);
+                }
+            }
+        }
+        else
+        {
+            // Fallback: use first publication if biblePublicationService is not available
+            var firstPub = publications.First();
+            publicationCode = firstPub.Key;
+            publication = firstPub.Value;
+            publicationWithoutLanguage = publication.LanguageId == null;
+        }
+
+        if (string.IsNullOrEmpty(publicationCode) || publication == null)
+        {
+            Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: No publication found for language={LanguageCode}, category={CategoryName}", 
+                language.Code, categoryName ?? "(null)");
+            return (null, 0, 0, string.Empty, string.Empty, string.Empty);
+        }
+
+        var publicationName = publication.Name;
+
+        Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Selected publication code={PublicationCode}, name={PublicationName}, withoutLanguage={WithoutLanguage}",
+            publicationCode, publicationName, publicationWithoutLanguage);
+
+        // For publications without LanguageId, query without a language code
+        // For publications with LanguageId, use the language code
+        string? languageCodeForQuery = publicationWithoutLanguage ? null : language.Code;
+
+        // Ensure publication is harvested before getting sections
+        // For publications with LanguageId, EnsurePublicationExistsAsync should have been called above,
+        // but we ensure it here as well to handle edge cases
+        if (!publicationWithoutLanguage && languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+        {
+            Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Ensuring publication {PublicationCode} exists for language {LanguageCode} before getting sections",
+                publicationCode, language.Code);
             try
             {
-                // EnsurePublicationExistsAsync downloads the publication with its first section (by ID order) and tracks
-                var fetchSuccess = await languageContentService.EnsurePublicationExistsAsync(
-                    firstPublicationCode, language.Code);
-                
-                if (!fetchSuccess)
-                {
-                    Log.Warning("Failed to download first publication {PublicationCode} for language {LanguageCode}", 
-                        firstPublicationCode, language.Code);
-                }
+                await languageContentService.EnsurePublicationExistsAsync(publicationCode, language.Code);
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Error downloading first publication {PublicationCode} for language {LanguageCode}", 
-                    firstPublicationCode, language.Code);
+                Log.Warning(ex, "GetPublicationSectionAndTrackForLanguageAsync: Failed to ensure publication {PublicationCode} exists, continuing anyway",
+                    publicationCode);
             }
         }
 
-        // Step 3: Get the downloaded publication
-        var publications = await Task.Run(async () =>
-            await mediaService.GetBiblePublications(language.Code, categoryName2, downloadAll: false));
-
-        if (publications == null || !publications.TryGetValue(firstPublicationCode, out var publication))
-        {
-            Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: Publication {PublicationCode} not found for language={LanguageCode}", 
-                firstPublicationCode, language.Code);
-            return (null, 0, 0, string.Empty, string.Empty, string.Empty);
-        }
-
-        var publicationCode = firstPublicationCode;
-        var publicationName = publication.Name;
-
-        Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Selected publication code={PublicationCode}, name={PublicationName}",
-            publicationCode, publicationName);
-
         // Try to get sections to determine if publication is sectioned or not
-        var sections = await Task.Run(async () =>
-            await mediaService.GetBiblePublicationSections(language.Code, publicationCode));
+        // IMPORTANT: Query sections directly from database first to avoid triggering full harvesting
+        // Only fetch sections if they don't exist yet
+        SortedDictionary<int, BiblePublicationSection>? sections = null;
+        if (publicationWithoutLanguage)
+        {
+            // Query sections for publications without language (LanguageId=null)
+            Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Querying sections for publication without language={PublicationCode}", publicationCode);
+            sections = await Task.Run(async () =>
+                await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode));
+        }
+        else
+        {
+            // Query sections directly from database without triggering EnsureAllSectionsForPublicationAsync
+            // This avoids fetching all sections when we only need to check if the publication is sectioned
+            if (biblePublicationSectionService != null)
+            {
+                sections = await Task.Run(async () =>
+                    await biblePublicationSectionService.GetSectionsByPublicationAsync(language.Code, publicationCode, default));
+                
+                // If no sections found and publication was just harvested, it might be a non-sectioned publication
+                // Or the publication might not exist yet - in that case, EnsurePublicationExistsAsync above should have created it
+                // For sectioned publications, EnsurePublicationExistsAsync fetches all sections, so we should have sections now
+                if (sections == null || sections.Count == 0)
+                {
+                    Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: No sections found in database after ensuring publication exists, publication is likely non-sectioned");
+                }
+            }
+            else
+            {
+                // Fallback to MediaService method (but this will trigger full harvesting)
+                Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: biblePublicationSectionService is null, using MediaService.GetBiblePublicationSections (will trigger full harvesting)");
+                sections = await Task.Run(async () =>
+                    await mediaService.GetBiblePublicationSections(language.Code, publicationCode));
+            }
+        }
 
         if (sections != null && sections.Count > 0)
         {
             // Sectioned publication - get first section and track
             Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Found {SectionCount} sections, using sectioned flow", sections.Count);
+            // For publications without language, pass null as language code
             var (sectionNumber, firstTrackNumber, sectionName, firstTrackTitle) = 
-                await GetFirstSectionAndTrackFromSectionsAsync(language.Code, publicationCode, sections);
+                await GetFirstSectionAndTrackFromSectionsAsync(languageCodeForQuery ?? string.Empty, publicationCode, sections);
 
             Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Sectioned result: sectionNumber={SectionNumber}, sectionName={SectionName}, trackNumber={TrackNumber}, trackTitle={TrackTitle}",
                 sectionNumber, sectionName, firstTrackNumber, firstTrackTitle);
@@ -192,7 +294,9 @@ public sealed class BiblePublicationSelectionItemSelector
 
         // Non-sectioned publication (drama/video) - get first track directly
         Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: No sections found, using non-sectioned flow");
-        var (_, trackNumber, _, trackTitle) = await GetFirstTrackForNonSectionedAsync(language.Code, publicationCode);
+        // For publications without language, pass null/empty as language code
+        // GetFirstTrackForNonSectionedAsync will need to handle this case
+        var (_, trackNumber, _, trackTitle) = await GetFirstTrackForNonSectionedAsync(languageCodeForQuery ?? string.Empty, publicationCode);
         Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Non-sectioned result: trackNumber={TrackNumber}, trackTitle={TrackTitle}",
             trackNumber, trackTitle);
         return (publicationCode, 0, trackNumber, string.Empty, publicationName, trackTitle);
@@ -217,6 +321,7 @@ public sealed class BiblePublicationSelectionItemSelector
 
     /// <summary>
     /// Gets first section and first track from pre-loaded sections.
+    /// Handles both publications with LanguageId (requires language code) and without LanguageId (no language needed).
     /// </summary>
     private async Task<(int SectionNumber, int TrackNumber, string SectionName, string TrackTitle)>
         GetFirstSectionAndTrackFromSectionsAsync(string languageCode, string publicationCode, SortedDictionary<int, BiblePublicationSection> sections)
@@ -227,13 +332,127 @@ public sealed class BiblePublicationSelectionItemSelector
         Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First section number={SectionNumber}, name={SectionName}",
             firstSectionNumber, firstSection.Name);
 
-        var tracks = await Task.Run(async () =>
-            await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionNumber));
+        SortedDictionary<int, BiblePublicationTrack>? tracks = null;
+        
+        // Check if this is a publication without LanguageId (empty languageCode indicates this)
+        if (string.IsNullOrEmpty(languageCode))
+        {
+            // Query tracks directly from database for publications without LanguageId
+            tracks = await Task.Run(async () =>
+            {
+                using var scope = scopeFactory.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
+                
+                var pub = await dbContext.BiblePublications
+                    .AsNoTracking()
+                    .Include(x => x.Sections)
+                        .ThenInclude(s => s.Tracks)
+                    .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
+                    .FirstOrDefaultAsync();
+                
+                if (pub?.Sections != null)
+                {
+                    var section = pub.Sections.FirstOrDefault(s => s.SectionCode == firstSection.SectionCode);
+                    if (section?.Tracks != null && section.Tracks.Count > 0)
+                    {
+                        var tracksDict = section.Tracks
+                            .OrderBy(t => t.Number)
+                            .ToDictionary(t => t.Number, t => t);
+                        return new SortedDictionary<int, BiblePublicationTrack>(tracksDict);
+                    }
+                }
+                
+                return new SortedDictionary<int, BiblePublicationTrack>();
+            });
+        }
+        else
+        {
+            // Query tracks using language code (normal case)
+            // Use the actual SectionCode from the section object to ensure correct matching
+            // After ad-hoc harvesting, tracks might not be found if we use the parsed section number
+            // Instead, query directly using the section's SectionCode
+            tracks = await Task.Run(async () =>
+            {
+                using var scope = scopeFactory.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
+                
+                var pub = await dbContext.BiblePublications
+                    .AsNoTracking()
+                    .Include(x => x.Language)
+                    .Include(x => x.Sections)
+                        .ThenInclude(s => s.Tracks)
+                    .Where(x => x.PublicationCode == publicationCode && 
+                               x.Language != null && 
+                               x.Language.LanguageCode == languageCode.ToUpperInvariant())
+                    .FirstOrDefaultAsync();
+                
+                SortedDictionary<int, BiblePublicationTrack>? foundTracks = null;
+                
+                if (pub?.Sections != null)
+                {
+                    // Use the actual SectionCode from the section object for matching (case-insensitive)
+                    var section = pub.Sections.FirstOrDefault(s => 
+                        s.SectionCode.Equals(firstSection.SectionCode, StringComparison.OrdinalIgnoreCase));
+                    if (section?.Tracks != null && section.Tracks.Count > 0)
+                    {
+                        Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: Found {TrackCount} tracks for section={SectionCode} using direct query",
+                            section.Tracks.Count, section.SectionCode);
+                        var tracksDict = section.Tracks
+                            .OrderBy(t => t.Number)
+                            .ToDictionary(t => t.Number, t => t);
+                        foundTracks = new SortedDictionary<int, BiblePublicationTrack>(tracksDict);
+                    }
+                    else
+                    {
+                        Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: Section found but no tracks. SectionCode={SectionCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+                            firstSection.SectionCode, publicationCode, languageCode);
+                    }
+                }
+                else
+                {
+                    Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: Publication not found or has no sections. PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+                        publicationCode, languageCode);
+                }
+                
+                // If no tracks found in database, explicitly fetch them (matching cascade behavior)
+                // Tracks are NOT automatically fetched when sections are harvested
+                if (foundTracks == null || foundTracks.Count == 0)
+                {
+                    Log.Information("GetFirstSectionAndTrackFromSectionsAsync: No tracks found in database, fetching tracks for first section...");
+                    if (languageContentService != null)
+                    {
+                        var fetchSuccess = await languageContentService.FetchSectionTracksAsync(
+                            publicationCode, firstSection.SectionCode, languageCode);
+                        
+                        if (fetchSuccess)
+                        {
+                            // Re-query tracks after fetching
+                            Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: Tracks fetched successfully, re-querying from database");
+                            return await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionNumber);
+                        }
+                        else
+                        {
+                            Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: Failed to fetch tracks for section={SectionCode}, publication={PublicationCode}, language={LanguageCode}",
+                                firstSection.SectionCode, publicationCode, languageCode);
+                        }
+                    }
+                }
+                
+                // Return found tracks, or fallback to the original method if fetch didn't work
+                if (foundTracks != null && foundTracks.Count > 0)
+                {
+                    return foundTracks;
+                }
+                
+                Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: Falling back to mediaService.GetBiblePublicationTracks");
+                return await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionNumber);
+            });
+        }
 
         if (tracks == null || tracks.Count == 0)
         {
             Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, section={SectionNumber}",
-                languageCode, publicationCode, firstSectionNumber);
+                languageCode ?? "(null)", publicationCode, firstSectionNumber);
             return (0, 0, string.Empty, string.Empty);
         }
 
@@ -245,6 +464,7 @@ public sealed class BiblePublicationSelectionItemSelector
 
     /// <summary>
     /// Gets first track for a non-sectioned publication (drama/video).
+    /// Handles both publications with LanguageId (requires language code) and without LanguageId (no language needed).
     /// </summary>
     private async Task<(int SectionNumber, int TrackNumber, string SectionName, string TrackTitle)>
         GetFirstTrackForNonSectionedAsync(string languageCode, string publicationCode)
@@ -258,16 +478,74 @@ public sealed class BiblePublicationSelectionItemSelector
             return (0, 0, string.Empty, string.Empty);
         }
 
-        var publication = await Task.Run(async () =>
-            await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode));
+        BiblePublication? publication;
+        
+        // Check if this is a publication without LanguageId (empty languageCode indicates this)
+        if (string.IsNullOrEmpty(languageCode))
+        {
+            // Query publication without LanguageId (for music publications like "iam")
+            publication = await Task.Run(async () =>
+            {
+                using var scope = scopeFactory.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
+                
+                // Query publication with LanguageId == null
+                var pub = await dbContext.BiblePublications
+                    .AsNoTracking()
+                    .Include(x => x.Category)
+                    .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
+                    .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
+                    .FirstOrDefaultAsync();
+                
+                return pub;
+            });
+        }
+        else
+        {
+            // Query publication with LanguageId (normal case)
+            publication = await Task.Run(async () =>
+                await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode));
+        }
 
         Log.Debug("GetFirstTrackForNonSectionedAsync: Loaded publication={PublicationName}, TracksCount={TracksCount}",
             publication?.Name ?? "(null)", publication?.Tracks?.Count ?? 0);
 
+        // If no tracks found, ensure publication is harvested (for non-sectioned publications, this fetches tracks)
+        if (publication == null || publication.Tracks == null || publication.Tracks.Count == 0)
+        {
+            Log.Information("GetFirstTrackForNonSectionedAsync: No tracks found in database, ensuring publication exists (will fetch tracks for non-sectioned publications)...");
+            
+            // For non-sectioned publications, EnsurePublicationExistsAsync should fetch tracks
+            if (!string.IsNullOrEmpty(languageCode) && languageContentService != null)
+            {
+                var harvestSuccess = await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode);
+                
+                if (harvestSuccess)
+                {
+                    // Re-query tracks after harvesting
+                    Log.Debug("GetFirstTrackForNonSectionedAsync: Publication harvested successfully, re-querying tracks");
+                    publication = await Task.Run(async () =>
+                        await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode));
+                }
+                else
+                {
+                    Log.Warning("GetFirstTrackForNonSectionedAsync: Failed to harvest publication={PublicationCode} for language={LanguageCode}",
+                        publicationCode, languageCode);
+                }
+            }
+            else if (string.IsNullOrEmpty(languageCode))
+            {
+                // For publications without language (like "iam"), tracks should already be pre-harvested
+                // If not found, log a warning
+                Log.Warning("GetFirstTrackForNonSectionedAsync: No tracks found for publication without language={PublicationCode}",
+                    publicationCode);
+            }
+        }
+
         if (publication == null || publication.Tracks == null || publication.Tracks.Count == 0)
         {
             Log.Warning("GetFirstTrackForNonSectionedAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}",
-                languageCode, publicationCode);
+                languageCode ?? "(null)", publicationCode);
             return (0, 0, string.Empty, string.Empty);
         }
 

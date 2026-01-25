@@ -26,17 +26,15 @@ public sealed class PublicationLanguage
     public string PublicationCode { get; set; } = string.Empty;
 
     /// <summary>
-    /// Foreign key to Language
+    /// Foreign key to Language (nullable for publications without language, e.g., instrumental music like "iam")
     /// </summary>
-    [Required]
     [ForeignKey(nameof(Language))]
-    public int LanguageId { get; set; }
+    public int? LanguageId { get; set; }
 
     /// <summary>
-    /// Navigation property to Language
+    /// Navigation property to Language (nullable for publications without language)
     /// </summary>
-    [Required]
-    public Media.Language Language { get; set; } = null!;
+    public Media.Language? Language { get; set; }
 
     /// <summary>
     /// The type of harvesting logic to use for this publication.

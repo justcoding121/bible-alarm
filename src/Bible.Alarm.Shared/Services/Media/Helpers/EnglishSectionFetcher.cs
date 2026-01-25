@@ -51,9 +51,20 @@ internal sealed class EnglishSectionFetcher
             return (new List<BiblePublicationSection>(), null);
         }
 
-        // Determine if this is a Bible publication (uses booknum) or iam (Kingdom Melodies)
+        // Data-driven: Check if publication has LanguageId == null (determines API parameter pattern)
         var isBible = categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
-        var isIamPublication = normalizedPublicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase);
+        var publicationWithoutLanguage = await db.BiblePublications
+            .AsNoTracking()
+            .AnyAsync(bp => bp.PublicationCode == normalizedPublicationCode && bp.LanguageId == null, cancellationToken);
+        
+        // Also check PublicationLanguages for entries with LanguageId == null
+        if (!publicationWithoutLanguage)
+        {
+            publicationWithoutLanguage = await db.PublicationLanguages
+                .AsNoTracking()
+                .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == null, cancellationToken);
+        }
+        
         var sections = new List<BiblePublicationSection>();
         string? localizedPubName = null;
 
@@ -63,7 +74,7 @@ internal sealed class EnglishSectionFetcher
             {
                 var section = await FetchSingleSectionAsync(
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode,
-                    isBible, isIamPublication, baseUrl, cancellationToken);
+                    isBible, publicationWithoutLanguage, baseUrl, cancellationToken);
 
                 if (section == null)
                 {
@@ -75,7 +86,7 @@ internal sealed class EnglishSectionFetcher
                 {
                     localizedPubName = await ExtractPublicationNameAsync(
                         sectionCode, normalizedPublicationCode, normalizedLanguageCode,
-                        isBible, isIamPublication, cancellationToken);
+                        isBible, publicationWithoutLanguage, cancellationToken);
                 }
 
                 sections.Add(section);
@@ -102,15 +113,15 @@ internal sealed class EnglishSectionFetcher
         string normalizedPublicationCode,
         string normalizedLanguageCode,
         bool isBible,
-        bool isIamPublication,
+        bool publicationWithoutLanguage,
         BaseUrl baseUrl,
         CancellationToken cancellationToken)
     {
-        // For Bible, use booknum parameter; for iam (Kingdom Melodies), use pub=sectionCode with langwritten=E
-        // Note: iam uses langwritten=E even though it has no language (melody music)
+        // For Bible, use booknum parameter; for publications without language, use pub=sectionCode with langwritten=E
+        // Note: Publications without language use langwritten=E even though they have no language (melody music)
         var harvestLink = isBible
             ? $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
-            : isIamPublication
+            : publicationWithoutLanguage
                 ? $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten=E"
                 : $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
 
@@ -148,7 +159,8 @@ internal sealed class EnglishSectionFetcher
         };
 
         // Parse tracks based on publication type
-        if (isIamPublication)
+        // Publications without language use the same parsing as "iam" (melody music pattern)
+        if (publicationWithoutLanguage)
         {
             var tracks = trackParser.ParseIamTracks(filesElement, sectionCode, baseUrl);
             section.Tracks.AddRange(tracks);
@@ -209,13 +221,16 @@ internal sealed class EnglishSectionFetcher
         string normalizedPublicationCode,
         string normalizedLanguageCode,
         bool isBible,
-        bool isIamPublication,
+        bool publicationWithoutLanguage,
         CancellationToken cancellationToken)
     {
-        // For iam, always use "Kingdom Melodies" as publication name
-        if (isIamPublication)
+        // For publications without language (like instrumental music), try to get name from database
+        // If not found, use a generic name based on category
+        if (publicationWithoutLanguage)
         {
-            return "Kingdom Melodies";
+            // Try to get publication name from database if it exists
+            // Otherwise, we'll extract it from the API response below
+            // For now, continue to API extraction for consistency
         }
 
         // For Bible, fetch one section to get the publication name

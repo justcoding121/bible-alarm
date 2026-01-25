@@ -44,6 +44,9 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     // Timeout task to hide overlay if containers don't signal ready
     private CancellationTokenSource? overlayTimeoutCancellation;
 
+    // Track last category name to detect changes
+    private string? lastCategoryName;
+
 
     public ScheduleViewModel(
         ILogger logger,
@@ -273,8 +276,13 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             // if already on main thread and executes synchronously if so)
             propertyManager.NotifySchedulePropertiesChanged();
             
-            // Notify IsMusicSelectionVisible when category changes
-            OnPropertyChanged(nameof(IsMusicSelectionVisible));
+            // Check if category changed and notify IsMusicSelectionVisible
+            var currentCategoryName = currentSchedule?.BiblePublicationCategoryName;
+            if (currentCategoryName != lastCategoryName)
+            {
+                lastCategoryName = currentCategoryName;
+                OnPropertyChanged(nameof(IsMusicSelectionVisible));
+            }
         });
 
         // Handle overlay visibility based on container readiness and content load state

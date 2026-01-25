@@ -2,12 +2,15 @@
 using System.Collections.ObjectModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
 
@@ -17,7 +20,8 @@ namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
 public sealed class SongPublicationSelectionDataProvider(
     IMediaService mediaService,
     IBiblePublicationService? biblePublicationService = null,
-    ILanguageContentService? languageContentService = null)
+    ILanguageContentService? languageContentService = null,
+    IServiceScopeFactory? scopeFactory = null)
 {
     private readonly Dictionary<string, PublicationListViewItemModel> songPublicationVMsMapping = [];
     private readonly SemaphoreSlim languagePopulationLock = new(1, 1);
@@ -100,15 +104,20 @@ public sealed class SongPublicationSelectionDataProvider(
             Dictionary<string, VocalMusic>? vocalReleases = null;
             Dictionary<string, MelodyMusic>? melodyReleases = null;
             
-            // Determine which type of music to load based on current music type
-            if (current?.MusicType == MusicType.Music)
+            // Data-driven approach: Load publications based on what's available
+            // When language is selected: GetVocalMusicReleases returns BOTH publications with language AND without language FK
+            // When no language (instrumental only): GetMelodyMusicReleases returns only publications without language FK
+            if (current?.MusicType == MusicType.Music && string.IsNullOrEmpty(languageCode))
             {
-                // Instrumental music - load melody releases (no language code needed)
+                // Instrumental music only - load melody releases (no language code needed)
                 melodyReleases = await mediaService.GetMelodyMusicReleases();
             }
             else if (!string.IsNullOrEmpty(languageCode))
             {
-                // Vocal music - load vocal releases with language code
+                // Language selected - GetVocalMusicReleases now includes BOTH:
+                // 1. Publications with LanguageId != null (filtered by language code)
+                // 2. Publications with LanguageId == null (no language FK)
+                // This is data-driven and works for any category
                 // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
                 // downloadAll=false when language changes (only download first publication in cascade)
                 vocalReleases = await mediaService.GetVocalMusicReleases(languageCode, downloadAll);
@@ -123,7 +132,7 @@ public sealed class SongPublicationSelectionDataProvider(
             var mapping = new Dictionary<string, PublicationListViewItemModel>();
             PublicationListViewItemModel? selected = null;
 
-            // Process vocal music releases
+            // Process vocal music releases (includes both with and without language FK)
             if (vocalReleases != null)
             {
                 foreach (var release in vocalReleases.Values)
@@ -131,14 +140,21 @@ public sealed class SongPublicationSelectionDataProvider(
                     // Skip duplicates - if code already exists, use the existing one
                     if (mapping.TryGetValue(release.Code, out var existingVm))
                     {
-                        // Still check if this duplicate matches the current publication code
-                        if (current != null &&
-                            current.MusicType == MusicType.VocalMusic &&
-                            current.LanguageCode == languageCode &&
-                            current.PublicationCode == release.Code)
+                        // Check if this matches the current publication code
+                        // MusicType can be either VocalMusic or Music depending on whether publication has LanguageId
+                        if (current != null && current.PublicationCode == release.Code)
                         {
-                            existingVm.IsSelected = true;
-                            selected = existingVm;
+                            // Check if language matches (for vocal music) or if it's instrumental (no language)
+                            var isVocalMatch = current.MusicType == MusicType.VocalMusic &&
+                                             current.LanguageCode == languageCode;
+                            var isInstrumentalMatch = current.MusicType == MusicType.Music &&
+                                                     release.Publication.LanguageId == null;
+                            
+                            if (isVocalMatch || isInstrumentalMatch)
+                            {
+                                existingVm.IsSelected = true;
+                                selected = existingVm;
+                            }
                         }
                         continue;
                     }
@@ -147,18 +163,24 @@ public sealed class SongPublicationSelectionDataProvider(
                     vms.Add(songPublicationListViewItemModel);
                     mapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
 
-                    if (current != null &&
-                        current.MusicType == MusicType.VocalMusic &&
-                        current.LanguageCode == languageCode &&
-                        current.PublicationCode == release.Code)
+                    // Check if this matches the current publication code
+                    if (current != null && current.PublicationCode == release.Code)
                     {
-                        songPublicationListViewItemModel.IsSelected = true;
-                        selected = songPublicationListViewItemModel;
+                        var isVocalMatch = current.MusicType == MusicType.VocalMusic &&
+                                         current.LanguageCode == languageCode;
+                        var isInstrumentalMatch = current.MusicType == MusicType.Music &&
+                                                 release.Publication.LanguageId == null;
+                        
+                        if (isVocalMatch || isInstrumentalMatch)
+                        {
+                            songPublicationListViewItemModel.IsSelected = true;
+                            selected = songPublicationListViewItemModel;
+                        }
                     }
                 }
             }
 
-            // Process melody music releases
+            // Process melody music releases (only when no language selected, instrumental only)
             if (melodyReleases != null)
             {
                 foreach (var release in melodyReleases.Values)
@@ -277,47 +299,73 @@ public sealed class SongPublicationSelectionDataProvider(
     {
         // Step 1: Get the first publication code by ID order from PublicationLanguages for Music category
         // This is the publication that should be downloaded when language is selected
-        // Filter out "iam" (Kingdom Melodies) as it's instrumental music
+        // Filter out publications without LanguageId (instrumental/melody music) - data-driven, not hard-coded
         string? firstPublicationCode = null;
         if (biblePublicationService != null)
         {
             var availablePublicationCodes = await Task.Run(async () =>
                 await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, "Music"));
             
-            // Filter out "iam" and get first by ID order
+            // Get publications without LanguageId from BiblePublications (data-driven)
+            if (scopeFactory == null)
+            {
+                Serilog.Log.Warning("GetFirstSongPublicationAndTrackForLanguageAsync: scopeFactory is null, cannot filter publications without LanguageId");
+                return (null, 0, string.Empty, string.Empty);
+            }
+            
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+            
+            var publicationsWithoutLanguage = await db.BiblePublications
+                .AsNoTracking()
+                .Where(bp => bp.Category != null && 
+                            bp.Category.CategoryName == "Music" &&
+                            bp.LanguageId == null)
+                .Select(bp => bp.PublicationCode)
+                .Distinct()
+                .ToListAsync();
+            
+            // Filter out publications without LanguageId
             var vocalPublicationCodes = availablePublicationCodes
-                .Where(code => !code.Equals("iam", StringComparison.OrdinalIgnoreCase))
+                .Where(code => !publicationsWithoutLanguage.Contains(code, StringComparer.OrdinalIgnoreCase))
                 .ToList();
             
             if (vocalPublicationCodes.Count > 0)
             {
                 // Get first publication code by ID order from PublicationLanguages
-                // This may return "iam", so we need to filter it out and get the next one
-                var firstByOrder = await Task.Run(async () =>
-                    await biblePublicationService.GetFirstPublicationCodeByOrderAsync(language.Code, "Music"));
+                // Check if it has LanguageId, if not, get next one
+                var publicationLanguages = await db.PublicationLanguages
+                    .AsNoTracking()
+                    .Include(pl => pl.Language)
+                    .Include(pl => pl.Category)
+                    .Where(pl => pl.Language != null && 
+                               pl.Language.LanguageCode == language.Code.ToUpperInvariant() &&
+                               pl.Category != null &&
+                               pl.Category.CategoryName == "Music")
+                    .OrderBy(pl => pl.Id)
+                    .ToListAsync();
                 
-                // If first is "iam", we need to get the next vocal publication
-                if (firstByOrder != null && firstByOrder.Equals("iam", StringComparison.OrdinalIgnoreCase))
+                // Find first publication that has LanguageId in BiblePublications
+                foreach (var pl in publicationLanguages)
                 {
-                    // Get all publication codes and find the next one after "iam"
-                    var allCodes = await Task.Run(async () =>
-                        await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, "Music"));
+                    var hasLanguageId = await db.BiblePublications
+                        .AsNoTracking()
+                        .AnyAsync(bp => bp.PublicationCode == pl.PublicationCode && 
+                                       bp.LanguageId != null &&
+                                       bp.Language != null &&
+                                       bp.Language.LanguageCode == language.Code.ToUpperInvariant());
                     
-                    var iamIndex = allCodes.IndexOf(firstByOrder);
-                    if (iamIndex >= 0 && iamIndex + 1 < allCodes.Count)
+                    if (hasLanguageId)
                     {
-                        firstPublicationCode = allCodes[iamIndex + 1];
-                    }
-                    else
-                    {
-                        // Fallback: use first from vocal list
-                        firstPublicationCode = vocalPublicationCodes.FirstOrDefault();
+                        firstPublicationCode = pl.PublicationCode;
+                        break;
                     }
                 }
-                else
+                
+                // Fallback: use first from vocal list if no publication with LanguageId found
+                if (string.IsNullOrEmpty(firstPublicationCode))
                 {
-                    // First is not "iam", use it
-                    firstPublicationCode = firstByOrder;
+                    firstPublicationCode = vocalPublicationCodes.FirstOrDefault();
                 }
             }
         }

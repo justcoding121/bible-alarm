@@ -32,17 +32,15 @@ public sealed class SectionLanguage
     public string SectionCode { get; set; } = string.Empty;
 
     /// <summary>
-    /// Foreign key to Language
+    /// Foreign key to Language (nullable for sections of publications without language, e.g., instrumental music like "iam")
     /// </summary>
-    [Required]
     [ForeignKey(nameof(Language))]
-    public int LanguageId { get; set; }
+    public int? LanguageId { get; set; }
 
     /// <summary>
-    /// Navigation property to Language
+    /// Navigation property to Language (nullable for sections of publications without language)
     /// </summary>
-    [Required]
-    public Media.Language Language { get; set; } = null!;
+    public Media.Language? Language { get; set; }
 
     /// <summary>
     /// Foreign key to PublicationLanguage (relates this section language to the publication language)

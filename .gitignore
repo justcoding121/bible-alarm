@@ -228,6 +228,8 @@ docs/manifest.json
 .tools/_index/*
 !.tools/_index/index.zip
 _index*/
+!.tools/_index/index.zip
+!.tools/_index/index.zip
 
 BundleArtifacts*/
 

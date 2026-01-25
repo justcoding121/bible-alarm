@@ -272,7 +272,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (sectionViewModelList, selectedSection) = await Task.Run(async () =>
         {
-            var sectionsFromDb = await mediaService.GetMusicSections(publicationCode);
+            var sectionsFromDb = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
 
             if (sectionsFromDb == null || sectionsFromDb.Count == 0)
             {

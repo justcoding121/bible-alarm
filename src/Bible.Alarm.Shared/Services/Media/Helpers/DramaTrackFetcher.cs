@@ -51,6 +51,11 @@ internal sealed class DramaTrackFetcher
 
         var allTracks = new List<BiblePublicationTrack>();
         var trackNumber = 1;
+        var successfulSections = 0;
+        var failedSections = 0;
+
+        logger.Information("DramaTrackFetcher: Processing {SectionCount} sections for publication {PublicationCode} in language {LanguageCode}",
+            sectionCodes.Count, normalizedPublicationCode, normalizedLanguageCode);
 
         foreach (var sectionCode in sectionCodes.OrderBy(sc => sc))
         {
@@ -59,22 +64,40 @@ internal sealed class DramaTrackFetcher
                 var (tracks, nextTrackNumber) = await FetchTracksForSectionAsync(
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode, baseUrl, 
                     trackNumber, cancellationToken);
-                allTracks.AddRange(tracks);
-                trackNumber = nextTrackNumber;
+                
+                if (tracks.Count > 0)
+                {
+                    allTracks.AddRange(tracks);
+                    trackNumber = nextTrackNumber;
+                    successfulSections++;
+                    logger.Debug("DramaTrackFetcher: Fetched {TrackCount} tracks for section {SectionCode}",
+                        tracks.Count, sectionCode);
+                }
+                else
+                {
+                    failedSections++;
+                    logger.Warning("DramaTrackFetcher: No tracks found for section {SectionCode}",
+                        sectionCode);
+                }
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
             {
-                logger.Debug("Section {SectionCode} not available for drama {PublicationCode} in language {LanguageCode}",
+                failedSections++;
+                logger.Debug("DramaTrackFetcher: Section {SectionCode} not available for drama {PublicationCode} in language {LanguageCode}",
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode);
                 continue;
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to fetch section {SectionCode} for drama {PublicationCode} in language {LanguageCode}",
+                failedSections++;
+                logger.Warning(ex, "DramaTrackFetcher: Failed to fetch section {SectionCode} for drama {PublicationCode} in language {LanguageCode}",
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode);
                 continue;
             }
         }
+
+        logger.Information("DramaTrackFetcher: Completed processing. Successful sections: {SuccessfulCount}, Failed sections: {FailedCount}, Total tracks: {TrackCount}",
+            successfulSections, failedSections, allTracks.Count);
 
         return allTracks;
     }

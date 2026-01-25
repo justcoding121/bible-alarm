@@ -23,6 +23,25 @@ public static class DisplayNamePreservationHelper
 
     public static void PreserveBiblePublicationDisplayNames(ScheduleStateItem actionSchedule, ScheduleStateItem existingScheduleItem)
     {
+        // ALWAYS preserve category - category can only be changed via CategorySelectionAction
+        // If category is null in action schedule, preserve it from existing schedule
+        if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCategoryName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationCategoryName))
+        {
+            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Preserving existing BiblePublicationCategoryName: {CategoryName}",
+                existingScheduleItem.BiblePublicationCategoryName);
+            actionSchedule.BiblePublicationCategoryId = existingScheduleItem.BiblePublicationCategoryId;
+            actionSchedule.BiblePublicationCategoryName = existingScheduleItem.BiblePublicationCategoryName;
+        }
+        else if (!string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCategoryName))
+        {
+            Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Using action's BiblePublicationCategoryName: {CategoryName}",
+                actionSchedule.BiblePublicationCategoryName);
+        }
+        else
+        {
+            Log.Warning("ApplicationReducer: OnUpdateScheduleFromViewModel - Category is null in both action and existing schedule. This should not happen - category must always be selected.");
+        }
+
         if (string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationLanguageName) && !string.IsNullOrWhiteSpace(existingScheduleItem.BiblePublicationLanguageName))
         {
             Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Preserving existing BiblePublicationLanguageName: {LanguageName}",

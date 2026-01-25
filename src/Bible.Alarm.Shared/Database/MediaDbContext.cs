@@ -76,17 +76,21 @@ public class MediaDbContext : DbContext
             .IsUnique();
 
         // Configure PublicationLanguage relationships
+        // Language relationship is optional (LanguageId can be null for publications without language, e.g., instrumental music)
         modelBuilder.Entity<PublicationLanguage>()
             .HasOne(pl => pl.Language)
             .WithMany()
             .HasForeignKey(pl => pl.LanguageId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Configure SectionLanguage relationships
+        // Language relationship is optional (LanguageId can be null for sections of publications without language)
         modelBuilder.Entity<SectionLanguage>()
             .HasOne(sl => sl.Language)
             .WithMany()
             .HasForeignKey(sl => sl.LanguageId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         // SectionLanguage has a required relationship to PublicationLanguage

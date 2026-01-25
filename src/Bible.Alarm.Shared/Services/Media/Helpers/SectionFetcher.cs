@@ -24,11 +24,15 @@ internal sealed class SectionFetcher
 {
     private readonly HttpClient httpClient;
     private readonly ILogger logger;
+    private readonly EnglishTrackParser trackParser;
+    private readonly DramaTrackParser dramaTrackParser;
 
     public SectionFetcher(HttpClient httpClient, ILogger logger)
     {
         this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        this.trackParser = new EnglishTrackParser(logger);
+        this.dramaTrackParser = new DramaTrackParser(logger);
     }
 
     public async Task<bool> FetchPublicationSectionsAsync(
@@ -140,13 +144,31 @@ internal sealed class SectionFetcher
                     localizedPubName = extractedName;
                 }
 
-                // Create section (without tracks - those are fetched separately)
+                // Parse tracks from the API response (files element contains track data)
+                // This avoids making a separate API call later
+                var tracks = new List<BiblePublicationTrack>();
+                if (isBible)
+                {
+                    // Parse Bible tracks from files element
+                    tracks = trackParser.ParseBibleTracks(
+                        filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode, baseUrl);
+                }
+                else
+                {
+                    // Parse drama tracks from files element
+                    // Drama tracks use a different parsing logic
+                    int nextTrackNumber;
+                    tracks = dramaTrackParser.ParseTracksFromJson(
+                        filesElement, normalizedLanguageCode, sectionCode, baseUrl, startTrackNumber: 1, out nextTrackNumber);
+                }
+
+                // Create section with tracks parsed from API response
                 var section = new BiblePublicationSection
                 {
                     Name = sectionName ?? sectionCode,
                     SectionCode = sectionCode.ToLowerInvariant(), // Use section code from API
                     UrlParams = new List<UrlParam>(),
-                    Tracks = new List<BiblePublicationTrack>()
+                    Tracks = tracks
                 };
 
                 // Add URL params based on type
@@ -213,6 +235,18 @@ internal sealed class SectionFetcher
             return false;
         }
 
+        // Temporarily remove tracks from sections before saving
+        // We'll add them back after sections have IDs to avoid foreign key constraint errors
+        var tracksBySection = new Dictionary<BiblePublicationSection, List<BiblePublicationTrack>>();
+        foreach (var section in sections)
+        {
+            if (section.Tracks.Count > 0)
+            {
+                tracksBySection[section] = section.Tracks.ToList();
+                section.Tracks.Clear();
+            }
+        }
+
         // Create publication
         var publicationName = localizedPubName ?? englishPublication.Name;
         var publication = new BiblePublication
@@ -238,6 +272,25 @@ internal sealed class SectionFetcher
         db.BiblePublications.Add(publication);
         await db.SaveChangesAsync(cancellationToken);
 
+        // Now add tracks back to sections (sections now have IDs)
+        foreach (var kvp in tracksBySection)
+        {
+            var section = kvp.Key;
+            var tracks = kvp.Value;
+            
+            // Set section reference on tracks
+            foreach (var track in tracks)
+            {
+                track.Section = section;
+                track.Publication = publication;
+            }
+            
+            section.Tracks.AddRange(tracks);
+        }
+
+        // Save tracks
+        await db.SaveChangesAsync(cancellationToken);
+
         logger.Information("Successfully fetched {Count} sections for publication {PublicationCode} in language {LanguageCode}",
             sections.Count, normalizedPublicationCode, normalizedLanguageCode);
 
@@ -254,6 +307,15 @@ internal sealed class SectionFetcher
         BiblePublicationSection section,
         CancellationToken cancellationToken)
     {
+        // Check if tracks already exist (they might have been fetched when sections were fetched)
+        await db.Entry(section).Collection(s => s.Tracks).LoadAsync(cancellationToken);
+        if (section.Tracks != null && section.Tracks.Count > 0)
+        {
+            logger.Debug("Tracks already exist for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}, skipping fetch",
+                normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
+            return true;
+        }
+
         // Determine fetching logic based on category
         // Bible uses booknum parameter, Drama uses pub=sectionCode
         var categoryName = publication.Category?.CategoryName ?? "";

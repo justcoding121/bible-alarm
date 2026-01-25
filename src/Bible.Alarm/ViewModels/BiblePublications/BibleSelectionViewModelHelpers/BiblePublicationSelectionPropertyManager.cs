@@ -98,8 +98,8 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
 
             if (selectedLanguages.Count > 1)
             {
-                Serilog.Log.Warning("[BibleSelectionPropertyManager] Multiple languages selected: {Languages}",
-                    string.Join(", ", selectedLanguages.Select(l => $"{l.Name} ({l.Code})")));
+                Serilog.Log.Warning("[BibleSelectionPropertyManager] Multiple languages selected: {Count} languages",
+                    selectedLanguages.Count);
             }
 
             if (selectedLanguage != null)
@@ -142,18 +142,29 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
         }
 
         var publicationCode = stateValue.CurrentSchedule.BiblePublicationCode;
-        if (string.IsNullOrEmpty(publicationCode))
+        
+        // Clear ALL previous selections first to ensure only one publication is selected
+        var mapping = dataProvider.GetPublicationVMsMapping();
+        foreach (var pub in mapping.Values)
         {
-            return;
+            pub.IsSelected = false;
         }
-
+        
+        // Also clear the previous SelectedPublication
         if (SelectedPublication != null)
         {
             SelectedPublication.IsSelected = false;
         }
 
-        if (!dataProvider.GetPublicationVMsMapping().TryGetValue(publicationCode, out var publication))
+        if (string.IsNullOrEmpty(publicationCode))
         {
+            SelectedPublication = null;
+            return;
+        }
+
+        if (!mapping.TryGetValue(publicationCode, out var publication))
+        {
+            SelectedPublication = null;
             return;
         }
 

@@ -262,5 +262,89 @@ public class ScheduleEffects(
         // No sync needed - CurrentSchedule is the single source of truth
         await Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Effect: Auto-populate schedule when category is selected.
+    /// Finds first language and publication for the category, harvests if needed, and populates schedule.
+    /// </summary>
+    [EffectMethod]
+    public async Task HandleCategorySelection(Bible.Alarm.Stores.Actions.BiblePublications.CategorySelectionAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
+            var currentMediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>()!;
+            var currentBiblePublicationService = BiblePublicationService ?? ServiceProviderManager.GetService<IBiblePublicationService>()!;
+            var currentBiblePublicationSectionService = biblePublicationSectionService ?? ServiceProviderManager.GetService<IBiblePublicationSectionService>();
+            var languageContentService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>()!;
+            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>()!;
+            
+            var handler = new CategorySelectionAutoPopulateHandler(
+                currentBiblePublicationService,
+                currentMediaService,
+                languageContentService,
+                new Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers.BiblePublicationSelectionItemSelector(
+                    currentMediaService,
+                    currentState,
+                    currentBiblePublicationService,
+                    currentBiblePublicationSectionService,
+                    languageContentService,
+                    scopeFactory),
+                currentState,
+                scopeFactory,
+                Log.Logger);
+            
+            await handler.HandleAsync(action, dispatcher);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error handling category selection for category={CategoryName}", action.CategoryName);
+        }
+    }
+
+    /// <summary>
+    /// Effect: Auto-populate cascade when Bible publication fields are updated.
+    /// Cascade order: Language → Publication → Section → Track
+    /// </summary>
+    [EffectMethod]
+    public async Task HandleBiblePublicationCascade(UpdateScheduleFromViewModelAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            // Only trigger if this is a bible publication update
+            if (!action.BiblePublicationUpdated)
+            {
+                return;
+            }
+
+            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
+            var currentMediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>()!;
+            var currentBiblePublicationService = BiblePublicationService ?? ServiceProviderManager.GetService<IBiblePublicationService>()!;
+            var currentBiblePublicationSectionService = biblePublicationSectionService ?? ServiceProviderManager.GetService<IBiblePublicationSectionService>();
+            var languageContentService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>()!;
+            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>()!;
+            
+            var handler = new BiblePublicationCascadeHandler(
+                currentBiblePublicationService,
+                currentMediaService,
+                languageContentService,
+                new Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers.BiblePublicationSelectionItemSelector(
+                    currentMediaService,
+                    currentState,
+                    currentBiblePublicationService,
+                    currentBiblePublicationSectionService,
+                    languageContentService,
+                    scopeFactory),
+                currentState,
+                scopeFactory,
+                Log.Logger);
+            
+            await handler.HandleAsync(dispatcher);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error handling Bible publication cascade");
+        }
+    }
 }
 

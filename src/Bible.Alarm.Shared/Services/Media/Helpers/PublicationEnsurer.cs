@@ -42,28 +42,22 @@ internal sealed class PublicationEnsurer
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
-            // "iam" (Kingdom Melodies) doesn't support ad-hoc fetching - it's only seeded once with null language
-            if (normalizedPublicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
-            {
-                logger.Warning("Publication {PublicationCode} (Kingdom Melodies) doesn't support ad-hoc fetching", publicationCode);
-                return false;
-            }
-
             // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            // For others (e.g., "gnj"), preserve exact case
+            var lowerCode = publicationCode.ToLowerInvariant();
+            var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
             string publicationCodeForDb;
             if (isDrama)
             {
-                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                publicationCodeForDb = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
                     ? "Dramas"
                     : "DramaticBibleReadings";
             }
             else
             {
-                publicationCodeForDb = normalizedPublicationCode;
+                publicationCodeForDb = publicationCode; // Preserve exact case (e.g., "gnj")
             }
 
             // Check if publication already exists for this language
@@ -83,8 +77,9 @@ internal sealed class PublicationEnsurer
                 return true;
             }
 
-            // Publication doesn't exist - check if it's available in PublicationLanguage
+            // Publication doesn't exist - check if it's available in PublicationLanguage with a HarvestType
             // Use case-sensitive code for dramas when querying database
+            // HarvestType is sufficient to determine if ad-hoc fetching is possible
             var publicationLanguage = await db.PublicationLanguages
                 .AsNoTracking()
                 .Include(pl => pl.Language)
@@ -97,20 +92,30 @@ internal sealed class PublicationEnsurer
 
             if (publicationLanguage == null)
             {
-                logger.Warning("Language {LanguageCode} is not available for publication {PublicationCode}",
+                logger.Warning("Language {LanguageCode} is not available for publication {PublicationCode} (not in PublicationLanguages)",
                     languageCode, publicationCode);
+                return false;
+            }
+
+            // If PublicationLanguage has LanguageId == null, it means the publication doesn't have language-specific content
+            // and can't be ad-hoc fetched with a language code
+            if (publicationLanguage.LanguageId == null)
+            {
+                logger.Warning("Publication {PublicationCode} doesn't support ad-hoc fetching with language code (has LanguageId = NULL in PublicationLanguages)",
+                    publicationCode);
                 return false;
             }
 
             // Determine harvest type to decide which fetch method to use
             var harvestType = publicationLanguage.HarvestType ?? 
-                PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+                PublicationTypeHelper.GetHarvestType(lowerCode);
 
             // Fetch based on harvest type
             if (harvestType == Models.Enums.HarvestType.Sectioned)
             {
-                // Publication has sections - fetch sections
-                return await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken);
+                // Publication has sections - fetch only the first section with tracks (for language selection)
+                // This avoids fetching all sections when user just selects a language
+                return await FetchFirstSectionWithTracksAsync(publicationCode, languageCode, cancellationToken);
             }
             else
             {
@@ -361,13 +366,14 @@ internal sealed class PublicationEnsurer
             }
             else
             {
-                // Publication doesn't exist - fetch all sections to create publication, then fetch tracks for first section
-                // Note: This fetches all sections, but we only fetch tracks for the first one
-                var sectionsFetched = await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken);
+                // Publication doesn't exist - fetch only the first section to create publication, then fetch tracks
+                // This avoids fetching all sections when we only need the first one
+                var firstSectionFetched = await FetchSingleSectionForNewPublicationAsync(
+                    publicationCode, firstSectionCode, languageCode, cancellationToken);
 
-                if (sectionsFetched)
+                if (firstSectionFetched)
                 {
-                    // Now fetch tracks for first section only
+                    // Now fetch tracks for first section
                     return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
                 }
 
@@ -546,5 +552,19 @@ internal sealed class PublicationEnsurer
                 publicationCode, languageCode);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Fetches only the first section when creating a new publication.
+    /// This avoids fetching all sections when we only need the first one.
+    /// </summary>
+    private async Task<bool> FetchSingleSectionForNewPublicationAsync(
+        string publicationCode,
+        string firstSectionCode,
+        string languageCode,
+        CancellationToken cancellationToken = default)
+    {
+        // Use the new method that fetches only the first section
+        return await languageContentService.FetchFirstSectionOnlyAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
     }
 }

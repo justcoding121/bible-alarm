@@ -68,7 +68,8 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
 
         // Initialize helper classes
         commandInitializer = new BiblePublicationCommandInitializer(logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider);
-        displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger);
+        var mediaService = serviceProvider.GetRequiredService<Bible.Alarm.Services.Media.Interfaces.IMediaService>();
+        displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger, mediaService);
         propertyChangeDetector = new BiblePublicationPropertyChangeDetector(displayTextProvider);
         propertyNotifier = new BiblePublicationPropertyNotifier(propertyName => OnPropertyChanged(propertyName));
 

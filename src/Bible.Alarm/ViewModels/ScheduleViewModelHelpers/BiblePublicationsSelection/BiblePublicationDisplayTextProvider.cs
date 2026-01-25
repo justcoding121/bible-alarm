@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -15,11 +16,13 @@ public sealed class BiblePublicationDisplayTextProvider
 {
     private readonly IState<ApplicationState> state;
     private readonly ILogger logger;
+    private readonly IMediaService mediaService;
 
-    public BiblePublicationDisplayTextProvider(IState<ApplicationState> state, ILogger logger)
+    public BiblePublicationDisplayTextProvider(IState<ApplicationState> state, ILogger logger, IMediaService mediaService)
     {
         this.state = state;
         this.logger = logger;
+        this.mediaService = mediaService;
     }
 
     /// <summary>
@@ -70,6 +73,13 @@ public sealed class BiblePublicationDisplayTextProvider
             return currentSchedule.BiblePublicationLanguageName;
         }
 
+        // Return placeholder text if category is selected but language is not
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName))
+        {
+            logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - CurrentSchedule is null or BiblePublicationLanguageName is empty. Returning placeholder text.");
+            return "Select Language";
+        }
+
         logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - CurrentSchedule is null or BiblePublicationLanguageName is empty. Returning empty string.");
         return string.Empty;
     }
@@ -88,13 +98,19 @@ public sealed class BiblePublicationDisplayTextProvider
         string publicationCode = currentSchedule?.BiblePublicationCode?.ToLowerInvariant()
             ?? string.Empty;
 
-        if (string.IsNullOrEmpty(publicationCode))
+        if (!string.IsNullOrEmpty(publicationCode))
         {
-            return string.Empty;
+            // Format publication code using helper as fallback
+            return PublicationDisplayHelper.GetDisplayName(publicationCode);
         }
 
-        // Format publication code using helper as fallback
-        return PublicationDisplayHelper.GetDisplayName(publicationCode);
+        // Return placeholder text if category is selected but publication is not
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName))
+        {
+            return "Select Publication";
+        }
+
+        return string.Empty;
     }
 
     public string GetSectionDisplayText()
@@ -105,6 +121,16 @@ public sealed class BiblePublicationDisplayTextProvider
         if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationSectionName))
         {
             return currentSchedule.BiblePublicationSectionName;
+        }
+
+        // Return placeholder text if publication is selected but section is not
+        // Only show placeholder if section row is visible (i.e., for sectioned publications)
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
+        {
+            if (GetIsSectionVisible())
+            {
+                return "Select Section";
+            }
         }
 
         return string.Empty;
@@ -118,6 +144,16 @@ public sealed class BiblePublicationDisplayTextProvider
         if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationTrackTitle))
         {
             return currentSchedule.BiblePublicationTrackTitle;
+        }
+
+        // Return placeholder text if publication is selected but track is not
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
+        {
+            // For non-sectioned publications (dramas), show "Select Episode"
+            // For sectioned publications, show "Select Track"
+            bool hasSectionStructure = PublicationTypeHelper.HasSectionStructure(currentSchedule.BiblePublicationCode);
+            
+            return hasSectionStructure ? "Select Track" : "Select Episode";
         }
 
         return string.Empty;
@@ -137,7 +173,10 @@ public sealed class BiblePublicationDisplayTextProvider
 
     /// <summary>
     /// Determines if the language row should be visible.
-    /// Returns false when category is Music (melodies don't have languages) or when language doesn't exist for the publication.
+    /// Returns false when ALL publications in the category have LanguageId == null (no language FK).
+    /// This is data-driven - checks if PublicationLanguages table has any entries for this category.
+    /// If PublicationLanguages has entries, it means there are publications with languages.
+    /// If PublicationLanguages is empty for this category, it means all publications have LanguageId == null.
     /// </summary>
     public bool GetIsLanguageVisible()
     {
@@ -147,21 +186,32 @@ public sealed class BiblePublicationDisplayTextProvider
             return true; // Default to visible
         }
 
-        // Hide language row for Music category (melodies don't have languages)
-        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
-            string.Equals(currentSchedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase))
+        var categoryName = currentSchedule.BiblePublicationCategoryName;
+        if (string.IsNullOrWhiteSpace(categoryName))
         {
-            return false;
+            return true; // No category selected, show language row
         }
 
-        // Hide language row if language doesn't exist for the publication
-        if (string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode) &&
-            !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
+        // Data-driven check: If PublicationLanguages has any entries for this category,
+        // it means there are publications with languages, so show the language row.
+        // If PublicationLanguages is empty for this category, all publications have LanguageId == null, so hide it.
+        // This checks the discovery table (PublicationLanguages) which is faster than querying BiblePublications.
+        try
         {
-            return false;
+            // Use Task.Run to avoid blocking, but we need to wait for the result
+            // This is acceptable since it's only called when the UI needs to determine visibility
+            // and GetBiblePublicationLanguages queries PublicationLanguages which is fast
+            var languages = Task.Run(async () => 
+                await mediaService.GetBiblePublicationLanguages(categoryName)).GetAwaiter().GetResult();
+            
+            // If no languages found in PublicationLanguages, it means all publications in this category have LanguageId == null
+            return languages.Count > 0;
         }
-
-        return true;
+        catch
+        {
+            // On error, default to visible to be safe
+            return true;
+        }
     }
 }
 

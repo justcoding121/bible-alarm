@@ -28,6 +28,12 @@ public static class ScheduleStateSyncHelper
             Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Updating CurrentSchedule. New LanguageName: {LanguageName}, PublicationName: {PublicationName}",
                 actionSchedule.BiblePublicationLanguageName ?? "null",
                 actionSchedule.BiblePublicationName ?? "null");
+            
+            // IMPORTANT: Preserve display names (including category) from existing CurrentSchedule
+            // This ensures category is never lost when updating CurrentSchedule
+            // Category can only be changed via CategorySelectionAction
+            DisplayNamePreservationHelper.PreserveDisplayNamesFromExisting(actionSchedule, state.CurrentSchedule);
+            
             return actionSchedule.DeepClone();
         }
 

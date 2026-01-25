@@ -64,10 +64,15 @@ internal sealed class PublicationLanguageSeeder
         await SeedEnglishForAllPublications(db);
         await db.SaveChangesAsync(); // Save E entries first to avoid duplicates
 
+        // Seed publications without language (LanguageId == null) - data-driven, not hard-coded
+        // These are publications like "iam" (instrumental music) that don't have a language
+        await SeedPublicationsWithoutLanguage(db);
+        await db.SaveChangesAsync(); // Save entries without language
+
         // Seed publication languages
         if (dataStore.PublicationLanguages.Count == 0)
         {
-            logger.Information("Seeded English (E) for all publications");
+            logger.Information("Seeded English (E) for all publications and publications without language");
             return;
         }
 
@@ -174,6 +179,21 @@ internal sealed class PublicationLanguageSeeder
         {
             var normalizedPublicationCode = publicationCode.ToLowerInvariant();
             
+            // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
+            // This matches the logic in SeedLanguageForPublication to prevent duplicates
+            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
+            else
+            {
+                publicationCodeForDb = normalizedPublicationCode;
+            }
+            
             // Determine harvest type and category based on publication code
             var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
             var categoryName = JwSourceHelper.GetCategoryName(normalizedPublicationCode);
@@ -191,14 +211,15 @@ internal sealed class PublicationLanguageSeeder
                 continue;
             }
             
+            // Check if already exists (use case-sensitive code for dramas)
             var exists = await db.PublicationLanguages
-                .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == englishLanguage.Id);
+                .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == englishLanguage.Id);
 
             if (!exists)
             {
                 var publicationLanguage = new PublicationLanguage
                 {
-                    PublicationCode = normalizedPublicationCode,
+                    PublicationCode = publicationCodeForDb, // Use case-sensitive code for dramas
                     Language = englishLanguage,
                     HarvestType = harvestType,
                     Category = category,
@@ -210,13 +231,106 @@ internal sealed class PublicationLanguageSeeder
             {
                 // Update existing entry with harvest type and category if missing
                 var existing = await db.PublicationLanguages
-                    .FirstOrDefaultAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == englishLanguage.Id);
+                    .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == englishLanguage.Id);
                 
                 if (existing != null)
                 {
                     existing.HarvestType = harvestType;
                     existing.Category = category;
                     existing.CategoryId = category.Id;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Seeds PublicationLanguage entries for publications without language (LanguageId == null).
+    /// This is data-driven - finds all publications in BiblePublications with LanguageId == null
+    /// and creates corresponding PublicationLanguage entries.
+    /// </summary>
+    private async Task SeedPublicationsWithoutLanguage(MediaDbContext db)
+    {
+        // Get all publications without language (LanguageId == null) - data-driven, not hard-coded
+        var publicationsWithoutLanguage = await db.BiblePublications
+            .AsNoTracking()
+            .Include(bp => bp.Category)
+            .Where(bp => bp.LanguageId == null)
+            .Select(bp => new { bp.PublicationCode, bp.Category })
+            .Distinct()
+            .ToListAsync();
+
+        if (publicationsWithoutLanguage.Count == 0)
+        {
+            logger.Debug("No publications without language found to seed");
+            return;
+        }
+
+        logger.Information("Seeding PublicationLanguage entries for {Count} publication(s) without language", publicationsWithoutLanguage.Count);
+
+        foreach (var pub in publicationsWithoutLanguage)
+        {
+            if (pub.Category == null)
+            {
+                logger.Warning("Category not found for publication {PublicationCode} without language, skipping", pub.PublicationCode);
+                continue;
+            }
+
+            // Normalize publication code for database (case-sensitive for dramas)
+            var normalizedPublicationCode = pub.PublicationCode.ToLowerInvariant();
+            var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
+            else
+            {
+                publicationCodeForDb = normalizedPublicationCode;
+            }
+
+            // Determine harvest type based on publication code
+            var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
+
+            // Check if already exists (with LanguageId == null)
+            var exists = await db.PublicationLanguages
+                .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null);
+
+            if (!exists)
+            {
+                // Query Category from database to ensure it's tracked
+                var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == pub.Category.Id);
+                if (category == null)
+                {
+                    logger.Warning("Category with Id {CategoryId} not found in database for publication {PublicationCode}, skipping", pub.Category.Id, pub.PublicationCode);
+                    continue;
+                }
+
+                var publicationLanguage = new PublicationLanguage
+                {
+                    PublicationCode = publicationCodeForDb,
+                    LanguageId = null, // No language FK for publications without language
+                    Language = null,
+                    HarvestType = harvestType,
+                    Category = category,
+                    CategoryId = category.Id
+                };
+                db.PublicationLanguages.Add(publicationLanguage);
+                logger.Debug("Added PublicationLanguage entry for {PublicationCode} without language (Category: {CategoryName})",
+                    publicationCodeForDb, pub.Category.CategoryName);
+            }
+            else
+            {
+                // Update existing entry with harvest type and category if missing
+                var existing = await db.PublicationLanguages
+                    .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null);
+                
+                if (existing != null)
+                {
+                    existing.HarvestType = harvestType;
+                    existing.Category = pub.Category;
+                    existing.CategoryId = pub.Category.Id;
                 }
             }
         }

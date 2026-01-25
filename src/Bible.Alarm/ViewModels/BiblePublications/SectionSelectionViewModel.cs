@@ -64,86 +64,110 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
         TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async x =>
         {
-            if (x == null)
+            try
             {
-                return;
-            }
-
-            // Always use CurrentSchedule as the source of truth for language/publication codes
-            // This ensures we use the latest state, not stale data from 'current' field
-            var currentSchedule = state.Value.CurrentSchedule;
-            if (currentSchedule == null ||
-                string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode) ||
-                string.IsNullOrEmpty(currentSchedule.BiblePublicationCode))
-            {
-                return;
-            }
-
-            // Check if the selected section is the same as the current section
-            var currentSectionNumber = currentSchedule.BiblePublicationSectionNumber;
-            var isSameSection = currentSectionNumber.HasValue && currentSectionNumber.Value == x.Number;
-
-            // Get tracks for the selected section using the latest language/publication from CurrentSchedule
-            var tracks = await Task.Run(async () =>
-                await mediaService.GetBiblePublicationTracks(currentSchedule.BiblePublicationLanguageCode, currentSchedule.BiblePublicationCode, x.Number));
-
-            if (tracks == null || tracks.Count == 0)
-            {
-                return;
-            }
-
-            // If it's the same section, preserve the current track number (if valid)
-            // Otherwise, use the first track
-            int trackNumber;
-            string? trackTitle = null;
-            if (isSameSection && currentSchedule.BiblePublicationTrackNumber.HasValue)
-            {
-                var currentTrackNumber = currentSchedule.BiblePublicationTrackNumber.Value;
-                // Verify the current track exists in the tracks list
-                if (tracks.TryGetValue(currentTrackNumber, out var existingTrack))
+                if (x == null)
                 {
-                    trackNumber = currentTrackNumber;
-                    trackTitle = existingTrack.Title;
+                    return;
+                }
+
+                // Always use CurrentSchedule as the source of truth for language/publication codes
+                // This ensures we use the latest state, not stale data from 'current' field
+                var currentSchedule = state.Value.CurrentSchedule;
+                if (currentSchedule == null || string.IsNullOrEmpty(currentSchedule.BiblePublicationCode))
+                {
+                    logger.Warning("SectionSelectionViewModel: TrackSelectionCommand - CurrentSchedule is null or PublicationCode is empty");
+                    return;
+                }
+                
+                // Validate section number - section 0 is invalid (sections should start from 1)
+                if (x.Number <= 0)
+                {
+                    logger.Warning("SectionSelectionViewModel: TrackSelectionCommand - Invalid section number {SectionNumber} for publication={PublicationCode}",
+                        x.Number, currentSchedule.BiblePublicationCode);
+                    return;
+                }
+                
+                // Language code can be null/empty for publications without language (e.g., "iam")
+                // GetBiblePublicationTracks handles this case
+                var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
+
+                // Check if the selected section is the same as the current section
+                var currentSectionNumber = currentSchedule.BiblePublicationSectionNumber;
+                var isSameSection = currentSectionNumber.HasValue && currentSectionNumber.Value == x.Number;
+
+                // Get tracks for the selected section using the latest language/publication from CurrentSchedule
+                // Language code can be null/empty for publications without language - GetBiblePublicationTracks handles this
+                var tracks = await Task.Run(async () =>
+                    await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode, x.Number));
+
+                if (tracks == null || tracks.Count == 0)
+                {
+                    logger.Warning("SectionSelectionViewModel: TrackSelectionCommand - No tracks found for section={SectionNumber}, publication={PublicationCode}, language={LanguageCode}",
+                        x.Number, currentSchedule.BiblePublicationCode, languageCode ?? "(null)");
+                    return;
+                }
+
+                // If it's the same section, preserve the current track number (if valid)
+                // Otherwise, use the first track
+                int trackNumber;
+                string? trackTitle = null;
+                if (isSameSection && currentSchedule.BiblePublicationTrackNumber.HasValue)
+                {
+                    var currentTrackNumber = currentSchedule.BiblePublicationTrackNumber.Value;
+                    // Verify the current track exists in the tracks list
+                    if (tracks.TryGetValue(currentTrackNumber, out var existingTrack))
+                    {
+                        trackNumber = currentTrackNumber;
+                        trackTitle = existingTrack.Title;
+                    }
+                    else
+                    {
+                        // Current track doesn't exist in this section, use first track
+                        var firstTrack = tracks.Values.First();
+                        trackNumber = firstTrack.Number;
+                        trackTitle = firstTrack.Title;
+                    }
                 }
                 else
                 {
-                    // Current track doesn't exist in this section, use first track
+                    // Different section selected, use first track
                     var firstTrack = tracks.Values.First();
                     trackNumber = firstTrack.Number;
                     trackTitle = firstTrack.Title;
                 }
+
+                // Create BiblePublicationStateItem with selected section and track
+                // IMPORTANT: Include display names from list items (no database query needed)
+                // Get language/publication codes and display names from CurrentSchedule (they should already be populated)
+                // IMPORTANT: Always preserve category from current schedule - category can only be changed via CategorySelectionAction
+                var biblePublicationItem = new BiblePublicationStateItem
+                {
+                    CategoryId = currentSchedule.BiblePublicationCategoryId,
+                    CategoryName = currentSchedule.BiblePublicationCategoryName,
+                    LanguageCode = languageCode, // Can be empty for publications without language
+                    PublicationCode = currentSchedule.BiblePublicationCode,
+                    SectionNumber = x.Number,
+                    TrackNumber = trackNumber,
+                    // Store display names from list items and current state
+                    LanguageName = currentSchedule.BiblePublicationLanguageName,
+                    LanguageDirection = currentSchedule.BiblePublicationLanguageDirection,
+                    PublicationName = currentSchedule.BiblePublicationName,
+                    SectionName = x.Name,
+                    TrackTitle = trackTitle
+                };
+
+                // Dispatch TrackSelectedAction to update CurrentBiblePublicationSchedule
+                // Effect will automatically sync to CurrentSchedule
+                dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
+
+                // Navigate back to schedule page
+                await navigationService.PopModalAsync();
             }
-            else
+            catch (Exception ex)
             {
-                // Different section selected, use first track
-                var firstTrack = tracks.Values.First();
-                trackNumber = firstTrack.Number;
-                trackTitle = firstTrack.Title;
+                logger.Error(ex, "SectionSelectionViewModel: TrackSelectionCommand - Error selecting section");
             }
-
-            // Create BiblePublicationStateItem with selected section and track
-            // IMPORTANT: Include display names from list items (no database query needed)
-            // Get language/publication codes and display names from CurrentSchedule (they should already be populated)
-            var biblePublicationItem = new BiblePublicationStateItem
-            {
-                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationCode,
-                SectionNumber = x.Number,
-                TrackNumber = trackNumber,
-                // Store display names from list items and current state
-                LanguageName = currentSchedule.BiblePublicationLanguageName,
-                LanguageDirection = currentSchedule.BiblePublicationLanguageDirection,
-                PublicationName = currentSchedule.BiblePublicationName,
-                SectionName = x.Name,
-                TrackTitle = trackTitle
-            };
-
-            // Dispatch TrackSelectedAction to update CurrentBiblePublicationSchedule
-            // Effect will automatically sync to CurrentSchedule
-            dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
-
-            // Navigate back to schedule page
-            await navigationService.PopModalAsync();
         });
 
         // Initialize helper
@@ -203,10 +227,11 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+        var newLanguageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
         var newPublicationCode = currentSchedule.BiblePublicationCode;
 
-        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
+        // Publication code is required, but language code can be null/empty for publications without language
+        if (string.IsNullOrEmpty(newPublicationCode))
         {
             return;
         }
@@ -221,31 +246,16 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         lastPublicationCode = newPublicationCode;
 
         // Derive from CurrentSchedule (single source of truth)
-        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+        // Language code can be null/empty for publications without language
+        current = new BiblePublicationSchedule
         {
-            // Create BiblePublicationSchedule from CurrentSchedule
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
-                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
-            };
-            lastCurrent = current;
-        }
-        else
-        {
-            // Create a minimal BiblePublicationSchedule from CurrentSchedule
-            current = new BiblePublicationSchedule
-            {
-                LanguageCode = newLanguageCode,
-                PublicationCode = newPublicationCode,
-                SectionCode = (currentSchedule?.BiblePublicationSectionNumber ?? 1).ToString(),
-                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
-            };
-            lastCurrent = current;
-        }
+            LanguageCode = newLanguageCode, // Can be empty for publications without language
+            PublicationCode = newPublicationCode,
+            SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
+            TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+            FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+        };
+        lastCurrent = current;
 
         if (!initComplete)
         {
@@ -360,8 +370,11 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         {
             var sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
 
-            if (sectionsFromDb == null)
+            if (sectionsFromDb == null || sectionsFromDb.Count == 0)
             {
+                logger.Warning("PopulateSections: No sections found for publication={PublicationCode}, language={LanguageCode}. " +
+                    "This publication may not be harvested yet or may not have sections.",
+                    publicationCode, languageCode ?? "(null)");
                 return (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<int, BiblePublicationSectionListViewItemModel>(), (BiblePublicationSectionListViewItemModel?)null);
             }
 

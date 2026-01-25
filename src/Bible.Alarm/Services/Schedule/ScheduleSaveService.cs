@@ -117,7 +117,17 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             // Disable music when Music category is selected (Music category publications don't use the music selection container)
             var isMusicCategory = !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
                                   string.Equals(currentSchedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase);
-            model.MusicEnabled = isMusicCategory ? false : currentSchedule.MusicEnabled;
+            if (isMusicCategory)
+            {
+                // When Music category is selected, disable music and clear music data
+                model.MusicEnabled = false;
+                model.Music = null;
+                logger.Information("PrepareModelForSave: Music category selected - disabled music and cleared music data");
+            }
+            else
+            {
+                model.MusicEnabled = currentSchedule.MusicEnabled;
+            }
         }
         logger.Information("PrepareModelForSave: Set model.MusicEnabled={MusicEnabled} from CurrentSchedule state",
             model.MusicEnabled);
@@ -165,7 +175,22 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         // Disable music when Music category is selected (Music category publications don't use the music selection container)
         var isMusicCategory = !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
                               string.Equals(currentSchedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase);
-        scheduleStateItem.MusicEnabled = isMusicCategory ? false : currentSchedule.MusicEnabled;
+        if (isMusicCategory)
+        {
+            // When Music category is selected, disable music and clear music data
+            scheduleStateItem.MusicEnabled = false;
+            scheduleStateItem.MusicType = null;
+            scheduleStateItem.MusicTrackNumber = null;
+            scheduleStateItem.MusicPublicationCode = null;
+            scheduleStateItem.MusicLanguageCode = null;
+            scheduleStateItem.MusicSectionCode = null;
+            scheduleStateItem.MusicRepeat = null;
+            logger.Information("PrepareScheduleStateItem: Music category selected - disabled music and cleared music data");
+        }
+        else
+        {
+            scheduleStateItem.MusicEnabled = currentSchedule.MusicEnabled;
+        }
         scheduleStateItem.NumberOfTracksToPlay = currentSchedule.NumberOfTracksToPlay;
         scheduleStateItem.AlwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
         logger.Information("PrepareScheduleStateItem: Set scheduleStateItem.MusicEnabled={MusicEnabled}, NumberOfTracksToPlay={NumberOfTracksToPlay}, and AlwaysPlayFromStart={AlwaysPlayFromStart} from CurrentSchedule state",

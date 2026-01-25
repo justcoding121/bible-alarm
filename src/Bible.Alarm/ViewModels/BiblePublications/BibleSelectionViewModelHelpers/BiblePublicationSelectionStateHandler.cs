@@ -2,10 +2,14 @@
 using System.Collections.ObjectModel;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
 
@@ -18,6 +22,7 @@ public sealed class BiblePublicationSelectionStateHandler
     private readonly IState<ApplicationState> state;
     private readonly IMapper mapper;
     private readonly BiblePublicationSelectionDataProvider dataProvider;
+    private readonly IServiceScopeFactory scopeFactory;
 
     // Track last language code and category to detect changes
     private string? lastLanguageCode;
@@ -30,12 +35,14 @@ public sealed class BiblePublicationSelectionStateHandler
         IMediaService mediaService,
         IState<ApplicationState> state,
         IMapper mapper,
-        BiblePublicationSelectionDataProvider dataProvider)
+        BiblePublicationSelectionDataProvider dataProvider,
+        IServiceScopeFactory scopeFactory)
     {
         this.mediaService = mediaService;
         this.state = state;
         this.mapper = mapper;
         this.dataProvider = dataProvider;
+        this.scopeFactory = scopeFactory;
     }
 
     public void InitializeCurrent(BiblePublicationSchedule? initialCurrent, string? initialLanguageCode, string? initialCategoryName = null)
@@ -216,6 +223,21 @@ public sealed class BiblePublicationSelectionStateHandler
             return;
         }
 
+        // Ensure we always have a valid category - never null or "all"
+        // A category should always be selected - if it's null, use last known category as fallback
+        if (string.IsNullOrWhiteSpace(newCategoryName))
+        {
+            newCategoryName = lastCategoryName;
+        }
+
+        // If still null after fallback, this is an error condition
+        if (string.IsNullOrWhiteSpace(newCategoryName))
+        {
+            Log.Error("HandleBiblePublicationChangedAsync: Category is null or empty. Category must always be selected. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+                newLanguageCode, currentSchedule.BiblePublicationCode);
+            throw new InvalidOperationException($"Category must always be selected. No category found in state. LanguageCode={newLanguageCode}, PublicationCode={currentSchedule.BiblePublicationCode}");
+        }
+
         // Check if language code or category changed (need to repopulate publications)
         var languageChanged = lastLanguageCode != newLanguageCode;
         var categoryChanged = newCategoryName != lastCategoryName;
@@ -273,7 +295,8 @@ public sealed class BiblePublicationSelectionStateHandler
                     dataProvider.ClearPublicationVMsMapping();
                     // Pass languageChanged flag to PopulatePublications so it can select default publication
                     // When language changes, don't download all publications yet (only first publication in cascade)
-                await dataProvider.PopulatePublicationsAsync(newLanguageCode, publications, languageChanged || categoryChanged, downloadAll: false);
+                    // Pass the category name explicitly to ensure correct filtering
+                await dataProvider.PopulatePublicationsAsync(newLanguageCode, publications, languageChanged || categoryChanged, downloadAll: false, newCategoryName);
                     await Task.Delay(100);
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
@@ -298,6 +321,7 @@ public sealed class BiblePublicationSelectionStateHandler
         const int maxWaitAttempts = 10;
         const int delayMs = 100;
         string? newLanguageCode = null;
+        string? newCategoryName = null;
 
         for (int i = 0; i < maxWaitAttempts; i++)
         {
@@ -307,6 +331,7 @@ public sealed class BiblePublicationSelectionStateHandler
             if (stateValue.CurrentSchedule != null)
             {
                 newLanguageCode = stateValue.CurrentSchedule.BiblePublicationLanguageCode;
+                newCategoryName = stateValue.CurrentSchedule.BiblePublicationCategoryName;
                 if (!string.IsNullOrEmpty(newLanguageCode))
                 {
                     break;
@@ -326,17 +351,74 @@ public sealed class BiblePublicationSelectionStateHandler
         var finalStateValue = state.Value;
         var currentSchedule = finalStateValue.CurrentSchedule!;
 
+        // Use category from final state, but fall back to category from wait loop, then last known category
+        // This ensures we always filter by the correct category even if state is temporarily null
+        // Priority: finalState > waitLoop > lastKnown > database lookup
+        var finalCategoryName = currentSchedule.BiblePublicationCategoryName;
+        newCategoryName = finalCategoryName ?? newCategoryName ?? lastCategoryName;
+
+        // If still null, try to get category from the publication code in the database
+        if (string.IsNullOrWhiteSpace(newCategoryName) && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+                
+                // Try to get category from BiblePublications first (for downloaded publications)
+                var publication = await db.BiblePublications
+                    .AsNoTracking()
+                    .Include(bp => bp.Category)
+                    .Where(bp => bp.PublicationCode == currentSchedule.BiblePublicationCode)
+                    .FirstOrDefaultAsync();
+                
+                if (publication?.Category != null)
+                {
+                    newCategoryName = publication.Category.CategoryName;
+                    Log.Debug("RefreshFromStateAsync: Got category={CategoryName} from BiblePublications for publication={PublicationCode}",
+                        newCategoryName, currentSchedule.BiblePublicationCode);
+                }
+                else
+                {
+                    // Try PublicationLanguages (for publications not yet downloaded)
+                    var publicationLanguage = await db.PublicationLanguages
+                        .AsNoTracking()
+                        .Include(pl => pl.Category)
+                        .Where(pl => pl.PublicationCode == currentSchedule.BiblePublicationCode)
+                        .FirstOrDefaultAsync();
+                    
+                    if (publicationLanguage?.Category != null)
+                    {
+                        newCategoryName = publicationLanguage.Category.CategoryName;
+                        Log.Debug("RefreshFromStateAsync: Got category={CategoryName} from PublicationLanguages for publication={PublicationCode}",
+                            newCategoryName, currentSchedule.BiblePublicationCode);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "RefreshFromStateAsync: Failed to get category from database for publication={PublicationCode}",
+                    currentSchedule.BiblePublicationCode);
+            }
+        }
+
+        // Ensure we always have a valid category - never null or "all"
+        // A category should always be selected - if it's still null after all fallbacks, this is an error condition
+        if (string.IsNullOrWhiteSpace(newCategoryName))
+        {
+            Log.Error("RefreshFromStateAsync: Category is null or empty after all fallbacks. Category must always be selected. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+                newLanguageCode, currentSchedule.BiblePublicationCode);
+            throw new InvalidOperationException($"Category must always be selected. No category found in state or database. LanguageCode={newLanguageCode}, PublicationCode={currentSchedule.BiblePublicationCode}");
+        }
+
         // Check if language code or category changed (need to repopulate publications)
-        var newCategoryName = currentSchedule.BiblePublicationCategoryName;
         var languageChanged = lastLanguageCode != newLanguageCode;
         var categoryChanged = newCategoryName != lastCategoryName;
 
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
-        if (newCategoryName != null)
-        {
-            lastCategoryName = newCategoryName;
-        }
+        // Always update lastCategoryName - a category should always be selected
+        lastCategoryName = newCategoryName;
 
         // Update current from CurrentSchedule (single source of truth)
         if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
@@ -379,7 +461,8 @@ public sealed class BiblePublicationSelectionStateHandler
                     dataProvider.ClearPublicationVMsMapping();
                 }
                 // When publication modal opens, download all publications with first sections and tracks
-                await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged || categoryChanged, downloadAll: true);
+                // Pass the category name explicitly to ensure correct filtering
+                await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged || categoryChanged, downloadAll: true, newCategoryName);
             }
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));

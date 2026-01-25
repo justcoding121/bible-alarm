@@ -76,13 +76,24 @@ internal sealed class EnglishContentSeeder
                 publicationCodeForDb = normalizedPublicationCode;
             }
 
-            // For "iam" (Kingdom Melodies), language should be null
-            var isIam = normalizedPublicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase);
+            // Data-driven check: Determine if publication has LanguageId == null
+            // Check both BiblePublications and PublicationLanguages to determine if this publication needs a language
+            var publicationWithoutLanguage = await db.BiblePublications
+                .AsNoTracking()
+                .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb && bp.LanguageId == null, cancellationToken);
+            
+            // Also check PublicationLanguages for entries with LanguageId == null
+            if (!publicationWithoutLanguage)
+            {
+                publicationWithoutLanguage = await db.PublicationLanguages
+                    .AsNoTracking()
+                    .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null, cancellationToken);
+            }
             
             Language? language = null;
-            if (!isIam)
+            if (!publicationWithoutLanguage)
             {
-                // Get or create English language (only for non-iam publications)
+                // Get or create English language (only for publications that have a language)
                 language = await db.Languages
                     .FirstOrDefaultAsync(l => l.LanguageCode == normalizedLanguageCode, cancellationToken);
                 
@@ -91,6 +102,12 @@ internal sealed class EnglishContentSeeder
                     logger.Warning("English language (E) not found in database");
                     return false;
                 }
+            }
+            else
+            {
+                // Publication has LanguageId == null - skip English seeding (it doesn't have English content)
+                logger.Warning("Publication {PublicationCode} has LanguageId == null, skipping English seeding (no English content)", publicationCode);
+                return false;
             }
 
             // Determine category from publication code using centralized mapping
@@ -101,6 +118,7 @@ internal sealed class EnglishContentSeeder
                 .Include(pl => pl.Language)
                 .FirstOrDefaultAsync(
                     pl => pl.PublicationCode == publicationCodeForDb &&
+                          pl.Language != null &&
                           pl.Language.LanguageCode == normalizedLanguageCode,
                     cancellationToken);
 
@@ -141,7 +159,7 @@ internal sealed class EnglishContentSeeder
 
                 publicationLanguage = new PublicationLanguage
                 {
-                    PublicationCode = normalizedPublicationCode,
+                    PublicationCode = publicationCodeForDb, // Use case-sensitive code for dramas
                     Language = englishLanguage,
                     HarvestType = harvestType,
                     Category = category,
@@ -160,23 +178,15 @@ internal sealed class EnglishContentSeeder
             // Determine if this is a video (videos are in Dramas category but have IsVideo=true)
             var isVideo = JwSourceHelper.VideoPublicationCodes.Contains(normalizedPublicationCode);
 
-            // Check if publication already exists
-            // For "iam", check for null language; for others, check for English language
+            // Check if publication already exists for English
             // Use case-sensitive code for dramas
-            var existingPublication = isIam
-                ? await db.BiblePublications
-                    .Include(bp => bp.Language)
-                    .FirstOrDefaultAsync(
-                        bp => bp.PublicationCode == publicationCodeForDb &&
-                              bp.Language == null,
-                        cancellationToken)
-                : await db.BiblePublications
-                    .Include(bp => bp.Language)
-                    .FirstOrDefaultAsync(
-                        bp => bp.PublicationCode == publicationCodeForDb &&
-                              bp.Language != null &&
-                              bp.Language.LanguageCode == normalizedLanguageCode,
-                        cancellationToken);
+            var existingPublication = await db.BiblePublications
+                .Include(bp => bp.Language)
+                .FirstOrDefaultAsync(
+                    bp => bp.PublicationCode == publicationCodeForDb &&
+                          bp.Language != null &&
+                          bp.Language.LanguageCode == normalizedLanguageCode,
+                    cancellationToken);
 
             if (existingPublication != null)
             {
@@ -191,20 +201,46 @@ internal sealed class EnglishContentSeeder
                 {
                     List<string> sectionCodes;
                 
-                if (normalizedPublicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
-                {
-                    // For "iam" (Kingdom Melodies), use hardcoded disc codes (iam-1 to iam-9)
-                    // Note: iam doesn't have language discovery, so SectionLanguages won't have entries
-                    sectionCodes = Enumerable.Range(1, 9).Select(i => $"iam-{i}").ToList();
-                }
-                else
-                {
-                    // For Bible publications, use hardcoded book numbers 1-66
-                    sectionCodes = Enumerable.Range(1, 66).Select(i => i.ToString()).ToList();
-                }
+                    // Data-driven: Get section codes from BiblePublications if already harvested, or use defaults
+                    // Check if publication already exists with sections
+                    var existingPubWithSections = await db.BiblePublications
+                        .AsNoTracking()
+                        .Include(bp => bp.Sections)
+                        .FirstOrDefaultAsync(
+                            bp => bp.PublicationCode == publicationCodeForDb &&
+                                  (bp.LanguageId == null || (bp.Language != null && bp.Language.LanguageCode == normalizedLanguageCode)),
+                            cancellationToken);
+                    
+                    if (existingPubWithSections?.Sections != null && existingPubWithSections.Sections.Count > 0)
+                    {
+                        // Use section codes from existing publication (data-driven)
+                        sectionCodes = existingPubWithSections.Sections
+                            .OrderBy(s => s.SectionCode)
+                            .Select(s => s.SectionCode)
+                            .ToList();
+                        logger.Debug("Using {Count} section codes from existing publication {PublicationCode}", 
+                            sectionCodes.Count, publicationCode);
+                    }
+                    else
+                    {
+                        // Fallback: Use default section codes based on category
+                        // For Bible category, use book numbers 1-66
+                        // For Music category with sectioned structure, query from database or use discovery
+                        if (categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase))
+                        {
+                            sectionCodes = Enumerable.Range(1, 66).Select(i => i.ToString()).ToList();
+                        }
+                        else
+                        {
+                            // For other sectioned publications, try to get from SectionLanguages or use a default range
+                            // This is a fallback - ideally sections should be discovered during harvest phase
+                            logger.Warning("No existing sections found for publication {PublicationCode}, using default section codes", publicationCode);
+                            // Use a reasonable default - for music, typically 1-9 discs
+                            sectionCodes = Enumerable.Range(1, 9).Select(i => $"{normalizedPublicationCode}-{i}").ToList();
+                        }
+                    }
 
                     // Use the existing FetchPublicationSectionsAsync logic but adapted for English
-                    // For "iam", language will be null
                     return await FetchEnglishPublicationSectionsAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, language, category, 
                         categoryName, isVideo, sectionCodes, cancellationToken);
@@ -254,14 +290,26 @@ internal sealed class EnglishContentSeeder
         CancellationToken cancellationToken)
     {
         var isBible = categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
-        var isIamPublication = normalizedPublicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase);
+        
+        // Data-driven: Check if publication has LanguageId == null (determines if it's instrumental music)
+        var publicationWithoutLanguage = await db.BiblePublications
+            .AsNoTracking()
+            .AnyAsync(bp => bp.PublicationCode == normalizedPublicationCode && bp.LanguageId == null, cancellationToken);
+        
+        // Also check PublicationLanguages for entries with LanguageId == null
+        if (!publicationWithoutLanguage)
+        {
+            publicationWithoutLanguage = await db.PublicationLanguages
+                .AsNoTracking()
+                .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode && pl.LanguageId == null, cancellationToken);
+        }
 
         var (sections, localizedPubName) = await sectionFetcher.FetchSectionsAsync(
             db, normalizedPublicationCode, normalizedLanguageCode, categoryName, sectionCodes, cancellationToken);
 
         return await publicationBuilder.BuildAndSavePublicationAsync(
             db, normalizedPublicationCode, localizedPubName, language, category,
-            isVideo, isBible, isIamPublication, sections, cancellationToken);
+            isVideo, isBible, publicationWithoutLanguage, sections, cancellationToken);
     }
 
     private async Task<bool> FetchEnglishPublicationTracksAsync(

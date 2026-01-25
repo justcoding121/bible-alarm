@@ -59,8 +59,8 @@ public sealed class BiblePublicationSelectionDataProvider
                 var languagesData = await mediaService.GetBiblePublicationLanguages(currentCategoryName);
                 var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
-                Log.Debug("PopulateLanguagesAsync: Loaded {LanguageCount} languages from GetBiblePublicationLanguages: {LanguageCodes}",
-                    languagesData.Count, string.Join(", ", languagesData.Keys));
+                Log.Debug("PopulateLanguagesAsync: Loaded {LanguageCount} languages from GetBiblePublicationLanguages",
+                    languagesData.Count);
 
                 var vms = new List<LanguageListViewItemModel>();
 
@@ -77,9 +77,6 @@ public sealed class BiblePublicationSelectionDataProvider
                         languageVm.IsSelected = true;
                     }
                 }
-
-                Log.Debug("PopulateLanguagesAsync: Created {VMCount} language VMs: {LanguageNames}",
-                    vms.Count, string.Join(", ", vms.Select(v => $"{v.Code}:{v.Name}")));
 
                 return vms;
             });
@@ -128,7 +125,8 @@ public sealed class BiblePublicationSelectionDataProvider
         string languageCode,
         ObservableCollection<PublicationListViewItemModel>? publications,
         bool languageChanged,
-        bool downloadAll = false)
+        bool downloadAll = false,
+        string? categoryName = null)
     {
         if (publications == null) return;
 
@@ -137,7 +135,17 @@ public sealed class BiblePublicationSelectionDataProvider
         var currentPublicationCode = stateValue.CurrentSchedule?.BiblePublicationCode;
         var currentLanguageName = stateValue.CurrentSchedule?.BiblePublicationLanguageName;
         var currentLanguageDirection = stateValue.CurrentSchedule?.BiblePublicationLanguageDirection;
-        var currentCategoryName = stateValue.CurrentSchedule?.BiblePublicationCategoryName;
+        // Use provided categoryName if available, otherwise fall back to state
+        var currentCategoryName = categoryName ?? stateValue.CurrentSchedule?.BiblePublicationCategoryName;
+
+        // Ensure we always have a valid category - never null or "all"
+        // A category should always be selected - if it's null, this is an error condition
+        if (string.IsNullOrWhiteSpace(currentCategoryName))
+        {
+            Log.Error("PopulatePublicationsAsync: Category is null or empty. Category must always be selected. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}",
+                languageCode, currentPublicationCode);
+            throw new InvalidOperationException($"Category must always be selected. No category found in state or provided parameter. LanguageCode={languageCode}, PublicationCode={currentPublicationCode}");
+        }
 
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (publicationVMs, newMapping, defaultPublication) = await Task.Run(async () =>
@@ -145,6 +153,64 @@ public sealed class BiblePublicationSelectionDataProvider
             // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
             // downloadAll=false when language changes (only download first publication in cascade)
             var publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll);
+            
+            // If downloadAll=true, wait for harvesting to complete, then re-query to get actual publication names
+            if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+            {
+                // Wait a bit for background harvesting to start
+                await Task.Delay(100);
+                
+                // Wait for harvesting to complete by checking if publications are now available
+                // Re-query to get actual publications with correct names (not placeholders)
+                var maxWaitTime = TimeSpan.FromSeconds(30);
+                var startTime = DateTime.UtcNow;
+                var harvested = false;
+                
+                while (!harvested && (DateTime.UtcNow - startTime) < maxWaitTime)
+                {
+                    var reQueriedData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false);
+                    
+                    // Check if ALL publications are harvested (not placeholders)
+                    // A publication is harvested if it has a name that's different from its code and has an ID > 0
+                    var allHarvested = reQueriedData.Values.All(p => 
+                        !string.IsNullOrEmpty(p.Name) && 
+                        p.Name != p.PublicationCode && 
+                        p.Id > 0);
+                    
+                    // Also check that we have at least one publication (to avoid false positives when list is empty)
+                    var hasPublications = reQueriedData.Values.Count > 0;
+                    
+                    if (allHarvested && hasPublications)
+                    {
+                        publicationsData = reQueriedData;
+                        harvested = true;
+                        Log.Debug("PopulatePublicationsAsync: All publications harvested, using actual publications with correct names");
+                    }
+                    else
+                    {
+                        // Log which publications are still placeholders for debugging
+                        var placeholders = reQueriedData.Values.Where(p => 
+                            string.IsNullOrEmpty(p.Name) || 
+                            p.Name == p.PublicationCode || 
+                            p.Id == 0).Select(p => p.PublicationCode).ToList();
+                        
+                        if (placeholders.Count > 0)
+                        {
+                            Log.Debug("PopulatePublicationsAsync: Still waiting for {Count} publications to be harvested: {Placeholders}",
+                                placeholders.Count, string.Join(", ", placeholders));
+                        }
+                        
+                        // Wait a bit more before checking again
+                        await Task.Delay(500);
+                    }
+                }
+                
+                if (!harvested)
+                {
+                    Log.Warning("PopulatePublicationsAsync: Timeout waiting for all publications to be harvested for language {LanguageCode}. Some may still be placeholders.", languageCode);
+                }
+            }
+            
             var vms = new List<PublicationListViewItemModel>();
             var mapping = new Dictionary<string, PublicationListViewItemModel>();
 
@@ -153,10 +219,7 @@ public sealed class BiblePublicationSelectionDataProvider
                 // Skip duplicates - if code already exists, use the existing one
                 if (mapping.TryGetValue(publication.PublicationCode, out var existingVm))
                 {
-                    if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == publication.PublicationCode)
-                    {
-                        existingVm.IsSelected = true;
-                    }
+                    // Don't set IsSelected here - it will be set later by SetSelectedPublication()
                     continue;
                 }
 
@@ -164,11 +227,8 @@ public sealed class BiblePublicationSelectionDataProvider
                 vms.Add(publicationVm);
                 mapping[publicationVm.Code] = publicationVm;
 
-                // Check if this publication matches the current publication code
-                if (!string.IsNullOrEmpty(currentPublicationCode) && currentPublicationCode == publication.PublicationCode)
-                {
-                    publicationVm.IsSelected = true;
-                }
+                // Don't set IsSelected here - it will be set later by SetSelectedPublication()
+                // This ensures only one publication is selected at a time
             }
 
             // Sort publications: nwt first, then bi12, then others by name
@@ -200,23 +260,41 @@ public sealed class BiblePublicationSelectionDataProvider
             publicationVMsMapping[kvp.Key] = kvp.Value;
         }
 
-        // Handle language change default selection
-        if (languageChanged && defaultPublication != null)
-        {
-            defaultPublication.IsSelected = true;
-
-            // Check if state already matches what we're about to dispatch
-            var currentSchedule = state.Value.CurrentSchedule;
-            var alreadyMatches = currentSchedule != null &&
-                                currentSchedule.BiblePublicationLanguageCode == languageCode &&
-                                currentSchedule.BiblePublicationCode == defaultPublication.Code &&
-                                currentSchedule.BiblePublicationSectionNumber == 1 &&
-                                currentSchedule.BiblePublicationTrackNumber == 1;
-
-            if (!alreadyMatches)
+            // Handle language change default selection
+            // IMPORTANT: Only dispatch default publication if user hasn't already selected a publication
+            // This prevents overwriting user's selection (e.g., when switching from "melodies" to "original songs")
+            if (languageChanged && defaultPublication != null)
             {
-                // Fire and forget the dispatch (already on background thread)
-                _ = DispatchDefaultPublicationAsync(languageCode, defaultPublication, currentLanguageName, currentLanguageDirection);
+                var currentSchedule = state.Value.CurrentSchedule;
+                
+                // Check if user has already selected a publication for this language
+                // If so, don't dispatch default publication - preserve user's selection
+                var userHasSelectedPublication = currentSchedule != null &&
+                                                !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode) &&
+                                                currentSchedule.BiblePublicationLanguageCode == languageCode;
+                
+                if (userHasSelectedPublication)
+                {
+                    // User has already selected a publication - don't dispatch default
+                    // Don't set IsSelected here - SetSelectedPublication() will handle it based on current schedule
+                }
+                else
+                {
+                    // No publication selected yet - dispatch default publication
+                    // Don't set IsSelected here - SetSelectedPublication() will handle it after dispatch
+
+                // Check if state already matches what we're about to dispatch
+                var alreadyMatches = currentSchedule != null &&
+                                    currentSchedule.BiblePublicationLanguageCode == languageCode &&
+                                    currentSchedule.BiblePublicationCode == defaultPublication.Code &&
+                                    currentSchedule.BiblePublicationSectionNumber == 1 &&
+                                    currentSchedule.BiblePublicationTrackNumber == 1;
+
+                if (!alreadyMatches)
+                {
+                    // Fire and forget the dispatch (already on background thread)
+                    _ = DispatchDefaultPublicationAsync(languageCode, defaultPublication, currentLanguageName, currentLanguageDirection);
+                }
             }
         }
 
@@ -268,8 +346,12 @@ public sealed class BiblePublicationSelectionDataProvider
             Log.Debug("DispatchDefaultPublicationAsync: First track number={TrackNumber}, title={TrackTitle}",
                 firstTrack.Number, firstTrack.Title);
 
+            // IMPORTANT: Always preserve category from current schedule - category can only be changed via CategorySelectionAction
+            var currentSchedule = state.Value.CurrentSchedule;
             var biblePublicationItem = new BiblePublicationStateItem
             {
+                CategoryId = currentSchedule?.BiblePublicationCategoryId,
+                CategoryName = currentSchedule?.BiblePublicationCategoryName,
                 LanguageCode = languageCode,
                 PublicationCode = defaultPublication.Code,
                 SectionNumber = firstSectionNumber,

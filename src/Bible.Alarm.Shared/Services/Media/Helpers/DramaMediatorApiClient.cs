@@ -70,11 +70,32 @@ internal sealed class DramaMediatorApiClient
         }
 
         // Extract localized publication name
+        // Concatenate parent category name with category name (e.g., "Audio" + "Dramas" = "Audio Dramas")
         string? localizedPubName = null;
+        string? categoryName = null;
+        string? parentCategoryName = null;
+        
         if (categoryElement.TryGetProperty("name", out var nameElement))
         {
             var rawName = nameElement.GetString();
-            localizedPubName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+            categoryName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+        }
+        
+        if (categoryElement.TryGetProperty("parentCategory", out var parentCategoryElement) &&
+            parentCategoryElement.TryGetProperty("name", out var parentNameElement))
+        {
+            var rawParentName = parentNameElement.GetString();
+            parentCategoryName = rawParentName != null ? WebUtility.HtmlDecode(rawParentName).Replace('\u00A0', ' ') : null;
+        }
+        
+        // Concatenate parent category name with category name
+        if (!string.IsNullOrEmpty(parentCategoryName) && !string.IsNullOrEmpty(categoryName))
+        {
+            localizedPubName = $"{parentCategoryName} {categoryName}";
+        }
+        else if (!string.IsNullOrEmpty(categoryName))
+        {
+            localizedPubName = categoryName;
         }
 
         // Extract section codes from category.media array

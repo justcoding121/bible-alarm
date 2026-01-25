@@ -2,8 +2,10 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -12,6 +14,8 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -74,34 +78,87 @@ public sealed class BiblePublicationSelectionCommandHandler
             }
 
             var languageCode = currentSchedule.BiblePublicationLanguageCode;
+            
+            // If language code is empty, try to determine it from the selected publication
+            // This handles the case when switching from a publication without language to one with language
+            // IMPORTANT: If the publication doesn't have a language (LanguageId == null), we should still proceed
+            // The current language code will remain empty/null, and the publication will be queried without language
             if (string.IsNullOrEmpty(languageCode))
             {
-                Log.Warning("CreateSectionSelectionCommand: LanguageCode is empty, returning");
-                return;
+                Log.Debug("CreateSectionSelectionCommand: LanguageCode is empty, attempting to determine language from publication={PublicationCode}",
+                    x.Code);
+                
+                // Query the database to find the language for this publication
+                var langScopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
+                if (langScopeFactory != null)
+                {
+                    using var langScope = langScopeFactory.CreateScope();
+                    var db = langScope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
+                    var publication = await db.BiblePublications
+                        .AsNoTracking()
+                        .Include(bp => bp.Language)
+                        .Where(bp => bp.PublicationCode == x.Code && bp.LanguageId != null)
+                        .FirstOrDefaultAsync();
+                    
+                    if (publication?.Language != null)
+                    {
+                        languageCode = publication.Language.LanguageCode;
+                        Log.Debug("CreateSectionSelectionCommand: Determined language={LanguageCode} from publication={PublicationCode}",
+                            languageCode, x.Code);
+                    }
+                    else
+                    {
+                        // Publication doesn't have a language (LanguageId == null) - this is valid
+                        // We'll proceed with languageCode = null/empty, and the itemSelector will handle it
+                        Log.Debug("CreateSectionSelectionCommand: Publication={PublicationCode} does not have LanguageId (publication without language), proceeding with empty language code",
+                            x.Code);
+                    }
+                }
+                else
+                {
+                    Log.Warning("CreateSectionSelectionCommand: LanguageCode is empty and IServiceScopeFactory is not available, but proceeding anyway");
+                }
             }
 
             // Get language from the languages collection
+            // If languageCode is empty/null, create a minimal language item (for publications without language)
             LanguageListViewItemModel currentLanguage;
-            var languages = await Task.Run(async () => await mediaService.GetBiblePublicationLanguages());
-            if (languages.TryGetValue(languageCode, out var language))
+            if (string.IsNullOrEmpty(languageCode))
             {
-                currentLanguage = new LanguageListViewItemModel(language);
-            }
-            else
-            {
-                // Create a minimal language item from the code if not found in collection
+                // Publication doesn't have a language - create a minimal language item with empty code
+                // The itemSelector will handle this correctly
                 currentLanguage = new LanguageListViewItemModel(new Language
                 {
                     Id = 0,
-                    LanguageCode = languageCode,
-                    Name = languageCode
+                    LanguageCode = string.Empty,
+                    Name = string.Empty
                 });
+            }
+            else
+            {
+                var languages = await Task.Run(async () => await mediaService.GetBiblePublicationLanguages());
+                if (languages.TryGetValue(languageCode, out var language))
+                {
+                    currentLanguage = new LanguageListViewItemModel(language);
+                }
+                else
+                {
+                    // Create a minimal language item from the code if not found in collection
+                    currentLanguage = new LanguageListViewItemModel(new Language
+                    {
+                        Id = 0,
+                        LanguageCode = languageCode,
+                        Name = languageCode
+                    });
+                }
             }
 
             Log.Debug("CreateSectionSelectionCommand: Calling GetSectionAndTrackForPublicationAsync for publication={PublicationCode}, language={LanguageCode}",
                 x.Code, currentLanguage.Code);
 
-            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, languageContentService);
+            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
+            var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
+            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
             var (sectionNumber, trackNumber, sectionName, trackTitle) = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage);
 
             Log.Debug("CreateSectionSelectionCommand: Result sectionNumber={SectionNumber}, trackNumber={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
@@ -168,7 +225,9 @@ public sealed class BiblePublicationSelectionCommandHandler
             updateSelectedLanguage(x);
             await navigationService.PopModalAsync();
 
-            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, languageContentService);
+            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
+            var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
+            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
             var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle) =
                 await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x);
 
@@ -215,8 +274,23 @@ public sealed class BiblePublicationSelectionCommandHandler
     {
         // Match the pattern used in SectionSelectionViewModel and TrackSelectionCommandHandler
         // They don't set Id or AlarmScheduleId - let them default to 0
+        // IMPORTANT: Always preserve category from current schedule - category can only be changed via CategorySelectionAction
+        // Category should NEVER be null in current schedule - if it is, that's a bug that needs to be fixed at the source
+        var categoryId = currentSchedule.BiblePublicationCategoryId;
+        var categoryName = currentSchedule.BiblePublicationCategoryName;
+        
+        if (string.IsNullOrWhiteSpace(categoryName))
+        {
+            // Category is null in current schedule - this should NEVER happen
+            // Category can only be changed via CategorySelectionAction and should always be preserved
+            Log.Error("CreateBiblePublicationItemFromSelection: Category is null in current schedule. This is a bug - category must always be selected. Publication={PublicationCode}, ScheduleId={ScheduleId}",
+                publication.Code, currentSchedule.Id);
+        }
+        
         return new BiblePublicationStateItem
         {
+            CategoryId = categoryId,
+            CategoryName = categoryName,
             PublicationCode = publication.Code,
             LanguageCode = language.Code,
             SectionNumber = sectionNumber,

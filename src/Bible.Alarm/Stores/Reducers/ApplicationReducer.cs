@@ -431,9 +431,37 @@ public static class ApplicationReducer
             // Update ALL bible publication fields to ensure CurrentSchedule is fully in sync
             // This prevents ViewModels from reading stale values when they dispatch updates
             updatedCurrentSchedule.BiblePublicationScheduleId = biblePub.Id > 0 ? biblePub.Id : updatedCurrentSchedule.BiblePublicationScheduleId;
-            updatedCurrentSchedule.BiblePublicationLanguageCode = !string.IsNullOrEmpty(biblePub.LanguageCode) 
-                ? biblePub.LanguageCode 
-                : updatedCurrentSchedule.BiblePublicationLanguageCode;
+            
+            // Language code can ONLY be changed by:
+            // 1. Category change (will default language to E)
+            // 2. By user explicitly changing the language
+            // 
+            // IMPORTANT: When user selects a publication with no language (null), the current language stays the same.
+            // The publication's language code (null) will be used in queries, but the schedule's language code doesn't change.
+            var languageChanged = !string.IsNullOrEmpty(biblePub.LanguageCode) && 
+                                  !string.IsNullOrEmpty(updatedCurrentSchedule.BiblePublicationLanguageCode) &&
+                                  biblePub.LanguageCode != updatedCurrentSchedule.BiblePublicationLanguageCode;
+            
+            // Only update language if it actually changed (not when selecting publication without language)
+            if (languageChanged)
+            {
+                // Language changed - update language code and display names
+                // This only happens when: category change or user explicitly changed the language
+                updatedCurrentSchedule.BiblePublicationLanguageCode = biblePub.LanguageCode;
+                updatedCurrentSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
+                    ? biblePub.LanguageName 
+                    : updatedCurrentSchedule.BiblePublicationLanguageName;
+                updatedCurrentSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
+                    ? biblePub.LanguageDirection 
+                    : updatedCurrentSchedule.BiblePublicationLanguageDirection;
+            }
+            else
+            {
+                // Language did not change - ALWAYS preserve language (code, name, direction)
+                // Language can only be changed via CategorySelectionAction or explicit user language selection
+                // Even when selecting a publication without language, the current language stays the same
+            }
+            
             updatedCurrentSchedule.BiblePublicationCode = !string.IsNullOrEmpty(biblePub.PublicationCode) 
                 ? biblePub.PublicationCode 
                 : updatedCurrentSchedule.BiblePublicationCode;
@@ -442,13 +470,7 @@ public static class ApplicationReducer
             // Reset progress to 0.0 when track is changed (by cascade or direct selection)
             updatedCurrentSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
             
-            // Update display names - use action values if provided, otherwise keep existing
-            updatedCurrentSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
-                ? biblePub.LanguageName 
-                : updatedCurrentSchedule.BiblePublicationLanguageName;
-            updatedCurrentSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
-                ? biblePub.LanguageDirection 
-                : updatedCurrentSchedule.BiblePublicationLanguageDirection;
+            // Update other display names - use action values if provided, otherwise keep existing
             updatedCurrentSchedule.BiblePublicationName = !string.IsNullOrEmpty(biblePub.PublicationName) 
                 ? biblePub.PublicationName 
                 : updatedCurrentSchedule.BiblePublicationName;
@@ -458,11 +480,52 @@ public static class ApplicationReducer
             updatedCurrentSchedule.BiblePublicationTrackTitle = !string.IsNullOrEmpty(biblePub.TrackTitle) 
                 ? biblePub.TrackTitle 
                 : updatedCurrentSchedule.BiblePublicationTrackTitle;
+            
+            // ALWAYS preserve category - category can only be changed via CategorySelectionAction
+            // DeepClone() already preserves the category, but explicitly ensure it's never null/empty
+            // EXCEPTION: If category is null in current schedule but BiblePublicationStateItem has one, use it
+            // This handles cases where DispatchDefaultPublicationAsync is called and the category needs to be set
+            if (string.IsNullOrWhiteSpace(updatedCurrentSchedule.BiblePublicationCategoryName))
+            {
+                // Category is null - try to get it from BiblePublicationStateItem
+                if (!string.IsNullOrWhiteSpace(biblePub.CategoryName))
+                {
+                    updatedCurrentSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
+                    updatedCurrentSchedule.BiblePublicationCategoryName = biblePub.CategoryName;
+                    Log.Debug("ApplicationReducer.OnBiblePublicationTrackSelected: Set category={CategoryName} from BiblePublicationStateItem (was null)",
+                        biblePub.CategoryName);
+                }
+                else
+                {
+                    // Category is null in both - this should not happen, but preserve what we can
+                    // Try to preserve category ID if it exists
+                    if (updatedCurrentSchedule.BiblePublicationCategoryId.HasValue)
+                    {
+                        Log.Warning("ApplicationReducer.OnBiblePublicationTrackSelected: CategoryName is null but CategoryId={CategoryId} exists. Category should always be set.",
+                            updatedCurrentSchedule.BiblePublicationCategoryId.Value);
+                    }
+                    else
+                    {
+                        Log.Error("ApplicationReducer.OnBiblePublicationTrackSelected: Category is null in both current schedule and BiblePublicationStateItem. Category must always be selected.");
+                    }
+                }
+            }
+            else
+            {
+                // Category exists - ALWAYS preserve it (DeepClone already did this, but be explicit)
+                // Category can only be changed via CategorySelectionAction
+                // Ensure CategoryId is also preserved
+                if (!updatedCurrentSchedule.BiblePublicationCategoryId.HasValue && biblePub.CategoryId.HasValue)
+                {
+                    // CategoryId might be missing even though CategoryName exists - preserve it
+                    updatedCurrentSchedule.BiblePublicationCategoryId = biblePub.CategoryId;
+                }
+            }
 
             Log.Debug("ApplicationReducer.OnBiblePublicationTrackSelected: Updated CurrentSchedule with " +
-                "LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}, TrackNumber={TrackNumber}",
+                "LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}, TrackNumber={TrackNumber}, CategoryName={CategoryName}",
                 updatedCurrentSchedule.BiblePublicationLanguageCode, updatedCurrentSchedule.BiblePublicationCode,
-                biblePub.SectionNumber, biblePub.TrackNumber);
+                biblePub.SectionNumber, biblePub.TrackNumber, updatedCurrentSchedule.BiblePublicationCategoryName);
         }
 
         return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);

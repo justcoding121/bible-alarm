@@ -92,10 +92,33 @@ public class Program
         services.AddTransient<DbSeeder>();
         services.AddTransient<DownloadUtility>();
         services.AddSingleton<System.Net.Http.HttpClient>(); // For LanguageContentService
-        services.AddTransient<Bible.Alarm.Shared.Services.Media.LanguageContentService>();
+        services.AddTransient<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationService, Bible.Alarm.Shared.Services.Media.BiblePublicationService>();
+        services.AddTransient<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService, Bible.Alarm.Shared.Services.Media.LanguageContentService>();
+        services.AddTransient<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationSectionService, Bible.Alarm.Shared.Services.Media.BiblePublicationSectionService>();
+        services.AddTransient<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationTrackService, Bible.Alarm.Shared.Services.Media.BiblePublicationTrackService>();
 
         await using var serviceProvider = services.BuildServiceProvider();
         var logger = serviceProvider.GetRequiredService<ILogger>();
+
+        // Check for verification flag
+        bool verifyCascade = args.Contains("--verify-cascade", StringComparer.OrdinalIgnoreCase);
+        if (verifyCascade)
+        {
+            try
+            {
+                await using var verifyScope = serviceProvider.CreateAsyncScope();
+                var dbContext = verifyScope.ServiceProvider.GetRequiredService<MediaDbContext>();
+                var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+                var verifier = new CascadeVerifier(dbContext, logger, scopeFactory);
+                bool passed = await verifier.VerifyAsync();
+                return passed ? 0 : 1;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error during cascade verification");
+                return 1;
+            }
+        }
 
         bool isTestRun = args.Contains("--test-run", StringComparer.OrdinalIgnoreCase) || 
                          args.Contains("--test-mode", StringComparer.OrdinalIgnoreCase) ||
