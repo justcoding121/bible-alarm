@@ -279,11 +279,23 @@ public sealed class ScheduleListItemViewModel(
                 return string.Empty;
             }
 
-            // Use track title for both sectioned and non-sectioned publications
-            // Track title contains the full name like "Chapter 1" for sectioned publications
+            // Use track title if available (contains full name like "Chapter 1")
             if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
             {
                 return scheduleStateItem.BiblePublicationTrackTitle;
+            }
+
+            // Fallback: If track title is not available, show track number for sectioned publications
+            // This can happen if the track title hasn't been populated yet
+            if (scheduleStateItem.BiblePublicationTrackNumber.HasValue && 
+                scheduleStateItem.BiblePublicationTrackNumber.Value > 0)
+            {
+                var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode ?? string.Empty);
+                if (hasSectionStructure)
+                {
+                    // For sectioned publications, show track number as fallback
+                    return scheduleStateItem.BiblePublicationTrackNumber.Value.ToString();
+                }
             }
 
             return string.Empty;

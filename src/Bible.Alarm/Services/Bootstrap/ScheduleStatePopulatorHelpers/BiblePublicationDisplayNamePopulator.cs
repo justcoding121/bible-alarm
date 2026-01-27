@@ -134,12 +134,6 @@ internal sealed class BiblePublicationDisplayNamePopulator
         BiblePublicationSchedule biblePublication,
         LookupDataLoader.LookupData lookupData)
     {
-        // Only set track title for non-sectioned publications (Drama/Video)
-        if (PublicationTypeHelper.HasSectionStructure(biblePublication.PublicationCode))
-        {
-            return;
-        }
-
         if (string.IsNullOrWhiteSpace(biblePublication.LanguageCode) ||
             string.IsNullOrWhiteSpace(biblePublication.PublicationCode) ||
             biblePublication.TrackNumber <= 0)
@@ -148,9 +142,43 @@ internal sealed class BiblePublicationDisplayNamePopulator
         }
 
         var publicationKey = (biblePublication.LanguageCode, biblePublication.PublicationCode);
-        if (lookupData.Publications.TryGetValue(publicationKey, out var publication))
+        if (!lookupData.Publications.TryGetValue(publicationKey, out var publication))
         {
-            var track = publication.Tracks.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
+            return;
+        }
+
+        // For sectioned publications, find track in the section's tracks
+        if (PublicationTypeHelper.HasSectionStructure(biblePublication.PublicationCode))
+        {
+            // Convert SectionCode to int for lookup
+            if (string.IsNullOrEmpty(biblePublication.SectionCode) || 
+                !int.TryParse(biblePublication.SectionCode, out var sectionNum) || 
+                sectionNum <= 0)
+            {
+                return;
+            }
+
+            // Find the section in the publication
+            var section = publication.Sections?.FirstOrDefault(s => 
+                s.GetSectionNumber().HasValue && 
+                s.GetSectionNumber().Value == sectionNum);
+            
+            if (section != null)
+            {
+                // Find the track in the section's tracks
+                var track = section.Tracks?.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
+                if (track != null && !string.IsNullOrWhiteSpace(track.Title))
+                {
+                    scheduleStateItem.BiblePublicationTrackTitle = track.Title;
+                    Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (SectionCode: {SectionCode}, TrackNumber: {TrackNumber})",
+                        track.Title, schedule.Id, biblePublication.SectionCode, biblePublication.TrackNumber);
+                }
+            }
+        }
+        else
+        {
+            // For non-sectioned publications (Drama/Video), find track directly in publication's tracks
+            var track = publication.Tracks?.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
             if (track != null && !string.IsNullOrWhiteSpace(track.Title))
             {
                 scheduleStateItem.BiblePublicationTrackTitle = track.Title;

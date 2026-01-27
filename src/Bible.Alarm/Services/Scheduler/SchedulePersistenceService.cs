@@ -115,6 +115,7 @@ public sealed class SchedulePersistenceService(
             existing.Music.LanguageCode = schedule.Music.LanguageCode;
             existing.Music.MusicType = schedule.Music.MusicType;
             existing.Music.PublicationCode = schedule.Music.PublicationCode;
+            existing.Music.SectionCode = schedule.Music.SectionCode;
             existing.Music.TrackNumber = schedule.Music.TrackNumber;
         }
     }
