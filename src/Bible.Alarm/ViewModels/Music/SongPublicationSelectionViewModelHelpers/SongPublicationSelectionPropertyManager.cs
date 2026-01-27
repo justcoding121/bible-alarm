@@ -18,6 +18,9 @@ public sealed class SongPublicationSelectionPropertyManager : ObservableObject
     private string languageSearchTerm = string.Empty;
     private PublicationListViewItemModel? selectedSongPublication;
     private PropertyChangedEventHandler? propertyChangedHandler;
+    private bool showProgress = false;
+    private double progressPercent = 0.0;
+    private string progressText = "Loading...";
 
     public bool IsBusy
     {
@@ -56,6 +59,24 @@ public sealed class SongPublicationSelectionPropertyManager : ObservableObject
     }
 
     public object? SelectedItem => CurrentLanguage;
+
+    public bool ShowProgress
+    {
+        get => showProgress;
+        set => SetProperty(ref showProgress, value);
+    }
+
+    public double ProgressPercent
+    {
+        get => progressPercent;
+        set => SetProperty(ref progressPercent, value);
+    }
+
+    public string ProgressText
+    {
+        get => progressText;
+        set => SetProperty(ref progressText, value);
+    }
 
     public void UpdateCurrentLanguageFromLanguages()
     {

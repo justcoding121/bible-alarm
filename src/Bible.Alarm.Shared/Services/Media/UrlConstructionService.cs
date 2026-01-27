@@ -9,6 +9,7 @@ using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 
@@ -19,11 +20,11 @@ namespace Bible.Alarm.Shared.Services.Media;
 /// </summary>
 public class UrlConstructionService : IUrlConstructionService
 {
-    private readonly MediaDbContext _dbContext;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public UrlConstructionService(MediaDbContext dbContext)
+    public UrlConstructionService(IServiceScopeFactory scopeFactory)
     {
-        _dbContext = dbContext;
+        _scopeFactory = scopeFactory;
     }
 
     /// <summary>
@@ -34,8 +35,11 @@ public class UrlConstructionService : IUrlConstructionService
     /// <returns>List of constructed URLs (primary and backup)</returns>
     public async Task<List<string>> ConstructTrackUrlsAsync(int trackId)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
         // Single query with all necessary joins to minimize database round trips
-        var track = await _dbContext.BiblePublicationTracks
+        var track = await dbContext.BiblePublicationTracks
             .AsNoTracking() // Read-only, improves performance
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.UrlParams)
@@ -52,7 +56,7 @@ public class UrlConstructionService : IUrlConstructionService
         }
 
         // Get all base URLs from the database (all downloads use the same ApiUrls)
-        var baseUrls = await _dbContext.BaseUrls
+        var baseUrls = await dbContext.BaseUrls
             .AsNoTracking()
             .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
             .Include(bu => bu.UrlParams)
@@ -199,7 +203,10 @@ public class UrlConstructionService : IUrlConstructionService
         string? sectionCode,
         int trackNumber)
     {
-        var query = _dbContext.BiblePublicationTracks
+        using var scope = _scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var query = dbContext.BiblePublicationTracks
             .AsNoTracking() // Read-only, improves performance
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
@@ -246,7 +253,10 @@ public class UrlConstructionService : IUrlConstructionService
         string? sectionCode,
         int trackNumber)
     {
-        var query = _dbContext.BiblePublicationTracks
+        using var scope = _scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        var query = dbContext.BiblePublicationTracks
             .AsNoTracking()
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
@@ -289,7 +299,7 @@ public class UrlConstructionService : IUrlConstructionService
         }
 
         // Get the first BaseUrl from the database (all downloads use the same ApiUrls)
-        var baseUrl = await _dbContext.BaseUrls
+        var baseUrl = await dbContext.BaseUrls
             .AsNoTracking()
             .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
             .Include(bu => bu.UrlParams)

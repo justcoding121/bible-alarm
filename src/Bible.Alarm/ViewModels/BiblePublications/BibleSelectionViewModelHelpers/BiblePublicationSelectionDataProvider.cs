@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Models;
@@ -111,7 +112,8 @@ public sealed class BiblePublicationSelectionDataProvider
         ObservableCollection<PublicationListViewItemModel>? publications,
         bool languageChanged,
         bool downloadAll = false,
-        string? categoryName = null)
+        string? categoryName = null,
+        IFetchProgress? progress = null)
     {
         if (publications == null) return;
 
@@ -137,63 +139,112 @@ public sealed class BiblePublicationSelectionDataProvider
         {
             // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
             // downloadAll=false when language changes (only download first publication in cascade)
-            var publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll);
+            Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? publicationsData = null;
             
-            // If downloadAll=true, wait for harvesting to complete, then re-query to get actual publication names
+            // Retry logic: If downloadAll=true and non-English, retry fetching until all publications are harvested
+            // For non-English languages, publications need to be fetched, so we retry with increasing delays
             if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
             {
-                // Wait a bit for background harvesting to start
-                await Task.Delay(100);
-                
-                // Wait for harvesting to complete by checking if publications are now available
-                // Re-query to get actual publications with correct names (not placeholders)
-                var maxWaitTime = TimeSpan.FromSeconds(30);
+                const int maxRetries = 10; // Up to 10 retries
+                var retryDelay = 1000; // Start with 1 second
+                var maxWaitTime = TimeSpan.FromSeconds(60); // Total max wait time of 60 seconds
                 var startTime = DateTime.UtcNow;
-                var harvested = false;
+                var allHarvested = false;
+                var attempt = 0;
                 
-                while (!harvested && (DateTime.UtcNow - startTime) < maxWaitTime)
+                Log.Information("PopulatePublicationsAsync: Starting fetch with retries for language={LanguageCode}, category={CategoryName}",
+                    languageCode, currentCategoryName);
+                
+                while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
                 {
-                    var reQueriedData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false);
+                    attempt++;
                     
-                    // Check if ALL publications are harvested (not placeholders)
-                    // A publication is harvested if it has a name that's different from its code and has an ID > 0
-                    var allHarvested = reQueriedData.Values.All(p => 
-                        !string.IsNullOrEmpty(p.Name) && 
-                        p.Name != p.PublicationCode && 
-                        p.Id > 0);
-                    
-                    // Also check that we have at least one publication (to avoid false positives when list is empty)
-                    var hasPublications = reQueriedData.Values.Count > 0;
-                    
-                    if (allHarvested && hasPublications)
+                    try
                     {
-                        publicationsData = reQueriedData;
-                        harvested = true;
-                        Log.Debug("PopulatePublicationsAsync: All publications harvested, using actual publications with correct names");
-                    }
-                    else
-                    {
-                        // Log which publications are still placeholders for debugging
-                        var placeholders = reQueriedData.Values.Where(p => 
-                            string.IsNullOrEmpty(p.Name) || 
-                            p.Name == p.PublicationCode || 
-                            p.Id == 0).Select(p => p.PublicationCode).ToList();
+                        // Fetch publications (this triggers harvesting if needed)
+                        publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll);
                         
-                        if (placeholders.Count > 0)
-                        {
-                            Log.Debug("PopulatePublicationsAsync: Still waiting for {Count} publications to be harvested: {Placeholders}",
-                                placeholders.Count, string.Join(", ", placeholders));
-                        }
-                        
-                        // Wait a bit more before checking again
+                        // Wait a bit for background harvesting to start
                         await Task.Delay(500);
+                        
+                        // Re-query to check if publications are now harvested
+                        var reQueriedData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, progress);
+                        
+                        // Check if ALL publications are harvested (not placeholders)
+                        // A publication is harvested if it has a name that's different from its code and has an ID > 0
+                        var hasPublications = reQueriedData.Values.Count > 0;
+                        var allHarvestedCheck = hasPublications && reQueriedData.Values.All(p => 
+                            !string.IsNullOrEmpty(p.Name) && 
+                            p.Name != p.PublicationCode && 
+                            p.Id > 0);
+                        
+                        if (allHarvestedCheck)
+                        {
+                            publicationsData = reQueriedData;
+                            allHarvested = true;
+                            Log.Information("PopulatePublicationsAsync: All {Count} publications harvested on attempt {Attempt} for language={LanguageCode}",
+                                publicationsData.Count, attempt, languageCode);
+                        }
+                        else
+                        {
+                            // Log which publications are still placeholders for debugging
+                            var placeholders = reQueriedData.Values.Where(p => 
+                                string.IsNullOrEmpty(p.Name) || 
+                                p.Name == p.PublicationCode || 
+                                p.Id == 0).Select(p => p.PublicationCode).ToList();
+                            
+                            if (placeholders.Count > 0)
+                            {
+                                Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: Still waiting for {Count} publications to be harvested: {Placeholders}",
+                                    attempt, placeholders.Count, string.Join(", ", placeholders));
+                            }
+                            else if (!hasPublications)
+                            {
+                                Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: No publications found yet, will retry",
+                                    attempt);
+                            }
+                            
+                            // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s)
+                            var delay = Math.Min(retryDelay * attempt, 5000);
+                            await Task.Delay(delay);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "PopulatePublicationsAsync: Attempt {Attempt} failed for language={LanguageCode}, will retry",
+                            attempt, languageCode);
+                        
+                        // Wait before retrying on exception
+                        var delay = Math.Min(retryDelay * attempt, 5000);
+                        await Task.Delay(delay);
                     }
                 }
                 
-                if (!harvested)
+                if (!allHarvested)
                 {
-                    Log.Warning("PopulatePublicationsAsync: Timeout waiting for all publications to be harvested for language {LanguageCode}. Some may still be placeholders.", languageCode);
+                    Log.Warning("PopulatePublicationsAsync: Timeout after {Attempts} attempts waiting for all publications to be harvested for language {LanguageCode}. Some may still be placeholders.",
+                        attempt, languageCode);
+                    
+                    // Use the last fetched data even if not all are harvested
+                    if (publicationsData == null || publicationsData.Count == 0)
+                    {
+                        // Final attempt to get at least some data
+                        try
+                        {
+                            publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, progress);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex, "PopulatePublicationsAsync: Final fetch attempt failed for language={LanguageCode}",
+                                languageCode);
+                        }
+                    }
                 }
+            }
+            else
+            {
+                // For English or when downloadAll=false, just fetch once
+                publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
             }
             
             var vms = new List<PublicationListViewItemModel>();

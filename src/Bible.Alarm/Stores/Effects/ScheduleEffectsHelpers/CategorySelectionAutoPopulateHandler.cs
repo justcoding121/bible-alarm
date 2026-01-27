@@ -164,18 +164,30 @@ public sealed class CategorySelectionAutoPopulateHandler
                     .ThenBy(pl => pl.Id)
                     .ToList();
                 
-                // Try each publication: harvest if needed, then verify it can be queried
+                // Try each publication: check if already harvested, harvest if needed, then verify it can be queried
                 foreach (var pl in publicationLanguages)
                 {
-                    // Try to harvest the publication (EnsurePublicationExistsAsync checks if it exists first)
-                    var isHarvested = await languageContentService.EnsurePublicationExistsAsync(
-                        pl.PublicationCode, selectedLanguage.LanguageCode);
+                    // Check if publication with first section and tracks is already harvested
+                    var isAlreadyHarvested = await CheckIfPublicationWithFirstSectionHarvestedAsync(
+                        db, pl.PublicationCode, normalizedLanguageCode);
                     
-                    if (!isHarvested)
+                    if (!isAlreadyHarvested)
                     {
-                        logger.Debug("CategorySelectionAutoPopulateHandler: Failed to harvest publication={PublicationCode} for language={LanguageCode}, trying next",
+                        // Try to harvest the publication (EnsurePublicationExistsAsync checks if it exists first)
+                        var isHarvested = await languageContentService.EnsurePublicationExistsAsync(
                             pl.PublicationCode, selectedLanguage.LanguageCode);
-                        continue;
+                        
+                        if (!isHarvested)
+                        {
+                            logger.Debug("CategorySelectionAutoPopulateHandler: Failed to harvest publication={PublicationCode} for language={LanguageCode}, trying next",
+                                pl.PublicationCode, selectedLanguage.LanguageCode);
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        logger.Debug("CategorySelectionAutoPopulateHandler: Publication={PublicationCode} for language={LanguageCode} already harvested with first section and tracks",
+                            pl.PublicationCode, selectedLanguage.LanguageCode);
                     }
                     
                     // Verify the publication can be queried with the language (has LanguageId)
@@ -323,6 +335,8 @@ public sealed class CategorySelectionAutoPopulateHandler
                 }
 
                 var languageModel = new LanguageListViewItemModel(selectedLanguage);
+                // Note: Progress is not passed here because the effect handler runs asynchronously
+                // Progress is shown in the ViewModel while waiting for state changes
                 var (resultPublicationCode, resultSectionNumber, resultTrackNumber, resultSectionName, resultPublicationName, resultTrackTitle) =
                     await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(languageModel);
 
@@ -396,6 +410,93 @@ public sealed class CategorySelectionAutoPopulateHandler
         {
             logger.Error(ex, "CategorySelectionAutoPopulateHandler: Error during auto-population for category={CategoryName}",
                 action.CategoryName);
+        }
+    }
+
+    /// <summary>
+    /// Checks if a publication with its first section and tracks is already harvested.
+    /// </summary>
+    private async Task<bool> CheckIfPublicationWithFirstSectionHarvestedAsync(
+        MediaDbContext db,
+        string publicationCode,
+        string normalizedLanguageCode)
+    {
+        try
+        {
+            // For dramas, use case-sensitive publication codes
+            var lowerCode = publicationCode.ToLowerInvariant();
+            var isDrama = Bible.Alarm.Shared.Helpers.PublicationTypeHelper.IsDrama(lowerCode);
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                publicationCodeForDb = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
+            else
+            {
+                publicationCodeForDb = publicationCode;
+            }
+
+            // Check if publication exists
+            var publication = await db.BiblePublications
+                .AsNoTracking()
+                .Include(bp => bp.Language)
+                .Include(bp => bp.Sections)
+                    .ThenInclude(s => s.Tracks)
+                .FirstOrDefaultAsync(
+                    bp => bp.PublicationCode == publicationCodeForDb &&
+                          bp.Language != null &&
+                          bp.Language.LanguageCode == normalizedLanguageCode);
+
+            if (publication == null)
+            {
+                return false;
+            }
+
+            // Get first section code from SectionLanguages
+            var firstSectionCode = await db.SectionLanguages
+                .AsNoTracking()
+                .Include(sl => sl.Language)
+                .Where(sl => sl.PublicationCode == publicationCodeForDb &&
+                           sl.Language != null &&
+                           sl.Language.LanguageCode == normalizedLanguageCode)
+                .OrderBy(sl => sl.SectionCode)
+                .Select(sl => sl.SectionCode)
+                .FirstOrDefaultAsync();
+
+            if (string.IsNullOrEmpty(firstSectionCode))
+            {
+                // No sections defined - check if it's a flat publication (has tracks directly)
+                var hasTracks = await db.BiblePublicationTracks
+                    .AsNoTracking()
+                    .Include(t => t.Publication)
+                        .ThenInclude(bp => bp!.Language)
+                    .AnyAsync(t => t.Publication != null &&
+                                   t.Publication.PublicationCode == publicationCodeForDb &&
+                                   t.Publication.Language != null &&
+                                   t.Publication.Language.LanguageCode == normalizedLanguageCode &&
+                                   t.BiblePublicationSectionId == null);
+                return hasTracks;
+            }
+
+            // Check if first section exists with tracks
+            var firstSection = publication.Sections
+                .FirstOrDefault(s => s.SectionCode.Equals(firstSectionCode, StringComparison.OrdinalIgnoreCase));
+
+            if (firstSection == null)
+            {
+                return false;
+            }
+
+            // Check if section has tracks
+            return firstSection.Tracks != null && firstSection.Tracks.Count > 0;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "CategorySelectionAutoPopulateHandler: Error checking if publication {PublicationCode} is harvested",
+                publicationCode);
+            return false;
         }
     }
 }

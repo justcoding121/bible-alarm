@@ -98,7 +98,8 @@ public sealed class SongPublicationSelectionDataProvider(
         AlarmMusic? current,
         ObservableCollection<PublicationListViewItemModel> songPublications,
         Action<PublicationListViewItemModel?> setSelectedSongPublication,
-        bool downloadAll = false)
+        bool downloadAll = false,
+        IFetchProgress? progress = null)
     {
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (songPublicationVMs, newMapping, selectedSongPublication) = await Task.Run(async () =>
@@ -116,7 +117,7 @@ public sealed class SongPublicationSelectionDataProvider(
                 // Instrumental music only - get publications without language FK
                 // Use empty string as language code to get all Music category publications
                 // GetBiblePublications will return publications with LanguageId == null for Music category
-                publicationsData = await mediaService.GetBiblePublications(string.Empty, "Music", downloadAll);
+                publicationsData = await mediaService.GetBiblePublications(string.Empty, "Music", downloadAll, progress);
                 
                 // Filter to only publications without LanguageId
                 if (publicationsData != null)
@@ -132,7 +133,7 @@ public sealed class SongPublicationSelectionDataProvider(
                 // 1. Publications with LanguageId != null (filtered by language code)
                 // 2. Publications with LanguageId == null (no language FK)
                 // This is data-driven and works for any category
-                publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll);
+                publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll, progress);
             }
             else
             {
@@ -140,60 +141,126 @@ public sealed class SongPublicationSelectionDataProvider(
                 return (new List<PublicationListViewItemModel>(), new Dictionary<string, PublicationListViewItemModel>(), (PublicationListViewItemModel?)null);
             }
 
-            // If downloadAll=true, wait for harvesting to complete, then re-query to get actual publication names
-            // This matches the pattern in BiblePublicationSelectionDataProvider
-            if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase) && publicationsData != null)
+            // Retry logic: If downloadAll=true and non-English, retry fetching until all publications are harvested
+            // For non-English languages, publications need to be fetched, so we retry with increasing delays
+            if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
             {
-                // Wait a bit for background harvesting to start
-                await Task.Delay(100);
-                
-                // Wait for harvesting to complete by checking if publications are now available
-                // Re-query to get actual publications with correct names (not placeholders)
-                var maxWaitTime = TimeSpan.FromSeconds(30);
+                const int maxRetries = 10; // Up to 10 retries
+                var retryDelay = 1000; // Start with 1 second
+                var maxWaitTime = TimeSpan.FromSeconds(60); // Total max wait time of 60 seconds
                 var startTime = DateTime.UtcNow;
                 var allHarvested = false;
+                var attempt = 0;
                 
-                while (!allHarvested && (DateTime.UtcNow - startTime) < maxWaitTime)
+                Serilog.Log.Information("PopulateSongPublications: Starting fetch with retries for language={LanguageCode}, category=Music",
+                    languageCode);
+                
+                while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
                 {
-                    var reQueriedData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false);
+                    attempt++;
                     
-                    // Check if ALL publications are harvested (not placeholders)
-                    // A publication is harvested if it has a name that's different from its code and has an ID > 0
-                    allHarvested = reQueriedData.Values.All(p => 
-                        !string.IsNullOrEmpty(p.Name) && 
-                        p.Name != p.PublicationCode && 
-                        p.Id > 0);
-                    
-                    // Also check that we have at least one publication (to avoid false positives when list is empty)
-                    var hasPublications = reQueriedData.Values.Count > 0;
-                    
-                    if (allHarvested && hasPublications)
+                    try
                     {
-                        publicationsData = reQueriedData;
-                        Serilog.Log.Debug("PopulateSongPublications: All publications harvested, using actual publications with correct names");
-                    }
-                    else
-                    {
-                        // Log which publications are still placeholders for debugging
-                        var placeholders = reQueriedData.Values.Where(p => 
-                            string.IsNullOrEmpty(p.Name) || 
-                            p.Name == p.PublicationCode || 
-                            p.Id == 0).Select(p => p.PublicationCode).ToList();
+                        // Fetch publications (this triggers harvesting if needed)
+                        // Note: This retry block only runs when languageCode is not empty (vocal music)
+                        publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll, progress);
                         
-                        if (placeholders.Count > 0)
-                        {
-                            Serilog.Log.Debug("PopulateSongPublications: Still waiting for {Count} publications to be harvested: {Placeholders}",
-                                placeholders.Count, string.Join(", ", placeholders));
-                        }
-                        
-                        // Wait a bit more before checking again
+                        // Wait a bit for background harvesting to start
                         await Task.Delay(500);
+                        
+                        // Re-query to check if publications are now harvested
+                        var reQueriedData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, progress);
+                        
+                        // Check if ALL publications are harvested (not placeholders)
+                        // A publication is harvested if it has a name that's different from its code and has an ID > 0
+                        var hasPublications = reQueriedData != null && reQueriedData.Values.Count > 0;
+                        var allHarvestedCheck = hasPublications && reQueriedData!.Values.All(p => 
+                            !string.IsNullOrEmpty(p.Name) && 
+                            p.Name != p.PublicationCode && 
+                            p.Id > 0);
+                        
+                        if (allHarvestedCheck)
+                        {
+                            publicationsData = reQueriedData;
+                            allHarvested = true;
+                            Serilog.Log.Information("PopulateSongPublications: All {Count} publications harvested on attempt {Attempt} for language={LanguageCode}",
+                                publicationsData.Count, attempt, languageCode);
+                        }
+                        else
+                        {
+                            // Log which publications are still placeholders for debugging
+                            if (reQueriedData != null)
+                            {
+                                var placeholders = reQueriedData.Values.Where(p => 
+                                    string.IsNullOrEmpty(p.Name) || 
+                                    p.Name == p.PublicationCode || 
+                                    p.Id == 0).Select(p => p.PublicationCode).ToList();
+                                
+                                if (placeholders.Count > 0)
+                                {
+                                    Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: Still waiting for {Count} publications to be harvested: {Placeholders}",
+                                        attempt, placeholders.Count, string.Join(", ", placeholders));
+                                }
+                                else if (!hasPublications)
+                                {
+                                    Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: No publications found yet, will retry",
+                                        attempt);
+                                }
+                            }
+                            
+                            // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s)
+                            var delay = Math.Min(retryDelay * attempt, 5000);
+                            await Task.Delay(delay);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Serilog.Log.Warning(ex, "PopulateSongPublications: Attempt {Attempt} failed for language={LanguageCode}, will retry",
+                            attempt, languageCode);
+                        
+                        // Wait before retrying on exception
+                        var delay = Math.Min(retryDelay * attempt, 5000);
+                        await Task.Delay(delay);
                     }
                 }
                 
                 if (!allHarvested)
                 {
-                    Serilog.Log.Warning("PopulateSongPublications: Timeout waiting for all publications to be harvested for language {LanguageCode}. Some may still be placeholders.", languageCode);
+                    Serilog.Log.Warning("PopulateSongPublications: Timeout after {Attempts} attempts waiting for all publications to be harvested for language {LanguageCode}. Some may still be placeholders.",
+                        attempt, languageCode);
+                    
+                    // Use the last fetched data even if not all are harvested
+                    if (publicationsData == null || publicationsData.Count == 0)
+                    {
+                        // Final attempt to get at least some data
+                        try
+                        {
+                            publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, progress);
+                        }
+                        catch (Exception ex)
+                        {
+                            Serilog.Log.Error(ex, "PopulateSongPublications: Final fetch attempt failed for language={LanguageCode}",
+                                languageCode);
+                        }
+                    }
+                }
+            }
+            else if (publicationsData == null)
+            {
+                // For English or when downloadAll=false, just fetch once
+                if (current?.MusicType == MusicType.Music && string.IsNullOrEmpty(languageCode))
+                {
+                    var fetchedData = await mediaService.GetBiblePublications(string.Empty, "Music", downloadAll, progress);
+                    if (fetchedData != null)
+                    {
+                        publicationsData = fetchedData
+                            .Where(kvp => kvp.Value.LanguageId == null)
+                            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                    }
+                }
+                else if (!string.IsNullOrEmpty(languageCode))
+                {
+                    publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll, progress);
                 }
             }
 
@@ -329,7 +396,8 @@ public sealed class SongPublicationSelectionDataProvider(
     public async Task<(int TrackNumber, string TrackName)> GetTrackForSongPublicationAsync(
         PublicationListViewItemModel songPublication,
         string languageCode,
-        ScheduleStateItem? currentSchedule)
+        ScheduleStateItem? currentSchedule,
+        IFetchProgress? progress = null)
     {
         var isSameSongPublication = IsSameSongPublication(currentSchedule, languageCode, songPublication.Code);
 
@@ -355,7 +423,8 @@ public sealed class SongPublicationSelectionDataProvider(
 
     public async Task<(string? PublicationCode, int TrackNumber, string TrackName, string PublicationName)> GetFirstSongPublicationAndTrackForLanguageAsync(
         LanguageListViewItemModel language,
-        ScheduleStateItem? currentSchedule)
+        ScheduleStateItem? currentSchedule,
+        IFetchProgress? progress = null)
     {
         // Step 1: Get the first publication code by ID order from PublicationLanguages for Music category
         // This is the publication that should be downloaded when language is selected
@@ -439,6 +508,8 @@ public sealed class SongPublicationSelectionDataProvider(
         Serilog.Log.Debug("GetFirstSongPublicationAndTrackForLanguageAsync: First publication by ID order={PublicationCode} for language={LanguageCode}",
             firstPublicationCode, language.Code);
 
+        progress?.UpdateProgress(0.3);
+
         // Step 2: Download the first publication with its first section (if sectioned) and tracks
         // This happens when language is selected (cascade)
         // EnsurePublicationExistsAsync will download the publication, its first section (by ID order from SectionLanguages), and tracks
@@ -449,9 +520,10 @@ public sealed class SongPublicationSelectionDataProvider(
 
             try
             {
+                progress?.UpdateProgress(0.5);
                 // EnsurePublicationExistsAsync downloads the publication with its first section (by ID order) and tracks
                 var fetchSuccess = await languageContentService.EnsurePublicationExistsAsync(
-                    firstPublicationCode, language.Code);
+                    firstPublicationCode, language.Code, default, progress);
 
                 if (!fetchSuccess)
                 {
@@ -467,8 +539,9 @@ public sealed class SongPublicationSelectionDataProvider(
         }
 
         // Step 3: Get the downloaded publication using GetBiblePublications (same API as Bible publication)
+        progress?.UpdateProgress(0.7);
         var songPublications = await Task.Run(async () =>
-            await mediaService.GetBiblePublications(language.Code, "Music", downloadAll: false));
+            await mediaService.GetBiblePublications(language.Code, "Music", downloadAll: false, progress));
 
         if (songPublications == null || songPublications.Count == 0)
         {
@@ -491,8 +564,9 @@ public sealed class SongPublicationSelectionDataProvider(
 
         // Use GetBiblePublicationTracks for vocal music (same API as Bible publication)
         // For vocal music, we need to get tracks from the first section (or flat publication)
+        progress?.UpdateProgress(0.8);
         var sections = await Task.Run(async () =>
-            await mediaService.GetBiblePublicationSections(language.Code, publicationCode));
+            await mediaService.GetBiblePublicationSections(language.Code, publicationCode, progress));
         
         SortedDictionary<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack>? tracks = null;
         if (sections != null && sections.Count > 0)

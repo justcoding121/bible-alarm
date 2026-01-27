@@ -90,7 +90,11 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             () => propertyManager.CurrentLanguage,
             () => propertyManager.Publications,
             () => dataProvider.GetPublicationVMsMapping(),
-            () => stateHandler.Current);
+            () => stateHandler.Current,
+            isVisible => propertyManager.ShowProgress = isVisible,
+            progress => propertyManager.ProgressPercent = progress,
+            text => propertyManager.ProgressText = text,
+            busy => propertyManager.IsBusy = busy);
 
         BackCommand = commandHandler.CreateBackCommand();
         CloseModalCommand = commandHandler.CreateCloseModalCommand();
@@ -98,7 +102,11 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         SelectLanguageCommand = commandHandler.CreateSelectLanguageCommand(
             () => propertyManager.Languages,
             () => dataProvider.GetPublicationVMsMapping(),
-            language => propertyManager.UpdateSelectedLanguage(language));
+            language => propertyManager.UpdateSelectedLanguage(language),
+            isVisible => propertyManager.ShowProgress = isVisible,
+            progress => propertyManager.ProgressPercent = progress,
+            text => propertyManager.ProgressText = text,
+            busy => propertyManager.IsBusy = busy);
 
         // Always trigger initialization, even if CurrentBiblePublicationSchedule is null
         // This ensures languages are populated for the language modal use case
@@ -134,9 +142,16 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         // Only populate publications if we have a current language (for full Bible selection, not language modal)
         if (!string.IsNullOrEmpty(state.Value.CurrentSchedule?.BiblePublicationLanguageCode))
         {
+            // Create progress tracker for modal open
+            var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
+                progress => MainThread.BeginInvokeOnMainThread(() => propertyManager.ProgressPercent = progress),
+                text => MainThread.BeginInvokeOnMainThread(() => propertyManager.ProgressText = text),
+                isVisible => MainThread.BeginInvokeOnMainThread(() => propertyManager.ShowProgress = isVisible));
+            
             await stateHandler.RefreshFromStateAsync(
                 busy => propertyManager.IsBusy = busy,
-                propertyManager.Publications);
+                propertyManager.Publications,
+                progressTracker);
         }
     }
 
@@ -157,6 +172,9 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     public string PublicationCode { get => propertyManager.PublicationCode; set => propertyManager.PublicationCode = value; }
     public string LanguageSearchTerm { get => propertyManager.LanguageSearchTerm; set => propertyManager.LanguageSearchTerm = value; }
     public object? SelectedItem => propertyManager.SelectedItem;
+    public bool ShowProgress { get => propertyManager.ShowProgress; set => propertyManager.ShowProgress = value; }
+    public double ProgressPercent { get => propertyManager.ProgressPercent; set => propertyManager.ProgressPercent = value; }
+    public string ProgressText { get => propertyManager.ProgressText; set => propertyManager.ProgressText = value; }
 
     /// <summary>
     /// Gets the FlowDirection for content based on the selected language direction.

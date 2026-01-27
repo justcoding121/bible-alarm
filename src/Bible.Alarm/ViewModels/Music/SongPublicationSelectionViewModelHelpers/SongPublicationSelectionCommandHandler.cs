@@ -29,7 +29,10 @@ public sealed class SongPublicationSelectionCommandHandler(
         PublicationListViewItemModel songPublication,
         LanguageListViewItemModel? currentLanguage,
         SongPublicationSelectionDataProvider dataProvider,
-        AlarmMusic? current)
+        AlarmMusic? current,
+        Action<bool> setShowProgress,
+        Action<double> setProgressPercent,
+        Action<string> setProgressText)
     {
         if (songPublication == null)
         {
@@ -62,85 +65,140 @@ public sealed class SongPublicationSelectionCommandHandler(
 
         var currentSchedule = state.Value.CurrentSchedule;
         
-        // Get track based on music type
-        int trackNumber;
-        string trackName;
-        if (isMelodyMusic)
+        // Show progress immediately on UI thread before any async work
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            // For melody music, get tracks directly (no language needed)
-            var tracks = await mediaService.GetMelodyMusicTracks(songPublication.Code);
-            if (tracks == null || tracks.Count == 0)
-            {
-                return;
-            }
+            setShowProgress(true);
+            setProgressPercent(0.0);
+            setProgressText("0%");
+        });
+        
+        // Give UI thread a chance to render the progress
+        await Task.Delay(50);
+        
+        try
+        {
+            // Create progress tracker
+            var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
+                progress => MainThread.BeginInvokeOnMainThread(() => setProgressPercent(progress)),
+                text => MainThread.BeginInvokeOnMainThread(() => setProgressText(text)),
+                isVisible => MainThread.BeginInvokeOnMainThread(() => setShowProgress(isVisible)));
             
-            // Use current track if same publication, otherwise random
-            if (currentSchedule?.MusicType == MusicType.Music &&
-                currentSchedule.MusicPublicationCode == songPublication.Code &&
-                currentSchedule.MusicTrackNumber.HasValue &&
-                tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
+            // Get track based on music type
+            int trackNumber;
+            string trackName;
+            if (isMelodyMusic)
             {
-                trackNumber = currentSchedule.MusicTrackNumber.Value;
-                trackName = currentTrack.Title;
+                // For melody music, get tracks directly (no language needed)
+                progressTracker.UpdateProgress(0.3);
+                var tracks = await mediaService.GetMelodyMusicTracks(songPublication.Code);
+                if (tracks == null || tracks.Count == 0)
+                {
+                    return;
+                }
+                
+                // Use current track if same publication, otherwise random
+                if (currentSchedule?.MusicType == MusicType.Music &&
+                    currentSchedule.MusicPublicationCode == songPublication.Code &&
+                    currentSchedule.MusicTrackNumber.HasValue &&
+                    tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
+                {
+                    trackNumber = currentSchedule.MusicTrackNumber.Value;
+                    trackName = currentTrack.Title;
+                }
+                else
+                {
+                    var tracksList = tracks.Values.ToList();
+                    var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
+                    trackNumber = randomTrack.Number;
+                    trackName = randomTrack.Title;
+                }
             }
             else
             {
-                var tracksList = tracks.Values.ToList();
-                var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                trackNumber = randomTrack.Number;
-                trackName = randomTrack.Title;
+                // For vocal music, use existing logic
+                progressTracker.UpdateProgress(0.3);
+                var result = await dataProvider.GetTrackForSongPublicationAsync(songPublication, languageCode, currentSchedule, progressTracker);
+                if (result.TrackNumber == 0)
+                {
+                    return;
+                }
+                trackNumber = result.TrackNumber;
+                trackName = result.TrackName;
             }
-        }
-        else
-        {
-            // For vocal music, use existing logic
-            var result = await dataProvider.GetTrackForSongPublicationAsync(songPublication, languageCode, currentSchedule);
-            if (result.TrackNumber == 0)
-            {
-                return;
-            }
-            trackNumber = result.TrackNumber;
-            trackName = result.TrackName;
-        }
 
-        // Check if publication is sectioned - if not, ensure SectionCode is null
-        bool isSectioned = Bible.Alarm.Shared.Helpers.PublicationTypeHelper.HasSectionStructure(songPublication.Code);
-        string? sectionCode = null;
-        string? sectionName = null;
+            progressTracker.UpdateProgress(0.7);
+
+            // Check if publication is sectioned - if not, ensure SectionCode is null
+            bool isSectioned = Bible.Alarm.Shared.Helpers.PublicationTypeHelper.HasSectionStructure(songPublication.Code);
+            string? sectionCode = null;
+            string? sectionName = null;
+            
+            // Only set section code/name if publication is sectioned
+            if (isSectioned)
+            {
+                // For sectioned publications, we need to get the section from the track
+                // But since we're selecting a publication and getting a random track,
+                // we don't know which section it belongs to yet
+                // The cascade handler will handle setting the correct section
+                // For now, preserve any existing section if the publication hasn't changed
+                if (currentSchedule?.MusicPublicationCode == songPublication.Code && 
+                    !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode))
+                {
+                    sectionCode = currentSchedule.MusicSectionCode;
+                    sectionName = currentSchedule.MusicSectionName;
+                }
+            }
+            // For non-sectioned publications, explicitly set SectionCode to null to clear it
+            else
+            {
+                sectionCode = null;
+                sectionName = null;
+            }
+
+            var trackSelectedItem = CreateMusicStateItemForSongPublication(
+                songPublication, 
+                isMelodyMusic ? string.Empty : languageCode, 
+                trackNumber, 
+                trackName, 
+                isMelodyMusic ? null : currentLanguage, 
+                currentSchedule,
+                isMelodyMusic ? MusicType.Music : MusicType.VocalMusic,
+                sectionCode,
+                sectionName);
+            dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
+            
+            // Wait for cascade to complete by checking state
+            progressTracker.UpdateProgress(0.9);
+            
+            // Wait for state to be updated (cascade effect)
+            const int maxWaitAttempts = 30;
+            const int delayMs = 200;
+            for (int i = 0; i < maxWaitAttempts; i++)
+            {
+                var currentState = state.Value.CurrentSchedule;
+                if (currentState != null && 
+                    !string.IsNullOrEmpty(currentState.MusicPublicationCode) &&
+                    currentState.MusicTrackNumber.HasValue &&
+                    currentState.MusicTrackNumber.Value > 0)
+                {
+                    // Cascade complete
+                    break;
+                }
+                // Update progress gradually while waiting
+                var waitProgress = 0.9 + (i / (double)maxWaitAttempts) * 0.1;
+                progressTracker.UpdateProgress(waitProgress);
+                await Task.Delay(delayMs);
+            }
+            
+            progressTracker.UpdateProgress(1.0);
+            await Task.Delay(200); // Brief delay to show completion
+        }
+        finally
+        {
+            setShowProgress(false);
+        }
         
-        // Only set section code/name if publication is sectioned
-        if (isSectioned)
-        {
-            // For sectioned publications, we need to get the section from the track
-            // But since we're selecting a publication and getting a random track,
-            // we don't know which section it belongs to yet
-            // The cascade handler will handle setting the correct section
-            // For now, preserve any existing section if the publication hasn't changed
-            if (currentSchedule?.MusicPublicationCode == songPublication.Code && 
-                !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode))
-            {
-                sectionCode = currentSchedule.MusicSectionCode;
-                sectionName = currentSchedule.MusicSectionName;
-            }
-        }
-        // For non-sectioned publications, explicitly set SectionCode to null to clear it
-        else
-        {
-            sectionCode = null;
-            sectionName = null;
-        }
-
-        var trackSelectedItem = CreateMusicStateItemForSongPublication(
-            songPublication, 
-            isMelodyMusic ? string.Empty : languageCode, 
-            trackNumber, 
-            trackName, 
-            isMelodyMusic ? null : currentLanguage, 
-            currentSchedule,
-            isMelodyMusic ? MusicType.Music : MusicType.VocalMusic,
-            sectionCode,
-            sectionName);
-        dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
         await navigationService.PopModalAsync();
     }
 
@@ -149,7 +207,11 @@ public sealed class SongPublicationSelectionCommandHandler(
         LanguageListViewItemModel language,
         SongPublicationSelectionDataProvider dataProvider,
         Action<LanguageListViewItemModel?> setCurrentLanguage,
-        Action<LanguageListViewItemModel> updateSelectedLanguage)
+        Action<LanguageListViewItemModel> updateSelectedLanguage,
+        Action<bool> setShowProgress,
+        Action<double> setProgressPercent,
+        Action<string> setProgressText,
+        Action<bool> setIsBusy)
     {
         if (language == null)
         {
@@ -158,15 +220,69 @@ public sealed class SongPublicationSelectionCommandHandler(
 
         updateSelectedLanguage(language);
 
-        var currentSchedule = state.Value.CurrentSchedule;
-        var (publicationCode, trackNumber, trackName, publicationName) = await dataProvider.GetFirstSongPublicationAndTrackForLanguageAsync(language, currentSchedule);
-        if (publicationCode == null)
+        // Show progress immediately on UI thread before any async work
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            return;
-        }
+            setIsBusy(true);
+            setShowProgress(true);
+            setProgressPercent(0.0);
+            setProgressText("0%");
+        });
+        
+        // Give UI thread a chance to render the progress
+        await Task.Delay(50);
 
-        var trackSelectedItem = CreateMusicStateItemForLanguage(language, publicationCode, trackNumber, trackName, publicationName, currentSchedule);
-        dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
+        try
+        {
+            var currentSchedule = state.Value.CurrentSchedule;
+            
+            // Create progress tracker
+            var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
+                progress => MainThread.BeginInvokeOnMainThread(() => setProgressPercent(progress)),
+                text => MainThread.BeginInvokeOnMainThread(() => setProgressText(text)),
+                isVisible => MainThread.BeginInvokeOnMainThread(() => setShowProgress(isVisible)));
+            
+            var (publicationCode, trackNumber, trackName, publicationName) = await dataProvider.GetFirstSongPublicationAndTrackForLanguageAsync(language, currentSchedule, progressTracker);
+            if (publicationCode == null)
+            {
+                return;
+            }
+
+            var trackSelectedItem = CreateMusicStateItemForLanguage(language, publicationCode, trackNumber, trackName, publicationName, currentSchedule);
+            dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
+            
+            // Wait for cascade to complete by checking state
+            progressTracker.UpdateProgress(0.9);
+            
+            // Wait for state to be updated (cascade effect)
+            const int maxWaitAttempts = 30;
+            const int delayMs = 200;
+            for (int i = 0; i < maxWaitAttempts; i++)
+            {
+                var currentState = state.Value.CurrentSchedule;
+                if (currentState != null && 
+                    !string.IsNullOrEmpty(currentState.MusicPublicationCode) &&
+                    currentState.MusicTrackNumber.HasValue &&
+                    currentState.MusicTrackNumber.Value > 0)
+                {
+                    // Cascade complete
+                    break;
+                }
+                // Update progress gradually while waiting
+                var waitProgress = 0.9 + (i / (double)maxWaitAttempts) * 0.1;
+                progressTracker.UpdateProgress(waitProgress);
+                await Task.Delay(delayMs);
+            }
+            
+            progressTracker.UpdateProgress(1.0);
+            await Task.Delay(200); // Brief delay to show completion
+        }
+        finally
+        {
+            setIsBusy(false);
+            setShowProgress(false);
+        }
+        
         await navigationService.PopModalAsync();
     }
 

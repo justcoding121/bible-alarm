@@ -3,6 +3,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -32,6 +33,10 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
     private BiblePublicationSchedule? lastCurrent;
     private string? lastLanguageCode;
     private string? lastPublicationCode;
+    private bool showProgress = false;
+    private double progressPercent = 0.0;
+    private string progressText = string.Empty;
+    private bool isDisposed = false;
 
     // Helper class
     private readonly StateChangeHandler stateChangeHandler;
@@ -100,6 +105,31 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 // Language code can be null/empty for publications without language - GetBiblePublicationTracks handles this
                 var tracks = await Task.Run(async () =>
                     await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode, x.Number));
+
+                // If no tracks found, check if section exists and harvest tracks if needed
+                if ((tracks == null || tracks.Count == 0) && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+                {
+                    logger.Information("SectionSelectionViewModel: No tracks found for section={SectionNumber}, publication={PublicationCode}, language={LanguageCode}. Checking if section exists and harvesting tracks if needed...",
+                        x.Number, currentSchedule.BiblePublicationCode, languageCode);
+                    
+                    // Get section code from the section item
+                    var sectionCode = x.Section.SectionCode;
+                    
+                    // Check if section exists and harvest tracks if needed
+                    var languageContentService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>();
+                    if (languageContentService != null)
+                    {
+                        var fetchSuccess = await languageContentService.FetchSectionTracksAsync(
+                            currentSchedule.BiblePublicationCode, sectionCode, languageCode);
+                        
+                        if (fetchSuccess)
+                        {
+                            // Re-query tracks after harvesting
+                            tracks = await Task.Run(async () =>
+                                await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode, x.Number));
+                        }
+                    }
+                }
 
                 if (tracks == null || tracks.Count == 0)
                 {
@@ -263,13 +293,49 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         }
 
         // Initialize or repopulate with the current language/publication
-        if (needsRepopulation)
+        if (needsRepopulation && !isDisposed)
         {
             try
             {
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
+                await MainThread.InvokeOnMainThreadAsync(() => 
+                {
+                    if (!isDisposed)
+                    {
+                        IsBusy = true;
+                    }
+                });
+                
+                if (isDisposed)
+                {
+                    return;
+                }
+                
+                // Create progress tracker for modal open
+                var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
+                    progress => MainThread.BeginInvokeOnMainThread(() => 
+                    {
+                        if (!isDisposed)
+                        {
+                            ProgressPercent = progress;
+                        }
+                    }),
+                    text => MainThread.BeginInvokeOnMainThread(() => 
+                    {
+                        if (!isDisposed)
+                        {
+                            ProgressText = text;
+                        }
+                    }),
+                    isVisible => MainThread.BeginInvokeOnMainThread(() => 
+                    {
+                        if (!isDisposed)
+                        {
+                            ShowProgress = isVisible;
+                        }
+                    }));
+                
                 // Use the latest state values, not cached ones
-                await Initialize(newLanguageCode, newPublicationCode);
+                await Initialize(newLanguageCode, newPublicationCode, progressTracker);
 
                 // Set selected section after sections are populated (on main thread to ensure UI is ready)
                 await MainThread.InvokeOnMainThreadAsync(() => SetSelectedSection());
@@ -279,25 +345,51 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 await Task.Delay(100);
 
                 // Set IsBusy to false after collection is assigned and rendered - the busy overlay will hide instantly
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (!isDisposed)
+                    {
+                        IsBusy = false;
+                        ShowProgress = false;
+                    }
+                });
             }
             catch (Exception ex)
             {
                 // Log error but don't throw - allow modal to continue functioning
                 logger.Error(ex, "SectionSelectionViewModel: RefreshFromState - Error during repopulation");
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (!isDisposed)
+                    {
+                        IsBusy = false;
+                        ShowProgress = false;
+                    }
+                });
             }
         }
         else
         {
             // Update selected section when state changes (e.g., after navigating back)
             // Ensure this runs on main thread for UI updates
-            MainThread.BeginInvokeOnMainThread(() => SetSelectedSection());
+            MainThread.BeginInvokeOnMainThread(() => 
+            {
+                if (!isDisposed)
+                {
+                    SetSelectedSection();
+                }
+            });
         }
     }
 
     public void Dispose()
     {
+        if (isDisposed)
+        {
+            return;
+        }
+        
+        isDisposed = true;
         state.StateChanged -= OnBiblePublicationChanged;
     }
 
@@ -344,6 +436,24 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         set => SetProperty(ref isBusy, value);
     }
 
+    public bool ShowProgress
+    {
+        get => showProgress;
+        set => SetProperty(ref showProgress, value);
+    }
+
+    public double ProgressPercent
+    {
+        get => progressPercent;
+        set => SetProperty(ref progressPercent, value);
+    }
+
+    public string ProgressText
+    {
+        get => progressText;
+        set => SetProperty(ref progressText, value);
+    }
+
     private ObservableCollection<BiblePublicationSectionListViewItemModel> sections = [];
 
     public ObservableCollection<BiblePublicationSectionListViewItemModel> Sections
@@ -366,22 +476,60 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         }
     }
 
-    private async Task Initialize(string languageCode, string publicationCode) => await PopulateSections(languageCode, publicationCode);
+    private async Task Initialize(string languageCode, string publicationCode, Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null) => await PopulateSections(languageCode, publicationCode, progress);
 
     private readonly Dictionary<int, BiblePublicationSectionListViewItemModel> sectionVMsMapping = [];
 
-    private async Task PopulateSections(string languageCode, string publicationCode)
+    private async Task PopulateSections(string languageCode, string publicationCode, Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {
+        // Show progress while fetching
+        progress?.SetIsVisible(true);
+        progress?.UpdateProgress(0.1);
+        
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (sectionViewModelList, newMapping, selectedSection) = await Task.Run(async () =>
         {
-            var sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
+            var sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
 
+            // If no sections found and this is a non-English language, sections might be being fetched
+            // Retry a few times with delays to allow the fetch to complete
+            if ((sectionsFromDb == null || sectionsFromDb.Count == 0) && 
+                !string.IsNullOrEmpty(languageCode) && 
+                !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.Information("PopulateSections: No sections found initially for publication={PublicationCode}, language={LanguageCode}. " +
+                    "Sections may be being fetched, will retry...",
+                    publicationCode, languageCode);
+                
+                // Retry up to 5 times with increasing delays to allow fetch to complete
+                // Total wait time: 2s + 3s + 4s + 5s + 6s = 20 seconds
+                for (int retry = 0; retry < 5; retry++)
+                {
+                    // Wait before retrying (2s, 3s, 4s, 5s, 6s)
+                    progress?.UpdateProgress(0.2 + (retry / 5.0) * 0.3); // 0.2 to 0.5
+                    await Task.Delay(1000 * (retry + 2));
+                    
+                    // Re-query to see if sections are now available
+                    sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
+                    
+                    if (sectionsFromDb != null && sectionsFromDb.Count > 0)
+                    {
+                        logger.Information("PopulateSections: Found {Count} sections on retry {Retry} for publication={PublicationCode}, language={LanguageCode}",
+                            sectionsFromDb.Count, retry + 1, publicationCode, languageCode);
+                        break;
+                    }
+                }
+            }
+
+            progress?.UpdateProgress(0.7);
+            
             if (sectionsFromDb == null || sectionsFromDb.Count == 0)
             {
                 logger.Warning("PopulateSections: No sections found for publication={PublicationCode}, language={LanguageCode}. " +
                     "This publication may not be harvested yet or may not have sections.",
                     publicationCode, languageCode ?? "(null)");
+                progress?.UpdateProgress(1.0);
+                progress?.SetIsVisible(false);
                 return (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<int, BiblePublicationSectionListViewItemModel>(), (BiblePublicationSectionListViewItemModel?)null);
             }
 
@@ -404,9 +552,14 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
             // Sort using natural sort (numeric sections as int, non-numeric as string)
             vms.Sort();
+            
+            progress?.UpdateProgress(0.9);
 
             return (vms, mapping, selected);
         });
+        
+        progress?.UpdateProgress(1.0);
+        progress?.SetIsVisible(false);
 
         // Update mapping
         sectionVMsMapping.Clear();

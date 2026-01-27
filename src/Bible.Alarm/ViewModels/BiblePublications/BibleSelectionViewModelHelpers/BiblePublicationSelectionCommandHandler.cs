@@ -56,7 +56,11 @@ public sealed class BiblePublicationSelectionCommandHandler
         Func<LanguageListViewItemModel?> getCurrentLanguage,
         Func<ObservableCollection<PublicationListViewItemModel>> getPublications,
         Func<Dictionary<string, PublicationListViewItemModel>> getPublicationVMsMapping,
-        Func<BiblePublicationSchedule?> getCurrent)
+        Func<BiblePublicationSchedule?> getCurrent,
+        Action<bool> setShowProgress,
+        Action<double> setProgressPercent,
+        Action<string> setProgressText,
+        Action<bool> setIsBusy)
     {
         return new AsyncRelayCommand<PublicationListViewItemModel>(async x =>
         {
@@ -156,10 +160,31 @@ public sealed class BiblePublicationSelectionCommandHandler
             Log.Debug("CreateSectionSelectionCommand: Calling GetSectionAndTrackForPublicationAsync for publication={PublicationCode}, language={LanguageCode}",
                 x.Code, currentLanguage.Code);
 
-            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
-            var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
-            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
-            var (sectionNumber, trackNumber, sectionName, trackTitle) = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage);
+            // Show progress immediately on UI thread before any async work
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                setIsBusy(true);
+                setShowProgress(true);
+                setProgressPercent(0.0);
+                setProgressText("0%");
+            });
+            
+            // Give UI thread a chance to render the progress
+            await Task.Delay(100);
+            
+            try
+            {
+                var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
+                var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
+                var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
+                
+                // Create progress tracker
+                var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
+                    progress => MainThread.BeginInvokeOnMainThread(() => setProgressPercent(progress)),
+                    text => MainThread.BeginInvokeOnMainThread(() => setProgressText(text)),
+                    isVisible => MainThread.BeginInvokeOnMainThread(() => setShowProgress(isVisible)));
+                
+                var (sectionNumber, trackNumber, sectionName, trackTitle) = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressTracker);
 
             Log.Debug("CreateSectionSelectionCommand: Result sectionNumber={SectionNumber}, trackNumber={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
                 sectionNumber, trackNumber, sectionName, trackTitle);
@@ -188,8 +213,44 @@ public sealed class BiblePublicationSelectionCommandHandler
             Log.Information("CreateSectionSelectionCommand: Dispatching selection for publication={PublicationCode}, section={SectionNumber}, track={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
                 x.Code, sectionNumber, trackNumber, sectionName, trackTitle);
 
-            var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
-            actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);
+                var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
+                actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);
+                
+                // Wait for cascade to complete by checking state
+                progressTracker.UpdateProgress(0.9);
+                
+                // Wait for state to be updated (cascade effect)
+                const int maxWaitAttempts = 30;
+                const int delayMs = 200;
+                for (int i = 0; i < maxWaitAttempts; i++)
+                {
+                    var currentState = state.Value.CurrentSchedule;
+                    if (currentState != null && 
+                        !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
+                        currentState.BiblePublicationTrackNumber.HasValue &&
+                        currentState.BiblePublicationTrackNumber.Value > 0)
+                    {
+                        // Cascade complete
+                        break;
+                    }
+                    // Update progress gradually while waiting
+                    var waitProgress = 0.9 + (i / (double)maxWaitAttempts) * 0.1;
+                    progressTracker.UpdateProgress(waitProgress);
+                    await Task.Delay(delayMs);
+                }
+                
+                progressTracker.UpdateProgress(1.0);
+                await Task.Delay(200); // Brief delay to show completion
+            }
+            finally
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    setIsBusy(false);
+                    setShowProgress(false);
+                });
+            }
+            
             await navigationService.PopModalAsync();
         });
     }
@@ -213,7 +274,11 @@ public sealed class BiblePublicationSelectionCommandHandler
     public ICommand CreateSelectLanguageCommand(
         Func<ObservableCollection<LanguageListViewItemModel>> getLanguages,
         Func<Dictionary<string, PublicationListViewItemModel>> getPublicationVMsMapping,
-        Action<LanguageListViewItemModel> updateSelectedLanguage)
+        Action<LanguageListViewItemModel> updateSelectedLanguage,
+        Action<bool> setShowProgress,
+        Action<double> setProgressPercent,
+        Action<string> setProgressText,
+        Action<bool> setIsBusy)
     {
         return new AsyncRelayCommand<LanguageListViewItemModel>(async x =>
         {
@@ -223,43 +288,100 @@ public sealed class BiblePublicationSelectionCommandHandler
             }
 
             updateSelectedLanguage(x);
+
+            // Show progress immediately on UI thread before any async work
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                setIsBusy(true);
+                setShowProgress(true);
+                setProgressPercent(0.0);
+                setProgressText("0%");
+            });
+            
+            // Give UI thread a chance to render the progress
+            await Task.Delay(100);
+            
+            try
+            {
+                var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
+                var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
+                var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
+                
+                // Create progress tracker
+                var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
+                    progress => MainThread.BeginInvokeOnMainThread(() => setProgressPercent(progress)),
+                    text => MainThread.BeginInvokeOnMainThread(() => setProgressText(text)),
+                    isVisible => MainThread.BeginInvokeOnMainThread(() => setShowProgress(isVisible)));
+                
+                var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle) =
+                    await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x, progressTracker);
+
+                // Check for both null and empty string - GetPublicationSectionAndTrackForLanguageAsync returns empty string on failure
+                if (string.IsNullOrEmpty(publicationCode))
+                {
+                    Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - No publications found for language {LanguageCode}", x.Code);
+                    return;
+                }
+
+                // Validate that we have valid track number (sectionNumber can be 0 for non-sectioned publications like dramas)
+                if (trackNumber <= 0)
+                {
+                    Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid track ({TrackNumber}) for language {LanguageCode}", 
+                        trackNumber, x.Code);
+                    return;
+                }
+
+                var currentSchedule = state.Value.CurrentSchedule;
+                if (currentSchedule == null)
+                {
+                    Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - CurrentSchedule is null");
+                    return;
+                }
+
+                Log.Information("BibleSelectionCommandHandler: SelectLanguageCommand - Creating item for language {LanguageCode}, publication {PublicationCode}, section {SectionNumber}, track {TrackNumber}",
+                    x.Code, publicationCode, sectionNumber, trackNumber);
+
+                var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(
+                    x, publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle, currentSchedule);
+                var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
+                actionDispatcher.DispatchLanguageSelectionActions(biblePublicationItem);
+                
+                // Wait for cascade to complete by checking state
+                progressTracker.UpdateProgress(0.9);
+                
+                // Wait for state to be updated (cascade effect)
+                const int maxWaitAttempts = 30;
+                const int delayMs = 200;
+                for (int i = 0; i < maxWaitAttempts; i++)
+                {
+                    var currentState = state.Value.CurrentSchedule;
+                    if (currentState != null && 
+                        !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
+                        currentState.BiblePublicationTrackNumber.HasValue &&
+                        currentState.BiblePublicationTrackNumber.Value > 0)
+                    {
+                        // Cascade complete
+                        break;
+                    }
+                    // Update progress gradually while waiting
+                    var waitProgress = 0.9 + (i / (double)maxWaitAttempts) * 0.1;
+                    progressTracker.UpdateProgress(waitProgress);
+                    await Task.Delay(delayMs);
+                }
+                
+                progressTracker.UpdateProgress(1.0);
+                await Task.Delay(200); // Brief delay to show completion
+            }
+            finally
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    setIsBusy(false);
+                    setShowProgress(false);
+                });
+            }
+            
             await navigationService.PopModalAsync();
-
-            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
-            var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
-            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
-            var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle) =
-                await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x);
-
-            // Check for both null and empty string - GetPublicationSectionAndTrackForLanguageAsync returns empty string on failure
-            if (string.IsNullOrEmpty(publicationCode))
-            {
-                Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - No publications found for language {LanguageCode}", x.Code);
-                return;
-            }
-
-            // Validate that we have valid track number (sectionNumber can be 0 for non-sectioned publications like dramas)
-            if (trackNumber <= 0)
-            {
-                Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid track ({TrackNumber}) for language {LanguageCode}", 
-                    trackNumber, x.Code);
-                return;
-            }
-
-            var currentSchedule = state.Value.CurrentSchedule;
-            if (currentSchedule == null)
-            {
-                Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - CurrentSchedule is null");
-                return;
-            }
-
-            Log.Information("BibleSelectionCommandHandler: SelectLanguageCommand - Creating item for language {LanguageCode}, publication {PublicationCode}, section {SectionNumber}, track {TrackNumber}",
-                x.Code, publicationCode, sectionNumber, trackNumber);
-
-            var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(
-                x, publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle, currentSchedule);
-            var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
-            actionDispatcher.DispatchLanguageSelectionActions(biblePublicationItem);
         });
     }
 

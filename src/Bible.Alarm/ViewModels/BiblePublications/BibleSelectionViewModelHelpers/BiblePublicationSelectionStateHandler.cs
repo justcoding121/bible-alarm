@@ -4,6 +4,7 @@ using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
@@ -313,7 +314,7 @@ public sealed class BiblePublicationSelectionStateHandler
         }
     }
 
-    public async Task RefreshFromStateAsync(Action<bool> setIsBusy, ObservableCollection<PublicationListViewItemModel>? publications)
+    public async Task RefreshFromStateAsync(Action<bool> setIsBusy, ObservableCollection<PublicationListViewItemModel>? publications, IFetchProgress? progress = null)
     {
         // Wait for state to be updated (in case language was just changed)
         // This handles the race condition where the modal opens before state is fully updated
@@ -462,7 +463,7 @@ public sealed class BiblePublicationSelectionStateHandler
                 }
                 // When publication modal opens, download all publications with first sections and tracks
                 // Pass the category name explicitly to ensure correct filtering
-                await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged || categoryChanged, downloadAll: true, newCategoryName);
+                await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged || categoryChanged, downloadAll: true, newCategoryName, progress);
             }
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
@@ -474,6 +475,6 @@ public sealed class BiblePublicationSelectionStateHandler
     private async Task InitializeAsync(string languageCode, ObservableCollection<LanguageListViewItemModel>? languages, ObservableCollection<PublicationListViewItemModel>? publications)
     {
         await dataProvider.PopulateLanguagesAsync(null, languages);
-        await dataProvider.PopulatePublicationsAsync(languageCode, publications, false);
+        await dataProvider.PopulatePublicationsAsync(languageCode, publications, false, downloadAll: false, categoryName: null);
     }
 }

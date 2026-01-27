@@ -75,7 +75,8 @@ public interface ILanguageContentService
     Task<bool> EnsurePublicationExistsAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        IFetchProgress? progress = null);
 
     /// <summary>
     /// Fetches the first publication for a language with its first section and tracks (for sectioned publications)
@@ -101,7 +102,8 @@ public interface ILanguageContentService
     Task<bool> EnsureAllPublicationsForLanguageAsync(
         string languageCode,
         string? categoryName = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        IFetchProgress? progress = null);
 
     /// <summary>
     /// Ensures all sections for a publication are downloaded. Fetches missing sections.
@@ -114,7 +116,8 @@ public interface ILanguageContentService
     Task<bool> EnsureAllSectionsForPublicationAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        IFetchProgress? progress = null);
 
     /// <summary>
     /// Fetches only the first section when creating a new publication.

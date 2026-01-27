@@ -444,9 +444,10 @@ public sealed class LanguageContentService : ILanguageContentService
     public async Task<bool> EnsurePublicationExistsAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {
-        return await publicationEnsurer.EnsurePublicationExistsAsync(publicationCode, languageCode, cancellationToken);
+        return await publicationEnsurer.EnsurePublicationExistsAsync(publicationCode, languageCode, cancellationToken, progress);
     }
 
     public async Task<bool> FetchFirstPublicationForLanguageAsync(
@@ -460,17 +461,19 @@ public sealed class LanguageContentService : ILanguageContentService
     public async Task<bool> EnsureAllPublicationsForLanguageAsync(
         string languageCode,
         string? categoryName = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {
-        return await publicationEnsurer.EnsureAllPublicationsForLanguageAsync(languageCode, categoryName, cancellationToken);
+        return await publicationEnsurer.EnsureAllPublicationsForLanguageAsync(languageCode, categoryName, cancellationToken, progress);
     }
 
     public async Task<bool> EnsureAllSectionsForPublicationAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {
-        return await publicationEnsurer.EnsureAllSectionsForPublicationAsync(publicationCode, languageCode, cancellationToken);
+        return await publicationEnsurer.EnsureAllSectionsForPublicationAsync(publicationCode, languageCode, cancellationToken, progress);
     }
 
     public async Task<bool> FetchFirstSectionOnlyAsync(

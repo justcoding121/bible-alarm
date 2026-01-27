@@ -35,7 +35,8 @@ internal sealed class PublicationEnsurer
     public async Task<bool> EnsurePublicationExistsAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {
         try
         {
@@ -111,17 +112,33 @@ internal sealed class PublicationEnsurer
                 PublicationTypeHelper.GetHarvestType(lowerCode);
 
             // Fetch based on harvest type
-            if (harvestType == Models.Enums.HarvestType.Sectioned)
-            {
-                // Publication has sections - fetch only the first section with tracks (for language selection)
-                // This avoids fetching all sections when user just selects a language
-                return await FetchFirstSectionWithTracksAsync(publicationCode, languageCode, cancellationToken);
-            }
-            else
-            {
-                // Publication has flat tracks - fetch tracks
-                return await languageContentService.FetchPublicationTracksAsync(publicationCode, languageCode, cancellationToken);
-            }
+                if (harvestType == Models.Enums.HarvestType.Sectioned)
+                {
+                    // Publication has sections - fetch only the first section with tracks (for language selection)
+                    // This avoids fetching all sections when user just selects a language
+                    progress?.UpdateProgressText($"Loading {publicationCode}...");
+                    progress?.UpdateProgress(0.0);
+                    var result = await FetchFirstSectionWithTracksAsync(publicationCode, languageCode, cancellationToken);
+                    if (result)
+                    {
+                        progress?.UpdateProgress(1.0);
+                        progress?.UpdateProgressText("Complete");
+                    }
+                    return result;
+                }
+                else
+                {
+                    // Publication has flat tracks - fetch tracks
+                    progress?.UpdateProgressText($"Loading {publicationCode}...");
+                    progress?.UpdateProgress(0.0);
+                    var result = await languageContentService.FetchPublicationTracksAsync(publicationCode, languageCode, cancellationToken);
+                    if (result)
+                    {
+                        progress?.UpdateProgress(1.0);
+                        progress?.UpdateProgressText("Complete");
+                    }
+                    return result;
+                }
         }
         catch (Exception ex)
         {
@@ -391,7 +408,8 @@ internal sealed class PublicationEnsurer
     public async Task<bool> EnsureAllPublicationsForLanguageAsync(
         string languageCode,
         string? categoryName = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {
         try
         {
@@ -442,16 +460,26 @@ internal sealed class PublicationEnsurer
             logger.Information("Found {Count} missing publications for language {LanguageCode} in category {CategoryName}, fetching...",
                 missingPublications.Count, languageCode, categoryName ?? "all");
 
-            // Fetch each missing publication
+            // Fetch each missing publication with progress updates
             var successCount = 0;
-            foreach (var publicationCode in missingPublications)
+            var totalCount = missingPublications.Count;
+            for (int i = 0; i < totalCount; i++)
             {
-                var success = await EnsurePublicationExistsAsync(publicationCode, languageCode, cancellationToken);
+                var publicationCode = missingPublications[i];
+                var progressPercent = (double)i / totalCount;
+                
+                progress?.UpdateProgressText($"Loading {publicationCode}... ({i + 1}/{totalCount})");
+                progress?.UpdateProgress(progressPercent);
+                
+                var success = await EnsurePublicationExistsAsync(publicationCode, languageCode, cancellationToken, progress);
                 if (success)
                 {
                     successCount++;
                 }
             }
+            
+            progress?.UpdateProgress(1.0);
+            progress?.UpdateProgressText("Complete");
 
             logger.Information("Successfully fetched {SuccessCount} out of {TotalCount} publications for language {LanguageCode}",
                 successCount, missingPublications.Count, languageCode);
@@ -469,7 +497,8 @@ internal sealed class PublicationEnsurer
     public async Task<bool> EnsureAllSectionsForPublicationAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {
         try
         {
@@ -540,11 +569,66 @@ internal sealed class PublicationEnsurer
             logger.Information("Found {Count} missing sections for publication {PublicationCode} in language {LanguageCode}, fetching...",
                 missingSectionCodes.Count, publicationCode, languageCode);
 
+            progress?.UpdateProgressText($"Loading sections... (0/{missingSectionCodes.Count})");
+            progress?.UpdateProgress(0.0);
+            
             // Fetch each missing section (without tracks - tracks are fetched when section is selected)
             // We need to fetch sections one by one and add them to the existing publication
             // For now, we'll fetch all sections which will replace existing ones
             // TODO: Optimize to fetch only missing sections
-            return await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken);
+            var result = await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken);
+            
+            if (result)
+            {
+                progress?.UpdateProgress(0.5);
+                progress?.UpdateProgressText("Loading tracks...");
+                
+                // Re-query publication to get all sections (including newly fetched ones)
+                publication = await db.BiblePublications
+                    .Include(bp => bp.Sections)
+                        .ThenInclude(s => s.Tracks)
+                    .FirstOrDefaultAsync(
+                        bp => bp.PublicationCode == publicationCodeForDb &&
+                              bp.Language != null &&
+                              bp.Language.LanguageCode == normalizedLanguageCode,
+                        cancellationToken);
+                
+                if (publication != null && publication.Sections != null)
+                {
+                    // Check and harvest tracks for each section that doesn't have tracks
+                    var sectionsNeedingTracks = publication.Sections
+                        .Where(s => s.Tracks == null || s.Tracks.Count == 0)
+                        .ToList();
+                    
+                    if (sectionsNeedingTracks.Count > 0)
+                    {
+                        logger.Information("Found {Count} sections without tracks for publication {PublicationCode} in language {LanguageCode}, fetching tracks...",
+                            sectionsNeedingTracks.Count, publicationCode, languageCode);
+                        
+                        var totalSections = publication.Sections.Count;
+                        for (int i = 0; i < sectionsNeedingTracks.Count; i++)
+                        {
+                            var section = sectionsNeedingTracks[i];
+                            var progressPercent = 0.5 + ((double)i / sectionsNeedingTracks.Count) * 0.5;
+                            progress?.UpdateProgress(progressPercent);
+                            progress?.UpdateProgressText($"Loading tracks for section {i + 1}/{sectionsNeedingTracks.Count}...");
+                            
+                            // Check again if tracks exist (they might have been fetched by another process)
+                            await db.Entry(section).Collection(s => s.Tracks).LoadAsync(cancellationToken);
+                            if (section.Tracks == null || section.Tracks.Count == 0)
+                            {
+                                await languageContentService.FetchSectionTracksAsync(
+                                    publicationCode, section.SectionCode, languageCode, cancellationToken);
+                            }
+                        }
+                    }
+                }
+                
+                progress?.UpdateProgress(1.0);
+                progress?.UpdateProgressText("Complete");
+            }
+            
+            return result;
         }
         catch (Exception ex)
         {

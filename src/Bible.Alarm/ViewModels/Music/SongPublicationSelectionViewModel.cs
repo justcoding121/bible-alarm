@@ -79,7 +79,10 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
                     x,
                     propertyManager.CurrentLanguage,
                     dataProvider,
-                    stateManager.Current);
+                    stateManager.Current,
+                    isVisible => propertyManager.ShowProgress = isVisible,
+                    progress => propertyManager.ProgressPercent = progress,
+                    text => propertyManager.ProgressText = text);
             }
         });
 
@@ -132,7 +135,11 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
                     x,
                     dataProvider,
                     lang => propertyManager.CurrentLanguage = lang,
-                    UpdateSelectedLanguage);
+                    UpdateSelectedLanguage,
+                    isVisible => propertyManager.ShowProgress = isVisible,
+                    progress => propertyManager.ProgressPercent = progress,
+                    text => propertyManager.ProgressText = text,
+                    busy => propertyManager.IsBusy = busy);
             }
         });
     }
@@ -222,6 +229,24 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
     }
 
     public object? SelectedItem => propertyManager.SelectedItem;
+
+    public bool ShowProgress
+    {
+        get => propertyManager.ShowProgress;
+        set => propertyManager.ShowProgress = value;
+    }
+
+    public double ProgressPercent
+    {
+        get => propertyManager.ProgressPercent;
+        set => propertyManager.ProgressPercent = value;
+    }
+
+    public string ProgressText
+    {
+        get => propertyManager.ProgressText;
+        set => propertyManager.ProgressText = value;
+    }
 
     private async Task Initialize()
     {
@@ -387,12 +412,32 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
             languageCodeToUse = newLanguageCode;
         }
 
+        // Create progress tracker for modal open (only when fetching)
+        bool needsFetch = false;
+        if (musicType.Value == MusicType.Music)
+        {
+            needsFetch = propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0;
+        }
+        else if (!string.IsNullOrEmpty(languageCodeToUse))
+        {
+            needsFetch = propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0 || languageChanged;
+        }
+        
+        IFetchProgress? progressTracker = null;
+        if (needsFetch)
+        {
+            progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
+                progress => MainThread.BeginInvokeOnMainThread(() => propertyManager.ProgressPercent = progress),
+                text => MainThread.BeginInvokeOnMainThread(() => propertyManager.ProgressText = text),
+                isVisible => MainThread.BeginInvokeOnMainThread(() => propertyManager.ShowProgress = isVisible));
+        }
+
         // For instrumental music, populate publications directly (no language needed)
         if (musicType.Value == MusicType.Music)
         {
             if (propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0)
             {
-                await PopulateSongPublications(null); // null language code for instrumental music
+                await PopulateSongPublications(null, downloadAll: true, progressTracker); // null language code for instrumental music
             }
             else
             {
@@ -410,7 +455,7 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
             // When RefreshFromState is called (publication modal opens), download all publications
             // When language changes (cascade), don't download all yet (only first publication in cascade)
             bool isModalOpening = propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0;
-            await PopulateSongPublications(languageCodeToUse, downloadAll: isModalOpening);
+            await PopulateSongPublications(languageCodeToUse, downloadAll: isModalOpening, progressTracker);
         }
         else if (!string.IsNullOrEmpty(languageCodeToUse))
         {
@@ -418,17 +463,25 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
             SetSelectedSongPublication();
         }
 
-        await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            propertyManager.IsBusy = false;
+            if (progressTracker != null)
+            {
+                propertyManager.ShowProgress = false;
+            }
+        });
     }
 
-    private async Task PopulateSongPublications(string? languageCode, bool downloadAll = false)
+    private async Task PopulateSongPublications(string? languageCode, bool downloadAll = false, IFetchProgress? progress = null)
     {
         await dataProvider.PopulateSongPublications(
             languageCode,
             stateManager.Current,
             propertyManager.SongPublications,
             songPublication => propertyManager.SelectedSongPublication = songPublication,
-            downloadAll);
+            downloadAll,
+            progress);
     }
 
     private void UpdateSelectedLanguage(LanguageListViewItemModel language)

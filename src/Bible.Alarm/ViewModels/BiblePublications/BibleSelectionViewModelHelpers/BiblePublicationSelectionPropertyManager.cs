@@ -22,6 +22,9 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
     private LanguageListViewItemModel? currentLanguage;
     private bool isBusy = true;
     private string languageSearchTerm = string.Empty;
+    private bool showProgress = false;
+    private double progressPercent = 0.0;
+    private string progressText = "Loading...";
 
     private PropertyChangedEventHandler? propertyChangedHandler;
 
@@ -70,6 +73,24 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
     {
         get => languageSearchTerm;
         set => SetProperty(ref languageSearchTerm, value);
+    }
+
+    public bool ShowProgress
+    {
+        get => showProgress;
+        set => SetProperty(ref showProgress, value);
+    }
+
+    public double ProgressPercent
+    {
+        get => progressPercent;
+        set => SetProperty(ref progressPercent, value);
+    }
+
+    public string ProgressText
+    {
+        get => progressText;
+        set => SetProperty(ref progressText, value);
     }
 
     public string PublicationCode

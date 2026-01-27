@@ -152,7 +152,8 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IBiblePublicationSectionService, BiblePublicationSectionService>();
         services.AddSingleton<IBiblePublicationTrackService, BiblePublicationTrackService>();
         services.AddSingleton<ICategoryService, CategoryService>();
-        services.AddSingleton<IUrlConstructionService, UrlConstructionService>();
+        services.AddSingleton<IUrlConstructionService>(sp => 
+            new UrlConstructionService(sp.GetRequiredService<IServiceScopeFactory>()));
         services.AddSingleton<IMelodyMusicService, MelodyMusicService>();
         services.AddSingleton<IVocalMusicService, VocalMusicService>();
         services.AddSingleton<ILanguageContentService, LanguageContentService>();

@@ -30,6 +30,9 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
     private bool initComplete;
     private string? lastPublicationCode;
     private MusicType? lastMusicType;
+    private bool showProgress = false;
+    private double progressPercent = 0.0;
+    private string progressText = string.Empty;
 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
@@ -186,7 +189,14 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
             try
             {
                 await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
-                await PopulateSections(publicationCode);
+                
+                // Create progress tracker for modal open
+                var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
+                    progress => MainThread.BeginInvokeOnMainThread(() => ProgressPercent = progress),
+                    text => MainThread.BeginInvokeOnMainThread(() => ProgressText = text),
+                    isVisible => MainThread.BeginInvokeOnMainThread(() => ShowProgress = isVisible));
+                
+                await PopulateSections(publicationCode, progressTracker);
 
                 // Set selected section after sections are populated
                 await MainThread.InvokeOnMainThreadAsync(() => SetSelectedSection());
@@ -194,12 +204,20 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
                 // Give CollectionView time to render before hiding busy indicator
                 await Task.Delay(100);
 
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    IsBusy = false;
+                    ShowProgress = false;
+                });
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "MusicSectionSelectionViewModel: RefreshFromState - Error during repopulation");
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    IsBusy = false;
+                    ShowProgress = false;
+                });
             }
         }
         else
@@ -254,6 +272,24 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
         set => SetProperty(ref isBusy, value);
     }
 
+    public bool ShowProgress
+    {
+        get => showProgress;
+        set => SetProperty(ref showProgress, value);
+    }
+
+    public double ProgressPercent
+    {
+        get => progressPercent;
+        set => SetProperty(ref progressPercent, value);
+    }
+
+    public string ProgressText
+    {
+        get => progressText;
+        set => SetProperty(ref progressText, value);
+    }
+
     private ObservableCollection<BiblePublicationSectionListViewItemModel> sections = [];
 
     public ObservableCollection<BiblePublicationSectionListViewItemModel> Sections
@@ -267,12 +303,18 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
     /// </summary>
     public FlowDirection ContentFlowDirection => FlowDirection.LeftToRight;
 
-    private async Task PopulateSections(string publicationCode)
+    private async Task PopulateSections(string publicationCode, Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {
+        // Show progress while fetching
+        progress?.SetIsVisible(true);
+        progress?.UpdateProgress(0.1);
+        
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (sectionViewModelList, selectedSection) = await Task.Run(async () =>
         {
             var sectionsFromDb = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
+            
+            progress?.UpdateProgress(0.7);
 
             if (sectionsFromDb == null || sectionsFromDb.Count == 0)
             {
@@ -300,9 +342,14 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
 
             // Sort using natural sort (numeric sections as int, non-numeric as string)
             vms.Sort();
+            
+            progress?.UpdateProgress(0.9);
 
             return (vms, selected);
         });
+        
+        progress?.UpdateProgress(1.0);
+        progress?.SetIsVisible(false);
 
         // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>

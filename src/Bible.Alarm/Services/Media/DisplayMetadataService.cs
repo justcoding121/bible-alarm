@@ -115,7 +115,7 @@ public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaSe
         }
 
         // SubTitle: Publication name + (jw.org)
-        var publications = await mediaService.GetBiblePublications(trackMetadata.LanguageCode);
+        var publications = await mediaService.GetBiblePublications(trackMetadata.LanguageCode, categoryName: null, downloadAll: false);
         if (publications.TryGetValue(trackMetadata.PublicationCode, out var publication))
         {
             meta.Artist = $"{publication.Name} (jw.org)";

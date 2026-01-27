@@ -43,7 +43,7 @@ public sealed class MediaService(
         return await BiblePublicationService.GetDistinctLanguagesAsync(categoryName, cancellationTokenSource.Token);
     }
 
-    public async Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false)
+    public async Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false, IFetchProgress? progress = null)
     {
         await mediaIndexService.Verify();
         
@@ -265,27 +265,32 @@ public sealed class MediaService(
         // - If downloadAll=false (language selected): don't download here (will be done in cascade)
         if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
         {
-            // Fire and forget - don't block the UI
-            _ = Task.Run(async () =>
+            // Show progress if callback provided
+            progress?.SetIsVisible(true);
+            progress?.UpdateProgressText("Loading publications...");
+            progress?.UpdateProgress(0.0);
+            
+            try
             {
-                try
-                {
-                    Log.Information("Background: Ensuring all publications are downloaded for language {LanguageCode} (publication modal opened)", languageCode);
-                    await languageContentService.EnsureAllPublicationsForLanguageAsync(
-                        languageCode, categoryName, cancellationTokenSource.Token);
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "Background: Failed to ensure all publications for language {LanguageCode}", languageCode);
-                }
-            });
+                Log.Information("Ensuring all publications are downloaded for language {LanguageCode} (publication modal opened)", languageCode);
+                await languageContentService.EnsureAllPublicationsForLanguageAsync(
+                    languageCode, categoryName, cancellationTokenSource.Token, progress);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to ensure all publications for language {LanguageCode}", languageCode);
+            }
+            finally
+            {
+                progress?.SetIsVisible(false);
+            }
         }
         
         return result;
     }
 
     public async Task<SortedDictionary<int, BiblePublicationSection>> GetBiblePublicationSections(
-        string languageCode, string versionCode)
+        string languageCode, string versionCode, IFetchProgress? progress = null)
     {
         await mediaIndexService.Verify();
         
@@ -324,7 +329,7 @@ public sealed class MediaService(
             {
                 // Ensure all sections are downloaded (without tracks - tracks are fetched when section is selected)
                 var fetchSuccess = await languageContentService.EnsureAllSectionsForPublicationAsync(
-                    versionCode, languageCode, cancellationTokenSource.Token);
+                    versionCode, languageCode, cancellationTokenSource.Token, progress);
                 
                 if (fetchSuccess)
                 {
