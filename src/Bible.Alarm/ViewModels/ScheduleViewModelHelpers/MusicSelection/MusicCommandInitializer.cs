@@ -2,6 +2,7 @@
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -9,6 +10,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Music;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
@@ -119,6 +121,15 @@ public sealed class MusicCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
+            // Check if publication is selectable (multiple options available)
+            // If not selectable, don't open the modal
+            var displayTextProvider = new MusicDisplayTextProvider(state, serviceProvider.GetRequiredService<IMediaService>());
+            var isSelectable = await displayTextProvider.GetIsSongPublicationSelectableAsync();
+            if (!isSelectable)
+            {
+                return; // Only one option available, don't open modal
+            }
+
             // Get music from CurrentSchedule (already loaded from AlarmDB on page load)
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;

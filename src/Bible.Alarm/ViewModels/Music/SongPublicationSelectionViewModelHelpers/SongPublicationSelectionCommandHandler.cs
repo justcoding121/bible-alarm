@@ -103,6 +103,33 @@ public sealed class SongPublicationSelectionCommandHandler(
             trackName = result.TrackName;
         }
 
+        // Check if publication is sectioned - if not, ensure SectionCode is null
+        bool isSectioned = Bible.Alarm.Shared.Helpers.PublicationTypeHelper.HasSectionStructure(songPublication.Code);
+        string? sectionCode = null;
+        string? sectionName = null;
+        
+        // Only set section code/name if publication is sectioned
+        if (isSectioned)
+        {
+            // For sectioned publications, we need to get the section from the track
+            // But since we're selecting a publication and getting a random track,
+            // we don't know which section it belongs to yet
+            // The cascade handler will handle setting the correct section
+            // For now, preserve any existing section if the publication hasn't changed
+            if (currentSchedule?.MusicPublicationCode == songPublication.Code && 
+                !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode))
+            {
+                sectionCode = currentSchedule.MusicSectionCode;
+                sectionName = currentSchedule.MusicSectionName;
+            }
+        }
+        // For non-sectioned publications, explicitly set SectionCode to null to clear it
+        else
+        {
+            sectionCode = null;
+            sectionName = null;
+        }
+
         var trackSelectedItem = CreateMusicStateItemForSongPublication(
             songPublication, 
             isMelodyMusic ? string.Empty : languageCode, 
@@ -110,7 +137,9 @@ public sealed class SongPublicationSelectionCommandHandler(
             trackName, 
             isMelodyMusic ? null : currentLanguage, 
             currentSchedule,
-            isMelodyMusic ? MusicType.Music : MusicType.VocalMusic);
+            isMelodyMusic ? MusicType.Music : MusicType.VocalMusic,
+            sectionCode,
+            sectionName);
         dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
         await navigationService.PopModalAsync();
     }
@@ -148,7 +177,9 @@ public sealed class SongPublicationSelectionCommandHandler(
         string trackName,
         LanguageListViewItemModel? currentLanguage,
         ScheduleStateItem? currentSchedule,
-        MusicType musicType)
+        MusicType musicType,
+        string? sectionCode = null,
+        string? sectionName = null)
     {
         return new MusicStateItem
         {
@@ -156,10 +187,12 @@ public sealed class SongPublicationSelectionCommandHandler(
             MusicType = musicType,
             LanguageCode = languageCode,
             PublicationCode = songPublication.Code,
+            SectionCode = sectionCode, // Explicitly set SectionCode (null for non-sectioned publications)
             TrackNumber = trackNumber,
             LanguageName = currentLanguage?.Name,
             LanguageDirection = currentLanguage?.Direction,
             PublicationName = songPublication.Name,
+            SectionName = sectionName, // Explicitly set SectionName (null for non-sectioned publications)
             TrackName = trackName
         };
     }

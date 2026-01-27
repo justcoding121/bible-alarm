@@ -25,6 +25,7 @@
         <Border.Resources>
             <converters:RepeatColorConverter x:Key="repeatColorConverter" />
             <converters:FlowDirectionToArrowConverter x:Key="flowDirectionToArrowConverter" />
+            <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         </Border.Resources>
         <Grid RowSpacing="0"
               Padding="0">
@@ -112,7 +113,7 @@
                                      RippleBackground="{StaticResource PrimaryColor}"
                                      HighlightBackground="{StaticResource PrimaryLightColor}"
                                      RippleAnimationDuration="200"
-                                     ShouldIgnoreTouches="False">
+                                     ShouldIgnoreTouches="{Binding IsMusicTypeSelectable, Converter={StaticResource negateBooleanConverter}}">
                     <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectMusicTypeCommand}"
                                               NumberOfTapsRequired="1" />
@@ -141,20 +142,24 @@
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
                     <Border Grid.Column="1"
-                            BackgroundColor="Transparent"
-                            MinimumHeightRequest="24"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                            HeightRequest="{DynamicResource IconSmallContainerSize}"
                             HorizontalOptions="End"
-                            Margin="8,0,0,0"
+                            Margin="12,0,0,0"
                             StrokeThickness="0"
                             VerticalOptions="Center"
-                            MinimumWidthRequest="24">
+                            WidthRequest="{DynamicResource IconSmallContainerSize}"
+                            IsVisible="{Binding IsMusicTypeSelectable}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
                         <Label
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="{DynamicResource IconSmallFontSize}"
+                            FontSize="{DynamicResource IconStandardFontSize}"
                             HorizontalOptions="Center"
                             HorizontalTextAlignment="Center"
                             InputTransparent="True"
-                            Text="{x:Static fn:GlyphNames.Right}"
+                            Text="{x:Static fn:GlyphNames.Folder}"
                             TextColor="{DynamicResource TextSecondaryColor}"
                             VerticalOptions="Center"
                             VerticalTextAlignment="Center" />
@@ -175,7 +180,7 @@
                                      RippleBackground="{StaticResource PrimaryColor}"
                                      HighlightBackground="{StaticResource PrimaryLightColor}"
                                      RippleAnimationDuration="200"
-                                     ShouldIgnoreTouches="False"
+                                     ShouldIgnoreTouches="{Binding IsMusicLanguageSelectable, Converter={StaticResource negateBooleanConverter}}"
                                      IsVisible="{Binding IsMusicLanguageVisible}">
                     <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectMusicLanguageCommand}"
@@ -204,16 +209,20 @@
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
                     <Border Grid.Column="1"
-                            BackgroundColor="Transparent"
-                            MinimumHeightRequest="24"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                            HeightRequest="{DynamicResource IconSmallContainerSize}"
                             HorizontalOptions="End"
-                            Margin="8,0,0,0"
+                            Margin="12,0,0,0"
                             StrokeThickness="0"
                             VerticalOptions="Center"
-                            MinimumWidthRequest="24">
+                            WidthRequest="{DynamicResource IconSmallContainerSize}"
+                            IsVisible="{Binding IsMusicLanguageSelectable}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
                         <Label
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="{DynamicResource IconSmallFontSize}"
+                            FontSize="{DynamicResource IconStandardFontSize}"
                             HorizontalOptions="Center"
                             HorizontalTextAlignment="Center"
                             InputTransparent="True"
@@ -238,7 +247,7 @@
                                      RippleBackground="{StaticResource PrimaryColor}"
                                      HighlightBackground="{StaticResource PrimaryLightColor}"
                                      RippleAnimationDuration="200"
-                                     ShouldIgnoreTouches="False"
+                                     ShouldIgnoreTouches="{Binding IsSongPublicationSelectable, Converter={StaticResource negateBooleanConverter}}"
                                      IsVisible="{Binding IsSongPublicationVisible}"
                                      FlowDirection="{Binding ContentFlowDirection}">
                     <core:SfEffectsView.GestureRecognizers>
@@ -274,7 +283,8 @@
                             Margin="8,0,0,0"
                             StrokeThickness="0"
                             VerticalOptions="Center"
-                            MinimumWidthRequest="24">
+                            MinimumWidthRequest="24"
+                            IsVisible="{Binding IsSongPublicationSelectable}">
                         <Label
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                             FontSize="{DynamicResource IconSmallFontSize}"
@@ -302,7 +312,7 @@
                                      RippleBackground="{StaticResource PrimaryColor}"
                                      HighlightBackground="{StaticResource PrimaryLightColor}"
                                      RippleAnimationDuration="200"
-                                     ShouldIgnoreTouches="False"
+                                     ShouldIgnoreTouches="{Binding IsMusicSectionSelectable, Converter={StaticResource negateBooleanConverter}}"
                                      IsVisible="{Binding IsMusicSectionVisible}"
                                      FlowDirection="{Binding ContentFlowDirection}">
                     <core:SfEffectsView.GestureRecognizers>
@@ -338,7 +348,8 @@
                             Margin="8,0,0,0"
                             StrokeThickness="0"
                             VerticalOptions="Center"
-                            MinimumWidthRequest="24">
+                            MinimumWidthRequest="24"
+                            IsVisible="{Binding IsMusicSectionSelectable}">
                         <Label
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                             FontSize="{DynamicResource IconSmallFontSize}"
@@ -365,7 +376,7 @@
                                      RippleBackground="{StaticResource PrimaryColor}"
                                      HighlightBackground="{StaticResource PrimaryLightColor}"
                                      RippleAnimationDuration="200"
-                                     ShouldIgnoreTouches="False"
+                                     ShouldIgnoreTouches="{Binding IsMusicTrackSelectable, Converter={StaticResource negateBooleanConverter}}"
                                      FlowDirection="{Binding ContentFlowDirection}">
                     <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
@@ -435,7 +446,8 @@
                             Margin="0,0,0,0"
                             StrokeThickness="0"
                             VerticalOptions="Center"
-                            MinimumWidthRequest="24">
+                            MinimumWidthRequest="24"
+                            IsVisible="{Binding IsMusicTrackSelectable}">
                             <Label
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                 FontSize="{DynamicResource IconSmallFontSize}"

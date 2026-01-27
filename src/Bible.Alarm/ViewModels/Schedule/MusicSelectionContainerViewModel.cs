@@ -43,10 +43,39 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
     // Signal to View that it should scroll to bottom
     private bool shouldScrollToBottom;
+
+    // Cached selectability flags (updated when state changes)
+    private bool isMusicTypeSelectable = true; // Music type always has 2 options (Instrumental/Vocal)
+    private bool isMusicLanguageSelectable = false;
+    private bool isSongPublicationSelectable = false;
+    private bool isMusicSectionSelectable = false;
+    private bool isMusicTrackSelectable = false;
     public bool ShouldScrollToBottom
     {
         get => shouldScrollToBottom;
         set => SetProperty(ref shouldScrollToBottom, value);
+    }
+
+    /// <summary>
+    /// Gets whether the music selection container should be visible.
+    /// Returns false when the category is "Music", true otherwise.
+    /// This property is computed from the current schedule's category.
+    /// </summary>
+    public bool IsMusicSelectionVisible
+    {
+        get
+        {
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return true; // Default to visible
+            }
+
+            var categoryName = currentSchedule.BiblePublicationCategoryName;
+            var isMusicCategory = !string.IsNullOrWhiteSpace(categoryName) &&
+                                  string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
+            return !isMusicCategory;
+        }
     }
 
     public MusicSelectionContainerViewModel(
@@ -69,7 +98,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         // Initialize helper classes
         commandInitializer = new MusicCommandInitializer(
             logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider, toastService);
-        displayTextProvider = new MusicDisplayTextProvider(state);
+        displayTextProvider = new MusicDisplayTextProvider(state, mediaService);
         propertyNotifier = new MusicPropertyNotifier(propertyName => OnPropertyChanged(propertyName), displayTextProvider);
         musicEnabledHandler = new MusicEnabledHandler(logger, dispatcher, serviceProvider, state);
         stateTracker = new MusicStateTracker();
@@ -89,6 +118,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
         InitializeCommands();
         InitializeFromState();
+        UpdateSelectabilityFlags();
     }
 
     private void InitializeFromState()
@@ -149,6 +179,9 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         {
             var stateValue = state.Value;
             var currentSchedule = stateValue.CurrentSchedule;
+            
+            // Notify IsMusicSelectionVisible when schedule changes (category might have changed)
+            OnPropertyChanged(nameof(IsMusicSelectionVisible));
 
             // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
             // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
@@ -190,10 +223,57 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 initialMusicEnabledOnPageLoad,
                 (val) => ShouldScrollToBottom = val,
                 (propertyName) => OnPropertyChanged(propertyName));
+
+            // Update selectability flags when state changes
+            UpdateSelectabilityFlags();
         }
         finally
         {
             isProcessingStateChange = false;
+        }
+    }
+
+    private async void UpdateSelectabilityFlags()
+    {
+        try
+        {
+            // Update flags asynchronously without blocking UI
+            var languageSelectable = await displayTextProvider.GetIsMusicLanguageSelectableAsync();
+            var publicationSelectable = await displayTextProvider.GetIsSongPublicationSelectableAsync();
+            var sectionSelectable = await displayTextProvider.GetIsMusicSectionSelectableAsync();
+            var trackSelectable = await displayTextProvider.GetIsMusicTrackSelectableAsync();
+
+            // Update on main thread to trigger property change notifications
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (isMusicLanguageSelectable != languageSelectable)
+                {
+                    isMusicLanguageSelectable = languageSelectable;
+                    OnPropertyChanged(nameof(IsMusicLanguageSelectable));
+                }
+
+                if (isSongPublicationSelectable != publicationSelectable)
+                {
+                    isSongPublicationSelectable = publicationSelectable;
+                    OnPropertyChanged(nameof(IsSongPublicationSelectable));
+                }
+
+                if (isMusicSectionSelectable != sectionSelectable)
+                {
+                    isMusicSectionSelectable = sectionSelectable;
+                    OnPropertyChanged(nameof(IsMusicSectionSelectable));
+                }
+
+                if (isMusicTrackSelectable != trackSelectable)
+                {
+                    isMusicTrackSelectable = trackSelectable;
+                    OnPropertyChanged(nameof(IsMusicTrackSelectable));
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "MusicSelectionContainerViewModel: Error updating selectability flags");
         }
     }
 
@@ -250,6 +330,13 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     /// Used for song publication and track rows which display RTL content (e.g., Arabic song titles).
     /// </summary>
     public FlowDirection ContentFlowDirection => displayTextProvider.GetFlowDirection();
+
+    // Selectability properties - rows are only tappable if there are multiple options
+    public bool IsMusicTypeSelectable => isMusicTypeSelectable;
+    public bool IsMusicLanguageSelectable => isMusicLanguageSelectable;
+    public bool IsSongPublicationSelectable => isSongPublicationSelectable;
+    public bool IsMusicSectionSelectable => isMusicSectionSelectable;
+    public bool IsMusicTrackSelectable => isMusicTrackSelectable;
 
     public void Dispose()
     {

@@ -1,6 +1,7 @@
 #nullable enable
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -9,6 +10,7 @@ using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Categories;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BiblePublicationsSelection;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
@@ -78,6 +80,16 @@ public sealed class BiblePublicationCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
+            // Check if publication is selectable (multiple options available)
+            // If not selectable, don't open the modal
+            var mediaService = serviceProvider.GetRequiredService<IMediaService>();
+            var displayTextProvider = new BiblePublicationDisplayTextProvider(state, logger, mediaService);
+            var isSelectable = await displayTextProvider.GetIsPublicationSelectableAsync();
+            if (!isSelectable)
+            {
+                return; // Only one option available, don't open modal
+            }
+
             // Get Bible reading from CurrentSchedule (already loaded from AlarmDB on page load)
             // No need to query AlarmDB again - only media index DB queries are needed for selection lists
             var currentSchedule = state.Value.CurrentSchedule;

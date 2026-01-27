@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -38,9 +39,10 @@ public sealed class SongPublicationSelectionDataProvider(
         await ConcurrencyHelper.ExecuteAsync(languagePopulationLock, async () =>
         {
             // Do ALL processing on background thread to avoid blocking spinner animation
+            // Use GetBiblePublicationLanguages with category="Music" (same API as Bible publication)
             var (languageVMs, selectedLanguage) = await Task.Run(async () =>
             {
-                var languagesFromDb = await mediaService.GetVocalMusicLanguages();
+                var languagesFromDb = await mediaService.GetBiblePublicationLanguages("Music");
                 var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
                 var vms = new List<LanguageListViewItemModel>();
@@ -101,26 +103,36 @@ public sealed class SongPublicationSelectionDataProvider(
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (songPublicationVMs, newMapping, selectedSongPublication) = await Task.Run(async () =>
         {
-            Dictionary<string, VocalMusic>? vocalReleases = null;
-            Dictionary<string, MelodyMusic>? melodyReleases = null;
+            // Use GetBiblePublications with category="Music" - same API as Bible publication container
+            // This returns both publications with language AND without language FK (data-driven)
+            // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
+            // downloadAll=false when language changes (only download first publication in cascade)
+            Dictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication>? publicationsData = null;
             
-            // Data-driven approach: Load publications based on what's available
-            // When language is selected: GetVocalMusicReleases returns BOTH publications with language AND without language FK
-            // When no language (instrumental only): GetMelodyMusicReleases returns only publications without language FK
+            // For instrumental music (MusicType.Music), we need publications without language
+            // For vocal music (MusicType.VocalMusic), we need publications with language (or both)
             if (current?.MusicType == MusicType.Music && string.IsNullOrEmpty(languageCode))
             {
-                // Instrumental music only - load melody releases (no language code needed)
-                melodyReleases = await mediaService.GetMelodyMusicReleases();
+                // Instrumental music only - get publications without language FK
+                // Use empty string as language code to get all Music category publications
+                // GetBiblePublications will return publications with LanguageId == null for Music category
+                publicationsData = await mediaService.GetBiblePublications(string.Empty, "Music", downloadAll);
+                
+                // Filter to only publications without LanguageId
+                if (publicationsData != null)
+                {
+                    publicationsData = publicationsData
+                        .Where(kvp => kvp.Value.LanguageId == null)
+                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                }
             }
             else if (!string.IsNullOrEmpty(languageCode))
             {
-                // Language selected - GetVocalMusicReleases now includes BOTH:
+                // Language selected - GetBiblePublications returns BOTH:
                 // 1. Publications with LanguageId != null (filtered by language code)
                 // 2. Publications with LanguageId == null (no language FK)
                 // This is data-driven and works for any category
-                // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
-                // downloadAll=false when language changes (only download first publication in cascade)
-                vocalReleases = await mediaService.GetVocalMusicReleases(languageCode, downloadAll);
+                publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll);
             }
             else
             {
@@ -128,93 +140,141 @@ public sealed class SongPublicationSelectionDataProvider(
                 return (new List<PublicationListViewItemModel>(), new Dictionary<string, PublicationListViewItemModel>(), (PublicationListViewItemModel?)null);
             }
 
+            // If downloadAll=true, wait for harvesting to complete, then re-query to get actual publication names
+            // This matches the pattern in BiblePublicationSelectionDataProvider
+            if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase) && publicationsData != null)
+            {
+                // Wait a bit for background harvesting to start
+                await Task.Delay(100);
+                
+                // Wait for harvesting to complete by checking if publications are now available
+                // Re-query to get actual publications with correct names (not placeholders)
+                var maxWaitTime = TimeSpan.FromSeconds(30);
+                var startTime = DateTime.UtcNow;
+                var allHarvested = false;
+                
+                while (!allHarvested && (DateTime.UtcNow - startTime) < maxWaitTime)
+                {
+                    var reQueriedData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false);
+                    
+                    // Check if ALL publications are harvested (not placeholders)
+                    // A publication is harvested if it has a name that's different from its code and has an ID > 0
+                    allHarvested = reQueriedData.Values.All(p => 
+                        !string.IsNullOrEmpty(p.Name) && 
+                        p.Name != p.PublicationCode && 
+                        p.Id > 0);
+                    
+                    // Also check that we have at least one publication (to avoid false positives when list is empty)
+                    var hasPublications = reQueriedData.Values.Count > 0;
+                    
+                    if (allHarvested && hasPublications)
+                    {
+                        publicationsData = reQueriedData;
+                        Serilog.Log.Debug("PopulateSongPublications: All publications harvested, using actual publications with correct names");
+                    }
+                    else
+                    {
+                        // Log which publications are still placeholders for debugging
+                        var placeholders = reQueriedData.Values.Where(p => 
+                            string.IsNullOrEmpty(p.Name) || 
+                            p.Name == p.PublicationCode || 
+                            p.Id == 0).Select(p => p.PublicationCode).ToList();
+                        
+                        if (placeholders.Count > 0)
+                        {
+                            Serilog.Log.Debug("PopulateSongPublications: Still waiting for {Count} publications to be harvested: {Placeholders}",
+                                placeholders.Count, string.Join(", ", placeholders));
+                        }
+                        
+                        // Wait a bit more before checking again
+                        await Task.Delay(500);
+                    }
+                }
+                
+                if (!allHarvested)
+                {
+                    Serilog.Log.Warning("PopulateSongPublications: Timeout waiting for all publications to be harvested for language {LanguageCode}. Some may still be placeholders.", languageCode);
+                }
+            }
+
+            if (publicationsData == null || publicationsData.Count == 0)
+            {
+                return (new List<PublicationListViewItemModel>(), new Dictionary<string, PublicationListViewItemModel>(), (PublicationListViewItemModel?)null);
+            }
+
             var vms = new List<PublicationListViewItemModel>();
             var mapping = new Dictionary<string, PublicationListViewItemModel>();
             PublicationListViewItemModel? selected = null;
 
-            // Process vocal music releases (includes both with and without language FK)
-            if (vocalReleases != null)
+            // Process publications - filter based on MusicType
+            foreach (var publication in publicationsData.Values)
             {
-                foreach (var release in vocalReleases.Values)
+                // Filter based on MusicType:
+                // - VocalMusic: needs publications with LanguageId (or both if language is selected)
+                // - Music: needs publications without LanguageId
+                if (current?.MusicType == MusicType.Music)
                 {
-                    // Skip duplicates - if code already exists, use the existing one
-                    if (mapping.TryGetValue(release.Code, out var existingVm))
+                    // Instrumental music - only publications without LanguageId
+                    if (publication.LanguageId != null)
                     {
-                        // Check if this matches the current publication code
-                        // MusicType can be either VocalMusic or Music depending on whether publication has LanguageId
-                        if (current != null && current.PublicationCode == release.Code)
-                        {
-                            // Check if language matches (for vocal music) or if it's instrumental (no language)
-                            var isVocalMatch = current.MusicType == MusicType.VocalMusic &&
-                                             current.LanguageCode == languageCode;
-                            var isInstrumentalMatch = current.MusicType == MusicType.Music &&
-                                                     release.Publication.LanguageId == null;
-                            
-                            if (isVocalMatch || isInstrumentalMatch)
-                            {
-                                existingVm.IsSelected = true;
-                                selected = existingVm;
-                            }
-                        }
                         continue;
                     }
-
-                    var songPublicationListViewItemModel = new PublicationListViewItemModel(release);
-                    vms.Add(songPublicationListViewItemModel);
-                    mapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
-
-                    // Check if this matches the current publication code
-                    if (current != null && current.PublicationCode == release.Code)
+                }
+                else if (current?.MusicType == MusicType.VocalMusic)
+                {
+                    // Vocal music - only publications with LanguageId (when language is selected)
+                    if (!string.IsNullOrEmpty(languageCode) && publication.LanguageId == null)
                     {
-                        var isVocalMatch = current.MusicType == MusicType.VocalMusic &&
-                                         current.LanguageCode == languageCode;
-                        var isInstrumentalMatch = current.MusicType == MusicType.Music &&
-                                                 release.Publication.LanguageId == null;
-                        
-                        if (isVocalMatch || isInstrumentalMatch)
-                        {
-                            songPublicationListViewItemModel.IsSelected = true;
-                            selected = songPublicationListViewItemModel;
-                        }
+                        // Skip publications without language when language is selected for vocal music
+                        // But keep them if they're already in the list (from previous selection)
+                        continue;
                     }
                 }
-            }
 
-            // Process melody music releases (only when no language selected, instrumental only)
-            if (melodyReleases != null)
-            {
-                foreach (var release in melodyReleases.Values)
+                // Skip duplicates - if code already exists, use the existing one
+                if (mapping.TryGetValue(publication.PublicationCode, out var existingVm))
                 {
-                    var publicationCode = release.Publication.PublicationCode;
-                    
-                    // Skip duplicates - if code already exists, use the existing one
-                    if (mapping.TryGetValue(publicationCode, out var existingVm))
+                    // Check if this matches the current publication code
+                    if (current != null && current.PublicationCode == publication.PublicationCode)
                     {
-                        // Still check if this duplicate matches the current publication code
-                        if (current != null &&
-                            current.MusicType == MusicType.Music &&
-                            current.PublicationCode == publicationCode)
+                        var isVocalMatch = current.MusicType == MusicType.VocalMusic &&
+                                         current.LanguageCode == languageCode &&
+                                         publication.LanguageId != null;
+                        var isInstrumentalMatch = current.MusicType == MusicType.Music &&
+                                                 publication.LanguageId == null;
+                        
+                        if (isVocalMatch || isInstrumentalMatch)
                         {
                             existingVm.IsSelected = true;
                             selected = existingVm;
                         }
-                        continue;
                     }
+                    continue;
+                }
 
-                    // Use the Publication property directly (BiblePublication is a Publication)
-                    var songPublicationListViewItemModel = new PublicationListViewItemModel(release.Publication);
-                    vms.Add(songPublicationListViewItemModel);
-                    mapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
+                var songPublicationListViewItemModel = new PublicationListViewItemModel(publication);
+                vms.Add(songPublicationListViewItemModel);
+                mapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
 
-                    if (current != null &&
-                        current.MusicType == MusicType.Music &&
-                        current.PublicationCode == publicationCode)
+                // Check if this matches the current publication code
+                if (current != null && current.PublicationCode == publication.PublicationCode)
+                {
+                    var isVocalMatch = current.MusicType == MusicType.VocalMusic &&
+                                     current.LanguageCode == languageCode &&
+                                     publication.LanguageId != null;
+                    var isInstrumentalMatch = current.MusicType == MusicType.Music &&
+                                             publication.LanguageId == null;
+                    
+                    if (isVocalMatch || isInstrumentalMatch)
                     {
                         songPublicationListViewItemModel.IsSelected = true;
                         selected = songPublicationListViewItemModel;
                     }
                 }
             }
+
+            // Sort publications: nwt first, then bi12, then others by name (same as Bible publication)
+            vms = PublicationSortHelper.SortByPriority(vms, p => p.Code, p => p.Name).ToList();
 
             return (vms, mapping, selected);
         });
@@ -406,26 +466,49 @@ public sealed class SongPublicationSelectionDataProvider(
             }
         }
 
-        // Step 3: Get the downloaded publication
+        // Step 3: Get the downloaded publication using GetBiblePublications (same API as Bible publication)
         var songPublications = await Task.Run(async () =>
-            await mediaService.GetVocalMusicReleases(language.Code, downloadAll: false));
+            await mediaService.GetBiblePublications(language.Code, "Music", downloadAll: false));
 
         if (songPublications == null || songPublications.Count == 0)
         {
             return (null, 0, string.Empty, string.Empty);
         }
 
-        var firstSongPublication = songPublications.FirstOrDefault();
-        if (firstSongPublication.Value == null)
+        // Find first publication with LanguageId (vocal music)
+        var firstSongPublication = songPublications.Values
+            .Where(p => p.LanguageId != null)
+            .OrderBy(p => p.Id)
+            .FirstOrDefault();
+
+        if (firstSongPublication == null)
         {
             return (null, 0, string.Empty, string.Empty);
         }
 
-        var publicationCode = firstSongPublication.Key;
+        var publicationCode = firstSongPublication.PublicationCode;
         var isSameLanguage = IsSameLanguageAndSongPublication(currentSchedule, language.Code, publicationCode);
 
-        var tracks = await Task.Run(async () =>
-            await mediaService.GetVocalMusicTracks(language.Code, publicationCode));
+        // Use GetBiblePublicationTracks for vocal music (same API as Bible publication)
+        // For vocal music, we need to get tracks from the first section (or flat publication)
+        var sections = await Task.Run(async () =>
+            await mediaService.GetBiblePublicationSections(language.Code, publicationCode));
+        
+        SortedDictionary<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack>? tracks = null;
+        if (sections != null && sections.Count > 0)
+        {
+            // Sectioned publication - get tracks from first section
+            var firstSection = sections.First();
+            tracks = await Task.Run(async () =>
+                await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, firstSection.Key));
+        }
+        else
+        {
+            // Flat publication - get tracks directly (no sections)
+            // For flat publications, GetBiblePublicationTracks with sectionNumber=0 should work
+            tracks = await Task.Run(async () =>
+                await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, 0));
+        }
 
         if (tracks == null || tracks.Count == 0)
         {
@@ -450,7 +533,7 @@ public sealed class SongPublicationSelectionDataProvider(
             trackName = randomTrack.Title;
         }
 
-        return (publicationCode, trackNumber, trackName, firstSongPublication.Value.Name);
+        return (publicationCode, trackNumber, trackName, firstSongPublication.Name);
     }
 
     private static bool IsSameSongPublication(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)

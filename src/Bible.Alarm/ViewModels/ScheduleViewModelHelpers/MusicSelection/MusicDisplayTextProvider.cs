@@ -1,4 +1,6 @@
 #nullable enable
+using System.Linq;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
@@ -14,6 +16,7 @@ namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 public sealed class MusicDisplayTextProvider
 {
     private readonly IState<ApplicationState> state;
+    private readonly IMediaService mediaService;
 
     // Cache fields
     private string? cachedSongPublicationName;
@@ -24,9 +27,10 @@ public sealed class MusicDisplayTextProvider
     private string? lastTrackLanguageCode;
     private MusicType? lastTrackMusicType;
 
-    public MusicDisplayTextProvider(IState<ApplicationState> state)
+    public MusicDisplayTextProvider(IState<ApplicationState> state, IMediaService mediaService)
     {
         this.state = state;
+        this.mediaService = mediaService;
     }
 
     public void ClearCaches()
@@ -302,7 +306,12 @@ public sealed class MusicDisplayTextProvider
     /// - Music type is set
     /// - Publication code is set
     /// - For VocalMusic: language code is set
-    /// - Sections exist for the publication (checked via PublicationTypeHelper.HasSectionStructure or if MusicSectionCode/MusicSectionName is set)
+    /// - Publication has sections (checked via PublicationTypeHelper.HasSectionStructure)
+    /// 
+    /// IMPORTANT: We only check PublicationTypeHelper.HasSectionStructure, NOT MusicSectionCode/MusicSectionName.
+    /// This ensures that when switching from a sectioned publication to a non-sectioned one, the section row
+    /// is hidden even if MusicSectionCode/MusicSectionName is still set (cascade handler should clear these,
+    /// but this provides a safety check).
     /// </summary>
     public bool GetIsMusicSectionVisible()
     {
@@ -318,16 +327,10 @@ public sealed class MusicDisplayTextProvider
             return false;
         }
 
-        // Check if the publication has sections using PublicationTypeHelper
-        // This ensures section row is visible for publications with sections (e.g., "iam" Kingdom Melodies)
-        // even if no section is selected yet
-        if (PublicationTypeHelper.HasSectionStructure(currentSchedule.MusicPublicationCode))
-        {
-            return true;
-        }
-
-        // Also show section row if section code or name is set (for backward compatibility or when section is already selected)
-        return !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode) || !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionName);
+        // Only show section row if the publication actually has sections
+        // This ensures section row is hidden for non-sectioned publications (e.g., "Sing out Joyfully")
+        // even if MusicSectionCode/MusicSectionName is still set from a previous sectioned publication
+        return PublicationTypeHelper.HasSectionStructure(currentSchedule.MusicPublicationCode);
     }
 
     /// <summary>
@@ -348,6 +351,158 @@ public sealed class MusicDisplayTextProvider
         }
 
         return currentSchedule.MusicSectionName;
+    }
+
+    /// <summary>
+    /// Checks if there are multiple languages available for the current music type (VocalMusic only).
+    /// Returns true if there are 2 or more languages, false if only 1 or 0.
+    /// </summary>
+    public async Task<bool> GetIsMusicLanguageSelectableAsync()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || currentSchedule.MusicType != MusicType.VocalMusic)
+        {
+            return false; // Only vocal music has languages
+        }
+
+        try
+        {
+            var languages = await mediaService.GetBiblePublicationLanguages("Music");
+            return languages.Count > 1;
+        }
+        catch
+        {
+            return false; // On error, default to not selectable
+        }
+    }
+
+    /// <summary>
+    /// Checks if there are multiple publications available for the current music type and language.
+    /// Returns true if there are 2 or more publications, false if only 1 or 0.
+    /// </summary>
+    public async Task<bool> GetIsSongPublicationSelectableAsync()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
+        {
+            return false;
+        }
+
+        var musicType = currentSchedule.MusicType.Value;
+        
+        try
+        {
+            if (musicType == MusicType.Music)
+            {
+                // For Instrumental Music, only count downloaded publications without language (LanguageId == null)
+                var allPublications = await mediaService.GetBiblePublications(string.Empty, "Music", downloadAll: false);
+                var instrumentalPublications = allPublications.Values
+                    .Where(p => p.LanguageId == null && p.Id > 0) // Only downloaded publications (Id > 0)
+                    .ToList();
+                return instrumentalPublications.Count > 1;
+            }
+            else
+            {
+                // For Vocal Music, only count downloaded publications for the selected language
+                var languageCode = currentSchedule.MusicLanguageCode ?? string.Empty;
+                var publications = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false);
+                // Only count downloaded publications (Id > 0), not placeholders (Id == 0)
+                var downloadedCount = publications.Values.Count(p => p.Id > 0);
+                return downloadedCount > 1;
+            }
+        }
+        catch
+        {
+            return false; // On error, default to not selectable
+        }
+    }
+
+    /// <summary>
+    /// Checks if there are multiple sections available for the current music publication.
+    /// Returns true if there are 2 or more sections, false if only 1 or 0.
+    /// </summary>
+    public async Task<bool> GetIsMusicSectionSelectableAsync()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode))
+        {
+            return false;
+        }
+
+        // If publication doesn't have sections, it's not selectable
+        if (!GetIsMusicSectionVisible())
+        {
+            return false;
+        }
+
+        var musicType = currentSchedule.MusicType ?? MusicType.Music;
+        var languageCode = musicType == MusicType.VocalMusic 
+            ? (currentSchedule.MusicLanguageCode ?? string.Empty)
+            : string.Empty;
+        var publicationCode = currentSchedule.MusicPublicationCode;
+
+        try
+        {
+            // Check if publication has LanguageId == null by trying both methods
+            SortedDictionary<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sections;
+            
+            // First try with language
+            sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
+            
+            // If no sections found with language, try without language
+            if (sections.Count == 0)
+            {
+                sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
+            }
+
+            return sections.Count > 1;
+        }
+        catch
+        {
+            return false; // On error, default to not selectable
+        }
+    }
+
+    /// <summary>
+    /// Checks if there are multiple tracks available for the current music section/publication.
+    /// Returns true if there are 2 or more tracks, false if only 1 or 0.
+    /// </summary>
+    public async Task<bool> GetIsMusicTrackSelectableAsync()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode))
+        {
+            return false;
+        }
+
+        var musicType = currentSchedule.MusicType ?? MusicType.Music;
+        var languageCode = musicType == MusicType.VocalMusic 
+            ? (currentSchedule.MusicLanguageCode ?? string.Empty)
+            : string.Empty;
+        var publicationCode = currentSchedule.MusicPublicationCode;
+        var sectionNumber = currentSchedule.MusicSectionCode != null && int.TryParse(currentSchedule.MusicSectionCode, out var sectionNum)
+            ? sectionNum
+            : (currentSchedule.MusicSectionCode != null && currentSchedule.MusicSectionCode.Contains('-')
+                ? (int.TryParse(currentSchedule.MusicSectionCode.Split('-').Last(), out var extractedNum) ? extractedNum : 0)
+                : 0);
+
+        try
+        {
+            // Try with language first
+            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
+            
+            // If no tracks found with language, try without language
+            if (tracks.Count == 0)
+            {
+                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNumber);
+            }
+
+            return tracks.Count > 1;
+        }
+        catch
+        {
+            return false; // On error, default to not selectable
+        }
     }
 }
 

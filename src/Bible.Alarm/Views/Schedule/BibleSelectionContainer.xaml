@@ -9,6 +9,7 @@
              x:DataType="vm:BiblePublicationSelectionContainerViewModel">
     <ContentView.Resources>
         <converters:FlowDirectionToArrowConverter x:Key="flowDirectionToArrowConverter" />
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
     </ContentView.Resources>
     <Border Margin="0"
             Padding="0"
@@ -113,7 +114,7 @@
                                  RippleBackground="{StaticResource PrimaryColor}"
                                  HighlightBackground="{StaticResource PrimaryLightColor}"
                                  RippleAnimationDuration="200"
-                                 ShouldIgnoreTouches="False">
+                                 ShouldIgnoreTouches="{Binding IsLanguageSelectable, Converter={StaticResource negateBooleanConverter}}">
                 <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectLanguageCommand}"
                                           NumberOfTapsRequired="1" />
@@ -180,7 +181,7 @@
                                  RippleBackground="{StaticResource PrimaryColor}"
                                  HighlightBackground="{StaticResource PrimaryLightColor}"
                                  RippleAnimationDuration="200"
-                                 ShouldIgnoreTouches="False"
+                                 ShouldIgnoreTouches="{Binding IsPublicationSelectable, Converter={StaticResource negateBooleanConverter}}"
                                  FlowDirection="{Binding ContentFlowDirection}">
                 <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectBibleCommand}"
@@ -216,7 +217,8 @@
                         Margin="8,0,0,0"
                         StrokeThickness="0"
                         VerticalOptions="Center"
-                        MinimumWidthRequest="24">
+                        MinimumWidthRequest="24"
+                        IsVisible="{Binding IsPublicationSelectable}">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{DynamicResource IconSmallFontSize}"
@@ -244,7 +246,7 @@
                                  RippleBackground="{StaticResource PrimaryColor}"
                                  HighlightBackground="{StaticResource PrimaryLightColor}"
                                  RippleAnimationDuration="200"
-                                 ShouldIgnoreTouches="False"
+                                 ShouldIgnoreTouches="{Binding IsSectionSelectable, Converter={StaticResource negateBooleanConverter}}"
                                  IsVisible="{Binding IsSectionVisible}"
                                  FlowDirection="{Binding ContentFlowDirection}">
                 <core:SfEffectsView.GestureRecognizers>
@@ -281,7 +283,8 @@
                         Margin="8,0,0,0"
                         StrokeThickness="0"
                         VerticalOptions="Center"
-                        MinimumWidthRequest="24">
+                        MinimumWidthRequest="24"
+                        IsVisible="{Binding IsSectionSelectable}">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{DynamicResource IconSmallFontSize}"
@@ -308,7 +311,7 @@
                                  RippleBackground="{StaticResource PrimaryColor}"
                                  HighlightBackground="{StaticResource PrimaryLightColor}"
                                  RippleAnimationDuration="200"
-                                 ShouldIgnoreTouches="False"
+                                 ShouldIgnoreTouches="{Binding IsTrackSelectable, Converter={StaticResource negateBooleanConverter}}"
                                  FlowDirection="{Binding ContentFlowDirection}">
                 <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
@@ -344,7 +347,8 @@
                         Margin="8,0,0,0"
                         StrokeThickness="0"
                         VerticalOptions="Center"
-                        MinimumWidthRequest="24">
+                        MinimumWidthRequest="24"
+                        IsVisible="{Binding IsTrackSelectable}">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                         FontSize="{DynamicResource IconSmallFontSize}"

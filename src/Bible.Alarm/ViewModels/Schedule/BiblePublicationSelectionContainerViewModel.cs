@@ -12,6 +12,7 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.BiblePublicationsSelection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Fluxor;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -51,6 +52,13 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     private string? lastProcessedSectionName;
     private int? lastProcessedTrackNumber;
     private bool shouldScrollToContainer;
+
+    // Cached selectability flags (updated when state changes)
+    private bool isCategorySelectable = true; // Categories are typically always selectable (3 categories)
+    private bool isLanguageSelectable = false;
+    private bool isPublicationSelectable = false;
+    private bool isSectionSelectable = false;
+    private bool isTrackSelectable = false;
 
     public BiblePublicationSelectionContainerViewModel(
         ILogger logger,
@@ -98,6 +106,9 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             // Initialize last processed state to prevent duplicate processing
             lastProcessedScheduleId = currentSchedule.Id;
             lastProcessedLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+
+            // Update selectability flags on initial load
+            UpdateSelectabilityFlags();
             lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
             lastProcessedPublicationCode = currentSchedule.BiblePublicationCode;
             lastProcessedPublicationName = currentSchedule.BiblePublicationName;
@@ -208,8 +219,12 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             if (isInitialLoad)
             {
                 InitializeFromState();
+                UpdateSelectabilityFlags();
                 return;
             }
+
+            // Update selectability flags when state changes
+            UpdateSelectabilityFlags();
 
             // Early exit if we've already processed this exact state
             // Also check display names (language name, publication name, section name) to ensure display text updates when they change
@@ -368,10 +383,61 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     public string SectionDisplayText => displayTextProvider.GetSectionDisplayText();
     public string TrackDisplayText => displayTextProvider.GetTrackDisplayText();
 
+    // Selectability properties - rows are only tappable if there are multiple options
+    public bool IsCategorySelectable => isCategorySelectable;
+    public bool IsLanguageSelectable => isLanguageSelectable;
+    public bool IsPublicationSelectable => isPublicationSelectable;
+    public bool IsSectionSelectable => isSectionSelectable;
+    public bool IsTrackSelectable => isTrackSelectable;
+
     public bool ShouldScrollToContainer
     {
         get => shouldScrollToContainer;
         set => SetProperty(ref shouldScrollToContainer, value);
+    }
+
+    private async void UpdateSelectabilityFlags()
+    {
+        try
+        {
+            // Update flags asynchronously without blocking UI
+            var languageSelectable = await displayTextProvider.GetIsLanguageSelectableAsync();
+            var publicationSelectable = await displayTextProvider.GetIsPublicationSelectableAsync();
+            var sectionSelectable = await displayTextProvider.GetIsSectionSelectableAsync();
+            var trackSelectable = await displayTextProvider.GetIsTrackSelectableAsync();
+
+            // Update on main thread to trigger property change notifications
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (isLanguageSelectable != languageSelectable)
+                {
+                    isLanguageSelectable = languageSelectable;
+                    OnPropertyChanged(nameof(IsLanguageSelectable));
+                }
+
+                if (isPublicationSelectable != publicationSelectable)
+                {
+                    isPublicationSelectable = publicationSelectable;
+                    OnPropertyChanged(nameof(IsPublicationSelectable));
+                }
+
+                if (isSectionSelectable != sectionSelectable)
+                {
+                    isSectionSelectable = sectionSelectable;
+                    OnPropertyChanged(nameof(IsSectionSelectable));
+                }
+
+                if (isTrackSelectable != trackSelectable)
+                {
+                    isTrackSelectable = trackSelectable;
+                    OnPropertyChanged(nameof(IsTrackSelectable));
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "BiblePublicationSelectionContainerViewModel: Error updating selectability flags");
+        }
     }
 
     public void Dispose()

@@ -1,8 +1,12 @@
 #nullable enable
+using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Services.Media;
 using Bible.Alarm.Stores;
 using Fluxor;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui;
 using Serilog;
 
@@ -211,6 +215,147 @@ public sealed class BiblePublicationDisplayTextProvider
         {
             // On error, default to visible to be safe
             return true;
+        }
+    }
+
+    /// <summary>
+    /// Checks if there are multiple languages available for the current category.
+    /// Returns true if there are 2 or more languages, false if only 1 or 0.
+    /// </summary>
+    public async Task<bool> GetIsLanguageSelectableAsync()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null)
+        {
+            return false;
+        }
+
+        var categoryName = currentSchedule.BiblePublicationCategoryName;
+        if (string.IsNullOrWhiteSpace(categoryName))
+        {
+            return false; // No category selected, can't determine
+        }
+
+        try
+        {
+            var languages = await mediaService.GetBiblePublicationLanguages(categoryName);
+            return languages.Count > 1;
+        }
+        catch
+        {
+            return false; // On error, default to not selectable
+        }
+    }
+
+    /// <summary>
+    /// Checks if there are multiple publications available for the current language and category.
+    /// Returns true if there are 2 or more publications, false if only 1 or 0.
+    /// </summary>
+    public async Task<bool> GetIsPublicationSelectableAsync()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null)
+        {
+            return false;
+        }
+
+        var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
+        var categoryName = currentSchedule.BiblePublicationCategoryName;
+        
+        if (string.IsNullOrWhiteSpace(categoryName))
+        {
+            return false; // No category selected, can't determine
+        }
+
+        try
+        {
+            var publications = await mediaService.GetBiblePublications(languageCode, categoryName, downloadAll: false);
+            // Only count downloaded publications (Id > 0), not placeholders (Id == 0)
+            var downloadedCount = publications.Values.Count(p => p.Id > 0);
+            return downloadedCount > 1;
+        }
+        catch
+        {
+            return false; // On error, default to not selectable
+        }
+    }
+
+    /// <summary>
+    /// Checks if there are multiple sections available for the current publication.
+    /// Returns true if there are 2 or more sections, false if only 1 or 0.
+    /// </summary>
+    public async Task<bool> GetIsSectionSelectableAsync()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
+        {
+            return false;
+        }
+
+        // If publication doesn't have sections, it's not selectable
+        if (!GetIsSectionVisible())
+        {
+            return false;
+        }
+
+        var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
+        var publicationCode = currentSchedule.BiblePublicationCode;
+
+        try
+        {
+            // Check if publication has LanguageId == null by checking if GetSectionsForPublicationWithoutLanguage returns results
+            // We'll try both methods and see which one works
+            SortedDictionary<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sections;
+            
+            // First try with language
+            sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
+            
+            // If no sections found with language, try without language
+            if (sections.Count == 0)
+            {
+                sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
+            }
+
+            return sections.Count > 1;
+        }
+        catch
+        {
+            return false; // On error, default to not selectable
+        }
+    }
+
+    /// <summary>
+    /// Checks if there are multiple tracks available for the current section/publication.
+    /// Returns true if there are 2 or more tracks, false if only 1 or 0.
+    /// </summary>
+    public async Task<bool> GetIsTrackSelectableAsync()
+    {
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
+        {
+            return false;
+        }
+
+        var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
+        var publicationCode = currentSchedule.BiblePublicationCode;
+        var sectionNumber = currentSchedule.BiblePublicationSectionNumber ?? 0;
+
+        try
+        {
+            // Try with language first
+            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
+            
+            // If no tracks found with language, try without language
+            if (tracks.Count == 0)
+            {
+                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNumber);
+            }
+
+            return tracks.Count > 1;
+        }
+        catch
+        {
+            return false; // On error, default to not selectable
         }
     }
 }

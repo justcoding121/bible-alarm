@@ -28,6 +28,13 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
     {
         BindingContext = viewModel;
         this.viewModel = viewModel;
+        
+        // Set initial visibility based on IsMusicSelectionVisible
+        if (viewModel != null)
+        {
+            IsVisible = viewModel.IsMusicSelectionVisible;
+        }
+        
         InitializeHelpers();
 
         if (viewModel != null && propertyChangeHandler != null)
@@ -130,6 +137,12 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         var isNewViewModel = newViewModel != null && newViewModel != viewModel;
 
         viewModel = newViewModel;
+        
+        // Set initial visibility based on IsMusicSelectionVisible
+        if (viewModel != null)
+        {
+            IsVisible = viewModel.IsMusicSelectionVisible;
+        }
 
         // Ensure helpers are initialized before subscribing
         // This is important because InitializeHelpers requires CollapsibleContent to be non-null
@@ -213,6 +226,17 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
             propertyChangeHandler != null,
             viewModel != null);
 #endif
+        
+        // Handle IsMusicSelectionVisible property change - explicitly update IsVisible binding
+        if (e.PropertyName == nameof(MusicSelectionContainerViewModel.IsMusicSelectionVisible))
+        {
+            if (viewModel != null)
+            {
+                IsVisible = viewModel.IsMusicSelectionVisible;
+            }
+            return; // Don't pass to propertyChangeHandler as this is handled here
+        }
+        
         if (e.PropertyName == nameof(MusicSelectionContainerViewModel.MusicEnabled))
         {
 #if DEBUG

@@ -346,5 +346,42 @@ public class ScheduleEffects(
             Log.Error(ex, "ScheduleEffects: Error handling Bible publication cascade");
         }
     }
+
+    /// <summary>
+    /// Effect: Auto-populate cascade when Music fields are updated.
+    /// Cascade order: MusicType → Language → Publication → Section → Track
+    /// </summary>
+    [EffectMethod]
+    public async Task HandleMusicCascade(UpdateScheduleFromViewModelAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            // Only trigger if this is a music update
+            if (!action.MusicUpdated)
+            {
+                return;
+            }
+
+            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
+            var currentMediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>()!;
+            var currentBiblePublicationService = BiblePublicationService ?? ServiceProviderManager.GetService<IBiblePublicationService>()!;
+            var languageContentService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>()!;
+            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>()!;
+            
+            var handler = new MusicCascadeHandler(
+                currentBiblePublicationService,
+                currentMediaService,
+                languageContentService,
+                currentState,
+                scopeFactory,
+                Log.Logger);
+            
+            await handler.HandleAsync(dispatcher);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error handling Music cascade");
+        }
+    }
 }
 
