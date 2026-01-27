@@ -83,8 +83,20 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         // Initialize helper classes
         stateManager = new ScheduleStateManager(scheduleInitializationService, scheduleStateChangeHandler, dispatcher, logger);
-        commandExecutor = new ScheduleCommandExecutor(scheduleCommandService, scheduleMediaCacheService, state, playbackState, dispatcher, mapper, logger, () => propertyManager?.MusicSelectionContainerViewModel, SetIsSaving);
         propertyManager = new SchedulePropertyManager(state, logger);
+        commandExecutor = new ScheduleCommandExecutor(
+            scheduleCommandService, 
+            scheduleMediaCacheService, 
+            state, 
+            playbackState, 
+            dispatcher, 
+            mapper, 
+            logger, 
+            () => propertyManager?.MusicSelectionContainerViewModel, 
+            SetIsSaving,
+            (isBusy) => propertyManager.IsCancelBusy = isBusy,
+            (isBusy) => propertyManager.IsSaveBusy = isBusy,
+            (isBusy) => propertyManager.IsDeleteBusy = isBusy);
         containerManager = new ScheduleContainerManager(scheduleContainerService, serviceProvider);
         overlayManager = new ScheduleOverlayManager(dispatcher);
 
@@ -104,6 +116,19 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             else if (e.PropertyName == nameof(SchedulePropertyManager.IsNewSchedule))
             {
                 OnPropertyChanged(nameof(IsNewSchedule));
+            }
+            // Forward busy property changes
+            else if (e.PropertyName == nameof(SchedulePropertyManager.IsCancelBusy))
+            {
+                OnPropertyChanged(nameof(IsCancelBusy));
+            }
+            else if (e.PropertyName == nameof(SchedulePropertyManager.IsSaveBusy))
+            {
+                OnPropertyChanged(nameof(IsSaveBusy));
+            }
+            else if (e.PropertyName == nameof(SchedulePropertyManager.IsDeleteBusy))
+            {
+                OnPropertyChanged(nameof(IsDeleteBusy));
             }
             // Forward container ViewModel property changes
             else if (e.PropertyName == nameof(SchedulePropertyManager.BibleSelectionContainerViewModel))
@@ -349,6 +374,24 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
     {
         get => propertyManager.IsBusy;
         set => propertyManager.IsBusy = value;
+    }
+
+    public bool IsCancelBusy
+    {
+        get => propertyManager.IsCancelBusy;
+        set => propertyManager.IsCancelBusy = value;
+    }
+
+    public bool IsSaveBusy
+    {
+        get => propertyManager.IsSaveBusy;
+        set => propertyManager.IsSaveBusy = value;
+    }
+
+    public bool IsDeleteBusy
+    {
+        get => propertyManager.IsDeleteBusy;
+        set => propertyManager.IsDeleteBusy = value;
     }
 
 

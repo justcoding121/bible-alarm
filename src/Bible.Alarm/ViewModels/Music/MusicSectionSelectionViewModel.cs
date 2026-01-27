@@ -69,68 +69,134 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
                 return;
             }
 
-            // Always use CurrentSchedule as the source of truth
-            var currentSchedule = state.Value.CurrentSchedule;
-            if (currentSchedule == null ||
-                !currentSchedule.MusicType.HasValue ||
-                string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
+            // Track start time to ensure minimum display duration
+            var startTime = DateTime.UtcNow;
+            const int minimumDisplayMs = 800; // Minimum time to show progress indicator
+
+            // Show progress immediately on UI thread before any async work
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                return;
+                IsBusy = true;
+                ShowProgress = true;
+                ProgressPercent = 0.0;
+                ProgressText = "Loading...";
+            });
+            
+            // Give UI thread enough time to render the progress indicator
+            await Task.Delay(300);
+
+            try
+            {
+                // Always use CurrentSchedule as the source of truth
+                var currentSchedule = state.Value.CurrentSchedule;
+                if (currentSchedule == null ||
+                    !currentSchedule.MusicType.HasValue ||
+                    string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        IsBusy = false;
+                        ShowProgress = false;
+                    });
+                    return;
+                }
+
+                var musicType = currentSchedule.MusicType.Value;
+                var publicationCode = currentSchedule.MusicPublicationCode;
+                var languageCode = currentSchedule.MusicLanguageCode; // May be null for instrumental music
+
+                // Update progress
+                ProgressPercent = 0.3;
+                ProgressText = "Checking tracks...";
+
+                // Get tracks for the selected section
+                SortedDictionary<int, MusicTrack> tracks;
+                if (musicType == MusicType.VocalMusic && !string.IsNullOrEmpty(languageCode))
+                {
+                    // For vocal music, use language code
+                    tracks = await Task.Run(async () =>
+                        await mediaService.GetVocalMusicTracks(languageCode, publicationCode));
+                }
+                else if (musicType == MusicType.Music)
+                {
+                    // For instrumental music, get tracks from the selected section
+                    tracks = await Task.Run(async () =>
+                        await mediaService.GetMelodyMusicTracksBySection(publicationCode, x.Section.SectionCode));
+                }
+                else
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        IsBusy = false;
+                        ShowProgress = false;
+                    });
+                    return;
+                }
+
+                if (tracks == null || tracks.Count == 0)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        IsBusy = false;
+                        ShowProgress = false;
+                    });
+                    return;
+                }
+
+                // Update progress
+                ProgressPercent = 0.7;
+                ProgressText = "Completing...";
+
+                // Use the first track from the selected section
+                var firstTrack = tracks.Values.First();
+                var trackNumber = firstTrack.Number;
+                var trackTitle = firstTrack.Title;
+
+                // Create MusicStateItem with selected section and track
+                var musicStateItem = new MusicStateItem
+                {
+                    MusicType = musicType,
+                    LanguageCode = languageCode,
+                    PublicationCode = publicationCode,
+                    SectionCode = x.Section.SectionCode,
+                    TrackNumber = trackNumber,
+                    Repeat = currentSchedule.MusicRepeat ?? false,
+                    // Store display names
+                    PublicationName = currentSchedule.MusicPublicationName,
+                    SectionName = x.Name,
+                    TrackName = trackTitle
+                };
+
+                // Dispatch MusicSectionSelectedAction to update CurrentSchedule
+                dispatcher.Dispatch(new MusicSectionSelectedAction(musicStateItem));
+                
+                // Ensure minimum display time has elapsed
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                if (elapsed < minimumDisplayMs)
+                {
+                    var remaining = minimumDisplayMs - (int)elapsed;
+                    await Task.Delay(remaining);
+                }
+                else
+                {
+                    await Task.Delay(200); // Brief delay to show completion
+                }
+                
+                ProgressPercent = 1.0;
+                ProgressText = "100%";
+                await Task.Delay(100);
+                
+                // Navigate back to schedule page
+                await navigationService.PopModalAsync();
             }
-
-            var musicType = currentSchedule.MusicType.Value;
-            var publicationCode = currentSchedule.MusicPublicationCode;
-            var languageCode = currentSchedule.MusicLanguageCode; // May be null for instrumental music
-
-            // Get tracks for the selected section
-            SortedDictionary<int, MusicTrack> tracks;
-            if (musicType == MusicType.VocalMusic && !string.IsNullOrEmpty(languageCode))
+            finally
             {
-                // For vocal music, use language code
-                tracks = await Task.Run(async () =>
-                    await mediaService.GetVocalMusicTracks(languageCode, publicationCode));
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    IsBusy = false;
+                    ShowProgress = false;
+                });
             }
-            else if (musicType == MusicType.Music)
-            {
-                // For instrumental music, get tracks from the selected section
-                tracks = await Task.Run(async () =>
-                    await mediaService.GetMelodyMusicTracksBySection(publicationCode, x.Section.SectionCode));
-            }
-            else
-            {
-                return;
-            }
-
-            if (tracks == null || tracks.Count == 0)
-            {
-                return;
-            }
-
-            // Use the first track from the selected section
-            var firstTrack = tracks.Values.First();
-            var trackNumber = firstTrack.Number;
-            var trackTitle = firstTrack.Title;
-
-            // Create MusicStateItem with selected section and track
-            var musicStateItem = new MusicStateItem
-            {
-                MusicType = musicType,
-                LanguageCode = languageCode,
-                PublicationCode = publicationCode,
-                SectionCode = x.Section.SectionCode,
-                TrackNumber = trackNumber,
-                Repeat = currentSchedule.MusicRepeat ?? false,
-                // Store display names
-                PublicationName = currentSchedule.MusicPublicationName,
-                SectionName = x.Name,
-                TrackName = trackTitle
-            };
-
-            // Dispatch MusicSectionSelectedAction to update CurrentSchedule
-            dispatcher.Dispatch(new MusicSectionSelectedAction(musicStateItem));
-
-            // Navigate back to schedule page
-            await navigationService.PopModalAsync();
         });
 
         state.StateChanged += OnStateChanged;
@@ -192,9 +258,9 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
                 
                 // Create progress tracker for modal open
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                    progress => MainThread.BeginInvokeOnMainThread(() => ProgressPercent = progress),
-                    text => MainThread.BeginInvokeOnMainThread(() => ProgressText = text),
-                    isVisible => MainThread.BeginInvokeOnMainThread(() => ShowProgress = isVisible));
+                    progress => _ = MainThread.InvokeOnMainThreadAsync(() => ProgressPercent = progress),
+                    text => _ = MainThread.InvokeOnMainThreadAsync(() => ProgressText = text),
+                    isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => ShowProgress = isVisible));
                 
                 await PopulateSections(publicationCode, progressTracker);
 

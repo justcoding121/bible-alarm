@@ -93,6 +93,22 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                     return;
                 }
                 
+                // Track start time to ensure minimum display duration
+                var startTime = DateTime.UtcNow;
+                const int minimumDisplayMs = 800; // Minimum time to show progress indicator
+
+                // Show progress immediately on UI thread before any async work
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    IsBusy = true;
+                    ShowProgress = true;
+                    ProgressPercent = 0.0;
+                    ProgressText = "Loading...";
+                });
+                
+                // Give UI thread enough time to render the progress indicator
+                await Task.Delay(300);
+                
                 // Language code can be null/empty for publications without language (e.g., "iam")
                 // GetBiblePublicationTracks handles this case
                 var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
@@ -100,6 +116,10 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 // Check if the selected section is the same as the current section
                 var currentSectionNumber = currentSchedule.BiblePublicationSectionNumber;
                 var isSameSection = currentSectionNumber.HasValue && currentSectionNumber.Value == x.Number;
+
+                // Update progress
+                ProgressPercent = 0.3;
+                ProgressText = "Checking tracks...";
 
                 // Get tracks for the selected section using the latest language/publication from CurrentSchedule
                 // Language code can be null/empty for publications without language - GetBiblePublicationTracks handles this
@@ -187,16 +207,49 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                     TrackTitle = trackTitle
                 };
 
+                // Update progress
+                ProgressPercent = 0.9;
+                ProgressText = "Completing...";
+
                 // Dispatch TrackSelectedAction to update CurrentBiblePublicationSchedule
                 // Effect will automatically sync to CurrentSchedule
                 dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
-
+                
+                // Ensure minimum display time has elapsed
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                if (elapsed < minimumDisplayMs)
+                {
+                    var remaining = minimumDisplayMs - (int)elapsed;
+                    await Task.Delay(remaining);
+                }
+                else
+                {
+                    await Task.Delay(200); // Brief delay to show completion
+                }
+                
+                ProgressPercent = 1.0;
+                ProgressText = "100%";
+                await Task.Delay(100);
+                
                 // Navigate back to schedule page
                 await navigationService.PopModalAsync();
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "SectionSelectionViewModel: TrackSelectionCommand - Error selecting section");
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    IsBusy = false;
+                    ShowProgress = false;
+                });
+            }
+            finally
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    IsBusy = false;
+                    ShowProgress = false;
+                });
             }
         });
 
@@ -310,23 +363,23 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                     return;
                 }
                 
-                // Create progress tracker for modal open
+                // Create progress tracker for modal open with async UI updates (fire-and-forget tasks to avoid blocking)
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                    progress => MainThread.BeginInvokeOnMainThread(() => 
+                    progress => _ = MainThread.InvokeOnMainThreadAsync(() => 
                     {
                         if (!isDisposed)
                         {
                             ProgressPercent = progress;
                         }
                     }),
-                    text => MainThread.BeginInvokeOnMainThread(() => 
+                    text => _ = MainThread.InvokeOnMainThreadAsync(() => 
                     {
                         if (!isDisposed)
                         {
                             ProgressText = text;
                         }
                     }),
-                    isVisible => MainThread.BeginInvokeOnMainThread(() => 
+                    isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => 
                     {
                         if (!isDisposed)
                         {
@@ -588,11 +641,18 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSection section) : ObservableObject, IComparable
 {
     private bool isSelected;
+    private bool isNavigating;
 
     public bool IsSelected
     {
         get => isSelected;
         set => SetProperty(ref isSelected, value);
+    }
+
+    public bool IsNavigating
+    {
+        get => isNavigating;
+        set => SetProperty(ref isNavigating, value);
     }
 
     /// <summary>

@@ -439,11 +439,18 @@ public sealed class MusicTypeListItemViewModel : ObservableObject, IComparable
     public string Name { get; set; } = string.Empty;
 
     private bool isSelected;
+    private bool isNavigating;
 
     public bool IsSelected
     {
         get => isSelected;
         set => SetProperty(ref isSelected, value);
+    }
+
+    public bool IsNavigating
+    {
+        get => isNavigating;
+        set => SetProperty(ref isNavigating, value);
     }
 
     public int CompareTo(object? obj) => obj is not MusicTypeListItemViewModel other ? 1 : string.Compare(Name, other.Name, StringComparison.Ordinal);

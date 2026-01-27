@@ -28,15 +28,29 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
 
         if (sender is View view && view.BindingContext is LanguageListViewItemModel languageItem)
         {
-            if (ViewModel is SongPublicationSelectionViewModel songPublicationViewModel)
+            // Set IsNavigating immediately to show progress indicator
+            languageItem.IsNavigating = true;
+            
+            // Wait 50ms to ensure UI thread renders the update before doing backend work
+            await Task.Delay(50);
+
+            try
             {
-                if (songPublicationViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
+                if (ViewModel is SongPublicationSelectionViewModel songPublicationViewModel)
                 {
-                    if (asyncCommand.CanExecute(languageItem))
+                    if (songPublicationViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
                     {
-                        await asyncCommand.ExecuteAsync(languageItem);
+                        if (asyncCommand.CanExecute(languageItem))
+                        {
+                            await asyncCommand.ExecuteAsync(languageItem);
+                        }
                     }
                 }
+            }
+            finally
+            {
+                // Reset IsNavigating after operation completes
+                languageItem.IsNavigating = false;
             }
         }
     }

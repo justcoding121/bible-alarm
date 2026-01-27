@@ -182,8 +182,8 @@ public sealed class BiblePublicationSelectionItemSelector
                             // Still show progress even if already harvested
                             progress?.UpdateProgress(0.5);
                             progress?.UpdateProgressText($"Found {pubCode}");
-                            // Small delay to ensure progress is visible
-                            await Task.Delay(300);
+                            // Small delay to ensure progress is visible (reduced since we have minimum display time in command handler)
+                            await Task.Delay(100);
                         }
                     }
                     catch (Exception ex)

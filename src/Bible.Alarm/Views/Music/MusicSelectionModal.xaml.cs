@@ -89,12 +89,26 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
 
         if (sender is View view && view.BindingContext is MusicTypeListItemViewModel musicTypeItem)
         {
-            if (ViewModel != null && ViewModel.SongPublicationSelectionCommand is IAsyncRelayCommand<MusicTypeListItemViewModel> asyncCommand)
+            // Set IsNavigating immediately to show progress indicator
+            musicTypeItem.IsNavigating = true;
+            
+            // Wait 50ms to ensure UI thread renders the update before doing backend work
+            await Task.Delay(50);
+
+            try
             {
-                if (asyncCommand.CanExecute(musicTypeItem))
+                if (ViewModel != null && ViewModel.SongPublicationSelectionCommand is IAsyncRelayCommand<MusicTypeListItemViewModel> asyncCommand)
                 {
-                    await asyncCommand.ExecuteAsync(musicTypeItem);
+                    if (asyncCommand.CanExecute(musicTypeItem))
+                    {
+                        await asyncCommand.ExecuteAsync(musicTypeItem);
+                    }
                 }
+            }
+            finally
+            {
+                // Reset IsNavigating after operation completes
+                musicTypeItem.IsNavigating = false;
             }
         }
     }

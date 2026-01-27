@@ -38,89 +38,111 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <!-- SfEffectsView wrapper for WinUI only -->
-                <core:SfEffectsView Grid.Row="0"
-                                    TouchDownEffects="Ripple"
-                                    TouchUpEffects="None"
-                                    RippleBackground="{StaticResource PrimaryColor}"
-                                    RippleAnimationDuration="200"
-                                    ShouldIgnoreTouches="False"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill">
-                    <core:SfEffectsView.IsVisible>
-                        <OnPlatform x:TypeArguments="x:Boolean" Default="false">
-                            <On Platform="WinUI" Value="true" />
-                        </OnPlatform>
-                    </core:SfEffectsView.IsVisible>
-                    <core:SfEffectsView.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding AddScheduleCommand}" />
-                    </core:SfEffectsView.GestureRecognizers>
-                    <Button x:Name="AddScheduleEffectsButton"
+                <Grid Grid.Row="0"
+                      Margin="{DynamicResource MarginThickness0}"
+                      HorizontalOptions="Fill"
+                      HeightRequest="{DynamicResource IconStandardContainerSize}">
+                    <core:SfEffectsView Margin="0"
+                                        TouchDownEffects="Ripple"
+                                        TouchUpEffects="None"
+                                        RippleBackground="{StaticResource PrimaryColor}"
+                                        RippleAnimationDuration="200"
+                                        ShouldIgnoreTouches="False"
+                                        HorizontalOptions="Fill"
+                                        VerticalOptions="Fill">
+                        <core:SfEffectsView.IsVisible>
+                            <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                                <On Platform="WinUI" Value="true" />
+                            </OnPlatform>
+                        </core:SfEffectsView.IsVisible>
+                        <core:SfEffectsView.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding AddScheduleCommand}" />
+                        </core:SfEffectsView.GestureRecognizers>
+                        <Border x:Name="AddScheduleEffectsButton"
+                                Margin="{DynamicResource MarginThickness0}"
+                                AutomationId="AddScheduleButton"
+                                BackgroundColor="{StaticResource PrimaryColor}"
+                                HorizontalOptions="Fill"
+                                VerticalOptions="Fill"
+                                InputTransparent="{OnPlatform WinUI=True, Default=False}"
+                                Opacity="{Binding IsBootstrapReady, Converter={StaticResource booleanToOpacityConverter}}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusLarge}" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="#40000000" 
+                                        Offset="0,2" 
+                                        Radius="4" 
+                                        Opacity="0.3" />
+                            </Border.Shadow>
+                            <Label Text="{x:Static fn:GlyphNames.Plus}"
+                                   FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                   FontSize="{DynamicResource IconStandardFontSize}"
+                                   TextColor="White"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   HorizontalTextAlignment="Center"
+                                   VerticalTextAlignment="Center"
+                                   IsVisible="{Binding IsAddBusy, Converter={StaticResource negateBooleanConverter}}" />
+                        </Border>
+                    </core:SfEffectsView>
+                    <!-- Loading indicator overlay - shows when IsAddBusy is true -->
+                    <ActivityIndicator
+                            IsRunning="{Binding IsAddBusy}"
+                            IsVisible="{Binding IsAddBusy}"
+                            Color="White"
+                            WidthRequest="{DynamicResource IconStandardFontSize}"
+                            HeightRequest="{DynamicResource IconStandardFontSize}"
+                            VerticalOptions="Center"
+                            HorizontalOptions="Center"
+                            Opacity="0.95" />
+                </Grid>
+                <!-- Regular button for Android/iOS (with native effects) -->
+                <Grid Grid.Row="0"
+                      Margin="{DynamicResource MarginThickness0}"
+                      HorizontalOptions="Fill"
+                      HeightRequest="{DynamicResource IconStandardContainerSize}"
+                      IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
+                    <Border x:Name="AddScheduleButtonNoEffects"
                             Margin="{DynamicResource MarginThickness0}"
                             AutomationId="AddScheduleButton"
                             BackgroundColor="{StaticResource PrimaryColor}"
-                            CornerRadius="{DynamicResource CornerRadiusLarge}"
-                            Command="{Binding AddScheduleCommand}"
-                            IsEnabled="{Binding IsBootstrapReady}"
-                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="{DynamicResource IconStandardFontSize}"
                             HorizontalOptions="Fill"
-                            HeightRequest="{DynamicResource IconStandardContainerSize}"
-                            Padding="{DynamicResource PaddingThickness0}"
-                            Text="{x:Static fn:GlyphNames.Plus}"
-                            TextColor="White"
-                            InputTransparent="{OnPlatform WinUI=True, Default=False}">
-                        <Button.Shadow>
+                            VerticalOptions="Fill"
+                            Opacity="{Binding IsBootstrapReady, Converter={StaticResource booleanToOpacityConverter}}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding AddScheduleCommand}" />
+                        </Border.GestureRecognizers>
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="{DynamicResource CornerRadiusLarge}" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
                             <Shadow Brush="#40000000" 
                                     Offset="0,2" 
                                     Radius="4" 
                                     Opacity="0.3" />
-                        </Button.Shadow>
-                        <Button.Triggers>
-                            <Trigger TargetType="Button" Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.5" />
-                                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
-                            </Trigger>
-                            <Trigger TargetType="Button" Property="IsEnabled" Value="True">
-                                <Setter Property="Opacity" Value="1.0" />
-                                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
-                            </Trigger>
-                        </Button.Triggers>
-                    </Button>
-                </core:SfEffectsView>
-                <!-- Regular button for Android/iOS (with native effects) -->
-                <Button Grid.Row="0"
-                        x:Name="AddScheduleButtonNoEffects"
-                        Margin="{DynamicResource MarginThickness0}"
-                        AutomationId="AddScheduleButton"
-                        BackgroundColor="{StaticResource PrimaryColor}"
-                        CornerRadius="{DynamicResource CornerRadiusLarge}"
-                        Command="{Binding AddScheduleCommand}"
-                        IsEnabled="{Binding IsBootstrapReady}"
-                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{DynamicResource IconStandardFontSize}"
-                        HorizontalOptions="Fill"
-                        HeightRequest="{DynamicResource IconStandardContainerSize}"
-                        Padding="{DynamicResource PaddingThickness0}"
-                        Text="{x:Static fn:GlyphNames.Plus}"
-                        TextColor="White"
-                        IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
-                    <Button.Shadow>
-                        <Shadow Brush="#40000000" 
-                                Offset="0,2" 
-                                Radius="4" 
-                                Opacity="0.3" />
-                    </Button.Shadow>
-                    <Button.Triggers>
-                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.5" />
-                            <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
-                        </Trigger>
-                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
-                            <Setter Property="Opacity" Value="1.0" />
-                            <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
-                        </Trigger>
-                    </Button.Triggers>
-                </Button>
+                        </Border.Shadow>
+                        <Label Text="{x:Static fn:GlyphNames.Plus}"
+                               FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                               FontSize="{DynamicResource IconStandardFontSize}"
+                               TextColor="White"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               HorizontalTextAlignment="Center"
+                               VerticalTextAlignment="Center"
+                               IsVisible="{Binding IsAddBusy, Converter={StaticResource negateBooleanConverter}}" />
+                    </Border>
+                    <!-- Loading indicator overlay - shows when IsAddBusy is true -->
+                    <ActivityIndicator
+                            IsRunning="{Binding IsAddBusy}"
+                            IsVisible="{Binding IsAddBusy}"
+                            Color="White"
+                            WidthRequest="{DynamicResource IconStandardFontSize}"
+                            HeightRequest="{DynamicResource IconStandardFontSize}"
+                            VerticalOptions="Center"
+                            HorizontalOptions="Center"
+                            Opacity="0.95" />
+                </Grid>
             </Grid>
             <!-- Progress bar for schedule loading -->
             <shared:AnimatedProgressBar
@@ -260,12 +282,20 @@
                                                     Opacity="0.95" />
                                         </Grid>
                                         
-                                        <!-- Row 1, Column 2: Time and days -->
-                                        <VerticalStackLayout Grid.Column="1"
+                                        <!-- Row 1, Column 2: Time and days with progress indicator -->
+                                        <Grid Grid.Column="1"
                                               Grid.Row="0"
                                               HorizontalOptions="Fill"
                                               VerticalOptions="Center"
-                                              Spacing="{DynamicResource SpacingSmall}">
+                                              ColumnSpacing="{DynamicResource SpacingMedium}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <VerticalStackLayout Grid.Column="0"
+                                                  HorizontalOptions="Fill"
+                                                  VerticalOptions="Center"
+                                                  Spacing="{DynamicResource SpacingSmall}">
                                             <!-- Time display - most prominent for alarm app -->
                                             <Grid Margin="{DynamicResource MarginThickness0}"
                                                   HorizontalOptions="Start"
@@ -443,7 +473,25 @@
                                                             VerticalOptions="Center" />
                                                 </Border>
                                             </FlexLayout>
-                                        </VerticalStackLayout>
+                                            </VerticalStackLayout>
+                                            <!-- Progress indicator - shows when IsNavigating is true -->
+                                            <Grid Grid.Column="1"
+                                                  Margin="{DynamicResource MarginThicknessPaddingLarge}"
+                                                  VerticalOptions="Center"
+                                                  HorizontalOptions="End"
+                                                  HeightRequest="{DynamicResource IconStandardFontSize}"
+                                                  WidthRequest="{DynamicResource IconStandardFontSize}">
+                                                <ActivityIndicator
+                                                        IsRunning="{Binding IsNavigating}"
+                                                        IsVisible="{Binding IsNavigating}"
+                                                        Color="{DynamicResource TextPrimaryColor}"
+                                                        WidthRequest="{DynamicResource IconStandardFontSize}"
+                                                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                                                        VerticalOptions="Center"
+                                                        HorizontalOptions="Center"
+                                                        Opacity="0.95" />
+                                            </Grid>
+                                        </Grid>
                                         
                                         <!-- Row 2: Schedule details (name, publication, subtitle, language/music) - spans full width -->
                                         <VerticalStackLayout Grid.Column="0"
@@ -529,7 +577,7 @@
             VerticalOptions="End"
             IsVisible="{Binding IsFloatingButtonVisible}"
             Margin="{DynamicResource MarginThickness0_0_16_16}"
-            Opacity="{Binding IsFloatingButtonVisible, Converter={StaticResource booleanToDoubleConverter}}"
+            Opacity="{Binding IsFloatingButtonVisible, Converter={StaticResource booleanToOpacityConverter}}"
             ZIndex="100">
             <core:SfEffectsView.IsVisible>
                 <OnPlatform x:TypeArguments="x:Boolean" Default="false">
@@ -571,7 +619,7 @@
                 WidthRequest="{DynamicResource IconLargeContainerSize}"
                 HorizontalOptions="End"
                 Margin="{DynamicResource MarginThickness0_0_16_16}"
-                Opacity="{Binding IsFloatingButtonVisible, Converter={StaticResource booleanToDoubleConverter}}"
+                Opacity="{Binding IsFloatingButtonVisible, Converter={StaticResource booleanToOpacityConverter}}"
                 Padding="{DynamicResource PaddingThickness0}"
                 Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
                 VerticalOptions="End"

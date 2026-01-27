@@ -118,6 +118,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
             // Check bootstrap when loaded changes
             bootstrapReadyManager.UpdateBootstrapReadyState();
         };
+        propertyManager.IsAddBusyChanged += (isAddBusy) =>
+        {
+            OnPropertyChanged(nameof(IsAddBusy));
+        };
 
         // Setup bootstrap ready manager events
         bootstrapReadyManager.BootstrapReadyChanged += (isReady) =>
@@ -132,8 +136,10 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
             (x) => x.Schedule?.Id > 0 && navigationHelper.ShouldSkipNavigation(x.Schedule.Id),
             async (x) => await navigationHelper.ShowOverlayAndNavigateAsync(x));
 
-        AddScheduleCommand = commandHandler.CreateAddScheduleCommand();
-        ViewScheduleCommand = commandHandler.CreateViewScheduleCommand();
+        AddScheduleCommand = commandHandler.CreateAddScheduleCommand((isBusy) => propertyManager.IsAddBusy = isBusy);
+        ViewScheduleCommand = commandHandler.CreateViewScheduleCommand(
+            () => progressBarManager.ShowTemporarily(),
+            async () => await progressBarManager.HideTemporarilyAsync());
 
         // Command to open alarm settings modal (Android only)
         OpenAlarmSettingsCommand = new AsyncRelayCommand(async () =>
@@ -250,6 +256,12 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     /// This property updates automatically when bootstrap completes.
     /// </summary>
     public bool IsBootstrapReady => bootstrapReadyManager.IsBootstrapReady;
+
+    public bool IsAddBusy
+    {
+        get => propertyManager.IsAddBusy;
+        set => propertyManager.IsAddBusy = value;
+    }
 
     /// <summary>
     /// Hides the Schedule page overlay. Called when navigating back to Home page.

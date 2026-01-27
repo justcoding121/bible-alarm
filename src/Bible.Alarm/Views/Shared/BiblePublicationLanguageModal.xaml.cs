@@ -52,15 +52,29 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
 
         if (sender is View view && view.BindingContext is LanguageListViewItemModel languageItem)
         {
-            if (ViewModel is BiblePublicationSelectionViewModel bibleSelectionViewModel)
+            // Set IsNavigating immediately to show progress indicator
+            languageItem.IsNavigating = true;
+            
+            // Wait 50ms to ensure UI thread renders the update before doing backend work
+            await Task.Delay(50);
+
+            try
             {
-                if (bibleSelectionViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
+                if (ViewModel is BiblePublicationSelectionViewModel bibleSelectionViewModel)
                 {
-                    if (asyncCommand.CanExecute(languageItem))
+                    if (bibleSelectionViewModel.SelectLanguageCommand is IAsyncRelayCommand<LanguageListViewItemModel> asyncCommand)
                     {
-                        await asyncCommand.ExecuteAsync(languageItem);
+                        if (asyncCommand.CanExecute(languageItem))
+                        {
+                            await asyncCommand.ExecuteAsync(languageItem);
+                        }
                     }
                 }
+            }
+            finally
+            {
+                // Reset IsNavigating after operation completes
+                languageItem.IsNavigating = false;
             }
         }
     }

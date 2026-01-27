@@ -28,6 +28,9 @@ public sealed class ScheduleCommandExecutor
     private readonly IMapper mapper;
     private readonly Func<MusicSelectionContainerViewModel?> getMusicSelectionContainerViewModel;
     private readonly Action<bool>? setIsSaving;
+    private readonly Action<bool>? setIsCancelBusy;
+    private readonly Action<bool>? setIsSaveBusy;
+    private readonly Action<bool>? setIsDeleteBusy;
 
     public ScheduleCommandExecutor(
         IScheduleCommandService scheduleCommandService,
@@ -38,7 +41,10 @@ public sealed class ScheduleCommandExecutor
         IMapper mapper,
         ILogger logger,
         Func<MusicSelectionContainerViewModel?> getMusicSelectionContainerViewModel,
-        Action<bool>? setIsSaving = null)
+        Action<bool>? setIsSaving = null,
+        Action<bool>? setIsCancelBusy = null,
+        Action<bool>? setIsSaveBusy = null,
+        Action<bool>? setIsDeleteBusy = null)
     {
         this.logger = logger;
         this.scheduleCommandService = scheduleCommandService;
@@ -49,6 +55,9 @@ public sealed class ScheduleCommandExecutor
         this.mapper = mapper;
         this.getMusicSelectionContainerViewModel = getMusicSelectionContainerViewModel;
         this.setIsSaving = setIsSaving;
+        this.setIsCancelBusy = setIsCancelBusy;
+        this.setIsSaveBusy = setIsSaveBusy;
+        this.setIsDeleteBusy = setIsDeleteBusy;
     }
 
     public void InitializeCommands(
@@ -63,9 +72,23 @@ public sealed class ScheduleCommandExecutor
 
     private async Task ExecuteCancelCommand()
     {
-        var currentSchedule = state.Value.CurrentSchedule;
-        var isNewSchedule = GetScheduleId(currentSchedule) <= 0;
-        await scheduleCommandService.ExecuteCancelAsync(isNewSchedule, GetScheduleId(currentSchedule), currentSchedule);
+        // Set IsCancelBusy immediately to show loading indicator
+        setIsCancelBusy?.Invoke(true);
+        
+        // Wait 50ms to ensure UI thread renders the update before doing backend work
+        await Task.Delay(50);
+
+        try
+        {
+            var currentSchedule = state.Value.CurrentSchedule;
+            var isNewSchedule = GetScheduleId(currentSchedule) <= 0;
+            await scheduleCommandService.ExecuteCancelAsync(isNewSchedule, GetScheduleId(currentSchedule), currentSchedule);
+        }
+        finally
+        {
+            // Reset IsCancelBusy after operation completes
+            setIsCancelBusy?.Invoke(false);
+        }
     }
 
     private async Task ExecuteSaveCommand()
@@ -73,30 +96,16 @@ public sealed class ScheduleCommandExecutor
         logger.Information("SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}",
             IsNewSchedule(), GetScheduleId(), GetName());
 
-        // Set saving flag to prevent OnContentLoaded from hiding overlay
+        // Set IsSaveBusy immediately to show loading indicator
+        setIsSaveBusy?.Invoke(true);
         setIsSaving?.Invoke(true);
+        
+        // Wait 50ms to ensure UI thread renders the update before doing backend work
+        await Task.Delay(50);
 
-        // Show busy overlay immediately when save is clicked
-        // Dispatch state update first - this updates the state synchronously
+        // Show busy overlay after progress indicator is visible
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
-        logger.Debug("SaveCommand: Showing busy overlay immediately");
-
-        // Ensure we're on the UI thread and wait for the state update to propagate to the UI
-        // This gives the UI time to render the overlay before starting the save operation
-        // The delay ensures:
-        // 1. Fluxor state update completes
-        // 2. ViewModel's OnStateChanged is called
-        // 3. PropertyChanged event is raised
-        // 4. Page's SyncOverlayWithState is called
-        // 5. Overlay IsVisible is set to true
-        // 6. UI renders the overlay
-        await MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            // Wait for state update to propagate and UI to render
-            // Increased delay to 500ms to ensure overlay is visible before save actions trigger state changes
-            await Task.Delay(500);
-            logger.Debug("SaveCommand: Overlay should now be visible, starting save operation");
-        });
+        logger.Debug("SaveCommand: Showing busy overlay");
 
         try
         {
@@ -143,6 +152,7 @@ public sealed class ScheduleCommandExecutor
                 if (!saved)
                 {
                     setIsSaving?.Invoke(false);
+                    setIsSaveBusy?.Invoke(false);
                 }
             }
             else
@@ -151,6 +161,7 @@ public sealed class ScheduleCommandExecutor
                 logger.Warning("SaveCommand: CurrentSchedule is null, hiding overlay");
                 dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
                 setIsSaving?.Invoke(false);
+                setIsSaveBusy?.Invoke(false);
             }
         }
         catch (Exception ex)
@@ -159,6 +170,7 @@ public sealed class ScheduleCommandExecutor
             // Hide overlay on error
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
             setIsSaving?.Invoke(false);
+            setIsSaveBusy?.Invoke(false);
         }
     }
 
@@ -167,23 +179,16 @@ public sealed class ScheduleCommandExecutor
         logger.Information("DeleteCommand: Delete button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}",
             IsNewSchedule(), GetScheduleId());
 
-        // Set saving flag to prevent OnContentLoaded from hiding overlay
+        // Set IsDeleteBusy immediately to show loading indicator
+        setIsDeleteBusy?.Invoke(true);
         setIsSaving?.Invoke(true);
+        
+        // Wait 50ms to ensure UI thread renders the update before doing backend work
+        await Task.Delay(50);
 
-        // Show busy overlay immediately when delete is clicked
-        // Dispatch state update first - this updates the state synchronously
+        // Show busy overlay after progress indicator is visible
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
-        logger.Debug("DeleteCommand: Showing busy overlay immediately");
-
-        // Ensure we're on the UI thread and wait for the state update to propagate to the UI
-        // This gives the UI time to render the overlay before starting the delete operation
-        await MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            // Wait for state update to propagate and UI to render
-            // 500ms should be enough for the state update -> ViewModel -> Page -> UI rendering chain
-            await Task.Delay(500);
-            logger.Debug("DeleteCommand: Overlay should now be visible, starting delete operation");
-        });
+        logger.Debug("DeleteCommand: Showing busy overlay");
 
         try
         {
@@ -205,6 +210,7 @@ public sealed class ScheduleCommandExecutor
             if (!deleted)
             {
                 setIsSaving?.Invoke(false);
+                setIsDeleteBusy?.Invoke(false);
             }
         }
         catch (Exception ex)
@@ -213,6 +219,7 @@ public sealed class ScheduleCommandExecutor
             // Hide overlay on error
             dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
             setIsSaving?.Invoke(false);
+            setIsDeleteBusy?.Invoke(false);
         }
     }
 

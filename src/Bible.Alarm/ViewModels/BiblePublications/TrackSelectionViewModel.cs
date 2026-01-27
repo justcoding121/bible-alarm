@@ -228,11 +228,18 @@ public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, I
     }
 
     private bool isSelected;
+    private bool isNavigating;
 
     public bool IsSelected
     {
         get => isSelected;
         set => SetProperty(ref isSelected, value);
+    }
+
+    public bool IsNavigating
+    {
+        get => isNavigating;
+        set => SetProperty(ref isNavigating, value);
     }
 
     // LookUpPath is no longer stored in the database - it's computed at runtime by TrackMetadata

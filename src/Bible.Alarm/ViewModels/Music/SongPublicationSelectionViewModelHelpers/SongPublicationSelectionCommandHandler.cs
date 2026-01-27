@@ -39,6 +39,22 @@ public sealed class SongPublicationSelectionCommandHandler(
             return;
         }
 
+        // Track start time to ensure minimum display duration
+        var startTime = DateTime.UtcNow;
+        const int minimumDisplayMs = 800; // Minimum time to show progress indicator
+
+        // Show progress immediately on UI thread BEFORE any async work
+        // This ensures the UI updates first, then the API calls are made
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            setShowProgress(true);
+            setProgressPercent(0.0);
+            setProgressText("Loading...");
+        });
+        
+        // Give UI thread enough time to render the progress indicator
+        await Task.Delay(300);
+
         // Determine if this is a melody music publication (LanguageId == null) or vocal music (LanguageId != null)
         // This is data-driven, not hard-coded
         bool isMelodyMusic = false;
@@ -60,29 +76,22 @@ public sealed class SongPublicationSelectionCommandHandler(
         var languageCode = currentLanguage?.Code ?? string.Empty;
         if (!isMelodyMusic && string.IsNullOrEmpty(languageCode))
         {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                setShowProgress(false);
+            });
             return;
         }
 
         var currentSchedule = state.Value.CurrentSchedule;
         
-        // Show progress immediately on UI thread before any async work
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            setShowProgress(true);
-            setProgressPercent(0.0);
-            setProgressText("0%");
-        });
-        
-        // Give UI thread a chance to render the progress
-        await Task.Delay(50);
-        
         try
         {
-            // Create progress tracker
+            // Create progress tracker with async UI updates (fire-and-forget tasks to avoid blocking)
             var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                progress => MainThread.BeginInvokeOnMainThread(() => setProgressPercent(progress)),
-                text => MainThread.BeginInvokeOnMainThread(() => setProgressText(text)),
-                isVisible => MainThread.BeginInvokeOnMainThread(() => setShowProgress(isVisible)));
+                progress => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressPercent(progress)),
+                text => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressText(text)),
+                isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => setShowProgress(isVisible)));
             
             // Get track based on music type
             int trackNumber;
@@ -192,11 +201,26 @@ public sealed class SongPublicationSelectionCommandHandler(
             }
             
             progressTracker.UpdateProgress(1.0);
-            await Task.Delay(200); // Brief delay to show completion
+            
+            // Ensure minimum display time has elapsed
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            if (elapsed < minimumDisplayMs)
+            {
+                var remaining = minimumDisplayMs - (int)elapsed;
+                progressTracker.UpdateProgressText("Completing...");
+                await Task.Delay(remaining);
+            }
+            else
+            {
+                await Task.Delay(200); // Brief delay to show completion
+            }
         }
         finally
         {
-            setShowProgress(false);
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                setShowProgress(false);
+            });
         }
         
         await navigationService.PopModalAsync();
@@ -220,27 +244,31 @@ public sealed class SongPublicationSelectionCommandHandler(
 
         updateSelectedLanguage(language);
 
+        // Track start time to ensure minimum display duration
+        var startTime = DateTime.UtcNow;
+        const int minimumDisplayMs = 800; // Minimum time to show progress indicator
+
         // Show progress immediately on UI thread before any async work
-        MainThread.BeginInvokeOnMainThread(() =>
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
             setIsBusy(true);
             setShowProgress(true);
             setProgressPercent(0.0);
-            setProgressText("0%");
+            setProgressText("Loading...");
         });
         
-        // Give UI thread a chance to render the progress
-        await Task.Delay(50);
+        // Give UI thread enough time to render the progress indicator
+        await Task.Delay(300);
 
         try
         {
             var currentSchedule = state.Value.CurrentSchedule;
             
-            // Create progress tracker
+            // Create progress tracker with async UI updates (fire-and-forget tasks to avoid blocking)
             var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                progress => MainThread.BeginInvokeOnMainThread(() => setProgressPercent(progress)),
-                text => MainThread.BeginInvokeOnMainThread(() => setProgressText(text)),
-                isVisible => MainThread.BeginInvokeOnMainThread(() => setShowProgress(isVisible)));
+                progress => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressPercent(progress)),
+                text => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressText(text)),
+                isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => setShowProgress(isVisible)));
             
             var (publicationCode, trackNumber, trackName, publicationName) = await dataProvider.GetFirstSongPublicationAndTrackForLanguageAsync(language, currentSchedule, progressTracker);
             if (publicationCode == null)
@@ -275,12 +303,27 @@ public sealed class SongPublicationSelectionCommandHandler(
             }
             
             progressTracker.UpdateProgress(1.0);
-            await Task.Delay(200); // Brief delay to show completion
+            
+            // Ensure minimum display time has elapsed
+            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            if (elapsed < minimumDisplayMs)
+            {
+                var remaining = minimumDisplayMs - (int)elapsed;
+                progressTracker.UpdateProgressText("Completing...");
+                await Task.Delay(remaining);
+            }
+            else
+            {
+                await Task.Delay(200); // Brief delay to show completion
+            }
         }
         finally
         {
-            setIsBusy(false);
-            setShowProgress(false);
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                setIsBusy(false);
+                setShowProgress(false);
+            });
         }
         
         await navigationService.PopModalAsync();

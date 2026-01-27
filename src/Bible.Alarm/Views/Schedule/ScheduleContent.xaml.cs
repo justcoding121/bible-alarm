@@ -121,7 +121,7 @@ public partial class ScheduleContent : ContentView
         // FontSize is now set via XAML using ButtonFontSize resource which scales with accessibility settings
         // Height is now dynamic (no HeightRequest) to properly support large accessibility font sizes
         // On WinUI, button is inside SfEffectsView; on Android/iOS, it's a separate button
-        Border? deleteButton = platform == DevicePlatform.WinUI ? DeleteButton : DeleteButtonNoEffects;
+        Border? deleteButton = platform == DevicePlatform.WinUI ? DeleteButton : DeleteButtonNoEffectsBorder;
         if (deleteButton != null)
         {
             if (platform == DevicePlatform.WinUI)

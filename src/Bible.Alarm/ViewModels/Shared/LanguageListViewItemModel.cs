@@ -10,11 +10,18 @@ public sealed class LanguageListViewItemModel(Language language) : ObservableObj
     public string Direction { get; set; } = language.Direction;
 
     private bool isSelected;
+    private bool isNavigating;
 
     public bool IsSelected
     {
         get => isSelected;
         set => SetProperty(ref isSelected, value);
+    }
+
+    public bool IsNavigating
+    {
+        get => isNavigating;
+        set => SetProperty(ref isNavigating, value);
     }
 
     public int CompareTo(object obj) => string.Compare(Name, (obj as LanguageListViewItemModel)?.Name, StringComparison.Ordinal);

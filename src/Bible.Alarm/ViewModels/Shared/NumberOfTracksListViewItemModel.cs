@@ -21,11 +21,18 @@ public sealed class NumberOfTracksListViewItemModel : ObservableObject, ICompara
     public int Value { get; set; }
 
     private bool isSelected;
+    private bool isNavigating;
 
     public bool IsSelected
     {
         get => isSelected;
         set => SetProperty(ref isSelected, value);
+    }
+
+    public bool IsNavigating
+    {
+        get => isNavigating;
+        set => SetProperty(ref isNavigating, value);
     }
 
     /// <summary>

@@ -50,12 +50,26 @@ public partial class TrackSelectionModal : BaseContentPage, IDisposable
 
         if (sender is View view && view.BindingContext is MusicTrackListViewItemModel trackItem)
         {
-            if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<MusicTrackListViewItemModel> asyncCommand)
+            // Set IsNavigating immediately to show progress indicator
+            trackItem.IsNavigating = true;
+            
+            // Wait 50ms to ensure UI thread renders the update before doing backend work
+            await Task.Delay(50);
+
+            try
             {
-                if (asyncCommand.CanExecute(trackItem))
+                if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<MusicTrackListViewItemModel> asyncCommand)
                 {
-                    await asyncCommand.ExecuteAsync(trackItem);
+                    if (asyncCommand.CanExecute(trackItem))
+                    {
+                        await asyncCommand.ExecuteAsync(trackItem);
+                    }
                 }
+            }
+            finally
+            {
+                // Reset IsNavigating after operation completes
+                trackItem.IsNavigating = false;
             }
         }
     }

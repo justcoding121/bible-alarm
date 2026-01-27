@@ -144,9 +144,9 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         {
             // Create progress tracker for modal open
             var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                progress => MainThread.BeginInvokeOnMainThread(() => propertyManager.ProgressPercent = progress),
-                text => MainThread.BeginInvokeOnMainThread(() => propertyManager.ProgressText = text),
-                isVisible => MainThread.BeginInvokeOnMainThread(() => propertyManager.ShowProgress = isVisible));
+                progress => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressPercent = progress),
+                text => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressText = text),
+                isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = isVisible));
             
             await stateHandler.RefreshFromStateAsync(
                 busy => propertyManager.IsBusy = busy,

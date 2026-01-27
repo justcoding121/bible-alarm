@@ -84,12 +84,26 @@ public partial class SectionSelection : BaseContentPage, IDisposable
     {
         if (sender is View view && view.BindingContext is BiblePublicationSectionListViewItemModel sectionItem)
         {
-            if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BiblePublicationSectionListViewItemModel> asyncCommand)
+            // Set IsNavigating immediately to show progress indicator
+            sectionItem.IsNavigating = true;
+            
+            // Wait 50ms to ensure UI thread renders the update before doing backend work
+            await Task.Delay(50);
+
+            try
             {
-                if (asyncCommand.CanExecute(sectionItem))
+                if (ViewModel != null && ViewModel.TrackSelectionCommand is IAsyncRelayCommand<BiblePublicationSectionListViewItemModel> asyncCommand)
                 {
-                    await asyncCommand.ExecuteAsync(sectionItem);
+                    if (asyncCommand.CanExecute(sectionItem))
+                    {
+                        await asyncCommand.ExecuteAsync(sectionItem);
+                    }
                 }
+            }
+            finally
+            {
+                // Reset IsNavigating after operation completes
+                sectionItem.IsNavigating = false;
             }
         }
     }

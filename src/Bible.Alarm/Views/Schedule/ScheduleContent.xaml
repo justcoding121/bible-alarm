@@ -34,32 +34,79 @@
               AlignContent="Start"
               HorizontalOptions="Fill">
             <!-- Cancel button - SfEffectsView for WinUI only -->
-            <core:SfEffectsView Margin="0,0,3,0"
-                                 FlexLayout.Basis="48%"
-                                 FlexLayout.Grow="1"
-                                 TouchDownEffects="Ripple"
-                                 TouchUpEffects="None"
-                                 RippleBackground="{DynamicResource DividerColor}"
-                                 RippleAnimationDuration="200"
-                                 ShouldIgnoreTouches="False"
-                                 HorizontalOptions="Fill"
-                                 VerticalOptions="Start"
-                                 HeightRequest="{DynamicResource IconStandardContainerSize}">
-                <core:SfEffectsView.IsVisible>
-                    <OnPlatform x:TypeArguments="x:Boolean" Default="false">
-                        <On Platform="WinUI" Value="true" />
-                    </OnPlatform>
-                </core:SfEffectsView.IsVisible>
-                <core:SfEffectsView.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding CancelCommand}" />
-                </core:SfEffectsView.GestureRecognizers>
-                <Border x:Name="CancelButton"
+            <Grid Margin="0,0,3,0"
+                  FlexLayout.Basis="48%"
+                  FlexLayout.Grow="1"
+                  HorizontalOptions="Fill"
+                  VerticalOptions="Start"
+                  HeightRequest="{DynamicResource IconStandardContainerSize}">
+                <core:SfEffectsView Margin="0"
+                                     TouchDownEffects="Ripple"
+                                     TouchUpEffects="None"
+                                     RippleBackground="{DynamicResource DividerColor}"
+                                     RippleAnimationDuration="200"
+                                     ShouldIgnoreTouches="False"
+                                     HorizontalOptions="Fill"
+                                     VerticalOptions="Fill">
+                    <core:SfEffectsView.IsVisible>
+                        <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                            <On Platform="WinUI" Value="true" />
+                        </OnPlatform>
+                    </core:SfEffectsView.IsVisible>
+                    <core:SfEffectsView.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding CancelCommand}" />
+                    </core:SfEffectsView.GestureRecognizers>
+                    <Border x:Name="CancelButton"
+                            AutomationId="CancelButton"
+                            BackgroundColor="{DynamicResource DividerColor}"
+                            HorizontalOptions="Fill"
+                            VerticalOptions="Fill"
+                            InputTransparent="True"
+                            IsEnabled="False">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="#20000000" 
+                                    Offset="0,2" 
+                                    Radius="4" 
+                                    Opacity="0.2" />
+                        </Border.Shadow>
+                        <Label Text="{x:Static fn:GlyphNames.ArrowLeft}" 
+                               FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                               FontSize="{DynamicResource IconStandardFontSize}"
+                               TextColor="{DynamicResource TextSecondaryColor}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding IsCancelBusy, Converter={StaticResource negateBooleanConverter}}" />
+                    </Border>
+                </core:SfEffectsView>
+                <!-- Loading indicator overlay - shows when IsCancelBusy is true -->
+                <ActivityIndicator
+                        IsRunning="{Binding IsCancelBusy}"
+                        IsVisible="{Binding IsCancelBusy}"
+                        Color="{DynamicResource TextSecondaryColor}"
+                        WidthRequest="{DynamicResource IconStandardFontSize}"
+                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Center"
+                        Opacity="0.95" />
+            </Grid>
+            <Grid Margin="0,0,3,0"
+                  FlexLayout.Basis="48%"
+                  FlexLayout.Grow="1"
+                  HorizontalOptions="Fill"
+                  HeightRequest="{DynamicResource IconStandardContainerSize}"
+                  IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
+                <Border x:Name="CancelButtonNoEffects"
+                        Margin="0"
                         AutomationId="CancelButton"
                         BackgroundColor="{DynamicResource DividerColor}"
                         HorizontalOptions="Fill"
-                        VerticalOptions="Fill"
-                        InputTransparent="True"
-                        IsEnabled="False">
+                        VerticalOptions="Fill">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding CancelCommand}" />
+                    </Border.GestureRecognizers>
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
                     </Border.StrokeShape>
@@ -69,69 +116,99 @@
                                 Radius="4" 
                                 Opacity="0.2" />
                     </Border.Shadow>
-                    <Label Text="{x:Static fn:GlyphNames.ArrowLeft}" 
+                    <Label Text="{x:Static fn:GlyphNames.Xmark}" 
                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
                            FontSize="{DynamicResource IconStandardFontSize}"
                            TextColor="{DynamicResource TextSecondaryColor}"
                            HorizontalOptions="Center"
-                           VerticalOptions="Center" />
+                           VerticalOptions="Center"
+                           IsVisible="{Binding IsCancelBusy, Converter={StaticResource negateBooleanConverter}}" />
                 </Border>
-            </core:SfEffectsView>
-            <Border x:Name="CancelButtonNoEffects"
-                    Margin="0,0,3,0"
-                    FlexLayout.Basis="48%"
-                    FlexLayout.Grow="1"
-                    AutomationId="CancelButton"
-                    BackgroundColor="{DynamicResource DividerColor}"
-                    HorizontalOptions="Fill"
-                    HeightRequest="{DynamicResource IconStandardContainerSize}"
-                    IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding CancelCommand}" />
-                </Border.GestureRecognizers>
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#20000000" 
-                            Offset="0,2" 
-                            Radius="4" 
-                            Opacity="0.2" />
-                </Border.Shadow>
-                <Label Text="{x:Static fn:GlyphNames.Xmark}" 
-                       FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
-                       FontSize="{DynamicResource IconStandardFontSize}"
-                       TextColor="{DynamicResource TextSecondaryColor}"
-                       HorizontalOptions="Center"
-                       VerticalOptions="Center" />
-            </Border>
+                <!-- Loading indicator overlay - shows when IsCancelBusy is true -->
+                <ActivityIndicator
+                        IsRunning="{Binding IsCancelBusy}"
+                        IsVisible="{Binding IsCancelBusy}"
+                        Color="{DynamicResource TextSecondaryColor}"
+                        WidthRequest="{DynamicResource IconStandardFontSize}"
+                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Center"
+                        Opacity="0.95" />
+            </Grid>
             <!-- Save button - SfEffectsView for WinUI only -->
-            <core:SfEffectsView Margin="3,0,0,0"
-                                 FlexLayout.Basis="48%"
-                                 FlexLayout.Grow="1"
-                                 TouchDownEffects="Ripple"
-                                 TouchUpEffects="None"
-                                 RippleBackground="{StaticResource PrimaryColor}"
-                                 RippleAnimationDuration="200"
-                                 ShouldIgnoreTouches="False"
-                                 HorizontalOptions="Fill"
-                                 VerticalOptions="Start"
-                                 HeightRequest="{DynamicResource IconStandardContainerSize}">
-                <core:SfEffectsView.IsVisible>
-                    <OnPlatform x:TypeArguments="x:Boolean" Default="false">
-                        <On Platform="WinUI" Value="true" />
-                    </OnPlatform>
-                </core:SfEffectsView.IsVisible>
-                <core:SfEffectsView.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SaveCommand}" />
-                </core:SfEffectsView.GestureRecognizers>
-                <Border x:Name="SaveButton"
+            <Grid Margin="3,0,0,0"
+                  FlexLayout.Basis="48%"
+                  FlexLayout.Grow="1"
+                  HorizontalOptions="Fill"
+                  VerticalOptions="Start"
+                  HeightRequest="{DynamicResource IconStandardContainerSize}">
+                <core:SfEffectsView Margin="0"
+                                     TouchDownEffects="Ripple"
+                                     TouchUpEffects="None"
+                                     RippleBackground="{StaticResource PrimaryColor}"
+                                     RippleAnimationDuration="200"
+                                     ShouldIgnoreTouches="False"
+                                     HorizontalOptions="Fill"
+                                     VerticalOptions="Fill">
+                    <core:SfEffectsView.IsVisible>
+                        <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                            <On Platform="WinUI" Value="true" />
+                        </OnPlatform>
+                    </core:SfEffectsView.IsVisible>
+                    <core:SfEffectsView.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SaveCommand}" />
+                    </core:SfEffectsView.GestureRecognizers>
+                    <Border x:Name="SaveButton"
+                            AutomationId="SaveButton"
+                            BackgroundColor="{StaticResource PrimaryColor}"
+                            HorizontalOptions="Fill"
+                            VerticalOptions="Fill"
+                            InputTransparent="True"
+                            IsEnabled="False">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="#40000000" 
+                                    Offset="0,2" 
+                                    Radius="4" 
+                                    Opacity="0.3" />
+                        </Border.Shadow>
+                        <Label Text="{x:Static fn:GlyphNames.FloppyDisk}" 
+                               FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                               FontSize="{DynamicResource IconStandardFontSize}"
+                               TextColor="White"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding IsSaveBusy, Converter={StaticResource negateBooleanConverter}}" />
+                    </Border>
+                </core:SfEffectsView>
+                <!-- Loading indicator overlay - shows when IsSaveBusy is true -->
+                <ActivityIndicator
+                        IsRunning="{Binding IsSaveBusy}"
+                        IsVisible="{Binding IsSaveBusy}"
+                        Color="White"
+                        WidthRequest="{DynamicResource IconStandardFontSize}"
+                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Center"
+                        Opacity="0.95" />
+            </Grid>
+            <Grid Margin="3,0,0,0"
+                  FlexLayout.Basis="48%"
+                  FlexLayout.Grow="1"
+                  HorizontalOptions="Fill"
+                  HeightRequest="{DynamicResource IconStandardContainerSize}"
+                  IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
+                <Border x:Name="SaveButtonNoEffects"
+                        Margin="0"
                         AutomationId="SaveButton"
                         BackgroundColor="{StaticResource PrimaryColor}"
                         HorizontalOptions="Fill"
-                        VerticalOptions="Fill"
-                        InputTransparent="True"
-                        IsEnabled="False">
+                        VerticalOptions="Fill">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SaveCommand}" />
+                    </Border.GestureRecognizers>
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
                     </Border.StrokeShape>
@@ -146,37 +223,20 @@
                            FontSize="{DynamicResource IconStandardFontSize}"
                            TextColor="White"
                            HorizontalOptions="Center"
-                           VerticalOptions="Center" />
+                           VerticalOptions="Center"
+                           IsVisible="{Binding IsSaveBusy, Converter={StaticResource negateBooleanConverter}}" />
                 </Border>
-            </core:SfEffectsView>
-            <Border x:Name="SaveButtonNoEffects"
-                    Margin="3,0,0,0"
-                    FlexLayout.Basis="48%"
-                    FlexLayout.Grow="1"
-                    AutomationId="SaveButton"
-                    BackgroundColor="{StaticResource PrimaryColor}"
-                    HorizontalOptions="Fill"
-                    HeightRequest="{DynamicResource IconStandardContainerSize}"
-                    IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SaveCommand}" />
-                </Border.GestureRecognizers>
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#40000000" 
-                            Offset="0,2" 
-                            Radius="4" 
-                            Opacity="0.3" />
-                </Border.Shadow>
-                <Label Text="{x:Static fn:GlyphNames.FloppyDisk}" 
-                       FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
-                       FontSize="{DynamicResource IconStandardFontSize}"
-                       TextColor="White"
-                       HorizontalOptions="Center"
-                       VerticalOptions="Center" />
-            </Border>
+                <!-- Loading indicator overlay - shows when IsSaveBusy is true -->
+                <ActivityIndicator
+                        IsRunning="{Binding IsSaveBusy}"
+                        IsVisible="{Binding IsSaveBusy}"
+                        Color="White"
+                        WidthRequest="{DynamicResource IconStandardFontSize}"
+                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Center"
+                        Opacity="0.95" />
+            </Grid>
         </FlexLayout>
         <ScrollView x:Name="ScheduleScrollView"
                     Grid.Row="1"
@@ -201,31 +261,78 @@
                                                        IsVisible="{Binding IsMusicSelectionVisible}" />
 
                 <!-- Delete button - SfEffectsView for WinUI only -->
-                <core:SfEffectsView Grid.Row="5"
-                                    Margin="0,10,0,5"
-                                    VerticalOptions="End"
-                                    TouchDownEffects="Ripple"
-                                    TouchUpEffects="None"
-                                    RippleBackground="{StaticResource ErrorColor}"
-                                    RippleAnimationDuration="200"
-                                    ShouldIgnoreTouches="False"
-                                    HorizontalOptions="Fill"
-                                    HeightRequest="{DynamicResource IconStandardContainerSize}">
-                    <core:SfEffectsView.IsVisible>
-                        <OnPlatform x:TypeArguments="x:Boolean" Default="false">
-                            <On Platform="WinUI" Value="true" />
-                        </OnPlatform>
-                    </core:SfEffectsView.IsVisible>
-                    <core:SfEffectsView.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding DeleteCommand}" />
-                    </core:SfEffectsView.GestureRecognizers>
-                    <Border x:Name="DeleteButton"
-                            IsVisible="{Binding IsExistingSchedule}"
+                <Grid Grid.Row="5"
+                      Margin="0,10,0,5"
+                      VerticalOptions="End"
+                      HorizontalOptions="Fill"
+                      HeightRequest="{DynamicResource IconStandardContainerSize}">
+                    <core:SfEffectsView Margin="0"
+                                        TouchDownEffects="Ripple"
+                                        TouchUpEffects="None"
+                                        RippleBackground="{StaticResource ErrorColor}"
+                                        RippleAnimationDuration="200"
+                                        ShouldIgnoreTouches="False"
+                                        HorizontalOptions="Fill"
+                                        VerticalOptions="Fill">
+                        <core:SfEffectsView.IsVisible>
+                            <OnPlatform x:TypeArguments="x:Boolean" Default="false">
+                                <On Platform="WinUI" Value="true" />
+                            </OnPlatform>
+                        </core:SfEffectsView.IsVisible>
+                        <core:SfEffectsView.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding DeleteCommand}" />
+                        </core:SfEffectsView.GestureRecognizers>
+                        <Border x:Name="DeleteButton"
+                                IsVisible="{Binding IsExistingSchedule}"
+                                BackgroundColor="{StaticResource ErrorColor}"
+                                HorizontalOptions="Fill"
+                                VerticalOptions="Fill"
+                                InputTransparent="True"
+                                IsEnabled="False">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="#40000000" 
+                                        Offset="0,2" 
+                                        Radius="4" 
+                                        Opacity="0.3" />
+                            </Border.Shadow>
+                            <Label Text="{x:Static fn:GlyphNames.Trash}" 
+                                   FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                                   FontSize="{DynamicResource IconStandardFontSize}"
+                                   TextColor="White"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   IsVisible="{Binding IsDeleteBusy, Converter={StaticResource negateBooleanConverter}}" />
+                        </Border>
+                    </core:SfEffectsView>
+                    <!-- Loading indicator overlay - shows when IsDeleteBusy is true -->
+                    <ActivityIndicator
+                            IsRunning="{Binding IsDeleteBusy}"
+                            IsVisible="{Binding IsDeleteBusy}"
+                            Color="White"
+                            WidthRequest="{DynamicResource IconStandardFontSize}"
+                            HeightRequest="{DynamicResource IconStandardFontSize}"
+                            VerticalOptions="Center"
+                            HorizontalOptions="Center"
+                            Opacity="0.95" />
+                </Grid>
+                <Grid Grid.Row="5"
+                      x:Name="DeleteButtonNoEffects"
+                      Margin="0,10,0,5"
+                      IsVisible="{Binding IsExistingSchedule}"
+                      VerticalOptions="End"
+                      HorizontalOptions="Fill"
+                      HeightRequest="{DynamicResource IconStandardContainerSize}">
+                    <Border x:Name="DeleteButtonNoEffectsBorder"
+                            Margin="0"
                             BackgroundColor="{StaticResource ErrorColor}"
                             HorizontalOptions="Fill"
-                            VerticalOptions="Fill"
-                            InputTransparent="True"
-                            IsEnabled="False">
+                            VerticalOptions="Fill">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding DeleteCommand}" />
+                        </Border.GestureRecognizers>
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
                         </Border.StrokeShape>
@@ -240,36 +347,20 @@
                                FontSize="{DynamicResource IconStandardFontSize}"
                                TextColor="White"
                                HorizontalOptions="Center"
-                               VerticalOptions="Center" />
+                               VerticalOptions="Center"
+                               IsVisible="{Binding IsDeleteBusy, Converter={StaticResource negateBooleanConverter}}" />
                     </Border>
-                </core:SfEffectsView>
-                <Border Grid.Row="5"
-                        x:Name="DeleteButtonNoEffects"
-                        Margin="0,10,0,5"
-                        IsVisible="{Binding IsExistingSchedule}"
-                        VerticalOptions="End"
-                        BackgroundColor="{StaticResource ErrorColor}"
-                        HorizontalOptions="Fill"
-                        HeightRequest="{DynamicResource IconStandardContainerSize}">
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding DeleteCommand}" />
-                    </Border.GestureRecognizers>
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
-                    </Border.StrokeShape>
-                    <Border.Shadow>
-                        <Shadow Brush="#40000000" 
-                                Offset="0,2" 
-                                Radius="4" 
-                                Opacity="0.3" />
-                    </Border.Shadow>
-                    <Label Text="{x:Static fn:GlyphNames.Trash}" 
-                           FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
-                           FontSize="{DynamicResource IconStandardFontSize}"
-                           TextColor="White"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                </Border>
+                    <!-- Loading indicator overlay - shows when IsDeleteBusy is true -->
+                    <ActivityIndicator
+                            IsRunning="{Binding IsDeleteBusy}"
+                            IsVisible="{Binding IsDeleteBusy}"
+                            Color="White"
+                            WidthRequest="{DynamicResource IconStandardFontSize}"
+                            HeightRequest="{DynamicResource IconStandardFontSize}"
+                            VerticalOptions="Center"
+                            HorizontalOptions="Center"
+                            Opacity="0.95" />
+                </Grid>
             </Grid>
         </ScrollView>
     </Grid>

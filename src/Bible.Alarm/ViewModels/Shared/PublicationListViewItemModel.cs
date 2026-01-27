@@ -7,11 +7,18 @@ namespace Bible.Alarm.ViewModels.Shared;
 public sealed class PublicationListViewItemModel(Publication publication) : ObservableObject, IComparable
 {
     private bool isSelected;
+    private bool isNavigating;
 
     public bool IsSelected
     {
         get => isSelected;
         set => SetProperty(ref isSelected, value);
+    }
+
+    public bool IsNavigating
+    {
+        get => isNavigating;
+        set => SetProperty(ref isNavigating, value);
     }
 
     /// <summary>

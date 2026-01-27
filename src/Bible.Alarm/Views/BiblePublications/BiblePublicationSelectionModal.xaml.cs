@@ -51,12 +51,26 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
 
         if (sender is View view && view.BindingContext is PublicationListViewItemModel publicationItem)
         {
-            if (ViewModel != null && ViewModel.SectionSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
+            // Set IsNavigating immediately to show progress indicator
+            publicationItem.IsNavigating = true;
+            
+            // Wait 50ms to ensure UI thread renders the update before doing backend work
+            await Task.Delay(50);
+
+            try
             {
-                if (asyncCommand.CanExecute(publicationItem))
+                if (ViewModel != null && ViewModel.SectionSelectionCommand is IAsyncRelayCommand<PublicationListViewItemModel> asyncCommand)
                 {
-                    await asyncCommand.ExecuteAsync(publicationItem);
+                    if (asyncCommand.CanExecute(publicationItem))
+                    {
+                        await asyncCommand.ExecuteAsync(publicationItem);
+                    }
                 }
+            }
+            finally
+            {
+                // Reset IsNavigating after operation completes
+                publicationItem.IsNavigating = false;
             }
         }
     }

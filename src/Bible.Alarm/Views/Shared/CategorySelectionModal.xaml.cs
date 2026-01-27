@@ -46,23 +46,37 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
 
         if (sender is View view && view.BindingContext is CategoryListViewItemModel categoryItem)
         {
-            if (ViewModel is CategorySelectionViewModel categoryViewModel)
+            // Set IsNavigating immediately to show progress indicator
+            categoryItem.IsNavigating = true;
+            
+            // Wait 50ms to ensure UI thread renders the update before doing backend work
+            await Task.Delay(50);
+
+            try
             {
-                // Mark as selected
-                foreach (var category in categoryViewModel.Categories)
+                if (ViewModel is CategorySelectionViewModel categoryViewModel)
                 {
-                    category.IsSelected = category.Id == categoryItem.Id;
-                }
-                categoryViewModel.SelectedCategory = categoryItem;
-                
-                // Execute select command which dispatches action and closes modal
-                if (categoryViewModel.SelectCategoryCommand is IAsyncRelayCommand<CategoryListViewItemModel> asyncCommand)
-                {
-                    if (asyncCommand.CanExecute(categoryItem))
+                    // Mark as selected
+                    foreach (var category in categoryViewModel.Categories)
                     {
-                        await asyncCommand.ExecuteAsync(categoryItem);
+                        category.IsSelected = category.Id == categoryItem.Id;
+                    }
+                    categoryViewModel.SelectedCategory = categoryItem;
+                    
+                    // Execute select command which dispatches action and closes modal
+                    if (categoryViewModel.SelectCategoryCommand is IAsyncRelayCommand<CategoryListViewItemModel> asyncCommand)
+                    {
+                        if (asyncCommand.CanExecute(categoryItem))
+                        {
+                            await asyncCommand.ExecuteAsync(categoryItem);
+                        }
                     }
                 }
+            }
+            finally
+            {
+                // Reset IsNavigating after operation completes
+                categoryItem.IsNavigating = false;
             }
         }
     }

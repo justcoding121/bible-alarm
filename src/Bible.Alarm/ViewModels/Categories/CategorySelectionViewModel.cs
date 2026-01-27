@@ -52,17 +52,21 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         var currentSchedule = state.Value.CurrentSchedule;
         var previousLanguageCode = currentSchedule?.BiblePublicationLanguageCode;
 
+        // Track start time to ensure minimum display duration
+        var startTime = DateTime.UtcNow;
+        const int minimumDisplayMs = 800; // Minimum time to show progress indicator
+
         // Show progress immediately on UI thread before any async work
-        MainThread.BeginInvokeOnMainThread(() =>
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
             IsBusy = true;
             ShowProgress = true;
             ProgressPercent = 0.0;
-            ProgressText = "0%";
+            ProgressText = "Loading...";
         });
         
-        // Give UI thread a chance to render the progress
-        await Task.Delay(50);
+        // Give UI thread enough time to render the progress indicator
+        await Task.Delay(300);
 
         try
         {
@@ -88,7 +92,18 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
                     // Cascade complete
                     ProgressPercent = 1.0;
                     ProgressText = "100%";
-                    await Task.Delay(200); // Brief delay to show completion
+                    
+                    // Ensure minimum display time has elapsed
+                    var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                    if (elapsed < minimumDisplayMs)
+                    {
+                        var remaining = minimumDisplayMs - (int)elapsed;
+                        await Task.Delay(remaining);
+                    }
+                    else
+                    {
+                        await Task.Delay(200); // Brief delay to show completion
+                    }
                     break;
                 }
                 
@@ -108,6 +123,16 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
                 ProgressText = $"{percent}%";
                 
                 await Task.Delay(delayMs);
+            }
+            
+            // Ensure minimum display time has elapsed even if we didn't break early
+            var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            if (totalElapsed < minimumDisplayMs)
+            {
+                var remaining = minimumDisplayMs - (int)totalElapsed;
+                ProgressPercent = 1.0;
+                ProgressText = "100%";
+                await Task.Delay(remaining);
             }
         }
         finally

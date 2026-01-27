@@ -81,6 +81,23 @@ public sealed class BiblePublicationSelectionCommandHandler
                 return;
             }
 
+            // Track start time to ensure minimum display duration
+            var startTime = DateTime.UtcNow;
+            const int minimumDisplayMs = 800; // Minimum time to show progress indicator
+
+            // Show progress immediately on UI thread BEFORE any async work
+            // This ensures the UI updates first, then the API calls are made
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                setIsBusy(true);
+                setShowProgress(true);
+                setProgressPercent(0.0);
+                setProgressText("Loading...");
+            });
+            
+            // Give UI thread enough time to render the progress indicator
+            await Task.Delay(300);
+
             var languageCode = currentSchedule.BiblePublicationLanguageCode;
             
             // If language code is empty, try to determine it from the selected publication
@@ -159,18 +176,6 @@ public sealed class BiblePublicationSelectionCommandHandler
 
             Log.Debug("CreateSectionSelectionCommand: Calling GetSectionAndTrackForPublicationAsync for publication={PublicationCode}, language={LanguageCode}",
                 x.Code, currentLanguage.Code);
-
-            // Show progress immediately on UI thread before any async work
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                setIsBusy(true);
-                setShowProgress(true);
-                setProgressPercent(0.0);
-                setProgressText("0%");
-            });
-            
-            // Give UI thread a chance to render the progress
-            await Task.Delay(100);
             
             try
             {
@@ -178,11 +183,11 @@ public sealed class BiblePublicationSelectionCommandHandler
                 var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
                 var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
                 
-                // Create progress tracker
+                // Create progress tracker with async UI updates to ensure they complete
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                    progress => MainThread.BeginInvokeOnMainThread(() => setProgressPercent(progress)),
-                    text => MainThread.BeginInvokeOnMainThread(() => setProgressText(text)),
-                    isVisible => MainThread.BeginInvokeOnMainThread(() => setShowProgress(isVisible)));
+                    progress => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressPercent(progress)),
+                    text => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressText(text)),
+                    isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => setShowProgress(isVisible)));
                 
                 var (sectionNumber, trackNumber, sectionName, trackTitle) = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressTracker);
 
@@ -289,6 +294,10 @@ public sealed class BiblePublicationSelectionCommandHandler
 
             updateSelectedLanguage(x);
 
+            // Track start time to ensure minimum display duration
+            var startTime = DateTime.UtcNow;
+            const int minimumDisplayMs = 800; // Minimum time to show progress indicator
+
             // Show progress immediately on UI thread before any async work
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -300,7 +309,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             
             // Give UI thread enough time to render the progress indicator
             // This ensures the user sees the progress before any work starts
-            await Task.Delay(200);
+            await Task.Delay(300);
             
             try
             {
@@ -308,18 +317,32 @@ public sealed class BiblePublicationSelectionCommandHandler
                 var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
                 var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
                 
-                // Create progress tracker
+                // Create progress tracker with async UI updates (fire-and-forget tasks to avoid blocking)
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                    progress => MainThread.BeginInvokeOnMainThread(() => setProgressPercent(progress)),
-                    text => MainThread.BeginInvokeOnMainThread(() => setProgressText(text)),
-                    isVisible => MainThread.BeginInvokeOnMainThread(() => setShowProgress(isVisible)));
+                    progress => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressPercent(progress)),
+                    text => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressText(text)),
+                    isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => setShowProgress(isVisible)));
                 
-                // Update progress to show we're starting
-                progressTracker.UpdateProgress(0.1);
-                progressTracker.UpdateProgressText("Checking content...");
+                // Update progress to show we're starting - ensure UI has time to render
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    setProgressPercent(0.1);
+                    setProgressText("Checking content...");
+                });
+                await Task.Delay(100); // Give UI time to render the initial progress
                 
                 var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle) =
                     await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x, progressTracker);
+                
+                // Ensure minimum display time has elapsed
+                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                if (elapsed < minimumDisplayMs)
+                {
+                    var remaining = minimumDisplayMs - (int)elapsed;
+                    progressTracker.UpdateProgress(0.9);
+                    progressTracker.UpdateProgressText("Completing...");
+                    await Task.Delay(remaining);
+                }
 
                 // Check for both null and empty string - GetPublicationSectionAndTrackForLanguageAsync returns empty string on failure
                 if (string.IsNullOrEmpty(publicationCode))

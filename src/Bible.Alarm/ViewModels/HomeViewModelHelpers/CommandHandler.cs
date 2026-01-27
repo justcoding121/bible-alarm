@@ -31,10 +31,16 @@ public class CommandHandler
         this.showOverlayAndNavigateAsync = showOverlayAndNavigateAsync;
     }
 
-    public ICommand CreateAddScheduleCommand()
+    public ICommand CreateAddScheduleCommand(Action<bool>? setIsAddBusy = null)
     {
         return new AsyncRelayCommand(async () =>
         {
+            // Set IsAddBusy immediately to show loading indicator
+            setIsAddBusy?.Invoke(true);
+            
+            // Wait 50ms to ensure UI thread renders the update before doing backend work
+            await Task.Delay(50);
+
             // Reset all schedule-related state first to ensure clean state
             dispatcher.Dispatch(new ResetScheduleStateAction());
 
@@ -50,10 +56,13 @@ public class CommandHandler
             await navigationService.NavigateToScheduleAsync();
 
             // CurrentSchedule is initialized by ScheduleViewModel after navigation
+            
+            // Reset IsAddBusy after navigation completes
+            setIsAddBusy?.Invoke(false);
         });
     }
 
-    public ICommand CreateViewScheduleCommand()
+    public ICommand CreateViewScheduleCommand(Action? showProgressBar = null, Func<Task>? hideProgressBar = null)
     {
         // Do NOT use AllowConcurrentExecutions - this prevents double-tap from creating
         // multiple navigations that race with each other and corrupt ScheduleNavigationContext
@@ -64,12 +73,34 @@ public class CommandHandler
                 return;
             }
 
+            // Set IsNavigating immediately to show progress indicator on the item
+            x.IsNavigating = true;
+            
+            // Show progress bar immediately
+            showProgressBar?.Invoke();
+            
+            // Wait 50ms to ensure UI thread renders the update before doing backend work
+            await Task.Delay(50);
+
             if (shouldSkipNavigation(x))
             {
+                // Reset IsNavigating and hide progress bar if navigation is skipped
+                x.IsNavigating = false;
+                if (hideProgressBar != null)
+                {
+                    await hideProgressBar();
+                }
                 return;
             }
 
             await showOverlayAndNavigateAsync(x);
+            
+            // Reset IsNavigating and hide progress bar after navigation completes
+            x.IsNavigating = false;
+            if (hideProgressBar != null)
+            {
+                await hideProgressBar();
+            }
         });
     }
 }

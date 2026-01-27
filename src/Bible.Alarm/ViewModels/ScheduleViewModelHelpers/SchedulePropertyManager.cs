@@ -65,6 +65,9 @@ public sealed class SchedulePropertyManager : ObservableObject
     private bool isExistingSchedule;
     private bool isScrolledToBottom;
     private bool isSchedulePageOverlayVisible = true;
+    private bool isCancelBusy;
+    private bool isSaveBusy;
+    private bool isDeleteBusy;
 
     public bool IsBusy
     {
@@ -104,6 +107,24 @@ public sealed class SchedulePropertyManager : ObservableObject
                 logger.Debug("IsSchedulePageOverlayVisible: Property changed to {Value}", value);
             }
         }
+    }
+
+    public bool IsCancelBusy
+    {
+        get => isCancelBusy;
+        set => SetProperty(ref isCancelBusy, value);
+    }
+
+    public bool IsSaveBusy
+    {
+        get => isSaveBusy;
+        set => SetProperty(ref isSaveBusy, value);
+    }
+
+    public bool IsDeleteBusy
+    {
+        get => isDeleteBusy;
+        set => SetProperty(ref isDeleteBusy, value);
     }
 
     // Computed properties from state

@@ -39,6 +39,7 @@ public sealed class ScheduleListItemViewModel(
     private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, displayService, applicationState);
 
     private bool isBusy;
+    private bool isNavigating;
     private bool isProcessingStateChange;
     private Action? onPlayStarted;
     private Action? onPlaybackStarted;
@@ -315,6 +316,12 @@ public sealed class ScheduleListItemViewModel(
     {
         get => isBusy;
         set => SetProperty(ref isBusy, value);
+    }
+
+    public bool IsNavigating
+    {
+        get => isNavigating;
+        set => SetProperty(ref isNavigating, value);
     }
 
     public void RaisePropertiesChangedEvent()

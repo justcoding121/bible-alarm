@@ -36,7 +36,7 @@
             <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" x:Shared="True" />
             <converters:NegateBooleanConverter x:Key="negateBooleanConverter" x:Shared="True" />
             <converters:IsStringNotEmptyConverter x:Key="isStringNotEmptyConverter" x:Shared="True" />
-            <converters:BoolToOpacityConverter x:Key="booleanToDoubleConverter" x:Shared="True" />
+            <converters:BoolToOpacityConverter x:Key="booleanToOpacityConverter" x:Shared="True" />
             <converters:DoubleToBottomThicknessConverter x:Key="doubleToBottomThicknessConverter" x:Shared="True" />
 
             <!-- Global base styles - apply automatically to all controls of these types -->

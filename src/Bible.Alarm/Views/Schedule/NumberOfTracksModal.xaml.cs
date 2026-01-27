@@ -56,12 +56,26 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
 
         if (sender is View view && view.BindingContext is NumberOfTracksListViewItemModel trackItem)
         {
-            if (ViewModel != null && ViewModel.SelectNumberOfTracksCommand is IAsyncRelayCommand<NumberOfTracksListViewItemModel> asyncCommand)
+            // Set IsNavigating immediately to show progress indicator
+            trackItem.IsNavigating = true;
+            
+            // Wait 50ms to ensure UI thread renders the update before doing backend work
+            await Task.Delay(50);
+
+            try
             {
-                if (asyncCommand.CanExecute(trackItem))
+                if (ViewModel != null && ViewModel.SelectNumberOfTracksCommand is IAsyncRelayCommand<NumberOfTracksListViewItemModel> asyncCommand)
                 {
-                    await asyncCommand.ExecuteAsync(trackItem);
+                    if (asyncCommand.CanExecute(trackItem))
+                    {
+                        await asyncCommand.ExecuteAsync(trackItem);
+                    }
                 }
+            }
+            finally
+            {
+                // Reset IsNavigating after operation completes
+                trackItem.IsNavigating = false;
             }
         }
     }

@@ -427,9 +427,9 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         if (needsFetch)
         {
             progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                progress => MainThread.BeginInvokeOnMainThread(() => propertyManager.ProgressPercent = progress),
-                text => MainThread.BeginInvokeOnMainThread(() => propertyManager.ProgressText = text),
-                isVisible => MainThread.BeginInvokeOnMainThread(() => propertyManager.ShowProgress = isVisible));
+                progress => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressPercent = progress),
+                text => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressText = text),
+                isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = isVisible));
         }
 
         // For instrumental music, populate publications directly (no language needed)
