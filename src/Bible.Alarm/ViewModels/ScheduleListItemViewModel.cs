@@ -4,6 +4,7 @@ using AutoMapper;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
@@ -234,6 +235,58 @@ public sealed class ScheduleListItemViewModel(
 
             var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == Schedule?.Id);
             return scheduleStateItem?.BiblePublicationName ?? string.Empty;
+        }
+    }
+
+    public string BiblePublicationSectionName
+    {
+        get
+        {
+            if (Schedule?.Id <= 0)
+            {
+                return string.Empty;
+            }
+
+            var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == Schedule?.Id);
+            if (scheduleStateItem == null)
+            {
+                return string.Empty;
+            }
+
+            // Only return section name if publication is sectioned
+            var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode ?? string.Empty);
+            if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
+            {
+                return scheduleStateItem.BiblePublicationSectionName;
+            }
+
+            return string.Empty;
+        }
+    }
+
+    public string BiblePublicationTrackName
+    {
+        get
+        {
+            if (Schedule?.Id <= 0)
+            {
+                return string.Empty;
+            }
+
+            var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == Schedule?.Id);
+            if (scheduleStateItem == null)
+            {
+                return string.Empty;
+            }
+
+            // Use track title for both sectioned and non-sectioned publications
+            // Track title contains the full name like "Chapter 1" for sectioned publications
+            if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
+            {
+                return scheduleStateItem.BiblePublicationTrackTitle;
+            }
+
+            return string.Empty;
         }
     }
 

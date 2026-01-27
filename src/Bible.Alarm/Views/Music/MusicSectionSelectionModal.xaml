@@ -125,6 +125,7 @@
                                             BackgroundColor="Transparent">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             
                                             <Label
@@ -138,6 +139,23 @@
                                                 TextColor="{DynamicResource TextPrimaryColor}"
                                                 VerticalOptions="Center"
                                                 VerticalTextAlignment="Center" />
+                                            <!-- Progress indicator - shows when IsNavigating is true -->
+                                            <Grid Grid.Column="1"
+                                                  Margin="12,0,0,0"
+                                                  VerticalOptions="Center"
+                                                  HorizontalOptions="End"
+                                                  HeightRequest="{DynamicResource IconStandardFontSize}"
+                                                  WidthRequest="{DynamicResource IconStandardFontSize}">
+                                                <ActivityIndicator
+                                                        IsRunning="{Binding IsNavigating}"
+                                                        IsVisible="{Binding IsNavigating}"
+                                                        Color="{DynamicResource TextPrimaryColor}"
+                                                        WidthRequest="{DynamicResource IconStandardFontSize}"
+                                                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                                                        VerticalOptions="Center"
+                                                        HorizontalOptions="Center"
+                                                        Opacity="0.95" />
+                                            </Grid>
                                         </Grid>
                                     </Border>
                                 </core:SfEffectsView>

@@ -26,6 +26,7 @@
             <converters:RepeatColorConverter x:Key="repeatColorConverter" />
             <converters:FlowDirectionToArrowConverter x:Key="flowDirectionToArrowConverter" />
             <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+            <converters:SelectableTextColorConverter x:Key="selectableTextColorConverter" />
         </Border.Resources>
         <Grid RowSpacing="0"
               Padding="0">
@@ -138,7 +139,7 @@
                            LineBreakMode="WordWrap"
                            MinimumHeightRequest="24"
                            Text="{Binding MusicTypeDisplayText, Mode=OneWay}"
-                           TextColor="{StaticResource PrimaryColor}"
+                           TextColor="{Binding IsMusicTypeSelectable, Converter={StaticResource selectableTextColorConverter}}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
                     <Border Grid.Column="1"
@@ -205,7 +206,7 @@
                            LineBreakMode="WordWrap"
                            MinimumHeightRequest="24"
                            Text="{Binding MusicLanguageDisplayText}"
-                           TextColor="{StaticResource PrimaryColor}"
+                           TextColor="{Binding IsMusicLanguageSelectable, Converter={StaticResource selectableTextColorConverter}}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
                     <Border Grid.Column="1"
@@ -273,7 +274,7 @@
                            LineBreakMode="WordWrap"
                            MinimumHeightRequest="24"
                            Text="{Binding SongPublicationDisplayText}"
-                           TextColor="{StaticResource PrimaryColor}"
+                           TextColor="{Binding IsSongPublicationSelectable, Converter={StaticResource selectableTextColorConverter}}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
                     <Border Grid.Column="1"
@@ -338,7 +339,7 @@
                            LineBreakMode="WordWrap"
                            MinimumHeightRequest="24"
                            Text="{Binding MusicSectionDisplayText}"
-                           TextColor="{StaticResource PrimaryColor}"
+                           TextColor="{Binding IsMusicSectionSelectable, Converter={StaticResource selectableTextColorConverter}}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
                     <Border Grid.Column="1"
@@ -401,7 +402,7 @@
                            LineBreakMode="WordWrap"
                            MinimumHeightRequest="24"
                            Text="{Binding TrackDisplayText}"
-                           TextColor="{StaticResource PrimaryColor}"
+                           TextColor="{Binding IsMusicTrackSelectable, Converter={StaticResource selectableTextColorConverter}}"
                            VerticalOptions="Center"
                            VerticalTextAlignment="Center" />
                     <Grid Grid.Column="1"

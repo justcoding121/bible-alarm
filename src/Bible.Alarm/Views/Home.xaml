@@ -493,13 +493,14 @@
                                             </Grid>
                                         </Grid>
                                         
-                                        <!-- Row 2: Schedule details (name, publication, subtitle, language/music) - spans full width -->
+                                        <!-- Row 2: Schedule details (name, publication, section, track, language/music) - spans full width -->
                                         <VerticalStackLayout Grid.Column="0"
                                               Grid.ColumnSpan="2"
                                               Grid.Row="1"
                                               HorizontalOptions="Fill"
                                               VerticalOptions="Start"
                                               Spacing="{DynamicResource PaddingSmall}">
+                                            <!-- 1. Schedule name -->
                                             <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"
                                                    HorizontalTextAlignment="Start"
@@ -508,6 +509,7 @@
                                                    Text="{Binding Name}"
                                                    TextColor="{DynamicResource TextPrimaryColor}"
                                                    LineBreakMode="WordWrap" />
+                                            <!-- 2. Schedule Publication Name -->
                                             <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"
                                                    HorizontalTextAlignment="Start"
@@ -516,15 +518,26 @@
                                                    TextColor="{DynamicResource PrimaryTextColor}"
                                                    LineBreakMode="WordWrap"
                                                    IsVisible="{Binding BiblePublicationName, Converter={StaticResource isStringNotEmptyConverter}}" />
+                                            <!-- 3. Schedule section Name (if sectioned) -->
                                             <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"
                                                    HorizontalTextAlignment="Start"
                                                    FontSize="{DynamicResource MediumFontSize}"
-                                                   Text="{Binding SubTitle}"
+                                                   Text="{Binding BiblePublicationSectionName}"
                                                    TextColor="{DynamicResource PrimaryTextColor}"
-                                                   LineBreakMode="WordWrap" />
-                                            <!-- Language label and music icon -->
-                                            <Grid Margin="{DynamicResource MarginThickness0_8_0_0}"
+                                                   LineBreakMode="WordWrap"
+                                                   IsVisible="{Binding BiblePublicationSectionName, Converter={StaticResource isStringNotEmptyConverter}}" />
+                                            <!-- 4. Schedule Track Name -->
+                                            <Label Margin="{DynamicResource MarginThickness0}"
+                                                   HorizontalOptions="Fill"
+                                                   HorizontalTextAlignment="Start"
+                                                   FontSize="{DynamicResource MediumFontSize}"
+                                                   Text="{Binding BiblePublicationTrackName}"
+                                                   TextColor="{DynamicResource PrimaryTextColor}"
+                                                   LineBreakMode="WordWrap"
+                                                   IsVisible="{Binding BiblePublicationTrackName, Converter={StaticResource isStringNotEmptyConverter}}" />
+                                            <!-- 5. Language Name -->
+                                            <Grid Margin="{DynamicResource MarginThickness0}"
                                                   HorizontalOptions="Fill"
                                                   VerticalOptions="Start"
                                                   ColumnSpacing="{DynamicResource SpacingMedium}">

@@ -370,10 +370,12 @@ public sealed class SongPublicationSelectionCommandHandler(
             MusicType = MusicType.VocalMusic,
             LanguageCode = language.Code,
             PublicationCode = publicationCode,
+            SectionCode = null, // Clear section code when language changes (section belongs to old publication)
             TrackNumber = trackNumber,
             LanguageName = language.Name,
             LanguageDirection = language.Direction,
             PublicationName = publicationName,
+            SectionName = null, // Clear section name when language changes
             TrackName = trackName
         };
     }

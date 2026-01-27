@@ -317,12 +317,14 @@ public static class ApplicationReducer
             updatedCurrentSchedule.MusicType = music.MusicType;
             updatedCurrentSchedule.MusicLanguageCode = music.LanguageCode;
             updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
+            updatedCurrentSchedule.MusicSectionCode = music.SectionCode; // Clear if null (when language/publication changes)
             updatedCurrentSchedule.MusicTrackNumber = music.TrackNumber;
             updatedCurrentSchedule.MusicRepeat = music.Repeat;
             // Also update display names and language direction
             updatedCurrentSchedule.MusicLanguageName = music.LanguageName;
             updatedCurrentSchedule.MusicLanguageDirection = music.LanguageDirection;
             updatedCurrentSchedule.MusicPublicationName = music.PublicationName;
+            updatedCurrentSchedule.MusicSectionName = music.SectionName; // Clear if null (when language/publication changes)
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
 
             Log.Debug("ApplicationReducer.OnMusicTrackSelected: Updated CurrentSchedule with MusicType={MusicType}, TrackNumber={TrackNumber}, TrackName={TrackName}",

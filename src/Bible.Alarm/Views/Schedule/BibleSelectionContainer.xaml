@@ -10,6 +10,7 @@
     <ContentView.Resources>
         <converters:FlowDirectionToArrowConverter x:Key="flowDirectionToArrowConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        <converters:SelectableTextColorConverter x:Key="selectableTextColorConverter" />
     </ContentView.Resources>
     <Border Margin="0"
             Padding="0"
@@ -139,7 +140,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding LanguageDisplayText}"
-                       TextColor="{StaticResource PrimaryColor}"
+                       TextColor="{Binding IsLanguageSelectable, Converter={StaticResource selectableTextColorConverter}}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 
@@ -206,7 +207,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding PublicationDisplayText}"
-                       TextColor="{StaticResource PrimaryColor}"
+                       TextColor="{Binding IsPublicationSelectable, Converter={StaticResource selectableTextColorConverter}}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 <!-- Arrow Indicator -->
@@ -272,7 +273,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding SectionDisplayText}"
-                       TextColor="{StaticResource PrimaryColor}"
+                       TextColor="{Binding IsSectionSelectable, Converter={StaticResource selectableTextColorConverter}}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 <!-- Arrow Indicator -->
@@ -336,7 +337,7 @@
                        HorizontalTextAlignment="Start"
                        LineBreakMode="WordWrap"
                        Text="{Binding TrackDisplayText}"
-                       TextColor="{StaticResource PrimaryColor}"
+                       TextColor="{Binding IsTrackSelectable, Converter={StaticResource selectableTextColorConverter}}"
                        VerticalOptions="Center"
                        VerticalTextAlignment="Center" />
                 <!-- Arrow Indicator -->
