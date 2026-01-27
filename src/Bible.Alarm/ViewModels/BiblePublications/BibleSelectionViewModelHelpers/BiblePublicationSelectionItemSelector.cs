@@ -163,6 +163,7 @@ public sealed class BiblePublicationSelectionItemSelector
                     try
                     {
                         progress?.UpdateProgress(0.3);
+                        progress?.UpdateProgressText($"Checking {pubCode}...");
                         
                         // Check if publication with first section and tracks is already harvested
                         var isAlreadyHarvested = await CheckIfPublicationWithFirstSectionHarvestedAsync(
@@ -171,12 +172,18 @@ public sealed class BiblePublicationSelectionItemSelector
                         if (!isAlreadyHarvested)
                         {
                             // Harvest the publication (EnsurePublicationExistsAsync checks if it exists first)
+                            progress?.UpdateProgressText($"Loading {pubCode}...");
                             await languageContentService.EnsurePublicationExistsAsync(pubCode, language.Code, default, progress);
                         }
                         else
                         {
                             Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Publication={PublicationCode} for language={LanguageCode} already harvested with first section and tracks",
                                 pubCode, language.Code);
+                            // Still show progress even if already harvested
+                            progress?.UpdateProgress(0.5);
+                            progress?.UpdateProgressText($"Found {pubCode}");
+                            // Small delay to ensure progress is visible
+                            await Task.Delay(300);
                         }
                     }
                     catch (Exception ex)

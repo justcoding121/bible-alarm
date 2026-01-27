@@ -290,16 +290,17 @@ public sealed class BiblePublicationSelectionCommandHandler
             updateSelectedLanguage(x);
 
             // Show progress immediately on UI thread before any async work
-            MainThread.BeginInvokeOnMainThread(() =>
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 setIsBusy(true);
                 setShowProgress(true);
                 setProgressPercent(0.0);
-                setProgressText("0%");
+                setProgressText("Loading...");
             });
             
-            // Give UI thread a chance to render the progress
-            await Task.Delay(100);
+            // Give UI thread enough time to render the progress indicator
+            // This ensures the user sees the progress before any work starts
+            await Task.Delay(200);
             
             try
             {
@@ -313,6 +314,10 @@ public sealed class BiblePublicationSelectionCommandHandler
                     text => MainThread.BeginInvokeOnMainThread(() => setProgressText(text)),
                     isVisible => MainThread.BeginInvokeOnMainThread(() => setShowProgress(isVisible)));
                 
+                // Update progress to show we're starting
+                progressTracker.UpdateProgress(0.1);
+                progressTracker.UpdateProgressText("Checking content...");
+                
                 var (publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle) =
                     await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x, progressTracker);
 
@@ -320,6 +325,11 @@ public sealed class BiblePublicationSelectionCommandHandler
                 if (string.IsNullOrEmpty(publicationCode))
                 {
                     Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - No publications found for language {LanguageCode}", x.Code);
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        setIsBusy(false);
+                        setShowProgress(false);
+                    });
                     return;
                 }
 
@@ -328,6 +338,11 @@ public sealed class BiblePublicationSelectionCommandHandler
                 {
                     Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid track ({TrackNumber}) for language {LanguageCode}", 
                         trackNumber, x.Code);
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        setIsBusy(false);
+                        setShowProgress(false);
+                    });
                     return;
                 }
 
@@ -335,6 +350,11 @@ public sealed class BiblePublicationSelectionCommandHandler
                 if (currentSchedule == null)
                 {
                     Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - CurrentSchedule is null");
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        setIsBusy(false);
+                        setShowProgress(false);
+                    });
                     return;
                 }
 

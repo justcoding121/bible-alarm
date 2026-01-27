@@ -10,6 +10,7 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
+    xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:sharedControls="clr-namespace:Bible.Alarm.Views.Shared;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
@@ -219,59 +220,8 @@
             </Border>
             
             <!-- Progress indicator when fetching -->
-            <Border Grid.Row="0"
-                    Grid.RowSpan="3"
-                    IsVisible="{Binding ShowProgress}"
-                    BackgroundColor="{DynamicResource CardBackgroundColor}"
-                    StrokeThickness="0"
-                    Padding="{DynamicResource PaddingThickness24_20}"
-                    MinimumWidthRequest="{DynamicResource ContentWidthLarge}"
-                    ZIndex="1000">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="16" />
-                </Border.StrokeShape>
-                <Grid
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"
-                    RowSpacing="12"
-                    WidthRequest="{DynamicResource ContentWidthMedium}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <Label Grid.Row="0"
-                        FontSize="{DynamicResource LargeFontSize}"
-                        FontAttributes="Bold"
-                        HorizontalOptions="Fill"
-                        HorizontalTextAlignment="Center"
-                        Text="{Binding ProgressText}"
-                        TextColor="{DynamicResource TextPrimaryColor}"
-                        MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
-                    <ProgressBar Grid.Row="1"
-                        Margin="{DynamicResource MarginThickness10_5}"
-                        WidthRequest="{DynamicResource ContentWidthSmall}"
-                        HorizontalOptions="Center"
-                        Progress="{Binding ProgressPercent}"
-                        ProgressColor="{StaticResource PrimaryColor}" />
-                    <!-- Busy Indicator below progress bar -->
-                    <Grid Grid.Row="2"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center"
-                        HeightRequest="{DynamicResource IconStandardContainerSize}"
-                        WidthRequest="{DynamicResource IconStandardContainerSize}"
-                        Margin="0,8,0,0">
-                        <core:SfBusyIndicator
-                            IsRunning="{Binding ShowProgress}"
-                            AnimationType="DoubleCircle"
-                            HorizontalOptions="Fill"
-                            VerticalOptions="Fill"
-                            HeightRequest="{DynamicResource IconStandardContainerSize}"
-                            WidthRequest="{DynamicResource IconStandardContainerSize}"
-                            IndicatorColor="{StaticResource PrimaryColor}" />
-                    </Grid>
-                </Grid>
-            </Border>
+            <sharedViews:ProgressIndicator Grid.Row="0"
+                                           Grid.RowSpan="3" />
             
             <!-- Busy Overlay - visibility controlled from code-behind to prevent binding race conditions -->
             <shared:BusyOverlay x:Name="BusyOverlay"
