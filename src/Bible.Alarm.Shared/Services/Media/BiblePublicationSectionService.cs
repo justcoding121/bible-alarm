@@ -66,10 +66,24 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
                 .ToListAsync(cancellationToken);
 
             // Filter sections that have numeric SectionCode and order by it
-            var sectionsByNumber = sections
-                .Where(s => int.TryParse(s.SectionCode, out _))
-                .OrderBy(x => int.TryParse(x.SectionCode, out var code) ? code : int.MaxValue)
-                .ToDictionary(x => int.TryParse(x.SectionCode, out var code) ? code : 0, x => x);
+            // Handle duplicates by taking the first occurrence (similar to GetSectionsByPublicationWithoutLanguageAsync)
+            var sectionsByNumber = new Dictionary<int, BiblePublicationSection>();
+            foreach (var section in sections.OrderBy(s => int.TryParse(s.SectionCode, out var code) ? code : int.MaxValue))
+            {
+                if (int.TryParse(section.SectionCode, out var sectionNumber))
+                {
+                    // Only add if not already present (handle duplicates gracefully)
+                    if (!sectionsByNumber.ContainsKey(sectionNumber))
+                    {
+                        sectionsByNumber[sectionNumber] = section;
+                    }
+                    else
+                    {
+                        logger.Warning("GetSectionsByPublicationAsync: Duplicate section number {SectionNumber} found for language={LanguageCode}, publication={PublicationCode}. Keeping first occurrence.",
+                            sectionNumber, languageCode, publicationCode);
+                    }
+                }
+            }
 
             return new SortedDictionary<int, BiblePublicationSection>(sectionsByNumber);
         }

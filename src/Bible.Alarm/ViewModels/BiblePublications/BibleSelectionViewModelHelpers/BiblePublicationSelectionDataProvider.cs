@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Models;
@@ -103,23 +104,7 @@ public sealed class BiblePublicationSelectionDataProvider
         });
     }
 
-    // Priority codes for Bible publications (lower = higher priority)
-    private static readonly string[] PriorityPublicationCodes = ["nwt", "bi12"];
-
-    /// <summary>
-    /// Gets the sort priority for a publication code.
-    /// nwt (2013 NWT) = 0, bi12 (1984 NWT) = 1, others = 2
-    /// </summary>
-    private static int GetPublicationSortPriority(string code)
-    {
-        var lowerCode = code.ToLowerInvariant();
-        for (int i = 0; i < PriorityPublicationCodes.Length; i++)
-        {
-            if (lowerCode == PriorityPublicationCodes[i])
-                return i;
-        }
-        return PriorityPublicationCodes.Length; // Others come after priority publications
-    }
+    // Using centralized sorting helper from Bible.Alarm.Shared.Helpers.PublicationSortHelper
 
     public async Task PopulatePublicationsAsync(
         string languageCode,
@@ -232,18 +217,31 @@ public sealed class BiblePublicationSelectionDataProvider
             }
 
             // Sort publications: nwt first, then bi12, then others by name
-            vms = vms
-                .OrderBy(p => GetPublicationSortPriority(p.Code))
-                .ThenBy(p => p.Name)
-                .ToList();
+            vms = PublicationSortHelper.SortByPriority(vms, p => p.Code, p => p.Name).ToList();
+            
+            // Log sorted order for debugging
+            Log.Debug("PopulatePublicationsAsync: Sorted {Count} publications. First 3: {FirstThree}",
+                vms.Count,
+                string.Join(", ", vms.Take(3).Select(p => $"{p.Code}(priority={PublicationSortHelper.GetPublicationSortPriority(p.Code)})")));
 
             // Determine default publication: prefer nwt, then bi12, then first available
+            // Use case-insensitive lookup since publication codes might have different casing
             PublicationListViewItemModel? preferredDefault = null;
-            foreach (var priorityCode in PriorityPublicationCodes)
+            foreach (var priorityCode in PublicationSortHelper.GetPriorityPublicationCodes())
             {
+                // Try case-sensitive first (most common)
                 if (mapping.TryGetValue(priorityCode, out var priorityPub))
                 {
                     preferredDefault = priorityPub;
+                    break;
+                }
+                
+                // Fall back to case-insensitive lookup
+                var matchingPub = mapping.FirstOrDefault(kvp => 
+                    string.Equals(kvp.Key, priorityCode, StringComparison.OrdinalIgnoreCase));
+                if (matchingPub.Value != null)
+                {
+                    preferredDefault = matchingPub.Value;
                     break;
                 }
             }

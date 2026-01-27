@@ -164,20 +164,7 @@ public sealed class AlarmSchedule : IComparable
             throw new InvalidOperationException("No Bible publications found in database");
         }
 
-        // Priority codes for Bible publications (lower = higher priority)
-        // Prefer nwt (2013 NWT) over bi12 (1984 NWT)
-        string[] priorityPublicationCodes = ["nwt", "bi12"];
-        
-        int GetPublicationSortPriority(string code)
-        {
-            var lowerCode = code.ToLowerInvariant();
-            for (int i = 0; i < priorityPublicationCodes.Length; i++)
-            {
-                if (lowerCode == priorityPublicationCodes[i])
-                    return i;
-            }
-            return priorityPublicationCodes.Length; // Others come after priority publications
-        }
+        // Using centralized sorting helper from Bible.Alarm.Shared.Helpers.PublicationSortHelper
 
         // Optimize: Load publications with sections in one call to get both publication info and sections
         // For new schedules, prefer "nwt" with English "E", then fallback to first available language with a sectioned publication
@@ -211,10 +198,7 @@ public sealed class AlarmSchedule : IComparable
             if (selectedBible == null && englishPublications != null)
             {
                 // Sort publications by priority: nwt first, then bi12, then others
-                var sortedPublications = englishPublications
-                    .OrderBy(pub => GetPublicationSortPriority(pub.Key))
-                    .ThenBy(pub => pub.Value.Name) // Secondary sort by name for consistency
-                    .ToList();
+                var sortedPublications = PublicationSortHelper.SortByPriority(englishPublications, pub => pub.Name);
                 
                 foreach (var pub in sortedPublications)
                 {
@@ -247,10 +231,7 @@ public sealed class AlarmSchedule : IComparable
                 }
                 
                 // Sort publications by priority: nwt first, then bi12, then others
-                var sortedPublications = publications
-                    .OrderBy(pub => GetPublicationSortPriority(pub.Key))
-                    .ThenBy(pub => pub.Value.Name) // Secondary sort by name for consistency
-                    .ToList();
+                var sortedPublications = PublicationSortHelper.SortByPriority(publications, pub => pub.Name);
                 
                 foreach (var pub in sortedPublications)
                 {

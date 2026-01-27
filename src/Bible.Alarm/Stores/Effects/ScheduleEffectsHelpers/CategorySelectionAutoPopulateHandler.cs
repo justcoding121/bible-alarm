@@ -65,29 +65,68 @@ public sealed class CategorySelectionAutoPopulateHandler
                 return;
             }
 
-            // Step 1: Always default to English "E" when category changes
+            // Step 1: Try to preserve current language if it has publications in the new category, otherwise fallback to English
             // Get all languages for this category from PublicationLanguage table
             var languages = await biblePublicationService.GetDistinctLanguagesAsync(action.CategoryName);
             
-            // Always select English "E" as the default language
             Language? selectedLanguage = null;
-            if (languages.TryGetValue("E", out var englishLanguage))
+            
+            // First, try to preserve the previous language if it has publications in the new category
+            if (!string.IsNullOrWhiteSpace(action.PreviousLanguageCode))
             {
-                selectedLanguage = englishLanguage;
-                logger.Debug("CategorySelectionAutoPopulateHandler: Selected English language (default)");
+                var previousLanguageCode = action.PreviousLanguageCode.ToUpperInvariant();
+                if (languages.TryGetValue(previousLanguageCode, out var previousLanguage))
+                {
+                    // Check if this language has publications in the new category (including publications without language)
+                    using var checkScope = scopeFactory.CreateScope();
+                    var checkDb = checkScope.ServiceProvider.GetRequiredService<MediaDbContext>();
+                    
+                    // Check if there are publications with this language OR publications without language for this category
+                    var hasPublications = await checkDb.PublicationLanguages
+                        .AsNoTracking()
+                        .Include(pl => pl.Language)
+                        .Include(pl => pl.Category)
+                        .AnyAsync(pl => 
+                            (pl.Language != null && pl.Language.LanguageCode == previousLanguageCode && 
+                             pl.Category != null && pl.Category.CategoryName == action.CategoryName) ||
+                            (pl.LanguageId == null && 
+                             pl.Category != null && pl.Category.CategoryName == action.CategoryName));
+                    
+                    if (hasPublications)
+                    {
+                        selectedLanguage = previousLanguage;
+                        logger.Debug("CategorySelectionAutoPopulateHandler: Preserving previous language={LanguageCode} (has publications in new category={CategoryName})",
+                            previousLanguageCode, action.CategoryName);
+                    }
+                    else
+                    {
+                        logger.Debug("CategorySelectionAutoPopulateHandler: Previous language={LanguageCode} has no publications in new category={CategoryName}, will fallback to English",
+                            previousLanguageCode, action.CategoryName);
+                    }
+                }
             }
-            else if (languages.Count > 0)
+            
+            // Fallback to English "E" if previous language couldn't be preserved
+            if (selectedLanguage == null)
             {
-                // Fallback to first available language if English not found
-                selectedLanguage = languages.Values.First();
-                logger.Debug("CategorySelectionAutoPopulateHandler: English not found, selected first available language={LanguageCode}",
-                    selectedLanguage.LanguageCode);
-            }
-            else
-            {
-                logger.Warning("CategorySelectionAutoPopulateHandler: No languages found for category={CategoryName}",
-                    action.CategoryName);
-                // Continue anyway - we'll check for publications without LanguageId
+                if (languages.TryGetValue("E", out var englishLanguage))
+                {
+                    selectedLanguage = englishLanguage;
+                    logger.Debug("CategorySelectionAutoPopulateHandler: Selected English language (default/fallback)");
+                }
+                else if (languages.Count > 0)
+                {
+                    // Fallback to first available language if English not found
+                    selectedLanguage = languages.Values.First();
+                    logger.Debug("CategorySelectionAutoPopulateHandler: English not found, selected first available language={LanguageCode}",
+                        selectedLanguage.LanguageCode);
+                }
+                else
+                {
+                    logger.Warning("CategorySelectionAutoPopulateHandler: No languages found for category={CategoryName}",
+                        action.CategoryName);
+                    // Continue anyway - we'll check for publications without LanguageId
+                }
             }
 
             // Step 2: Find first publication - try publications with LanguageId for selected language, then publications without LanguageId
@@ -115,10 +154,15 @@ public sealed class CategorySelectionAutoPopulateHandler
                     query = query.Where(pl => pl.Category != null && pl.Category.CategoryName == action.CategoryName);
                 }
                 
-                // Get publications ordered by Id, then try to harvest and use the first one that succeeds
+                // Get publications, then sort by priority (nwt first, then bi12, then others)
                 var publicationLanguages = await query
-                    .OrderBy(pl => pl.Id)
                     .ToListAsync();
+                
+                // Sort by priority: nwt first, then bi12, then others, then by ID as tiebreaker
+                publicationLanguages = publicationLanguages
+                    .OrderBy(pl => PublicationSortHelper.GetPublicationSortPriority(pl.PublicationCode))
+                    .ThenBy(pl => pl.Id)
+                    .ToList();
                 
                 // Try each publication: harvest if needed, then verify it can be queried
                 foreach (var pl in publicationLanguages)

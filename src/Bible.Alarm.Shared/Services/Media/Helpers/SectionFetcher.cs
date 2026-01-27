@@ -235,6 +235,31 @@ internal sealed class SectionFetcher
             return false;
         }
 
+        // Check if publication already exists
+        var existingPublication = await db.BiblePublications
+            .Include(bp => bp.Sections)
+            .FirstOrDefaultAsync(
+                bp => bp.PublicationCode == normalizedPublicationCode &&
+                      bp.LanguageId == language.Id,
+                cancellationToken);
+
+        BiblePublication publication;
+        if (existingPublication != null)
+        {
+            // Publication exists - delete it and its sections to avoid duplicates
+            // We'll replace it with the new one that has all sections
+            logger.Information("Publication {PublicationCode} already exists for language {LanguageCode}, replacing with updated sections",
+                normalizedPublicationCode, normalizedLanguageCode);
+            
+            // Remove existing sections (cascade delete will handle tracks)
+            db.BiblePublicationSections.RemoveRange(existingPublication.Sections);
+            await db.SaveChangesAsync(cancellationToken);
+            
+            // Remove the publication
+            db.BiblePublications.Remove(existingPublication);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         // Temporarily remove tracks from sections before saving
         // We'll add them back after sections have IDs to avoid foreign key constraint errors
         var tracksBySection = new Dictionary<BiblePublicationSection, List<BiblePublicationTrack>>();
@@ -249,7 +274,7 @@ internal sealed class SectionFetcher
 
         // Create publication
         var publicationName = localizedPubName ?? englishPublication.Name;
-        var publication = new BiblePublication
+        publication = new BiblePublication
         {
             PublicationCode = normalizedPublicationCode,
             Name = publicationName,

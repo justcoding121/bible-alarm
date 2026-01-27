@@ -2,6 +2,7 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -27,8 +28,7 @@ public sealed class BiblePublicationSelectionItemSelector
     private readonly IState<ApplicationState> state;
     private readonly IServiceScopeFactory scopeFactory;
 
-    // Priority codes for Bible publications: nwt (2013 NWT), bi12 (1984 NWT)
-    private static readonly string[] PriorityPublicationCodes = ["nwt", "bi12"];
+    // Using centralized sorting helper from Bible.Alarm.Shared.Helpers.PublicationSortHelper
 
     public BiblePublicationSelectionItemSelector(
         IMediaService mediaService,
@@ -128,8 +128,8 @@ public sealed class BiblePublicationSelectionItemSelector
         
         if (biblePublicationService != null)
         {
-            // Iterate through publications in order
-            foreach (var pubKvp in publications.OrderBy(p => p.Key))
+            // Iterate through publications in priority order: nwt first, then bi12, then others
+            foreach (var pubKvp in PublicationSortHelper.SortByPriority(publications))
             {
                 var pubCode = pubKvp.Key;
                 var pub = pubKvp.Value;

@@ -35,8 +35,7 @@ public sealed class MediaService(
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
 
-    // Priority codes for Bible publications: nwt (2013 NWT), bi12 (1984 NWT)
-    private static readonly string[] PriorityPublicationCodes = ["nwt", "bi12"];
+    // Using centralized sorting helper from Bible.Alarm.Shared.Helpers.PublicationSortHelper
 
     public async Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null)
     {
@@ -283,17 +282,6 @@ public sealed class MediaService(
         }
         
         return result;
-    }
-    
-    private static int GetPublicationSortPriority(string code)
-    {
-        var lowerCode = code.ToLowerInvariant();
-        for (int i = 0; i < PriorityPublicationCodes.Length; i++)
-        {
-            if (lowerCode == PriorityPublicationCodes[i])
-                return i;
-        }
-        return PriorityPublicationCodes.Length; // Others come after priority publications
     }
 
     public async Task<SortedDictionary<int, BiblePublicationSection>> GetBiblePublicationSections(

@@ -201,10 +201,15 @@ public sealed class BiblePublicationCascadeHandler
             query = query.Where(pl => pl.Category != null && pl.Category.CategoryName == categoryName);
         }
         
-        // Get publications ordered by Id, then check if they can be queried with the selected language
+        // Get publications, then sort by priority (nwt first, then bi12, then others)
         var publicationLanguages = await query
-            .OrderBy(pl => pl.Id)
             .ToListAsync();
+        
+        // Sort by priority: nwt first, then bi12, then others, then by ID as tiebreaker
+        publicationLanguages = publicationLanguages
+            .OrderBy(pl => PublicationSortHelper.GetPublicationSortPriority(pl.PublicationCode))
+            .ThenBy(pl => pl.Id)
+            .ToList();
         
         // Find first publication that exists in BiblePublications with the selected language
         foreach (var pl in publicationLanguages)

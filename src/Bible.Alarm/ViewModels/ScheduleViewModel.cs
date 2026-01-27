@@ -131,9 +131,17 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         // Subscribe to state changes
         state.StateChanged += OnStateChanged;
 
+        // Initialize lastCategoryName from current state
+        var initialSchedule = state.Value.CurrentSchedule;
+        if (initialSchedule != null)
+        {
+            lastCategoryName = initialSchedule.BiblePublicationCategoryName;
+            logger.Debug("ScheduleViewModel: Initialized lastCategoryName to '{Category}' from initial schedule",
+                lastCategoryName ?? "(null)");
+        }
+
         // Initialize IsNewSchedule immediately from current state
         // This ensures the Delete button visibility is correct from the start
-        var initialSchedule = state.Value.CurrentSchedule;
         var initialIsNew = initialSchedule == null || initialSchedule.Id <= 0;
         propertyManager.IsNewSchedule = initialIsNew;
 
@@ -276,12 +284,35 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             // if already on main thread and executes synchronously if so)
             propertyManager.NotifySchedulePropertiesChanged();
             
-            // Check if category changed and notify IsMusicSelectionVisible
+            // Always notify IsMusicSelectionVisible when schedule changes, since it's computed from schedule state
+            // Check if category changed to track for logging
             var currentCategoryName = currentSchedule?.BiblePublicationCategoryName;
-            if (currentCategoryName != lastCategoryName)
+            var categoryChanged = currentCategoryName != lastCategoryName;
+            
+            if (categoryChanged)
             {
+                logger.Debug("ScheduleViewModel.OnStateChanged: Category changed from '{LastCategory}' to '{CurrentCategory}', notifying IsMusicSelectionVisible",
+                    lastCategoryName ?? "(null)", currentCategoryName ?? "(null)");
                 lastCategoryName = currentCategoryName;
-                OnPropertyChanged(nameof(IsMusicSelectionVisible));
+            }
+            else if (lastCategoryName == null && currentCategoryName != null)
+            {
+                // Initialize lastCategoryName on first load
+                logger.Debug("ScheduleViewModel.OnStateChanged: Initializing lastCategoryName to '{Category}'",
+                    currentCategoryName);
+                lastCategoryName = currentCategoryName;
+            }
+            
+            // Always raise property change for IsMusicSelectionVisible when schedule changes
+            // This ensures the binding is updated even if the category name didn't change but other schedule properties did
+            OnPropertyChanged(nameof(IsMusicSelectionVisible));
+            
+            // Log the computed visibility value
+            var isVisible = IsMusicSelectionVisible;
+            if (categoryChanged || lastCategoryName == null)
+            {
+                logger.Debug("ScheduleViewModel.OnStateChanged: IsMusicSelectionVisible={IsVisible} for category='{Category}'",
+                    isVisible, currentCategoryName ?? "(null)");
             }
         });
 
@@ -394,17 +425,19 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
+                logger.Debug("IsMusicSelectionVisible: CurrentSchedule is null, returning true (default visible)");
                 return true; // Default to visible
             }
 
-            // Hide music selection container when Music category is selected
-            if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
-                string.Equals(currentSchedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            return true;
+            var categoryName = currentSchedule.BiblePublicationCategoryName;
+            var isMusicCategory = !string.IsNullOrWhiteSpace(categoryName) &&
+                                  string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
+            var isVisible = !isMusicCategory;
+            
+            logger.Debug("IsMusicSelectionVisible: Category='{Category}', IsMusicCategory={IsMusicCategory}, Returning={IsVisible}",
+                categoryName ?? "(null)", isMusicCategory, isVisible);
+            
+            return isVisible;
         }
     }
 

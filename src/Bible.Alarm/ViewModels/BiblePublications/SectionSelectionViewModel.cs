@@ -316,9 +316,16 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         // Find the section from the Sections collection (same instance as in ItemsSource)
         // This matches the pattern used in TrackSelectionViewModel
         // Compare SectionCode (string) with Number (int) by converting Number to string or parsing SectionCode
+        // Handle both numeric codes (e.g., "1") and non-numeric codes (e.g., "iam-1")
         var section = Sections.FirstOrDefault(b => 
             !string.IsNullOrEmpty(current.SectionCode) && 
-            (b.Number.ToString() == current.SectionCode || (int.TryParse(current.SectionCode, out var num) && num == b.Number)));
+            (b.Number.ToString() == current.SectionCode || 
+             (int.TryParse(current.SectionCode, out var num) && num == b.Number) ||
+             // Handle non-numeric codes like "iam-1" by extracting number part
+             (current.SectionCode.Contains('-') && 
+              current.SectionCode.Split('-').Length > 1 && 
+              int.TryParse(current.SectionCode.Split('-')[^1], out var extractedNum) && 
+              extractedNum == b.Number)));
         if (section != null)
         {
             SelectedSection = section;
@@ -447,16 +454,27 @@ public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSec
     /// <summary>
     /// Gets the section number for sorting/comparison.
     /// Tries to parse SectionCode as int.
-    /// Returns 0 if SectionCode cannot be parsed.
+    /// For non-numeric codes like "iam-1", extracts the number part.
+    /// Returns 0 if SectionCode cannot be parsed or number cannot be extracted.
     /// </summary>
     public int Number
     {
         get
         {
+            // Try to parse SectionCode as int (for numeric codes like "1", "2")
             if (int.TryParse(section.SectionCode, out var num))
             {
                 return num;
             }
+            
+            // For non-numeric codes like "iam-1", extract the number part
+            // e.g., "iam-1" -> 1, "iam-2" -> 2
+            var parts = section.SectionCode.Split('-');
+            if (parts.Length > 1 && int.TryParse(parts[parts.Length - 1], out var extractedNumber))
+            {
+                return extractedNumber;
+            }
+            
             return 0;
         }
     }

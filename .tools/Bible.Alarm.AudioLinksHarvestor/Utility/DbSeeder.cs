@@ -381,7 +381,7 @@ internal class DbSeeder : IDataPersister
     private async Task SeedEnglish()
     {
         using var scope = scopeFactory.CreateScope();
-        var languageContentService = scope.ServiceProvider.GetRequiredService<LanguageContentService>();
+        var languageContentService = scope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>();
 
         logger.Information("=== Seeding English (E) for all discovered publications ===");
 
@@ -640,10 +640,17 @@ internal class DbSeeder : IDataPersister
                         }
                     };
 
+                    // For Kingdom Melodies (iam), prefix track title with "Melody Number(s) "
+                    var trackTitle = musicTrack.Title;
+                    if (publicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
+                    {
+                        trackTitle = $"Melody Number(s) {trackTitle}";
+                    }
+
                     var track = new SharedBiblePublicationTrack
                     {
                         Number = musicTrack.Number,
-                        Title = musicTrack.Title,
+                        Title = trackTitle,
                         Section = section,
                         BiblePublicationSectionId = 0, // Will be set after section is saved
                         Publication = biblePublication,

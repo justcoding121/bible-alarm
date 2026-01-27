@@ -4,6 +4,7 @@ using System.Windows.Input;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
@@ -19,17 +20,20 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
     private readonly ICategoryService categoryService;
     private readonly INavigationService navigationService;
     private readonly IDispatcher dispatcher;
+    private readonly IState<ApplicationState> state;
     private bool isBusy = true;
     private CategoryListViewItemModel? selectedCategory;
 
     public CategorySelectionViewModel(
         ICategoryService categoryService,
         INavigationService navigationService,
-        IDispatcher dispatcher)
+        IDispatcher dispatcher,
+        IState<ApplicationState> state)
     {
         this.categoryService = categoryService;
         this.navigationService = navigationService;
         this.dispatcher = dispatcher;
+        this.state = state;
         CloseModalCommand = new AsyncRelayCommand(async () => await navigationService.PopModalAsync());
         _ = LoadCategoriesAsync();
     }
@@ -41,8 +45,12 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
             return;
         }
 
-        // Dispatch action to update state
-        dispatcher.Dispatch(new CategorySelectionAction(category.Id, category.Name));
+        // Get current language code before category change to preserve it if possible
+        var currentSchedule = state.Value.CurrentSchedule;
+        var previousLanguageCode = currentSchedule?.BiblePublicationLanguageCode;
+
+        // Dispatch action to update state, including previous language code
+        dispatcher.Dispatch(new CategorySelectionAction(category.Id, category.Name, previousLanguageCode));
         
         // Close modal
         await navigationService.PopModalAsync();

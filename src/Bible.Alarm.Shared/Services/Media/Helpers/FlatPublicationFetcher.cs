@@ -375,6 +375,44 @@ internal sealed class FlatPublicationFetcher
             return false;
         }
 
+        // Check if publication already exists
+        // Handle null language case separately since EF Core can't translate null propagating operator
+        BiblePublication? existingPublication;
+        if (resolvedLanguage != null)
+        {
+            existingPublication = await db.BiblePublications
+                .Include(bp => bp.Tracks)
+                .FirstOrDefaultAsync(
+                    bp => bp.PublicationCode == normalizedPublicationCode &&
+                          bp.LanguageId == resolvedLanguage.Id,
+                    cancellationToken);
+        }
+        else
+        {
+            existingPublication = await db.BiblePublications
+                .Include(bp => bp.Tracks)
+                .FirstOrDefaultAsync(
+                    bp => bp.PublicationCode == normalizedPublicationCode &&
+                          bp.LanguageId == null,
+                    cancellationToken);
+        }
+
+        if (existingPublication != null)
+        {
+            // Publication exists - delete it and its tracks to avoid duplicates
+            // We'll replace it with the new one that has all tracks
+            logger.Information("Publication {PublicationCode} already exists for language {LanguageCode}, replacing with updated tracks",
+                normalizedPublicationCode, normalizedLanguageCode ?? "(null)");
+            
+            // Remove existing tracks (cascade delete will handle sections if any)
+            db.BiblePublicationTracks.RemoveRange(existingPublication.Tracks);
+            await db.SaveChangesAsync(cancellationToken);
+            
+            // Remove the publication
+            db.BiblePublications.Remove(existingPublication);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         // Create publication
         var publicationName = localizedPubName ?? englishPublication.Name;
         var publication = new BiblePublication
