@@ -6,10 +6,10 @@ using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.BiblePublications.SectionSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.BiblePublications.BiblePublicationSectionSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles state change logic for SectionSelectionViewModel.
+/// Handles state change logic for BiblePublicationSectionSelectionViewModel.
 /// </summary>
 public class StateChangeHandler
 {
@@ -128,7 +128,7 @@ public class StateChangeHandler
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "SectionSelectionViewModel: OnBiblePublicationChanged - Error during repopulation");
+                    logger.Error(ex, "BiblePublicationSectionSelectionViewModel: OnBiblePublicationChanged - Error during repopulation");
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
             });
@@ -140,4 +140,3 @@ public class StateChangeHandler
         }
     }
 }
-

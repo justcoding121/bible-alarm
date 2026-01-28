@@ -45,7 +45,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
     public async Task OpenSectionSelectionModalAsync(INavigation navigation, object bindingContext)
     {
-        var modal = serviceProvider.GetRequiredService<SectionSelectionModal>();
+        var modal = serviceProvider.GetRequiredService<BiblePublicationSectionSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
     }
@@ -59,7 +59,7 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
 
     public async Task OpenBiblePublicationTrackSelectionModalAsync(INavigation navigation, object bindingContext)
     {
-        var modal = serviceProvider.GetRequiredService<Views.Bible.TrackSelectionModal>();
+        var modal = serviceProvider.GetRequiredService<BiblePublicationTrackSelectionModal>();
         modal.BindingContext = bindingContext;
         await navigation.PushModalAsync(modal, animated: false);
     }

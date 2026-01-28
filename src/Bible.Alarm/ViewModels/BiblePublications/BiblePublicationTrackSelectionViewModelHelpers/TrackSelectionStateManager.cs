@@ -5,10 +5,10 @@ using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.BiblePublications.TrackSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.BiblePublications.BiblePublicationTrackSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles state management and initialization for TrackSelectionViewModel.
+/// Handles state management and initialization for BiblePublicationTrackSelectionViewModel.
 /// </summary>
 public sealed class TrackSelectionStateManager
 {

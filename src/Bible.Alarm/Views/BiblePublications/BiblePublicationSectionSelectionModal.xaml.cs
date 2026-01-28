@@ -6,14 +6,14 @@ using CommunityToolkit.Mvvm.Input;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class SectionSelectionModal : BaseContentPage, IDisposable
+public partial class BiblePublicationSectionSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public SectionSelectionViewModel? ViewModel => BindingContext as SectionSelectionViewModel;
+    public BiblePublicationSectionSelectionViewModel? ViewModel => BindingContext as BiblePublicationSectionSelectionViewModel;
 
-    public SectionSelectionModal()
+    public BiblePublicationSectionSelectionModal()
     {
         InitializeComponent();
         Appearing += OnAppearing;
@@ -124,4 +124,3 @@ public partial class SectionSelectionModal : BaseContentPage, IDisposable
         }
     }
 }
-

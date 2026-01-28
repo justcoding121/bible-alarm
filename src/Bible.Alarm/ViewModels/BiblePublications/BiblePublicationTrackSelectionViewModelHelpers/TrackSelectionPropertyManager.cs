@@ -2,10 +2,10 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Bible.Alarm.ViewModels.BiblePublications.TrackSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.BiblePublications.BiblePublicationTrackSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles property management for TrackSelectionViewModel.
+/// Handles property management for BiblePublicationTrackSelectionViewModel.
 /// </summary>
 public sealed class TrackSelectionPropertyManager : ObservableObject
 {

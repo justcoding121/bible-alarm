@@ -7,7 +7,7 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.ViewModels.BiblePublications.TrackSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.BiblePublications.BiblePublicationTrackSelectionViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -16,7 +16,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
+public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -32,7 +32,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private readonly SemaphoreSlim @lock = new(1);
 
-    public TrackSelectionViewModel(
+    public BiblePublicationTrackSelectionViewModel(
         ILogger logger,
         IMediaService mediaService,
         IToastService toastService,
@@ -120,14 +120,14 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
         // We only need language and publication codes
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
-            Log.Debug("TrackSelectionViewModel.RefreshFromState: Missing language or publication code, returning");
+            Log.Debug("BiblePublicationTrackSelectionViewModel.RefreshFromState: Missing language or publication code, returning");
             return;
         }
 
         // Use 0 as section number for non-sectioned publications
         var effectiveSectionNumber = newSectionNumber ?? 0;
 
-        Log.Debug("TrackSelectionViewModel.RefreshFromState: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionNumber={SectionNumber}",
+        Log.Debug("BiblePublicationTrackSelectionViewModel.RefreshFromState: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionNumber={SectionNumber}",
             newLanguageCode, newPublicationCode, effectiveSectionNumber);
 
         stateManager.UpdateFromStateForNonSectioned(state);
@@ -188,7 +188,7 @@ public sealed class TrackSelectionViewModel : ObservableObject, IDisposable
 
     private async Task Initialize(string languageCode, string publicationCode, int sectionNumber)
     {
-        Log.Debug("TrackSelectionViewModel.Initialize: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionNumber={SectionNumber}, current.TrackNumber={CurrentTrackNumber}",
+        Log.Debug("BiblePublicationTrackSelectionViewModel.Initialize: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionNumber={SectionNumber}, current.TrackNumber={CurrentTrackNumber}",
             languageCode, publicationCode, sectionNumber, stateManager.Current?.TrackNumber ?? -1);
 
         await dataProvider.PopulateTracks(

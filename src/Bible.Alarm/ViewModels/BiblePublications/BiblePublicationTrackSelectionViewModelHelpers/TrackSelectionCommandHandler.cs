@@ -7,10 +7,10 @@ using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.BiblePublications.TrackSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.BiblePublications.BiblePublicationTrackSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles command execution for TrackSelectionViewModel.
+/// Handles command execution for BiblePublicationTrackSelectionViewModel.
 /// </summary>
 public sealed class TrackSelectionCommandHandler(
     ILogger logger,
@@ -31,7 +31,7 @@ public sealed class TrackSelectionCommandHandler(
             string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode) ||
             string.IsNullOrEmpty(currentSchedule.BiblePublicationCode))
         {
-            logger.Warning("TrackSelectionViewModel: SetTrackCommand - CurrentSchedule is null or missing required properties");
+            logger.Warning("BiblePublicationTrackSelectionViewModel: SetTrackCommand - CurrentSchedule is null or missing required properties");
             return;
         }
 

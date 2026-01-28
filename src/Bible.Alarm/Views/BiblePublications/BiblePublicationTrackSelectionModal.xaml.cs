@@ -6,14 +6,14 @@ using CommunityToolkit.Mvvm.Input;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class TrackSelectionModal : BaseContentPage, IDisposable
+public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public TrackSelectionViewModel? ViewModel => BindingContext as TrackSelectionViewModel;
+    public BiblePublicationTrackSelectionViewModel? ViewModel => BindingContext as BiblePublicationTrackSelectionViewModel;
 
-    public TrackSelectionModal()
+    public BiblePublicationTrackSelectionModal()
     {
         InitializeComponent();
         Appearing += OnAppearing;
@@ -74,4 +74,3 @@ public partial class TrackSelectionModal : BaseContentPage, IDisposable
         }
     }
 }
-

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.Bible.SectionSelection"
+    x:Class="Bible.Alarm.Views.Bible.BiblePublicationSectionSelection"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -15,7 +15,7 @@
     xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
-    x:DataType="bible:SectionSelectionViewModel"
+    x:DataType="bible:BiblePublicationSectionSelectionViewModel"
     Title="Select Section">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
@@ -137,4 +137,3 @@
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>
-

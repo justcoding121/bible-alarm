@@ -139,12 +139,13 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             // Melody music is now stored as a sectioned publication (e.g., iam has sections like "iam-1", "iam-2")
-            // Include sections and their tracks
+            // Include sections and their tracks (with UrlParams for OriginalTrackNumber)
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Category)
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.Tracks)
+                    .ThenInclude(t => t.UrlParams)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .Where(x => x.Category.CategoryName == MusicCategoryName 
                     && x.LanguageId == null 
@@ -178,20 +179,13 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             }
 
             // Map BiblePublicationTrack to MusicTrack
+            // For sectioned melody (e.g. iam): set DownloadCode = section code (e.g. iam-1) and OriginalTrackNumber from UrlParams so LookUpPath uses pub=sectionCode.
             // Handle duplicate track numbers by taking the first occurrence
             var musicTracks = allTracks
                 .OrderBy(t => t.Number)
                 .GroupBy(t => t.Number)
                 .Select(g => g.First())
-                .Select(t => new MusicTrack
-                {
-                    Number = t.Number,
-                    Title = t.Title,
-                    Url = string.Empty, // URLs are computed on-demand
-                    LookUpPath = string.Empty,
-                    DownloadCode = null,
-                    OriginalTrackNumber = null
-                })
+                .Select(t => MapBiblePublicationTrackToMusicTrack(t))
                 .ToDictionary(x => x.Number, x => x);
             
             return new SortedDictionary<int, MusicTrack>(musicTracks);
@@ -210,12 +204,13 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Get the publication with sections
+            // Get the publication with sections and track UrlParams
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Category)
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.Tracks)
+                    .ThenInclude(t => t.UrlParams)
                 .Where(x => x.Category.CategoryName == MusicCategoryName 
                     && x.LanguageId == null 
                     && x.PublicationCode == publicationCode)
@@ -236,18 +231,10 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 return new SortedDictionary<int, MusicTrack>();
             }
 
-            // Map BiblePublicationTrack to MusicTrack
+            // Map BiblePublicationTrack to MusicTrack (use sectionCode so LookUpPath uses pub=sectionCode)
             var musicTracks = section.Tracks
                 .OrderBy(t => t.Number)
-                .Select(t => new MusicTrack
-                {
-                    Number = t.Number,
-                    Title = t.Title,
-                    Url = string.Empty, // URLs are computed on-demand
-                    LookUpPath = string.Empty,
-                    DownloadCode = null,
-                    OriginalTrackNumber = null
-                })
+                .Select(t => MapBiblePublicationTrackToMusicTrack(t, sectionCode))
                 .ToDictionary(x => x.Number, x => x);
 
             return new SortedDictionary<int, MusicTrack>(musicTracks);
@@ -258,6 +245,35 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 publicationCode, sectionCode);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Maps a BiblePublicationTrack to MusicTrack, setting DownloadCode (section/disc code) and OriginalTrackNumber
+    /// from Section and UrlParams so that LookUpPath uses pub=sectionCode (e.g. iam-1) for melody music.
+    /// </summary>
+    /// <param name="sectionCodeFallback">When provided (e.g. from GetTracksBySectionCodeAsync), used if track.Section is not populated.</param>
+    private static MusicTrack MapBiblePublicationTrackToMusicTrack(BiblePublicationTrack t, string? sectionCodeFallback = null)
+    {
+        var downloadCode = t.Section?.SectionCode ?? sectionCodeFallback;
+        int? originalTrackNumber = null;
+        if (t.UrlParams != null)
+        {
+            var trackParam = t.UrlParams.FirstOrDefault(p => p.Key == "track");
+            if (trackParam != null && int.TryParse(trackParam.Value, out var trackNum))
+            {
+                originalTrackNumber = trackNum;
+            }
+        }
+
+        return new MusicTrack
+        {
+            Number = t.Number,
+            Title = t.Title,
+            Url = string.Empty,
+            LookUpPath = string.Empty,
+            DownloadCode = downloadCode,
+            OriginalTrackNumber = originalTrackNumber
+        };
     }
 
     public async Task UpdateTrackUrlAsync(string publicationCode, int trackNumber, string url, CancellationToken cancellationToken = default)

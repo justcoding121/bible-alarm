@@ -422,7 +422,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
                 });
 
                 // Give CollectionView time to render before hiding busy indicator
-                // This matches the pattern used in TrackSelectionViewModel
+                // This matches the pattern used in BiblePublicationTrackSelectionViewModel
                 await Task.Delay(100);
 
                 // Set IsBusy to false after collection is assigned and rendered - the busy overlay will hide instantly

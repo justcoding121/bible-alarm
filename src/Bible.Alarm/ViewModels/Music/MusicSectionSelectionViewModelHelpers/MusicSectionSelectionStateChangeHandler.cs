@@ -11,7 +11,7 @@ namespace Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles state change logic for MusicSectionSelectionViewModel.
-/// Similar to BiblePublicationSectionSelectionViewModelHelpers.StateChangeHandler but for music.
+/// Similar to BiblePublicationSectionSelectionViewModelHelpers (Bible publications) but for music.
 /// Music container always uses "Music" category and filters by MusicType (Music vs VocalMusic).
 /// </summary>
 public class MusicSectionSelectionStateChangeHandler

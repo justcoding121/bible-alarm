@@ -6,10 +6,10 @@ using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.BiblePublications.TrackSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.BiblePublications.BiblePublicationTrackSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles data population for TrackSelectionViewModel.
+/// Handles data population for BiblePublicationTrackSelectionViewModel.
 /// </summary>
 public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBiblePublicationService? biblePublicationService = null)
 {

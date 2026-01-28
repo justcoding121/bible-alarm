@@ -139,14 +139,14 @@ public sealed class BiblePublicationCommandInitializer
             setBiblePublication(loadedBiblePublication);
 
             // Create view model and open modal
-            var sectionSelectionViewModel = serviceProvider.GetRequiredService<SectionSelectionViewModel>();
+            var sectionSelectionViewModel = serviceProvider.GetRequiredService<BiblePublicationSectionSelectionViewModel>();
             await navigationService.OpenSectionSelectionModalAsync(sectionSelectionViewModel);
 
             // Map entities to DTOs before dispatching
             if (loadedBiblePublication != null)
             {
                 var currentBiblePublicationItem = mapper.Map<BiblePublicationStateItem>(loadedBiblePublication);
-                dispatcher.Dispatch(new SectionSelectionAction(currentBiblePublicationItem));
+                dispatcher.Dispatch(new BiblePublicationSectionSelectionAction(currentBiblePublicationItem));
                 // State change will trigger OnStateChanged which handles cascading notifications
             }
         });
@@ -172,7 +172,7 @@ public sealed class BiblePublicationCommandInitializer
             setBiblePublication(loadedBiblePublication);
 
             // Create view model and open modal
-            var trackSelectionViewModel = serviceProvider.GetRequiredService<TrackSelectionViewModel>();
+            var trackSelectionViewModel = serviceProvider.GetRequiredService<BiblePublicationTrackSelectionViewModel>();
             await navigationService.OpenBiblePublicationTrackSelectionModalAsync(trackSelectionViewModel);
 
             // Map entities to DTOs before dispatching

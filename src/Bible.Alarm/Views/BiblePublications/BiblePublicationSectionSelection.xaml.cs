@@ -7,15 +7,15 @@ using Serilog;
 namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class SectionSelection : BaseContentPage, IDisposable
+public partial class BiblePublicationSectionSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
-    private readonly SectionSelectionViewModel viewModel;
+    private readonly BiblePublicationSectionSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public SectionSelectionViewModel? ViewModel => BindingContext as SectionSelectionViewModel;
+    public BiblePublicationSectionSelectionViewModel? ViewModel => BindingContext as BiblePublicationSectionSelectionViewModel;
 
-    public SectionSelection(SectionSelectionViewModel viewModel, TaskScheduler taskScheduler)
+    public BiblePublicationSectionSelection(BiblePublicationSectionSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
         InitializeComponent();
         BindingContext = viewModel;

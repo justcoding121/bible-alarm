@@ -11,7 +11,7 @@ using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Models;
-using Bible.Alarm.ViewModels.BiblePublications.SectionSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.BiblePublications.BiblePublicationSectionSelectionViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -20,7 +20,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
+public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject, IDisposable
 {
     private BiblePublicationSchedule? current;
 
@@ -46,7 +46,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
     public ICommand CloseModalCommand { get; set; }
     public ICommand TrackSelectionCommand { get; set; }
 
-    public SectionSelectionViewModel(ILogger logger, IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
+    public BiblePublicationSectionSelectionViewModel(ILogger logger, IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
     {
         this.logger = logger;
         this.mediaService = mediaService;
@@ -85,14 +85,14 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 var currentSchedule = state.Value.CurrentSchedule;
                 if (currentSchedule == null || string.IsNullOrEmpty(currentSchedule.BiblePublicationCode))
                 {
-                    logger.Warning("SectionSelectionViewModel: TrackSelectionCommand - CurrentSchedule is null or PublicationCode is empty");
+                    logger.Warning("BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - CurrentSchedule is null or PublicationCode is empty");
                     return;
                 }
                 
                 // Validate section number - section 0 is invalid (sections should start from 1)
                 if (x.Number <= 0)
                 {
-                    logger.Warning("SectionSelectionViewModel: TrackSelectionCommand - Invalid section number {SectionNumber} for publication={PublicationCode}",
+                    logger.Warning("BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Invalid section number {SectionNumber} for publication={PublicationCode}",
                         x.Number, currentSchedule.BiblePublicationCode);
                     return;
                 }
@@ -133,7 +133,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 // If no tracks found, check if section exists and harvest tracks if needed
                 if ((tracks == null || tracks.Count == 0) && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
                 {
-                    logger.Information("SectionSelectionViewModel: No tracks found for section={SectionNumber}, publication={PublicationCode}, language={LanguageCode}. Checking if section exists and harvesting tracks if needed...",
+                    logger.Information("BiblePublicationSectionSelectionViewModel: No tracks found for section={SectionNumber}, publication={PublicationCode}, language={LanguageCode}. Checking if section exists and harvesting tracks if needed...",
                         x.Number, currentSchedule.BiblePublicationCode, languageCode);
                     
                     // Get section code from the section item
@@ -157,7 +157,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
                 if (tracks == null || tracks.Count == 0)
                 {
-                    logger.Warning("SectionSelectionViewModel: TrackSelectionCommand - No tracks found for section={SectionNumber}, publication={PublicationCode}, language={LanguageCode}",
+                    logger.Warning("BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - No tracks found for section={SectionNumber}, publication={PublicationCode}, language={LanguageCode}",
                         x.Number, currentSchedule.BiblePublicationCode, languageCode ?? "(null)");
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
@@ -246,7 +246,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "SectionSelectionViewModel: TrackSelectionCommand - Error selecting section");
+                logger.Error(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Error selecting section");
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     IsBusy = false;
@@ -424,7 +424,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 });
 
                 // Give CollectionView time to render before hiding busy indicator
-                // This matches the pattern used in TrackSelectionViewModel
+                // This matches the pattern used in BiblePublicationTrackSelectionViewModel
                 await Task.Delay(100);
 
                 // Set IsBusy to false after collection is assigned and rendered
@@ -441,7 +441,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             catch (Exception ex)
             {
                 // Log error but don't throw - allow modal to continue functioning
-                logger.Error(ex, "SectionSelectionViewModel: RefreshFromState - Error during repopulation");
+                logger.Error(ex, "BiblePublicationSectionSelectionViewModel: RefreshFromState - Error during repopulation");
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     if (!isDisposed && !isSelectingSection)

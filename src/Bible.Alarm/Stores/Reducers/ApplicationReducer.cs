@@ -402,7 +402,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnSectionSelection(ApplicationState state, SectionSelectionAction action)
+    public static ApplicationState OnBiblePublicationSectionSelection(ApplicationState state, BiblePublicationSectionSelectionAction action)
     {
         // Section selection updates CurrentSchedule directly via OnBiblePublicationTrackSelected
         // This reducer is kept for backward compatibility but doesn't need to do anything

@@ -437,7 +437,7 @@ public sealed class BiblePublicationSelectionCommandHandler
         LanguageListViewItemModel language,
         ScheduleStateItem currentSchedule)
     {
-        // Match the pattern used in SectionSelectionViewModel and TrackSelectionCommandHandler
+        // Match the pattern used in BiblePublicationSectionSelectionViewModel and TrackSelectionCommandHandler
         // They don't set Id or AlarmScheduleId - let them default to 0
         // IMPORTANT: Always preserve category from current schedule - category can only be changed via CategorySelectionAction
         // Category should NEVER be null in current schedule - if it is, that's a bug that needs to be fixed at the source
@@ -478,7 +478,7 @@ public sealed class BiblePublicationSelectionCommandHandler
         string trackTitle,
         ScheduleStateItem currentSchedule)
     {
-        // Match the pattern used in SectionSelectionViewModel and TrackSelectionCommandHandler
+        // Match the pattern used in BiblePublicationSectionSelectionViewModel and TrackSelectionCommandHandler
         // They don't set Id or AlarmScheduleId - let them default to 0
         return new BiblePublicationStateItem
         {
