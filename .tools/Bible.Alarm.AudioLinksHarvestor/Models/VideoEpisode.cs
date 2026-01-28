@@ -2,7 +2,7 @@
 
 using System;
 
-namespace Bible.Alarm.AudioLinksHarvestor.Models.Video;
+namespace Bible.Alarm.AudioLinksHarvestor.Models;
 
 public class VideoEpisode : IComparable
 {

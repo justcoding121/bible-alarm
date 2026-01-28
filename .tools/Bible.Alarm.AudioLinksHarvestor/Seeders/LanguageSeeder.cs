@@ -4,13 +4,14 @@ using System.Linq;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Language = Bible.Alarm.Shared.Models.Media.Language;
 
-namespace Bible.Alarm.AudioLinksHarvestor.Utility.Helpers;
+namespace Bible.Alarm.AudioLinksHarvestor.Seeders;
 
 /// <summary>
 /// Helper class for seeding languages from JW.org API.

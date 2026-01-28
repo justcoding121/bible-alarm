@@ -9,7 +9,6 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Models;
-using Bible.Alarm.AudioLinksHarvestor.Utility.Helpers;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
@@ -26,10 +25,11 @@ using BiblePublicationTrack = Bible.Alarm.AudioLinksHarvestor.Models.BiblePublic
 using SharedBiblePublicationSection = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection;
 using SharedBiblePublicationTrack = Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack;
 using SharedUrlParam = Bible.Alarm.Shared.Models.Media.BiblePublications.UrlParam;
-using DramaTrack = Bible.Alarm.AudioLinksHarvestor.Models.Drama.DramaTrack;
-using MusicTrack = Bible.Alarm.AudioLinksHarvestor.Models.Music.MusicTrack;
+using DramaTrack = Bible.Alarm.AudioLinksHarvestor.Models.DramaTrack;
+using MusicTrack = Bible.Alarm.AudioLinksHarvestor.Models.MusicTrack;
 using Publication = Bible.Alarm.AudioLinksHarvestor.Models.Publication;
-using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.Video.VideoEpisode;
+using VideoEpisode = Bible.Alarm.AudioLinksHarvestor.Models.VideoEpisode;
+using Bible.Alarm.AudioLinksHarvestor.Seeders;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 

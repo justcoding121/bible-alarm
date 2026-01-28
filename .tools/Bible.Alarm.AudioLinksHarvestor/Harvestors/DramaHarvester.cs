@@ -11,14 +11,13 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Models;
-using Bible.Alarm.AudioLinksHarvestor.Models.Drama;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Serilog;
 using DirectoryHelper = Bible.Alarm.AudioLinksHarvestor.Utility.DirectoryHelper;
 
-namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Drama;
+namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
 
 internal class DramaHarvester : BaseHarvester
 {

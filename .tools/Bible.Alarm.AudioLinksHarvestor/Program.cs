@@ -8,10 +8,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible;
-using Bible.Alarm.AudioLinksHarvestor.Harvestors.Drama;
-using Bible.Alarm.AudioLinksHarvestor.Harvestors.Music;
-using Bible.Alarm.AudioLinksHarvestor.Harvestors.Video;
+using Bible.Alarm.AudioLinksHarvestor.Harvestors;
 using Bible.Alarm.AudioLinksHarvestor.Models;
 using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Constants;
@@ -85,7 +82,7 @@ public class Program
             });
         });
 
-        services.AddTransient<JwBibleHarvester>();
+        services.AddTransient<BibleHarvester>();
         services.AddTransient<MusicHarvester>();
         services.AddTransient<DramaHarvester>();
         services.AddTransient<VideoHarvester>();
@@ -160,7 +157,7 @@ public class Program
                 var harvesterDownloadUtility = harvesterScope.ServiceProvider.GetRequiredService<DownloadUtility>();
                 
                 // Create harvesters with dataPersister
-                var bibleHarvester = new JwBibleHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
+                var bibleHarvester = new BibleHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
                 var musicHarvester = new MusicHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
                 var dramaHarvester = new DramaHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);
                 var videoHarvester = new VideoHarvester(harvesterLogger, harvesterDownloadUtility, dataPersister);

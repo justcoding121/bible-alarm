@@ -2,7 +2,7 @@
 
 using System;
 
-namespace Bible.Alarm.AudioLinksHarvestor.Models.Drama;
+namespace Bible.Alarm.AudioLinksHarvestor.Models;
 
 public class DramaTrack : IComparable
 {

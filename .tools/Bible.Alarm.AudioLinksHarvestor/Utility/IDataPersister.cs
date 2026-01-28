@@ -4,9 +4,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Models;
 using Bible.Alarm.AudioLinksHarvestor.Models.BiblePublications;
-using Bible.Alarm.AudioLinksHarvestor.Models.Drama;
-using Bible.Alarm.AudioLinksHarvestor.Models.Music;
-using Bible.Alarm.AudioLinksHarvestor.Models.Video;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 

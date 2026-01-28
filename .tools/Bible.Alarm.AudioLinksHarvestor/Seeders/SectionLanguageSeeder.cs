@@ -3,13 +3,14 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Models;
+using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
-namespace Bible.Alarm.AudioLinksHarvestor.Utility.Helpers;
+namespace Bible.Alarm.AudioLinksHarvestor.Seeders;
 
 /// <summary>
 /// Helper class for seeding section languages.

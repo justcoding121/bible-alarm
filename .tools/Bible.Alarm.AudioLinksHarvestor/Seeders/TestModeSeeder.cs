@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Models;
+using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Services.Media;
@@ -11,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
-namespace Bible.Alarm.AudioLinksHarvestor.Utility.Helpers;
+namespace Bible.Alarm.AudioLinksHarvestor.Seeders;
 
 /// <summary>
 /// Helper class for test mode seeding operations.

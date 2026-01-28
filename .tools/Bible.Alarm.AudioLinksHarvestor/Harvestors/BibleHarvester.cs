@@ -16,13 +16,13 @@ using Bible.Alarm.AudioLinksHarvestor.Utility;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
 
-namespace Bible.Alarm.AudioLinksHarvestor.Harvestors.Bible;
+namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
 
-internal class JwBibleHarvester : BaseHarvester
+internal class BibleHarvester : BaseHarvester
 {
     private readonly IDataPersister? dataPersister;
 
-    public JwBibleHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister = null)
+    public BibleHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister = null)
         : base(logger, downloadUtility)
     {
         this.dataPersister = dataPersister;
