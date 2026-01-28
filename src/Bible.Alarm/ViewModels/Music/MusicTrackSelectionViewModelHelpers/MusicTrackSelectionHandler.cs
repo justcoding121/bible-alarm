@@ -1,5 +1,4 @@
 #nullable enable
-using AutoMapper;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
@@ -8,12 +7,12 @@ using Bible.Alarm.Stores.Models;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Music.TrackSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles track selection logic for TrackSelectionViewModel.
+/// Handles track selection logic for MusicTrackSelectionViewModel.
 /// </summary>
-public sealed class TrackSelectionHandler(
+public sealed class MusicTrackSelectionHandler(
     IDispatcher dispatcher,
     IState<ApplicationState> state,
     INavigationService navigationService)
@@ -21,18 +20,13 @@ public sealed class TrackSelectionHandler(
     public async Task HandleTrackSelection(MusicTrackListViewItemModel track, AlarmMusic? current)
     {
         if (track == null)
-        {
             return;
-        }
 
-        // Ensure current is set from state if it's null
-        // Derive from CurrentSchedule (single source of truth)
         if (current == null)
         {
             var stateValue = state.Value;
             if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
             {
-                // Create AlarmMusic from CurrentSchedule
                 var schedule = stateValue.CurrentSchedule;
                 current = new AlarmMusic
                 {
@@ -45,27 +39,15 @@ public sealed class TrackSelectionHandler(
             }
         }
 
-        // Always use CurrentSchedule as the source of truth for music type/language/publication codes
-        // This ensures we use the latest state, not stale data from 'current' field
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null ||
-            !currentSchedule.MusicType.HasValue ||
-            string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
-        {
+        if (currentSchedule == null || !currentSchedule.MusicType.HasValue || string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
             return;
-        }
 
-        // Update current for tracking purposes
         if (current == null)
-        {
             current = new AlarmMusic();
-        }
         current.TrackNumber = track.Number;
         current.Repeat = track.Repeat;
 
-        // Map entity to DTO before dispatching
-        // IMPORTANT: Include display names from list items (no database query needed)
-        // Get music type/language/publication codes and display names from CurrentSchedule (they should already be populated)
         var trackSelectedItem = new MusicStateItem
         {
             MusicType = currentSchedule.MusicType.Value,
@@ -73,7 +55,6 @@ public sealed class TrackSelectionHandler(
             PublicationCode = currentSchedule.MusicPublicationCode,
             TrackNumber = track.Number,
             Repeat = track.Repeat,
-            // Store display names from list items and current state
             LanguageName = currentSchedule.MusicLanguageName,
             LanguageDirection = currentSchedule.MusicLanguageDirection,
             PublicationName = currentSchedule.MusicPublicationName,
@@ -81,8 +62,6 @@ public sealed class TrackSelectionHandler(
         };
 
         dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
-
-        // Navigate back to schedule page
         await navigationService.PopModalAsync();
     }
 }

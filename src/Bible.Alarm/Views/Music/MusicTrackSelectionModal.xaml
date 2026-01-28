@@ -1,27 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.Shared.BiblePublicationLanguageModal"
+    x:Class="Bible.Alarm.Views.Music.MusicTrackSelectionModal"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
-    xmlns:bible="clr-namespace:Bible.Alarm.ViewModels.BiblePublications"
+    xmlns:music="clr-namespace:Bible.Alarm.ViewModels.Music"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
-    xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
-    xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
+    xmlns:fn="clr-namespace:Bible.Alarm.Views"
+    xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:sharedControls="clr-namespace:Bible.Alarm.Views.Shared;assembly=Bible.Alarm"
-    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
-    xmlns:fn="clr-namespace:Bible.Alarm.Views"
-    x:DataType="bible:BiblePublicationSelectionViewModel"
+    x:DataType="music:MusicTrackSelectionViewModel"
     Padding="0,0,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
-        <!-- Theme-aware colors are inherited from BaseContentPage -->
+        <converters:RepeatColorConverter x:Key="repeatColorConverter" />
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid
@@ -33,12 +31,10 @@
             VerticalOptions="Fill">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
-                <RowDefinition Height="auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
             
-            <!-- Enhanced Header -->
             <Border
                 Grid.Row="0"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -56,71 +52,24 @@
                 <Label
                     FontSize="{DynamicResource HeaderFontSize}"
                     FontAttributes="Bold"
-                    MinimumHeightRequest="{DynamicResource IconLargeContainerSize}"
-                    Text="Select Language"
+                    MinimumHeightRequest="56"
+                    Text="Select Track"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />
             </Border>
             
-            <!-- Enhanced Search Bar -->
-            <!-- iOS: SearchBar without Border wrapper to avoid double-border effect -->
-            <SearchBar
-                Grid.Row="1"
-                Margin="16,8,16,0"
-                BackgroundColor="{DynamicResource CardBackgroundColor}"
-                MinimumHeightRequest="50"
-                HorizontalOptions="Fill"
-                HorizontalTextAlignment="Start"
-                Placeholder="Search languages"
-                Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
-                TextColor="{DynamicResource TextPrimaryColor}"
-                FontSize="{DynamicResource LargeFontSize}"
-                CancelButtonColor="Transparent"
-                IsVisible="{OnPlatform iOS='True', Default='False'}" />
-            <!-- Non-iOS: SearchBar with Border wrapper for styling -->
-            <Border
-                Grid.Row="1"
-                Margin="16,8,16,0"
-                BackgroundColor="{DynamicResource CardBackgroundColor}"
-                StrokeThickness="0"
-                Padding="0"
-                IsVisible="{OnPlatform iOS='False', Default='True'}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
-                            Offset="0,2"
-                            Opacity="0.08"
-                            Radius="4" />
-                </Border.Shadow>
-                <SearchBar
-                    Margin="8"
-                    BackgroundColor="Transparent"
-                    MinimumHeightRequest="50"
-                    HorizontalOptions="Fill"
-                    HorizontalTextAlignment="Start"
-                    Placeholder="Search languages"
-                    Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
-                    TextColor="{DynamicResource TextPrimaryColor}"
-                    FontSize="{DynamicResource LargeFontSize}"
-                    CancelButtonColor="{DynamicResource TextPrimaryColor}" />
-            </Border>
-            
-            <!-- Enhanced Collection View -->
             <CollectionView
-                x:Name="LanguageCollectionView"
-                Grid.Row="2"
+                x:Name="trackCollectionView"
+                Grid.Row="1"
                 Margin="0,8,0,20"
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
                 IsVisible="True"
-                ItemsSource="{Binding Languages}"
-                MinimumHeightRequest="300"
-                MinimumWidthRequest="250"
-                SelectionMode="None">
+                ItemsSource="{Binding Tracks}"
+                SelectionMode="None"
+                FlowDirection="{Binding ContentFlowDirection}">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical">
                         <LinearItemsLayout.ItemSpacing>
@@ -132,7 +81,7 @@
                     </LinearItemsLayout>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="shared:LanguageListViewItemModel">
+                        <DataTemplate x:DataType="music:MusicTrackListViewItemModel">
                             <Grid Margin="16,0">
                                 <core:SfEffectsView
                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
@@ -142,7 +91,7 @@
                                     RippleAnimationDuration="200"
                                     ShouldIgnoreTouches="False">
                                     <core:SfEffectsView.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnLanguageItemTapped" />
+                                        <TapGestureRecognizer Tapped="OnTrackItemTapped" />
                                     </core:SfEffectsView.GestureRecognizers>
                                     <Border
                                         BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -169,8 +118,7 @@
                                         <Grid
                                             Padding="20,18"
                                             ColumnSpacing="12"
-                                            HorizontalOptions="Fill"
-                                            MinimumHeightRequest="56"
+                                            MinimumHeightRequest="{DynamicResource IconLargeContainerSize}"
                                             BackgroundColor="Transparent">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
@@ -179,15 +127,15 @@
                                             <Label
                                                 Grid.Column="0"
                                                 FontSize="{DynamicResource LargeFontSize}"
-                                                HorizontalOptions="Start"
+                                                HorizontalOptions="Fill"
                                                 HorizontalTextAlignment="Start"
                                                 InputTransparent="True"
                                                 LineBreakMode="WordWrap"
-                                                Text="{Binding Name}"
+                                                MaxLines="2"
+                                                Text="{Binding Title}"
                                                 TextColor="{DynamicResource TextPrimaryColor}"
                                                 VerticalOptions="Center"
                                                 VerticalTextAlignment="Center" />
-                                            <!-- Progress indicator - shows when IsNavigating is true -->
                                             <Grid Grid.Column="1"
                                                   Margin="12,0,0,0"
                                                   VerticalOptions="Center"
@@ -212,8 +160,7 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
             
-            <!-- Close Button - SfEffectsView for WinUI only -->
-            <core:SfEffectsView Grid.Row="3"
+            <core:SfEffectsView Grid.Row="2"
                 x:Name="CloseButtonEffectsView"
                 Margin="16,8,16,16"
                 TouchDownEffects="Ripple"
@@ -256,8 +203,7 @@
                            VerticalOptions="Center" />
                 </Border>
             </core:SfEffectsView>
-            <!-- Regular button for Android/iOS -->
-            <Border Grid.Row="3"
+            <Border Grid.Row="2"
                 x:Name="CloseButtonNoEffects"
                 Margin="16,8,16,16"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -286,16 +232,10 @@
                        VerticalOptions="Center" />
             </Border>
             
-            <!-- Progress indicator when fetching -->
-            <sharedViews:ProgressIndicator Grid.Row="0"
-                                           Grid.RowSpan="4" />
-            
-            <!-- BUSY OVERLAY – appears only while IsBusy = true -->
-            <sharedViews:BusyOverlay x:Name="BusyOverlay"
-                                     Grid.Row="0"
-                                     Grid.RowSpan="4"
-                                     IsVisible="{Binding IsBusy}" />
+            <shared:BusyOverlay x:Name="BusyOverlay"
+                                Grid.Row="0"
+                                Grid.RowSpan="3"
+                                IsVisible="True" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>
-

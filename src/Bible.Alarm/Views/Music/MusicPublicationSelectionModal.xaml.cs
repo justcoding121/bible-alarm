@@ -7,14 +7,14 @@ using CommunityToolkit.Mvvm.Input;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class SongPublicationSelectionModal : BaseContentPage, IDisposable
+public partial class MusicPublicationSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public SongPublicationSelectionViewModel? ViewModel => BindingContext as SongPublicationSelectionViewModel;
+    public MusicPublicationSelectionViewModel? ViewModel => BindingContext as MusicPublicationSelectionViewModel;
 
-    public SongPublicationSelectionModal()
+    public MusicPublicationSelectionModal()
     {
         InitializeComponent();
         Appearing += OnAppearing;
@@ -75,4 +75,3 @@ public partial class SongPublicationSelectionModal : BaseContentPage, IDisposabl
         }
     }
 }
-

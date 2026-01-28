@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.Music.MusicSelectionModal"
+    x:Class="Bible.Alarm.Views.Music.MusicPublicationSelectionModal"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -9,15 +9,17 @@
     xmlns:music="clr-namespace:Bible.Alarm.ViewModels.Music"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
+    xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:sharedControls="clr-namespace:Bible.Alarm.Views.Shared;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
-    x:DataType="music:MusicSelectionViewModel"
+    x:DataType="music:MusicPublicationSelectionViewModel"
     Padding="0,0,0,0">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid
@@ -51,8 +53,8 @@
                 <Label
                     FontSize="{DynamicResource HeaderFontSize}"
                     FontAttributes="Bold"
-                    MinimumHeightRequest="{DynamicResource IconLargeContainerSize}"
-                    Text="Select Music Type"
+                    MinimumHeightRequest="56"
+                    Text="Select Song Section"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />
@@ -60,14 +62,16 @@
             
             <!-- Collection View -->
             <CollectionView
-                x:Name="musicTypesCollectionView"
+                x:Name="songPublicationsCollectionView"
                 Grid.Row="1"
                 Margin="0,8,0,20"
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
-                ItemsSource="{Binding MusicTypes}"
-                SelectionMode="None">
+                IsVisible="True"
+                ItemsSource="{Binding SongPublications}"
+                SelectionMode="None"
+                FlowDirection="{Binding ContentFlowDirection}">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical">
                         <LinearItemsLayout.ItemSpacing>
@@ -79,7 +83,7 @@
                     </LinearItemsLayout>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="music:MusicTypeListItemViewModel">
+                        <DataTemplate x:DataType="shared:PublicationListViewItemModel">
                             <Grid Margin="16,0">
                                 <core:SfEffectsView
                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
@@ -89,7 +93,7 @@
                                     RippleAnimationDuration="200"
                                     ShouldIgnoreTouches="False">
                                     <core:SfEffectsView.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnMusicTypeItemTapped" />
+                                        <TapGestureRecognizer Tapped="OnSongPublicationItemTapped" />
                                     </core:SfEffectsView.GestureRecognizers>
                                     <Border
                                         BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -232,13 +236,16 @@
                        HorizontalOptions="Center"
                        VerticalOptions="Center" />
             </Border>
-
-            <!-- BUSY OVERLAY – visibility controlled from code-behind to prevent binding race conditions -->
+            
+            <!-- Progress indicator when fetching -->
+            <sharedViews:ProgressIndicator Grid.Row="0"
+                                           Grid.RowSpan="3" />
+            
+            <!-- Busy Overlay -->
             <sharedViews:BusyOverlay x:Name="BusyOverlay"
                                      Grid.Row="0"
                                      Grid.RowSpan="3"
-                                     IsVisible="True" />
+                                     IsVisible="{Binding IsBusy}" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>
-

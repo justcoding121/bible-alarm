@@ -73,7 +73,7 @@ public sealed class MusicCommandInitializer
             setMusic(loadedMusic);
 
             // Create view model and open modal
-            var musicSelectionViewModel = serviceProvider.GetRequiredService<MusicSelectionViewModel>();
+            var musicSelectionViewModel = serviceProvider.GetRequiredService<MusicTypeSelectionViewModel>();
             await navigationService.OpenMusicSelectionModalAsync(musicSelectionViewModel);
 
             // Map entity to DTO before dispatching
@@ -105,7 +105,7 @@ public sealed class MusicCommandInitializer
             setMusic(loadedMusic);
 
             // Create view model and open modal
-            var musicSelectionViewModel = serviceProvider.GetRequiredService<MusicSelectionViewModel>();
+            var musicSelectionViewModel = serviceProvider.GetRequiredService<MusicTypeSelectionViewModel>();
             await navigationService.OpenMusicSelectionModalAsync(musicSelectionViewModel);
 
             // Map entity to DTO before dispatching
@@ -146,14 +146,14 @@ public sealed class MusicCommandInitializer
             setMusic(loadedMusic);
 
             // Create view model and open modal
-            var songPublicationSelectionViewModel = serviceProvider.GetRequiredService<SongPublicationSelectionViewModel>();
+            var songPublicationSelectionViewModel = serviceProvider.GetRequiredService<MusicPublicationSelectionViewModel>();
             await navigationService.OpenSongPublicationSelectionModalAsync(songPublicationSelectionViewModel);
 
             // Map entity to DTO before dispatching
             if (loadedMusic != null)
             {
                 var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
-                dispatcher.Dispatch(new SongPublicationSelectionAction(musicStateItem));
+                dispatcher.Dispatch(new MusicPublicationSelectionAction(musicStateItem));
             }
         });
     }
@@ -185,7 +185,7 @@ public sealed class MusicCommandInitializer
             if (loadedMusic != null)
             {
                 var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
-                dispatcher.Dispatch(new SongPublicationSelectionAction(musicStateItem));
+                dispatcher.Dispatch(new MusicPublicationSelectionAction(musicStateItem));
             }
         });
     }
@@ -210,14 +210,14 @@ public sealed class MusicCommandInitializer
             setMusic(loadedMusic);
 
             // Create view model and open modal
-            var trackSelectionViewModel = serviceProvider.GetRequiredService<TrackSelectionViewModel>();
-            await navigationService.OpenMusicTrackSelectionModalAsync(trackSelectionViewModel);
+            var musicTrackSelectionViewModel = serviceProvider.GetRequiredService<MusicTrackSelectionViewModel>();
+            await navigationService.OpenMusicTrackSelectionModalAsync(musicTrackSelectionViewModel);
 
             // Map entity to DTO before dispatching
             if (loadedMusic != null)
             {
                 var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
-                dispatcher.Dispatch(new TrackSelectionAction(musicStateItem));
+                dispatcher.Dispatch(new MusicTrackSelectionAction(musicStateItem));
             }
         });
     }
@@ -242,18 +242,18 @@ public sealed class MusicCommandInitializer
             setMusic(loadedMusic);
 
             // Map entity to DTO before dispatching
-            // SongPublicationSelectionViewModel needs CurrentMusic in state to initialize
+            // MusicPublicationSelectionViewModel needs CurrentMusic in state to initialize
             if (loadedMusic != null)
             {
                 var musicStateItem = mapper.Map<MusicStateItem>(loadedMusic);
                 dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
             }
 
-            // Create SongPublicationSelectionViewModel instance to open the language modal
-            var songPublicationSelectionViewModel = serviceProvider.GetRequiredService<SongPublicationSelectionViewModel>();
+            // Create MusicPublicationSelectionViewModel instance to open the language modal
+            var musicPublicationSelectionViewModel = serviceProvider.GetRequiredService<MusicPublicationSelectionViewModel>();
 
-            // Open the language modal using the SongPublicationSelectionViewModel
-            await navigationService.OpenLanguageModalAsync(songPublicationSelectionViewModel);
+            // Open the language modal using the MusicPublicationSelectionViewModel
+            await navigationService.OpenLanguageModalAsync(musicPublicationSelectionViewModel);
         });
     }
 

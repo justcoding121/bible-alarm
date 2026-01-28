@@ -8,7 +8,7 @@ using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Interfaces;
-using Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -18,7 +18,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class SongPublicationSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -29,12 +29,12 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
     private readonly IServiceProvider serviceProvider;
 
     // Helper classes
-    private readonly SongPublicationSelectionStateManager stateManager;
-    private readonly SongPublicationSelectionDataProvider dataProvider;
-    private readonly SongPublicationSelectionCommandHandler commandHandler;
-    private readonly SongPublicationSelectionPropertyManager propertyManager;
+    private readonly MusicPublicationSelectionStateManager stateManager;
+    private readonly MusicPublicationSelectionDataProvider dataProvider;
+    private readonly MusicPublicationSelectionCommandHandler commandHandler;
+    private readonly MusicPublicationSelectionPropertyManager propertyManager;
 
-    public SongPublicationSelectionViewModel(
+    public MusicPublicationSelectionViewModel(
         ILogger logger,
         IMediaService mediaService,
         IServiceScopeFactory scopeFactory,
@@ -53,12 +53,12 @@ public sealed class SongPublicationSelectionViewModel : ObservableObject, IListV
         this.serviceProvider = serviceProvider;
 
         // Initialize helper classes
-        stateManager = new SongPublicationSelectionStateManager();
+        stateManager = new MusicPublicationSelectionStateManager();
         var biblePublicationService = serviceProvider.GetService<IBiblePublicationService>();
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
-        dataProvider = new SongPublicationSelectionDataProvider(mediaService, biblePublicationService, languageContentService, scopeFactory);
-        commandHandler = new SongPublicationSelectionCommandHandler(navigationService, state, dispatcher, scopeFactory, mediaService);
-        propertyManager = new SongPublicationSelectionPropertyManager();
+        dataProvider = new MusicPublicationSelectionDataProvider(mediaService, biblePublicationService, languageContentService, scopeFactory);
+        commandHandler = new MusicPublicationSelectionCommandHandler(navigationService, state, dispatcher, scopeFactory, mediaService);
+        propertyManager = new MusicPublicationSelectionPropertyManager();
 
         state.StateChanged += OnMusicInitialized;
         state.StateChanged += OnMusicChanged;

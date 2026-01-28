@@ -7,24 +7,19 @@ using Serilog;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class TrackSelection : BaseContentPage, IDisposable
+public partial class MusicTrackSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
-    private readonly TrackSelectionViewModel viewModel;
+    private readonly MusicTrackSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public TrackSelectionViewModel? ViewModel => BindingContext as TrackSelectionViewModel;
+    public MusicTrackSelectionViewModel? ViewModel => BindingContext as MusicTrackSelectionViewModel;
 
-
-    public TrackSelection(TrackSelectionViewModel viewModel, TaskScheduler taskScheduler)
+    public MusicTrackSelection(MusicTrackSelectionViewModel viewModel, TaskScheduler taskScheduler)
     {
         InitializeComponent();
         BindingContext = viewModel;
         this.viewModel = viewModel;
-
-        // SelectionChanged handler removed - using SelectionMode="None" with TapGestureRecognizer instead
-        // This eliminates the orange flash visual feedback
-
         Appearing += OnAppearing;
     }
 
@@ -32,13 +27,9 @@ public partial class TrackSelection : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        // Wait for the page to be fully loaded and data to be ready before attempting to scroll
         if (ViewModel != null)
         {
-            // Wait for IsBusy to become false (data loaded) using Polly retry policy
             await CollectionViewHelper.WaitForNotBusyAsync(() => ViewModel.IsBusy, cancellationToken: cancellationTokenSource.Token);
-
-            // Small additional delay to ensure CollectionView is rendered
             await Task.Delay(200, cancellationTokenSource.Token);
 
             if (ViewModel.SelectedTrack != null && trackCollectionView != null)
@@ -58,7 +49,6 @@ public partial class TrackSelection : BaseContentPage, IDisposable
     {
         if (!isDisposed)
         {
-            // Cancel and dispose cancellation token source
             try
             {
                 cancellationTokenSource?.Cancel();
@@ -66,16 +56,13 @@ public partial class TrackSelection : BaseContentPage, IDisposable
             }
             catch (Exception ex)
             {
-                // Ignore errors during cancellation/disposal
                 Log.Logger.Warning(ex, "Error during cancellation token source disposal");
             }
 
-            // ViewModel was injected via constructor, so dispose it
             if (viewModel is IDisposable disposable)
             {
                 disposable.Dispose();
             }
-            // Clear BindingContext to break reference and allow garbage collection
             BindingContext = null;
             isDisposed = true;
         }
@@ -85,10 +72,7 @@ public partial class TrackSelection : BaseContentPage, IDisposable
     {
         if (sender is View view && view.BindingContext is MusicTrackListViewItemModel trackItem)
         {
-            // Set IsNavigating immediately to show progress indicator
             trackItem.IsNavigating = true;
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
             await Task.Delay(50);
 
             try
@@ -96,14 +80,11 @@ public partial class TrackSelection : BaseContentPage, IDisposable
                 if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<MusicTrackListViewItemModel> asyncCommand)
                 {
                     if (asyncCommand.CanExecute(trackItem))
-                    {
                         await asyncCommand.ExecuteAsync(trackItem);
-                    }
                 }
             }
             finally
             {
-                // Reset IsNavigating after operation completes
                 trackItem.IsNavigating = false;
             }
         }

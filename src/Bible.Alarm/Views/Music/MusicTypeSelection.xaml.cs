@@ -7,15 +7,15 @@ using Serilog;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class MusicSelection : BaseContentPage, IDisposable
+public partial class MusicTypeSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
-    private readonly MusicSelectionViewModel viewModel;
+    private readonly MusicTypeSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public MusicSelectionViewModel? ViewModel => BindingContext as MusicSelectionViewModel;
+    public MusicTypeSelectionViewModel? ViewModel => BindingContext as MusicTypeSelectionViewModel;
 
-    public MusicSelection(MusicSelectionViewModel viewModel)
+    public MusicTypeSelection(MusicTypeSelectionViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;
@@ -87,7 +87,7 @@ public partial class MusicSelection : BaseContentPage, IDisposable
 
             try
             {
-                if (ViewModel != null && ViewModel.SongPublicationSelectionCommand is IAsyncRelayCommand<MusicTypeListItemViewModel> asyncCommand)
+                if (ViewModel != null && ViewModel.MusicPublicationSelectionCommand is IAsyncRelayCommand<MusicTypeListItemViewModel> asyncCommand)
                 {
                     if (asyncCommand.CanExecute(musicTypeItem))
                     {

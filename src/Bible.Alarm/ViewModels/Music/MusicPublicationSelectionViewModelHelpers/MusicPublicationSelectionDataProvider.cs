@@ -13,12 +13,12 @@ using Bible.Alarm.ViewModels.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles data population for SongPublicationSelectionViewModel.
+/// Handles data population for MusicPublicationSelectionViewModel.
 /// </summary>
-public sealed class SongPublicationSelectionDataProvider(
+public sealed class MusicPublicationSelectionDataProvider(
     IMediaService mediaService,
     IBiblePublicationService? biblePublicationService = null,
     ILanguageContentService? languageContentService = null,

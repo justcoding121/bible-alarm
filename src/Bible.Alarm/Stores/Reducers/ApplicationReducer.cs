@@ -289,7 +289,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnSongPublicationSelection(ApplicationState state, SongPublicationSelectionAction action)
+    public static ApplicationState OnMusicPublicationSelection(ApplicationState state, MusicPublicationSelectionAction action)
     {
         // Song publication selection updates CurrentSchedule directly via OnMusicTrackSelected
         // This reducer is kept for backward compatibility but doesn't need to do anything
@@ -297,7 +297,7 @@ public static class ApplicationReducer
     }
 
     [ReducerMethod]
-    public static ApplicationState OnMusicTrackSelection(ApplicationState state, Actions.Music.TrackSelectionAction action)
+    public static ApplicationState OnMusicTrackSelection(ApplicationState state, Actions.Music.MusicTrackSelectionAction action)
     {
         // Track selection updates CurrentSchedule directly via OnMusicTrackSelected
         // This reducer is kept for backward compatibility but doesn't need to do anything

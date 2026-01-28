@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.Music.TrackSelection"
+    x:Class="Bible.Alarm.Views.Music.MusicTypeSelection"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -12,15 +12,12 @@
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
-    xmlns:shared="clr-namespace:Bible.Alarm.Views.Shared"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
-    x:DataType="music:TrackSelectionViewModel"
-    Title="Select Track">
+    x:DataType="music:MusicTypeSelectionViewModel"
+    Title="Select Music Type">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
-        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
-        <converters:RepeatColorConverter x:Key="repeatColorConverter" />
         <!-- Theme-aware colors are inherited from BaseContentPage -->
     </ContentPage.Resources>
     <ContentPage.Content>
@@ -28,16 +25,16 @@
             <!-- MAIN LIST -->
             <Grid
                 Margin="0"
-                IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
+                BackgroundColor="Transparent"
                 RowSpacing="0">
                 <!-- Enhanced Collection View -->
                 <CollectionView
-                    x:Name="trackCollectionView"
+                    x:Name="musicTypesCollectionView"
                     Margin="0,8,0,0"
                     BackgroundColor="Transparent"
                     Footer="{OnPlatform iOS=''}"
                     HorizontalOptions="Fill"
-                    ItemsSource="{Binding Tracks}"
+                    ItemsSource="{Binding MusicTypes}"
                     SelectionMode="None">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical">
@@ -50,7 +47,7 @@
                         </LinearItemsLayout>
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="music:MusicTrackListViewItemModel">
+                        <DataTemplate x:DataType="music:MusicTypeListItemViewModel">
                             <Grid Margin="16,0">
                                 <core:SfEffectsView
                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
@@ -60,7 +57,7 @@
                                     RippleAnimationDuration="200"
                                     ShouldIgnoreTouches="False">
                                     <core:SfEffectsView.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnTrackItemTapped" />
+                                        <TapGestureRecognizer Tapped="OnMusicTypeItemTapped" />
                                     </core:SfEffectsView.GestureRecognizers>
                                     <Border
                                         BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -92,10 +89,9 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             
-                                            <!-- Track Title -->
+                                            <!-- Music Type Name -->
                                             <Label
                                                 Grid.Column="0"
                                                 FontSize="{DynamicResource LargeFontSize}"
@@ -103,41 +99,12 @@
                                                 HorizontalTextAlignment="Start"
                                                 InputTransparent="True"
                                                 LineBreakMode="WordWrap"
-                                                MaxLines="2"
-                                                Text="{Binding Title}"
+                                                Text="{Binding Name}"
                                                 TextColor="{DynamicResource TextPrimaryColor}"
                                                 VerticalOptions="Center"
                                                 VerticalTextAlignment="Center" />
-                                            
-                                            <!-- Repeat Control -->
-                                            <Border
-                                                Grid.Column="1"
-                                                IsVisible="{Binding IsSelected}"
-                                                BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                                                HeightRequest="{DynamicResource IconSmallContainerSize}"
-                                                HorizontalOptions="End"
-                                                StrokeThickness="0"
-                                                VerticalOptions="Center"
-                                                WidthRequest="{DynamicResource IconSmallContainerSize}">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="18" />
-                                                </Border.StrokeShape>
-                                                <Button
-                                                    BackgroundColor="Transparent"
-                                                    BorderWidth="0"
-                                                    BorderColor="Transparent"
-                                                    Command="{Binding ToggleRepeatCommand}"
-                                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                                    FontSize="{DynamicResource LargeFontSize}"
-                                                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                                                    Padding="0"
-                                                    Text="{x:Static fn:GlyphNames.Repeat}"
-                                                    TextColor="{Binding Repeat, Converter={StaticResource repeatColorConverter}}"
-                                                    VerticalOptions="Fill"
-                                                    HorizontalOptions="Fill" />
-                                            </Border>
                                             <!-- Progress indicator - shows when IsNavigating is true -->
-                                            <Grid Grid.Column="2"
+                                            <Grid Grid.Column="1"
                                                   Margin="12,0,0,0"
                                                   VerticalOptions="Center"
                                                   HorizontalOptions="End"
@@ -161,10 +128,6 @@
                     </CollectionView.ItemTemplate>
                 </CollectionView>
             </Grid>
-            
-            <!-- BUSY OVERLAY – appears only while IsBusy = true -->
-            <shared:BusyOverlay IsVisible="{Binding IsBusy}" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>
-

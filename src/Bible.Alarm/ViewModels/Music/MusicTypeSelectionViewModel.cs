@@ -20,7 +20,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
+public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
 {
     private AlarmMusic? current;
 
@@ -30,7 +30,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
     private readonly INavigationService navigationService;
     private readonly IMapper mapper;
 
-    public MusicSelectionViewModel(IMediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
+    public MusicTypeSelectionViewModel(IMediaService mediaService, IServiceScopeFactory scopeFactory, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
     {
         this.mediaService = mediaService;
         this.state = state;
@@ -60,7 +60,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
         this.state.StateChanged += OnStateOnStateChanged;
 
-        SongPublicationSelectionCommand = new AsyncRelayCommand<MusicTypeListItemViewModel>(async x =>
+        MusicPublicationSelectionCommand = new AsyncRelayCommand<MusicTypeListItemViewModel>(async x =>
         {
             if (x == null)
             {
@@ -201,7 +201,7 @@ public sealed class MusicSelectionViewModel : ObservableObject, IDisposable
 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
-    public ICommand SongPublicationSelectionCommand { get; set; }
+    public ICommand MusicPublicationSelectionCommand { get; set; }
 
     public ObservableCollection<MusicTypeListItemViewModel> MusicTypes { get; set; }
         = new(

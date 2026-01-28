@@ -6,14 +6,14 @@ using CommunityToolkit.Mvvm.Input;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class TrackSelectionModal : BaseContentPage, IDisposable
+public partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public TrackSelectionViewModel? ViewModel => BindingContext as TrackSelectionViewModel;
+    public MusicTrackSelectionViewModel? ViewModel => BindingContext as MusicTrackSelectionViewModel;
 
-    public TrackSelectionModal()
+    public MusicTrackSelectionModal()
     {
         InitializeComponent();
         Appearing += OnAppearing;
@@ -28,9 +28,7 @@ public partial class TrackSelectionModal : BaseContentPage, IDisposable
             BusyOverlay,
             trackCollectionView,
             getSelectedItem: () => ViewModel?.SelectedTrack,
-            refreshAction: ViewModel != null
-                ? async () => await ViewModel.RefreshFromState()
-                : null,
+            refreshAction: ViewModel != null ? async () => await ViewModel.RefreshFromState() : null,
             cancellationToken: cancellationTokenSource.Token);
     }
 
@@ -45,15 +43,11 @@ public partial class TrackSelectionModal : BaseContentPage, IDisposable
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
-        // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
         if (sender is View view && view.BindingContext is MusicTrackListViewItemModel trackItem)
         {
-            // Set IsNavigating immediately to show progress indicator
             trackItem.IsNavigating = true;
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
             await Task.Delay(50);
 
             try
@@ -61,17 +55,13 @@ public partial class TrackSelectionModal : BaseContentPage, IDisposable
                 if (ViewModel != null && ViewModel.SetTrackCommand is IAsyncRelayCommand<MusicTrackListViewItemModel> asyncCommand)
                 {
                     if (asyncCommand.CanExecute(trackItem))
-                    {
                         await asyncCommand.ExecuteAsync(trackItem);
-                    }
                 }
             }
             finally
             {
-                // Reset IsNavigating after operation completes
                 trackItem.IsNavigating = false;
             }
         }
     }
 }
-

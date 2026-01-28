@@ -2,12 +2,12 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Bible.Alarm.ViewModels.Music.TrackSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles property management for TrackSelectionViewModel.
+/// Handles property management for MusicTrackSelectionViewModel.
 /// </summary>
-public sealed class TrackPropertyManager : ObservableObject
+public sealed class MusicTrackPropertyManager : ObservableObject
 {
     private bool isBusy = true;
     private ObservableCollection<MusicTrackListViewItemModel> tracks = [];

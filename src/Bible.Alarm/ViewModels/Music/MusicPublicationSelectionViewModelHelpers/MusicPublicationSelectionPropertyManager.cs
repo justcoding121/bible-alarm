@@ -4,12 +4,12 @@ using System.ComponentModel;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles property management for SongPublicationSelectionViewModel.
+/// Handles property management for MusicPublicationSelectionViewModel.
 /// </summary>
-public sealed class SongPublicationSelectionPropertyManager : ObservableObject
+public sealed class MusicPublicationSelectionPropertyManager : ObservableObject
 {
     private bool isBusy = true;
     private ObservableCollection<PublicationListViewItemModel>? songPublications;

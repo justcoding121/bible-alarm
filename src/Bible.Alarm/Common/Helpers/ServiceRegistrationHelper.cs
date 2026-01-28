@@ -304,9 +304,9 @@ public static class ServiceRegistrationHelper
     {
         services.AddTransient<HomeViewModel>();
         services.AddTransient<ScheduleViewModel>();
-        services.AddTransient<MusicSelectionViewModel>();
-        services.AddTransient<SongPublicationSelectionViewModel>();
-        services.AddTransient<ViewModels.Music.TrackSelectionViewModel>();
+        services.AddTransient<MusicTypeSelectionViewModel>();
+        services.AddTransient<MusicPublicationSelectionViewModel>();
+        services.AddTransient<ViewModels.Music.MusicTrackSelectionViewModel>();
         services.AddTransient<BiblePublicationSelectionViewModel>();
         services.AddTransient<CategorySelectionViewModel>();
         services.AddTransient<BiblePublicationSectionSelectionViewModel>();
@@ -337,9 +337,9 @@ public static class ServiceRegistrationHelper
     {
         services.AddTransient<Home>();
         services.AddTransient<Schedule>();
-        services.AddTransient<MusicSelection>();
-        services.AddTransient<SongPublicationSelection>();
-        services.AddTransient<Views.Music.TrackSelection>();
+        services.AddTransient<MusicTypeSelection>();
+        services.AddTransient<MusicPublicationSelection>();
+        services.AddTransient<Views.Music.MusicTrackSelection>();
         services.AddTransient<BiblePublicationSelection>();
         services.AddTransient<BiblePublicationSectionSelection>();
         services.AddTransient<BiblePublicationTrackSelection>();
@@ -349,10 +349,10 @@ public static class ServiceRegistrationHelper
         services.AddTransient<AlarmModal>();
         services.AddTransient<BiblePublicationSelectionModal>();
         services.AddTransient<BiblePublicationSectionSelectionModal>();
-        services.AddTransient<Views.Music.TrackSelectionModal>();
+        services.AddTransient<Views.Music.MusicTrackSelectionModal>();
         services.AddTransient<Views.Music.MusicSectionSelectionModal>();
-        services.AddTransient<MusicSelectionModal>();
-        services.AddTransient<SongPublicationSelectionModal>();
+        services.AddTransient<MusicTypeSelectionModal>();
+        services.AddTransient<MusicPublicationSelectionModal>();
         services.AddTransient<BiblePublicationTrackSelectionModal>();
         services.AddTransient<AndroidAlarmPermissionModal>();
         services.AddTransient<NumberOfTracksModal>();

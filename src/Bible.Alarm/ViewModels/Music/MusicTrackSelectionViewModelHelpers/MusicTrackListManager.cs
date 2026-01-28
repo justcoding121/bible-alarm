@@ -8,12 +8,12 @@ using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Music.TrackSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles track list management and population for TrackSelectionViewModel.
+/// Handles track list management and population for MusicTrackSelectionViewModel.
 /// </summary>
-public sealed class TrackListManager(
+public sealed class MusicTrackListManager(
     ILogger logger,
     IMediaService mediaService)
 {

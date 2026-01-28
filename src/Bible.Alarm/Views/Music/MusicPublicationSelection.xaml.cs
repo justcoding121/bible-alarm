@@ -6,14 +6,14 @@ using CommunityToolkit.Mvvm.Input;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class SongPublicationSelection : BaseContentPage, IDisposable
+public partial class MusicPublicationSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
-    private readonly SongPublicationSelectionViewModel viewModel;
+    private readonly MusicPublicationSelectionViewModel viewModel;
 
-    public SongPublicationSelectionViewModel? ViewModel => BindingContext as SongPublicationSelectionViewModel;
+    public MusicPublicationSelectionViewModel? ViewModel => BindingContext as MusicPublicationSelectionViewModel;
 
-    public SongPublicationSelection(SongPublicationSelectionViewModel viewModel)
+    public MusicPublicationSelection(MusicPublicationSelectionViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.Music.MusicSelection"
+    x:Class="Bible.Alarm.Views.Music.MusicPublicationSelection"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -11,30 +11,65 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:behaviours="clr-namespace:Bible.Alarm.Common.ViewHelpers.Behaviours"
+    xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:system="clr-namespace:System;assembly=System.Runtime"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
-    x:DataType="music:MusicSelectionViewModel"
-    Title="Select Music Type">
+    x:DataType="music:MusicPublicationSelectionViewModel"
+    Title="Select Song Section">
     <ContentPage.Resources>
         <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" />
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <!-- Theme-aware colors are inherited from BaseContentPage -->
     </ContentPage.Resources>
+    <ContentPage.ToolbarItems>
+        <ToolbarItem
+            Order="Primary"
+            Priority="0"
+            Command="{Binding OpenModalCommand}">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    Glyph="{x:Static fn:GlyphNames.Language}"
+                    Color="{StaticResource PrimaryColor}"
+                    Size="24" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+    </ContentPage.ToolbarItems>
     <ContentPage.Content>
         <Grid BackgroundColor="{DynamicResource BackgroundColor}">
-            <!-- MAIN LIST -->
+            <ActivityIndicator
+                Grid.Row="0"
+                HorizontalOptions="Center"
+                IsEnabled="True"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Scale="0.5"
+                VerticalOptions="Center"
+                Color="{StaticResource PrimaryColor}">
+                <ActivityIndicator.Scale>
+                    <OnPlatform x:TypeArguments="x:Double">
+                        <OnPlatform.Platforms>
+                            <On Platform="iOS" Value="4.0" />
+                            <On Platform="Android" Value="1.0" />
+                            <On Platform="Win" Value="1.0" />
+                        </OnPlatform.Platforms>
+                    </OnPlatform>
+                </ActivityIndicator.Scale>
+            </ActivityIndicator>
             <Grid
+                Grid.Row="0"
                 Margin="0"
-                BackgroundColor="Transparent"
+                IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                 RowSpacing="0">
                 <!-- Enhanced Collection View -->
                 <CollectionView
-                    x:Name="musicTypesCollectionView"
+                    x:Name="songPublicationsCollectionView"
                     Margin="0,8,0,0"
                     BackgroundColor="Transparent"
                     Footer="{OnPlatform iOS=''}"
                     HorizontalOptions="Fill"
-                    ItemsSource="{Binding MusicTypes}"
+                    ItemsSource="{Binding SongPublications}"
                     SelectionMode="None">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical">
@@ -47,7 +82,7 @@
                         </LinearItemsLayout>
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="music:MusicTypeListItemViewModel">
+                        <DataTemplate x:DataType="shared:PublicationListViewItemModel">
                             <Grid Margin="16,0">
                                 <core:SfEffectsView
                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
@@ -57,7 +92,7 @@
                                     RippleAnimationDuration="200"
                                     ShouldIgnoreTouches="False">
                                     <core:SfEffectsView.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnMusicTypeItemTapped" />
+                                        <TapGestureRecognizer Tapped="OnSongPublicationItemTapped" />
                                     </core:SfEffectsView.GestureRecognizers>
                                     <Border
                                         BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -91,7 +126,7 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             
-                                            <!-- Music Type Name -->
+                                            <!-- Song Section Name -->
                                             <Label
                                                 Grid.Column="0"
                                                 FontSize="{DynamicResource LargeFontSize}"
@@ -131,4 +166,3 @@
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>
-

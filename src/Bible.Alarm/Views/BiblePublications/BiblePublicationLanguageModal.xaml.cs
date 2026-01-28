@@ -5,7 +5,7 @@ using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 
-namespace Bible.Alarm.Views.Shared;
+namespace Bible.Alarm.Views.Bible;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposable
@@ -88,4 +88,3 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         }
     }
 }
-

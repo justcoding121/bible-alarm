@@ -5,12 +5,12 @@ using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Fluxor;
 
-namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles state management and initialization for SongPublicationSelectionViewModel.
+/// Handles state management and initialization for MusicPublicationSelectionViewModel.
 /// </summary>
-public sealed class SongPublicationSelectionStateManager
+public sealed class MusicPublicationSelectionStateManager
 {
     private AlarmMusic? current;
     private AlarmMusic? lastCurrent;

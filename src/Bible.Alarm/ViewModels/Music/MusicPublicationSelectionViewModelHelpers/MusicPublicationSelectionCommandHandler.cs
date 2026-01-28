@@ -13,12 +13,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Music.SongPublicationSelectionViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
 
 /// <summary>
-/// Handles command execution for SongPublicationSelectionViewModel.
+/// Handles command execution for MusicPublicationSelectionViewModel.
 /// </summary>
-public sealed class SongPublicationSelectionCommandHandler(
+public sealed class MusicPublicationSelectionCommandHandler(
     INavigationService navigationService,
     IState<ApplicationState> state,
     IDispatcher dispatcher,
@@ -28,7 +28,7 @@ public sealed class SongPublicationSelectionCommandHandler(
     public async Task HandleTrackSelectionAsync(
         PublicationListViewItemModel songPublication,
         LanguageListViewItemModel? currentLanguage,
-        SongPublicationSelectionDataProvider dataProvider,
+        MusicPublicationSelectionDataProvider dataProvider,
         AlarmMusic? current,
         Action<bool> setShowProgress,
         Action<double> setProgressPercent,
@@ -229,7 +229,7 @@ public sealed class SongPublicationSelectionCommandHandler(
 
     public async Task HandleLanguageSelectionAsync(
         LanguageListViewItemModel language,
-        SongPublicationSelectionDataProvider dataProvider,
+        MusicPublicationSelectionDataProvider dataProvider,
         Action<LanguageListViewItemModel?> setCurrentLanguage,
         Action<LanguageListViewItemModel> updateSelectedLanguage,
         Action<bool> setShowProgress,

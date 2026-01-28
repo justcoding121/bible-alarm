@@ -6,14 +6,14 @@ using CommunityToolkit.Mvvm.Input;
 namespace Bible.Alarm.Views.Music;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class MusicSelectionModal : BaseContentPage, IDisposable
+public partial class MusicTypeSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    public MusicSelectionViewModel? ViewModel => BindingContext as MusicSelectionViewModel;
+    public MusicTypeSelectionViewModel? ViewModel => BindingContext as MusicTypeSelectionViewModel;
 
-    public MusicSelectionModal()
+    public MusicTypeSelectionModal()
     {
         InitializeComponent();
         Appearing += OnAppearing;
@@ -23,7 +23,7 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        // MusicSelectionModal has a static list of 2 items (Melodies, Vocals)
+        // MusicTypeSelectionModal has a static list of 2 items (Melodies, Vocals)
         // No DB loading needed, so use simplified flow without IsBusy polling
         try
         {
@@ -97,7 +97,7 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
 
             try
             {
-                if (ViewModel != null && ViewModel.SongPublicationSelectionCommand is IAsyncRelayCommand<MusicTypeListItemViewModel> asyncCommand)
+                if (ViewModel != null && ViewModel.MusicPublicationSelectionCommand is IAsyncRelayCommand<MusicTypeListItemViewModel> asyncCommand)
                 {
                     if (asyncCommand.CanExecute(musicTypeItem))
                     {
@@ -113,4 +113,3 @@ public partial class MusicSelectionModal : BaseContentPage, IDisposable
         }
     }
 }
-
