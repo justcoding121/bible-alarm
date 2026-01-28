@@ -95,15 +95,16 @@ public class PlaylistMusicTrackBuilder
             // LanguageCode is empty for melody music
         };
 
-        // Use UrlConstructionService to get the lookup path from database
-        // For melodies, use DownloadCode (disc code) as publicationCode and null language
-        if (urlConstructionService != null && !string.IsNullOrEmpty(melodyTrack.DownloadCode))
+        // Use UrlConstructionService to get the lookup path from database.
+        // For melodies, API expects pub=section (disc) code (e.g. iam-1), not publication code (iam).
+        // Pass publication code + section/disc code so the DB track's UrlParams (pub=iam-1) are used.
+        if (urlConstructionService != null && !string.IsNullOrEmpty(melodyMusic.PublicationCode) && !string.IsNullOrEmpty(melodyTrack.DownloadCode))
         {
             var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
-                melodyTrack.DownloadCode, // Use disc code (e.g., "iam-1") as publication code
+                melodyMusic.PublicationCode,
                 null, // Melodies don't have language
-                null, // No section for music
-                melodyTrack.OriginalTrackNumber ?? melodyTrack.Number);
+                melodyTrack.DownloadCode, // Section/disc code (e.g. "iam-1") - API uses this as pub=
+                melodyTrack.Number);
             if (!string.IsNullOrEmpty(lookUpPath))
             {
                 trackMetadata.LookUpPath = lookUpPath;

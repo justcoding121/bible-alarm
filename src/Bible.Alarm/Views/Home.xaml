@@ -47,7 +47,7 @@
                                         TouchUpEffects="None"
                                         RippleBackground="{StaticResource PrimaryColor}"
                                         RippleAnimationDuration="200"
-                                        ShouldIgnoreTouches="False"
+                                        ShouldIgnoreTouches="{Binding IsBootstrapReady, Converter={StaticResource negateBooleanConverter}}"
                                         HorizontalOptions="Fill"
                                         VerticalOptions="Fill">
                         <core:SfEffectsView.IsVisible>
@@ -63,9 +63,15 @@
                                 AutomationId="AddScheduleButton"
                                 BackgroundColor="{StaticResource PrimaryColor}"
                                 HorizontalOptions="Fill"
-                                VerticalOptions="Fill"
-                                InputTransparent="{OnPlatform WinUI=True, Default=False}"
-                                Opacity="{Binding IsBootstrapReady, Converter={StaticResource booleanToOpacityConverter}}">
+                                VerticalOptions="Fill">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsBootstrapReady}" Value="False">
+                                    <Setter Property="Opacity" Value="0.5" />
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsBootstrapReady}" Value="True">
+                                    <Setter Property="Opacity" Value="1.0" />
+                                </DataTrigger>
+                            </Border.Triggers>
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="{DynamicResource CornerRadiusLarge}" />
                             </Border.StrokeShape>
@@ -108,8 +114,17 @@
                             AutomationId="AddScheduleButton"
                             BackgroundColor="{StaticResource PrimaryColor}"
                             HorizontalOptions="Fill"
-                            VerticalOptions="Fill"
-                            Opacity="{Binding IsBootstrapReady, Converter={StaticResource booleanToOpacityConverter}}">
+                            VerticalOptions="Fill">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsBootstrapReady}" Value="False">
+                                <Setter Property="Opacity" Value="0.5" />
+                                <Setter Property="InputTransparent" Value="True" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsBootstrapReady}" Value="True">
+                                <Setter Property="Opacity" Value="1.0" />
+                                <Setter Property="InputTransparent" Value="False" />
+                            </DataTrigger>
+                        </Border.Triggers>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding AddScheduleCommand}" />
                         </Border.GestureRecognizers>

@@ -379,11 +379,13 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.MusicLanguageName = actionMusic.LanguageName;
         updatedSchedule.MusicLanguageDirection = actionMusic.LanguageDirection;
         updatedSchedule.MusicPublicationName = actionMusic.PublicationName;
+        updatedSchedule.MusicSectionName = actionMusic.SectionName;
         updatedSchedule.MusicTrackName = actionMusic.TrackName;
 
-        Log.Debug("ScheduleEffects: HandleTrackSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, TrackName: {TrackName}",
+        Log.Debug("ScheduleEffects: HandleTrackSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}, TrackName: {TrackName}",
             updatedSchedule.MusicLanguageName ?? "null",
             updatedSchedule.MusicPublicationName ?? "null",
+            updatedSchedule.MusicSectionName ?? "null",
             updatedSchedule.MusicTrackName ?? "null");
     }
 
@@ -398,7 +400,7 @@ public sealed class TrackSelectionSyncHandler
             updatedSchedule.MusicPublicationName ?? "null",
             updatedSchedule.MusicTrackNumber,
             updatedSchedule.MusicTrackName ?? "null");
-        dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
+        dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
 
         Log.Debug("ScheduleEffects: HandleTrackSelected - Synced CurrentMusic to CurrentSchedule for ScheduleId: {ScheduleId}",
             scheduleId);

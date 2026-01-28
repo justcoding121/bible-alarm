@@ -31,7 +31,7 @@ public class CommandHandler
         this.showOverlayAndNavigateAsync = showOverlayAndNavigateAsync;
     }
 
-    public ICommand CreateAddScheduleCommand(Action<bool>? setIsAddBusy = null)
+    public ICommand CreateAddScheduleCommand(Action<bool>? setIsAddBusy = null, Func<bool>? canExecute = null)
     {
         return new AsyncRelayCommand(async () =>
         {
@@ -59,7 +59,7 @@ public class CommandHandler
             
             // Reset IsAddBusy after navigation completes
             setIsAddBusy?.Invoke(false);
-        });
+        }, canExecute);
     }
 
     public ICommand CreateViewScheduleCommand(Action? showProgressBar = null, Func<Task>? hideProgressBar = null)

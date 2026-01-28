@@ -1,16 +1,22 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
+using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 using Bible.Alarm.Stores.Effects.Services;
+using Bible.Alarm.Stores.Models;
 using Fluxor;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -150,6 +156,19 @@ public class ScheduleEffects(
             if (!action.ShouldSave)
             {
                 Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModel - ShouldSave=false, skipping DB update. Only state was updated.");
+                
+                // Even when not saving, we may need to populate missing display names (e.g., section name from track number)
+                // This is especially important when switching music types where track number is preserved but section name is missing
+                if (action.MusicUpdated && action.Schedule.MusicType == MusicType.Music &&
+                    action.Schedule.MusicTrackNumber.HasValue && action.Schedule.MusicTrackNumber.Value > 0 &&
+                    string.IsNullOrWhiteSpace(action.Schedule.MusicSectionName) &&
+                    !string.IsNullOrWhiteSpace(action.Schedule.MusicPublicationCode))
+                {
+                    Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModel - Populating MusicSectionName from track for Instrumental. PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
+                        action.Schedule.MusicPublicationCode, action.Schedule.MusicTrackNumber);
+                    await PopulateMusicSectionNameForStateAsync(action.Schedule, dispatcher);
+                }
+                
                 return;
             }
 
@@ -252,15 +271,13 @@ public class ScheduleEffects(
 
     /// <summary>
     /// Effect: Sync CurrentMusic to CurrentSchedule when TrackSelectedAction is dispatched.
-    /// This ensures that when sub-pages update CurrentMusic, CurrentSchedule is also updated
-    /// so the schedule page displays the changes immediately.
+    /// Dispatches UpdateScheduleFromViewModelAction (musicUpdated: true, shouldSave: false) so that
+    /// HandleUpdateScheduleFromViewModel can run PopulateMusicSectionNameForStateAsync for instrumental music.
     /// </summary>
     [EffectMethod]
     public async Task HandleMusicTrackSelected(Bible.Alarm.Stores.Actions.Music.TrackSelectedAction action, IDispatcher dispatcher)
     {
-        // No-op: Reducer OnMusicTrackSelected now directly updates CurrentSchedule
-        // No sync needed - CurrentSchedule is the single source of truth
-        await Task.CompletedTask;
+        await trackSyncHandler.HandleTrackSelected(action, dispatcher);
     }
 
     /// <summary>
@@ -381,6 +398,91 @@ public class ScheduleEffects(
         catch (Exception ex)
         {
             Log.Error(ex, "ScheduleEffects: Error handling Music cascade");
+        }
+    }
+
+    /// <summary>
+    /// Populates MusicSectionName in the state item when we have a track number but no section name for instrumental music.
+    /// This is used when switching music types where the track number is preserved but section name is missing.
+    /// Follows the same pattern as Bible container: only populate section name if publication has section structure.
+    /// </summary>
+    private async Task PopulateMusicSectionNameForStateAsync(ScheduleStateItem scheduleStateItem, IDispatcher dispatcher)
+    {
+        try
+        {
+            if (scheduleStateItem.MusicType != MusicType.Music ||
+                !scheduleStateItem.MusicTrackNumber.HasValue ||
+                scheduleStateItem.MusicTrackNumber.Value <= 0 ||
+                string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationCode))
+            {
+                return;
+            }
+
+            // If section name is already populated, skip
+            if (!string.IsNullOrWhiteSpace(scheduleStateItem.MusicSectionName))
+            {
+                return;
+            }
+
+            // Check if publication has section structure (following Bible container pattern)
+            // Only populate section name if publication actually has sections
+            if (!Shared.Helpers.PublicationTypeHelper.HasSectionStructure(scheduleStateItem.MusicPublicationCode))
+            {
+                // Non-sectioned publication - clear section code/name if they exist
+                if (!string.IsNullOrWhiteSpace(scheduleStateItem.MusicSectionCode))
+                {
+                    var updatedSchedule = scheduleStateItem.DeepClone();
+                    updatedSchedule.MusicSectionCode = null;
+                    updatedSchedule.MusicSectionName = null;
+
+                    Log.Debug("ScheduleEffects: Cleared MusicSectionCode and MusicSectionName for non-sectioned publication {PublicationCode}",
+                        scheduleStateItem.MusicPublicationCode);
+
+                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
+                }
+                return;
+            }
+
+            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
+            if (scopeFactory == null)
+            {
+                Log.Warning("ScheduleEffects: ServiceProvider not available for music section lookup by track");
+                return;
+            }
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            // Find the section that contains this track number
+            var sectionInfo = await dbContext.BiblePublicationTracks
+                .AsNoTracking()
+                .Include(t => t.Section)
+                    .ThenInclude(s => s.BiblePublication)
+                        .ThenInclude(p => p.Category)
+                .Where(t => t.BiblePublicationSectionId != null
+                    && t.Number == scheduleStateItem.MusicTrackNumber.Value
+                    && t.Publication.PublicationCode == scheduleStateItem.MusicPublicationCode
+                    && t.Publication.Category.CategoryName == "Music"
+                    && t.Publication.LanguageId == null)
+                .Select(t => new { t.Section!.SectionCode, t.Section.Name })
+                .FirstOrDefaultAsync();
+
+            if (sectionInfo != null && !string.IsNullOrWhiteSpace(sectionInfo.SectionCode))
+            {
+                // Update the state item with section code and name
+                var updatedSchedule = scheduleStateItem.DeepClone();
+                updatedSchedule.MusicSectionCode = sectionInfo.SectionCode;
+                updatedSchedule.MusicSectionName = sectionInfo.Name;
+
+                Log.Debug("ScheduleEffects: Populated MusicSectionCode '{MusicSectionCode}' and MusicSectionName '{MusicSectionName}' from track {TrackNumber}",
+                    sectionInfo.SectionCode, sectionInfo.Name, scheduleStateItem.MusicTrackNumber.Value);
+
+                // Dispatch update to state (without saving to DB)
+                dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "ScheduleEffects: Error populating music section name for state");
         }
     }
 }

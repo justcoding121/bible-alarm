@@ -37,6 +37,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
     private double progressPercent = 0.0;
     private string progressText = string.Empty;
     private bool isDisposed = false;
+    private bool isSelectingSection;
 
     // Helper class
     private readonly StateChangeHandler stateChangeHandler;
@@ -69,13 +70,16 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
         TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async x =>
         {
+            if (x == null)
+            {
+                return;
+            }
+
+            // Set flag to prevent RefreshFromState from resetting IsBusy
+            isSelectingSection = true;
+
             try
             {
-                if (x == null)
-                {
-                    return;
-                }
-
                 // Always use CurrentSchedule as the source of truth for language/publication codes
                 // This ensures we use the latest state, not stale data from 'current' field
                 var currentSchedule = state.Value.CurrentSchedule;
@@ -155,6 +159,11 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 {
                     logger.Warning("SectionSelectionViewModel: TrackSelectionCommand - No tracks found for section={SectionNumber}, publication={PublicationCode}, language={LanguageCode}",
                         x.Number, currentSchedule.BiblePublicationCode, languageCode ?? "(null)");
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        IsBusy = false;
+                        ShowProgress = false;
+                    });
                     return;
                 }
 
@@ -232,6 +241,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 await Task.Delay(100);
                 
                 // Navigate back to schedule page
+                // Keep IsBusy = true until modal closes - don't hide busy overlay here
                 await navigationService.PopModalAsync();
             }
             catch (Exception ex)
@@ -245,11 +255,8 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
             }
             finally
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    IsBusy = false;
-                    ShowProgress = false;
-                });
+                // Reset flag after operation completes (whether success or error)
+                isSelectingSection = false;
             }
         });
 
@@ -278,6 +285,11 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
 
     private void OnBiblePublicationChanged(object? sender, EventArgs e)
     {
+        // Don't handle state changes while selecting a section (to avoid conflicts)
+        if (isDisposed || isSelectingSection)
+        {
+            return;
+        }
         stateChangeHandler.HandleStateChanged(state.Value);
     }
 
@@ -300,6 +312,12 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
     /// </summary>
     public async Task RefreshFromState()
     {
+        // Don't refresh if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
+        if (isSelectingSection)
+        {
+            return;
+        }
+
         var stateValue = state.Value;
 
         // Use CurrentSchedule as the source of truth, not CurrentBiblePublicationSchedule
@@ -346,19 +364,19 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         }
 
         // Initialize or repopulate with the current language/publication
-        if (needsRepopulation && !isDisposed)
+        if (needsRepopulation && !isDisposed && !isSelectingSection)
         {
             try
             {
                 await MainThread.InvokeOnMainThreadAsync(() => 
                 {
-                    if (!isDisposed)
+                    if (!isDisposed && !isSelectingSection)
                     {
                         IsBusy = true;
                     }
                 });
                 
-                if (isDisposed)
+                if (isDisposed || isSelectingSection)
                 {
                     return;
                 }
@@ -367,21 +385,21 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
                     progress => _ = MainThread.InvokeOnMainThreadAsync(() => 
                     {
-                        if (!isDisposed)
+                        if (!isDisposed && !isSelectingSection)
                         {
                             ProgressPercent = progress;
                         }
                     }),
                     text => _ = MainThread.InvokeOnMainThreadAsync(() => 
                     {
-                        if (!isDisposed)
+                        if (!isDisposed && !isSelectingSection)
                         {
                             ProgressText = text;
                         }
                     }),
                     isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => 
                     {
-                        if (!isDisposed)
+                        if (!isDisposed && !isSelectingSection)
                         {
                             ShowProgress = isVisible;
                         }
@@ -390,17 +408,30 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 // Use the latest state values, not cached ones
                 await Initialize(newLanguageCode, newPublicationCode, progressTracker);
 
+                // Check again if we're selecting a section (may have changed during async operation)
+                if (isSelectingSection)
+                {
+                    return;
+                }
+
                 // Set selected section after sections are populated (on main thread to ensure UI is ready)
-                await MainThread.InvokeOnMainThreadAsync(() => SetSelectedSection());
+                await MainThread.InvokeOnMainThreadAsync(() => 
+                {
+                    if (!isDisposed && !isSelectingSection)
+                    {
+                        SetSelectedSection();
+                    }
+                });
 
                 // Give CollectionView time to render before hiding busy indicator
                 // This matches the pattern used in TrackSelectionViewModel
                 await Task.Delay(100);
 
-                // Set IsBusy to false after collection is assigned and rendered - the busy overlay will hide instantly
+                // Set IsBusy to false after collection is assigned and rendered
+                // Don't reset IsBusy if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    if (!isDisposed)
+                    if (!isDisposed && !isSelectingSection)
                     {
                         IsBusy = false;
                         ShowProgress = false;
@@ -413,7 +444,7 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
                 logger.Error(ex, "SectionSelectionViewModel: RefreshFromState - Error during repopulation");
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    if (!isDisposed)
+                    if (!isDisposed && !isSelectingSection)
                     {
                         IsBusy = false;
                         ShowProgress = false;
@@ -424,10 +455,10 @@ public sealed class SectionSelectionViewModel : ObservableObject, IDisposable
         else
         {
             // Update selected section when state changes (e.g., after navigating back)
-            // Ensure this runs on main thread for UI updates
+            // Don't reset IsBusy or update selection if we're currently selecting a section
             MainThread.BeginInvokeOnMainThread(() => 
             {
-                if (!isDisposed)
+                if (!isDisposed && !isSelectingSection)
                 {
                     SetSelectedSection();
                 }

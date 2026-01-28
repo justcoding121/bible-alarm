@@ -61,9 +61,9 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
             }
 
             // Hide overlay and reveal list together
+            // Don't directly set BusyOverlay.IsVisible - let the binding handle it via IsBusy
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                BusyOverlay.IsVisible = false;
                 // Only set Opacity on non-Windows (we didn't hide it there)
                 if (DeviceInfo.Platform != DevicePlatform.WinUI)
                 {
@@ -73,11 +73,14 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
         }
         catch (OperationCanceledException)
         {
-            // User tapped item - reveal immediately
-            BusyOverlay.IsVisible = false;
+            // User tapped item - TrackSelectionCommand will handle IsBusy, don't interfere
+            // Just reveal the list if needed
             if (DeviceInfo.Platform != DevicePlatform.WinUI)
             {
-                sectionCollectionView.Opacity = 1;
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    sectionCollectionView.Opacity = 1;
+                });
             }
         }
     }

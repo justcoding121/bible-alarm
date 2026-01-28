@@ -132,10 +132,11 @@ internal sealed class MusicNamePopulator
 
     /// <summary>
     /// Populate MusicSectionName from music sections if Music exists and has a section code.
+    /// Also handles the case where we have a track number but no section code - finds the section containing the track.
     /// </summary>
     public async Task PopulateMusicSectionNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.Music == null || biblePublicationSectionService == null)
+        if (schedule.Music == null)
         {
             return;
         }
@@ -143,54 +144,117 @@ internal sealed class MusicNamePopulator
         try
         {
             var music = schedule.Music;
-            if (string.IsNullOrWhiteSpace(music.SectionCode) ||
-                string.IsNullOrWhiteSpace(music.PublicationCode))
+            if (string.IsNullOrWhiteSpace(music.PublicationCode))
             {
                 return;
             }
 
-            // Convert SectionCode to int for lookup
-            var sectionNumber = await SectionCodeConverter.ConvertToIntAsync(
-                music.SectionCode,
-                music.LanguageCode ?? string.Empty, // For melodies, LanguageCode is null
-                music.PublicationCode);
-
-            if (sectionNumber <= 0)
+            // If we have a section code, use it to populate the section name
+            if (!string.IsNullOrWhiteSpace(music.SectionCode))
             {
-                return;
-            }
+                // Convert SectionCode to int for lookup
+                var sectionNumber = await SectionCodeConverter.ConvertToIntAsync(
+                    music.SectionCode,
+                    music.LanguageCode ?? string.Empty, // For melodies, LanguageCode is null
+                    music.PublicationCode);
 
-            // For vocal music, we need language code
-            if (music.MusicType == MusicType.VocalMusic)
-            {
-                if (string.IsNullOrWhiteSpace(music.LanguageCode))
+                if (sectionNumber <= 0)
                 {
                     return;
                 }
 
-                var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
-                    music.LanguageCode,
-                    music.PublicationCode,
-                    sectionNumber);
-
-                if (!string.IsNullOrWhiteSpace(sectionName))
+                // For vocal music, we need language code
+                if (music.MusicType == MusicType.VocalMusic)
                 {
-                    scheduleStateItem.MusicSectionName = sectionName;
-                    Log.Debug("ScheduleEffects: Set MusicSectionName '{MusicSectionName}' for schedule {ScheduleId} (SectionCode: {SectionCode})",
-                        sectionName, schedule.Id, music.SectionCode);
+                    if (string.IsNullOrWhiteSpace(music.LanguageCode) || biblePublicationSectionService == null)
+                    {
+                        return;
+                    }
+
+                    var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
+                        music.LanguageCode,
+                        music.PublicationCode,
+                        sectionNumber);
+
+                    if (!string.IsNullOrWhiteSpace(sectionName))
+                    {
+                        scheduleStateItem.MusicSectionName = sectionName;
+                        Log.Debug("ScheduleEffects: Set MusicSectionName '{MusicSectionName}' for schedule {ScheduleId} (SectionCode: {SectionCode})",
+                            sectionName, schedule.Id, music.SectionCode);
+                    }
+                }
+                else if (music.MusicType == MusicType.Music)
+                {
+                    // For melodies, music publications are BiblePublications with Category=Music and LanguageId=null
+                    // We need to query sections directly from the database since LanguageId is null
+                    // Query BiblePublicationSections directly by publication code and section number
+                    try
+                    {
+                        var serviceProvider = MauiAppHolder.Services;
+                        if (serviceProvider == null)
+                        {
+                            Log.Warning("ScheduleEffects: ServiceProvider not available for music section lookup in schedule {ScheduleId}", schedule.Id);
+                            return;
+                        }
+
+                        var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+                        using var scope = scopeFactory.CreateScope();
+                        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+                        var section = await dbContext.BiblePublicationSections
+                            .AsNoTracking()
+                            .Include(x => x.BiblePublication)
+                                .ThenInclude(x => x.Category)
+                            .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode
+                                && x.BiblePublication.Category.CategoryName == "Music"
+                                && x.BiblePublication.LanguageId == null
+                                && x.SectionCode != null && x.SectionCode.Equals(music.SectionCode, StringComparison.OrdinalIgnoreCase))
+                            .Select(x => x.Name)
+                            .FirstOrDefaultAsync();
+
+                        if (!string.IsNullOrWhiteSpace(section))
+                        {
+                            scheduleStateItem.MusicSectionName = section;
+                            Log.Debug("ScheduleEffects: Set MusicSectionName '{MusicSectionName}' for schedule {ScheduleId} (SectionCode: {SectionCode})",
+                                section, schedule.Id, music.SectionCode);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "ScheduleEffects: Error querying music section for melody in schedule {ScheduleId}", schedule.Id);
+                    }
                 }
             }
-            else if (music.MusicType == MusicType.Music)
+            // If we don't have a section code but we have a track number, find which section contains the track
+            // Only if the publication has section structure (following Bible container pattern)
+            else if (music.TrackNumber > 0 && music.MusicType == MusicType.Music)
             {
-                // For melodies, music publications are BiblePublications with Category=Music and LanguageId=null
-                // We need to query sections directly from the database since LanguageId is null
-                // Query BiblePublicationSections directly by publication code and section number
+                // Check if publication has section structure (following Bible container pattern)
+                // Only populate section name if publication actually has sections
+                if (!Bible.Alarm.Shared.Helpers.PublicationTypeHelper.HasSectionStructure(music.PublicationCode))
+                {
+                    // Non-sectioned publication - clear section code/name if they exist
+                    if (!string.IsNullOrWhiteSpace(scheduleStateItem.MusicSectionCode))
+                    {
+                        scheduleStateItem.MusicSectionCode = null;
+                        scheduleStateItem.MusicSectionName = null;
+                        if (schedule.Music != null)
+                        {
+                            schedule.Music.SectionCode = null;
+                        }
+                        Log.Debug("ScheduleEffects: Cleared MusicSectionCode and MusicSectionName for non-sectioned publication {PublicationCode} in schedule {ScheduleId}",
+                            music.PublicationCode, schedule.Id);
+                    }
+                    return;
+                }
+
+                // For instrumental music with section structure, find the section that contains this track number
                 try
                 {
                     var serviceProvider = MauiAppHolder.Services;
                     if (serviceProvider == null)
                     {
-                        Log.Warning("ScheduleEffects: ServiceProvider not available for music section lookup in schedule {ScheduleId}", schedule.Id);
+                        Log.Warning("ScheduleEffects: ServiceProvider not available for music section lookup by track in schedule {ScheduleId}", schedule.Id);
                         return;
                     }
 
@@ -198,27 +262,37 @@ internal sealed class MusicNamePopulator
                     using var scope = scopeFactory.CreateScope();
                     var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-                    var section = await dbContext.BiblePublicationSections
+                    // Find the section that contains this track number
+                    var sectionInfo = await dbContext.BiblePublicationTracks
                         .AsNoTracking()
-                        .Include(x => x.BiblePublication)
-                            .ThenInclude(x => x.Category)
-                        .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode
-                            && x.BiblePublication.Category.CategoryName == "Music"
-                            && x.BiblePublication.LanguageId == null
-                            && x.SectionCode != null && x.SectionCode.Equals(music.SectionCode, StringComparison.OrdinalIgnoreCase))
-                        .Select(x => x.Name)
+                        .Include(t => t.Section)
+                            .ThenInclude(s => s.BiblePublication)
+                                .ThenInclude(p => p.Category)
+                        .Where(t => t.BiblePublicationSectionId != null
+                            && t.Number == music.TrackNumber
+                            && t.Publication.PublicationCode == music.PublicationCode
+                            && t.Publication.Category.CategoryName == "Music"
+                            && t.Publication.LanguageId == null)
+                        .Select(t => new { t.Section!.SectionCode, t.Section.Name })
                         .FirstOrDefaultAsync();
 
-                    if (!string.IsNullOrWhiteSpace(section))
+                    if (sectionInfo != null && !string.IsNullOrWhiteSpace(sectionInfo.SectionCode))
                     {
-                        scheduleStateItem.MusicSectionName = section;
-                        Log.Debug("ScheduleEffects: Set MusicSectionName '{MusicSectionName}' for schedule {ScheduleId} (SectionCode: {SectionCode})",
-                            section, schedule.Id, music.SectionCode);
+                        // Update both the section code and name in the schedule entity and state item
+                        if (schedule.Music != null)
+                        {
+                            schedule.Music.SectionCode = sectionInfo.SectionCode;
+                        }
+                        scheduleStateItem.MusicSectionName = sectionInfo.Name;
+                        scheduleStateItem.MusicSectionCode = sectionInfo.SectionCode;
+                        
+                        Log.Debug("ScheduleEffects: Found and set MusicSectionCode '{MusicSectionCode}' and MusicSectionName '{MusicSectionName}' for schedule {ScheduleId} from track {TrackNumber}",
+                            sectionInfo.SectionCode, sectionInfo.Name, schedule.Id, music.TrackNumber);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "ScheduleEffects: Error querying music section for melody in schedule {ScheduleId}", schedule.Id);
+                    Log.Warning(ex, "ScheduleEffects: Error finding music section by track number for schedule {ScheduleId}", schedule.Id);
                 }
             }
         }

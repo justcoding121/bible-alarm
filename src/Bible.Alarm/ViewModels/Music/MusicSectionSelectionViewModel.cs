@@ -33,6 +33,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
     private MusicType? lastMusicType;
     private string? lastSectionCode;
     private bool isDisposed;
+    private bool isSelectingSection;
+    private bool isInitializing;
     private bool showProgress = false;
     private double progressPercent = 0.0;
     private string progressText = string.Empty;
@@ -72,6 +74,9 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
             {
                 return;
             }
+
+            // Set flag to prevent RefreshFromState from resetting IsBusy
+            isSelectingSection = true;
 
             // Track start time to ensure minimum display duration
             var startTime = DateTime.UtcNow;
@@ -205,6 +210,11 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
                     ShowProgress = false;
                 });
             }
+            finally
+            {
+                // Reset flag after operation completes (whether success or error)
+                isSelectingSection = false;
+            }
             // Note: We intentionally do NOT set IsBusy = false in finally block
             // This keeps the busy overlay visible until the modal closes
             // IsBusy will be reset when RefreshFromState is called the next time the modal opens
@@ -237,7 +247,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
 
     private void OnMusicSectionChanged(object? sender, EventArgs e)
     {
-        if (isDisposed || stateChangeHandler == null)
+        // Don't handle state changes while selecting a section or initializing (to avoid conflicts)
+        if (isDisposed || stateChangeHandler == null || isSelectingSection || isInitializing)
         {
             return;
         }
@@ -255,7 +266,15 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
 
         // Always read the latest state when initializing
         // Fire-and-forget: initialization happens asynchronously, errors are handled within RefreshFromState
-        _ = RefreshFromState();
+        // Don't initialize if we're currently selecting a section (to avoid conflicts)
+        if (!isSelectingSection)
+        {
+            isInitializing = true;
+            _ = RefreshFromState().ContinueWith(_ =>
+            {
+                isInitializing = false;
+            }, TaskContinuationOptions.OnlyOnRanToCompletion);
+        }
     }
 
     private async Task Initialize(string publicationCode)
@@ -292,6 +311,18 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
     /// </summary>
     public async Task RefreshFromState()
     {
+        // Prevent re-entrant calls during initialization or section selection
+        if (isInitializing && initComplete)
+        {
+            return;
+        }
+
+        // Don't refresh if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
+        if (isSelectingSection)
+        {
+            return;
+        }
+
         var stateValue = state.Value;
 
         // Use CurrentSchedule as the source of truth
@@ -330,19 +361,20 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
         }
 
         // Initialize or repopulate with the current publication
-        if (needsRepopulation && !isDisposed)
+        // Don't repopulate if we're currently selecting a section (to avoid conflicts)
+        if (needsRepopulation && !isDisposed && !isSelectingSection)
         {
             try
             {
                 await MainThread.InvokeOnMainThreadAsync(() => 
                 {
-                    if (!isDisposed)
+                    if (!isDisposed && !isSelectingSection)
                     {
                         IsBusy = true;
                     }
                 });
                 
-                if (isDisposed)
+                if (isDisposed || isSelectingSection)
                 {
                     return;
                 }
@@ -351,21 +383,21 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
                     progress => _ = MainThread.InvokeOnMainThreadAsync(() => 
                     {
-                        if (!isDisposed)
+                        if (!isDisposed && !isSelectingSection)
                         {
                             ProgressPercent = progress;
                         }
                     }),
                     text => _ = MainThread.InvokeOnMainThreadAsync(() => 
                     {
-                        if (!isDisposed)
+                        if (!isDisposed && !isSelectingSection)
                         {
                             ProgressText = text;
                         }
                     }),
                     isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => 
                     {
-                        if (!isDisposed)
+                        if (!isDisposed && !isSelectingSection)
                         {
                             ShowProgress = isVisible;
                         }
@@ -374,10 +406,16 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
                 // Use the latest state values, not cached ones
                 await PopulateSections(publicationCode, progressTracker);
 
+                // Check again if we're selecting a section (may have changed during async operation)
+                if (isSelectingSection)
+                {
+                    return;
+                }
+
                 // Set selected section after sections are populated (on main thread to ensure UI is ready)
                 await MainThread.InvokeOnMainThreadAsync(() => 
                 {
-                    if (!isDisposed)
+                    if (!isDisposed && !isSelectingSection)
                     {
                         SetSelectedSection();
                     }
@@ -388,9 +426,10 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
                 await Task.Delay(100);
 
                 // Set IsBusy to false after collection is assigned and rendered - the busy overlay will hide instantly
+                // BUT don't reset IsBusy if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    if (!isDisposed)
+                    if (!isDisposed && !isSelectingSection)
                     {
                         IsBusy = false;
                         ShowProgress = false;
@@ -403,7 +442,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
                 logger.Error(ex, "[MusicSectionSelection] RefreshFromState - Error during repopulation");
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    if (!isDisposed)
+                    if (!isDisposed && !isSelectingSection)
                     {
                         IsBusy = false;
                         ShowProgress = false;
@@ -414,12 +453,16 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
         else
         {
             // No repopulation needed - ensure IsBusy is false (in case it was left true from previous session)
+            // BUT don't reset IsBusy if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
             await MainThread.InvokeOnMainThreadAsync(() => 
             {
-                if (!isDisposed)
+                if (!isDisposed && !isSelectingSection)
                 {
                     IsBusy = false;
                     ShowProgress = false;
+                }
+                if (!isDisposed)
+                {
                     SetSelectedSection();
                 }
             });
@@ -474,7 +517,15 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
     public bool IsBusy
     {
         get => isBusy;
-        set => SetProperty(ref isBusy, value);
+        set
+        {
+            if (isBusy != value)
+            {
+                logger.Debug("[MusicSectionSelection] IsBusy changing from {OldValue} to {NewValue}. isSelectingSection={IsSelectingSection}, isInitializing={IsInitializing}. StackTrace: {StackTrace}",
+                    isBusy, value, isSelectingSection, isInitializing, Environment.StackTrace);
+            }
+            SetProperty(ref isBusy, value);
+        }
     }
 
     public bool ShowProgress

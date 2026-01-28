@@ -136,7 +136,9 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
             (x) => x.Schedule?.Id > 0 && navigationHelper.ShouldSkipNavigation(x.Schedule.Id),
             async (x) => await navigationHelper.ShowOverlayAndNavigateAsync(x));
 
-        AddScheduleCommand = commandHandler.CreateAddScheduleCommand((isBusy) => propertyManager.IsAddBusy = isBusy);
+        AddScheduleCommand = commandHandler.CreateAddScheduleCommand(
+            (isBusy) => propertyManager.IsAddBusy = isBusy,
+            () => bootstrapReadyManager.IsBootstrapReady);
         ViewScheduleCommand = commandHandler.CreateViewScheduleCommand(
             () => progressBarManager.ShowTemporarily(),
             async () => await progressBarManager.HideTemporarilyAsync());

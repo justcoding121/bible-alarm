@@ -335,22 +335,30 @@ public sealed class MusicDisplayTextProvider
 
     /// <summary>
     /// Gets the display text for the music section.
-    /// Returns the section name if available, otherwise empty string.
+    /// Returns the section name if available, otherwise placeholder text or empty string.
+    /// Follows the same pattern as Bible container: shows placeholder when section is visible but not selected.
     /// </summary>
     public string GetMusicSectionDisplayText()
     {
-        if (!GetIsMusicSectionVisible())
-        {
-            return string.Empty;
-        }
-
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.MusicSectionName))
+
+        // Read from CurrentSchedule for section name (populated during bootstrap/effects)
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionName))
         {
-            return string.Empty;
+            return currentSchedule.MusicSectionName;
         }
 
-        return currentSchedule.MusicSectionName;
+        // Return placeholder text if publication is selected but section is not
+        // Only show placeholder if section row is visible (i.e., for sectioned publications)
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode))
+        {
+            if (GetIsMusicSectionVisible())
+            {
+                return "Select Section";
+            }
+        }
+
+        return string.Empty;
     }
 
     /// <summary>
