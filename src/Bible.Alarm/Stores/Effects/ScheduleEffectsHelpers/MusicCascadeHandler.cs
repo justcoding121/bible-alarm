@@ -238,79 +238,12 @@ public sealed class MusicCascadeHandler
         }
 
         // Get section and track
-        int sectionNum = 0;
-        string? sectionCode = null;
-        string sectionName = string.Empty;
-        int trackNum = 0;
-        string trackTitle = string.Empty;
-
-        if (publicationWithoutLanguage)
-        {
-            // For publications without language, check if it's sectioned
-            var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
-            
-            if (sections != null && sections.Count > 0)
-            {
-                // Sectioned publication - get first section and track
-                var firstSection = sections.First();
-                sectionCode = firstSection.Value.SectionCode;
-                sectionNum = firstSection.Key;
-                sectionName = firstSection.Value.Name;
-
-                // Use GetBiblePublicationTracks with empty language code for publications without language
-                var tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNum);
-                if (tracks != null && tracks.Count > 0)
-                {
-                    var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
-                    trackNum = firstTrack.Number;
-                    trackTitle = firstTrack.Title;
-                }
-            }
-            else
-            {
-                // Flat publication - get tracks directly (sectionNumber = 0)
-                var tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, 0);
-                if (tracks != null && tracks.Count > 0)
-                {
-                    var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
-                    trackNum = firstTrack.Number;
-                    trackTitle = firstTrack.Title;
-                }
-            }
-        }
-        else
-        {
-            // For publications with language, use same logic as Bible publication cascade
-            var sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
-            
-            if (sections != null && sections.Count > 0)
-            {
-                // Sectioned publication - get first section and track
-                var firstSection = sections.First();
-                sectionCode = firstSection.Value.SectionCode;
-                sectionNum = firstSection.Key;
-                sectionName = firstSection.Value.Name;
-
-                var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNum);
-                if (tracks != null && tracks.Count > 0)
-                {
-                    var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
-                    trackNum = firstTrack.Number;
-                    trackTitle = firstTrack.Title;
-                }
-            }
-            else
-            {
-                // Flat publication - get tracks directly (sectionNumber = 0)
-                var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, 0);
-                if (tracks != null && tracks.Count > 0)
-                {
-                    var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
-                    trackNum = firstTrack.Number;
-                    trackTitle = firstTrack.Title;
-                }
-            }
-        }
+        var (sectionCode, sectionName, trackNum, trackTitle) =
+            await MusicCascadeSelectionHelper.GetFirstSectionAndTrackAsync(
+                mediaService,
+                languageCode,
+                publicationCode,
+                publicationWithoutLanguage);
 
         if (trackNum <= 0)
         {
@@ -330,14 +263,6 @@ public sealed class MusicCascadeHandler
 
         logger.Information("MusicCascadeHandler: Publication cascade - publication={PublicationCode}, language={LanguageCode}, musicType={MusicType}",
             publicationCode, languageCode, musicType);
-
-        // Check if publication is sectioned or not
-        bool isSectioned = false;
-        string? sectionCode = null;
-        int sectionNum = 0;
-        string sectionName = string.Empty;
-        int trackNum = 0;
-        string trackTitle = string.Empty;
 
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -359,89 +284,18 @@ public sealed class MusicCascadeHandler
 
         bool publicationWithoutLanguage = publication.LanguageId == null;
 
-        if (publicationWithoutLanguage)
-        {
-            // For publications without language, check sections
-            var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
-            
-            if (sections != null && sections.Count > 0)
-            {
-                // Sectioned publication
-                isSectioned = true;
-                var firstSection = sections.First();
-                sectionCode = firstSection.Value.SectionCode;
-                sectionNum = firstSection.Key;
-                sectionName = firstSection.Value.Name;
-
-                // Use GetBiblePublicationTracks with empty language code for publications without language
-                var tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNum);
-                if (tracks != null && tracks.Count > 0)
-                {
-                    var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
-                    trackNum = firstTrack.Number;
-                    trackTitle = firstTrack.Title;
-                }
-            }
-            else
-            {
-                // Flat publication - get tracks directly (sectionNumber = 0)
-                var tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, 0);
-                if (tracks != null && tracks.Count > 0)
-                {
-                    var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
-                    trackNum = firstTrack.Number;
-                    trackTitle = firstTrack.Title;
-                }
-            }
-        }
-        else
-        {
-            // For publications with language, use same logic as Bible publication
-            var sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
-            
-            if (sections != null && sections.Count > 0)
-            {
-                // Sectioned publication
-                isSectioned = true;
-                var firstSection = sections.First();
-                sectionCode = firstSection.Value.SectionCode;
-                sectionNum = firstSection.Key;
-                sectionName = firstSection.Value.Name;
-
-                var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNum);
-                if (tracks != null && tracks.Count > 0)
-                {
-                    var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
-                    trackNum = firstTrack.Number;
-                    trackTitle = firstTrack.Title;
-                }
-            }
-            else
-            {
-                // Flat publication - get tracks directly (sectionNumber = 0)
-                var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, 0);
-                if (tracks != null && tracks.Count > 0)
-                {
-                    var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
-                    trackNum = firstTrack.Number;
-                    trackTitle = firstTrack.Title;
-                }
-            }
-        }
+        var (sectionCode, sectionName, trackNum, trackTitle) =
+            await MusicCascadeSelectionHelper.GetFirstSectionAndTrackAsync(
+                mediaService,
+                languageCode,
+                publicationCode,
+                publicationWithoutLanguage);
 
         if (trackNum <= 0)
         {
             logger.Warning("MusicCascadeHandler: No valid track found for publication={PublicationCode}",
                 publicationCode);
             return;
-        }
-
-        // If publication is not sectioned, clear section
-        if (!isSectioned)
-        {
-            sectionCode = null;
-            sectionNum = 0;
-            sectionName = string.Empty;
         }
 
         UpdateSchedule(currentSchedule, publicationCode, publication.Name, sectionCode, sectionName, trackNum, trackTitle, dispatcher);
@@ -480,18 +334,7 @@ public sealed class MusicCascadeHandler
         {
             // Publication without language - use GetBiblePublicationTracks with empty language code
             // Get section number from section code
-            if (int.TryParse(sectionCode, out var num))
-            {
-                sectionNum = num;
-            }
-            else if (sectionCode.Contains('-'))
-            {
-                var parts = sectionCode.Split('-');
-                if (parts.Length > 1 && int.TryParse(parts[parts.Length - 1], out var extractedNum))
-                {
-                    sectionNum = extractedNum;
-                }
-            }
+            sectionNum = MusicCascadeSelectionHelper.GetSectionNumberFromSectionCode(sectionCode);
             tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNum);
         }
         else
