@@ -19,10 +19,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 
-/// <summary>
-/// Handles auto-population of schedule when a category is selected.
-/// Finds first language and publication for the category, harvests if needed, and populates schedule.
-/// </summary>
 public sealed class CategorySelectionAutoPopulateHandler
 {
     private readonly IBiblePublicationService biblePublicationService;

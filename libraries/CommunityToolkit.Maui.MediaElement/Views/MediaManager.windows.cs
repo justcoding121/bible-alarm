@@ -13,7 +13,6 @@ using Windows.System.Display;
 using ParentWindow = CommunityToolkit.Maui.Extensions.PageExtensions.ParentWindow;
 using Stretch = Microsoft.UI.Xaml.Media.Stretch;
 using WindowsMediaElement = Windows.Media.Playback.MediaPlayer;
-using WinMediaSource = Windows.Media.Core.MediaSource;
 
 namespace CommunityToolkit.Maui.Core.Views;
 
@@ -32,12 +31,8 @@ partial class MediaManager : IDisposable
     /// Gets the System Media Transport Controls for Windows.
     /// Returns null if MediaPlayer is not initialized.
     /// </summary>
-    public SystemMediaTransportControls? GetSystemMediaTransportControls()
-    {
-        return systemMediaControls;
-    }
+    public SystemMediaTransportControls? GetSystemMediaTransportControls() => systemMediaControls;
 
-    // States that allow changing position
     readonly IReadOnlyList<MediaElementState> allowUpdatePositionStates =
     [
         MediaElementState.Playing,
@@ -63,52 +58,27 @@ partial class MediaManager : IDisposable
     /// <returns>The platform native counterpart of <see cref="MediaElement"/>. Returns null in headless mode.</returns>
     public PlatformMediaElement? CreatePlatformView()
     {
-        // In headless mode (audio-only), we don't need a MediaPlayerElement
-        // Windows MediaPlayer can work without a UI element for audio playback
-        // Create the MediaPlayer directly without wrapping it in a MediaPlayerElement
-        WindowsMediaElement mediaElement = new();
-        mediaElement.MediaOpened += OnMediaElementMediaOpened;
-        mediaElement.MediaFailed += OnMediaElementMediaFailed;
-        mediaElement.MediaEnded += OnMediaElementMediaEnded;
-        mediaElement.VolumeChanged += OnMediaElementVolumeChanged;
-        mediaElement.IsMutedChanged += OnMediaElementIsMutedChanged;
+        var (mediaPlayer, smtc) = WindowsMediaManagerHeadlessInitializer.CreateHeadlessMediaPlayer(
+            OnMediaElementMediaOpened,
+            OnMediaElementMediaFailed,
+            OnMediaElementMediaEnded,
+            OnMediaElementVolumeChanged,
+            OnMediaElementIsMutedChanged,
+            OnNaturalVideoSizeChanged,
+            OnPlaybackSessionPlaybackRateChanged,
+            OnPlaybackSessionPlaybackStateChanged,
+            OnPlaybackSessionSeekCompleted);
 
-        // Store the MediaPlayer directly (not wrapped in MediaPlayerElement)
-        // This allows headless operation without requiring a UI element
         Player = null; // No MediaPlayerElement in headless mode
-        headlessMediaPlayer = mediaElement; // Store the MediaPlayer directly for headless mode
-
-        // Set up system media transport controls for headless mode
-        // Enable SMTC to show native Windows media controls (taskbar, lock screen, volume flyout)
-        systemMediaControls = mediaElement.SystemMediaTransportControls;
-        systemMediaControls.IsEnabled = true;
-        systemMediaControls.IsPlayEnabled = true;
-        systemMediaControls.IsPauseEnabled = true;
-        systemMediaControls.IsNextEnabled = true;
-        systemMediaControls.IsPreviousEnabled = true;
-        // Enable fast forward and rewind (seek) controls
-        systemMediaControls.IsFastForwardEnabled = true;
-        systemMediaControls.IsRewindEnabled = true;
-        systemMediaControls.PlaybackStatus = MediaPlaybackStatus.Stopped;
-
-        // Set up event handlers for headless mode
-        mediaElement.PlaybackSession.NaturalVideoSizeChanged += OnNaturalVideoSizeChanged;
-        mediaElement.PlaybackSession.PlaybackRateChanged += OnPlaybackSessionPlaybackRateChanged;
-        mediaElement.PlaybackSession.PlaybackStateChanged += OnPlaybackSessionPlaybackStateChanged;
-        mediaElement.PlaybackSession.SeekCompleted += OnPlaybackSessionSeekCompleted;
-
-        // Return null to indicate headless mode
+        headlessMediaPlayer = mediaPlayer; // Store the MediaPlayer directly for headless mode
+        systemMediaControls = smtc;
         return null;
     }
 
     /// <summary>
     /// Releases the managed and unmanaged resources used by the <see cref="MediaManager"/>.
     /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
+    public void Dispose() { Dispose(true); GC.SuppressFinalize(this); }
 
     protected virtual partial void PlatformPlay()
     {
@@ -317,115 +287,7 @@ partial class MediaManager : IDisposable
         {
             return;
         }
-
-        // Update poster source only if we have a Player (UI mode)
-        if (Player is not null)
-        {
-            await Dispatcher.DispatchAsync(() => Player.PosterSource = new BitmapImage());
-        }
-
-        if (MediaElement.Source is null)
-        {
-            // In headless mode, we set source directly on MediaPlayer
-            // In UI mode, we set source on MediaPlayerElement
-            if (Player is not null)
-            {
-                Player.Source = null;
-            }
-            else
-            {
-                mediaPlayer.Source = null;
-            }
-            MediaElement.MediaWidth = MediaElement.MediaHeight = 0;
-
-            MediaElement.CurrentStateChanged(MediaElementState.None);
-
-            return;
-        }
-
-        MediaElement.Position = TimeSpan.Zero;
-        MediaElement.Duration = TimeSpan.Zero;
-
-        if (MediaElement.Source is UriMediaSource uriMediaSource)
-        {
-            var uri = uriMediaSource.Uri?.AbsoluteUri;
-            if (!string.IsNullOrWhiteSpace(uri))
-            {
-                var source = WinMediaSource.CreateFromUri(new Uri(uri));
-                var playbackItem = new MediaPlaybackItem(source);
-
-                // Set metadata on MediaPlaybackItem for SMTC integration
-                await SetPlaybackItemMetadata(playbackItem);
-
-                if (Player is not null)
-                {
-                    Player.AutoPlay = MediaElement.ShouldAutoPlay;
-                    Player.Source = playbackItem;
-                }
-                else
-                {
-                    mediaPlayer.Source = playbackItem;
-                    if (MediaElement.ShouldAutoPlay)
-                    {
-                        mediaPlayer.Play();
-                    }
-                }
-            }
-        }
-        else if (MediaElement.Source is FileMediaSource fileMediaSource)
-        {
-            var filename = fileMediaSource.Path;
-            if (!string.IsNullOrWhiteSpace(filename))
-            {
-                StorageFile storageFile = await StorageFile.GetFileFromPathAsync(filename);
-                var source = WinMediaSource.CreateFromStorageFile(storageFile);
-                var playbackItem = new MediaPlaybackItem(source);
-
-                // Set metadata on MediaPlaybackItem for SMTC integration
-                await SetPlaybackItemMetadata(playbackItem);
-
-                if (Player is not null)
-                {
-                    Player.AutoPlay = MediaElement.ShouldAutoPlay;
-                    Player.Source = playbackItem;
-                }
-                else
-                {
-                    mediaPlayer.Source = playbackItem;
-                    if (MediaElement.ShouldAutoPlay)
-                    {
-                        mediaPlayer.Play();
-                    }
-                }
-            }
-        }
-        else if (MediaElement.Source is ResourceMediaSource resourceMediaSource)
-        {
-            if (string.IsNullOrWhiteSpace(resourceMediaSource.Path))
-            {
-                Logger.LogInformation("ResourceMediaSource Path is null or empty");
-                return;
-            }
-
-            string path = GetFullAppPackageFilePath(resourceMediaSource.Path);
-            if (!string.IsNullOrWhiteSpace(path))
-            {
-                var source = WinMediaSource.CreateFromUri(new Uri(path));
-                if (Player is not null)
-                {
-                    Player.AutoPlay = MediaElement.ShouldAutoPlay;
-                    Player.Source = source;
-                }
-                else
-                {
-                    mediaPlayer.Source = source;
-                    if (MediaElement.ShouldAutoPlay)
-                    {
-                        mediaPlayer.Play();
-                    }
-                }
-            }
-        }
+        await WindowsMediaManagerSourceUpdater.UpdateSourceAsync(MediaElement, Dispatcher, Logger, mediaPlayer, Player);
     }
 
     protected virtual partial void PlatformUpdateShouldLoopPlayback()
@@ -482,72 +344,9 @@ partial class MediaManager : IDisposable
         }
     }
 
-    static string GetFullAppPackageFilePath(in string filename)
-    {
-        ArgumentNullException.ThrowIfNull(filename);
-
-        var normalizedFilename = NormalizePath(filename);
-        return Path.Combine(AppPackageService.FullAppPackageFilePath, normalizedFilename);
-
-        static string NormalizePath(string filename) => filename.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
-    }
-
     static bool IsZero<TValue>(TValue numericValue) where TValue : INumber<TValue>
     {
         return TValue.IsZero(numericValue);
-    }
-
-    /// <summary>
-    /// Sets metadata on MediaPlaybackItem for SMTC integration.
-    /// This ensures Windows shows proper metadata in taskbar, lock screen, and volume flyout.
-    /// </summary>
-    async ValueTask SetPlaybackItemMetadata(MediaPlaybackItem playbackItem)
-    {
-        try
-        {
-            var displayProps = playbackItem.GetDisplayProperties();
-            displayProps.Type = MediaPlaybackType.Music; // Important for media-style display
-
-            // Set metadata from MediaElement properties
-            if (!string.IsNullOrWhiteSpace(MediaElement.MetadataTitle))
-            {
-                displayProps.MusicProperties.Title = MediaElement.MetadataTitle;
-            }
-
-            if (!string.IsNullOrWhiteSpace(MediaElement.MetadataArtist))
-            {
-                displayProps.MusicProperties.Artist = MediaElement.MetadataArtist;
-            }
-
-            // Set artwork if available
-            if (!string.IsNullOrWhiteSpace(MediaElement.MetadataArtworkUrl))
-            {
-                try
-                {
-                    if (Uri.TryCreate(MediaElement.MetadataArtworkUrl, UriKind.Absolute, out var artworkUri))
-                    {
-                        // For HTTP/HTTPS URIs
-                        displayProps.Thumbnail = RandomAccessStreamReference.CreateFromUri(artworkUri);
-                    }
-                    else if (System.IO.File.Exists(MediaElement.MetadataArtworkUrl))
-                    {
-                        // For local file paths
-                        var storageFile = await StorageFile.GetFileFromPathAsync(MediaElement.MetadataArtworkUrl);
-                        displayProps.Thumbnail = RandomAccessStreamReference.CreateFromFile(storageFile);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger?.LogWarning(ex, "Failed to set artwork thumbnail for MediaPlaybackItem");
-                }
-            }
-
-            playbackItem.ApplyDisplayProperties(displayProps);
-        }
-        catch (Exception ex)
-        {
-            Logger?.LogError(ex, "Failed to set metadata on MediaPlaybackItem");
-        }
     }
 
     async ValueTask UpdateMetadata()
@@ -558,34 +357,7 @@ partial class MediaManager : IDisposable
         }
 
         metadata ??= new(systemMediaControls, MediaElement, Dispatcher);
-        metadata.SetMetadata(MediaElement);
-        if (string.IsNullOrEmpty(MediaElement.MetadataArtworkUrl))
-        {
-            return;
-        }
-        if (!Uri.TryCreate(MediaElement.MetadataArtworkUrl, UriKind.RelativeOrAbsolute, out var metadataArtworkUri))
-        {
-            Logger.LogError("{MediaElement} unable to update artwork because {MetadataArtworkUrl} is not a valid URI", nameof(MediaElement), nameof(MediaElement.MetadataArtworkUrl));
-            return;
-        }
-
-        // Update poster source only if we have a Player (UI mode)
-        if (Player is not null)
-        {
-            if (Dispatcher.IsDispatchRequired)
-            {
-                await Dispatcher.DispatchAsync(() => UpdatePosterSource(Player, metadataArtworkUri));
-            }
-            else
-            {
-                UpdatePosterSource(Player, metadataArtworkUri);
-            }
-        }
-
-        static void UpdatePosterSource(in PlatformMediaElement player, in Uri metadataArtworkUri)
-        {
-            player.PosterSource = new BitmapImage(metadataArtworkUri);
-        }
+        await WindowsMediaManagerMetadataUpdater.UpdateMetadataAsync(metadata, systemMediaControls, MediaElement, Dispatcher, Player, Logger);
     }
 
     async void OnMediaElementMediaOpened(WindowsMediaElement sender, object args)

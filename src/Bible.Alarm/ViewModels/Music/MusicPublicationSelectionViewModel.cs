@@ -15,7 +15,6 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-
 namespace Bible.Alarm.ViewModels.Music;
 
 public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IDisposable
@@ -176,10 +175,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
 
-    /// <summary>
-    /// Gets the FlowDirection based on the Music's selected language direction.
-    /// Used for list items that display RTL content like song publication names.
-    /// </summary>
     public FlowDirection ContentFlowDirection
     {
         get

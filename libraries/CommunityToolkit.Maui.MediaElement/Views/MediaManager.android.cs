@@ -28,7 +28,6 @@ public partial class MediaManager : Object, IPlayerListener
     const int readyState = 3;
     const int endedState = 4;
 
-    static readonly HttpClient client = new();
     readonly SemaphoreSlim seekToSemaphoreSlim = new(1, 1);
 
     double? previousSpeed;
@@ -40,30 +39,10 @@ public partial class MediaManager : Object, IPlayerListener
     MediaItem.Builder? mediaItem;
     BoundServiceConnection? connection;
 
-    /// <summary>
-    /// Gets the AndroidX Media3 MediaSession instance. Returns null if not yet created.
-    /// </summary>
     public MediaSession? Session => session;
 
-    static bool globalExoPlayerCreated;
-    static readonly Lock globalExoPlayerLock = new();
-    static PlatformMediaElement? globalPlayer;
-    static MediaSession? globalSession;
-
-    /// <summary>
-    /// The platform native counterpart of <see cref="MediaElement"/>.
-    /// Null in headless mode (audio-only, no view required).
-    /// </summary>
     protected PlayerView? PlayerView { get; set; }
 
-    /// <summary>
-    /// Occurs when ExoPlayer changes the playback parameters.
-    /// </summary>
-    /// <paramref name="playbackParameters">Object containing the new playback parameter values.</paramref>
-    /// <remarks>
-    /// This is part of the <see cref="IPlayerListener"/> implementation.
-    /// While this method does not seem to have any references, it's invoked at runtime.
-    /// </remarks>
     public void OnPlaybackParametersChanged(PlaybackParameters? playbackParameters)
     {
         if (playbackParameters is null || AreFloatingPointNumbersEqual(playbackParameters.Speed, MediaElement.Speed))
@@ -90,15 +69,6 @@ public partial class MediaManager : Object, IPlayerListener
         }
     }
 
-    /// <summary>
-    /// Occurs when ExoPlayer changes the player state.
-    /// </summary>
-    /// <paramref name="playWhenReady">Indicates whether the player should start playing the media whenever the media is ready.</paramref>
-    /// <paramref name="playbackState">The state that the player has transitioned to.</paramref>
-    /// <remarks>
-    /// This is part of the <see cref="IPlayerListener"/> implementation.
-    /// While this method does not seem to have any references, it's invoked at runtime.
-    /// </remarks>
     public void OnPlayerStateChanged(bool playWhenReady, int playbackState)
     {
         if (Player is null || MediaElement.Source is null)
@@ -140,73 +110,12 @@ public partial class MediaManager : Object, IPlayerListener
         }
     }
 
-    /// <summary>
-    /// Creates the corresponding platform view of <see cref="MediaElement"/> on Android.
-    /// Modified for headless (audio-only) playback - no TextureView/Surface required.
-    /// </summary>
-    /// <returns>The platform native counterpart of <see cref="MediaElement"/>.</returns>
-    /// <exception cref="NullReferenceException">Thrown when <see cref="Context"/> is <see langword="null"/> or when the platform view could not be created.</exception>
     [MemberNotNull(nameof(Player), nameof(session))]
     public (PlatformMediaElement platformView, PlayerView? PlayerView) CreatePlatformView(AndroidViewType androidViewType)
     {
-        RunOnMainThread(() =>
+        AndroidMainThreadRunner.RunOnMainThread(() =>
         {
-            lock (globalExoPlayerLock)
-            {
-                // If another MediaManager already created the shared player, just reuse it.
-                if (globalExoPlayerCreated && globalPlayer is not null && globalSession is not null)
-                {
-                    Player = globalPlayer;
-                    session = globalSession;
-                    return;
-                }
-
-                if (globalExoPlayerCreated)
-                {
-                    // Defensive: created flag is set but shared instances are missing. Reset and recreate.
-                    globalExoPlayerCreated = false;
-                }
-
-                globalExoPlayerCreated = true;
-            }
-
-            // Use MauiContext.Context - guaranteed to be available when PrepareAndPlayAsync is called
-            // (bootstrap completes before PrepareAndPlayAsync is called)
-            var context = MauiContext.Context;
-            if (context == null)
-            {
-                lock (globalExoPlayerLock)
-                {
-                    globalExoPlayerCreated = false;
-                }
-                throw new InvalidOperationException("Cannot create ExoPlayer - MauiContext.Context is null. Ensure bootstrap has completed before calling PrepareAndPlayAsync.");
-            }
-
-            Serilog.Log.Information("MediaManager", $"MediaManager: Creating ExoPlayer directly via ExoPlayerBuilder. Context: {context.GetType().FullName}");
-
-            // Direct creation - no reflection needed
-            // Xamarin.AndroidX.Media3 bindings expose ExoPlayer.Builder as ExoPlayerBuilder
-            var exoPlayer = new ExoPlayerBuilder(context).Build();
-
-            Player = exoPlayer ?? throw new InvalidOperationException("Failed to create ExoPlayer");
-            Player.AddListener(this);
-
-            // Headless audio-only config (critical for no surface/view)
-            Player.SetVideoSurfaceView(null);  // No surface ever
-
-            Serilog.Log.Information("MediaManager", $"MediaManager: ExoPlayer created headlessly. Type: {Player.GetType().FullName}");
-
-            var mediaSession = new MediaSession.Builder(Platform.AppContext, Player);
-            mediaSession.SetId(Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..8]);
-
-            session ??= mediaSession.Build() ?? throw new InvalidOperationException("Session cannot be null");
-            ArgumentNullException.ThrowIfNull(session.Id);
-
-            lock (globalExoPlayerLock)
-            {
-                globalPlayer = Player;
-                globalSession = session;
-            }
+            (Player, session) = AndroidGlobalExoPlayerFactory.CreateOrReuse(MauiContext, this);
         });
 
         // Always headless mode - no PlayerView needed for audio-only playback
@@ -219,49 +128,6 @@ public partial class MediaManager : Object, IPlayerListener
         return (Player, playerView);
     }
 
-    static void RunOnMainThread(Action action)
-    {
-        if (MainThread.IsMainThread)
-        {
-            action();
-            return;
-        }
-
-        Exception? ex = null;
-        using var evt = new ManualResetEventSlim(false);
-        var mainLooper = Looper.MainLooper ?? throw new InvalidOperationException("MainLooper is null");
-        var handler = new Handler(mainLooper);
-        handler.Post(() =>
-        {
-            try
-            {
-                action();
-            }
-            catch (Exception e)
-            {
-                ex = e;
-            }
-            finally
-            {
-                evt.Set();
-            }
-        });
-
-        evt.Wait();
-        if (ex != null)
-        {
-            throw ex;
-        }
-    }
-
-    /// <summary>
-    /// Occurs when ExoPlayer changes the playback state.
-    /// </summary>
-    /// <paramref name="playbackState">The state that the player has transitioned to.</paramref>
-    /// <remarks>
-    /// This is part of the <see cref="IPlayerListener"/> implementation.
-    /// While this method does not seem to have any references, it's invoked at runtime.
-    /// </remarks>
     public void OnPlaybackStateChanged(int playbackState)
     {
         if (MediaElement.Source is null)
@@ -287,14 +153,6 @@ public partial class MediaManager : Object, IPlayerListener
         MediaElement.CurrentStateChanged(newState);
     }
 
-    /// <summary>
-    /// Occurs when ExoPlayer encounters an error.
-    /// </summary>
-    /// <paramref name="error">An instance of <seealso cref="PlaybackException"/> containing details of the error.</paramref>
-    /// <remarks>
-    /// This is part of the <see cref="IPlayerListener"/> implementation.
-    /// While this method does not seem to have any references, it's invoked at runtime.
-    /// </remarks>
     public void OnPlayerError(PlaybackException? error)
     {
         var errorMessage = string.Empty;
@@ -334,14 +192,6 @@ public partial class MediaManager : Object, IPlayerListener
         MediaElement.MediaHeight = videoSize?.Height ?? 0;
     }
 
-    /// <summary>
-    /// Occurs when ExoPlayer changes volume.
-    /// </summary>
-    /// <param name="volume">The new value for volume.</param>
-    /// <remarks>
-    /// This is part of the <see cref="IPlayerListener"/> implementation.
-    /// While this method does not seem to have any references, it's invoked at runtime.
-    /// </remarks>
     public void OnVolumeChanged(float volume)
     {
         if (Player is null)
@@ -420,8 +270,6 @@ public partial class MediaManager : Object, IPlayerListener
 
     protected virtual async partial ValueTask PlatformUpdateSource()
     {
-        var hasSetSource = false;
-
         if (Player is null)
         {
             return;
@@ -432,34 +280,14 @@ public partial class MediaManager : Object, IPlayerListener
             StartService();
         }
 
-        if (MediaElement.Source is null)
-        {
-            Player.ClearMediaItems();
-            MediaElement.Duration = TimeSpan.Zero;
-            MediaElement.CurrentStateChanged(MediaElementState.None);
-
-            return;
-        }
-
-        MediaElement.CurrentStateChanged(MediaElementState.Opening);
-        Player.PlayWhenReady = MediaElement.ShouldAutoPlay;
-        cancellationTokenSource ??= new();
-        // ConfigureAwait(true) is required to prevent crash on startup
-        var result = await SetPlayerData(cancellationTokenSource.Token).ConfigureAwait(true);
-        var item = result?.Build();
-
-        if (item?.MediaMetadata is not null)
-        {
-            Player.SetMediaItem(item);
-            Player.Prepare();
-            hasSetSource = true;
-        }
-
-        if (hasSetSource && Player.PlayerError is null)
-        {
-            MediaElement.MediaOpened();
-            UpdateNotifications();
-        }
+        await AndroidMediaManagerSourceUpdater.UpdateSourceAsync(
+            MediaElement,
+            Player,
+            PlayerView,
+            ref cancellationTokenSource,
+            ref mediaItem,
+            UpdateNotifications,
+            Logger).ConfigureAwait(true);
     }
 
     protected virtual partial void PlatformUpdateAspect()
@@ -607,116 +435,8 @@ public partial class MediaManager : Object, IPlayerListener
                 connection = null;
             }
 
-            client.Dispose();
-
-            lock (globalExoPlayerLock)
-            {
-                globalExoPlayerCreated = false;
-                globalPlayer = null;
-                globalSession = null;
-            }
-        }
-    }
-
-    static async Task<byte[]> GetBytesFromMetadataArtworkUrl(string url, CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            return [];
-        }
-
-        Stream? stream = null;
-        Uri.TryCreate(url, UriKind.Absolute, out var uri);
-
-        try
-        {
-            byte[] artworkData = [];
-            long? contentLength = null;
-
-            // HTTP or HTTPS URL
-            if (uri is not null &&
-                (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
-            {
-                var request = new HttpRequestMessage(HttpMethod.Head, url);
-                var contentLengthResponse = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-                contentLength = contentLengthResponse.Content.Headers.ContentLength ?? 0;
-
-                var response = await client.GetAsync(url, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
-                stream = response.IsSuccessStatusCode ? await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false) : null;
-            }
-            // Absolute File Path
-            else if (uri is not null && uri.Scheme == Uri.UriSchemeFile)
-            {
-                var normalizedFilePath = NormalizeFilePath(url);
-
-                stream = File.Open(normalizedFilePath, FileMode.Create);
-                contentLength = await GetByteCountFromStream(stream, cancellationToken);
-            }
-            // Relative File Path
-            else if (Uri.TryCreate(url, UriKind.Relative, out _))
-            {
-                var normalizedFilePath = NormalizeFilePath(url);
-
-                stream = Platform.AppContext.Assets?.Open(normalizedFilePath) ?? throw new InvalidOperationException("Assets cannot be null");
-                contentLength = await GetByteCountFromStream(stream, cancellationToken);
-            }
-
-            if (stream is not null)
-            {
-                // contentLength is always set when stream is not null (set in the conditions above)
-                artworkData = new byte[contentLength!.Value];
-                using var memoryStream = new MemoryStream(artworkData);
-                await stream.CopyToAsync(memoryStream, cancellationToken).ConfigureAwait(false);
-            }
-
-            return artworkData;
-        }
-        catch (Exception e)
-        {
-#if DEBUG
-            // Use Serilog directly since this is a static method
-            try
-            {
-                Serilog.Log.Debug(e, "Unable to retrieve {MetadataArtworkUrl} for {Url}", nameof(MediaElement.MetadataArtworkUrl), url);
-            }
-            catch
-            {
-                // Serilog may not be initialized in static context, ignore
-            }
-#else
-            _ = e; // Suppress unused variable warning in Release builds
-#endif
-            return [];
-        }
-        finally
-        {
-            if (stream is not null)
-            {
-                stream.Close();
-                await stream.DisposeAsync();
-            }
-        }
-
-        static string NormalizeFilePath(string filePath) => filePath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
-
-        static async ValueTask<long> GetByteCountFromStream(Stream stream, CancellationToken token)
-        {
-            if (stream.CanSeek)
-            {
-                return stream.Length;
-            }
-
-            long countedStreamBytes = 0;
-
-            var buffer = new byte[8192];
-            int bytesRead;
-
-            while ((bytesRead = await stream.ReadAsync(buffer, token)) > 0)
-            {
-                countedStreamBytes += bytesRead;
-            }
-
-            return countedStreamBytes;
+            AndroidArtworkBytesFetcher.DisposeClient();
+            AndroidGlobalExoPlayerFactory.Reset();
         }
     }
 
@@ -743,73 +463,6 @@ public partial class MediaManager : Object, IPlayerListener
     void HandleMediaControlsServiceTaskRemoved(object? sender, EventArgs e)
     {
         Player?.Stop();
-    }
-
-    async Task<MediaItem.Builder?> SetPlayerData(CancellationToken cancellationToken = default)
-    {
-        if (MediaElement.Source is null)
-        {
-            return null;
-        }
-
-        switch (MediaElement.Source)
-        {
-            case UriMediaSource uriMediaSource:
-                {
-                    var uri = uriMediaSource.Uri;
-                    if (!string.IsNullOrWhiteSpace(uri?.AbsoluteUri))
-                    {
-                        return await CreateMediaItem(uri.AbsoluteUri, cancellationToken).ConfigureAwait(false);
-                    }
-
-                    break;
-                }
-            case FileMediaSource fileMediaSource:
-                {
-                    var filePath = fileMediaSource.Path;
-                    if (!string.IsNullOrWhiteSpace(filePath))
-                    {
-                        return await CreateMediaItem(filePath, cancellationToken).ConfigureAwait(false);
-                    }
-
-                    break;
-                }
-            case ResourceMediaSource resourceMediaSource:
-                {
-                    var package = PlayerView?.Context?.PackageName ?? "";
-                    var path = resourceMediaSource.Path;
-                    if (!string.IsNullOrWhiteSpace(path))
-                    {
-                        var assetFilePath = $"asset://{package}{Path.PathSeparator}{path}";
-                        return await CreateMediaItem(assetFilePath, cancellationToken).ConfigureAwait(false);
-                    }
-
-                    break;
-                }
-            default:
-                throw new NotSupportedException($"{MediaElement.Source.GetType().FullName} is not yet supported for {nameof(MediaElement.Source)}");
-        }
-
-        return mediaItem;
-    }
-
-    async Task<MediaItem.Builder> CreateMediaItem(string url, CancellationToken cancellationToken = default)
-    {
-        MediaMetadata.Builder mediaMetaData = new();
-        mediaMetaData.SetArtist(MediaElement.MetadataArtist);
-        mediaMetaData.SetTitle(MediaElement.MetadataTitle);
-        var data = await GetBytesFromMetadataArtworkUrl(MediaElement.MetadataArtworkUrl, cancellationToken).ConfigureAwait(true);
-        if (data is not null && data.Length > 0)
-        {
-            mediaMetaData.SetArtworkData(data, (Integer)MediaMetadata.PictureTypeFrontCover);
-        }
-
-        mediaItem = new MediaItem.Builder();
-        mediaItem.SetUri(url);
-        mediaItem.SetMediaId(url);
-        mediaItem.SetMediaMetadata(mediaMetaData.Build());
-
-        return mediaItem;
     }
 
     public void OnAudioAttributesChanged(AudioAttributes? audioAttributes) { }
@@ -841,23 +494,5 @@ public partial class MediaManager : Object, IPlayerListener
     public void OnTimelineChanged(Timeline? timeline, int reason) { }
     public void OnTrackSelectionParametersChanged(TrackSelectionParameters? trackSelectionParameters) { }
     public void OnTracksChanged(Tracks? tracks) { }
-
-    static class PlaybackState
-    {
-        public const int StateBuffering = 6;
-        public const int StateConnecting = 8;
-        public const int StateFailed = 7;
-        public const int StateFastForwarding = 4;
-        public const int StateNone = 0;
-        public const int StatePaused = 2;
-        public const int StatePlaying = 3;
-        public const int StateRewinding = 5;
-        public const int StateSkippingToNext = 10;
-        public const int StateSkippingToPrevious = 9;
-        public const int StateSkippingToQueueItem = 11;
-        public const int StateStopped = 1;
-        public const int StateError = 7;
-    }
-
 
 }
