@@ -8,6 +8,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -31,9 +32,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     private bool notificationEnabled;
     private bool alwaysPlayFromStart;
     private bool isProcessingStateChange;
-    private bool hasSignaledReady;
-    private bool isReadyActionQueued;
     private string? lastPublicationCode;
+    private readonly ContainerReadySignaler containerReadySignaler;
 
     private ObservableCollection<NumberOfTracksListViewItemModel> numberOfTracksList = new();
     private NumberOfTracksListViewItemModel? currentNumberOfTracks;
@@ -50,6 +50,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         this.serviceProvider = serviceProvider;
         this.state = state;
         this.dispatcher = dispatcher;
+        containerReadySignaler = new ContainerReadySignaler(state, dispatcher, "NumberOfTrack", s => s.ContainerReadiness.NumberOfTrack);
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();
@@ -119,50 +120,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             OnPropertyChanged(nameof(RestartLabelText));
 
             // Signal that this container is ready (initialized from CurrentSchedule)
-            SignalContainerReady();
+            containerReadySignaler.TrySignalReady();
         }
-    }
-
-    private void SignalContainerReady()
-    {
-        // Check if already signaled or already marked ready in state
-        // This check must happen first to prevent any duplicate work
-        if (hasSignaledReady || state.Value.ContainerReadiness.NumberOfTrack) return;
-
-        // Check if action is already queued to prevent duplicate queued actions
-        // This prevents multiple rapid calls from queuing multiple actions
-        if (isReadyActionQueued) return;
-
-        // Atomically set both flags to prevent race conditions
-        // If another thread/call checks between these lines, it will see isReadyActionQueued=true
-        isReadyActionQueued = true;
-        hasSignaledReady = true;
-
-        // Double-check state immediately after setting flags (before queuing)
-        // This catches the case where state changed between the initial check and flag setting
-        if (state.Value.ContainerReadiness.NumberOfTrack)
-        {
-            // State already shows ready, reset flags and return
-            isReadyActionQueued = false;
-            hasSignaledReady = true;
-            return;
-        }
-
-        // Dispatch to state that this container is ready
-        // Check state again inside the queued action to prevent duplicates from queued actions
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            isReadyActionQueued = false; // Reset flag when action executes
-
-            // Final check before dispatching - if state already shows we're ready, another action already handled it
-            if (state.Value.ContainerReadiness.NumberOfTrack)
-            {
-                // Ensure flag is set to prevent future attempts
-                hasSignaledReady = true;
-                return;
-            }
-            dispatcher.Dispatch(new ContainerReadyAction("NumberOfTrack"));
-        });
     }
 
     private void OnStateChanged(object? sender, EventArgs e)
@@ -181,10 +140,9 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
             // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
             // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
-            if (hasSignaledReady && !stateValue.ContainerReadiness.NumberOfTrack && currentSchedule != null)
+            if (containerReadySignaler.HasSignaledReady && !stateValue.ContainerReadiness.NumberOfTrack && currentSchedule != null)
             {
-                hasSignaledReady = false;
-                isReadyActionQueued = false; // Reset queued flag as well
+                containerReadySignaler.Reset();
                 // Re-initialize and signal ready again
                 InitializeFromState();
                 return;
@@ -192,7 +150,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
             // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
             // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
-            if (scheduleId == 0 && currentSchedule != null && !hasSignaledReady)
+            if (scheduleId == 0 && currentSchedule != null && !containerReadySignaler.HasSignaledReady)
             {
                 InitializeFromState();
                 return;
@@ -201,8 +159,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             // Initialize if schedule ID changed to a different positive ID (existing schedule opened)
             if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
             {
-                hasSignaledReady = false; // Reset for new schedule
-                isReadyActionQueued = false; // Reset queued flag as well
+                containerReadySignaler.Reset();
                 InitializeFromState();
             }
             else if (currentSchedule != null)
@@ -518,19 +475,6 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         OnPropertyChanged(nameof(NumberOfTracksList));
     }
 
-    /// <summary>
-    /// Updates the unit labels on all list items when publication type changes.
-    /// </summary>
-    private void UpdateListItemLabels()
-    {
-        var hasSectionStructure = HasSectionStructure;
-        foreach (var item in NumberOfTracksList)
-        {
-            item.UpdateUnitLabels(hasSectionStructure);
-        }
-        OnPropertyChanged(nameof(CurrentNumberOfTracksText));
-    }
-
     private void DispatchScheduleUpdate(Action<ScheduleStateItem> updateAction)
     {
         var currentSchedule = state.Value.CurrentSchedule;
@@ -540,49 +484,9 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         }
 
         // Clone the current schedule and apply the update
-        var updatedSchedule = CloneScheduleStateItem(currentSchedule);
+        var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
         updateAction(updatedSchedule);
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
-    }
-
-    private static ScheduleStateItem CloneScheduleStateItem(ScheduleStateItem source)
-    {
-        return new ScheduleStateItem
-        {
-            Id = source.Id,
-            Name = source.Name,
-            IsEnabled = source.IsEnabled,
-            Hour = source.Hour,
-            Minute = source.Minute,
-            Second = source.Second,
-            DaysOfWeek = source.DaysOfWeek,
-            NotificationEnabled = source.NotificationEnabled,
-            MusicEnabled = source.MusicEnabled,
-            SnoozeMinutes = source.SnoozeMinutes,
-            NumberOfTracksToPlay = source.NumberOfTracksToPlay,
-            AlwaysPlayFromStart = source.AlwaysPlayFromStart,
-            CurrentPlayItem = source.CurrentPlayItem,
-            LatestAlarmNotificationId = source.LatestAlarmNotificationId,
-            BiblePublicationScheduleId = source.BiblePublicationScheduleId,
-            BiblePublicationLanguageCode = source.BiblePublicationLanguageCode,
-            BiblePublicationCode = source.BiblePublicationCode,
-            BiblePublicationSectionNumber = source.BiblePublicationSectionNumber,
-            BiblePublicationTrackNumber = source.BiblePublicationTrackNumber,
-            BiblePublicationFinishedDuration = source.BiblePublicationFinishedDuration,
-            MusicId = source.MusicId,
-            MusicSectionCode = source.MusicSectionCode,
-            MusicType = source.MusicType,
-            MusicPublicationCode = source.MusicPublicationCode,
-            MusicLanguageCode = source.MusicLanguageCode,
-            MusicTrackNumber = source.MusicTrackNumber,
-            MusicRepeat = source.MusicRepeat,
-            BiblePublicationLanguageName = source.BiblePublicationLanguageName,
-            BiblePublicationName = source.BiblePublicationName,
-            BiblePublicationSectionName = source.BiblePublicationSectionName,
-            MusicLanguageName = source.MusicLanguageName,
-            MusicPublicationName = source.MusicPublicationName,
-            MusicTrackName = source.MusicTrackName
-        };
     }
 
     public void Dispose()

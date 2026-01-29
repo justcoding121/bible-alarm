@@ -463,19 +463,9 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         set => SetProperty(ref sections, value);
     }
 
-    /// <summary>
-    /// Gets the FlowDirection for content based on the selected language direction.
-    /// </summary>
-    public FlowDirection ContentFlowDirection
-    {
-        get
-        {
-            var direction = state.Value.CurrentSchedule?.BiblePublicationLanguageDirection ?? "ltr";
-            return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
-                ? FlowDirection.RightToLeft
-                : FlowDirection.LeftToRight;
-        }
-    }
+    /// <summary>Gets the FlowDirection for content based on selected language direction.</summary>
+    public FlowDirection ContentFlowDirection => ContentFlowDirectionHelper.GetContentFlowDirection(
+        state.Value.CurrentSchedule?.BiblePublicationLanguageDirection ?? "ltr");
 
     private async Task Initialize(string languageCode, string publicationCode, Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null) => await PopulateSections(languageCode, publicationCode, progress);
 
