@@ -45,6 +45,8 @@ internal class DbSeeder : IDataPersister
     private readonly PublicationLanguageSeeder publicationLanguageSeeder;
     private readonly SectionLanguageSeeder sectionLanguageSeeder;
     private readonly TestModeSeeder testModeSeeder;
+    private readonly EnglishSeeder englishSeeder;
+    private readonly MelodyMusicSeeder melodyMusicSeeder;
 
     /// <summary>
     /// Exposes the PublicationLanguages data store for access by harvesters after discovery phase.
@@ -65,6 +67,8 @@ internal class DbSeeder : IDataPersister
         this.publicationLanguageSeeder = new PublicationLanguageSeeder(logger, dataStore, languageSeeder);
         this.sectionLanguageSeeder = new SectionLanguageSeeder(logger, dataStore, languageSeeder);
         this.testModeSeeder = new TestModeSeeder(logger, scopeFactory, dataStore);
+        this.englishSeeder = new EnglishSeeder(logger, scopeFactory, dataStore);
+        this.melodyMusicSeeder = new MelodyMusicSeeder(logger, scopeFactory, dataStore);
     }
 
     public async Task Seed()
@@ -129,11 +133,11 @@ internal class DbSeeder : IDataPersister
         
         // Seed MelodyMusic publications (instrumental music without language)
         // This must happen before SeedEnglish() because SeedEnglish() skips publications with LanguageId == null
-        await SeedMelodyMusic();
+        await melodyMusicSeeder.SeedMelodyMusic();
         
         // Seed English using shared FetchAndSave* methods (same as used for other languages in test mode)
         // This happens after discovery tables are seeded, using the same methods that are used for on-demand fetching
-        await SeedEnglish();
+        await englishSeeder.SeedEnglish();
         
         // Now seed SectionLanguages after English publications exist (needed for section lookup)
         using (var scope = scopeFactory.CreateScope())
@@ -372,313 +376,6 @@ internal class DbSeeder : IDataPersister
             }
         }
         return Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Seeds English (E) for all discovered publications using the shared FetchAndSave* methods.
-    /// This is the same approach used for other languages in test mode.
-    /// </summary>
-    private async Task SeedEnglish()
-    {
-        using var scope = scopeFactory.CreateScope();
-        var languageContentService = scope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>();
-
-        logger.Information("=== Seeding English (E) for all discovered publications ===");
-
-        using var dbScope = scopeFactory.CreateScope();
-        var db = dbScope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        // Data-driven approach: Get all publications that need English seeding
-        // This includes:
-        // 1. Publications from discovery phase (dataStore.PublicationLanguages) that haven't been harvested yet
-        // 2. Publications that have been harvested but don't have English yet (excluding those with LanguageId == null)
-        
-        // Step 1: Get all distinct publication codes from discovery phase
-        var discoveredPublicationCodes = dataStore.PublicationLanguages.Keys.ToList();
-
-        // Step 2: Get all distinct publication codes from BiblePublications (excluding those with LanguageId == null)
-        // Publications with LanguageId == null don't have English content, so skip them
-        var harvestedPublicationCodes = await db.BiblePublications
-            .AsNoTracking()
-            .Where(bp => bp.LanguageId != null) // Exclude publications without language (they don't have English content)
-            .Select(bp => bp.PublicationCode)
-            .Distinct()
-            .ToListAsync();
-
-        // Step 3: Combine both lists and get unique publication codes
-        var allPublicationCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var code in discoveredPublicationCodes)
-        {
-            allPublicationCodes.Add(code);
-        }
-        foreach (var code in harvestedPublicationCodes)
-        {
-            allPublicationCodes.Add(code);
-        }
-
-        // Step 4: Filter out publications that already have English or have LanguageId == null
-        var publicationsNeedingEnglish = new List<string>();
-        foreach (var publicationCode in allPublicationCodes)
-        {
-            // Normalize publication code for database queries
-            var normalizedCode = publicationCode.ToLowerInvariant();
-            var isDrama = PublicationTypeHelper.IsDrama(normalizedCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = normalizedCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
-            }
-            else
-            {
-                publicationCodeForDb = normalizedCode;
-            }
-
-            // Check if publication has LanguageId == null (skip these - they don't have English content)
-            var hasNullLanguage = await db.BiblePublications
-                .AsNoTracking()
-                .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb && bp.LanguageId == null);
-
-            if (hasNullLanguage)
-            {
-                logger.Debug("Skipping publication {PublicationCode} - has LanguageId == null (no English content)", publicationCode);
-                continue;
-            }
-
-            // Check if English already exists for this publication
-            var hasEnglish = await db.BiblePublications
-                .AsNoTracking()
-                .Include(bp => bp.Language)
-                .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb &&
-                               bp.Language != null &&
-                               bp.Language.LanguageCode == "E");
-
-            if (!hasEnglish)
-            {
-                publicationsNeedingEnglish.Add(publicationCode);
-            }
-        }
-
-        if (publicationsNeedingEnglish.Count == 0)
-        {
-            logger.Information("All publications already have English seeded or have LanguageId == null, skipping");
-            return;
-        }
-
-        logger.Information("Found {Count} publication(s) that need English seeding", publicationsNeedingEnglish.Count);
-
-        foreach (var publicationCode in publicationsNeedingEnglish.OrderBy(pc => pc))
-        {
-            logger.Information("Seeding English for publication: {PublicationCode}", publicationCode);
-
-            // Use shared LanguageContentService to seed English publication
-            // This reuses the same code used for ad-hoc fetching
-            var success = await languageContentService.SeedEnglishPublicationAsync(publicationCode);
-
-            if (success)
-            {
-                logger.Information("✓ Successfully seeded English for publication {PublicationCode}", publicationCode);
-            }
-            else
-            {
-                logger.Warning("✗ Failed to seed English for publication {PublicationCode}", publicationCode);
-            }
-        }
-
-        logger.Information("=== English seeding completed ===");
-    }
-
-    /// <summary>
-    /// Seeds MelodyMusic publications (instrumental music without language) to the database.
-    /// Each disc becomes a section, and tracks within each disc become tracks under that section.
-    /// </summary>
-    private async Task SeedMelodyMusic()
-    {
-        if (dataStore.MelodyMusic.Count == 0)
-        {
-            logger.Information("No MelodyMusic publications to seed");
-            return;
-        }
-
-        logger.Information("=== Seeding MelodyMusic publications ===");
-
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        // Get Music category
-        var musicCategory = await db.Categories
-            .FirstOrDefaultAsync(c => c.CategoryName == "Music");
-
-        if (musicCategory == null)
-        {
-            logger.Error("Music category not found in database");
-            return;
-        }
-
-        // Get BaseUrl for creating UrlParams
-        var baseUrl = await db.BaseUrls
-            .FirstOrDefaultAsync(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS");
-
-        if (baseUrl == null)
-        {
-            logger.Error("BaseUrl not found for GETPUBMEDIALINKS");
-            return;
-        }
-
-        foreach (var kvp in dataStore.MelodyMusic)
-        {
-            var publicationCode = kvp.Key;
-            var (discTracksMap, discNamesMap) = kvp.Value;
-
-            if (discTracksMap.Count == 0)
-            {
-                logger.Warning("No discs found for MelodyMusic publication {PublicationCode}", publicationCode);
-                continue;
-            }
-
-            // Check if publication already exists
-            var existingPublication = await db.BiblePublications
-                .Include(bp => bp.Sections)
-                .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCode && bp.LanguageId == null);
-
-            if (existingPublication != null)
-            {
-                logger.Information("MelodyMusic publication {PublicationCode} already exists, skipping", publicationCode);
-                continue;
-            }
-
-            // Get publication name - try to get it from the first disc name, or use publication code
-            var publicationName = publicationCode.ToUpperInvariant();
-            if (discNamesMap.Count > 0)
-            {
-                var firstDiscName = discNamesMap.Values.First();
-                if (!string.IsNullOrEmpty(firstDiscName))
-                {
-                    // For iam, the disc name might be something like "Kingdom Melodies 1"
-                    // Try to extract a better publication name
-                    if (firstDiscName.Contains("Kingdom Melodies", StringComparison.OrdinalIgnoreCase))
-                    {
-                        publicationName = "Kingdom Melodies";
-                    }
-                    else
-                    {
-                        publicationName = firstDiscName;
-                    }
-                }
-            }
-
-            // Create BiblePublication using shared model
-            var biblePublication = new BiblePublication
-            {
-                PublicationCode = publicationCode.ToLowerInvariant(),
-                Name = publicationName,
-                LanguageId = null, // MelodyMusic has no language
-                CategoryId = musicCategory.Id,
-                Category = musicCategory,
-                IsVideo = false,
-                Sections = new List<SharedBiblePublicationSection>(),
-                Tracks = new List<SharedBiblePublicationTrack>()
-            };
-
-            // Create sections from discs
-            foreach (var discEntry in discTracksMap.OrderBy(d => d.Key))
-            {
-                var discCode = discEntry.Key;
-                var discTracks = discEntry.Value;
-
-                if (discTracks.Count == 0)
-                {
-                    continue;
-                }
-
-                // Get section name from discNamesMap, or use disc code
-                var sectionName = discNamesMap.TryGetValue(discCode, out var name) && !string.IsNullOrEmpty(name)
-                    ? name
-                    : discCode;
-
-                // Create section using shared model
-                var section = new SharedBiblePublicationSection
-                {
-                    Name = sectionName,
-                    SectionCode = discCode.ToLowerInvariant(),
-                    BiblePublication = biblePublication,
-                    BiblePublicationId = 0, // Will be set after publication is saved
-                    Tracks = new List<SharedBiblePublicationTrack>(),
-                    UrlParams = new List<SharedUrlParam>()
-                };
-
-                // Create tracks for this section
-                foreach (var musicTrack in discTracks.OrderBy(t => t.Number))
-                {
-                    // Create UrlParams for the track (similar to ParseIamTracks)
-                    var trackUrlParams = new List<SharedUrlParam>
-                    {
-                        new SharedUrlParam
-                        {
-                            Key = "pub",
-                            Value = discCode.ToLowerInvariant(), // Use disc code (e.g., "iam-1") as pub parameter
-                            IsQueryParam = true,
-                            BaseUrl = baseUrl,
-                            BaseUrlId = baseUrl.Id
-                        },
-                        new SharedUrlParam
-                        {
-                            Key = "fileformat",
-                            Value = "mp3",
-                            IsQueryParam = true,
-                            BaseUrl = baseUrl,
-                            BaseUrlId = baseUrl.Id
-                        },
-                        new SharedUrlParam
-                        {
-                            Key = "track",
-                            Value = (musicTrack.OriginalTrackNumber ?? musicTrack.Number).ToString(),
-                            IsQueryParam = true,
-                            BaseUrl = baseUrl,
-                            BaseUrlId = baseUrl.Id
-                        }
-                    };
-
-                    // For Kingdom Melodies (iam), prefix track title with "Melody Number(s) "
-                    var trackTitle = musicTrack.Title;
-                    if (publicationCode.Equals("iam", StringComparison.OrdinalIgnoreCase))
-                    {
-                        trackTitle = $"Melody Number(s) {trackTitle}";
-                    }
-
-                    var track = new SharedBiblePublicationTrack
-                    {
-                        Number = musicTrack.Number,
-                        Title = trackTitle,
-                        Section = section,
-                        BiblePublicationSectionId = 0, // Will be set after section is saved
-                        Publication = biblePublication,
-                        BiblePublicationId = 0, // Will be set after publication is saved
-                        UrlParams = trackUrlParams
-                    };
-
-                    section.Tracks.Add(track);
-                }
-
-                biblePublication.Sections.Add(section);
-            }
-
-            if (biblePublication.Sections.Count == 0)
-            {
-                logger.Warning("No sections created for MelodyMusic publication {PublicationCode}", publicationCode);
-                continue;
-            }
-
-            // Save to database
-            db.BiblePublications.Add(biblePublication);
-            await db.SaveChangesAsync();
-
-            logger.Information("✓ Successfully seeded MelodyMusic publication {PublicationCode} with {SectionCount} sections and {TrackCount} total tracks",
-                publicationCode, biblePublication.Sections.Count, biblePublication.Sections.Sum(s => s.Tracks.Count));
-        }
-
-        logger.Information("=== MelodyMusic seeding completed ===");
     }
 
     // Methods moved to PublicationLanguageSeeder helper class

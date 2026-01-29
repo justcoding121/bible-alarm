@@ -5,9 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.AudioLinksHarvestor.Models;
@@ -86,7 +84,7 @@ internal class DramaHarvester : BaseHarvester
         }
 
         // Parse the category response to get all unique languages
-        var languagesFromCategory = ExtractLanguagesFromCategory(jsonString);
+        var languagesFromCategory = DramaCategoryLanguageExtractor.ExtractLanguagesFromCategory(jsonString, Logger);
         if (languagesFromCategory.Count == 0)
         {
             Logger.Warning("No languages found for publication {PublicationCode}. Skipping.", publicationCode);
@@ -94,7 +92,7 @@ internal class DramaHarvester : BaseHarvester
         }
 
         // Extract language info from English category response
-        var discoveredLanguages = ExtractLanguageInfoFromCategory(jsonString, languagesFromCategory);
+        var discoveredLanguages = DramaCategoryLanguageExtractor.ExtractLanguageInfoFromCategory(jsonString, languagesFromCategory, Logger);
 
         // Save discovered languages for on-demand fetching (excluding English)
         // The category API already lists only available languages, so no verification needed
@@ -119,107 +117,6 @@ internal class DramaHarvester : BaseHarvester
         }
 
         Logger.Information("English (E) found for publication {PublicationName} - will be seeded separately", publicationName);
-    }
-
-    private HashSet<string> ExtractLanguagesFromCategory(string jsonString)
-    {
-        // Use case-insensitive HashSet to avoid duplicates from case differences
-        var languages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        try
-        {
-            using var doc = JsonDocument.Parse(jsonString);
-            var root = doc.RootElement;
-
-            if (!root.TryGetProperty("category", out var category))
-            {
-                return languages;
-            }
-
-            if (!category.TryGetProperty("media", out var mediaArray))
-            {
-                return languages;
-            }
-
-            foreach (var mediaItem in mediaArray.EnumerateArray())
-            {
-                if (!mediaItem.TryGetProperty("availableLanguages", out var availableLanguages))
-                {
-                    continue;
-                }
-
-                foreach (var lang in availableLanguages.EnumerateArray())
-                {
-                    var langCode = lang.GetString();
-                    if (!string.IsNullOrEmpty(langCode))
-                    {
-                        // Normalize to uppercase for consistent storage
-                        languages.Add(langCode.ToUpperInvariant());
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to parse languages from category JSON");
-        }
-
-        return languages;
-    }
-
-    private Dictionary<string, LanguageInfo> ExtractLanguageInfoFromCategory(string jsonString, HashSet<string> languageCodes)
-    {
-        var languageInfoMap = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
-
-        try
-        {
-            using var doc = JsonDocument.Parse(jsonString);
-            var root = doc.RootElement;
-
-            if (!root.TryGetProperty("category", out var category))
-            {
-                return languageInfoMap;
-            }
-
-            // Try to get language info from category.language if available
-            if (category.TryGetProperty("language", out var languageElement))
-            {
-                var direction = "ltr";
-                if (languageElement.TryGetProperty("direction", out var dirElement))
-                {
-                    direction = dirElement.GetString() ?? "ltr";
-                }
-
-                string? name = null;
-                if (languageElement.TryGetProperty("name", out var nameElement))
-                {
-                    var rawName = nameElement.GetString();
-                    name = rawName != null ? WebUtility.HtmlDecode(rawName) : null;
-                }
-
-                // This is for English, add it
-                if (!string.IsNullOrEmpty(name))
-                {
-                    languageInfoMap["E"] = new LanguageInfo(name, direction);
-                }
-            }
-
-            // For other languages, we'll use defaults (name = code, direction = ltr)
-            // They can be updated when fetched on-demand
-            foreach (var langCode in languageCodes)
-            {
-                if (!languageInfoMap.ContainsKey(langCode))
-                {
-                    languageInfoMap[langCode] = new LanguageInfo(langCode, "ltr");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to extract language info from category JSON");
-        }
-
-        return languageInfoMap;
     }
 
     private async Task ProcessPublicationForLanguage(
@@ -254,7 +151,11 @@ internal class DramaHarvester : BaseHarvester
         }
 
         // Extract section codes from Mediator API response
-        var (sectionCodes, localizedPublicationName) = ExtractSectionCodesFromCategory(jsonString, publicationCode, normalizedLanguageCode);
+        var (sectionCodes, localizedPublicationName) = DramaSectionCodeExtractor.ExtractSectionCodesFromCategory(
+            jsonString,
+            publicationCode,
+            normalizedLanguageCode,
+            Logger);
         if (sectionCodes.Count == 0)
         {
             Logger.Warning("No sections found for publication {PublicationCode} in language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
@@ -319,96 +220,10 @@ internal class DramaHarvester : BaseHarvester
         }
         else
         {
-            SaveDramaSectionsAndTracks(publicationCode, normalizedLanguageCode, tracksBySection, sectionNames);
+            DramaFilePersistence.SaveDramaSectionsAndTracks(publicationCode, normalizedLanguageCode, tracksBySection, sectionNames);
         }
 
         Logger.Information("Saved {Count} sections for publication {PublicationCode} ({LanguageCode})", tracksBySection.Count, publicationCode, normalizedLanguageCode);
-    }
-
-    private (HashSet<string> SectionCodes, string? LocalizedPublicationName) ExtractSectionCodesFromCategory(string jsonString, string publicationCode, string languageCode)
-    {
-        var sectionCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        string? localizedPublicationName = null;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(jsonString);
-            var root = doc.RootElement;
-
-            if (!root.TryGetProperty("category", out var category))
-            {
-                return (sectionCodes, null);
-            }
-
-            // Extract localized publication name
-            // Concatenate parent category name with category name (e.g., "Audio" + "Dramas" = "Audio Dramas")
-            string? categoryName = null;
-            string? parentCategoryName = null;
-            
-            if (category.TryGetProperty("name", out var nameElement))
-            {
-                var rawName = nameElement.GetString();
-                // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
-                categoryName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
-            }
-            
-            if (category.TryGetProperty("parentCategory", out var parentCategoryElement) &&
-                parentCategoryElement.TryGetProperty("name", out var parentNameElement))
-            {
-                var rawParentName = parentNameElement.GetString();
-                parentCategoryName = rawParentName != null ? WebUtility.HtmlDecode(rawParentName).Replace('\u00A0', ' ') : null;
-            }
-            
-            // Concatenate parent category name with category name
-            if (!string.IsNullOrEmpty(parentCategoryName) && !string.IsNullOrEmpty(categoryName))
-            {
-                localizedPublicationName = $"{parentCategoryName} {categoryName}";
-            }
-            else if (!string.IsNullOrEmpty(categoryName))
-            {
-                localizedPublicationName = categoryName;
-            }
-
-            if (!category.TryGetProperty("media", out var mediaArray))
-            {
-                return (sectionCodes, localizedPublicationName);
-            }
-
-            foreach (var mediaItem in mediaArray.EnumerateArray())
-            {
-                // Extract section code from naturalKey
-                // Pattern: "pub-{sectionCode}_{lang}_{number}_AUDIO"
-                // For example: "pub-iaoh_E_12_AUDIO" -> section code is "iaoh"
-                string? sectionCode = null;
-                if (mediaItem.TryGetProperty("naturalKey", out var naturalKeyElement))
-                {
-                    var naturalKey = naturalKeyElement.GetString() ?? "";
-                    if (naturalKey.StartsWith("pub-", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var parts = naturalKey.Split('_');
-                        if (parts.Length > 0)
-                        {
-                            sectionCode = parts[0].Substring(4); // Remove "pub-" prefix
-                        }
-                    }
-                }
-
-                // If no section code found, skip this item
-                if (string.IsNullOrEmpty(sectionCode))
-                {
-                    Logger.Warning("Could not extract section code from naturalKey in publication {PublicationCode} for language {LanguageCode}. Skipping.", publicationCode, languageCode);
-                    continue;
-                }
-
-                sectionCodes.Add(sectionCode);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to extract section codes from category JSON");
-        }
-
-        return (sectionCodes, localizedPublicationName);
     }
 
     private async Task<(List<DramaTrack>? Tracks, string? SectionName)> HarvestSectionTracks(string sectionCode, string languageCode)
@@ -419,7 +234,7 @@ internal class DramaHarvester : BaseHarvester
             var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}";
             var jsonString = await DownloadUtility.GetAsync(harvestLink);
 
-            return ParseTracksFromGetPubMediaLinks(jsonString, sectionCode, languageCode);
+            return DramaTrackParser.ParseTracksFromGetPubMediaLinks(jsonString, sectionCode, languageCode, Logger);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404") || ex.Message.Contains("Response status code"))
         {
@@ -430,148 +245,6 @@ internal class DramaHarvester : BaseHarvester
         {
             Logger.Error(ex, "Failed to fetch tracks for section {SectionCode} in language {LanguageCode}. Skipping.", sectionCode, languageCode);
             return (null, null);
-        }
-    }
-
-    private (List<DramaTrack>? Tracks, string? SectionName) ParseTracksFromGetPubMediaLinks(string jsonString, string sectionCode, string languageCode)
-    {
-        var tracks = new List<DramaTrack>();
-        string? sectionName = null;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(jsonString);
-            var root = doc.RootElement;
-
-            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
-            {
-                return (null, null);
-            }
-
-            // Extract section name from pubName field
-            if (root.TryGetProperty("pubName", out var pubNameElement))
-            {
-                var rawName = pubNameElement.GetString();
-                // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
-                sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
-            }
-
-            if (!filesElement.TryGetProperty(languageCode, out var languageFiles) ||
-                !languageFiles.TryGetProperty("MP3", out var mp3Files))
-            {
-                return (null, sectionName);
-            }
-
-            var trackNumber = 1;
-            foreach (var trackFile in mp3Files.EnumerateArray())
-            {
-                if (!trackFile.TryGetProperty("file", out var fileElement))
-                {
-                    continue;
-                }
-
-                // Handle both cases: file can be a string (direct URL) or an object with a "url" property
-                string? url = null;
-                if (fileElement.ValueKind == JsonValueKind.String)
-                {
-                    url = fileElement.GetString();
-                }
-                else if (fileElement.ValueKind == JsonValueKind.Object && fileElement.TryGetProperty("url", out var urlElement))
-                {
-                    url = urlElement.GetString();
-                }
-
-                if (string.IsNullOrEmpty(url))
-                {
-                    continue;
-                }
-
-                // Get track title
-                string title = "Unknown";
-                if (trackFile.TryGetProperty("title", out var titleElement))
-                {
-                    // Handle both cases: title can be a string or an object
-                    if (titleElement.ValueKind == JsonValueKind.String)
-                    {
-                        var rawTitle = titleElement.GetString();
-                        title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
-                    }
-                    else if (titleElement.ValueKind == JsonValueKind.Object && titleElement.TryGetProperty("text", out var titleTextElement))
-                    {
-                        var rawTitle = titleTextElement.GetString();
-                        title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
-                    }
-                }
-
-                // Build lookup path using GETPUBMEDIALINKS format
-                var lookUpPath = $"?output=json&pub={sectionCode}&fileformat=MP3&langwritten={languageCode}&track={trackNumber}";
-
-                tracks.Add(new DramaTrack
-                {
-                    Number = trackNumber,
-                    Title = title,
-                    Url = url,
-                    LookUpPath = lookUpPath
-                });
-
-                trackNumber++;
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to parse tracks from GETPUBMEDIALINKS JSON for section {SectionCode}", sectionCode);
-            return (null, null);
-        }
-
-        return tracks.Count > 0 ? (tracks, sectionName) : (null, sectionName);
-    }
-
-
-    private void SaveDramaSectionsAndTracks(string publicationCode, string languageCode, Dictionary<string, List<DramaTrack>> tracksBySection, Dictionary<string, string> sectionNames)
-    {
-        // Unified structure: media/Dramas/{languageCode}/{publicationCode}/sections.json
-        // and media/Dramas/{languageCode}/{publicationCode}/{sectionCode}/tracks.json
-        var normalizedLanguageCode = languageCode.ToUpperInvariant();
-        var normalizedPublicationCode = publicationCode.ToUpperInvariant();
-        var publicationDir = $"{DirectoryHelper.IndexDirectory}/media/Dramas/{normalizedLanguageCode}/{normalizedPublicationCode}";
-        
-        if (!Directory.Exists(publicationDir))
-        {
-            Directory.CreateDirectory(publicationDir);
-        }
-
-        // Save sections.json with section codes and names
-        // Use section name from GETPUBMEDIALINKS if available, otherwise fall back to section code
-        var sections = tracksBySection.Select((kvp, index) => new
-        {
-            Code = kvp.Key,
-            Name = sectionNames.TryGetValue(kvp.Key, out var name) && !string.IsNullOrEmpty(name) ? name : kvp.Key,
-            Number = index + 1 // Sequential number for ordering
-        }).OrderBy(x => x.Code).ToList();
-
-        var sectionsJson = JsonSerializer.Serialize(sections.Select(s => new
-        {
-            Code = s.Code,
-            Name = s.Name,
-            Number = s.Number
-        }));
-        File.WriteAllText($"{publicationDir}/sections.json", sectionsJson);
-
-        // Save tracks for each section
-        foreach (var sectionEntry in tracksBySection)
-        {
-            var sectionCode = sectionEntry.Key;
-            var tracks = sectionEntry.Value;
-            var normalizedSectionCode = sectionCode.ToUpperInvariant();
-            var sectionDir = $"{publicationDir}/{normalizedSectionCode}";
-            
-            if (!Directory.Exists(sectionDir))
-            {
-                Directory.CreateDirectory(sectionDir);
-            }
-
-            var tracksJson = JsonSerializer.Serialize(tracks.OrderBy(x => x.Number));
-            File.WriteAllText($"{sectionDir}/tracks.json", tracksJson);
         }
     }
 
