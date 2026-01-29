@@ -11,6 +11,7 @@ using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.BiblePublications.BiblePublicationSectionSelectionHelpers;
 using Bible.Alarm.ViewModels.BiblePublications.BiblePublicationSectionSelectionViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -41,6 +42,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
     // Helper class
     private readonly StateChangeHandler stateChangeHandler;
+    private readonly SectionListLoader sectionListLoader;
+    private readonly TrackSelectionResolver trackSelectionResolver;
 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
@@ -53,6 +56,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         this.state = state;
         this.dispatcher = dispatcher;
         this.mapper = mapper;
+        sectionListLoader = new SectionListLoader(logger, mediaService);
+        trackSelectionResolver = new TrackSelectionResolver(logger, mediaService);
 
         // Don't initialize here - let OnBiblePublicationInitialized handle it
         // This ensures we always get the latest state when the modal opens
@@ -125,40 +130,13 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 ProgressPercent = 0.3;
                 ProgressText = "Checking tracks...";
 
-                // Get tracks for the selected section using the latest language/publication from CurrentSchedule
-                // Language code can be null/empty for publications without language - GetBiblePublicationTracks handles this
-                var tracks = await Task.Run(async () =>
-                    await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode, x.Number));
+                var biblePublicationItem = await trackSelectionResolver.BuildSelectionAsync(
+                    x,
+                    currentSchedule,
+                    () => ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>());
 
-                // If no tracks found, check if section exists and harvest tracks if needed
-                if ((tracks == null || tracks.Count == 0) && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+                if (biblePublicationItem == null)
                 {
-                    logger.Information("BiblePublicationSectionSelectionViewModel: No tracks found for section={SectionNumber}, publication={PublicationCode}, language={LanguageCode}. Checking if section exists and harvesting tracks if needed...",
-                        x.Number, currentSchedule.BiblePublicationCode, languageCode);
-                    
-                    // Get section code from the section item
-                    var sectionCode = x.Section.SectionCode;
-                    
-                    // Check if section exists and harvest tracks if needed
-                    var languageContentService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>();
-                    if (languageContentService != null)
-                    {
-                        var fetchSuccess = await languageContentService.FetchSectionTracksAsync(
-                            currentSchedule.BiblePublicationCode, sectionCode, languageCode);
-                        
-                        if (fetchSuccess)
-                        {
-                            // Re-query tracks after harvesting
-                            tracks = await Task.Run(async () =>
-                                await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode, x.Number));
-                        }
-                    }
-                }
-
-                if (tracks == null || tracks.Count == 0)
-                {
-                    logger.Warning("BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - No tracks found for section={SectionNumber}, publication={PublicationCode}, language={LanguageCode}",
-                        x.Number, currentSchedule.BiblePublicationCode, languageCode ?? "(null)");
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
                         IsBusy = false;
@@ -166,55 +144,6 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     });
                     return;
                 }
-
-                // If it's the same section, preserve the current track number (if valid)
-                // Otherwise, use the first track
-                int trackNumber;
-                string? trackTitle = null;
-                if (isSameSection && currentSchedule.BiblePublicationTrackNumber.HasValue)
-                {
-                    var currentTrackNumber = currentSchedule.BiblePublicationTrackNumber.Value;
-                    // Verify the current track exists in the tracks list
-                    if (tracks.TryGetValue(currentTrackNumber, out var existingTrack))
-                    {
-                        trackNumber = currentTrackNumber;
-                        trackTitle = existingTrack.Title;
-                    }
-                    else
-                    {
-                        // Current track doesn't exist in this section, use first track
-                        var firstTrack = tracks.Values.First();
-                        trackNumber = firstTrack.Number;
-                        trackTitle = firstTrack.Title;
-                    }
-                }
-                else
-                {
-                    // Different section selected, use first track
-                    var firstTrack = tracks.Values.First();
-                    trackNumber = firstTrack.Number;
-                    trackTitle = firstTrack.Title;
-                }
-
-                // Create BiblePublicationStateItem with selected section and track
-                // IMPORTANT: Include display names from list items (no database query needed)
-                // Get language/publication codes and display names from CurrentSchedule (they should already be populated)
-                // IMPORTANT: Always preserve category from current schedule - category can only be changed via CategorySelectionAction
-                var biblePublicationItem = new BiblePublicationStateItem
-                {
-                    CategoryId = currentSchedule.BiblePublicationCategoryId,
-                    CategoryName = currentSchedule.BiblePublicationCategoryName,
-                    LanguageCode = languageCode, // Can be empty for publications without language
-                    PublicationCode = currentSchedule.BiblePublicationCode,
-                    SectionNumber = x.Number,
-                    TrackNumber = trackNumber,
-                    // Store display names from list items and current state
-                    LanguageName = currentSchedule.BiblePublicationLanguageName,
-                    LanguageDirection = currentSchedule.BiblePublicationLanguageDirection,
-                    PublicationName = currentSchedule.BiblePublicationName,
-                    SectionName = x.Name,
-                    TrackTitle = trackTitle
-                };
 
                 // Update progress
                 ProgressPercent = 0.9;
@@ -489,19 +418,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             SelectedSection.IsSelected = false;
         }
 
-        // Find the section from the Sections collection (same instance as in ItemsSource)
-        // This matches the pattern used in TrackSelectionViewModel
-        // Compare SectionCode (string) with Number (int) by converting Number to string or parsing SectionCode
-        // Handle both numeric codes (e.g., "1") and non-numeric codes (e.g., "iam-1")
-        var section = Sections.FirstOrDefault(b => 
-            !string.IsNullOrEmpty(current.SectionCode) && 
-            (b.Number.ToString() == current.SectionCode || 
-             (int.TryParse(current.SectionCode, out var num) && num == b.Number) ||
-             // Handle non-numeric codes like "iam-1" by extracting number part
-             (current.SectionCode.Contains('-') && 
-              current.SectionCode.Split('-').Length > 1 && 
-              int.TryParse(current.SectionCode.Split('-')[^1], out var extractedNum) && 
-              extractedNum == b.Number)));
+        var section = SectionSelectionResolver.FindSectionToSelect(current.SectionCode, Sections);
         if (section != null)
         {
             SelectedSection = section;
@@ -566,84 +483,11 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
     private async Task PopulateSections(string languageCode, string publicationCode, Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {
-        // Show progress while fetching
-        progress?.SetIsVisible(true);
-        progress?.UpdateProgress(0.1);
-        
-        // Do ALL processing on background thread to avoid blocking spinner animation
-        var (sectionViewModelList, newMapping, selectedSection) = await Task.Run(async () =>
-        {
-            var sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
-
-            // If no sections found and this is a non-English language, sections might be being fetched
-            // Retry a few times with delays to allow the fetch to complete
-            if ((sectionsFromDb == null || sectionsFromDb.Count == 0) && 
-                !string.IsNullOrEmpty(languageCode) && 
-                !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
-            {
-                logger.Information("PopulateSections: No sections found initially for publication={PublicationCode}, language={LanguageCode}. " +
-                    "Sections may be being fetched, will retry...",
-                    publicationCode, languageCode);
-                
-                // Retry up to 5 times with increasing delays to allow fetch to complete
-                // Total wait time: 2s + 3s + 4s + 5s + 6s = 20 seconds
-                for (int retry = 0; retry < 5; retry++)
-                {
-                    // Wait before retrying (2s, 3s, 4s, 5s, 6s)
-                    progress?.UpdateProgress(0.2 + (retry / 5.0) * 0.3); // 0.2 to 0.5
-                    await Task.Delay(1000 * (retry + 2));
-                    
-                    // Re-query to see if sections are now available
-                    sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
-                    
-                    if (sectionsFromDb != null && sectionsFromDb.Count > 0)
-                    {
-                        logger.Information("PopulateSections: Found {Count} sections on retry {Retry} for publication={PublicationCode}, language={LanguageCode}",
-                            sectionsFromDb.Count, retry + 1, publicationCode, languageCode);
-                        break;
-                    }
-                }
-            }
-
-            progress?.UpdateProgress(0.7);
-            
-            if (sectionsFromDb == null || sectionsFromDb.Count == 0)
-            {
-                logger.Warning("PopulateSections: No sections found for publication={PublicationCode}, language={LanguageCode}. " +
-                    "This publication may not be harvested yet or may not have sections.",
-                    publicationCode, languageCode ?? "(null)");
-                progress?.UpdateProgress(1.0);
-                progress?.SetIsVisible(false);
-                return (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<int, BiblePublicationSectionListViewItemModel>(), (BiblePublicationSectionListViewItemModel?)null);
-            }
-
-            var vms = new List<BiblePublicationSectionListViewItemModel>();
-            var mapping = new Dictionary<int, BiblePublicationSectionListViewItemModel>();
-            BiblePublicationSectionListViewItemModel? selected = null;
-
-            foreach (var section in sectionsFromDb.Values)
-            {
-                var sectionVm = new BiblePublicationSectionListViewItemModel(section);
-                vms.Add(sectionVm);
-                mapping[sectionVm.Number] = sectionVm;
-
-                if (current != null && current.SectionCode == section.SectionCode)
-                {
-                    selected = sectionVm;
-                    selected.IsSelected = true;
-                }
-            }
-
-            // Sort using natural sort (numeric sections as int, non-numeric as string)
-            vms.Sort();
-            
-            progress?.UpdateProgress(0.9);
-
-            return (vms, mapping, selected);
-        });
-        
-        progress?.UpdateProgress(1.0);
-        progress?.SetIsVisible(false);
+        var (sectionViewModelList, newMapping) = await sectionListLoader.LoadAsync(
+            languageCode,
+            publicationCode,
+            current?.SectionCode,
+            progress);
 
         // Update mapping
         sectionVMsMapping.Clear();
@@ -660,99 +504,6 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             {
                 Sections.Add(section);
             }
-
-            if (selectedSection is not null)
-            {
-                SelectedSection = selectedSection;
-            }
         });
-    }
-}
-
-public sealed class BiblePublicationSectionListViewItemModel(BiblePublicationSection section) : ObservableObject, IComparable
-{
-    private bool isSelected;
-    private bool isNavigating;
-
-    public bool IsSelected
-    {
-        get => isSelected;
-        set => SetProperty(ref isSelected, value);
-    }
-
-    public bool IsNavigating
-    {
-        get => isNavigating;
-        set => SetProperty(ref isNavigating, value);
-    }
-
-    /// <summary>
-    /// Exposes the underlying section for comparison.
-    /// </summary>
-    public BiblePublicationSection Section => section;
-
-    /// <summary>
-    /// Gets the section name with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
-    /// </summary>
-    public string Name => System.Net.WebUtility.HtmlDecode(section.Name).Replace('\u00A0', ' ');
-    /// <summary>
-    /// Gets the section number for sorting/comparison.
-    /// Tries to parse SectionCode as int.
-    /// For non-numeric codes like "iam-1", extracts the number part.
-    /// Returns 0 if SectionCode cannot be parsed or number cannot be extracted.
-    /// </summary>
-    public int Number
-    {
-        get
-        {
-            // Try to parse SectionCode as int (for numeric codes like "1", "2")
-            if (int.TryParse(section.SectionCode, out var num))
-            {
-                return num;
-            }
-            
-            // For non-numeric codes like "iam-1", extract the number part
-            // e.g., "iam-1" -> 1, "iam-2" -> 2
-            var parts = section.SectionCode.Split('-');
-            if (parts.Length > 1 && int.TryParse(parts[parts.Length - 1], out var extractedNumber))
-            {
-                return extractedNumber;
-            }
-            
-            return 0;
-        }
-    }
-
-    public int CompareTo(object? obj)
-    {
-        if (obj is not BiblePublicationSectionListViewItemModel other)
-        {
-            return 1;
-        }
-        
-        // Natural sort: if SectionCode is numeric, sort as int; otherwise sort as string
-        var thisIsNumeric = int.TryParse(section.SectionCode, out var thisNum);
-        var otherIsNumeric = int.TryParse(other.Section.SectionCode, out var otherNum);
-        
-        if (thisIsNumeric && otherIsNumeric)
-        {
-            // Both are numeric - compare as integers
-            return thisNum.CompareTo(otherNum);
-        }
-        
-        if (thisIsNumeric && !otherIsNumeric)
-        {
-            // This is numeric, other is not - numeric comes first
-            return -1;
-        }
-        
-        if (!thisIsNumeric && otherIsNumeric)
-        {
-            // This is not numeric, other is - numeric comes first
-            return 1;
-        }
-        
-        // Both are non-numeric - compare as strings
-        return string.Compare(section.SectionCode, other.Section.SectionCode, StringComparison.OrdinalIgnoreCase);
     }
 }
