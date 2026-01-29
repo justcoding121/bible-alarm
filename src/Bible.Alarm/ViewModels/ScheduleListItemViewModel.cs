@@ -38,6 +38,8 @@ public sealed class ScheduleListItemViewModel(
     private readonly ScheduleListItemCommandHandler commandHandler = new(logger, playbackService, playlistService);
     private readonly ScheduleListItemStateHandler stateHandler = new(logger, mapper, applicationState);
     private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, displayService, applicationState);
+    private readonly ScheduleListItemBibleDisplayNameProvider bibleDisplayNameProvider = new(applicationState);
+    private readonly ScheduleListItemStateChangeApplier stateChangeApplier = new(logger, applicationState, stateHandler, propertyManager);
 
     private bool isBusy;
     private bool isNavigating;
@@ -225,82 +227,13 @@ public sealed class ScheduleListItemViewModel(
     }
 
     public string BiblePublicationName
-    {
-        get
-        {
-            if (Schedule?.Id <= 0)
-            {
-                return string.Empty;
-            }
-
-            var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == Schedule?.Id);
-            return scheduleStateItem?.BiblePublicationName ?? string.Empty;
-        }
-    }
+        => bibleDisplayNameProvider.GetBiblePublicationName(ScheduleId);
 
     public string BiblePublicationSectionName
-    {
-        get
-        {
-            if (Schedule?.Id <= 0)
-            {
-                return string.Empty;
-            }
-
-            var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == Schedule?.Id);
-            if (scheduleStateItem == null)
-            {
-                return string.Empty;
-            }
-
-            // Only return section name if publication is sectioned
-            var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode ?? string.Empty);
-            if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
-            {
-                return scheduleStateItem.BiblePublicationSectionName;
-            }
-
-            return string.Empty;
-        }
-    }
+        => bibleDisplayNameProvider.GetBiblePublicationSectionName(ScheduleId);
 
     public string BiblePublicationTrackName
-    {
-        get
-        {
-            if (Schedule?.Id <= 0)
-            {
-                return string.Empty;
-            }
-
-            var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == Schedule?.Id);
-            if (scheduleStateItem == null)
-            {
-                return string.Empty;
-            }
-
-            // Use track title if available (contains full name like "Chapter 1")
-            if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
-            {
-                return scheduleStateItem.BiblePublicationTrackTitle;
-            }
-
-            // Fallback: If track title is not available, show track number for sectioned publications
-            // This can happen if the track title hasn't been populated yet
-            if (scheduleStateItem.BiblePublicationTrackNumber.HasValue && 
-                scheduleStateItem.BiblePublicationTrackNumber.Value > 0)
-            {
-                var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode ?? string.Empty);
-                if (hasSectionStructure)
-                {
-                    // For sectioned publications, show track number as fallback
-                    return scheduleStateItem.BiblePublicationTrackNumber.Value.ToString();
-                }
-            }
-
-            return string.Empty;
-        }
-    }
+        => bibleDisplayNameProvider.GetBiblePublicationTrackName(ScheduleId);
 
     public bool MusicEnabled => Schedule?.MusicEnabled ?? false;
 
@@ -510,8 +443,18 @@ public sealed class ScheduleListItemViewModel(
         isProcessingStateChange = true;
         try
         {
-            UpdateScheduleFromState(changeInfo);
-            NotifyPropertyChanges(changeInfo);
+            stateChangeApplier.UpdateScheduleFromState(
+                changeInfo,
+                s => Schedule = s,
+                updatedScheduleItem => RefreshSubTitleFromState(updatedScheduleItem),
+                name => OnPropertyChanged(name),
+                () => ScheduleId);
+            stateChangeApplier.NotifyPropertyChanges(
+                changeInfo,
+                name => OnPropertyChanged(name),
+                () => ScheduleId,
+                () => Schedule,
+                RaisePropertiesChangedEvent);
         }
         finally
         {
@@ -539,120 +482,11 @@ public sealed class ScheduleListItemViewModel(
         }
     }
 
-    private void UpdateScheduleFromState(ScheduleListItemStateHandler.ScheduleChangeInfo changeInfo)
-    {
-        var updatedSchedule = changeInfo.UpdatedSchedule;
-        Schedule = updatedSchedule;
-        stateHandler.LastKnownSchedule = updatedSchedule;
-        propertyManager.IsEnabled = updatedSchedule.IsEnabled;
-
-        // Refresh subtitle if ANY bible schedule property changed
-        var subtitleChanged = changeInfo.AnyBibleSchedulePropertyChanged;
-
-        logger.Debug("ScheduleListItemViewModel: UpdateScheduleFromState - ScheduleId: {ScheduleId}, SubtitleChanged: {SubtitleChanged}, AnyBibleSchedulePropertyChanged: {AnyBibleSchedulePropertyChanged}, NewSectionName: '{NewSectionName}', NewTrackTitle: '{NewTrackTitle}', BiblePublicationCodeChanged: {BiblePublicationCodeChanged}",
-            updatedSchedule.Id, subtitleChanged, changeInfo.AnyBibleSchedulePropertyChanged,
-            changeInfo.NewSectionName ?? "null", changeInfo.NewTrackTitle ?? "null",
-            changeInfo.BiblePublicationCodeChanged);
-
-        if (subtitleChanged)
-        {
-            stateHandler.LastKnownBiblePublicationLanguageName = changeInfo.NewBiblePublicationLanguageName;
-            stateHandler.LastKnownSectionName = changeInfo.NewSectionName;
-            stateHandler.LastKnownTrackTitle = changeInfo.NewTrackTitle;
-            // Refresh subtitle from state on UI thread to ensure proper updates
-            // Also schedule a delayed refresh in case display names are populated asynchronously
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                var updatedScheduleItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == updatedSchedule.Id);
-                
-                logger.Debug("ScheduleListItemViewModel: UpdateScheduleFromState - OnMainThread - ScheduleId: {ScheduleId}, FoundScheduleItem: {FoundScheduleItem}, PublicationCode: {PublicationCode}, SectionName: '{SectionName}', TrackTitle: '{TrackTitle}'",
-                    updatedSchedule.Id, updatedScheduleItem != null,
-                    updatedScheduleItem?.BiblePublicationCode ?? "null",
-                    updatedScheduleItem?.BiblePublicationSectionName ?? "null",
-                    updatedScheduleItem?.BiblePublicationTrackTitle ?? "null");
-                
-                // Update tracked publication code if it changed
-                if (changeInfo.BiblePublicationCodeChanged && updatedScheduleItem != null)
-                {
-                    stateHandler.LastKnownBiblePublicationCode = updatedScheduleItem.BiblePublicationCode;
-                    OnPropertyChanged(nameof(BiblePublicationName));
-                }
-                RefreshSubTitleFromState(updatedScheduleItem);
-                
-                // Note: Display names are now populated and dispatched via InitializeAction in RefreshScheduleCacheAsync
-                // OnApplicationStateChanged will automatically detect the populated display names and refresh the subtitle
-            });
-        }
-    }
-
-    private void NotifyPropertyChanges(ScheduleListItemStateHandler.ScheduleChangeInfo changeInfo)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            // Always notify 'This' first to trigger converters that bind to the entire ViewModel
-            OnPropertyChanged(nameof(This));
-
-            if (changeInfo.DaysOfWeekChanged)
-            {
-                logger.Debug("ScheduleListItemViewModel: NotifyPropertyChanges - DaysOfWeek changed for schedule {ScheduleId}. New value: {NewDaysOfWeek}",
-                    ScheduleId, Schedule?.DaysOfWeek ?? 0);
-                OnPropertyChanged(nameof(DaysOfWeek));
-            }
-            if (changeInfo.IsEnabledChanged)
-            {
-                OnPropertyChanged(nameof(IsEnabled));
-                
-                // Hide progress bar when IsEnabled is updated (indicates toggle operation is complete)
-                WeakReferenceMessenger.Default.Send(new HideProgressBarMessage());
-            }
-            if (changeInfo.NameChanged)
-            {
-                OnPropertyChanged(nameof(Name));
-            }
-            if (changeInfo.TimeChanged)
-            {
-                OnPropertyChanged(nameof(TimeText));
-                OnPropertyChanged(nameof(Hour));
-                OnPropertyChanged(nameof(Minute));
-                OnPropertyChanged(nameof(Meridian));
-                OnPropertyChanged(nameof(MeridianText));
-            }
-            if (changeInfo.MusicEnabledChanged)
-            {
-                OnPropertyChanged(nameof(MusicEnabled));
-            }
-            // Always notify SubTitle if any bible schedule property changed to ensure UI updates
-            if (changeInfo.AnyBibleSchedulePropertyChanged)
-            {
-                logger.Debug("ScheduleListItemViewModel: NotifyPropertyChanges - Bible schedule property changed, notifying SubTitle for schedule {ScheduleId}",
-                    ScheduleId);
-                OnPropertyChanged(nameof(SubTitle));
-                OnPropertyChanged(nameof(Language));
-                OnPropertyChanged(nameof(BiblePublicationName));
-                
-                // Hide progress bar when subtitle is updated (indicates track change is complete)
-                WeakReferenceMessenger.Default.Send(new HideProgressBarMessage());
-            }
-        });
-    }
-
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
-        // Note: IsBusy is set to false by ScheduleItemStateService after the modal is actually shown.
-        // This handler is kept for potential future use but doesn't hide the overlay anymore.
-        // The overlay is hidden by AlarmModalService -> ScheduleItemStateService after modal is shown.
     }
 
-    private void OnThemeChanged()
-    {
-        // Notify 'This' property to trigger converters that bind to the entire ViewModel
-        // This causes day button colors to update when theme changes
-        // Use BeginInvokeOnMainThread to ensure this happens after theme resources are fully updated
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            OnPropertyChanged(nameof(This));
-        });
-    }
+    private void OnThemeChanged() => MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(nameof(This)));
 
     public void Dispose()
     {

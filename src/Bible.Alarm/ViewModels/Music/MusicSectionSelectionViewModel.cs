@@ -28,6 +28,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
+    private readonly MusicInstrumentalSectionListLoader sectionListLoader;
+    private readonly MusicSectionSelectionCommandHandler commandHandler;
     private bool initComplete;
     private string? lastPublicationCode;
     private MusicType? lastMusicType;
@@ -57,6 +59,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
         this.state = state;
         this.dispatcher = dispatcher;
         this.mapper = mapper;
+        sectionListLoader = new MusicInstrumentalSectionListLoader(logger, mediaService);
+        commandHandler = new MusicSectionSelectionCommandHandler(logger, mediaService, state, dispatcher, navigationService);
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
@@ -77,147 +81,21 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
 
             // Set flag to prevent RefreshFromState from resetting IsBusy
             isSelectingSection = true;
-
-            // Track start time to ensure minimum display duration
-            var startTime = DateTime.UtcNow;
-            const int minimumDisplayMs = 800; // Minimum time to show progress indicator
-
-            // Show progress immediately on UI thread before any async work
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                IsBusy = true;
-                ShowProgress = true;
-                ProgressPercent = 0.0;
-                ProgressText = "Loading...";
-            });
-            
-            // Give UI thread enough time to render the progress indicator
-            await Task.Delay(300);
-
             try
             {
-                // Always use CurrentSchedule as the source of truth
-                var currentSchedule = state.Value.CurrentSchedule;
-                if (currentSchedule == null ||
-                    !currentSchedule.MusicType.HasValue ||
-                    string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
-                {
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        IsBusy = false;
-                        ShowProgress = false;
-                    });
-                    return;
-                }
-
-                var musicType = currentSchedule.MusicType.Value;
-                var publicationCode = currentSchedule.MusicPublicationCode;
-                var languageCode = currentSchedule.MusicLanguageCode; // May be null for instrumental music
-
-                // Update progress
-                ProgressPercent = 0.3;
-                ProgressText = "Checking tracks...";
-
-                // Get tracks for the selected section
-                SortedDictionary<int, MusicTrack> tracks;
-                if (musicType == MusicType.VocalMusic && !string.IsNullOrEmpty(languageCode))
-                {
-                    // For vocal music, use language code
-                    tracks = await Task.Run(async () =>
-                        await mediaService.GetVocalMusicTracks(languageCode, publicationCode));
-                }
-                else if (musicType == MusicType.Music)
-                {
-                    // For instrumental music, get tracks from the selected section
-                    tracks = await Task.Run(async () =>
-                        await mediaService.GetMelodyMusicTracksBySection(publicationCode, x.Section.SectionCode));
-                }
-                else
-                {
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        IsBusy = false;
-                        ShowProgress = false;
-                    });
-                    return;
-                }
-
-                if (tracks == null || tracks.Count == 0)
-                {
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        IsBusy = false;
-                        ShowProgress = false;
-                    });
-                    return;
-                }
-
-                // Update progress
-                ProgressPercent = 0.7;
-                ProgressText = "Completing...";
-
-                // Use the first track from the selected section
-                var firstTrack = tracks.Values.First();
-                var trackNumber = firstTrack.Number;
-                var trackTitle = firstTrack.Title;
-
-                // Create MusicStateItem with selected section and track
-                var musicStateItem = new MusicStateItem
-                {
-                    MusicType = musicType,
-                    LanguageCode = languageCode,
-                    PublicationCode = publicationCode,
-                    SectionCode = x.Section.SectionCode,
-                    TrackNumber = trackNumber,
-                    Repeat = currentSchedule.MusicRepeat ?? false,
-                    // Store display names
-                    PublicationName = currentSchedule.MusicPublicationName,
-                    SectionName = x.Name,
-                    TrackName = trackTitle
-                };
-
-                // Dispatch MusicSectionSelectedAction to update CurrentSchedule
-                dispatcher.Dispatch(new MusicSectionSelectedAction(musicStateItem));
-                
-                // Ensure minimum display time has elapsed
-                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-                if (elapsed < minimumDisplayMs)
-                {
-                    var remaining = minimumDisplayMs - (int)elapsed;
-                    await Task.Delay(remaining);
-                }
-                else
-                {
-                    await Task.Delay(200); // Brief delay to show completion
-                }
-                
-                ProgressPercent = 1.0;
-                ProgressText = "100%";
-                await Task.Delay(100);
-                
-                // Navigate back to schedule page
-                // Keep IsBusy = true until modal closes - don't hide busy overlay here
-                // The modal closing will naturally hide the busy overlay
-                // IsBusy will be reset when the modal is disposed or when RefreshFromState is called next time
-                await navigationService.PopModalAsync();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "[MusicSectionSelection] TrackSelectionCommand - Error selecting section");
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    IsBusy = false;
-                    ShowProgress = false;
-                });
+                await commandHandler.HandleSectionSelectedAsync(
+                    x,
+                    b => IsBusy = b,
+                    b => ShowProgress = b,
+                    p => ProgressPercent = p,
+                    t => ProgressText = t,
+                    () => isDisposed,
+                    () => isSelectingSection);
             }
             finally
             {
-                // Reset flag after operation completes (whether success or error)
                 isSelectingSection = false;
             }
-            // Note: We intentionally do NOT set IsBusy = false in finally block
-            // This keeps the busy overlay visible until the modal closes
-            // IsBusy will be reset when RefreshFromState is called the next time the modal opens
         });
 
         // Initialize helper
@@ -561,89 +439,9 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
 
     private async Task PopulateSections(string publicationCode, Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {
-        // Show progress while fetching
-        progress?.SetIsVisible(true);
-        progress?.UpdateProgress(0.1);
-        
-        // Do ALL processing on background thread to avoid blocking spinner animation
-        var (sectionViewModelList, selectedSection) = await Task.Run(async () =>
-        {
-            // For music publications (publications without language like "iam"), use empty string as language code
-            // GetBiblePublicationSections will detect LanguageId == null and handle it appropriately
-            // Pass progress parameter to support ad-hoc downloads (though music sections should be pre-harvested)
-            var sectionsFromDb = await mediaService.GetBiblePublicationSections(string.Empty, publicationCode, progress);
+        var currentSectionCode = state.Value.CurrentSchedule?.MusicSectionCode;
+        var (sectionViewModelList, selectedSection) = await sectionListLoader.LoadAsync(publicationCode, currentSectionCode, progress);
 
-            // If no sections found, sections might be being fetched (though music should be pre-harvested)
-            // Add retry logic similar to Bible container for consistency
-            if ((sectionsFromDb == null || sectionsFromDb.Count == 0))
-            {
-                logger.Information("[MusicSectionSelection] PopulateSections: No sections found initially for publication={PublicationCode}. " +
-                    "Sections may be being fetched, will retry...",
-                    publicationCode);
-                
-                // Retry up to 5 times with increasing delays to allow fetch to complete
-                // Total wait time: 2s + 3s + 4s + 5s + 6s = 20 seconds
-                for (int retry = 0; retry < 5; retry++)
-                {
-                    // Wait before retrying (2s, 3s, 4s, 5s, 6s)
-                    progress?.UpdateProgress(0.2 + (retry / 5.0) * 0.3); // 0.2 to 0.5
-                    await Task.Delay(1000 * (retry + 2));
-                    
-                    // Re-query to see if sections are now available
-                    sectionsFromDb = await mediaService.GetBiblePublicationSections(string.Empty, publicationCode, progress);
-                    
-                    if (sectionsFromDb != null && sectionsFromDb.Count > 0)
-                    {
-                        logger.Information("[MusicSectionSelection] PopulateSections: Found {Count} sections on retry {Retry} for publication={PublicationCode}",
-                            sectionsFromDb.Count, retry + 1, publicationCode);
-                        break;
-                    }
-                }
-            }
-
-            progress?.UpdateProgress(0.7);
-
-            if (sectionsFromDb == null || sectionsFromDb.Count == 0)
-            {
-                logger.Warning("[MusicSectionSelection] PopulateSections: No sections found for publication={PublicationCode}. " +
-                    "This publication may not be harvested yet or may not have sections.",
-                    publicationCode);
-                progress?.UpdateProgress(1.0);
-                progress?.SetIsVisible(false);
-                return (new List<BiblePublicationSectionListViewItemModel>(), (BiblePublicationSectionListViewItemModel?)null);
-            }
-
-            var vms = new List<BiblePublicationSectionListViewItemModel>();
-            BiblePublicationSectionListViewItemModel? selected = null;
-
-            var currentSchedule = state.Value.CurrentSchedule;
-            var currentSectionCode = currentSchedule?.MusicSectionCode;
-
-            foreach (var section in sectionsFromDb.Values)
-            {
-                var sectionVm = new BiblePublicationSectionListViewItemModel(section);
-                vms.Add(sectionVm);
-
-                if (!string.IsNullOrEmpty(currentSectionCode) &&
-                    section.SectionCode.Equals(currentSectionCode, StringComparison.OrdinalIgnoreCase))
-                {
-                    selected = sectionVm;
-                    selected.IsSelected = true;
-                }
-            }
-
-            // Sort using natural sort (numeric sections as int, non-numeric as string)
-            vms.Sort();
-            
-            progress?.UpdateProgress(0.9);
-
-            return (vms, selected);
-        });
-        
-        progress?.UpdateProgress(1.0);
-        progress?.SetIsVisible(false);
-
-        // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             Sections.Clear();
