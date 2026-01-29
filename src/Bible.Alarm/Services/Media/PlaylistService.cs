@@ -13,7 +13,6 @@ using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-
 namespace Bible.Alarm.Services.Media;
 
 public sealed class PlaylistService : IPlaylistService, IDisposable
@@ -122,7 +121,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         TrackMetadata trackMetadata,
         int? nextTrackNumber)
     {
-        // Clear cache BEFORE save to prevent stale cache if process crashes
         const string CacheKey = "ScheduleList";
         diskCacheService?.Remove(CacheKey);
 
@@ -131,15 +129,11 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             schedule => PlaylistTrackUpdater.UpdateScheduleForPlayedTrackInternal(schedule, trackMetadata, nextTrackNumber),
             cancellationTokenSource.Token);
     }
-
-
-
     public async Task MarkTrackAsFinished(TrackMetadata trackMetadata)
     {
         // Get next track/track before updating
         var nextTrackInfo = await GetNextTrackInfoAsync(trackMetadata);
 
-        // Clear cache BEFORE save to prevent stale cache if process crashes
         const string CacheKey = "ScheduleList";
         diskCacheService?.Remove(CacheKey);
 
@@ -149,8 +143,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             schedule => UpdateScheduleForFinishedTrackInternal(schedule, trackMetadata, nextTrackInfo),
             cancellationTokenSource.Token);
 
-        // Update the Fluxor store to trigger state change and UI refresh
-        // ScheduleListItem now subscribes to ApplicationState changes instead of TrackChangedMessage
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
@@ -198,8 +190,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             PlaylistTrackUpdater.UpdateBiblePublicationTrackForFinished(schedule, trackMetadata, nextTrackInfo.NextTrack);
         }
     }
-
-
     private record NextTrackInfo(int? NextTrackNumber, KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>? NextTrack);
 
     public async Task<PlayItem> NextTrack(int scheduleId)

@@ -280,12 +280,12 @@ public partial class MediaManager : Object, IPlayerListener
             StartService();
         }
 
-        await AndroidMediaManagerSourceUpdater.UpdateSourceAsync(
+        (cancellationTokenSource, mediaItem) = await AndroidMediaManagerSourceUpdater.UpdateSourceAsync(
             MediaElement,
             Player,
             PlayerView,
-            ref cancellationTokenSource,
-            ref mediaItem,
+            cancellationTokenSource,
+            mediaItem,
             UpdateNotifications,
             Logger).ConfigureAwait(true);
     }

@@ -16,12 +16,12 @@ namespace CommunityToolkit.Maui.Core.Views;
 
 internal static class AndroidMediaManagerSourceUpdater
 {
-    internal static async ValueTask UpdateSourceAsync(
+    internal static async ValueTask<(CancellationTokenSource? CancellationTokenSource, MediaItem.Builder? MediaItem)> UpdateSourceAsync(
         IMediaElement mediaElement,
         PlatformMediaElement player,
         PlayerView? playerView,
-        ref CancellationTokenSource? cancellationTokenSource,
-        ref MediaItem.Builder? mediaItem,
+        CancellationTokenSource? cancellationTokenSource,
+        MediaItem.Builder? mediaItem,
         Action updateNotifications,
         ILogger logger)
     {
@@ -30,16 +30,16 @@ internal static class AndroidMediaManagerSourceUpdater
             player.ClearMediaItems();
             mediaElement.Duration = TimeSpan.Zero;
             mediaElement.CurrentStateChanged(MediaElementState.None);
-            return;
+            return (cancellationTokenSource, mediaItem);
         }
 
         mediaElement.CurrentStateChanged(MediaElementState.Opening);
         player.PlayWhenReady = mediaElement.ShouldAutoPlay;
-        cancellationTokenSource ??= new();
+        cancellationTokenSource ??= new CancellationTokenSource();
 
         // ConfigureAwait(true) is required to prevent crash on startup (preserve existing behavior)
-        var result = await SetPlayerData(mediaElement, playerView, ref mediaItem, cancellationTokenSource.Token).ConfigureAwait(true);
-        var item = result?.Build();
+        mediaItem = await SetPlayerData(mediaElement, playerView, mediaItem, cancellationTokenSource.Token).ConfigureAwait(true);
+        var item = mediaItem?.Build();
 
         if (item?.MediaMetadata is not null)
         {
@@ -52,12 +52,14 @@ internal static class AndroidMediaManagerSourceUpdater
             mediaElement.MediaOpened();
             updateNotifications();
         }
+
+        return (cancellationTokenSource, mediaItem);
     }
 
     private static async Task<MediaItem.Builder?> SetPlayerData(
         IMediaElement mediaElement,
         PlayerView? playerView,
-        ref MediaItem.Builder? mediaItem,
+        MediaItem.Builder? mediaItem,
         CancellationToken cancellationToken = default)
     {
         if (mediaElement.Source is null)

@@ -16,13 +16,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-
 namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
-
-/// <summary>
-/// Handles cascade auto-population for Bible publication selections.
-/// Cascade order: Language → Publication → Section → Track
-/// </summary>
 public sealed class BiblePublicationCascadeHandler
 {
     private readonly IBiblePublicationService biblePublicationService;
@@ -66,19 +60,12 @@ public sealed class BiblePublicationCascadeHandler
             var sectionNumber = currentSchedule.BiblePublicationSectionNumber;
             var trackNumber = currentSchedule.BiblePublicationTrackNumber;
 
-            // Cascade 1: Language selected but publication not → populate publication, section, track
-            // IMPORTANT: Only trigger if publication is truly empty. If user just selected a publication,
-            // the publication code should already be set and we should use HandlePublicationCascadeAsync instead.
-            // This prevents the cascade from selecting a different publication when user switches from
-            // a publication without language to one with language.
             if (!string.IsNullOrWhiteSpace(languageCode) && string.IsNullOrWhiteSpace(publicationCode))
             {
                 await HandleLanguageCascadeAsync(currentSchedule, dispatcher);
                 return; // Language cascade handles everything below
             }
 
-            // Cascade 2: Publication selected but section/track not → populate section, track
-            // Only if section is not set (if section is set, go to cascade 3)
             if (!string.IsNullOrWhiteSpace(publicationCode) && 
                 (!sectionNumber.HasValue || sectionNumber.Value <= 0))
             {
@@ -86,7 +73,6 @@ public sealed class BiblePublicationCascadeHandler
                 return; // Publication cascade handles section and track
             }
 
-            // Cascade 3: Section selected but track not → populate track
             if (sectionNumber.HasValue && sectionNumber.Value > 0 &&
                 (!trackNumber.HasValue || trackNumber.Value <= 0))
             {
@@ -108,8 +94,6 @@ public sealed class BiblePublicationCascadeHandler
         logger.Information("BiblePublicationCascadeHandler: Language cascade - language={LanguageCode}, category={CategoryName}, existingPublication={ExistingPublication}",
             languageCode, categoryName ?? "all", existingPublicationCode ?? "none");
 
-        // IMPORTANT: If a publication is already set in the schedule, use it instead of selecting a new one
-        // This preserves the user's selection when switching from a publication without language to one with language
         if (!string.IsNullOrWhiteSpace(existingPublicationCode))
         {
             logger.Debug("BiblePublicationCascadeHandler: Using existing publication={PublicationCode} from schedule",
@@ -130,8 +114,6 @@ public sealed class BiblePublicationCascadeHandler
                 
                 if (canQueryWithLanguage)
                 {
-                    // Use existing publication - harvest first if needed, then get section and track
-                    // IMPORTANT: Always harvest first to ensure tracks are available after language change
                     if (!await languageContentService.EnsurePublicationExistsAsync(existingPublicationCode, languageCode))
                     {
                         logger.Warning("BiblePublicationCascadeHandler: Failed to harvest existing publication={PublicationCode} for language={LanguageCode}", 
@@ -187,8 +169,6 @@ public sealed class BiblePublicationCascadeHandler
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
         
-        // Step 1: Try to find a publication with LanguageId for the selected language in the current category
-        // IMPORTANT: Always preserve category - category can ONLY be changed via CategorySelectionAction
         var query = db.PublicationLanguages
             .AsNoTracking()
             .Include(pl => pl.Language)
@@ -236,7 +216,6 @@ public sealed class BiblePublicationCascadeHandler
             }
         }
         
-        // Step 2: If no publication with LanguageId found in current category, try publications without LanguageId in current category
         if (string.IsNullOrEmpty(publicationCode))
         {
             if (!string.IsNullOrWhiteSpace(categoryName))

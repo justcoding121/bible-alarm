@@ -12,7 +12,6 @@ using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-
 namespace Bible.Alarm.ViewModels.Shared;
 
 public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>
@@ -37,9 +36,6 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     private readonly PositionManager positionManager;
     private readonly MessageHandler messageHandler;
 
-    /// <summary>
-    /// Public property to allow code-behind to check if user is interacting
-    /// </summary>
     public bool IsUserInteracting => sliderHandler.IsUserInteracting;
 
     public ICommand DismissCommand { get; private set; }
@@ -128,34 +124,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
 
         // Initialize from current state
         UpdateFromState();
-
-        // NOTE:
-        // Do not reset Title/SubTitle/Description/etc here.
-        // UpdateFromState() already hydrated the VM from Fluxor, and resetting afterwards
-        // causes the UI to appear blank (especially noticeable in Android Auto -> later open app flows).
-
-        Task.Run(async () =>
-        {
-            while (!isDisposed)
-            {
-                await Task.Delay(1000);
-
-                var isRunning = playbackState.Value.IsPreparingOrPlaying;
-
-                var count = 6;
-                while (!isRunning && count > 0)
-                {
-                    await Task.Delay(500);
-                    isRunning = playbackState.Value.IsPreparingOrPlaying;
-                    count--;
-                }
-
-                if (!isRunning)
-                {
-                    Dispose();
-                }
-            }
-        });
+        AlarmViewModelAutoDisposeMonitor.Start(playbackState, () => isDisposed, Dispose);
     }
 
     private async Task ShowDismissProgress()
@@ -165,9 +134,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
         await Task.Delay(100);
     }
 
-
     private string title;
-
     public string Title
     {
         get => title;
@@ -175,7 +142,6 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     }
 
     private string subTitle;
-
     public string SubTitle
     {
         get => subTitle;
@@ -183,7 +149,6 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     }
 
     private string description;
-
     public string Description
     {
         get => description;
@@ -238,7 +203,6 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     }
 
     private string currentTime;
-
     public string CurrentTime
     {
         get => currentTime;
@@ -246,7 +210,6 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     }
 
     private string endTime;
-
     public string EndTime
     {
         get => endTime;

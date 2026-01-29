@@ -1,9 +1,11 @@
 #nullable enable
 
+using System.Linq;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.Shared;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;

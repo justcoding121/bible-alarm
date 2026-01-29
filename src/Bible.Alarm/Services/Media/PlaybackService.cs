@@ -11,7 +11,6 @@ using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-
 namespace Bible.Alarm.Services.Media;
 
 public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>, IRecipient<PlayButtonPressedMessage>, IRecipient<PauseButtonPressedMessage>, IRecipient<SeekForwardButtonPressedMessage>, IRecipient<SeekBackwardButtonPressedMessage>, IDisposable
@@ -25,7 +24,6 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly IFallbackAlarmSoundService fallbackAlarmSoundService;
     private readonly INotificationService notificationService;
 
-    // Helper classes for modular functionality
     private readonly PlaybackStateManager stateManager;
     private readonly PlaybackNavigationManager navigationManager;
     private readonly ProgressTracker progressTracker;
@@ -63,7 +61,6 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         this.notificationService = notificationService;
         this.playbackState = playbackState;
 
-        // Initialize helper classes
         stateManager = new PlaybackStateManager(logger);
         navigationManager = new PlaybackNavigationManager(dispatcher, logger);
         progressTracker = new ProgressTracker(playlistService, audioPlayer, logger);
@@ -78,11 +75,9 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         systemControlsHandler = new SystemControlsHandler(logger);
         trackMarker = new TrackMarker(playlistService, logger);
 
-        // Set up progress tracker callback
         progressTracker.SetSaveProgressCallback(() => progressTracker.SaveProgressAsync(
             stateManager.Playlist, stateManager.CurrentTrackIndex));
 
-        // Register for Next/Previous/Play/Pause/Seek button press messages from system controls
         WeakReferenceMessenger.Default.Register<NextButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Register<PreviousButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Register<PlayButtonPressedMessage>(this);
@@ -96,12 +91,10 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     public async Task PrepareAndPlayAsync(int scheduleId, bool isAlarm)
     {
-        // If already playing a different schedule, stop it first
         if (stateManager.IsPreparingOrPlaying(audioPlayer) && stateManager.CurrentScheduleId.HasValue && stateManager.CurrentScheduleId.Value != scheduleId)
         {
             logger.Information("Stopping existing playback of schedule {CurrentScheduleId} before starting schedule {ScheduleId}",
                 stateManager.CurrentScheduleId.Value, scheduleId);
-            // Mark current track as played to advance TrackNumber, but skip saving "last played" since we're switching
             await trackMarker.MarkTrackAsPlayedAsync(stateManager.Playlist, stateManager.CurrentTrackIndex);
             await StopAsyncInternal(skipMarkAsPlayed: true, skipSaveLastPlayed: true);
         }
@@ -120,12 +113,10 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             stateManager.CurrentScheduleId = scheduleId;
             stateManager.IsAlarm = isAlarm;
 
-            // Create cancellation token source for preparation (can be cancelled when stop is called)
             stateManager.PreparationCancellationTokenSource?.Dispose();
             stateManager.PreparationCancellationTokenSource = new CancellationTokenSource();
             var cancellationToken = stateManager.PreparationCancellationTokenSource.Token;
 
-            // Prepare tracks using initializer
             stateManager.Playlist = await initializer.PrepareTracksAsync(scheduleId, cancellationToken);
 
             if (stateManager.Playlist is null)
@@ -142,11 +133,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 {
                     ErrorMessage = errorMessage
                 });
-                // Keep modal open by not resetting - the state will keep isPreparingOrPlaying true
-                // Set status to Failed to indicate error state
                 dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
 
-                // For alarms, also try to play fallback alarm sound (keep error message visible)
                 if (isAlarm)
                 {
                     await TryPlayFallbackAlarmSoundAsync(scheduleId, keepErrorMessage: true);
@@ -169,11 +157,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 {
                     ErrorMessage = errorMessage
                 });
-                // Keep modal open by not resetting - the state will keep isPreparingOrPlaying true
-                // Set status to Failed to indicate error state
                 dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
 
-                // For alarms, also try to play fallback alarm sound (keep error message visible)
                 if (isAlarm)
                 {
                     await TryPlayFallbackAlarmSoundAsync(scheduleId, keepErrorMessage: true);
@@ -185,9 +170,6 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             stateManager.CurrentTrackIndex = 0;
             stateManager.ManuallyVisitedTrackIndices.Clear();
 
-            // Dispatch navigation state immediately after setting currentTrackIndex
-            // This ensures CanPlayNext and CanPlayPrevious are correct before Android Auto processes status changes
-            // This prevents the "prev button only" flicker on initial play
             navigationManager.NotifyNavigationChanged(stateManager.Playlist, stateManager.CurrentTrackIndex);
 
             // Playback operations (PlayCurrentTrackAsync) should run on main thread since they interact with MediaElement
@@ -241,37 +223,23 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             startFromBeginning => PlayCurrentTrackAsync(startFromBeginning));
     }
 
-    /// <summary>
-    /// Handles Next button press message from Android system media controls (notification/lockscreen).
-    /// Calls PlayNextAsync() on UI thread with a delay to let MediaSession finish processing.
-    /// </summary>
     public void Receive(NextButtonPressedMessage message)
     {
         systemControlsHandler.HandleNextButton(() => PlayNextAsync());
     }
 
-    /// <summary>
-    /// Handles Previous button press message from Android system media controls (notification/lockscreen).
-    /// Calls PlayPreviousAsync() on UI thread with a delay to let MediaSession finish processing.
-    /// </summary>
     public void Receive(PreviousButtonPressedMessage message)
     {
         systemControlsHandler.HandlePreviousButton(() => PlayPreviousAsync());
     }
 
-    /// <summary>
-    /// Handles Play button press message from system media controls (notification/lockscreen).
-    /// Calls PlayAsync() on UI thread with a delay to let system controls finish processing.
-    /// </summary>
     public void Receive(PlayButtonPressedMessage message)
     {
         systemControlsHandler.HandlePlayButton(async () =>
         {
-            // If there's no active playback, check if we should start the default schedule
             if (!stateManager.IsPreparingOrPlaying(audioPlayer) &&
                 (stateManager.Playlist == null || stateManager.Playlist.Count == 0 || !stateManager.CurrentScheduleId.HasValue))
             {
-                // Get default schedule ID from state
                 var defaultScheduleId = playbackState.Value.DefaultScheduleId;
                 if (defaultScheduleId.HasValue && defaultScheduleId.Value > 0)
                 {
@@ -281,33 +249,20 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 }
             }
 
-            // Otherwise, resume/play current playback
             await PlayAsync();
         });
     }
 
-    /// <summary>
-    /// Handles Pause button press message from system media controls (notification/lockscreen).
-    /// Calls PauseAsync() on UI thread with a delay to let system controls finish processing.
-    /// </summary>
     public void Receive(PauseButtonPressedMessage message)
     {
         systemControlsHandler.HandlePauseButton(() => PauseAsync());
     }
 
-    /// <summary>
-    /// Handles Fast Forward button press message from system media controls (notification/lockscreen).
-    /// Calls SeekForwardAsync() on UI thread with a delay to let system controls finish processing.
-    /// </summary>
     public void Receive(SeekForwardButtonPressedMessage message)
     {
         systemControlsHandler.HandleSeekForwardButton(() => SeekForwardAsync());
     }
 
-    /// <summary>
-    /// Handles Rewind button press message from system media controls (notification/lockscreen).
-    /// Calls SeekBackwardAsync() on UI thread with a delay to let system controls finish processing.
-    /// </summary>
     public void Receive(SeekBackwardButtonPressedMessage message)
     {
         systemControlsHandler.HandleSeekBackwardButton(() => SeekBackwardAsync());
@@ -332,10 +287,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     private async Task StopAsyncInternal(bool skipMarkAsPlayed, bool skipSaveLastPlayed = false)
     {
-        // Save currentScheduleId before resetting state (needed for SaveLastPlayed)
         var scheduleIdToSave = stateManager.CurrentScheduleId;
 
-        // Save track metadata before resetting state (needed for marking track as played/finished)
         TrackMetadata? trackMetadataToMark = null;
         if (!skipMarkAsPlayed && stateManager.Playlist != null && stateManager.CurrentTrackIndex >= 0 && stateManager.CurrentTrackIndex < stateManager.Playlist.Count)
         {
@@ -359,28 +312,18 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
         stateManager.Reset();
 
-        // Dispatch playback stopped action
         dispatcher.Dispatch(new PlaybackStoppedAction());
 
 #if ANDROID || IOS
-        // Dispatch SetCarPlayScreenAction to refresh car display with default schedule metadata
-        // Android: Updates MediaSession for Android Auto
-        // iOS: Updates MPNowPlayingInfoCenter for CarPlay and Lock Screen
         dispatcher.Dispatch(new SetCarPlayScreenAction());
         logger.Debug("SetCarPlayScreenAction dispatched after playback reset");
 #endif
 
-        // Log reset completion for debugging
         logger.Debug("Playback reset completed. Status: {Status}, ScheduleId: {ScheduleId}",
             audioPlayer.Status,
             stateManager.CurrentScheduleId);
     }
 
-    /// <summary>
-    /// Resets playback state without closing the modal, then immediately prepares and plays again.
-    /// Used for retry functionality - modal stays open and updates automatically.
-    /// Always uses isAlarm=false for retry (regular playback, not alarm behavior).
-    /// </summary>
     public async Task ResetAndRetryAsync(int scheduleId)
     {
         logger.Information("ResetAndRetryAsync - resetting and retrying schedule {ScheduleId}", scheduleId);

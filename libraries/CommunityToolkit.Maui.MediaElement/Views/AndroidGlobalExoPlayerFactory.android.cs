@@ -1,6 +1,7 @@
 #nullable enable
 
 using Android.OS;
+using AndroidX.Media3.Common;
 using AndroidX.Media3.ExoPlayer;
 using AndroidX.Media3.Session;
 using CommunityToolkit.Maui.Interfaces;

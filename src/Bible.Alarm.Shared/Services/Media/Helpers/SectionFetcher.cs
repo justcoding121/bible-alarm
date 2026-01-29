@@ -14,12 +14,7 @@ using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
-
-/// <summary>
-/// Helper class for fetching publication sections and section tracks.
-/// </summary>
 internal sealed class SectionFetcher
 {
     private readonly HttpClient httpClient;
@@ -44,9 +39,7 @@ internal sealed class SectionFetcher
         List<string> sectionCodes,
         CancellationToken cancellationToken)
     {
-        // Get or create language and category
-        var language = await db.Languages
-            .FirstOrDefaultAsync(l => l.LanguageCode == normalizedLanguageCode, cancellationToken);
+        var language = await db.Languages.FirstOrDefaultAsync(l => l.LanguageCode == normalizedLanguageCode, cancellationToken);
         
         if (language == null)
         {
@@ -61,10 +54,7 @@ internal sealed class SectionFetcher
             return false;
         }
 
-        // Get BaseUrl
-        var baseUrl = await db.BaseUrls
-            .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
-            .FirstOrDefaultAsync(cancellationToken);
+        var baseUrl = await db.BaseUrls.Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS").FirstOrDefaultAsync(cancellationToken);
 
         if (baseUrl == null)
         {
@@ -72,7 +62,6 @@ internal sealed class SectionFetcher
             return false;
         }
 
-        // Determine if this is a Bible publication (uses booknum) or Drama (uses pub=sectionCode)
         var isBible = category.CategoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
         var sections = new List<BiblePublicationSection>();
         string? localizedPubName = null;
@@ -81,7 +70,6 @@ internal sealed class SectionFetcher
         {
             try
             {
-                // For Bible, use booknum parameter; for Drama, use pub=sectionCode
                 var harvestLink = isBible
                     ? $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
                     : $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
@@ -104,30 +92,23 @@ internal sealed class SectionFetcher
                     continue;
                 }
 
-                // Extract section name from API response
-                // The pubName field should contain the localized section name when langwritten is set correctly
                 string? sectionName = null;
                 if (root.TryGetProperty("pubName", out var pubNameElement))
                 {
                     var rawName = pubNameElement.GetString();
                     sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
                 }
-                
-                // If pubName is not found, log a warning (this might indicate the API response structure is different)
                 if (sectionName == null)
                 {
                     logger.Debug("Section name (pubName) not found in API response for section {SectionCode} in language {LanguageCode}",
                         sectionCode, normalizedLanguageCode);
                 }
 
-                // Extract localized publication name (only once)
                 if (localizedPubName == null && root.TryGetProperty("parentPubName", out var parentPubNameElement))
                 {
                     var rawName = parentPubNameElement.GetString();
                     var extractedName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
                     
-                    // Validate that the extracted name is not a known video/drama publication name
-                    // This prevents contamination from wrong API responses
                     if (!string.IsNullOrEmpty(extractedName) && isBible)
                     {
                         var knownVideoNames = new[] { "The Good News According to Jesus", "Good news according to Jesus" };
@@ -144,25 +125,19 @@ internal sealed class SectionFetcher
                     localizedPubName = extractedName;
                 }
 
-                // Parse tracks from the API response (files element contains track data)
-                // This avoids making a separate API call later
                 var tracks = new List<BiblePublicationTrack>();
                 if (isBible)
                 {
-                    // Parse Bible tracks from files element
                     tracks = trackParser.ParseBibleTracks(
                         filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode, baseUrl);
                 }
                 else
                 {
-                    // Parse drama tracks from files element
-                    // Drama tracks use a different parsing logic
                     int nextTrackNumber;
                     tracks = dramaTrackParser.ParseTracksFromJson(
                         filesElement, normalizedLanguageCode, sectionCode, baseUrl, startTrackNumber: 1, out nextTrackNumber);
                 }
 
-                // Create section with tracks parsed from API response
                 var section = new BiblePublicationSection
                 {
                     Name = sectionName ?? sectionCode,
@@ -171,7 +146,6 @@ internal sealed class SectionFetcher
                     Tracks = tracks
                 };
 
-                // Add URL params based on type
                 if (isBible)
                 {
                     section.UrlParams.Add(new UrlParam
@@ -235,10 +209,7 @@ internal sealed class SectionFetcher
             return false;
         }
 
-        // Check if publication already exists
-        var existingPublication = await db.BiblePublications
-            .Include(bp => bp.Sections)
-            .FirstOrDefaultAsync(
+        var existingPublication = await db.BiblePublications.Include(bp => bp.Sections).FirstOrDefaultAsync(
                 bp => bp.PublicationCode == normalizedPublicationCode &&
                       bp.LanguageId == language.Id,
                 cancellationToken);
@@ -246,22 +217,16 @@ internal sealed class SectionFetcher
         BiblePublication publication;
         if (existingPublication != null)
         {
-            // Publication exists - delete it and its sections to avoid duplicates
-            // We'll replace it with the new one that has all sections
             logger.Information("Publication {PublicationCode} already exists for language {LanguageCode}, replacing with updated sections",
                 normalizedPublicationCode, normalizedLanguageCode);
             
-            // Remove existing sections (cascade delete will handle tracks)
             db.BiblePublicationSections.RemoveRange(existingPublication.Sections);
             await db.SaveChangesAsync(cancellationToken);
             
-            // Remove the publication
             db.BiblePublications.Remove(existingPublication);
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        // Temporarily remove tracks from sections before saving
-        // We'll add them back after sections have IDs to avoid foreign key constraint errors
         var tracksBySection = new Dictionary<BiblePublicationSection, List<BiblePublicationTrack>>();
         foreach (var section in sections)
         {
@@ -272,7 +237,6 @@ internal sealed class SectionFetcher
             }
         }
 
-        // Create publication
         var publicationName = localizedPubName ?? englishPublication.Name;
         publication = new BiblePublication
         {
@@ -287,8 +251,6 @@ internal sealed class SectionFetcher
             Sections = sections
         };
 
-        // Set publication reference on sections
-        // EF Core will automatically set BiblePublicationId when we save
         foreach (var section in sections)
         {
             section.BiblePublication = publication;
@@ -297,13 +259,11 @@ internal sealed class SectionFetcher
         db.BiblePublications.Add(publication);
         await db.SaveChangesAsync(cancellationToken);
 
-        // Now add tracks back to sections (sections now have IDs)
         foreach (var kvp in tracksBySection)
         {
             var section = kvp.Key;
             var tracks = kvp.Value;
             
-            // Set section reference on tracks
             foreach (var track in tracks)
             {
                 track.Section = section;
@@ -313,7 +273,6 @@ internal sealed class SectionFetcher
             section.Tracks.AddRange(tracks);
         }
 
-        // Save tracks
         await db.SaveChangesAsync(cancellationToken);
 
         logger.Information("Successfully fetched {Count} sections for publication {PublicationCode} in language {LanguageCode}",
@@ -332,7 +291,6 @@ internal sealed class SectionFetcher
         BiblePublicationSection section,
         CancellationToken cancellationToken)
     {
-        // Check if tracks already exist (they might have been fetched when sections were fetched)
         await db.Entry(section).Collection(s => s.Tracks).LoadAsync(cancellationToken);
         if (section.Tracks != null && section.Tracks.Count > 0)
         {
@@ -341,12 +299,9 @@ internal sealed class SectionFetcher
             return true;
         }
 
-        // Determine fetching logic based on category
-        // Bible uses booknum parameter, Drama uses pub=sectionCode
         var categoryName = publication.Category?.CategoryName ?? "";
         var isBible = categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
 
-        // Build harvest link
         var harvestLink = isBible
             ? $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
             : $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedSectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
@@ -379,10 +334,7 @@ internal sealed class SectionFetcher
             return false;
         }
 
-        // Get BaseUrl
-        var baseUrl = await db.BaseUrls
-            .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
-            .FirstOrDefaultAsync(cancellationToken);
+        var baseUrl = await db.BaseUrls.Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS").FirstOrDefaultAsync(cancellationToken);
 
         if (baseUrl == null)
         {
@@ -429,11 +381,8 @@ internal sealed class SectionFetcher
                     title = rawTitle != null ? WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ') : "Unknown";
                 }
                 
-                // For Bible tracks, remove book name prefix (e.g., "ഉൽപത്തി - അധ്യായം 1" -> "അധ്യായം 1")
-                // The API returns titles like "{book name} - {chapter name}" or "{book name} - Chapter {number}"
                 if (isBible && !string.IsNullOrEmpty(title) && title != "Unknown")
                 {
-                    // Split by common separators: " - ", " – ", " — ", " -", "- "
                     var separators = new[] { " - ", " – ", " — ", " -", "- " };
                     foreach (var separator in separators)
                     {
@@ -442,7 +391,6 @@ internal sealed class SectionFetcher
                             var parts = title.Split(new[] { separator }, StringSplitOptions.None);
                             if (parts.Length > 1)
                             {
-                                // Take the last part (chapter name)
                                 title = parts[parts.Length - 1].Trim();
                                 break;
                             }
@@ -462,7 +410,6 @@ internal sealed class SectionFetcher
                 UrlParams = new List<UrlParam>()
             };
 
-            // Add URL params based on type
             if (isBible)
             {
                 track.UrlParams.Add(new UrlParam
@@ -541,7 +488,6 @@ internal sealed class SectionFetcher
             return false;
         }
 
-        // Add tracks to section
         section.Tracks = tracks;
         await db.SaveChangesAsync(cancellationToken);
 

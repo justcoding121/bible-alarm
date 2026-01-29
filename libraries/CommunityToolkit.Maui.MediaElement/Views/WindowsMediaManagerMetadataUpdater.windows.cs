@@ -1,5 +1,6 @@
 #nullable enable
 
+using CommunityToolkit.Maui.Interfaces;
 using CommunityToolkit.Maui.Primitives;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Media.Imaging;

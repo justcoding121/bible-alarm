@@ -39,7 +39,8 @@ public sealed class ScheduleListItemViewModel(
     private readonly ScheduleListItemStateHandler stateHandler = new(logger, mapper, applicationState);
     private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, displayService, applicationState);
     private readonly ScheduleListItemBibleDisplayNameProvider bibleDisplayNameProvider = new(applicationState);
-    private readonly ScheduleListItemStateChangeApplier stateChangeApplier = new(logger, applicationState, stateHandler, propertyManager);
+    private ScheduleListItemStateChangeApplier? stateChangeApplier;
+    private ScheduleListItemStateChangeApplier StateChangeApplier => stateChangeApplier ??= new(logger, applicationState, stateHandler, propertyManager);
 
     private bool isBusy;
     private bool isNavigating;
@@ -443,13 +444,13 @@ public sealed class ScheduleListItemViewModel(
         isProcessingStateChange = true;
         try
         {
-            stateChangeApplier.UpdateScheduleFromState(
+            StateChangeApplier.UpdateScheduleFromState(
                 changeInfo,
                 s => Schedule = s,
                 updatedScheduleItem => RefreshSubTitleFromState(updatedScheduleItem),
                 name => OnPropertyChanged(name),
                 () => ScheduleId);
-            stateChangeApplier.NotifyPropertyChanges(
+            StateChangeApplier.NotifyPropertyChanges(
                 changeInfo,
                 name => OnPropertyChanged(name),
                 () => ScheduleId,

@@ -9,16 +9,11 @@ using Microsoft.Maui;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 
-/// <summary>
-/// Provides display text for music-related properties.
-/// Separated from MusicSelectionContainerViewModel for better modularity.
-/// </summary>
 public sealed class MusicDisplayTextProvider
 {
     private readonly IState<ApplicationState> state;
     private readonly IMediaService mediaService;
 
-    // Cache fields
     private string? cachedSongPublicationName;
     private string? lastMusicPublicationCode;
     private string? cachedTrackName;
@@ -92,7 +87,6 @@ public sealed class MusicDisplayTextProvider
 
     public bool GetIsSongPublicationVisible()
     {
-        // Music Publication Selection is always visible for both Music and Vocal Music types
         var currentSchedule = state.Value.CurrentSchedule;
         return currentSchedule != null && currentSchedule.MusicType.HasValue;
     }
@@ -100,15 +94,11 @@ public sealed class MusicDisplayTextProvider
     public bool GetIsMusicLanguageVisible()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        // Language row is visible only when music type is VocalMusic
-        // Show it whenever type is vocals, even if no language is selected yet (so user can select one)
         if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
         {
             return false;
         }
 
-        // For VocalMusic type, language row is always visible (allows user to select language)
-        // For Music type (Instrumental), no language row
         return currentSchedule.MusicType.Value == MusicType.VocalMusic;
     }
 
@@ -193,8 +183,6 @@ public sealed class MusicDisplayTextProvider
             return cachedSongPublicationName;
         }
 
-        // NOTE: Do NOT query database here - publication names should be in state from bootstrap
-        // If publication name is missing, it means bootstrap didn't populate it, which is an error
         return string.Empty;
     }
 
@@ -266,8 +254,6 @@ public sealed class MusicDisplayTextProvider
             return cachedTrackName;
         }
 
-        // NOTE: Do NOT query database here - track names should be in state from bootstrap
-        // If track name is missing, it means bootstrap didn't populate it, which is an error
         return string.Empty;
     }
 
@@ -286,11 +272,6 @@ public sealed class MusicDisplayTextProvider
                currentSchedule.MusicTrackNumber.Value > 0;
     }
 
-    /// <summary>
-    /// Gets the FlowDirection based on the Music's selected language direction.
-    /// Used for song publication and track rows which display RTL content.
-    /// Returns RightToLeft for RTL languages, LeftToRight otherwise.
-    /// </summary>
     public FlowDirection GetFlowDirection()
     {
         var currentSchedule = state.Value.CurrentSchedule;

@@ -1,7 +1,7 @@
 #nullable enable
 
 using System.Collections.Concurrent;
-using Bible.Alarm.Services.Network.Interfaces;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
 using Serilog;

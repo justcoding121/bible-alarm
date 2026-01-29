@@ -1,9 +1,11 @@
 #nullable enable
 
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.Messaging;
+using Fluxor;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
@@ -71,7 +73,7 @@ internal sealed class ScheduleListItemStateChangeApplier
             if (changeInfo.BiblePublicationCodeChanged && updatedScheduleItem != null)
             {
                 stateHandler.LastKnownBiblePublicationCode = updatedScheduleItem.BiblePublicationCode;
-                onPropertyChanged(nameof(BiblePublicationName));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.BiblePublicationName));
             }
 
             refreshSubTitleFromState(updatedScheduleItem);
@@ -88,45 +90,45 @@ internal sealed class ScheduleListItemStateChangeApplier
         MainThread.BeginInvokeOnMainThread(() =>
         {
             // Always notify 'This' first to trigger converters that bind to the entire ViewModel
-            onPropertyChanged(nameof(This));
+            onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.This));
 
             if (changeInfo.DaysOfWeekChanged)
             {
                 logger.Debug("ScheduleListItemViewModel: NotifyPropertyChanges - DaysOfWeek changed for schedule {ScheduleId}. New value: {NewDaysOfWeek}",
                     getScheduleId(), getSchedule()?.DaysOfWeek ?? 0);
-                onPropertyChanged(nameof(DaysOfWeek));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.DaysOfWeek));
             }
             if (changeInfo.IsEnabledChanged)
             {
-                onPropertyChanged(nameof(IsEnabled));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.IsEnabled));
 
                 // Hide progress bar when IsEnabled is updated (indicates toggle operation is complete)
                 WeakReferenceMessenger.Default.Send(new HideProgressBarMessage());
             }
             if (changeInfo.NameChanged)
             {
-                onPropertyChanged(nameof(Name));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.Name));
             }
             if (changeInfo.TimeChanged)
             {
-                onPropertyChanged(nameof(TimeText));
-                onPropertyChanged(nameof(Hour));
-                onPropertyChanged(nameof(Minute));
-                onPropertyChanged(nameof(Meridian));
-                onPropertyChanged(nameof(MeridianText));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.TimeText));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.Hour));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.Minute));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.Meridian));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.MeridianText));
             }
             if (changeInfo.MusicEnabledChanged)
             {
-                onPropertyChanged(nameof(MusicEnabled));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.MusicEnabled));
             }
             // Always notify SubTitle if any bible schedule property changed to ensure UI updates
             if (changeInfo.AnyBibleSchedulePropertyChanged)
             {
                 logger.Debug("ScheduleListItemViewModel: NotifyPropertyChanges - Bible schedule property changed, notifying SubTitle for schedule {ScheduleId}",
                     getScheduleId());
-                onPropertyChanged(nameof(SubTitle));
-                onPropertyChanged(nameof(Language));
-                onPropertyChanged(nameof(BiblePublicationName));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.SubTitle));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.Language));
+                onPropertyChanged(nameof(Bible.Alarm.ViewModels.ScheduleListItemViewModel.BiblePublicationName));
 
                 // Hide progress bar when subtitle is updated (indicates track change is complete)
                 WeakReferenceMessenger.Default.Send(new HideProgressBarMessage());

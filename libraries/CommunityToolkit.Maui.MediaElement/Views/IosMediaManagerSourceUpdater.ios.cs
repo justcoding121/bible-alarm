@@ -10,6 +10,7 @@ using CoreMedia;
 using Foundation;
 using Microsoft.Extensions.Logging;
 using UIKit;
+using MediaSourceType = CommunityToolkit.Maui.MediaSource.MediaSource;
 
 namespace CommunityToolkit.Maui.Core.Views;
 
@@ -53,7 +54,7 @@ internal static class IosMediaManagerSourceUpdater
         return new(metaData, playerItem, currentItemErrorObserver);
     }
 
-    private static AVAsset? CreateAssetFromMediaSource(MediaSource? source, ILogger logger)
+    private static AVAsset? CreateAssetFromMediaSource(MediaSourceType? source, ILogger logger)
     {
         return source switch
         {
