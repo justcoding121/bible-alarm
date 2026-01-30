@@ -109,12 +109,13 @@ public sealed class WindowsSmtcService : IDisposable
                 return;
             }
 
-            systemMediaControls.IsNextEnabled = canPlayNext;
-            systemMediaControls.IsPreviousEnabled = canPlayPrevious;
+            // Next/Previous are always enabled.
+            systemMediaControls.IsNextEnabled = true;
+            systemMediaControls.IsPreviousEnabled = true;
 
             // Enable seek buttons when next/prev buttons are enabled (playback is active)
             // Seek buttons should be available whenever we can navigate
-            var isPlaybackActive = canPlayNext || canPlayPrevious;
+            var isPlaybackActive = true;
             systemMediaControls.IsFastForwardEnabled = isPlaybackActive;
             systemMediaControls.IsRewindEnabled = isPlaybackActive;
 

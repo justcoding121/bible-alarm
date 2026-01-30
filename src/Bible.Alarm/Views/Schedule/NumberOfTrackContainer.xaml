@@ -31,8 +31,68 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
+            <!-- Row 0: Play indefinitely toggle -->
             <core:SfEffectsView Grid.Row="0"
+                                 TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
+                                 TouchUpEffects="None"
+                                 RippleBackground="{StaticResource PrimaryColor}"
+                                 HighlightBackground="{StaticResource PrimaryLightColor}"
+                                 RippleAnimationDuration="200"
+                                 ShouldIgnoreTouches="False">
+                <core:SfEffectsView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding TogglePlayIndefinitelyCommand}"
+                                          NumberOfTapsRequired="1" />
+                </core:SfEffectsView.GestureRecognizers>
+                <Grid x:Name="PlayIndefinitelyButton"
+                      Margin="0"
+                      Padding="16,16"
+                      BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                      MinimumHeightRequest="56"
+                      HorizontalOptions="Fill"
+                      VerticalOptions="Fill">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0"
+                           FontSize="{DynamicResource LargeFontSize}"
+                           FontAttributes="None"
+                           HorizontalOptions="Fill"
+                           HorizontalTextAlignment="Start"
+                           Text="Play indefinitely"
+                           TextColor="{DynamicResource TextPrimaryColor}"
+                           VerticalOptions="Center"
+                           VerticalTextAlignment="Center" />
+                    <Grid Grid.Column="1"
+                          HorizontalOptions="End"
+                          VerticalOptions="Center"
+                          ColumnSpacing="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <shared:PlatformSwitch
+                            Grid.Column="0"
+                            Margin="{OnPlatform Default='0'}"
+                            HorizontalOptions="End"
+                            IsToggled="{Binding PlayIndefinitely, Mode=TwoWay}"
+                            Scale="{OnPlatform Android='1', Default='1'}" />
+                    </Grid>
+                </Grid>
+            </core:SfEffectsView>
+
+            <!-- Divider -->
+            <BoxView Grid.Row="1"
+                     HeightRequest="1"
+                     BackgroundColor="{DynamicResource DividerColor}"
+                     Margin="0"
+                     HorizontalOptions="Fill" />
+
+            <!-- Row 2: Number of chapters/episodes to play (hidden when PlayIndefinitely is enabled) -->
+            <core:SfEffectsView Grid.Row="2"
+                                 IsVisible="{Binding IsNumberOfTracksSelectionVisible}"
                                  TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                  TouchUpEffects="None"
                                  RippleBackground="{StaticResource PrimaryColor}"
@@ -78,13 +138,16 @@
                        IsVisible="True" />
                 </Grid>
             </core:SfEffectsView>
-            <!-- Divider -->
-            <BoxView Grid.Row="1"
+            <!-- Divider (only when the number-of-tracks row is visible) -->
+            <BoxView Grid.Row="3"
                      HeightRequest="1"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
-                     HorizontalOptions="Fill" />
-            <core:SfEffectsView Grid.Row="2"
+                     HorizontalOptions="Fill"
+                     IsVisible="{Binding IsNumberOfTracksSelectionVisible}" />
+
+            <!-- Row 4: Restart incomplete chapters/episodes toggle -->
+            <core:SfEffectsView Grid.Row="4"
                                  TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                  TouchUpEffects="None"
                                  RippleBackground="{StaticResource PrimaryColor}"

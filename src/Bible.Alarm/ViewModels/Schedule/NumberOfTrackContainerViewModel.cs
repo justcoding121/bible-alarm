@@ -31,6 +31,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     private int scheduleId;
     private bool notificationEnabled;
     private bool alwaysPlayFromStart;
+    private bool playIndefinitely;
     private bool isProcessingStateChange;
     private string? lastPublicationCode;
     private readonly ContainerReadySignaler containerReadySignaler;
@@ -92,6 +93,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
         ToggleAlwaysPlayFromStartCommand = new RelayCommand(() => AlwaysPlayFromStart = !AlwaysPlayFromStart);
 
+        TogglePlayIndefinitelyCommand = new RelayCommand(() => PlayIndefinitely = !PlayIndefinitely);
+
         NotificationEnabledCommand = new RelayCommand(() => { NotificationEnabled = !NotificationEnabled; });
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
@@ -108,12 +111,15 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             scheduleId = currentSchedule.Id;
             notificationEnabled = currentSchedule.NotificationEnabled;
             alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
+            playIndefinitely = currentSchedule.NumberOfTracksToPlay <= 0;
             lastPublicationCode = currentSchedule.BiblePublicationCode;
 
             PopulateNumberOfTracksListView();
 
             OnPropertyChanged(nameof(NotificationEnabled));
             OnPropertyChanged(nameof(AlwaysPlayFromStart));
+            OnPropertyChanged(nameof(PlayIndefinitely));
+            OnPropertyChanged(nameof(IsNumberOfTracksSelectionVisible));
             OnPropertyChanged(nameof(HasSectionStructure));
             OnPropertyChanged(nameof(TrackLabelText));
             OnPropertyChanged(nameof(ModalHeaderText));
@@ -175,6 +181,13 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                     alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
                     OnPropertyChanged(nameof(AlwaysPlayFromStart));
                 }
+                var newPlayIndefinitely = currentSchedule.NumberOfTracksToPlay <= 0;
+                if (playIndefinitely != newPlayIndefinitely)
+                {
+                    playIndefinitely = newPlayIndefinitely;
+                    OnPropertyChanged(nameof(PlayIndefinitely));
+                    OnPropertyChanged(nameof(IsNumberOfTracksSelectionVisible));
+                }
 
                 // Check if publication code changed (switched between sectioned and non-sectioned)
                 var newPublicationCode = currentSchedule.BiblePublicationCode;
@@ -193,15 +206,20 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                         OnPropertyChanged(nameof(ModalHeaderText));
                         OnPropertyChanged(nameof(RestartLabelText));
 
-                        // Set appropriate default: 3 for chapters (sectioned), 1 for episodes (non-sectioned)
-                        var newDefault = nowHasSectionStructure ? 3 : 1;
+                        // Default selection is always 1 (chapters/episodes).
+                        const int newDefault = 1;
                         
                         // Repopulate the list to update max for non-sectioned publications
                         // Pass the new default as forced selection so it's selected when list is populated
                         PopulateNumberOfTracksListView(newDefault);
                         
                         // Dispatch update to state
-                        DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = newDefault);
+                        // Only update NumberOfTracksToPlay if we're in finite mode.
+                        // In indefinite mode, NumberOfTracksToPlay must remain 0.
+                        if (!playIndefinitely)
+                        {
+                            DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = newDefault);
+                        }
                     }
                 }
                 lastPublicationCode = newPublicationCode;
@@ -216,6 +234,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     public ICommand OpenModalCommand { get; private set; } = null!;
     public ICommand SelectNumberOfTracksCommand { get; private set; } = null!;
     public ICommand ToggleAlwaysPlayFromStartCommand { get; private set; } = null!;
+    public ICommand TogglePlayIndefinitelyCommand { get; private set; } = null!;
     public ICommand NotificationEnabledCommand { get; private set; } = null!;
     public ICommand CloseModalCommand { get; private set; } = null!;
 
@@ -407,6 +426,49 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         }
     }
 
+    /// <summary>
+    /// When enabled, the schedule plays indefinitely (NumberOfTracksToPlay is stored as 0).
+    /// When disabled, the user selects a finite number of chapters/episodes to play.
+    /// </summary>
+    public bool PlayIndefinitely
+    {
+        get => playIndefinitely;
+        set
+        {
+            if (!SetProperty(ref playIndefinitely, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(IsNumberOfTracksSelectionVisible));
+
+            if (playIndefinitely)
+            {
+                // Store 0 to indicate indefinite playback
+                DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 0);
+                return;
+            }
+
+            // Switching back to finite mode:
+            // Ensure a valid selection exists, otherwise apply a sensible default.
+            const int defaultTracks = 1;
+            var selected = CurrentNumberOfTracks?.Value ?? defaultTracks;
+            if (selected <= 0)
+            {
+                selected = defaultTracks;
+            }
+
+            // Ensure UI list has a selection even if schedule previously stored 0.
+            PopulateNumberOfTracksListView(selected);
+            DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = selected);
+        }
+    }
+
+    /// <summary>
+    /// True when the finite number-of-tracks row should be shown.
+    /// </summary>
+    public bool IsNumberOfTracksSelectionVisible => !PlayIndefinitely;
+
     private async void PopulateNumberOfTracksListView(int? forceSelection = null)
     {
         // Preserve the current selection if user has made one, or use forced selection
@@ -414,12 +476,19 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         var currentSchedule = state.Value.CurrentSchedule;
         var hasSectionStructure = HasSectionStructure;
 
-        // Default: 3 for chapters (sectioned), 1 for episodes (non-sectioned)
-        var defaultTracks = hasSectionStructure ? 3 : 1;
-        var numberOfTracks = preservedSelection ?? currentSchedule?.NumberOfTracksToPlay ?? defaultTracks;
+        // Default selection is always 1 (chapters/episodes).
+        const int defaultTracks = 1;
+        var numberOfTracksFromSchedule = currentSchedule?.NumberOfTracksToPlay ?? defaultTracks;
+        if (numberOfTracksFromSchedule <= 0)
+        {
+            // Indefinite mode stores 0; keep a valid default selected for when user disables indefinite later.
+            numberOfTracksFromSchedule = defaultTracks;
+        }
+        var numberOfTracks = preservedSelection ?? numberOfTracksFromSchedule;
 
         // Determine maximum number of tracks to show
-        int maxTracks = 21; // Default for sectioned publications
+        const int maxTracksCap = 21; // Must match AlarmSchedule.NumberOfTracksToPlay validation range and modal max
+        int maxTracks = maxTracksCap;
         
         // For non-sectioned publications, get the actual number of episodes
         if (!hasSectionStructure && currentSchedule != null)
@@ -437,7 +506,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                     
                     if (publication?.Tracks != null && publication.Tracks.Count > 0)
                     {
-                        maxTracks = publication.Tracks.Count;
+                        // Cap to avoid allowing selections the model can't save/validate.
+                        maxTracks = Math.Min(publication.Tracks.Count, maxTracksCap);
                         logger.Debug("PopulateNumberOfTracksListView: Non-sectioned publication has {TrackCount} episodes, setting max to {MaxTracks}",
                             publication.Tracks.Count, maxTracks);
                     }

@@ -115,7 +115,8 @@ public class AlarmViewModalStateUpdater
     {
         if (state.IsPreparingOrPlaying && (state.Status == PlayStatus.Playing || state.Status == PlayStatus.Paused))
         {
-            setNextEnabled(state.CanPlayNext);
+            // Next/Previous are always enabled during playback.
+            setNextEnabled(true);
             setPreviousEnabled(true);
         }
         else

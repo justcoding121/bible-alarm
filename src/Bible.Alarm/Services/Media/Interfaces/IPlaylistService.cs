@@ -28,5 +28,16 @@ public interface IPlaylistService : IDisposable
 
     Task<KeyValuePair<int, BiblePublicationSection>> GetNextBiblePublicationSection(string languageCode, string publicationCode, int sectionNumber);
     Task<bool> ShouldResumeFromLastPositionAsync(int scheduleId);
+
+    /// <summary>
+    /// Resolves the next track to play based on the currently playing track metadata.
+    /// Used for indefinite playback and dynamic playlist extension.
+    /// </summary>
+    Task<PlayItem> GetNextPlayItemAsync(TrackMetadata currentTrackMetadata);
+
+    /// <summary>
+    /// Resolves the previous track to play based on the currently playing track metadata.
+    /// </summary>
+    Task<PlayItem> GetPreviousPlayItemAsync(TrackMetadata currentTrackMetadata);
 }
 

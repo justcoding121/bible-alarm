@@ -38,9 +38,12 @@ public sealed class PlaybackNavigationHandler
         Func<int> getCurrentTrackIndex,
         Action<int> setCurrentTrackIndex,
         int? currentScheduleId,
+        bool isIndefinitePlayback,
+        Func<Task<bool>> tryAppendNextTrackAsync,
         HashSet<int> manuallyVisitedTrackIndices,
         Func<int, Task> markCurrentTrackAsPlayedAsync,
-        Func<bool, Task> playCurrentTrackAsync)
+        Func<bool, Task> playCurrentTrackAsync,
+        Func<Task> stopPlaybackAsync)
     {
         if (playlist is null || playlist.Count == 0)
         {
@@ -76,7 +79,40 @@ public sealed class PlaybackNavigationHandler
             manuallyVisitedTrackIndices.Add(nextTrackIndex);
 
             await playCurrentTrackAsync(startFromBeginning);
+            return;
         }
+
+        // At the end of the current in-memory playlist.
+        progressTracker.Stop();
+        await audioPlayer.StopAsync();
+        await markCurrentTrackAsPlayedAsync(currentTrackIndex);
+
+        if (isIndefinitePlayback)
+        {
+            var appended = await tryAppendNextTrackAsync();
+            if (appended && currentTrackIndex < playlist.Count - 1)
+            {
+                logger.Information(
+                    "[PlaybackService] PlayNextAsync: Extended playlist for indefinite playback - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
+                    currentScheduleId,
+                    currentTrackIndex,
+                    currentTrackIndex + 1);
+
+                dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+
+                var nextTrackIndex = currentTrackIndex + 1;
+                setCurrentTrackIndex(nextTrackIndex);
+                navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
+
+                // Manual next always starts from beginning once we extend dynamically.
+                manuallyVisitedTrackIndices.Add(nextTrackIndex);
+                await playCurrentTrackAsync(true);
+                return;
+            }
+        }
+
+        // Finite playback: stop and dismiss when user tries to go past the end.
+        await stopPlaybackAsync();
     }
 
     public async Task PlayPreviousAsync(
@@ -84,6 +120,8 @@ public sealed class PlaybackNavigationHandler
         Func<int> getCurrentTrackIndex,
         Action<int> setCurrentTrackIndex,
         int? currentScheduleId,
+        bool isIndefinitePlayback,
+        Func<Task<bool>> tryPrependPreviousTrackAsync,
         HashSet<int> manuallyVisitedTrackIndices,
         Func<int, Task> markCurrentTrackAsPlayedAsync,
         Func<bool, Task> playCurrentTrackAsync)
@@ -123,9 +161,23 @@ public sealed class PlaybackNavigationHandler
         }
         else if (currentTrackIndex == 0)
         {
-            // On first track - restart current track from beginning
             progressTracker.Stop();
             await audioPlayer.StopAsync();
+            await markCurrentTrackAsPlayedAsync(currentTrackIndex);
+
+            // Attempt to extend backward (circular previous) when possible.
+            var prepended = await tryPrependPreviousTrackAsync();
+            if (prepended)
+            {
+                dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+                setCurrentTrackIndex(0);
+                navigationManager.NotifyNavigationChanged(playlist, 0);
+                manuallyVisitedTrackIndices.Add(0);
+                await playCurrentTrackAsync(true);
+                return;
+            }
+
+            // Fallback: restart current track from beginning.
             manuallyVisitedTrackIndices.Add(currentTrackIndex);
             await playCurrentTrackAsync(true);
             // Don't call NotifyNavigationChanged() - we're still on the same track

@@ -74,8 +74,10 @@ public sealed class AlarmSchedule : IComparable
     public int SnoozeMinutes { get; set; } = 5;
 
     [Required]
-    [Range(1, 10)]
-    public int NumberOfTracksToPlay { get; set; } = 3;
+    // 0 indicates "play indefinitely" (no upper bound within a playback session).
+    // When > 0, indicates the number of chapters/episodes to play for a session.
+    [Range(0, 21)]
+    public int NumberOfTracksToPlay { get; set; } = 0;
 
     [Required]
     public bool AlwaysPlayFromStart { get; set; } = false;

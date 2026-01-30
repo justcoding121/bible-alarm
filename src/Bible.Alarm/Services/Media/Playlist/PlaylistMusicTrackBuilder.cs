@@ -49,6 +49,16 @@ public class PlaylistMusicTrackBuilder
         }
     }
 
+    public async Task<PlayItem> PreviousMusicUrlToPlay(AlarmSchedule schedule)
+    {
+        if (schedule.Music?.MusicType == MusicType.Music)
+        {
+            return await GetPreviousMelodyTrackAsync(schedule);
+        }
+
+        return await GetPreviousVocalTrackAsync(schedule);
+    }
+
     private async Task<PlayItem> GetNextMelodyTrackAsync(AlarmSchedule schedule, bool next)
     {
         var melodyMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
@@ -77,6 +87,32 @@ public class PlaylistMusicTrackBuilder
         return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
     }
 
+    private async Task<PlayItem> GetPreviousMelodyTrackAsync(AlarmSchedule schedule)
+    {
+        var melodyMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
+
+        SortedDictionary<int, MusicTrack> melodyTracks;
+        if (PublicationTypeHelper.HasSectionStructure(melodyMusic.PublicationCode))
+        {
+            if (string.IsNullOrWhiteSpace(melodyMusic.SectionCode))
+            {
+                melodyTracks = new SortedDictionary<int, MusicTrack>();
+            }
+            else
+            {
+                melodyTracks = await mediaService.GetMelodyMusicTracksBySection(melodyMusic.PublicationCode, melodyMusic.SectionCode);
+            }
+        }
+        else
+        {
+            melodyTracks = await mediaService.GetMelodyMusicTracks(melodyMusic.PublicationCode);
+        }
+
+        var trackKey = GetPreviousTrackKey(melodyTracks, melodyMusic.TrackNumber);
+        var melodyTrack = melodyTracks[trackKey];
+        return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
+    }
+
     private async Task<PlayItem> GetNextVocalTrackAsync(AlarmSchedule schedule, bool next)
     {
         var vocalMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
@@ -86,6 +122,20 @@ public class PlaylistMusicTrackBuilder
         }
         var vocalTracks = await mediaService.GetVocalMusicTracks(vocalMusic.LanguageCode, vocalMusic.PublicationCode);
         var trackKey = GetNextTrackKey(vocalTracks, vocalMusic.TrackNumber, next);
+        var vocalTrack = vocalTracks[trackKey];
+        return await CreateVocalPlayItem(schedule, vocalMusic, vocalTrack);
+    }
+
+    private async Task<PlayItem> GetPreviousVocalTrackAsync(AlarmSchedule schedule)
+    {
+        var vocalMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
+        if (vocalMusic.LanguageCode == null)
+        {
+            throw new InvalidOperationException("LanguageCode is null for vocal music");
+        }
+
+        var vocalTracks = await mediaService.GetVocalMusicTracks(vocalMusic.LanguageCode, vocalMusic.PublicationCode);
+        var trackKey = GetPreviousTrackKey(vocalTracks, vocalMusic.TrackNumber);
         var vocalTrack = vocalTracks[trackKey];
         return await CreateVocalPlayItem(schedule, vocalMusic, vocalTrack);
     }
@@ -109,6 +159,23 @@ public class PlaylistMusicTrackBuilder
             return keys[0];
         }
         return keys[(currentIndex + 1) % keys.Count];
+    }
+
+    private static int GetPreviousTrackKey(SortedDictionary<int, MusicTrack> tracks, int currentTrackNumber)
+    {
+        if (tracks.Count == 0)
+        {
+            throw new InvalidOperationException("No tracks available");
+        }
+
+        var keys = tracks.Keys.ToList();
+        var currentIndex = keys.IndexOf(currentTrackNumber);
+        if (currentIndex < 0)
+        {
+            return keys[^1];
+        }
+
+        return keys[(currentIndex - 1 + keys.Count) % keys.Count];
     }
 
     private async Task<PlayItem> CreateMelodyPlayItem(AlarmSchedule schedule, AlarmMusic melodyMusic, MusicTrack melodyTrack)

@@ -36,6 +36,8 @@ public sealed class PlaybackEventHandler
         Func<int> getCurrentTrackIndex,
         Action<int> setCurrentTrackIndex,
         int? currentScheduleId,
+        bool isIndefinitePlayback,
+        Func<Task<bool>> tryAppendNextTrackAsync,
         Func<bool, Task> playCurrentTrackAsync,
         Func<bool, Task> stopAsyncInternal)
     {
@@ -67,8 +69,24 @@ public sealed class PlaybackEventHandler
         }
         else
         {
-            // Last track ended - skip MarkCurrentTrackAsPlayedAsync in StopAsync
-            // because MarkTrackAsFinished already updated the database correctly
+            if (isIndefinitePlayback)
+            {
+                // Indefinite playback: extend playlist and continue.
+                var appended = await tryAppendNextTrackAsync();
+                if (appended && playlist is not null && currentTrackIndex < playlist.Count - 1)
+                {
+                    dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+
+                    var nextTrackIndex = currentTrackIndex + 1;
+                    setCurrentTrackIndex(nextTrackIndex);
+                    navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
+                    await playCurrentTrackAsync(false);
+                    return;
+                }
+            }
+
+            // Finite playback (or failed to extend): stop/dismiss.
+            // Skip MarkCurrentTrackAsPlayedAsync in StopAsync because MarkTrackAsFinished already updated the database correctly.
             await stopAsyncInternal(true);
         }
     }
@@ -78,6 +96,8 @@ public sealed class PlaybackEventHandler
         Func<int> getCurrentTrackIndex,
         Action<int> setCurrentTrackIndex,
         int? currentScheduleId,
+        bool isIndefinitePlayback,
+        Func<Task<bool>> tryAppendNextTrackAsync,
         string trackUri,
         string trackUrl,
         Func<bool, Task> playCurrentTrackAsync,
@@ -112,6 +132,20 @@ public sealed class PlaybackEventHandler
         }
         else
         {
+            if (isIndefinitePlayback)
+            {
+                var appended = await tryAppendNextTrackAsync();
+                if (appended && playlist is not null && currentTrackIndex < playlist.Count - 1)
+                {
+                    dispatcher.Dispatch(new SetAutoAdvancingAction(true));
+                    var nextTrackIndex = currentTrackIndex + 1;
+                    setCurrentTrackIndex(nextTrackIndex);
+                    navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
+                    await playCurrentTrackAsync(false);
+                    return;
+                }
+            }
+
             logger.Warning("No more tracks available or all tracks failed. Handling playback failure.");
             await handlePlaybackFailureAsync();
         }

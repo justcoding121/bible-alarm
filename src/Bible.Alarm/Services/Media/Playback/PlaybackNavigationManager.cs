@@ -23,15 +23,14 @@ public sealed class PlaybackNavigationManager
 
     public bool CanPlayNext(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
     {
-        return playlist is not null &&
-               currentTrackIndex >= 0 &&
-               currentTrackIndex < playlist.Count - 1;
+        // Next is always enabled during playback sessions.
+        return playlist is not null && playlist.Count > 0;
     }
 
     public bool CanPlayPrevious(List<AudioPlayerTrack>? playlist, int currentTrackIndex)
     {
-        return playlist is not null &&
-               currentTrackIndex > 0;
+        // Previous is always enabled during playback sessions.
+        return playlist is not null && playlist.Count > 0;
     }
 
     public void NotifyNavigationChanged(List<AudioPlayerTrack>? playlist, int currentTrackIndex)

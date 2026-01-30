@@ -18,6 +18,14 @@ public sealed class PlaybackStateManager
     public int CurrentTrackIndex { get; set; } = -1;
     public int? CurrentScheduleId { get; set; }
     public bool IsAlarm { get; set; }
+    /// <summary>
+    /// True when the schedule is configured to play indefinitely (NumberOfTracksToPlay == 0).
+    /// Captured when a playback session starts.
+    /// </summary>
+    public bool IsIndefinitePlayback { get; set; }
+    public TrackMetadata? AnchorBibleMetadata { get; set; }
+    public TrackMetadata? PreAnchorBibleMetadata { get; set; }
+    public PlayItem? SessionMusicPlayItem { get; set; }
     public HashSet<int> ManuallyVisitedTrackIndices { get; } = [];
     public CancellationTokenSource? PreparationCancellationTokenSource { get; set; }
     public bool IsPreparingTrack { get; set; }
@@ -33,6 +41,10 @@ public sealed class PlaybackStateManager
         Playlist = null;
         CurrentTrackIndex = -1;
         IsAlarm = false;
+        IsIndefinitePlayback = false;
+        AnchorBibleMetadata = null;
+        PreAnchorBibleMetadata = null;
+        SessionMusicPlayItem = null;
         ManuallyVisitedTrackIndices.Clear();
 
         // Dispose cancellation token source

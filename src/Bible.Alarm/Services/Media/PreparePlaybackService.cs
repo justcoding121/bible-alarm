@@ -10,15 +10,15 @@ namespace Bible.Alarm.Services.Media;
 public sealed class PreparePlaybackService(
     ILogger logger,
     IPlaylistService playlistService,
-    IMediaCacheService cacheService,
-    IDownloadService downloadService) : IPreparePlaybackService
+    IMediaCacheService cacheService) : IPreparePlaybackService
 {
-    private const int MaxConcurrentDownloads = 3;
-
     public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
-        // Send initial progress message BEFORE media lookup so alarm modal shows "Preparing.." immediately
-        // We'll update the total tracks count once we know how many tracks we have
+        // Always ensure the *first* track that needs to play is downloaded before starting playback.
+        // Remaining tracks (finite mode) can be pre-downloaded in the background.
+
+        // Send initial progress message BEFORE media lookup so alarm modal shows "Preparing.." immediately.
+        // We always represent the blocking work as 1 track (the first one).
         SendProgressMessage(0, 1, 0, 0, null, 0, null);
 
         List<PlayItem> playItems;
@@ -29,140 +29,77 @@ public sealed class PreparePlaybackService(
         catch (Exception ex)
         {
             logger.Error(ex, "Failed to get track URLs (media lookup failed) for schedule {ScheduleId}", scheduleId);
-            // Return null to signal error - PlaybackService will handle showing error message
             return null;
         }
 
-        var totalTracks = playItems.Count;
-
-        if (totalTracks == 0)
+        if (playItems.Count == 0)
         {
+            // Nothing to play.
+            SendProgressMessage(1, 1, 0, 1, 1, 1, 1);
             return new List<AudioPlayerTrack>();
         }
 
-        // Update progress message with actual track count now that we have it
-        SendProgressMessage(0, totalTracks, 0, 0, null, 0, null);
+        // Build playlist immediately; tracks will get their Uri filled as they download.
+        var tracks = playItems
+            .Select(pi => new AudioPlayerTrack { PlayItem = pi, Uri = string.Empty })
+            .ToList();
 
-        // Phase 1: Get all Content-Length values first (HEAD requests in parallel)
-        var trackSizes = new Dictionary<int, long?>();
-        var sizeTasks = playItems.Select(async (playItem, index) =>
+        // Download/prepare the first track with progress.
+        AudioPlayerTrack? firstPrepared;
+        try
         {
-            try
-            {
-                var contentLength = await downloadService.GetContentLengthAsync(playItem.Url, cancellationToken);
-                lock (trackSizes)
+            firstPrepared = await PrepareSingleTrackWithProgressAsync(
+                playItems[0],
+                (bytesDownloaded, totalBytes) =>
                 {
-                    trackSizes[index] = contentLength;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "Failed to get Content-Length for track {Index}: {Url}", index, playItem.Url);
-                lock (trackSizes)
-                {
-                    trackSizes[index] = null;
-                }
-            }
-        });
-
-        await Task.WhenAll(sizeTasks);
-
-        // Calculate total expected bytes
-        var totalBytesExpected = trackSizes.Values
-            .Where(v => v.HasValue)
-            .Sum(v => v!.Value);
-
-        // Phase 2: Download tracks in parallel with concurrency limit
-        var preparedTracks = new AudioPlayerTrack?[totalTracks]; // Use array to maintain order
-        var trackProgress = new Dictionary<int, long>(); // Track index -> bytes downloaded
-        var progressLock = new object();
-        var loadedTracks = 0;
-        var loadedTracksLock = new object();
-
-        using var semaphore = new SemaphoreSlim(MaxConcurrentDownloads, MaxConcurrentDownloads);
-
-        var downloadTasks = playItems.Select(async (playItem, index) =>
-        {
-            await semaphore.WaitAsync(cancellationToken);
-            try
-            {
-                // Progress callback for this specific track
-                void DownloadProgressCallback(long bytesDownloaded, long? totalBytes)
-                {
-                    lock (progressLock)
-                    {
-                        // Update this track's progress
-                        trackProgress[index] = bytesDownloaded;
-
-                        // Calculate overall progress
-                        var totalBytesDownloaded = trackProgress.Values.Sum();
-
-                        // Send progress message with overall stats
-                        // Note: currentTrackProgress, bytesDownloaded, and totalBytes are only used as fallback
-                        // Since we always have overall progress from Phase 1, these can be simplified
-                        SendProgressMessage(
-                            loadedTracks,
-                            totalTracks,
-                            0.0, // Not used when overall progress is available
-                            bytesDownloaded,
-                            totalBytes,
-                            totalBytesDownloaded,
-                            totalBytesExpected > 0 ? totalBytesExpected : null);
-                    }
-                }
-
-                var audioPlayerTrack = await PrepareSingleTrackWithProgressAsync(playItem, DownloadProgressCallback, cancellationToken);
-
-                if (audioPlayerTrack == null)
-                {
-                    logger.Warning("Failed to download track {Index}: {Url}", index, playItem.Url);
-                    return null;
-                }
-
-                lock (loadedTracksLock)
-                {
-                    preparedTracks[index] = audioPlayerTrack; // Store in correct position
-                    loadedTracks++;
-                }
-
-                // Update progress after track completion - ensure we use the final size
-                lock (progressLock)
-                {
-                    // Set final size for this track (use actual size if known, otherwise keep current progress)
-                    if (trackSizes[index].HasValue)
-                    {
-                        trackProgress[index] = trackSizes[index]!.Value;
-                    }
-                    
-                    var totalBytesDownloaded = trackProgress.Values.Sum();
+                    // Byte-based progress for the single blocking track.
                     SendProgressMessage(
-                        loadedTracks,
-                        totalTracks,
-                        0.0, // Not used when overall progress is available
-                        trackSizes[index] ?? trackProgress.GetValueOrDefault(index, 0),
-                        trackSizes[index],
-                        totalBytesDownloaded,
-                        totalBytesExpected > 0 ? totalBytesExpected : null);
-                }
-
-                return audioPlayerTrack;
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
-
-        await Task.WhenAll(downloadTasks);
-
-        // Check if any downloads failed
-        if (preparedTracks.Any(r => r == null))
+                        loadedTracks: 0,
+                        totalTracks: 1,
+                        currentTrackProgress: 0.0,
+                        bytesDownloaded: bytesDownloaded,
+                        totalBytes: totalBytes,
+                        totalBytesDownloaded: bytesDownloaded,
+                        totalBytesExpected: totalBytes);
+                },
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
         {
-            logger.Warning("Some tracks failed to download");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to prepare first track for schedule {ScheduleId}", scheduleId);
             return null;
         }
 
-        return preparedTracks.Where(t => t != null).ToList()!;
+        if (firstPrepared == null || string.IsNullOrEmpty(firstPrepared.Uri))
+        {
+            logger.Warning("Failed to download first track for schedule {ScheduleId}", scheduleId);
+            return null;
+        }
+
+        tracks[0].Uri = firstPrepared.Uri;
+
+        // Signal preparation complete (1/1) so the modal can transition out of preparing state.
+        SendProgressMessage(1, 1, 0.0, 1, 1, 1, 1);
+
+        // Background: pre-download remaining tracks through cache logic.
+        // This should not block playback.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await PreDownloadRemainingTracksAsync(tracks, startIndex: 1, cancellationToken);
+            }
+            catch
+            {
+                // Swallow background errors - on-demand download will still work when the track is requested.
+            }
+        }, CancellationToken.None);
+
+        return tracks;
     }
 
     private static void SendProgressMessage(int loadedTracks, int totalTracks, double currentTrackProgress, long bytesDownloaded, long? totalBytes, long totalBytesDownloaded, long? totalBytesExpected)
@@ -188,7 +125,7 @@ public sealed class PreparePlaybackService(
         return await PrepareSingleTrackWithProgressAsync(playItem, null, cancellationToken);
     }
 
-    private async Task<AudioPlayerTrack?> PrepareSingleTrackWithProgressAsync(PlayItem playItem, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
+    public async Task<AudioPlayerTrack?> PrepareSingleTrackWithProgressAsync(PlayItem playItem, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
     {
         var uri = await cacheService.GetOrDownloadTrackUriWithProgressAsync(playItem, progressCallback, cancellationToken);
 
@@ -203,6 +140,54 @@ public sealed class PreparePlaybackService(
             Uri = uri,
             PlayItem = playItem
         };
+    }
+
+    private async Task PreDownloadRemainingTracksAsync(List<AudioPlayerTrack> tracks, int startIndex, CancellationToken cancellationToken)
+    {
+        if (startIndex >= tracks.Count)
+        {
+            return;
+        }
+
+        const int maxConcurrent = 3;
+        using var semaphore = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+
+        var tasks = new List<Task>(Math.Max(0, tracks.Count - startIndex));
+        for (var i = startIndex; i < tracks.Count; i++)
+        {
+            var index = i;
+            tasks.Add(Task.Run(async () =>
+            {
+                await semaphore.WaitAsync(cancellationToken);
+                try
+                {
+                    if (!string.IsNullOrEmpty(tracks[index].Uri))
+                    {
+                        return;
+                    }
+
+                    var uri = await cacheService.GetOrDownloadTrackUriAsync(tracks[index].PlayItem, cancellationToken);
+                    if (!string.IsNullOrEmpty(uri))
+                    {
+                        tracks[index].Uri = uri;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Ignore cancellation for background pre-download.
+                }
+                catch (Exception ex)
+                {
+                    logger.Debug(ex, "Background pre-download failed for track index {Index} (Url={Url})", index, tracks[index].PlayItem?.Url);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }, CancellationToken.None));
+        }
+
+        await Task.WhenAll(tasks);
     }
 
 }

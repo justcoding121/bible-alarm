@@ -4,7 +4,9 @@ using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Media.Playback;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Mvvm.Messaging;
@@ -19,6 +21,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly IAudioPlayer audioPlayer;
     private readonly IPreparePlaybackService preparePlaybackService;
     private readonly IPlaylistService playlistService;
+    private readonly IAlarmScheduleService alarmScheduleService;
     private readonly IDispatcher dispatcher;
     private readonly IDisplayMetadataService displayMetadataService;
     private readonly IFallbackAlarmSoundService fallbackAlarmSoundService;
@@ -44,6 +47,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         IAudioPlayer audioPlayer,
         IPreparePlaybackService preparePlaybackService,
         IPlaylistService playlistService,
+        IAlarmScheduleService alarmScheduleService,
         IFallbackAlarmSoundService fallbackAlarmSoundService,
         IDispatcher dispatcher,
         INotificationService notificationService,
@@ -55,6 +59,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         this.audioPlayer = audioPlayer;
         this.preparePlaybackService = preparePlaybackService;
         this.playlistService = playlistService;
+        this.alarmScheduleService = alarmScheduleService;
         this.dispatcher = dispatcher;
         this.displayMetadataService = displayMetadataService;
         this.fallbackAlarmSoundService = fallbackAlarmSoundService;
@@ -117,6 +122,9 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             stateManager.PreparationCancellationTokenSource = new CancellationTokenSource();
             var cancellationToken = stateManager.PreparationCancellationTokenSource.Token;
 
+            // Capture playback mode once for this session.
+            stateManager.IsIndefinitePlayback = await IsIndefinitePlaybackAsync(scheduleId, cancellationToken);
+
             stateManager.Playlist = await initializer.PrepareTracksAsync(scheduleId, cancellationToken);
 
             if (stateManager.Playlist is null)
@@ -170,6 +178,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             stateManager.CurrentTrackIndex = 0;
             stateManager.ManuallyVisitedTrackIndices.Clear();
 
+            await InitializeSessionNavigationContextAsync();
+
             navigationManager.NotifyNavigationChanged(stateManager.Playlist, stateManager.CurrentTrackIndex);
 
             // Playback operations (PlayCurrentTrackAsync) should run on main thread since they interact with MediaElement
@@ -201,26 +211,68 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     public async Task PlayNextAsync()
     {
+        // Any manual next/prev interaction makes the playback session indefinite.
+        stateManager.IsIndefinitePlayback = true;
         await navigationHandler.PlayNextAsync(
             stateManager.Playlist,
             () => stateManager.CurrentTrackIndex,
             idx => stateManager.CurrentTrackIndex = idx,
             stateManager.CurrentScheduleId,
+            stateManager.IsIndefinitePlayback,
+            () => TryAppendNextTrackAsync(),
             stateManager.ManuallyVisitedTrackIndices,
             idx => trackMarker.MarkTrackAsPlayedAsync(stateManager.Playlist, idx),
-            startFromBeginning => PlayCurrentTrackAsync(startFromBeginning));
+            startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
+            stopPlaybackAsync: () => StopAsyncInternal(skipMarkAsPlayed: true));
     }
 
     public async Task PlayPreviousAsync()
     {
+        // Any manual next/prev interaction makes the playback session indefinite.
+        stateManager.IsIndefinitePlayback = true;
         await navigationHandler.PlayPreviousAsync(
             stateManager.Playlist,
             () => stateManager.CurrentTrackIndex,
             idx => stateManager.CurrentTrackIndex = idx,
             stateManager.CurrentScheduleId,
+            stateManager.IsIndefinitePlayback,
+            () => TryPrependPreviousTrackAsync(),
             stateManager.ManuallyVisitedTrackIndices,
             idx => trackMarker.MarkTrackAsPlayedAsync(stateManager.Playlist, idx),
             startFromBeginning => PlayCurrentTrackAsync(startFromBeginning));
+    }
+
+    private async Task InitializeSessionNavigationContextAsync()
+    {
+        var playlist = stateManager.Playlist;
+        if (playlist == null || playlist.Count == 0)
+        {
+            stateManager.AnchorBibleMetadata = null;
+            stateManager.PreAnchorBibleMetadata = null;
+            stateManager.SessionMusicPlayItem = null;
+            return;
+        }
+
+        stateManager.SessionMusicPlayItem = playlist.FirstOrDefault(t => t.PlayItem.Metadata.PlayType == PlayType.Music)?.PlayItem;
+        stateManager.AnchorBibleMetadata = playlist.FirstOrDefault(t => t.PlayItem.Metadata.PlayType == PlayType.Bible)?.PlayItem.Metadata;
+
+        if (stateManager.AnchorBibleMetadata != null)
+        {
+            try
+            {
+                // Pre-anchor is the Bible track immediately before the anchor (wrap-around enabled).
+                var preAnchor = await playlistService.GetPreviousPlayItemAsync(stateManager.AnchorBibleMetadata);
+                stateManager.PreAnchorBibleMetadata = preAnchor.Metadata;
+            }
+            catch
+            {
+                stateManager.PreAnchorBibleMetadata = null;
+            }
+        }
+        else
+        {
+            stateManager.PreAnchorBibleMetadata = null;
+        }
     }
 
     public void Receive(NextButtonPressedMessage message)
@@ -352,9 +404,19 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
         var track = stateManager.Playlist[stateManager.CurrentTrackIndex];
 
+        // Ensure the track is downloaded/prepared before attempting to play.
+        var prepared = await EnsureTrackPreparedAsync(track);
+        if (!prepared)
+        {
+            await HandlePlaybackFailureAsync();
+            return;
+        }
+
         // Determine if this is the first or last track
         var isFirstTrack = stateManager.CurrentTrackIndex == 0;
-        var isLastTrack = stateManager.Playlist != null && stateManager.CurrentTrackIndex == stateManager.Playlist.Count - 1;
+        var isLastTrack = !stateManager.IsIndefinitePlayback &&
+                          stateManager.Playlist != null &&
+                          stateManager.CurrentTrackIndex == stateManager.Playlist.Count - 1;
 
         var success = await trackPlaybackHandler.PlayTrackAsync(
             track,
@@ -371,6 +433,155 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             // Track playback failed - handle failure
             await HandlePlaybackFailureAsync();
+            return;
+        }
+
+        // Background: always try to download the next track while this track is playing.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await PreDownloadNextTrackAsync();
+            }
+            catch
+            {
+                // Ignore background failures; on-demand download will still happen when needed.
+            }
+        });
+    }
+
+    private async Task<bool> IsIndefinitePlaybackAsync(int scheduleId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+                scheduleId,
+                includeMusic: false,
+                includeBiblePublication: false,
+                cancellationToken);
+
+            return schedule != null && schedule.NumberOfTracksToPlay <= 0;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to load schedule {ScheduleId} to determine indefinite playback; defaulting to finite", scheduleId);
+            return false;
+        }
+    }
+
+    private async Task<bool> EnsureTrackPreparedAsync(AudioPlayerTrack track)
+    {
+        if (!string.IsNullOrEmpty(track.Uri))
+        {
+            return true;
+        }
+
+        var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
+
+        try
+        {
+            // Show progress in the alarm modal while downloading a single track on-demand.
+            SendSingleTrackPreparationProgress(loadedTracks: 0, totalTracks: 1, bytesDownloaded: 0, totalBytes: null);
+
+            var prepared = await preparePlaybackService.PrepareSingleTrackWithProgressAsync(
+                track.PlayItem,
+                (bytesDownloaded, totalBytes) =>
+                {
+                    SendSingleTrackPreparationProgress(loadedTracks: 0, totalTracks: 1, bytesDownloaded: bytesDownloaded, totalBytes: totalBytes);
+                },
+                token);
+
+            if (prepared == null || string.IsNullOrEmpty(prepared.Uri))
+            {
+                return false;
+            }
+
+            track.Uri = prepared.Uri;
+
+            // Mark preparation complete (1/1)
+            SendSingleTrackPreparationProgress(loadedTracks: 1, totalTracks: 1, bytesDownloaded: 1, totalBytes: 1);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to prepare track on-demand: {Url}", track.PlayItem?.Url ?? "Unknown");
+            return false;
+        }
+    }
+
+    private static void SendSingleTrackPreparationProgress(int loadedTracks, int totalTracks, long bytesDownloaded, long? totalBytes)
+    {
+        WeakReferenceMessenger.Default.Send(new PlaybackPreparationProgressMessage
+        {
+            LoadedTracks = loadedTracks,
+            TotalTracks = totalTracks,
+            CurrentTrackProgress = 0.0,
+            BytesDownloaded = bytesDownloaded,
+            TotalBytes = totalBytes,
+            TotalBytesDownloaded = bytesDownloaded,
+            TotalBytesExpected = totalBytes
+        });
+    }
+
+    private async Task PreDownloadNextTrackAsync()
+    {
+        var playlist = stateManager.Playlist;
+        if (playlist == null || playlist.Count == 0)
+        {
+            return;
+        }
+
+        var currentIndex = stateManager.CurrentTrackIndex;
+        var nextIndex = currentIndex + 1;
+        if (nextIndex < 0 || nextIndex >= playlist.Count)
+        {
+            // Indefinite playback: pre-extend and pre-download the next track if possible.
+            if (stateManager.IsIndefinitePlayback)
+            {
+                var appended = await TryAppendNextTrackAsync();
+                if (!appended)
+                {
+                    return;
+                }
+
+                nextIndex = currentIndex + 1;
+                if (nextIndex < 0 || nextIndex >= playlist.Count)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        var nextTrack = playlist[nextIndex];
+        if (!string.IsNullOrEmpty(nextTrack.Uri))
+        {
+            return;
+        }
+
+        var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
+        try
+        {
+            var prepared = await preparePlaybackService.PrepareSingleTrackAsync(nextTrack.PlayItem, token);
+            if (prepared != null && !string.IsNullOrEmpty(prepared.Uri))
+            {
+                nextTrack.Uri = prepared.Uri;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore.
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Background pre-download for next track failed");
         }
     }
 
@@ -385,6 +596,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 () => stateManager.CurrentTrackIndex,
                 idx => stateManager.CurrentTrackIndex = idx,
                 stateManager.CurrentScheduleId,
+                stateManager.IsIndefinitePlayback,
+                () => TryAppendNextTrackAsync(),
                 startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
                 skipMarkAsPlayed => StopAsyncInternal(skipMarkAsPlayed, false));
         }
@@ -406,6 +619,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 () => stateManager.CurrentTrackIndex,
                 idx => stateManager.CurrentTrackIndex = idx,
                 stateManager.CurrentScheduleId,
+                stateManager.IsIndefinitePlayback,
+                () => TryAppendNextTrackAsync(),
                 trackUri,
                 trackUrl,
                 startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
@@ -415,6 +630,155 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             logger.Error(ex, "Error handling media failed event");
         }
+    }
+
+    private async Task<bool> TryAppendNextTrackAsync()
+    {
+        var playlist = stateManager.Playlist;
+        if (playlist == null || playlist.Count == 0)
+        {
+            return false;
+        }
+
+        var currentIndex = stateManager.CurrentTrackIndex;
+        if (currentIndex < 0 || currentIndex >= playlist.Count)
+        {
+            return false;
+        }
+
+        try
+        {
+            var currentMetadata = playlist[currentIndex].PlayItem.Metadata;
+            var nextPlayItem = await ResolveNextPlayItemForSessionAsync(currentMetadata);
+
+            // Append placeholder; Uri will be downloaded on-demand (or in background).
+            var nextTrack = new AudioPlayerTrack
+            {
+                PlayItem = nextPlayItem,
+                Uri = string.Empty
+            };
+            playlist.Add(nextTrack);
+
+            // Opportunistically download the appended track in the background.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
+                    var prepared = await preparePlaybackService.PrepareSingleTrackAsync(nextPlayItem, token);
+                    if (prepared != null && !string.IsNullOrEmpty(prepared.Uri))
+                    {
+                        nextTrack.Uri = prepared.Uri;
+                    }
+                }
+                catch
+                {
+                    // Ignore background failures.
+                }
+            });
+
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to append next track for indefinite playback");
+            return false;
+        }
+    }
+
+    private async Task<bool> TryPrependPreviousTrackAsync()
+    {
+        var playlist = stateManager.Playlist;
+        if (playlist == null || playlist.Count == 0)
+        {
+            return false;
+        }
+
+        var currentIndex = stateManager.CurrentTrackIndex;
+        if (currentIndex < 0 || currentIndex >= playlist.Count)
+        {
+            return false;
+        }
+
+        try
+        {
+            var currentMetadata = playlist[currentIndex].PlayItem.Metadata;
+            var prevPlayItem = await ResolvePreviousPlayItemForSessionAsync(currentMetadata);
+
+            // Prepend placeholder; Uri will be downloaded on-demand (or in background).
+            var prevTrack = new AudioPlayerTrack
+            {
+                PlayItem = prevPlayItem,
+                Uri = string.Empty
+            };
+
+            playlist.Insert(0, prevTrack);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private bool HasMusicInjection =>
+        stateManager.SessionMusicPlayItem != null &&
+        stateManager.AnchorBibleMetadata != null &&
+        stateManager.PreAnchorBibleMetadata != null;
+
+    private static bool IsSameBibleTrack(TrackMetadata a, TrackMetadata b)
+    {
+        return a.PlayType == PlayType.Bible &&
+               b.PlayType == PlayType.Bible &&
+               a.LanguageCode == b.LanguageCode &&
+               a.PublicationCode == b.PublicationCode &&
+               a.SectionNumber == b.SectionNumber &&
+               a.TrackNumber == b.TrackNumber;
+    }
+
+    private async Task<PlayItem> ResolveNextPlayItemForSessionAsync(TrackMetadata currentMetadata)
+    {
+        if (HasMusicInjection)
+        {
+            // If we are right before the anchor Bible track, inject the (single) music track.
+            if (currentMetadata.PlayType == PlayType.Bible && IsSameBibleTrack(currentMetadata, stateManager.PreAnchorBibleMetadata!))
+            {
+                return stateManager.SessionMusicPlayItem!;
+            }
+
+            // If we're on the injected music track, next should be the anchor Bible track.
+            if (currentMetadata.PlayType == PlayType.Music)
+            {
+                // Use the pre-anchor -> next to get the anchor in a stable way.
+                return await playlistService.GetNextPlayItemAsync(stateManager.PreAnchorBibleMetadata!);
+            }
+        }
+
+        return await playlistService.GetNextPlayItemAsync(currentMetadata);
+    }
+
+    private async Task<PlayItem> ResolvePreviousPlayItemForSessionAsync(TrackMetadata currentMetadata)
+    {
+        if (HasMusicInjection)
+        {
+            // If we're on the anchor Bible track, previous should be the (single) music track.
+            if (currentMetadata.PlayType == PlayType.Bible && IsSameBibleTrack(currentMetadata, stateManager.AnchorBibleMetadata!))
+            {
+                return stateManager.SessionMusicPlayItem!;
+            }
+
+            // If we're on the music track, previous should be the Bible track right before the anchor.
+            if (currentMetadata.PlayType == PlayType.Music)
+            {
+                return await playlistService.GetPreviousPlayItemAsync(stateManager.AnchorBibleMetadata!);
+            }
+        }
+
+        return await playlistService.GetPreviousPlayItemAsync(currentMetadata);
     }
 
 

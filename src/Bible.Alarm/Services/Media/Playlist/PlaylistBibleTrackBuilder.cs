@@ -67,7 +67,10 @@ public class PlaylistBiblePublicationTrackBuilder
     {
         var initialTrackInfo = await GetInitialTrackInfo(biblePublicationSchedule);
         var result = new List<PlayItem>();
-        var numberOfTracksToRead = schedule.NumberOfTracksToPlay;
+        var isIndefinite = schedule.NumberOfTracksToPlay <= 0;
+        // In indefinite mode, we still need to return the first playable track for playback and caching.
+        // Subsequent tracks are resolved dynamically during playback.
+        var numberOfTracksToRead = isIndefinite ? 1 : schedule.NumberOfTracksToPlay;
         var markedSeekTrack = false;
 
         var currentSectionNumber = initialTrackInfo.SectionNumber;
@@ -83,7 +86,8 @@ public class PlaylistBiblePublicationTrackBuilder
                 currentTrack.Number,
                 numberOfTracksToRead,
                 schedule,
-                markedSeekTrack);
+                markedSeekTrack,
+                isIndefinite);
             markedSeekTrack = updatedMarkedSeekTrack;
 
             result.Add(new PlayItem(trackMetadata, currentUrl));
@@ -306,7 +310,8 @@ public class PlaylistBiblePublicationTrackBuilder
         int trackNumber,
         int remainingTracks,
         AlarmSchedule schedule,
-        bool markedSeekTrack)
+        bool markedSeekTrack,
+        bool isIndefinite)
     {
         var trackMetadata = new TrackMetadata
         {
@@ -316,7 +321,9 @@ public class PlaylistBiblePublicationTrackBuilder
             LanguageCode = biblePublicationSchedule.LanguageCode,
             SectionNumber = sectionNumber,
             TrackNumber = trackNumber,
-            IsLastTrack = remainingTracks == 1
+            // In finite mode, mark the last track so playback stops/dismisses after the session.
+            // In indefinite mode, never mark a track as last.
+            IsLastTrack = !isIndefinite && remainingTracks == 1
         };
 
         // Use UrlConstructionService to get the lookup path from database

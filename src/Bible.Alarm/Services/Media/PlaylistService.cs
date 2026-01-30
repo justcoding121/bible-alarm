@@ -520,6 +520,132 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         return !schedule.AlwaysPlayFromStart;
     }
 
+    public async Task<PlayItem> GetNextPlayItemAsync(TrackMetadata currentTrackMetadata)
+    {
+        ArgumentNullException.ThrowIfNull(currentTrackMetadata);
+
+        if (currentTrackMetadata.PlayType == PlayType.Music)
+        {
+            if (currentTrackMetadata.ScheduleId <= 0)
+            {
+                throw new InvalidOperationException("Invalid schedule ID in current track metadata");
+            }
+
+            var scheduleId = (int)currentTrackMetadata.ScheduleId;
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+                scheduleId,
+                includeMusic: true,
+                includeBiblePublication: false,
+                cancellationTokenSource.Token) ?? throw new InvalidOperationException($"Schedule not found: {scheduleId}");
+
+            if (schedule.Music == null)
+            {
+                throw new InvalidOperationException($"Schedule {scheduleId} has no music configured");
+            }
+
+            // Ensure the builder advances relative to the current track.
+            schedule.Music.TrackNumber = currentTrackMetadata.TrackNumber;
+
+            return await musicTrackBuilder.NextMusicUrlToPlay(schedule, next: true);
+        }
+
+        // Bible content
+        var next = await trackNavigator.GetNextBiblePublicationTrack(
+            currentTrackMetadata.LanguageCode,
+            currentTrackMetadata.PublicationCode,
+            currentTrackMetadata.SectionNumber,
+            currentTrackMetadata.TrackNumber);
+
+        if (next.Value == null)
+        {
+            throw new InvalidOperationException("Next track Value is null");
+        }
+
+        var nextSectionNumber = next.Key != null && int.TryParse(next.Key.SectionCode, out var num) ? num : 0;
+        var nextTrackNumber = next.Value.Number;
+
+        var metadata = new TrackMetadata
+        {
+            ScheduleId = currentTrackMetadata.ScheduleId,
+            IsBibleContent = true,
+            LanguageCode = currentTrackMetadata.LanguageCode,
+            PublicationCode = currentTrackMetadata.PublicationCode,
+            SectionNumber = nextSectionNumber,
+            TrackNumber = nextTrackNumber,
+            IsLastTrack = false
+        };
+
+        var url = await urlRefreshService.RefreshUrlAsync(metadata);
+        if (string.IsNullOrEmpty(url))
+        {
+            throw new InvalidOperationException("Failed to refresh URL for next play item");
+        }
+
+        return new PlayItem(metadata, url);
+    }
+
+    public async Task<PlayItem> GetPreviousPlayItemAsync(TrackMetadata currentTrackMetadata)
+    {
+        ArgumentNullException.ThrowIfNull(currentTrackMetadata);
+
+        if (currentTrackMetadata.PlayType == PlayType.Music)
+        {
+            if (currentTrackMetadata.ScheduleId <= 0)
+            {
+                throw new InvalidOperationException("Invalid schedule ID in current track metadata");
+            }
+
+            var scheduleId = (int)currentTrackMetadata.ScheduleId;
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+                scheduleId,
+                includeMusic: true,
+                includeBiblePublication: false,
+                cancellationTokenSource.Token) ?? throw new InvalidOperationException($"Schedule not found: {scheduleId}");
+
+            if (schedule.Music == null)
+            {
+                throw new InvalidOperationException($"Schedule {scheduleId} has no music configured");
+            }
+
+            schedule.Music.TrackNumber = currentTrackMetadata.TrackNumber;
+            return await musicTrackBuilder.PreviousMusicUrlToPlay(schedule);
+        }
+
+        // Bible content
+        var previous = await trackNavigator.GetPreviousBiblePublicationTrack(
+            currentTrackMetadata.LanguageCode,
+            currentTrackMetadata.PublicationCode,
+            currentTrackMetadata.SectionNumber,
+            currentTrackMetadata.TrackNumber);
+
+        if (previous.Value == null)
+        {
+            throw new InvalidOperationException("Previous track Value is null");
+        }
+
+        var prevSectionNumber = previous.Key != null && int.TryParse(previous.Key.SectionCode, out var num) ? num : 0;
+        var prevTrackNumber = previous.Value.Number;
+
+        var metadata = new TrackMetadata
+        {
+            ScheduleId = currentTrackMetadata.ScheduleId,
+            IsBibleContent = true,
+            LanguageCode = currentTrackMetadata.LanguageCode,
+            PublicationCode = currentTrackMetadata.PublicationCode,
+            SectionNumber = prevSectionNumber,
+            TrackNumber = prevTrackNumber,
+            IsLastTrack = false
+        };
+
+        var url = await urlRefreshService.RefreshUrlAsync(metadata);
+        if (string.IsNullOrEmpty(url))
+        {
+            throw new InvalidOperationException("Failed to refresh URL for previous play item");
+        }
+
+        return new PlayItem(metadata, url);
+    }
+
     public void Dispose()
     {
         if (isDisposed)

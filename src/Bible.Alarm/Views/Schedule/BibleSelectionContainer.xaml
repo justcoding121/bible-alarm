@@ -38,6 +38,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <!-- Category Name with icon -->
             <core:SfEffectsView Grid.Row="0"
@@ -301,7 +302,7 @@
             </core:SfEffectsView>
             <!-- Divider -->
             <BoxView Grid.Row="7"
-                     HeightRequest="1"
+                     HeightRequest="2"
                      BackgroundColor="{DynamicResource DividerColor}"
                      Margin="0"
                      HorizontalOptions="Fill" />

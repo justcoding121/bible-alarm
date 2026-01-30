@@ -57,7 +57,19 @@ public sealed class PositionManager()
         var now = DateTime.UtcNow;
         var timeSinceLastUpdate = (now - lastProgressUpdate).TotalMilliseconds;
 
-        if (timeSinceLastUpdate < ProgressUpdateThrottleMs && message.LoadedTracks < message.TotalTracks)
+        // IMPORTANT:
+        // We must not throttle the "start preparing" transition, otherwise quick next/prev actions
+        // can drop the first preparing message and the alarm modal won't show the progress UI at all.
+        // This is especially noticeable when the download service doesn't provide incremental progress
+        // (e.g., waiting on an existing in-progress download), because only start+finish messages may be emitted.
+        var isStartPreparingMessage =
+            message.TotalTracks > 0 &&
+            message.LoadedTracks == 0 &&
+            message.TotalBytesDownloaded == 0;
+
+        if (!isStartPreparingMessage &&
+            timeSinceLastUpdate < ProgressUpdateThrottleMs &&
+            message.LoadedTracks < message.TotalTracks)
         {
             // Skip this update if it's too soon (but always process final update)
             return false;

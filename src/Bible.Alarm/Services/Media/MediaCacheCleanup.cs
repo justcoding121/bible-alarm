@@ -12,6 +12,46 @@ namespace Bible.Alarm.Services.Media;
 
 internal static class MediaCacheCleanup
 {
+    private static async Task<HashSet<string>> GetCacheKeepFileNamesAsync(
+        IPlaylistService mediaPlayService,
+        AlarmSchedule schedule,
+        Func<string, string> getCacheFileName)
+    {
+        var playItems = await mediaPlayService.NextTracks(schedule.Id);
+
+        // Indefinite playback: we may have downloaded next/previous tracks opportunistically.
+        // Keep a small lookaround window (prev + next) so cleanup doesn't delete them.
+        if (schedule.NumberOfTracksToPlay <= 0 && playItems.Count > 0)
+        {
+            var anchorMetadata = playItems.Last().Metadata;
+            try
+            {
+                playItems.Add(await mediaPlayService.GetNextPlayItemAsync(anchorMetadata));
+            }
+            catch
+            {
+                // Ignore - keep at least what we have.
+            }
+
+            try
+            {
+                playItems.Add(await mediaPlayService.GetPreviousPlayItemAsync(anchorMetadata));
+            }
+            catch
+            {
+                // Ignore - keep at least what we have.
+            }
+        }
+
+        var keepFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var playItem in playItems)
+        {
+            keepFileNames.Add(getCacheFileName(playItem.Metadata.LookUpPath));
+        }
+
+        return keepFileNames;
+    }
+
     internal static async Task<HashSet<string>> GetUnusedCacheFilesAsync(
         IStorageService storageService,
         IPlaylistService mediaPlayService,
@@ -35,24 +75,13 @@ internal static class MediaCacheCleanup
                 continue;
             }
 
-            var playlist = await mediaPlayService.NextTracks(schedule.Id);
+            var keepFileNames = await GetCacheKeepFileNamesAsync(mediaPlayService, schedule, getCacheFileName);
             var allFiles = await storageService.GetAllFiles(scheduleCacheFolder);
 
             foreach (var filePath in allFiles)
             {
                 var fileName = Path.GetFileName(filePath);
-                bool shouldKeep = false;
-
-                // Check if this file matches any lookup path in the current playlist
-                foreach (var playItem in playlist)
-                {
-                    var expectedFileName = getCacheFileName(playItem.Metadata.LookUpPath);
-                    if (fileName.Equals(expectedFileName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        shouldKeep = true;
-                        break;
-                    }
-                }
+                var shouldKeep = keepFileNames.Contains(fileName);
 
                 if (!shouldKeep)
                 {
@@ -220,13 +249,13 @@ internal static class MediaCacheCleanup
             var scheduleCacheFolder = getScheduleCacheFolder(scheduleId);
 
             // Check if schedule still exists in database
-            var scheduleExists = await alarmScheduleService.GetScheduleByIdAsync(
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
                 scheduleId,
                 false,
                 false,
-                cancellationToken) != null;
+                cancellationToken);
 
-            if (!scheduleExists)
+            if (schedule == null)
             {
                 // Schedule was deleted - delete entire folder
                 if (await storageService.DirectoryExists(scheduleCacheFolder))
@@ -256,6 +285,34 @@ internal static class MediaCacheCleanup
                 return; // Don't delete any cache if API fails
             }
 
+            // For indefinite playback schedules, keep a small lookaround window (prev + next)
+            // so we don't delete tracks that were downloaded opportunistically.
+            if (schedule.NumberOfTracksToPlay <= 0 && newPlaylist.Count > 0)
+            {
+                var anchorMetadata = newPlaylist.Last().Metadata;
+                try
+                {
+                    newPlaylist.Add(await mediaPlayService.GetNextPlayItemAsync(anchorMetadata));
+                }
+                catch
+                {
+                    // Ignore
+                }
+
+                try
+                {
+                    newPlaylist.Add(await mediaPlayService.GetPreviousPlayItemAsync(anchorMetadata));
+                }
+                catch
+                {
+                    // Ignore
+                }
+            }
+
+            var keepFileNames = new HashSet<string>(
+                newPlaylist.Select(pi => getCacheFileName(pi.Metadata.LookUpPath)),
+                StringComparer.OrdinalIgnoreCase);
+
             // Get all files in the schedule's cache folder
             if (!await storageService.DirectoryExists(scheduleCacheFolder))
             {
@@ -271,17 +328,7 @@ internal static class MediaCacheCleanup
             {
                 var fileName = Path.GetFileName(filePath);
 
-                // Check all lookup paths to see if this file matches any of them
-                bool shouldKeep = false;
-                foreach (var playItem in newPlaylist)
-                {
-                    var expectedFileName = getCacheFileName(playItem.Metadata.LookUpPath);
-                    if (fileName.Equals(expectedFileName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        shouldKeep = true;
-                        break;
-                    }
-                }
+                var shouldKeep = keepFileNames.Contains(fileName);
 
                 if (!shouldKeep)
                 {

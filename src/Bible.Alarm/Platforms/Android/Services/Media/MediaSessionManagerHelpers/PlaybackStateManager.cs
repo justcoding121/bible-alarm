@@ -21,16 +21,9 @@ public sealed class PlaybackStateManager
                        PlaybackStateCompat.ActionPlayPause |
                        PlaybackStateCompat.ActionPlayFromMediaId;
 
-        // Add next/previous actions only when available
-        if (canPlayNext)
-        {
-            actions |= PlaybackStateCompat.ActionSkipToNext;
-        }
-
-        if (canPlayPrevious)
-        {
-            actions |= PlaybackStateCompat.ActionSkipToPrevious;
-        }
+        // Next/Previous are always available.
+        actions |= PlaybackStateCompat.ActionSkipToNext;
+        actions |= PlaybackStateCompat.ActionSkipToPrevious;
 
         return actions;
     }

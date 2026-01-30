@@ -12,8 +12,9 @@ public static class PlaybackReducer
         return new PlaybackState(
             currentScheduleId: action.ScheduleId,
             isPreparingOrPlaying: true,
-            canPlayNext: state.CanPlayNext,
-            canPlayPrevious: state.CanPlayPrevious,
+            // Next/Previous are always enabled during playback sessions.
+            canPlayNext: true,
+            canPlayPrevious: true,
             status: state.Status,
             title: state.Title,
             artist: state.Artist,

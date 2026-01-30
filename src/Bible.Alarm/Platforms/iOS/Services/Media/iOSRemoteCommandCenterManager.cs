@@ -123,8 +123,9 @@ public sealed class iOSRemoteCommandCenterManager : IDisposable
     {
         try
         {
-            commandCenter.NextTrackCommand.Enabled = canPlayNext;
-            commandCenter.PreviousTrackCommand.Enabled = canPlayPrevious;
+            // Next/Previous are always enabled during playback sessions.
+            commandCenter.NextTrackCommand.Enabled = true;
+            commandCenter.PreviousTrackCommand.Enabled = true;
             commandCenter.PlayCommand.Enabled = !isPlaying;
             commandCenter.PauseCommand.Enabled = isPlaying;
         }
