@@ -2,8 +2,10 @@
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
 using File = TagLib.File;
@@ -143,7 +145,18 @@ public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaSe
     private async Task SetMelodyMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta)
     {
         // Melody music (Kingdom Melodies) - prefix title with "Kingdom Melodies "
-        var tracks = await mediaService.GetMelodyMusicTracks(trackMetadata.PublicationCode);
+        // IMPORTANT: Sectioned melody publications (e.g., "iam") have duplicate track numbers across discs.
+        // TrackMetadata.DownloadCode holds the disc code (e.g. "iam-2"), so resolve title from that disc.
+        SortedDictionary<int, MusicTrack> tracks;
+        if (PublicationTypeHelper.HasSectionStructure(trackMetadata.PublicationCode) &&
+            !string.IsNullOrWhiteSpace(trackMetadata.DownloadCode))
+        {
+            tracks = await mediaService.GetMelodyMusicTracksBySection(trackMetadata.PublicationCode, trackMetadata.DownloadCode);
+        }
+        else
+        {
+            tracks = await mediaService.GetMelodyMusicTracks(trackMetadata.PublicationCode);
+        }
         if (tracks.TryGetValue(trackMetadata.TrackNumber, out var melodyTrack))
         {
             meta.Title = $"Kingdom Melodies {melodyTrack.Title}";

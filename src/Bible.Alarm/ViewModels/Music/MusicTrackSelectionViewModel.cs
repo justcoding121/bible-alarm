@@ -181,7 +181,8 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IDisposable
     private async Task Initialize(string? languageCode, string publicationCode)
     {
         var musicType = stateManager.LastMusicType ?? stateManager.Current?.MusicType ?? MusicType.VocalMusic;
-        await listManager.PopulateTracks(musicType, languageCode, publicationCode, propertyManager.Tracks);
+        var currentSectionCode = state.Value.CurrentSchedule?.MusicSectionCode;
+        await listManager.PopulateTracks(musicType, languageCode, publicationCode, currentSectionCode, propertyManager.Tracks);
         foreach (var track in propertyManager.Tracks)
             listManager.SubscribeToTrackEvents(track, propertyManager.Tracks);
         listManager.SetupCollectionChangedHandler(propertyManager.Tracks);

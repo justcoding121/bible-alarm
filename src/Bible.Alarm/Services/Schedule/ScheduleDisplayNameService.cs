@@ -376,8 +376,26 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 {
                     if (!string.IsNullOrWhiteSpace(music.PublicationCode))
                     {
-                        var tracks = await Task.Run(async () =>
-                            await mediaService.GetMelodyMusicTracks(music.PublicationCode));
+                        // IMPORTANT: Sectioned melody publications (e.g., "iam") have duplicate track numbers across discs.
+                        // Always resolve track title from the selected disc (SectionCode) when sectioned.
+                        SortedDictionary<int, Bible.Alarm.Shared.Models.Media.Music.MusicTrack> tracks;
+                        if (PublicationTypeHelper.HasSectionStructure(music.PublicationCode))
+                        {
+                            if (string.IsNullOrWhiteSpace(music.SectionCode))
+                            {
+                                tracks = new SortedDictionary<int, Bible.Alarm.Shared.Models.Media.Music.MusicTrack>();
+                            }
+                            else
+                            {
+                                tracks = await Task.Run(async () =>
+                                    await mediaService.GetMelodyMusicTracksBySection(music.PublicationCode, music.SectionCode));
+                            }
+                        }
+                        else
+                        {
+                            tracks = await Task.Run(async () =>
+                                await mediaService.GetMelodyMusicTracks(music.PublicationCode));
+                        }
                         if (tracks.TryGetValue(music.TrackNumber, out var track))
                         {
                             trackName = $"Melody Number(s) {track.Title}";

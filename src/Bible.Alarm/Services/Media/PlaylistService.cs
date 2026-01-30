@@ -1,8 +1,10 @@
 #nullable enable
+using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Playlist;
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 using Bible.Alarm.Services.Storage.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -196,12 +198,13 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     {
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(
             scheduleId, true, true, cancellationTokenSource.Token) ?? throw new ArgumentException($"Invalid schedule Id {scheduleId}");
-        if (schedule.MusicEnabled)
+        if (schedule.MusicEnabled && schedule.Music != null)
         {
             return await musicTrackBuilder.NextMusicUrlToPlay(schedule);
         }
 
-        var biblePublicationSchedule = schedule.BiblePublicationSchedule ?? throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {scheduleId}");
+        var biblePublicationSchedule = schedule.BiblePublicationSchedule
+            ?? throw new InvalidOperationException($"No playable content configured for schedule {scheduleId} (MusicEnabled={schedule.MusicEnabled}, BiblePublicationSchedule is null)");
         
         // Use the biblePublicationTrackBuilder which correctly handles both sectioned and non-sectioned publications
         var trackInfo = await biblePublicationTrackBuilder.GetInitialTrackInfo(biblePublicationSchedule);
@@ -229,16 +232,21 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var schedule = await scheduleManager.LoadScheduleForTracks(scheduleId);
         var result = new List<PlayItem>();
 
-        if (schedule.MusicEnabled)
+        if (schedule.MusicEnabled && schedule.Music != null)
         {
             result.Add(await musicTrackBuilder.NextMusicUrlToPlay(schedule));
         }
 
-        var biblePublicationSchedule = schedule.BiblePublicationSchedule ??
-            throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {scheduleId}");
-        var biblePublicationTracks = await biblePublicationTrackBuilder.BuildBiblePublicationTracks(scheduleId, schedule, biblePublicationSchedule,
-            (lang, pub, section, track) => trackNavigator.GetNextBiblePublicationTrack(lang, pub, section, track));
-        result.AddRange(biblePublicationTracks);
+        // Bible reading is optional for a schedule. If not configured, just return music tracks (if any).
+        if (schedule.BiblePublicationSchedule != null)
+        {
+            var biblePublicationTracks = await biblePublicationTrackBuilder.BuildBiblePublicationTracks(
+                scheduleId,
+                schedule,
+                schedule.BiblePublicationSchedule,
+                (lang, pub, section, track) => trackNavigator.GetNextBiblePublicationTrack(lang, pub, section, track));
+            result.AddRange(biblePublicationTracks);
+        }
 
         return result;
     }
@@ -345,16 +353,57 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         {
             throw new InvalidOperationException("Schedule music is null");
         }
-        var musicTracks = await mediaService.GetMelodyMusicTracks(music.PublicationCode);
+
+        // IMPORTANT: Sectioned melody publications (e.g., "iam") have duplicate track numbers across discs.
+        // Always select tracks from the schedule's selected disc (SectionCode) when sectioned.
+        SortedDictionary<int, MusicTrack> musicTracks;
+        if (PublicationTypeHelper.HasSectionStructure(music.PublicationCode))
+        {
+            if (string.IsNullOrWhiteSpace(music.SectionCode))
+            {
+                musicTracks = new SortedDictionary<int, MusicTrack>();
+            }
+            else
+            {
+                musicTracks = await mediaService.GetMelodyMusicTracksBySection(music.PublicationCode, music.SectionCode);
+            }
+        }
+        else
+        {
+            musicTracks = await mediaService.GetMelodyMusicTracks(music.PublicationCode);
+        }
         if (musicTracks.Count == 0)
         {
             throw new InvalidOperationException($"No music tracks found for publication {music.PublicationCode}");
         }
 
-        var musicTrackIndex = CalculateTrackIndex(music.TrackNumber, musicTracks.Count, next);
-        var musicTrack = musicTracks[musicTrackIndex];
+        var musicTrackKey = GetNextTrackKey(musicTracks, music.TrackNumber, next);
+        var musicTrack = musicTracks[musicTrackKey];
 
         return await CreateMusicPlayItem(schedule, music, musicTrack);
+    }
+
+    private static int GetNextTrackKey(SortedDictionary<int, MusicTrack> tracks, int currentTrackNumber, bool next)
+    {
+        if (tracks.Count == 0)
+        {
+            throw new InvalidOperationException("No tracks available");
+        }
+
+        // Keep current track if present; otherwise use first key.
+        if (!next)
+        {
+            return tracks.ContainsKey(currentTrackNumber) ? currentTrackNumber : tracks.Keys.First();
+        }
+
+        // Advance to next available key (handles gaps). Wrap to first.
+        var keys = tracks.Keys.ToList();
+        var currentIndex = keys.IndexOf(currentTrackNumber);
+        if (currentIndex < 0)
+        {
+            return keys[0];
+        }
+        return keys[(currentIndex + 1) % keys.Count];
     }
 
     private async Task<PlayItem> GetNextVocalMusicTrackAsync(AlarmSchedule schedule, bool next)

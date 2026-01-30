@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -328,7 +329,21 @@ internal sealed class MusicNamePopulator
                     return;
                 }
 
-                var tracks = await mediaService.GetMelodyMusicTracks(music.PublicationCode);
+                // IMPORTANT: Sectioned melody publications (e.g., "iam") have duplicate track numbers across discs.
+                // Always resolve track title from the selected disc (SectionCode) when sectioned.
+                SortedDictionary<int, Bible.Alarm.Shared.Models.Media.Music.MusicTrack> tracks;
+                if (PublicationTypeHelper.HasSectionStructure(music.PublicationCode))
+                {
+                    if (string.IsNullOrWhiteSpace(music.SectionCode))
+                    {
+                        return;
+                    }
+                    tracks = await mediaService.GetMelodyMusicTracksBySection(music.PublicationCode, music.SectionCode);
+                }
+                else
+                {
+                    tracks = await mediaService.GetMelodyMusicTracks(music.PublicationCode);
+                }
                 if (tracks.TryGetValue(music.TrackNumber, out var track))
                 {
                     // Format melody track title with prefix to match track modal display

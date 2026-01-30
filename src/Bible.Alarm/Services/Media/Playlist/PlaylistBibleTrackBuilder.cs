@@ -70,24 +70,6 @@ public class PlaylistBiblePublicationTrackBuilder
         var numberOfTracksToRead = schedule.NumberOfTracksToPlay;
         var markedSeekTrack = false;
 
-        // Limit to available tracks to prevent wrapping/duplicates for both sectioned and non-sectioned publications
-        var sectionNumber = await ConvertSectionCodeToIntAsync(
-            biblePublicationSchedule.SectionCode,
-            biblePublicationSchedule.LanguageCode,
-            biblePublicationSchedule.PublicationCode);
-        var availableTracksCount = await GetAvailableTracksCount(
-            biblePublicationSchedule.LanguageCode,
-            biblePublicationSchedule.PublicationCode,
-            sectionNumber,
-            biblePublicationSchedule.TrackNumber);
-
-        if (availableTracksCount < numberOfTracksToRead)
-        {
-            logger.Debug("[PlaylistBuild] Limiting tracks from {Requested} to {Available} for publication (sectionNumber={Section})",
-                numberOfTracksToRead, availableTracksCount, sectionNumber);
-            numberOfTracksToRead = availableTracksCount;
-        }
-
         var currentSectionNumber = initialTrackInfo.SectionNumber;
         var currentTrack = initialTrackInfo.Track;
         var currentUrl = initialTrackInfo.Url;

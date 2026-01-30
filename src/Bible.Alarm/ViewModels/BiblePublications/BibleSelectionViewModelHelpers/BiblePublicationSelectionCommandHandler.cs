@@ -292,8 +292,6 @@ public sealed class BiblePublicationSelectionCommandHandler
                 return;
             }
 
-            updateSelectedLanguage(x);
-
             // Track start time to ensure minimum display duration
             var startTime = DateTime.UtcNow;
             const int minimumDisplayMs = 800; // Minimum time to show progress indicator
@@ -383,6 +381,10 @@ public sealed class BiblePublicationSelectionCommandHandler
 
                 Log.Information("BibleSelectionCommandHandler: SelectLanguageCommand - Creating item for language {LanguageCode}, publication {PublicationCode}, section {SectionNumber}, track {TrackNumber}",
                     x.Code, publicationCode, sectionNumber, trackNumber);
+
+                // Only update the UI selection after we know we have valid content.
+                // If fetching/harvesting fails, we must keep the previous language selection (and schedule state) unchanged.
+                updateSelectedLanguage(x);
 
                 var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(
                     x, publicationCode, sectionNumber, trackNumber, sectionName, publicationName, trackTitle, currentSchedule);

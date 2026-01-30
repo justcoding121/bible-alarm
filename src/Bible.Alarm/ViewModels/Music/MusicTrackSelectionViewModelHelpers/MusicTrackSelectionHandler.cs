@@ -6,6 +6,7 @@ using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
+using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 
@@ -53,11 +54,17 @@ public sealed class MusicTrackSelectionHandler(
             MusicType = currentSchedule.MusicType.Value,
             LanguageCode = currentSchedule.MusicLanguageCode,
             PublicationCode = currentSchedule.MusicPublicationCode,
+            SectionCode = PublicationTypeHelper.HasSectionStructure(currentSchedule.MusicPublicationCode)
+                ? currentSchedule.MusicSectionCode
+                : null,
             TrackNumber = track.Number,
             Repeat = track.Repeat,
             LanguageName = currentSchedule.MusicLanguageName,
             LanguageDirection = currentSchedule.MusicLanguageDirection,
             PublicationName = currentSchedule.MusicPublicationName,
+            SectionName = PublicationTypeHelper.HasSectionStructure(currentSchedule.MusicPublicationCode)
+                ? currentSchedule.MusicSectionName
+                : null,
             TrackName = track.Title
         };
 

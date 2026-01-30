@@ -120,33 +120,26 @@ internal sealed class MusicDisplayNamePopulator
             }
         }
 
-        // Populate melody section name if section code exists (e.g., "iam" Kingdom Melodies discs)
-        if (!string.IsNullOrWhiteSpace(music.SectionCode) &&
-            !string.IsNullOrWhiteSpace(music.PublicationCode))
-        {
-            // For melodies with sections, we need to get the section name from the BiblePublication
-            // Since melodies are BiblePublications with Category=Music and LanguageId=null,
-            // we can use the same section lookup mechanism
-            // Note: Music sections use SectionCode (string) which may need conversion
-            if (int.TryParse(music.SectionCode, out var sectionNum) && sectionNum > 0)
-            {
-                // For music publications, sections are typically identified by SectionCode
-                // We'll need to look up the section name from the BiblePublicationSections table
-                // For now, we'll log that we need to populate this
-                Log.Logger.Debug("Music section code '{SectionCode}' found for schedule {ScheduleId} (PublicationCode: {PublicationCode}), section name lookup needed",
-                    music.SectionCode, schedule.Id, music.PublicationCode);
-            }
-        }
-
-        // Use cached melody tracks
+        // Use cached melody tracks.
+        // For sectioned melody publications (e.g. "iam"), keys are (PublicationCode, SectionCode) to avoid ambiguity.
         if (!string.IsNullOrWhiteSpace(music.PublicationCode) && music.TrackNumber > 0)
         {
-            if (lookupData.MelodyTracks.TryGetValue(music.PublicationCode, out var tracks) &&
-                tracks.TryGetValue(music.TrackNumber, out var track))
+            if (!string.IsNullOrWhiteSpace(music.SectionCode) &&
+                lookupData.MelodyTracksBySection.TryGetValue((music.PublicationCode, music.SectionCode), out var sectionTracks) &&
+                sectionTracks.TryGetValue(music.TrackNumber, out var sectionTrack))
             {
-                scheduleStateItem.MusicTrackName = $"Melody Number(s) {track.Title}";
+                scheduleStateItem.MusicTrackName = $"Melody Number(s) {sectionTrack.Title}";
                 Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
-                    track.Title, schedule.Id, music.TrackNumber);
+                    sectionTrack.Title, schedule.Id, music.TrackNumber);
+                return;
+            }
+
+            if (lookupData.MelodyTracksFlat.TryGetValue(music.PublicationCode, out var flatTracks) &&
+                flatTracks.TryGetValue(music.TrackNumber, out var flatTrack))
+            {
+                scheduleStateItem.MusicTrackName = $"Melody Number(s) {flatTrack.Title}";
+                Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
+                    flatTrack.Title, schedule.Id, music.TrackNumber);
             }
         }
     }

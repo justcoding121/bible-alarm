@@ -77,13 +77,6 @@ public sealed class BiblePublicationDisplayTextProvider
             return currentSchedule.BiblePublicationLanguageName;
         }
 
-        // Return placeholder text if category is selected but language is not
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName))
-        {
-            logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - CurrentSchedule is null or BiblePublicationLanguageName is empty. Returning placeholder text.");
-            return "Select Language";
-        }
-
         logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - CurrentSchedule is null or BiblePublicationLanguageName is empty. Returning empty string.");
         return string.Empty;
     }
@@ -96,22 +89,6 @@ public sealed class BiblePublicationDisplayTextProvider
         if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationName))
         {
             return currentSchedule.BiblePublicationName;
-        }
-
-        // Use CurrentSchedule as the source of truth
-        string publicationCode = currentSchedule?.BiblePublicationCode?.ToLowerInvariant()
-            ?? string.Empty;
-
-        if (!string.IsNullOrEmpty(publicationCode))
-        {
-            // Format publication code using helper as fallback
-            return PublicationDisplayHelper.GetDisplayName(publicationCode);
-        }
-
-        // Return placeholder text if category is selected but publication is not
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName))
-        {
-            return "Select Publication";
         }
 
         return string.Empty;
@@ -127,16 +104,6 @@ public sealed class BiblePublicationDisplayTextProvider
             return currentSchedule.BiblePublicationSectionName;
         }
 
-        // Return placeholder text if publication is selected but section is not
-        // Only show placeholder if section row is visible (i.e., for sectioned publications)
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
-        {
-            if (GetIsSectionVisible())
-            {
-                return "Select Section";
-            }
-        }
-
         return string.Empty;
     }
 
@@ -148,16 +115,6 @@ public sealed class BiblePublicationDisplayTextProvider
         if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationTrackTitle))
         {
             return currentSchedule.BiblePublicationTrackTitle;
-        }
-
-        // Return placeholder text if publication is selected but track is not
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
-        {
-            // For non-sectioned publications (dramas), show "Select Episode"
-            // For sectioned publications, show "Select Track"
-            bool hasSectionStructure = PublicationTypeHelper.HasSectionStructure(currentSchedule.BiblePublicationCode);
-            
-            return hasSectionStructure ? "Select Track" : "Select Episode";
         }
 
         return string.Empty;

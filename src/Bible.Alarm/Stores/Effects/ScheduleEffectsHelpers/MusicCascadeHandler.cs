@@ -391,9 +391,17 @@ public sealed class MusicCascadeHandler
             updatedSchedule.MusicPublicationName = publicationName;
         }
         updatedSchedule.MusicSectionCode = sectionCode;
-        updatedSchedule.MusicSectionName = sectionName;
+        // Do not overwrite a populated display name with empty/whitespace (can happen on partial harvest / transient failures)
+        if (!string.IsNullOrWhiteSpace(sectionName))
+        {
+            updatedSchedule.MusicSectionName = sectionName;
+        }
         updatedSchedule.MusicTrackNumber = trackNumber;
-        updatedSchedule.MusicTrackName = trackTitle;
+        // Do not overwrite a populated display name with empty/whitespace (can happen on partial harvest / transient failures)
+        if (!string.IsNullOrWhiteSpace(trackTitle))
+        {
+            updatedSchedule.MusicTrackName = trackTitle;
+        }
         
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
     }

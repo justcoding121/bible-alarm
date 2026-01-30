@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -19,7 +20,12 @@ public sealed class MusicTrackListManager(
 {
     private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> propertyChangedHandlers = [];
 
-    public async Task PopulateTracks(MusicType musicType, string? languageCode, string publicationCode, ObservableCollection<MusicTrackListViewItemModel> tracks)
+    public async Task PopulateTracks(
+        MusicType musicType,
+        string? languageCode,
+        string publicationCode,
+        string? sectionCode,
+        ObservableCollection<MusicTrackListViewItemModel> tracks)
     {
         await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
         {
@@ -31,8 +37,18 @@ public sealed class MusicTrackListManager(
                 SortedDictionary<int, MusicTrack> tracksFromDb;
                 if (musicType == MusicType.Music)
                 {
-                    tracksFromDb = await Task.Run(async () =>
-                        await mediaService.GetMelodyMusicTracks(publicationCode));
+                    // IMPORTANT: Some melody publications (notably "iam") are sectioned by disc.
+                    // For those, the track list must be loaded for the currently selected section code.
+                    if (PublicationTypeHelper.HasSectionStructure(publicationCode) && !string.IsNullOrWhiteSpace(sectionCode))
+                    {
+                        tracksFromDb = await Task.Run(async () =>
+                            await mediaService.GetMelodyMusicTracksBySection(publicationCode, sectionCode));
+                    }
+                    else
+                    {
+                        tracksFromDb = await Task.Run(async () =>
+                            await mediaService.GetMelodyMusicTracks(publicationCode));
+                    }
                 }
                 else
                 {

@@ -17,6 +17,7 @@ internal sealed class LookupDataCollector
         var vocalMusicKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var vocalTrackKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var melodyPublicationCodes = new HashSet<string>();
+        var melodySectionKeys = new HashSet<(string PublicationCode, string SectionCode)>();
 
         foreach (var schedule in alarmSchedules)
         {
@@ -59,6 +60,10 @@ internal sealed class LookupDataCollector
                     if (!string.IsNullOrWhiteSpace(music.PublicationCode))
                     {
                         melodyPublicationCodes.Add(music.PublicationCode);
+                        if (!string.IsNullOrWhiteSpace(music.SectionCode))
+                        {
+                            melodySectionKeys.Add((music.PublicationCode, music.SectionCode));
+                        }
                     }
                 }
             }
@@ -70,7 +75,8 @@ internal sealed class LookupDataCollector
             VocalMusicLanguageCodes: vocalMusicLanguageCodes,
             VocalMusicKeys: vocalMusicKeys,
             VocalTrackKeys: vocalTrackKeys,
-            MelodyPublicationCodes: melodyPublicationCodes);
+            MelodyPublicationCodes: melodyPublicationCodes,
+            MelodySectionKeys: melodySectionKeys);
     }
 
     public sealed record LookupKeys(
@@ -79,6 +85,7 @@ internal sealed class LookupDataCollector
         HashSet<string> VocalMusicLanguageCodes,
         HashSet<(string LanguageCode, string PublicationCode)> VocalMusicKeys,
         HashSet<(string LanguageCode, string PublicationCode)> VocalTrackKeys,
-        HashSet<string> MelodyPublicationCodes);
+        HashSet<string> MelodyPublicationCodes,
+        HashSet<(string PublicationCode, string SectionCode)> MelodySectionKeys);
 }
 

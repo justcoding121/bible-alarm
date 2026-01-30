@@ -466,9 +466,17 @@ public sealed class BiblePublicationCascadeHandler
             updatedSchedule.BiblePublicationName = publicationName;
         }
         updatedSchedule.BiblePublicationSectionNumber = sectionNum;
-        updatedSchedule.BiblePublicationSectionName = sectionName;
+        // Do not overwrite a populated display name with empty/whitespace (can happen on partial harvest / transient failures)
+        if (!string.IsNullOrWhiteSpace(sectionName))
+        {
+            updatedSchedule.BiblePublicationSectionName = sectionName;
+        }
         updatedSchedule.BiblePublicationTrackNumber = trackNumber;
-        updatedSchedule.BiblePublicationTrackTitle = trackTitle;
+        // Do not overwrite a populated display name with empty/whitespace (can happen on partial harvest / transient failures)
+        if (!string.IsNullOrWhiteSpace(trackTitle))
+        {
+            updatedSchedule.BiblePublicationTrackTitle = trackTitle;
+        }
         updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
         
         // ALWAYS preserve category - category can ONLY be changed via CategorySelectionAction

@@ -111,11 +111,14 @@ internal sealed class LookupDataLoader
             }
         }).ToList();
 
-        var melodyTracksTasks = keys.MelodyPublicationCodes.Select(async pubCode =>
+        // Melody tracks:
+        // - Flat melody publications: keyed only by PublicationCode
+        // - Sectioned melody publications (e.g. "iam"): keyed by (PublicationCode, SectionCode) to avoid ambiguity
+        var melodyTracksFlatTasks = keys.MelodyPublicationCodes.Select(async pubCode =>
         {
             try
             {
-                var tracks = mediaService != null
+                var tracks = mediaService != null && !PublicationTypeHelper.HasSectionStructure(pubCode)
                     ? await mediaService.GetMelodyMusicTracks(pubCode)
                     : null;
                 return (PublicationCode: pubCode, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
@@ -124,6 +127,22 @@ internal sealed class LookupDataLoader
             {
                 Log.Logger.Warning(ex, "Error loading melody tracks {PublicationCode}", pubCode);
                 return (PublicationCode: pubCode, Tracks: new SortedDictionary<int, MusicTrack>());
+            }
+        }).ToList();
+
+        var melodyTracksBySectionTasks = keys.MelodySectionKeys.Select(async key =>
+        {
+            try
+            {
+                var tracks = mediaService != null
+                    ? await mediaService.GetMelodyMusicTracksBySection(key.PublicationCode, key.SectionCode)
+                    : null;
+                return (Key: key, Tracks: tracks ?? new SortedDictionary<int, MusicTrack>());
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Warning(ex, "Error loading melody tracks {PublicationCode}/{SectionCode}", key.PublicationCode, key.SectionCode);
+                return (Key: key, Tracks: new SortedDictionary<int, MusicTrack>());
             }
         }).ToList();
 
@@ -139,7 +158,8 @@ internal sealed class LookupDataLoader
             vocalLanguagesTask,
             Task.WhenAll(vocalReleasesTasks),
             Task.WhenAll(vocalTracksTasks),
-            Task.WhenAll(melodyTracksTasks),
+            Task.WhenAll(melodyTracksFlatTasks),
+            Task.WhenAll(melodyTracksBySectionTasks),
             melodyReleasesTask);
 
         // Build lookup dictionaries
@@ -160,8 +180,11 @@ internal sealed class LookupDataLoader
         var vocalTracksDict = (await Task.WhenAll(vocalTracksTasks))
             .ToDictionary(t => t.Key, t => t.Tracks);
 
-        var melodyTracksDict = (await Task.WhenAll(melodyTracksTasks))
+        var melodyTracksFlatDict = (await Task.WhenAll(melodyTracksFlatTasks))
             .ToDictionary(t => t.PublicationCode, t => t.Tracks);
+
+        var melodyTracksBySectionDict = (await Task.WhenAll(melodyTracksBySectionTasks))
+            .ToDictionary(t => t.Key, t => t.Tracks);
 
         var melodyReleasesDict = await melodyReleasesTask;
 
@@ -171,7 +194,8 @@ internal sealed class LookupDataLoader
             VocalLanguages: vocalLanguagesDict,
             VocalReleases: vocalReleasesDict,
             VocalTracks: vocalTracksDict,
-            MelodyTracks: melodyTracksDict,
+            MelodyTracksFlat: melodyTracksFlatDict,
+            MelodyTracksBySection: melodyTracksBySectionDict,
             MelodyReleases: melodyReleasesDict);
     }
 
@@ -181,7 +205,8 @@ internal sealed class LookupDataLoader
         Dictionary<string, Language> VocalLanguages,
         Dictionary<(string LanguageCode, string PublicationCode), VocalMusic> VocalReleases,
         Dictionary<(string LanguageCode, string PublicationCode), SortedDictionary<int, MusicTrack>> VocalTracks,
-        Dictionary<string, SortedDictionary<int, MusicTrack>> MelodyTracks,
+        Dictionary<string, SortedDictionary<int, MusicTrack>> MelodyTracksFlat,
+        Dictionary<(string PublicationCode, string SectionCode), SortedDictionary<int, MusicTrack>> MelodyTracksBySection,
         Dictionary<string, MelodyMusic> MelodyReleases);
 }
 

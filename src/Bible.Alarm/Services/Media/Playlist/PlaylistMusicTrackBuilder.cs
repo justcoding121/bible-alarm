@@ -1,5 +1,7 @@
 #nullable enable
+using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Music;
@@ -50,9 +52,28 @@ public class PlaylistMusicTrackBuilder
     private async Task<PlayItem> GetNextMelodyTrackAsync(AlarmSchedule schedule, bool next)
     {
         var melodyMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
-        var melodyTracks = await mediaService.GetMelodyMusicTracks(melodyMusic.PublicationCode);
-        var trackIndex = CalculateTrackIndex(melodyMusic.TrackNumber, melodyTracks.Count, next);
-        var melodyTrack = melodyTracks[trackIndex];
+        
+        // IMPORTANT: Sectioned melody publications (e.g., "iam") have duplicate track numbers across discs.
+        // Always select tracks from the schedule's selected disc (SectionCode) when sectioned.
+        SortedDictionary<int, MusicTrack> melodyTracks;
+        if (PublicationTypeHelper.HasSectionStructure(melodyMusic.PublicationCode))
+        {
+            if (string.IsNullOrWhiteSpace(melodyMusic.SectionCode))
+            {
+                melodyTracks = new SortedDictionary<int, MusicTrack>();
+            }
+            else
+            {
+                melodyTracks = await mediaService.GetMelodyMusicTracksBySection(melodyMusic.PublicationCode, melodyMusic.SectionCode);
+            }
+        }
+        else
+        {
+            melodyTracks = await mediaService.GetMelodyMusicTracks(melodyMusic.PublicationCode);
+        }
+
+        var trackKey = GetNextTrackKey(melodyTracks, melodyMusic.TrackNumber, next);
+        var melodyTrack = melodyTracks[trackKey];
         return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
     }
 
@@ -64,22 +85,30 @@ public class PlaylistMusicTrackBuilder
             throw new InvalidOperationException("LanguageCode is null for vocal music");
         }
         var vocalTracks = await mediaService.GetVocalMusicTracks(vocalMusic.LanguageCode, vocalMusic.PublicationCode);
-        var trackIndex = CalculateTrackIndex(vocalMusic.TrackNumber, vocalTracks.Count, next);
-        var vocalTrack = vocalTracks[trackIndex];
+        var trackKey = GetNextTrackKey(vocalTracks, vocalMusic.TrackNumber, next);
+        var vocalTrack = vocalTracks[trackKey];
         return await CreateVocalPlayItem(schedule, vocalMusic, vocalTrack);
     }
 
-    private static int CalculateTrackIndex(int currentTrackNumber, int totalTracks, bool next)
+    private static int GetNextTrackKey(SortedDictionary<int, MusicTrack> tracks, int currentTrackNumber, bool next)
     {
-        if (next)
+        if (tracks.Count == 0)
         {
-            // Calculate next track number (wraps around if needed)
-            // If at track 200, next is 1; if at track 9, next is 10
-            var nextTrackNumber = ((currentTrackNumber) % totalTracks) + 1;
-            return nextTrackNumber;
+            throw new InvalidOperationException("No tracks available");
         }
-        // Dictionary is keyed by track number (1-based), so use track number directly
-        return currentTrackNumber;
+
+        if (!next)
+        {
+            return tracks.ContainsKey(currentTrackNumber) ? currentTrackNumber : tracks.Keys.First();
+        }
+
+        var keys = tracks.Keys.ToList();
+        var currentIndex = keys.IndexOf(currentTrackNumber);
+        if (currentIndex < 0)
+        {
+            return keys[0];
+        }
+        return keys[(currentIndex + 1) % keys.Count];
     }
 
     private async Task<PlayItem> CreateMelodyPlayItem(AlarmSchedule schedule, AlarmMusic melodyMusic, MusicTrack melodyTrack)

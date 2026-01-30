@@ -329,16 +329,6 @@ public sealed class MusicDisplayTextProvider
             return currentSchedule.MusicSectionName;
         }
 
-        // Return placeholder text if publication is selected but section is not
-        // Only show placeholder if section row is visible (i.e., for sectioned publications)
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode))
-        {
-            if (GetIsMusicSectionVisible())
-            {
-                return "Select Section";
-            }
-        }
-
         return string.Empty;
     }
 

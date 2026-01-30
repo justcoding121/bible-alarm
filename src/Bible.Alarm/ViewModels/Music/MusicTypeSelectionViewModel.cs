@@ -5,9 +5,11 @@ using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.Music;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
@@ -378,6 +380,72 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
             melodyPublication = firstMelody.Value;
         }
 
+        // IMPORTANT:
+        // Some melody publications (notably "iam") have a Section → Track structure (discs).
+        // For those, we must select BOTH section (disc) and track so that CurrentSchedule always has section code/name.
+        if (PublicationTypeHelper.HasSectionStructure(publicationCode))
+        {
+            var sections = await Task.Run(async () =>
+                await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode));
+
+            if (sections == null || sections.Count == 0)
+            {
+                return;
+            }
+
+            // Default to first section, but preserve current section if this is the same selection context
+            var selectedSection = sections.First();
+            if (isSameMusicType &&
+                currentSchedule?.MusicPublicationCode == publicationCode &&
+                !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode))
+            {
+                var match = sections.FirstOrDefault(kvp =>
+                    kvp.Value != null &&
+                    string.Equals(kvp.Value.SectionCode, currentSchedule.MusicSectionCode, StringComparison.OrdinalIgnoreCase));
+                if (!EqualityComparer<KeyValuePair<int, BiblePublicationSection>>.Default.Equals(match, default))
+                {
+                    selectedSection = match;
+                }
+            }
+
+            var sectionNumber = selectedSection.Key;
+            var sectionCode = selectedSection.Value.SectionCode;
+            var sectionName = selectedSection.Value.Name ?? string.Empty;
+
+            var sectionTracks = await Task.Run(async () =>
+                await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNumber));
+
+            if (sectionTracks == null || sectionTracks.Count == 0)
+            {
+                return;
+            }
+
+            // Default to first track, but preserve current track if it exists within the same section
+            var chosenTrack = sectionTracks.Values.OrderBy(t => t.Number).First();
+            if (isSameMusicType &&
+                currentSchedule?.MusicPublicationCode == publicationCode &&
+                string.Equals(currentSchedule.MusicSectionCode, sectionCode, StringComparison.OrdinalIgnoreCase) &&
+                currentSchedule.MusicTrackNumber.HasValue &&
+                sectionTracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var existingTrack))
+            {
+                chosenTrack = existingTrack;
+            }
+
+            var sectionedTrackSelectedItem = CreateSectionedMusicStateItem(
+                currentSchedule,
+                publicationCode,
+                melodyPublication.Name,
+                sectionCode,
+                sectionName,
+                chosenTrack.Number,
+                chosenTrack.Title ?? string.Empty);
+
+            this.dispatcher.Dispatch(new TrackSelectedAction(sectionedTrackSelectedItem));
+            await navigationService.PopModalAsync();
+            return;
+        }
+
+        // Flat melody publications (no sections)
         var tracks = await Task.Run(async () =>
             await mediaService.GetMelodyMusicTracks(publicationCode));
 
@@ -425,6 +493,28 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
             MusicType = MusicType.Music,
             PublicationCode = publicationCode,
             PublicationName = publicationName,
+            TrackNumber = trackNumber,
+            TrackName = trackName
+        };
+    }
+
+    private static MusicStateItem CreateSectionedMusicStateItem(
+        ScheduleStateItem? currentSchedule,
+        string publicationCode,
+        string publicationName,
+        string? sectionCode,
+        string sectionName,
+        int trackNumber,
+        string trackName)
+    {
+        return new MusicStateItem
+        {
+            Repeat = currentSchedule?.MusicRepeat ?? false,
+            MusicType = MusicType.Music,
+            PublicationCode = publicationCode,
+            PublicationName = publicationName,
+            SectionCode = sectionCode,
+            SectionName = sectionName,
             TrackNumber = trackNumber,
             TrackName = trackName
         };

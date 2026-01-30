@@ -90,6 +90,18 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             throw new InvalidOperationException($"Previous bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
         }
 
+        // If we're already at the first section, do not wrap to the last section.
+        // Keep the selection on the first track of the first section.
+        if (previousSection.Key == sectionNumber)
+        {
+            if (tracks.Count == 0)
+            {
+                throw new InvalidOperationException($"No tracks in current section: languageCode={languageCode}, publicationCode={publicationCode}, sectionNumber={sectionNumber}");
+            }
+
+            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, tracks.ElementAt(0).Value);
+        }
+
         tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, previousSection.Key);
         if (tracks.Count == 0)
         {
@@ -155,8 +167,8 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, previousTrack);
         }
 
-        // Wrap around to the last track
-        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, orderedTracks.Last());
+        // At the beginning: do not wrap to the last track. Keep the first track.
+        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, orderedTracks.First());
     }
 
     /// <summary>
@@ -180,13 +192,14 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             return previousSection;
         }
 
-        var maxKey = sections.Keys.Max();
-        if (!sections.TryGetValue(maxKey, out var maxSection))
+        // At the beginning: do not wrap to the last section. Keep the first section.
+        var minKey = sections.Keys.Min();
+        if (!sections.TryGetValue(minKey, out var minSection))
         {
-            throw new InvalidOperationException($"Bible section with key {maxKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
+            throw new InvalidOperationException($"Bible section with key {minKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        return new KeyValuePair<int, BiblePublicationSection>(maxKey, maxSection);
+        return new KeyValuePair<int, BiblePublicationSection>(minKey, minSection);
     }
 
     /// <summary>
