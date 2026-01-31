@@ -104,9 +104,9 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
         await dbContext.AlarmSchedules.AddAsync(schedule, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // Reload with includes
-        return await GetScheduleByIdAsync(schedule.Id, true, true, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to reload schedule {schedule.Id} after adding");
+        // Avoid an extra DB roundtrip: the inserted entity (and any included navigation properties)
+        // are already available on the passed model after SaveChangesAsync.
+        return schedule;
     }
 
     public async Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule, CancellationToken cancellationToken = default)
@@ -117,9 +117,8 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
         dbContext.AlarmSchedules.Update(schedule);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // Reload with includes
-        return await GetScheduleByIdAsync(schedule.Id, true, true, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to reload schedule {schedule.Id} after updating");
+        // Avoid an extra DB roundtrip: return the updated model.
+        return schedule;
     }
 
     public async Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId, Action<AlarmSchedule> updateAction, CancellationToken cancellationToken = default)
@@ -135,9 +134,8 @@ public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IA
         updateAction(schedule);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // Reload with includes to ensure all changes are reflected
-        return await GetScheduleByIdAsync(scheduleId, true, true, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to reload schedule {scheduleId} after updating");
+        // Avoid an extra DB roundtrip: schedule already has includes loaded.
+        return schedule;
     }
 
     public async Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default)

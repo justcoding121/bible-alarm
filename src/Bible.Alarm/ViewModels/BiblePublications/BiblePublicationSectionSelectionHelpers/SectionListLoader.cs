@@ -26,86 +26,80 @@ internal sealed class SectionListLoader
         // Show progress while fetching
         progress?.SetIsVisible(true);
         progress?.UpdateProgress(0.1);
+        var sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
 
-        // Do ALL processing on background thread to avoid blocking spinner animation
-        var (items, mapping) = await Task.Run(async () =>
+        // If no sections found and this is a non-English language, sections might be being fetched.
+        // Retry a few times with delays to allow the fetch to complete.
+        if ((sectionsFromDb == null || sectionsFromDb.Count == 0) &&
+            !string.IsNullOrEmpty(languageCode) &&
+            !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
         {
-            var sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
+            logger.Information(
+                "SectionListLoader: No sections found initially for publication={PublicationCode}, language={LanguageCode}. Sections may be being fetched, will retry...",
+                publicationCode,
+                languageCode);
 
-            // If no sections found and this is a non-English language, sections might be being fetched
-            // Retry a few times with delays to allow the fetch to complete
-            if ((sectionsFromDb == null || sectionsFromDb.Count == 0) &&
-                !string.IsNullOrEmpty(languageCode) &&
-                !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+            // Retry up to 5 times with increasing delays to allow fetch to complete
+            // Total wait time: 2s + 3s + 4s + 5s + 6s = 20 seconds
+            for (int retry = 0; retry < 5; retry++)
             {
-                logger.Information(
-                    "SectionListLoader: No sections found initially for publication={PublicationCode}, language={LanguageCode}. Sections may be being fetched, will retry...",
-                    publicationCode,
-                    languageCode);
+                // Wait before retrying (2s, 3s, 4s, 5s, 6s)
+                progress?.UpdateProgress(0.2 + (retry / 5.0) * 0.3); // 0.2 to 0.5
+                await Task.Delay(1000 * (retry + 2));
 
-                // Retry up to 5 times with increasing delays to allow fetch to complete
-                // Total wait time: 2s + 3s + 4s + 5s + 6s = 20 seconds
-                for (int retry = 0; retry < 5; retry++)
+                // Re-query to see if sections are now available
+                sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
+
+                if (sectionsFromDb != null && sectionsFromDb.Count > 0)
                 {
-                    // Wait before retrying (2s, 3s, 4s, 5s, 6s)
-                    progress?.UpdateProgress(0.2 + (retry / 5.0) * 0.3); // 0.2 to 0.5
-                    await Task.Delay(1000 * (retry + 2));
-
-                    // Re-query to see if sections are now available
-                    sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
-
-                    if (sectionsFromDb != null && sectionsFromDb.Count > 0)
-                    {
-                        logger.Information(
-                            "SectionListLoader: Found {Count} sections on retry {Retry} for publication={PublicationCode}, language={LanguageCode}",
-                            sectionsFromDb.Count,
-                            retry + 1,
-                            publicationCode,
-                            languageCode);
-                        break;
-                    }
+                    logger.Information(
+                        "SectionListLoader: Found {Count} sections on retry {Retry} for publication={PublicationCode}, language={LanguageCode}",
+                        sectionsFromDb.Count,
+                        retry + 1,
+                        publicationCode,
+                        languageCode);
+                    break;
                 }
             }
+        }
 
-            progress?.UpdateProgress(0.7);
+        progress?.UpdateProgress(0.7);
 
-            if (sectionsFromDb == null || sectionsFromDb.Count == 0)
+        if (sectionsFromDb == null || sectionsFromDb.Count == 0)
+        {
+            logger.Warning(
+                "SectionListLoader: No sections found for publication={PublicationCode}, language={LanguageCode}. This publication may not be harvested yet or may not have sections.",
+                publicationCode,
+                languageCode ?? "(null)");
+
+            progress?.UpdateProgress(1.0);
+            progress?.SetIsVisible(false);
+            return (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<int, BiblePublicationSectionListViewItemModel>());
+        }
+
+        var vms = new List<BiblePublicationSectionListViewItemModel>();
+        var map = new Dictionary<int, BiblePublicationSectionListViewItemModel>();
+
+        foreach (var section in sectionsFromDb.Values)
+        {
+            var sectionVm = new BiblePublicationSectionListViewItemModel(section);
+            vms.Add(sectionVm);
+            map[sectionVm.Number] = sectionVm;
+
+            if (!string.IsNullOrEmpty(selectedSectionCode) && section.SectionCode == selectedSectionCode)
             {
-                logger.Warning(
-                    "SectionListLoader: No sections found for publication={PublicationCode}, language={LanguageCode}. This publication may not be harvested yet or may not have sections.",
-                    publicationCode,
-                    languageCode ?? "(null)");
-
-                return (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<int, BiblePublicationSectionListViewItemModel>());
+                sectionVm.IsSelected = true;
             }
+        }
 
-            var vms = new List<BiblePublicationSectionListViewItemModel>();
-            var map = new Dictionary<int, BiblePublicationSectionListViewItemModel>();
+        // Sort using natural sort (numeric sections as int, non-numeric as string)
+        vms.Sort();
 
-            foreach (var section in sectionsFromDb.Values)
-            {
-                var sectionVm = new BiblePublicationSectionListViewItemModel(section);
-                vms.Add(sectionVm);
-                map[sectionVm.Number] = sectionVm;
-
-                if (!string.IsNullOrEmpty(selectedSectionCode) && section.SectionCode == selectedSectionCode)
-                {
-                    sectionVm.IsSelected = true;
-                }
-            }
-
-            // Sort using natural sort (numeric sections as int, non-numeric as string)
-            vms.Sort();
-
-            progress?.UpdateProgress(0.9);
-
-            return (vms, map);
-        });
-
+        progress?.UpdateProgress(0.9);
         progress?.UpdateProgress(1.0);
         progress?.SetIsVisible(false);
 
-        return (items, mapping);
+        return (vms, map);
     }
 }
 

@@ -254,8 +254,7 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var tracks = await Task.Run(async () =>
-            await mediaService.GetVocalMusicTracks(result.LanguageCode, result.PublicationCode));
+        var tracks = await mediaService.GetVocalMusicTracks(result.LanguageCode, result.PublicationCode);
 
         if (tracks == null || tracks.Count == 0)
         {
@@ -271,8 +270,7 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
 
     private async Task<(string? LanguageCode, Language Language, string PublicationCode, VocalMusic FirstSongPublication)> GetFirstLanguageAndSongPublicationAsync()
     {
-        var languages = await Task.Run(async () =>
-            await mediaService.GetVocalMusicLanguages());
+        var languages = await mediaService.GetVocalMusicLanguages();
 
         if (languages == null || languages.Count == 0)
         {
@@ -287,8 +285,7 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
             return (null, null!, string.Empty, null!);
         }
 
-        var songPublications = await Task.Run(async () =>
-            await mediaService.GetVocalMusicReleases(languageCode));
+        var songPublications = await mediaService.GetVocalMusicReleases(languageCode);
 
         if (songPublications == null || songPublications.Count == 0)
         {
@@ -351,8 +348,7 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
     private async Task HandleMusicSelectionAsync(ScheduleStateItem? currentSchedule, bool isSameMusicType)
     {
         // Get melody publications from database instead of hard-coding
-        var melodyReleases = await Task.Run(async () =>
-            await mediaService.GetMelodyMusicReleases());
+        var melodyReleases = await mediaService.GetMelodyMusicReleases();
 
         if (melodyReleases == null || melodyReleases.Count == 0)
         {
@@ -385,8 +381,7 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
         // For those, we must select BOTH section (disc) and track so that CurrentSchedule always has section code/name.
         if (PublicationTypeHelper.HasSectionStructure(publicationCode))
         {
-            var sections = await Task.Run(async () =>
-                await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode));
+            var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
 
             if (sections == null || sections.Count == 0)
             {
@@ -412,8 +407,7 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
             var sectionCode = selectedSection.Value.SectionCode;
             var sectionName = selectedSection.Value.Name ?? string.Empty;
 
-            var sectionTracks = await Task.Run(async () =>
-                await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNumber));
+            var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNumber);
 
             if (sectionTracks == null || sectionTracks.Count == 0)
             {
@@ -446,8 +440,7 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
         }
 
         // Flat melody publications (no sections)
-        var tracks = await Task.Run(async () =>
-            await mediaService.GetMelodyMusicTracks(publicationCode));
+        var tracks = await mediaService.GetMelodyMusicTracks(publicationCode);
 
         if (tracks == null || tracks.Count == 0)
         {

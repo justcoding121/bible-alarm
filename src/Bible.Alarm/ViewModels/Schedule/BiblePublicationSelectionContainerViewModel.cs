@@ -59,6 +59,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     private bool isPublicationSelectable = false;
     private bool isSectionSelectable = false;
     private bool isTrackSelectable = false;
+    private string? lastSelectabilitySignature;
 
     public BiblePublicationSelectionContainerViewModel(
         ILogger logger,
@@ -400,6 +401,33 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     {
         try
         {
+            // During save/cancel/delete, the schedule page overlay is shown and the user cannot interact.
+            // Avoid triggering expensive DB queries for "is selectable?" checks while the page is busy.
+            if (state.Value.IsSchedulePageOverlayVisible)
+            {
+                return;
+            }
+
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return;
+            }
+
+            // Only recompute when relevant inputs change (prevents DB calls on unrelated state updates).
+            var signature = string.Join('|',
+                currentSchedule.BiblePublicationCategoryName ?? string.Empty,
+                currentSchedule.BiblePublicationLanguageCode ?? string.Empty,
+                currentSchedule.BiblePublicationCode ?? string.Empty,
+                currentSchedule.BiblePublicationSectionNumber?.ToString() ?? string.Empty);
+
+            if (string.Equals(signature, lastSelectabilitySignature, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            lastSelectabilitySignature = signature;
+
             // Update flags asynchronously without blocking UI
             var languageSelectable = await displayTextProvider.GetIsLanguageSelectableAsync();
             var publicationSelectable = await displayTextProvider.GetIsPublicationSelectableAsync();

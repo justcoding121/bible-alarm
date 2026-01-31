@@ -162,11 +162,15 @@ public sealed class MediaService(
         var sections = await biblePublicationSectionService.GetSectionsByPublicationAsync(
             languageCode, versionCode, cancellationTokenSource.Token);
         
-        // If language is not English (E), ensure all sections are downloaded
-        // This is called when sections modal opens
-        // English sections are pre-harvested by the harvester
-        if (!string.IsNullOrEmpty(languageCode) && 
-            !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        // IMPORTANT:
+        // Fetching "all sections" can be expensive (network + DB writes) and should only happen
+        // when the user explicitly opens the Sections modal (where we can show progress).
+        // Other callers (playback navigation, playlist building, etc.) should remain read-only.
+        //
+        // English sections are pre-harvested by the harvester.
+        if (!string.IsNullOrEmpty(languageCode) &&
+            !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase) &&
+            progress != null)
         {
             Log.Information("Ensuring all sections are downloaded for publication {PublicationCode} in language {LanguageCode}", 
                 versionCode, languageCode);
@@ -247,59 +251,53 @@ public sealed class MediaService(
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-        
-        // Convert sectionNumber to sectionCode (for music, sectionCode might be like "iam-1")
-        // First, try to find the section by number
-        var publication = await db.BiblePublications
+
+        // Fast path: resolve section in DB and fetch only its tracks (avoid loading all sections + all tracks).
+        // SectionCode patterns observed:
+        // - "1" (numeric)
+        // - "iam-1" (prefix + "-" + number)
+        var sectionNumberString = sectionNumber.ToString();
+
+        var publicationId = await db.BiblePublications
             .AsNoTracking()
-            .Include(x => x.Sections)
-                .ThenInclude(s => s.Tracks)
             .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
+            .Select(x => x.Id)
             .FirstOrDefaultAsync(cancellationTokenSource.Token);
-        
-        if (publication?.Sections == null)
+
+        if (publicationId <= 0)
         {
             return new SortedDictionary<int, BiblePublicationTrack>();
         }
-        
-        // Find section by sectionNumber (try both numeric and non-numeric section codes)
-        BiblePublicationSection? section = null;
-        
-        // First, try to find by sectionNumber as string
-        var sectionCodeString = sectionNumber.ToString();
-        section = publication.Sections.FirstOrDefault(s => s.SectionCode.Equals(sectionCodeString, StringComparison.OrdinalIgnoreCase));
-        
-        // If not found, try to find by extracting number from sectionCode (e.g., "iam-1" -> 1)
+
+        var section = await db.BiblePublicationSections
+            .AsNoTracking()
+            .Where(s => s.BiblePublicationId == publicationId)
+            .Where(s =>
+                s.SectionCode == sectionNumberString ||
+                EF.Functions.Like(s.SectionCode, "%-" + sectionNumberString))
+            .OrderBy(s => s.Id)
+            .FirstOrDefaultAsync(cancellationTokenSource.Token);
+
         if (section == null)
         {
-            section = publication.Sections.FirstOrDefault(s =>
-            {
-                if (int.TryParse(s.SectionCode, out var code))
-                {
-                    return code == sectionNumber;
-                }
-                
-                // Try to extract number from sectionCode like "iam-1"
-                var parts = s.SectionCode.Split('-');
-                if (parts.Length > 1 && int.TryParse(parts[parts.Length - 1], out var extractedNumber))
-                {
-                    return extractedNumber == sectionNumber;
-                }
-                
-                return false;
-            });
+            // Fallback: if we couldn't resolve a section by common patterns, return empty.
+            // Callers will typically treat this as "no tracks".
+            return new SortedDictionary<int, BiblePublicationTrack>();
         }
-        
-        if (section?.Tracks == null || section.Tracks.Count == 0)
+
+        var tracksList = await db.BiblePublicationTracks
+            .AsNoTracking()
+            .Where(t => t.BiblePublicationId == publicationId && t.BiblePublicationSectionId == section.Id)
+            .OrderBy(t => t.Number)
+            .ToListAsync(cancellationTokenSource.Token);
+
+        if (tracksList.Count == 0)
         {
             return new SortedDictionary<int, BiblePublicationTrack>();
         }
-        
-        var tracksDict = section.Tracks
-            .OrderBy(t => t.Number)
-            .ToDictionary(t => t.Number, t => t);
-        
-        return new SortedDictionary<int, BiblePublicationTrack>(tracksDict);
+
+        return new SortedDictionary<int, BiblePublicationTrack>(
+            tracksList.ToDictionary(t => t.Number, t => t));
     }
 
     public async Task<BiblePublicationTrack> GetBiblePublicationTrack(string languageCode,

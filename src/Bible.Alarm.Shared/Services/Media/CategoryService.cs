@@ -21,11 +21,22 @@ public sealed class CategoryService(IServiceScopeFactory scopeFactory, ILogger l
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
+    private readonly object categoriesCacheLock = new();
+    private List<Category>? cachedCategories;
 
     public async Task<List<Category>> GetAllCategoriesAsync(CancellationToken cancellationToken = default)
     {
         try
         {
+            lock (categoriesCacheLock)
+            {
+                if (cachedCategories != null)
+                {
+                    // Return a copy so callers can't mutate the cache.
+                    return new List<Category>(cachedCategories);
+                }
+            }
+
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
@@ -35,6 +46,11 @@ public sealed class CategoryService(IServiceScopeFactory scopeFactory, ILogger l
                 .ToListAsync(cancellationToken);
 
             logger.Debug("CategoryService.GetAllCategoriesAsync: Found {CategoryCount} categories", categories.Count);
+
+            lock (categoriesCacheLock)
+            {
+                cachedCategories = categories;
+            }
 
             return categories;
         }

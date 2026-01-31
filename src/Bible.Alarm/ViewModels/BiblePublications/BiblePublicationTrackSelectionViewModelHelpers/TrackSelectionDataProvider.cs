@@ -24,51 +24,45 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
         Log.Debug("TrackSelectionDataProvider.PopulateTracks: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionNumber={SectionNumber}",
             languageCode, publicationCode, sectionNumber);
 
-        // Do ALL processing on background thread to avoid blocking spinner animation
-        var (trackViewModelList, selectedTrack) = await Task.Run(async () =>
+        IEnumerable<BiblePublicationTrack> tracksFromDb;
+
+        // If sectionNumber is 0, this is a non-sectioned publication (drama/video)
+        // Load tracks directly from the publication
+        if (sectionNumber <= 0 && biblePublicationService != null)
         {
-            IEnumerable<BiblePublicationTrack> tracksFromDb;
+            Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loading non-sectioned tracks for publication={PublicationCode}", publicationCode);
+            var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
+            tracksFromDb = publication?.Tracks?.OrderBy(t => t.Number) ?? Enumerable.Empty<BiblePublicationTrack>();
+            Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} non-sectioned tracks", tracksFromDb.Count());
+        }
+        else
+        {
+            // Sectioned publication - use standard approach
+            Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loading sectioned tracks for section={SectionNumber}", sectionNumber);
+            var sectionedTracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
+            tracksFromDb = sectionedTracks.Values;
+            Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} sectioned tracks", sectionedTracks.Count);
+        }
 
-            // If sectionNumber is 0, this is a non-sectioned publication (drama/video)
-            // Load tracks directly from the publication
-            if (sectionNumber <= 0 && biblePublicationService != null)
+        var trackViewModelList = new List<BiblePublicationTrackListViewItemModel>();
+        BiblePublicationTrackListViewItemModel? selectedTrack = null;
+
+        Log.Debug("TrackSelectionDataProvider.PopulateTracks: current TrackNumber={CurrentTrackNumber}",
+            current?.TrackNumber ?? -1);
+
+        foreach (var track in tracksFromDb)
+        {
+            var trackVm = new BiblePublicationTrackListViewItemModel(track);
+            trackViewModelList.Add(trackVm);
+
+            if (current != null && current.TrackNumber == track.Number)
             {
-                Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loading non-sectioned tracks for publication={PublicationCode}", publicationCode);
-                var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
-                tracksFromDb = publication?.Tracks?.OrderBy(t => t.Number) ?? Enumerable.Empty<BiblePublicationTrack>();
-                Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} non-sectioned tracks", tracksFromDb.Count());
+                selectedTrack = trackVm;
+                selectedTrack.IsSelected = true;
+                Log.Debug("TrackSelectionDataProvider.PopulateTracks: Matched track {TrackNumber} ({TrackTitle}) as selected",
+                    track.Number, track.Title);
             }
-            else
-            {
-                // Sectioned publication - use standard approach
-                Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loading sectioned tracks for section={SectionNumber}", sectionNumber);
-                var sectionedTracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
-                tracksFromDb = sectionedTracks.Values;
-                Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} sectioned tracks", sectionedTracks.Count);
-            }
-
-            var vms = new List<BiblePublicationTrackListViewItemModel>();
-            BiblePublicationTrackListViewItemModel? selected = null;
-
-            Log.Debug("TrackSelectionDataProvider.PopulateTracks: current TrackNumber={CurrentTrackNumber}",
-                current?.TrackNumber ?? -1);
-
-            foreach (var track in tracksFromDb)
-            {
-                var trackVm = new BiblePublicationTrackListViewItemModel(track);
-                vms.Add(trackVm);
-
-                if (current != null && current.TrackNumber == track.Number)
-                {
-                    selected = trackVm;
-                    selected.IsSelected = true;
-                    Log.Debug("TrackSelectionDataProvider.PopulateTracks: Matched track {TrackNumber} ({TrackTitle}) as selected",
-                        track.Number, track.Title);
-                }
-            }
-
-            return (vms, selected);
-        });
+        }
 
         Log.Debug("TrackSelectionDataProvider.PopulateTracks: Created {VmCount} track VMs, selectedTrack={HasSelected} (number={SelectedNumber})",
             trackViewModelList.Count, selectedTrack != null, selectedTrack?.Number ?? -1);

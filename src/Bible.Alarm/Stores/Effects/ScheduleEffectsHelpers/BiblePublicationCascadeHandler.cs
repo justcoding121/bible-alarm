@@ -191,16 +191,29 @@ public sealed class BiblePublicationCascadeHandler
             .ThenBy(pl => pl.Id)
             .ToList();
         
+        // Avoid N+1: batch-load which publications are present with LanguageId for this language.
+        var candidateCodes = publicationLanguages
+            .Select(pl => pl.PublicationCode)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var codesWithLanguageId = await db.BiblePublications
+            .AsNoTracking()
+            .Where(bp => candidateCodes.Contains(bp.PublicationCode) &&
+                         bp.LanguageId != null &&
+                         bp.Language != null &&
+                         bp.Language.LanguageCode == normalizedLanguageCode)
+            .Select(bp => bp.PublicationCode)
+            .Distinct()
+            .ToListAsync();
+
+        var codesWithLanguageIdSet = codesWithLanguageId.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         // Find first publication that exists in BiblePublications with the selected language
         foreach (var pl in publicationLanguages)
         {
-            var canQueryWithLanguage = await db.BiblePublications
-                .AsNoTracking()
-                .AnyAsync(bp => bp.PublicationCode == pl.PublicationCode && 
-                               bp.LanguageId != null &&
-                               bp.Language != null &&
-                               bp.Language.LanguageCode == normalizedLanguageCode);
-            
+            var canQueryWithLanguage = codesWithLanguageIdSet.Contains(pl.PublicationCode);
+
             if (canQueryWithLanguage)
             {
                 publicationCode = pl.PublicationCode;

@@ -157,7 +157,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             }
             else
             {
-                var languages = await Task.Run(async () => await mediaService.GetBiblePublicationLanguages());
+                var languages = await mediaService.GetBiblePublicationLanguages();
                 if (languages.TryGetValue(languageCode, out var language))
                 {
                     currentLanguage = new LanguageListViewItemModel(language);

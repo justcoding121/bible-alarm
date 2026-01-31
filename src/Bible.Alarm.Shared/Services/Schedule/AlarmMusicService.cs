@@ -69,8 +69,8 @@ public sealed class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger
         await dbContext.AlarmMusic.AddAsync(music, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GetMusicByIdAsync(music.Id, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to reload music {music.Id} after adding");
+        // Avoid an extra DB roundtrip: return the inserted model.
+        return music;
     }
 
     public async Task<AlarmMusic> UpdateMusicAsync(AlarmMusic music, CancellationToken cancellationToken = default)
@@ -81,8 +81,8 @@ public sealed class AlarmMusicService(IServiceScopeFactory scopeFactory, ILogger
         dbContext.AlarmMusic.Update(music);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GetMusicByIdAsync(music.Id, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to reload music {music.Id} after updating");
+        // Avoid an extra DB roundtrip: return the updated model.
+        return music;
     }
 
     public async Task DeleteMusicAsync(int musicId, CancellationToken cancellationToken = default)

@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
@@ -135,6 +136,24 @@ public sealed class ScheduleCacheManager
 
         try
         {
+            // Fast path: refresh cache directly from Fluxor state to avoid unnecessary DB queries.
+            // This is safe after create/delete because reducers already updated the Schedules collection.
+            // It also avoids expensive media-index lookups (publications/tracks) that the DB-based factory performs.
+            var appState = ServiceProviderManager.GetService<IState<ApplicationState>>();
+            var schedulesFromState = appState?.Value.Schedules;
+            if (schedulesFromState != null)
+            {
+                // Only persist saved schedules (Id > 0). New/unsaved schedules should never be cached to disk.
+                var schedulesList = schedulesFromState
+                    .Where(s => s.Id > 0)
+                    .Select(s => s.DeepClone())
+                    .ToList();
+
+                await diskCacheService.SetAsync(CacheKey, schedulesList);
+                Log.Information("ScheduleEffects: Refreshed schedule cache from state with {Count} schedules", schedulesList.Count);
+                return;
+            }
+
             // Refresh cache by calling the factory
             // This will reload schedules from database and repopulate the cache
             var services = CommonBootstrapHelper.GetRequiredServicesForCache();

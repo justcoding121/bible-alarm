@@ -69,8 +69,8 @@ public sealed class BiblePublicationScheduleService(IServiceScopeFactory scopeFa
         await dbContext.BiblePublicationSchedules.AddAsync(biblePublicationSchedule, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GetBiblePublicationScheduleByIdAsync(biblePublicationSchedule.Id, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to reload bible reading schedule {biblePublicationSchedule.Id} after adding");
+        // Avoid an extra DB roundtrip: return the inserted model.
+        return biblePublicationSchedule;
     }
 
     public async Task<BiblePublicationSchedule> UpdateBiblePublicationScheduleAsync(BiblePublicationSchedule biblePublicationSchedule, CancellationToken cancellationToken = default)
@@ -81,8 +81,8 @@ public sealed class BiblePublicationScheduleService(IServiceScopeFactory scopeFa
         dbContext.BiblePublicationSchedules.Update(biblePublicationSchedule);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GetBiblePublicationScheduleByIdAsync(biblePublicationSchedule.Id, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to reload bible reading schedule {biblePublicationSchedule.Id} after updating");
+        // Avoid an extra DB roundtrip: return the updated model.
+        return biblePublicationSchedule;
     }
 
     public async Task DeleteBiblePublicationScheduleAsync(int biblePublicationScheduleId, CancellationToken cancellationToken = default)

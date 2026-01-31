@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
@@ -21,10 +22,33 @@ namespace Bible.Alarm.Shared.Services.Media;
 public class UrlConstructionService : IUrlConstructionService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly object baseUrlsLock = new();
+    private Task<List<BaseUrl>>? baseUrlsTask;
 
     public UrlConstructionService(IServiceScopeFactory scopeFactory)
     {
         _scopeFactory = scopeFactory;
+    }
+
+    private Task<List<BaseUrl>> GetBaseUrlsAsync()
+    {
+        lock (baseUrlsLock)
+        {
+            baseUrlsTask ??= LoadBaseUrlsAsync();
+            return baseUrlsTask;
+        }
+    }
+
+    private async Task<List<BaseUrl>> LoadBaseUrlsAsync()
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        return await dbContext.BaseUrls
+            .AsNoTracking()
+            .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
+            .Include(bu => bu.UrlParams)
+            .ToListAsync();
     }
 
     /// <summary>
@@ -55,12 +79,8 @@ public class UrlConstructionService : IUrlConstructionService
             return new List<string>();
         }
 
-        // Get all base URLs from the database (all downloads use the same ApiUrls)
-        var baseUrls = await dbContext.BaseUrls
-            .AsNoTracking()
-            .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
-            .Include(bu => bu.UrlParams)
-            .ToListAsync();
+        // BaseUrls are static at runtime; cache them to avoid repeated DB queries.
+        var baseUrls = await GetBaseUrlsAsync();
 
         if (baseUrls == null || baseUrls.Count == 0)
         {
@@ -206,6 +226,12 @@ public class UrlConstructionService : IUrlConstructionService
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
+        var baseUrls = await GetBaseUrlsAsync();
+        if (baseUrls.Count == 0)
+        {
+            return new List<string>();
+        }
+
         var query = dbContext.BiblePublicationTracks
             .AsNoTracking() // Read-only, improves performance
             .Include(t => t.Publication)
@@ -239,7 +265,18 @@ public class UrlConstructionService : IUrlConstructionService
             return new List<string>();
         }
 
-        return await ConstructTrackUrlsAsync(track.Id);
+        // Avoid re-querying the DB: we already loaded the track (+ params) above.
+        var urls = new List<string>();
+        foreach (var baseUrl in baseUrls)
+        {
+            var url = ConstructUrl(baseUrl, track);
+            if (!string.IsNullOrEmpty(url))
+            {
+                urls.Add(url);
+            }
+        }
+
+        return urls;
     }
 
     /// <summary>
@@ -298,12 +335,8 @@ public class UrlConstructionService : IUrlConstructionService
             return null;
         }
 
-        // Get the first BaseUrl from the database (all downloads use the same ApiUrls)
-        var baseUrl = await dbContext.BaseUrls
-            .AsNoTracking()
-            .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
-            .Include(bu => bu.UrlParams)
-            .FirstOrDefaultAsync();
+        // BaseUrls are static at runtime; cache them to avoid repeated DB queries.
+        var baseUrl = (await GetBaseUrlsAsync()).FirstOrDefault();
 
         if (baseUrl == null)
         {

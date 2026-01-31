@@ -104,6 +104,15 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
 
         try
         {
+            // If schedules are already loaded in Fluxor state, don't hit the DB again.
+            // This prevents unnecessary DB work when the UI re-triggers bootstrap (e.g., navigating back to Home after Save).
+            var existingState = ServiceProviderManager.GetService<Fluxor.IState<ApplicationState>>();
+            if (existingState?.Value.Schedules != null && existingState.Value.Schedules.Count > 0)
+            {
+                Log.Logger.Debug("[BOOTSTRAP] Schedules already loaded in state ({Count}), skipping ScheduleBootstrapService.InitializeAsync", existingState.Value.Schedules.Count);
+                return;
+            }
+
             // Parallelize seed/migration with language loading
             // Languages can load independently while we seed/migrate schedules
 #if DEBUG
@@ -132,34 +141,59 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
 
             if (diskCacheService != null)
             {
-                // Languages task is already running in parallel, await it now for the factory
-                languagesDict = await languagesTask;
-#if DEBUG
-                var languagesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - languagesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                Log.Logger.Information("[BOOTSTRAP] Loaded languages dictionary in {ElapsedMs:F2}ms", languagesElapsed);
-#endif
-
-                // If a schedule was seeded, invalidate cache to ensure the new schedule is included
-                if (scheduleWasSeeded)
+                // Avoid unnecessary DB work:
+                // If schedule list is already cached, we can load it without loading the full languages dictionary
+                // (which triggers PublicationLanguages queries). We only need languagesDict when we have a cache miss
+                // and must build schedules from the database.
+                List<ScheduleStateItem>? cachedSchedulesList = null;
+                try
                 {
-                    Log.Logger.Debug("[BOOTSTRAP] Schedule was seeded, invalidating cache to include new schedule");
-                    diskCacheService.Remove(CacheKey);
+                    cachedSchedulesList = await diskCacheService.GetAsync<List<ScheduleStateItem>>(CacheKey);
+                }
+                catch (Exception ex)
+                {
+                    Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to read schedule list cache, will fall back to factory");
                 }
 
-                // Use cache with factory - factory will be called if cache miss or deserialization fails
-                var cachedSchedulesList = await diskCacheService.GetOrSetAsync(
-                    CacheKey,
-                    async () =>
-                    {
-                        // Factory: Load schedules from database and populate state items
-                        return await LoadSchedulesListAsync(languagesDict);
-                    });
-
-                // Convert List to ObservableHashSet
-                initialSchedules = new ObservableHashSet<ScheduleStateItem>();
-                foreach (var item in cachedSchedulesList)
+                if (cachedSchedulesList != null && cachedSchedulesList.Count > 0)
                 {
-                    initialSchedules.Add(item);
+                    initialSchedules = new ObservableHashSet<ScheduleStateItem>();
+                    foreach (var item in cachedSchedulesList)
+                    {
+                        initialSchedules.Add(item);
+                    }
+                }
+                else
+                {
+                    // Cache miss: languages task is already running in parallel, await it now for the factory
+                    languagesDict = await languagesTask;
+#if DEBUG
+                    var languagesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - languagesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                    Log.Logger.Information("[BOOTSTRAP] Loaded languages dictionary in {ElapsedMs:F2}ms", languagesElapsed);
+#endif
+
+                    // If a schedule was seeded, invalidate cache to ensure the new schedule is included
+                    if (scheduleWasSeeded)
+                    {
+                        Log.Logger.Debug("[BOOTSTRAP] Schedule was seeded, invalidating cache to include new schedule");
+                        diskCacheService.Remove(CacheKey);
+                    }
+
+                    // Use cache with factory - factory will be called if cache miss or deserialization fails
+                    var schedulesFromFactory = await diskCacheService.GetOrSetAsync(
+                        CacheKey,
+                        async () =>
+                        {
+                            // Factory: Load schedules from database and populate state items
+                            return await LoadSchedulesListAsync(languagesDict);
+                        });
+
+                    // Convert List to ObservableHashSet
+                    initialSchedules = new ObservableHashSet<ScheduleStateItem>();
+                    foreach (var item in schedulesFromFactory)
+                    {
+                        initialSchedules.Add(item);
+                    }
                 }
 
 #if DEBUG
@@ -198,6 +232,15 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
             // UI is only updated if differences are detected between cached and fresh data.
             if (diskCacheService != null)
             {
+                // If we loaded schedules from cache successfully, skip the immediate DB refresh.
+                // The cache is already used as the source of truth for startup speed, and we refresh it after mutations (save/delete).
+                // This avoids an unconditional DB load immediately after a cache hit (seen in startup logs).
+                if (diskCacheService.ContainsKey(CacheKey))
+                {
+                    Log.Logger.Debug("[BOOTSTRAP] Cache key {CacheKey} present, skipping immediate background refresh", CacheKey);
+                }
+                else
+                {
                 // Capture languagesDict for background refresh
                 var languagesDictForRefresh = languagesDict;
                 // Fire and forget - runs asynchronously without blocking UI
@@ -212,6 +255,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
                         Log.Logger.Warning(ex, "[BOOTSTRAP] Error refreshing cache after initial load");
                     }
                 });
+                }
             }
 
 #if DEBUG

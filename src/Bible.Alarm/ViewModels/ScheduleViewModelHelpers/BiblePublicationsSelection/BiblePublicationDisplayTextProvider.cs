@@ -153,26 +153,16 @@ public sealed class BiblePublicationDisplayTextProvider
             return true; // No category selected, show language row
         }
 
-        // Data-driven check: If PublicationLanguages has any entries for this category,
-        // it means there are publications with languages, so show the language row.
-        // If PublicationLanguages is empty for this category, all publications have LanguageId == null, so hide it.
-        // This checks the discovery table (PublicationLanguages) which is faster than querying BiblePublications.
-        try
+        // Avoid DB calls in a UI getter.
+        // Language row is hidden only for the special case where a specific publication is selected
+        // and it has no language (LanguageCode is empty) - typically instrumental music publications.
+        // Otherwise keep it visible; selectability is handled elsewhere.
+        if (string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
         {
-            // Use Task.Run to avoid blocking, but we need to wait for the result
-            // This is acceptable since it's only called when the UI needs to determine visibility
-            // and GetBiblePublicationLanguages queries PublicationLanguages which is fast
-            var languages = Task.Run(async () => 
-                await mediaService.GetBiblePublicationLanguages(categoryName)).GetAwaiter().GetResult();
-            
-            // If no languages found in PublicationLanguages, it means all publications in this category have LanguageId == null
-            return languages.Count > 0;
-        }
-        catch
-        {
-            // On error, default to visible to be safe
             return true;
         }
+
+        return !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode);
     }
 
     /// <summary>
@@ -191,6 +181,21 @@ public sealed class BiblePublicationDisplayTextProvider
         if (string.IsNullOrWhiteSpace(categoryName))
         {
             return false; // No category selected, can't determine
+        }
+
+        // If the row itself is hidden (e.g., selected publication has no language), it isn't selectable.
+        if (!GetIsLanguageVisible())
+        {
+            return false;
+        }
+
+        // Avoid DB calls just to decide if the row is tappable.
+        // In practice, Bible/Dramas/Music categories have multiple choices when language selection is applicable.
+        if (string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(categoryName, "Dramas", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
         }
 
         try
@@ -222,6 +227,12 @@ public sealed class BiblePublicationDisplayTextProvider
         if (string.IsNullOrWhiteSpace(categoryName))
         {
             return false; // No category selected, can't determine
+        }
+
+        // Avoid DB calls while category cascade is still populating language.
+        if (string.IsNullOrWhiteSpace(languageCode))
+        {
+            return false;
         }
 
         try
@@ -260,17 +271,24 @@ public sealed class BiblePublicationDisplayTextProvider
 
         try
         {
-            // Check if publication has LanguageId == null by checking if GetSectionsForPublicationWithoutLanguage returns results
-            // We'll try both methods and see which one works
             SortedDictionary<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sections;
             
-            // First try with language
-            sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
-            
-            // If no sections found with language, try without language
-            if (sections.Count == 0)
+            if (string.IsNullOrWhiteSpace(languageCode))
             {
+                // Publication likely has no language FK (instrumental) OR cascade hasn't populated language yet.
+                // Avoid a useless "with language" query.
                 sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
+            }
+            else
+            {
+                // First try with language
+                sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
+            
+                // If no sections found with language, try without language
+                if (sections.Count == 0)
+                {
+                    sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
+                }
             }
 
             return sections.Count > 1;
@@ -299,11 +317,13 @@ public sealed class BiblePublicationDisplayTextProvider
 
         try
         {
-            // Try with language first
-            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
+            // Avoid duplicate queries when languageCode is empty.
+            var tracks = string.IsNullOrWhiteSpace(languageCode)
+                ? await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNumber)
+                : await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
             
             // If no tracks found with language, try without language
-            if (tracks.Count == 0)
+            if (tracks.Count == 0 && !string.IsNullOrWhiteSpace(languageCode))
             {
                 tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNumber);
             }

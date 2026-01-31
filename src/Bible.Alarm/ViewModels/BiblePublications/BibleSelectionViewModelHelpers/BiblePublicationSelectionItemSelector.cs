@@ -74,8 +74,11 @@ public sealed class BiblePublicationSelectionItemSelector
         progress?.UpdateProgress(0.1);
         
         // First, try to get sections from the database
-            var sections = await Task.Run(async () =>
-            await mediaService.GetBiblePublicationSections(language.Code, publication.Code));
+        // IMPORTANT: Prefer direct DB query to avoid triggering background "ensure all sections" work.
+        // Section presence is enough to determine sectioned vs non-sectioned for cascade defaults.
+        var sections = biblePublicationSectionService != null
+            ? await biblePublicationSectionService.GetSectionsByPublicationAsync(language.Code, publication.Code, default)
+            : await mediaService.GetBiblePublicationSections(language.Code, publication.Code);
 
         progress?.UpdateProgress(0.3);
 
@@ -134,8 +137,7 @@ public sealed class BiblePublicationSelectionItemSelector
         var categoryName = stateValue.CurrentSchedule?.BiblePublicationCategoryName;
         
         // Get all available publications for this language and category
-        var publications = await Task.Run(async () =>
-            await mediaService.GetBiblePublications(language.Code, categoryName, downloadAll: false, progress));
+        var publications = await mediaService.GetBiblePublications(language.Code, categoryName, downloadAll: false, progress);
 
         if (publications == null || publications.Count == 0)
         {
@@ -195,8 +197,7 @@ public sealed class BiblePublicationSelectionItemSelector
         {
             // Query sections for publications without language (LanguageId=null)
             Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Querying sections for publication without language={PublicationCode}", publicationCode);
-            sections = await Task.Run(async () =>
-                await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode));
+            sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
         }
         else
         {
@@ -204,8 +205,7 @@ public sealed class BiblePublicationSelectionItemSelector
             // This avoids fetching all sections when we only need to check if the publication is sectioned
             if (biblePublicationSectionService != null)
             {
-                sections = await Task.Run(async () =>
-                    await biblePublicationSectionService.GetSectionsByPublicationAsync(language.Code, publicationCode, default));
+                sections = await biblePublicationSectionService.GetSectionsByPublicationAsync(language.Code, publicationCode, default);
                 
                 // If no sections found and publication was just harvested, it might be a non-sectioned publication
                 // Or the publication might not exist yet - in that case, EnsurePublicationExistsAsync above should have created it
@@ -219,8 +219,7 @@ public sealed class BiblePublicationSelectionItemSelector
             {
                 // Fallback to MediaService method (but this will trigger full harvesting)
                 Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: biblePublicationSectionService is null, using MediaService.GetBiblePublicationSections (will trigger full harvesting)");
-                sections = await Task.Run(async () =>
-                    await mediaService.GetBiblePublicationSections(language.Code, publicationCode));
+                sections = await mediaService.GetBiblePublicationSections(language.Code, publicationCode);
             }
         }
 

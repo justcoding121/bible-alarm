@@ -42,8 +42,8 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         string? firstPublicationCode = null;
         if (biblePublicationService != null)
         {
-            var availablePublicationCodes = await Task.Run(async () =>
-                await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, "Music"));
+            var availablePublicationCodes =
+                await biblePublicationService.GetAvailablePublicationCodesAsync(language.Code, "Music");
 
             // Get publications without LanguageId from BiblePublications (data-driven)
             if (scopeFactory == null)
@@ -75,8 +75,6 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
                 // Check if it has LanguageId, if not, get next one
                 var publicationLanguages = await db.PublicationLanguages
                     .AsNoTracking()
-                    .Include(pl => pl.Language)
-                    .Include(pl => pl.Category)
                     .Where(pl => pl.Language != null &&
                                pl.Language.LanguageCode == language.Code.ToUpperInvariant() &&
                                pl.Category != null &&
@@ -84,22 +82,28 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
                     .OrderBy(pl => pl.Id)
                     .ToListAsync();
 
-                // Find first publication that has LanguageId in BiblePublications
-                foreach (var pl in publicationLanguages)
-                {
-                    var hasLanguageId = await db.BiblePublications
-                        .AsNoTracking()
-                        .AnyAsync(bp => bp.PublicationCode == pl.PublicationCode &&
-                                       bp.LanguageId != null &&
-                                       bp.Language != null &&
-                                       bp.Language.LanguageCode == language.Code.ToUpperInvariant());
+                // Avoid N+1: batch-load which publications are present with LanguageId for this language.
+                var normalizedLanguageCode = language.Code.ToUpperInvariant();
+                var candidateCodes = publicationLanguages
+                    .Select(pl => pl.PublicationCode)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
 
-                    if (hasLanguageId)
-                    {
-                        firstPublicationCode = pl.PublicationCode;
-                        break;
-                    }
-                }
+                var codesWithLanguageId = await db.BiblePublications
+                    .AsNoTracking()
+                    .Where(bp => candidateCodes.Contains(bp.PublicationCode) &&
+                                 bp.LanguageId != null &&
+                                 bp.Language != null &&
+                                 bp.Language.LanguageCode == normalizedLanguageCode)
+                    .Select(bp => bp.PublicationCode)
+                    .Distinct()
+                    .ToListAsync();
+
+                var codesWithLanguageIdSet = codesWithLanguageId.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                firstPublicationCode = publicationLanguages
+                    .Select(pl => pl.PublicationCode)
+                    .FirstOrDefault(code => codesWithLanguageIdSet.Contains(code));
 
                 // Fallback: use first from vocal list if no publication with LanguageId found
                 if (string.IsNullOrEmpty(firstPublicationCode))
@@ -150,8 +154,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
         // Step 3: Get the downloaded publication using GetBiblePublications (same API as Bible publication)
         progress?.UpdateProgress(0.7);
-        var songPublications = await Task.Run(async () =>
-            await mediaService.GetBiblePublications(language.Code, "Music", downloadAll: false, progress));
+        var songPublications = await mediaService.GetBiblePublications(language.Code, "Music", downloadAll: false, progress);
 
         if (songPublications == null || songPublications.Count == 0)
         {
@@ -175,23 +178,20 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         // Use GetBiblePublicationTracks for vocal music (same API as Bible publication)
         // For vocal music, we need to get tracks from the first section (or flat publication)
         progress?.UpdateProgress(0.8);
-        var sections = await Task.Run(async () =>
-            await mediaService.GetBiblePublicationSections(language.Code, publicationCode, progress));
+        var sections = await mediaService.GetBiblePublicationSections(language.Code, publicationCode, progress);
 
         SortedDictionary<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack>? tracks;
         if (sections != null && sections.Count > 0)
         {
             // Sectioned publication - get tracks from first section
             var firstSection = sections.First();
-            tracks = await Task.Run(async () =>
-                await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, firstSection.Key));
+            tracks = await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, firstSection.Key);
         }
         else
         {
             // Flat publication - get tracks directly (no sections)
             // For flat publications, GetBiblePublicationTracks with sectionNumber=0 should work
-            tracks = await Task.Run(async () =>
-                await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, 0));
+            tracks = await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, 0);
         }
 
         if (tracks == null || tracks.Count == 0)

@@ -42,31 +42,26 @@ public sealed class MusicPublicationSelectionDataProvider(
         {
             // Do ALL processing on background thread to avoid blocking spinner animation
             // Use GetBiblePublicationLanguages with category="Music" (same API as Bible publication)
-            var (languageVMs, selectedLanguage) = await Task.Run(async () =>
+            var languagesFromDb = await mediaService.GetBiblePublicationLanguages("Music");
+            var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
+
+            var languageVMs = new List<LanguageListViewItemModel>();
+            LanguageListViewItemModel? selectedLanguage = null;
+
+            foreach (var language in languagesFromDb.Values
+                         .Where(x => trimmedSearchTerm == null
+                                     || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
+                         .OrderBy(x => x.Name))
             {
-                var languagesFromDb = await mediaService.GetBiblePublicationLanguages("Music");
-                var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
+                var languageVm = new LanguageListViewItemModel(language);
+                languageVMs.Add(languageVm);
 
-                var vms = new List<LanguageListViewItemModel>();
-                LanguageListViewItemModel? selected = null;
-
-                foreach (var language in languagesFromDb.Values
-                             .Where(x => trimmedSearchTerm == null
-                                         || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
-                             .OrderBy(x => x.Name))
+                if (current != null && languageVm.Code == current.LanguageCode)
                 {
-                    var languageVm = new LanguageListViewItemModel(language);
-                    vms.Add(languageVm);
-
-                    if (current != null && languageVm.Code == current.LanguageCode)
-                    {
-                        languageVm.IsSelected = true;
-                        selected = languageVm;
-                    }
+                    languageVm.IsSelected = true;
+                    selectedLanguage = languageVm;
                 }
-
-                return (vms, selected);
-            });
+            }
 
             // Add items in small batches with frequent yields for smooth spinner animation
             const int batchSize = 15;
@@ -103,24 +98,18 @@ public sealed class MusicPublicationSelectionDataProvider(
         bool downloadAll = false,
         IFetchProgress? progress = null)
     {
-        // Do ALL processing on background thread to avoid blocking spinner animation
-        var (songPublicationVMs, newMapping, selectedSongPublication) = await Task.Run(async () =>
+        // Use GetBiblePublications with category="Music" - same API as Bible publication container
+        // This returns both publications with language AND without language FK (data-driven)
+        // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
+        // downloadAll=false when language changes (only download first publication in cascade)
+        var publicationsData = await fetchCoordinator.FetchMusicPublicationsAsync(languageCode, current, downloadAll, progress);
+
+        var songPublicationVMs = new List<PublicationListViewItemModel>();
+        var newMapping = new Dictionary<string, PublicationListViewItemModel>();
+        PublicationListViewItemModel? selectedSongPublication = null;
+
+        if (publicationsData != null && publicationsData.Count > 0)
         {
-            // Use GetBiblePublications with category="Music" - same API as Bible publication container
-            // This returns both publications with language AND without language FK (data-driven)
-            // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
-            // downloadAll=false when language changes (only download first publication in cascade)
-            var publicationsData = await fetchCoordinator.FetchMusicPublicationsAsync(languageCode, current, downloadAll, progress);
-
-            if (publicationsData == null || publicationsData.Count == 0)
-            {
-                return (new List<PublicationListViewItemModel>(), new Dictionary<string, PublicationListViewItemModel>(), (PublicationListViewItemModel?)null);
-            }
-
-            var vms = new List<PublicationListViewItemModel>();
-            var mapping = new Dictionary<string, PublicationListViewItemModel>();
-            PublicationListViewItemModel? selected = null;
-
             // Process publications - filter based on MusicType
             foreach (var publication in publicationsData.Values)
             {
@@ -147,52 +136,50 @@ public sealed class MusicPublicationSelectionDataProvider(
                 }
 
                 // Skip duplicates - if code already exists, use the existing one
-                if (mapping.TryGetValue(publication.PublicationCode, out var existingVm))
+                if (newMapping.TryGetValue(publication.PublicationCode, out var existingVm))
                 {
                     // Check if this matches the current publication code
                     if (current != null && current.PublicationCode == publication.PublicationCode)
                     {
                         var isVocalMatch = current.MusicType == MusicType.VocalMusic &&
-                                         current.LanguageCode == languageCode &&
-                                         publication.LanguageId != null;
+                                           current.LanguageCode == languageCode &&
+                                           publication.LanguageId != null;
                         var isInstrumentalMatch = current.MusicType == MusicType.Music &&
-                                                 publication.LanguageId == null;
-                        
+                                                  publication.LanguageId == null;
+
                         if (isVocalMatch || isInstrumentalMatch)
                         {
                             existingVm.IsSelected = true;
-                            selected = existingVm;
+                            selectedSongPublication = existingVm;
                         }
                     }
                     continue;
                 }
 
                 var songPublicationListViewItemModel = new PublicationListViewItemModel(publication);
-                vms.Add(songPublicationListViewItemModel);
-                mapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
+                songPublicationVMs.Add(songPublicationListViewItemModel);
+                newMapping[songPublicationListViewItemModel.Code] = songPublicationListViewItemModel;
 
                 // Check if this matches the current publication code
                 if (current != null && current.PublicationCode == publication.PublicationCode)
                 {
                     var isVocalMatch = current.MusicType == MusicType.VocalMusic &&
-                                     current.LanguageCode == languageCode &&
-                                     publication.LanguageId != null;
+                                       current.LanguageCode == languageCode &&
+                                       publication.LanguageId != null;
                     var isInstrumentalMatch = current.MusicType == MusicType.Music &&
-                                             publication.LanguageId == null;
-                    
+                                              publication.LanguageId == null;
+
                     if (isVocalMatch || isInstrumentalMatch)
                     {
                         songPublicationListViewItemModel.IsSelected = true;
-                        selected = songPublicationListViewItemModel;
+                        selectedSongPublication = songPublicationListViewItemModel;
                     }
                 }
             }
 
             // Sort publications: nwt first, then bi12, then others by name (same as Bible publication)
-            vms = PublicationSortHelper.SortByPriority(vms, p => p.Code, p => p.Name).ToList();
-
-            return (vms, mapping, selected);
-        });
+            songPublicationVMs = PublicationSortHelper.SortByPriority(songPublicationVMs, p => p.Code, p => p.Name).ToList();
+        }
 
         // Update mapping
         songPublicationVMsMapping.Clear();
@@ -249,8 +236,7 @@ public sealed class MusicPublicationSelectionDataProvider(
     {
         var isSameSongPublication = IsSameSongPublication(currentSchedule, languageCode, songPublication.Code);
 
-        var tracks = await Task.Run(async () =>
-            await mediaService.GetVocalMusicTracks(languageCode, songPublication.Code));
+        var tracks = await mediaService.GetVocalMusicTracks(languageCode, songPublication.Code);
 
         if (tracks == null || tracks.Count == 0)
         {

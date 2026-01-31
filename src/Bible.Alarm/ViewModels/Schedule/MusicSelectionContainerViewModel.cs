@@ -50,6 +50,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private bool isSongPublicationSelectable = false;
     private bool isMusicSectionSelectable = false;
     private bool isMusicTrackSelectable = false;
+    private string? lastSelectabilitySignature;
     public bool ShouldScrollToBottom
     {
         get => shouldScrollToBottom;
@@ -237,6 +238,36 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     {
         try
         {
+            // During save/cancel/delete, the schedule page overlay is shown and the user cannot interact.
+            // Avoid triggering expensive DB queries for "is selectable?" checks while the page is busy.
+            if (state.Value.IsSchedulePageOverlayVisible)
+            {
+                return;
+            }
+
+            var currentSchedule = state.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return;
+            }
+
+            // Only recompute when music-related inputs change (prevents DB calls on unrelated state updates,
+            // e.g., changing the Bible publication category).
+            var signature = string.Join('|',
+                currentSchedule.MusicEnabled.ToString(),
+                currentSchedule.MusicType?.ToString() ?? string.Empty,
+                currentSchedule.MusicLanguageCode ?? string.Empty,
+                currentSchedule.MusicPublicationCode ?? string.Empty,
+                currentSchedule.MusicSectionCode ?? string.Empty,
+                currentSchedule.MusicTrackNumber?.ToString() ?? string.Empty);
+
+            if (string.Equals(signature, lastSelectabilitySignature, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            lastSelectabilitySignature = signature;
+
             // Update flags asynchronously without blocking UI
             var languageSelectable = await displayTextProvider.GetIsMusicLanguageSelectableAsync();
             var publicationSelectable = await displayTextProvider.GetIsSongPublicationSelectableAsync();

@@ -73,32 +73,12 @@ public sealed class CategorySelectionAutoPopulateHandler
                 var previousLanguageCode = action.PreviousLanguageCode.ToUpperInvariant();
                 if (languages.TryGetValue(previousLanguageCode, out var previousLanguage))
                 {
-                    // Check if this language has publications in the new category (including publications without language)
-                    using var checkScope = scopeFactory.CreateScope();
-                    var checkDb = checkScope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                    
-                    // Check if there are publications with this language OR publications without language for this category
-                    var hasPublications = await checkDb.PublicationLanguages
-                        .AsNoTracking()
-                        .Include(pl => pl.Language)
-                        .Include(pl => pl.Category)
-                        .AnyAsync(pl => 
-                            (pl.Language != null && pl.Language.LanguageCode == previousLanguageCode && 
-                             pl.Category != null && pl.Category.CategoryName == action.CategoryName) ||
-                            (pl.LanguageId == null && 
-                             pl.Category != null && pl.Category.CategoryName == action.CategoryName));
-                    
-                    if (hasPublications)
-                    {
-                        selectedLanguage = previousLanguage;
-                        logger.Debug("CategorySelectionAutoPopulateHandler: Preserving previous language={LanguageCode} (has publications in new category={CategoryName})",
-                            previousLanguageCode, action.CategoryName);
-                    }
-                    else
-                    {
-                        logger.Debug("CategorySelectionAutoPopulateHandler: Previous language={LanguageCode} has no publications in new category={CategoryName}, will fallback to English",
-                            previousLanguageCode, action.CategoryName);
-                    }
+                    // GetDistinctLanguagesAsync(category) is already derived from PublicationLanguages for that category.
+                    // If the language is present here, it has at least one publication in the category.
+                    // Avoid an extra DB query in this hot path.
+                    selectedLanguage = previousLanguage;
+                    logger.Debug("CategorySelectionAutoPopulateHandler: Preserving previous language={LanguageCode} (has publications in new category={CategoryName})",
+                        previousLanguageCode, action.CategoryName);
                 }
             }
             
@@ -159,6 +139,24 @@ public sealed class CategorySelectionAutoPopulateHandler
                     .OrderBy(pl => PublicationSortHelper.GetPublicationSortPriority(pl.PublicationCode))
                     .ThenBy(pl => pl.Id)
                     .ToList();
+
+                // Avoid N+1: batch-load which publications are present with LanguageId for this language.
+                var candidateCodes = publicationLanguages
+                    .Select(pl => pl.PublicationCode)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                var codesWithLanguageId = await db.BiblePublications
+                    .AsNoTracking()
+                    .Where(bp => candidateCodes.Contains(bp.PublicationCode) &&
+                                 bp.LanguageId != null &&
+                                 bp.Language != null &&
+                                 bp.Language.LanguageCode == normalizedLanguageCode)
+                    .Select(bp => bp.PublicationCode)
+                    .Distinct()
+                    .ToListAsync();
+
+                var codesWithLanguageIdSet = codesWithLanguageId.ToHashSet(StringComparer.OrdinalIgnoreCase);
                 
                 // Try each publication: check if already harvested, harvest if needed, then verify it can be queried
                 foreach (var pl in publicationLanguages)
@@ -187,12 +185,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                     }
                     
                     // Verify the publication can be queried with the language (has LanguageId)
-                    var canQueryWithLanguage = await db.BiblePublications
-                        .AsNoTracking()
-                        .AnyAsync(bp => bp.PublicationCode == pl.PublicationCode && 
-                                       bp.LanguageId != null &&
-                                       bp.Language != null &&
-                                       bp.Language.LanguageCode == normalizedLanguageCode);
+                    var canQueryWithLanguage = codesWithLanguageIdSet.Contains(pl.PublicationCode);
                     
                     if (canQueryWithLanguage)
                     {
