@@ -13,8 +13,14 @@ using IPicture = TagLib.IPicture;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaService, IBiblePublicationService? biblePublicationService = null) : IDisplayMetadataService
+public sealed class DisplayMetadataService(
+    ILogger logger,
+    IMediaService mediaService,
+    IBiblePublicationService? biblePublicationService = null,
+    IVocalMusicService? vocalMusicService = null)
+    : IDisplayMetadataService
 {
+    private readonly IVocalMusicService? vocalMusicService = vocalMusicService;
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
     {
@@ -117,15 +123,21 @@ public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaSe
         }
 
         // SubTitle: Publication name + (jw.org)
-        var publications = await mediaService.GetBiblePublications(trackMetadata.LanguageCode, categoryName: null, downloadAll: false);
-        if (publications.TryGetValue(trackMetadata.PublicationCode, out var publication))
+        if (biblePublicationService != null)
         {
-            meta.Artist = $"{publication.Name} (jw.org)";
+            var publication = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                trackMetadata.LanguageCode,
+                trackMetadata.PublicationCode);
+
+            if (publication != null)
+            {
+                meta.Artist = $"{publication.Name} (jw.org)";
+                return;
+            }
         }
-        else
-        {
-            meta.Artist = "jw.org";
-        }
+
+        // Fallback: keep behavior without pulling full publication list
+        meta.Artist = "jw.org";
     }
 
     private async Task SetMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri)
@@ -167,11 +179,26 @@ public sealed class DisplayMetadataService(ILogger logger, IMediaService mediaSe
     private async Task SetVocalMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta)
     {
         // Vocal music
-        var releases = await mediaService.GetVocalMusicReleases(trackMetadata.LanguageCode);
-        if (releases.TryGetValue(trackMetadata.PublicationCode, out var vocalRelease))
+        if (vocalMusicService != null)
         {
-            // Description: Publication name
-            meta.Album = vocalRelease.Name;
+            // Avoid loading the full releases list just to get one name.
+            var release = await vocalMusicService.GetByLanguageAndCodeAsync(
+                trackMetadata.LanguageCode,
+                trackMetadata.PublicationCode);
+
+            if (release != null)
+            {
+                meta.Album = release.Name;
+            }
+        }
+        else
+        {
+            var releases = await mediaService.GetVocalMusicReleases(trackMetadata.LanguageCode);
+            if (releases.TryGetValue(trackMetadata.PublicationCode, out var vocalRelease))
+            {
+                // Description: Publication name
+                meta.Album = vocalRelease.Name;
+            }
         }
 
         var tracks = await mediaService.GetVocalMusicTracks(

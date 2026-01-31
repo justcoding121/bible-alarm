@@ -427,18 +427,16 @@ public sealed class CategorySelectionAutoPopulateHandler
                 publicationCodeForDb = publicationCode;
             }
 
-            // Check if publication exists
-            var publication = await db.BiblePublications
+            // Check if publication exists (fast path: just Id)
+            var publicationId = await db.BiblePublications
                 .AsNoTracking()
-                .Include(bp => bp.Language)
-                .Include(bp => bp.Sections)
-                    .ThenInclude(s => s.Tracks)
-                .FirstOrDefaultAsync(
-                    bp => bp.PublicationCode == publicationCodeForDb &&
-                          bp.Language != null &&
-                          bp.Language.LanguageCode == normalizedLanguageCode);
+                .Where(bp => bp.PublicationCode == publicationCodeForDb &&
+                             bp.Language != null &&
+                             bp.Language.LanguageCode == normalizedLanguageCode)
+                .Select(bp => bp.Id)
+                .FirstOrDefaultAsync();
 
-            if (publication == null)
+            if (publicationId <= 0)
             {
                 return false;
             }
@@ -446,10 +444,9 @@ public sealed class CategorySelectionAutoPopulateHandler
             // Get first section code from SectionLanguages
             var firstSectionCode = await db.SectionLanguages
                 .AsNoTracking()
-                .Include(sl => sl.Language)
                 .Where(sl => sl.PublicationCode == publicationCodeForDb &&
-                           sl.Language != null &&
-                           sl.Language.LanguageCode == normalizedLanguageCode)
+                             sl.Language != null &&
+                             sl.Language.LanguageCode == normalizedLanguageCode)
                 .OrderBy(sl => sl.SectionCode)
                 .Select(sl => sl.SectionCode)
                 .FirstOrDefaultAsync();
@@ -459,27 +456,29 @@ public sealed class CategorySelectionAutoPopulateHandler
                 // No sections defined - check if it's a flat publication (has tracks directly)
                 var hasTracks = await db.BiblePublicationTracks
                     .AsNoTracking()
-                    .Include(t => t.Publication)
-                        .ThenInclude(bp => bp!.Language)
-                    .AnyAsync(t => t.Publication != null &&
-                                   t.Publication.PublicationCode == publicationCodeForDb &&
-                                   t.Publication.Language != null &&
-                                   t.Publication.Language.LanguageCode == normalizedLanguageCode &&
+                    .AnyAsync(t => t.BiblePublicationId == publicationId &&
                                    t.BiblePublicationSectionId == null);
                 return hasTracks;
             }
 
-            // Check if first section exists with tracks
-            var firstSection = publication.Sections
-                .FirstOrDefault(s => s.SectionCode.Equals(firstSectionCode, StringComparison.OrdinalIgnoreCase));
+            // Check if the first section exists
+            var firstSectionId = await db.BiblePublicationSections
+                .AsNoTracking()
+                .Where(s => s.BiblePublicationId == publicationId &&
+                            s.SectionCode.Equals(firstSectionCode, StringComparison.OrdinalIgnoreCase))
+                .Select(s => s.Id)
+                .FirstOrDefaultAsync();
 
-            if (firstSection == null)
+            if (firstSectionId <= 0)
             {
                 return false;
             }
 
-            // Check if section has tracks
-            return firstSection.Tracks != null && firstSection.Tracks.Count > 0;
+            // Check if the first section has at least one track
+            return await db.BiblePublicationTracks
+                .AsNoTracking()
+                .AnyAsync(t => t.BiblePublicationId == publicationId &&
+                               t.BiblePublicationSectionId == firstSectionId);
         }
         catch (Exception ex)
         {

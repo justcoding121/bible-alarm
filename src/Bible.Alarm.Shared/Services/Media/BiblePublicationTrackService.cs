@@ -30,29 +30,43 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var publication = await dbContext.BiblePublications
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+            var sectionCodeString = sectionNumber.ToString();
+
+            // Fast path: query only the section's tracks (avoid loading all sections and tracks).
+            var publicationId = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(p => p.Sections)
-                    .ThenInclude(s => s.UrlParams)
-                .Include(p => p.Sections)
-                    .ThenInclude(s => s.Tracks)
-                .Where(x => x.Language != null && x.Language.LanguageCode == languageCode && x.PublicationCode == publicationCode)
+                .Where(p => p.PublicationCode == publicationCode &&
+                            p.Language != null &&
+                            p.Language.LanguageCode == normalizedLanguageCode)
+                .Select(p => p.Id)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (publication == null)
+            if (publicationId <= 0)
             {
                 return new SortedDictionary<int, BiblePublicationTrack>();
             }
 
-            var sectionCodeString = sectionNumber.ToString();
-            var section = publication.Sections.FirstOrDefault(s => s.SectionCode == sectionCodeString);
-            if (section == null)
+            var sectionId = await dbContext.BiblePublicationSections
+                .AsNoTracking()
+                .Where(s => s.BiblePublicationId == publicationId && s.SectionCode == sectionCodeString)
+                .Select(s => s.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (sectionId <= 0)
             {
                 return new SortedDictionary<int, BiblePublicationTrack>();
             }
 
-            var tracks = section.Tracks.OrderBy(t => t.Number).ToList();
-            return new SortedDictionary<int, BiblePublicationTrack>(tracks.ToDictionary(x => x.Number, x => x));
+            var tracks = await dbContext.BiblePublicationTracks
+                .AsNoTracking()
+                .Where(t => t.BiblePublicationId == publicationId && t.BiblePublicationSectionId == sectionId)
+                .OrderBy(t => t.Number)
+                .ToListAsync(cancellationToken);
+
+            return tracks.Count == 0
+                ? new SortedDictionary<int, BiblePublicationTrack>()
+                : new SortedDictionary<int, BiblePublicationTrack>(tracks.ToDictionary(x => x.Number, x => x));
         }
         catch (Exception ex)
         {
@@ -69,19 +83,39 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var publication = await dbContext.BiblePublications
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+            var sectionCodeString = sectionNumber.ToString();
+
+            var publicationId = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(p => p.Sections)
-                    .ThenInclude(s => s.UrlParams)
-                .Include(p => p.Sections)
-                    .ThenInclude(s => s.Tracks)
-                .Where(x => x.Language != null && x.Language.LanguageCode == languageCode && x.PublicationCode == publicationCode)
+                .Where(p => p.PublicationCode == publicationCode &&
+                            p.Language != null &&
+                            p.Language.LanguageCode == normalizedLanguageCode)
+                .Select(p => p.Id)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            var sectionCodeString = sectionNumber.ToString();
-            return publication?.Sections
-                .FirstOrDefault(s => s.SectionCode == sectionCodeString)?
-                .Tracks.FirstOrDefault(t => t.Number == trackNumber);
+            if (publicationId <= 0)
+            {
+                return null;
+            }
+
+            var sectionId = await dbContext.BiblePublicationSections
+                .AsNoTracking()
+                .Where(s => s.BiblePublicationId == publicationId && s.SectionCode == sectionCodeString)
+                .Select(s => s.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (sectionId <= 0)
+            {
+                return null;
+            }
+
+            return await dbContext.BiblePublicationTracks
+                .AsNoTracking()
+                .Where(t => t.BiblePublicationId == publicationId &&
+                            t.BiblePublicationSectionId == sectionId &&
+                            t.Number == trackNumber)
+                .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {

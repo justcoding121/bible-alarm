@@ -54,34 +54,28 @@ public sealed class BiblePublicationSelectionDataProvider
             var currentLanguageCode = state.Value.CurrentSchedule?.BiblePublicationLanguageCode;
             var currentCategoryName = state.Value.CurrentSchedule?.BiblePublicationCategoryName;
 
-            // Do ALL processing on background thread to avoid blocking spinner animation
-            // Languages ARE filtered by category - show only languages that have publications in the selected category
-            var languageVMs = await Task.Run(async () =>
+            // Languages ARE filtered by category - show only languages that have publications in the selected category.
+            var languagesData = await mediaService.GetBiblePublicationLanguages(currentCategoryName);
+            var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
+
+            Log.Debug("PopulateLanguagesAsync: Loaded {LanguageCount} languages from GetBiblePublicationLanguages",
+                languagesData.Count);
+
+            var languageVMs = new List<LanguageListViewItemModel>();
+
+            foreach (var language in languagesData.Values
+                         .Where(x => trimmedSearchTerm == null
+                                     || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
+                         .OrderBy(x => x.Name))
             {
-                var languagesData = await mediaService.GetBiblePublicationLanguages(currentCategoryName);
-                var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
+                var languageVm = new LanguageListViewItemModel(language);
+                languageVMs.Add(languageVm);
 
-                Log.Debug("PopulateLanguagesAsync: Loaded {LanguageCount} languages from GetBiblePublicationLanguages",
-                    languagesData.Count);
-
-                var vms = new List<LanguageListViewItemModel>();
-
-                foreach (var language in languagesData.Values
-                             .Where(x => trimmedSearchTerm == null
-                                         || x.Name.Contains(trimmedSearchTerm, StringComparison.OrdinalIgnoreCase))
-                             .OrderBy(x => x.Name))
+                if (!string.IsNullOrEmpty(currentLanguageCode) && languageVm.Code == currentLanguageCode)
                 {
-                    var languageVm = new LanguageListViewItemModel(language);
-                    vms.Add(languageVm);
-
-                    if (!string.IsNullOrEmpty(currentLanguageCode) && languageVm.Code == currentLanguageCode)
-                    {
-                        languageVm.IsSelected = true;
-                    }
+                    languageVm.IsSelected = true;
                 }
-
-                return vms;
-            });
+            }
 
             // Add items in small batches with frequent yields for smooth spinner animation
             const int batchSize = 15;

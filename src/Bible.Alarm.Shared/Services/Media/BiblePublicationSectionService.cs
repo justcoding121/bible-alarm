@@ -33,7 +33,6 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
             var sectionCodeString = sectionNumber.ToString();
             return await dbContext.BiblePublicationSections
                 .AsNoTracking()
-                .Include(x => x.UrlParams)
                 .Where(x => x.BiblePublication.PublicationCode == publicationCode
                             && x.BiblePublication.Language != null
                             && x.BiblePublication.Language.LanguageCode == languageCode
@@ -60,7 +59,6 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
             var sections = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Sections)
-                    .ThenInclude(s => s.UrlParams)
                 .Where(x => x.Language != null && x.Language.LanguageCode == languageCode && x.PublicationCode == publicationCode)
                 .SelectMany(x => x.Sections)
                 .ToListAsync(cancellationToken);
@@ -104,13 +102,12 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
 
             // Use SectionCode directly since BookNum is the same as SectionCode
             var sectionCodeString = sectionNumber.ToString();
-            return await dbContext.BiblePublications
+            return await dbContext.BiblePublicationSections
                 .AsNoTracking()
-                .Include(x => x.Sections)
-                    .ThenInclude(s => s.UrlParams)
-                .Where(x => x.Language != null && x.Language.LanguageCode == languageCode && x.PublicationCode == publicationCode)
-                .SelectMany(x => x.Sections)
-                .Where(x => x.SectionCode == sectionCodeString)
+                .Where(x => x.BiblePublication.PublicationCode == publicationCode
+                            && x.BiblePublication.Language != null
+                            && x.BiblePublication.Language.LanguageCode == languageCode
+                            && x.SectionCode == sectionCodeString)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)

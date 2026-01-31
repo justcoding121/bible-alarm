@@ -17,6 +17,21 @@ namespace Bible.Alarm.Services.Media.Playlist;
 /// </summary>
 public class PlaylistMusicTrackBuilder
 {
+    private static readonly TimeSpan TracksCacheTtl = TimeSpan.FromSeconds(30);
+
+    private readonly record struct MelodyTracksCacheKey(string PublicationCode, string? SectionCode);
+    private readonly record struct VocalTracksCacheKey(string LanguageCode, string PublicationCode);
+
+    private sealed class CacheEntry<T>(DateTimeOffset createdAt, T value)
+    {
+        public DateTimeOffset CreatedAt { get; } = createdAt;
+        public T Value { get; } = value;
+    }
+
+    private readonly Dictionary<MelodyTracksCacheKey, CacheEntry<SortedDictionary<int, MusicTrack>>> melodyTracksCache = new();
+    private readonly Dictionary<VocalTracksCacheKey, CacheEntry<SortedDictionary<int, MusicTrack>>> vocalTracksCache = new();
+    private readonly object cacheLock = new();
+
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
     private readonly IMelodyMusicService melodyMusicService;
@@ -59,28 +74,71 @@ public class PlaylistMusicTrackBuilder
         return await GetPreviousVocalTrackAsync(schedule);
     }
 
-    private async Task<PlayItem> GetNextMelodyTrackAsync(AlarmSchedule schedule, bool next)
+    private async Task<SortedDictionary<int, MusicTrack>> GetMelodyTracksCachedAsync(AlarmMusic melodyMusic)
     {
-        var melodyMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
-        
-        // IMPORTANT: Sectioned melody publications (e.g., "iam") have duplicate track numbers across discs.
-        // Always select tracks from the schedule's selected disc (SectionCode) when sectioned.
-        SortedDictionary<int, MusicTrack> melodyTracks;
+        var key = new MelodyTracksCacheKey(
+            melodyMusic.PublicationCode,
+            string.IsNullOrWhiteSpace(melodyMusic.SectionCode) ? null : melodyMusic.SectionCode);
+        var now = DateTimeOffset.UtcNow;
+
+        lock (cacheLock)
+        {
+            if (melodyTracksCache.TryGetValue(key, out var entry) && now - entry.CreatedAt <= TracksCacheTtl)
+            {
+                return entry.Value;
+            }
+        }
+
+        SortedDictionary<int, MusicTrack> tracks;
         if (PublicationTypeHelper.HasSectionStructure(melodyMusic.PublicationCode))
         {
-            if (string.IsNullOrWhiteSpace(melodyMusic.SectionCode))
-            {
-                melodyTracks = new SortedDictionary<int, MusicTrack>();
-            }
-            else
-            {
-                melodyTracks = await mediaService.GetMelodyMusicTracksBySection(melodyMusic.PublicationCode, melodyMusic.SectionCode);
-            }
+            tracks = string.IsNullOrWhiteSpace(melodyMusic.SectionCode)
+                ? new SortedDictionary<int, MusicTrack>()
+                : await mediaService.GetMelodyMusicTracksBySection(melodyMusic.PublicationCode, melodyMusic.SectionCode);
         }
         else
         {
-            melodyTracks = await mediaService.GetMelodyMusicTracks(melodyMusic.PublicationCode);
+            tracks = await mediaService.GetMelodyMusicTracks(melodyMusic.PublicationCode);
         }
+
+        lock (cacheLock)
+        {
+            melodyTracksCache[key] = new CacheEntry<SortedDictionary<int, MusicTrack>>(now, tracks);
+        }
+
+        return tracks;
+    }
+
+    private async Task<SortedDictionary<int, MusicTrack>> GetVocalTracksCachedAsync(AlarmMusic vocalMusic)
+    {
+        var languageCode = vocalMusic.LanguageCode ?? string.Empty;
+        var key = new VocalTracksCacheKey(languageCode.ToUpperInvariant(), vocalMusic.PublicationCode);
+        var now = DateTimeOffset.UtcNow;
+
+        lock (cacheLock)
+        {
+            if (vocalTracksCache.TryGetValue(key, out var entry) && now - entry.CreatedAt <= TracksCacheTtl)
+            {
+                return entry.Value;
+            }
+        }
+
+        var tracks = await mediaService.GetVocalMusicTracks(languageCode, vocalMusic.PublicationCode);
+        lock (cacheLock)
+        {
+            vocalTracksCache[key] = new CacheEntry<SortedDictionary<int, MusicTrack>>(now, tracks);
+        }
+
+        return tracks;
+    }
+
+    private async Task<PlayItem> GetNextMelodyTrackAsync(AlarmSchedule schedule, bool next)
+    {
+        var melodyMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
+
+        // IMPORTANT: Sectioned melody publications (e.g., "iam") have duplicate track numbers across discs.
+        // Always select tracks from the schedule's selected disc (SectionCode) when sectioned.
+        var melodyTracks = await GetMelodyTracksCachedAsync(melodyMusic);
 
         var trackKey = GetNextTrackKey(melodyTracks, melodyMusic.TrackNumber, next);
         var melodyTrack = melodyTracks[trackKey];
@@ -90,23 +148,7 @@ public class PlaylistMusicTrackBuilder
     private async Task<PlayItem> GetPreviousMelodyTrackAsync(AlarmSchedule schedule)
     {
         var melodyMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
-
-        SortedDictionary<int, MusicTrack> melodyTracks;
-        if (PublicationTypeHelper.HasSectionStructure(melodyMusic.PublicationCode))
-        {
-            if (string.IsNullOrWhiteSpace(melodyMusic.SectionCode))
-            {
-                melodyTracks = new SortedDictionary<int, MusicTrack>();
-            }
-            else
-            {
-                melodyTracks = await mediaService.GetMelodyMusicTracksBySection(melodyMusic.PublicationCode, melodyMusic.SectionCode);
-            }
-        }
-        else
-        {
-            melodyTracks = await mediaService.GetMelodyMusicTracks(melodyMusic.PublicationCode);
-        }
+        var melodyTracks = await GetMelodyTracksCachedAsync(melodyMusic);
 
         var trackKey = GetPreviousTrackKey(melodyTracks, melodyMusic.TrackNumber);
         var melodyTrack = melodyTracks[trackKey];
@@ -120,7 +162,7 @@ public class PlaylistMusicTrackBuilder
         {
             throw new InvalidOperationException("LanguageCode is null for vocal music");
         }
-        var vocalTracks = await mediaService.GetVocalMusicTracks(vocalMusic.LanguageCode, vocalMusic.PublicationCode);
+        var vocalTracks = await GetVocalTracksCachedAsync(vocalMusic);
         var trackKey = GetNextTrackKey(vocalTracks, vocalMusic.TrackNumber, next);
         var vocalTrack = vocalTracks[trackKey];
         return await CreateVocalPlayItem(schedule, vocalMusic, vocalTrack);
@@ -134,7 +176,7 @@ public class PlaylistMusicTrackBuilder
             throw new InvalidOperationException("LanguageCode is null for vocal music");
         }
 
-        var vocalTracks = await mediaService.GetVocalMusicTracks(vocalMusic.LanguageCode, vocalMusic.PublicationCode);
+        var vocalTracks = await GetVocalTracksCachedAsync(vocalMusic);
         var trackKey = GetPreviousTrackKey(vocalTracks, vocalMusic.TrackNumber);
         var vocalTrack = vocalTracks[trackKey];
         return await CreateVocalPlayItem(schedule, vocalMusic, vocalTrack);

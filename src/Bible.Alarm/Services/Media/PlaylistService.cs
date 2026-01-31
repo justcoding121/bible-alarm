@@ -94,6 +94,11 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             trackMetadata,
             nextTrackNumber);
 
+        if (trackMetadata.PlayType == PlayType.Bible)
+        {
+            trackChangeDetector.SetLastKnownBibleTrack((int)trackMetadata.ScheduleId, trackMetadata.SectionNumber, trackMetadata.TrackNumber);
+        }
+
         if (trackChanged)
         {
             dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
@@ -144,6 +149,21 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             (int)trackMetadata.ScheduleId,
             schedule => UpdateScheduleForFinishedTrackInternal(schedule, trackMetadata, nextTrackInfo),
             cancellationTokenSource.Token);
+
+        if (trackMetadata.PlayType == PlayType.Bible && nextTrackInfo.NextTrack != null)
+        {
+            var nextSectionNumber = 0;
+            var nextSectionCode = nextTrackInfo.NextTrack.Value.Key?.SectionCode;
+            if (!string.IsNullOrWhiteSpace(nextSectionCode) && int.TryParse(nextSectionCode, out var parsedSection))
+            {
+                nextSectionNumber = parsedSection;
+            }
+
+            trackChangeDetector.SetLastKnownBibleTrack(
+                (int)trackMetadata.ScheduleId,
+                nextSectionNumber,
+                nextTrackInfo.NextTrack.Value.Value.Number);
+        }
 
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
@@ -274,6 +294,10 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             schedule.BiblePublicationSchedule.TrackNumber);
 
         var updatedSchedule = await scheduleUpdater.UpdateScheduleToNextTrackAsync(scheduleId, next);
+        trackChangeDetector.SetLastKnownBibleTrack(
+            scheduleId,
+            next.Key != null && int.TryParse(next.Key.SectionCode, out var nextSectionNumber) ? nextSectionNumber : 0,
+            next.Value.Number);
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
@@ -304,6 +328,10 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
 
         var updatedSchedule = await scheduleUpdater.UpdateScheduleToPreviousTrackAsync(scheduleId, previous);
+        trackChangeDetector.SetLastKnownBibleTrack(
+            scheduleId,
+            previous.Key != null && int.TryParse(previous.Key.SectionCode, out var prevSectionNumber) ? prevSectionNumber : 0,
+            previous.Value.Number);
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 

@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -139,8 +140,27 @@ public class MusicEnabledHandler
 
                         if (melodyMusic != null && melodyMusic.Tracks != null && melodyMusic.Tracks.Count > 0)
                         {
-                            // Select a random track (same as sample schedule)
-                            var randomTrack = melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
+                            // For sectioned melody publications (e.g., "iam"), pick a random disc/section first,
+                            // then pick a random track within that section.
+                            BiblePublicationSection? chosenSection = null;
+                            BiblePublicationTrack? chosenTrack = null;
+
+                            var sectionsWithTracks = melodyMusic.Sections?
+                                .Where(s => s.Tracks != null && s.Tracks.Count > 0)
+                                .ToList();
+
+                            if (sectionsWithTracks != null && sectionsWithTracks.Count > 0)
+                            {
+                                chosenSection = sectionsWithTracks[Random.Shared.Next(sectionsWithTracks.Count)];
+                                if (chosenSection.Tracks.Count > 0)
+                                {
+                                    chosenTrack = chosenSection.Tracks[Random.Shared.Next(chosenSection.Tracks.Count)];
+                                }
+                            }
+
+                            // Fallback: if no section could be selected (non-sectioned melody or partial harvest),
+                            // select a random track from the publication-level list.
+                            chosenTrack ??= melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
 
                             // Get the latest state to ensure MusicEnabled is preserved
                             var latestSchedule = state.Value.CurrentSchedule;
@@ -153,7 +173,8 @@ public class MusicEnabledHandler
                             // This prevents redundant dispatches if the state was already updated
                             if (latestSchedule.MusicType == MusicType.Music &&
                                 latestSchedule.MusicPublicationCode == defaultPublicationCode &&
-                                latestSchedule.MusicTrackNumber == randomTrack.Number &&
+                                latestSchedule.MusicSectionCode == chosenSection?.SectionCode &&
+                                latestSchedule.MusicTrackNumber == chosenTrack.Number &&
                                 latestSchedule.MusicEnabled == true)
                             {
                                 return;
@@ -169,9 +190,11 @@ public class MusicEnabledHandler
                             clonedSchedule.MusicPublicationCode = defaultPublicationCode;
                             clonedSchedule.MusicPublicationName = defaultPublicationName;
                             clonedSchedule.MusicLanguageCode = null;
-                            clonedSchedule.MusicTrackNumber = randomTrack.Number;
+                            clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
+                            clonedSchedule.MusicSectionName = chosenSection?.Name;
+                            clonedSchedule.MusicTrackNumber = chosenTrack.Number;
                             clonedSchedule.MusicRepeat = false;
-                            clonedSchedule.MusicTrackName = $"Melody Number(s) {randomTrack.Title}";
+                            clonedSchedule.MusicTrackName = $"Melody Number(s) {chosenTrack.Title}";
 
                             // Update state with music properties (MusicEnabled should already be true from first dispatch)
                             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, false, false, shouldSave: false));

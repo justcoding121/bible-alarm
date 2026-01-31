@@ -12,6 +12,8 @@ using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Playback;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.Common;
+using Bible.Alarm.Stores;
 
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -24,6 +25,18 @@ public class UrlConstructionService : IUrlConstructionService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly object baseUrlsLock = new();
     private Task<List<BaseUrl>>? baseUrlsTask;
+
+    private static readonly TimeSpan LookUpPathCacheTtl = TimeSpan.FromMinutes(5);
+
+    private readonly record struct LookUpPathCacheKey(string PublicationCode, string LanguageCode, string SectionCode, int TrackNumber);
+
+    private sealed class LookUpPathCacheEntry(DateTimeOffset createdAt, Lazy<Task<string?>> value)
+    {
+        public DateTimeOffset CreatedAt { get; } = createdAt;
+        public Lazy<Task<string?>> Value { get; } = value;
+    }
+
+    private readonly ConcurrentDictionary<LookUpPathCacheKey, LookUpPathCacheEntry> lookUpPathCache = new();
 
     public UrlConstructionService(IServiceScopeFactory scopeFactory)
     {
@@ -285,6 +298,47 @@ public class UrlConstructionService : IUrlConstructionService
     /// Uses the first BaseUrl from the database.
     /// </summary>
     public async Task<string?> ConstructTrackLookUpPathAsync(
+        string publicationCode,
+        string? languageCode,
+        string? sectionCode,
+        int trackNumber)
+    {
+        var normalizedPublicationCode = publicationCode ?? string.Empty;
+        var normalizedLanguageCode = languageCode ?? string.Empty;
+        var normalizedSectionCode = sectionCode ?? string.Empty;
+        var key = new LookUpPathCacheKey(normalizedPublicationCode, normalizedLanguageCode, normalizedSectionCode, trackNumber);
+        var now = DateTimeOffset.UtcNow;
+
+        static Lazy<Task<string?>> CreateLazy(
+            UrlConstructionService self,
+            string pub,
+            string? lang,
+            string? section,
+            int track)
+            => new(() => self.LoadTrackLookUpPathUncachedAsync(pub, lang, section, track),
+                LazyThreadSafetyMode.ExecutionAndPublication);
+
+        var entry = lookUpPathCache.AddOrUpdate(
+            key,
+            _ => new LookUpPathCacheEntry(now, CreateLazy(this, normalizedPublicationCode, languageCode, sectionCode, trackNumber)),
+            (_, existing) =>
+                now - existing.CreatedAt <= LookUpPathCacheTtl
+                    ? existing
+                    : new LookUpPathCacheEntry(now, CreateLazy(this, normalizedPublicationCode, languageCode, sectionCode, trackNumber)));
+
+        try
+        {
+            return await entry.Value.Value;
+        }
+        catch
+        {
+            // If the cached task fails, remove it so next call can retry.
+            lookUpPathCache.TryRemove(key, out _);
+            throw;
+        }
+    }
+
+    private async Task<string?> LoadTrackLookUpPathUncachedAsync(
         string publicationCode,
         string? languageCode,
         string? sectionCode,

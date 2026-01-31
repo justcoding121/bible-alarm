@@ -9,6 +9,7 @@ using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
 
@@ -144,13 +145,13 @@ public sealed class ScheduleCacheManager
             if (schedulesFromState != null)
             {
                 // Only persist saved schedules (Id > 0). New/unsaved schedules should never be cached to disk.
-                var schedulesList = schedulesFromState
+                var schedulesListFromState = schedulesFromState
                     .Where(s => s.Id > 0)
                     .Select(s => s.DeepClone())
                     .ToList();
 
-                await diskCacheService.SetAsync(CacheKey, schedulesList);
-                Log.Information("ScheduleEffects: Refreshed schedule cache from state with {Count} schedules", schedulesList.Count);
+                await diskCacheService.SetAsync(CacheKey, schedulesListFromState);
+                Log.Information("ScheduleEffects: Refreshed schedule cache from state with {Count} schedules", schedulesListFromState.Count);
                 return;
             }
 
@@ -164,10 +165,10 @@ public sealed class ScheduleCacheManager
             }
 
             var languagesDict = await CommonBootstrapHelper.LoadLanguagesDictionaryForCache(services.BiblePublicationService);
-            var schedulesList = await CommonBootstrapHelper.LoadSchedulesListAsyncForCache(services, languagesDict);
+            var schedulesListFromFactory = await CommonBootstrapHelper.LoadSchedulesListAsyncForCache(services, languagesDict);
 
-            await diskCacheService.SetAsync(CacheKey, schedulesList);
-            Log.Information("ScheduleEffects: Refreshed schedule cache with {Count} schedules", schedulesList.Count);
+            await diskCacheService.SetAsync(CacheKey, schedulesListFromFactory);
+            Log.Information("ScheduleEffects: Refreshed schedule cache with {Count} schedules", schedulesListFromFactory.Count);
 
             // Note: We don't dispatch InitializeAction here because:
             // - For create: CreateScheduleSuccessAction reducer already adds the schedule to state
