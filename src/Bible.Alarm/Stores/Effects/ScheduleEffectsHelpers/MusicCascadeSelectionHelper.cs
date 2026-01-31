@@ -23,11 +23,11 @@ internal static class MusicCascadeSelectionHelper
                 // Sectioned publication - get first section and track
                 var firstSection = sections.First();
                 var sectionCode = firstSection.Value.SectionCode;
-                var sectionNum = firstSection.Key;
+                var sectionIndex = firstSection.Key;
                 var sectionName = firstSection.Value.Name;
 
                 // Use GetBiblePublicationTracks with empty language code for publications without language
-                var tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNum);
+                var tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionIndex);
                 if (tracks != null && tracks.Count > 0)
                 {
                     var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
@@ -37,7 +37,7 @@ internal static class MusicCascadeSelectionHelper
                 return (sectionCode, sectionName, 0, string.Empty);
             }
 
-            // Flat publication - get tracks directly (sectionNumber = 0)
+            // Flat publication - get tracks directly (sectionCode = 0)
             var flatTracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, 0);
             if (flatTracks != null && flatTracks.Count > 0)
             {
@@ -56,10 +56,10 @@ internal static class MusicCascadeSelectionHelper
             // Sectioned publication - get first section and track
             var firstSection = sectionsWithLanguage.First();
             var sectionCode = firstSection.Value.SectionCode;
-            var sectionNum = firstSection.Key;
+            var sectionIndex = firstSection.Key;
             var sectionName = firstSection.Value.Name;
 
-            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNum);
+            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionIndex);
             if (tracks != null && tracks.Count > 0)
             {
                 var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
@@ -69,7 +69,7 @@ internal static class MusicCascadeSelectionHelper
             return (sectionCode, sectionName, 0, string.Empty);
         }
 
-        // Flat publication - get tracks directly (sectionNumber = 0)
+        // Flat publication - get tracks directly (sectionCode = 0)
         var flatTracksWithLanguage = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, 0);
         if (flatTracksWithLanguage != null && flatTracksWithLanguage.Count > 0)
         {
@@ -80,7 +80,7 @@ internal static class MusicCascadeSelectionHelper
         return (null, string.Empty, 0, string.Empty);
     }
 
-    internal static int GetSectionNumberFromSectionCode(string sectionCode)
+    internal static int GetSectionCodeFromSectionCode(string sectionCode)
     {
         // Try to parse numeric section codes
         if (int.TryParse(sectionCode, out var num))

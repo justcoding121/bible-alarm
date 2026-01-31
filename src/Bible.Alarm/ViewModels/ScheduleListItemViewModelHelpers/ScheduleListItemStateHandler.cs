@@ -155,7 +155,7 @@ public sealed class ScheduleListItemStateHandler(
         {
             UpdatedSchedule = updatedSchedule,
             TrackChanged = trackChanged,
-            SectionNumberChanged = oldSectionCode != updatedSchedule.BiblePublicationSchedule?.SectionCode,
+            SectionCodeChanged = oldSectionCode != updatedSchedule.BiblePublicationSchedule?.SectionCode,
             TrackNumberChanged = oldTrackNumber != updatedSchedule.BiblePublicationSchedule?.TrackNumber,
             BiblePublicationLanguageNameChanged = lastKnownBiblePublicationLanguageName != newBiblePublicationLanguageName,
             SectionNameChanged = lastKnownSectionName != newSectionName,
@@ -193,7 +193,7 @@ public sealed class ScheduleListItemStateHandler(
     {
         public AlarmSchedule UpdatedSchedule { get; init; } = null!;
         public bool TrackChanged { get; init; }
-        public bool SectionNumberChanged { get; init; }
+        public bool SectionCodeChanged { get; init; }
         public bool TrackNumberChanged { get; init; }
         public bool BiblePublicationLanguageNameChanged { get; init; }
         public bool SectionNameChanged { get; init; }

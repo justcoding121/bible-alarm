@@ -333,7 +333,7 @@ internal sealed class PublicationEnsurer
                 .Where(sl => sl.PublicationCode == publicationCodeForDb &&
                            sl.Language != null &&
                            sl.Language.LanguageCode == normalizedLanguageCode)
-                .OrderBy(sl => sl.SectionCode)
+                .OrderBy(sl => sl.SectionCode, SectionCodeHelper.SectionCodeComparer)
                 .Select(sl => sl.SectionCode)
                 .FirstOrDefaultAsync(cancellationToken);
 

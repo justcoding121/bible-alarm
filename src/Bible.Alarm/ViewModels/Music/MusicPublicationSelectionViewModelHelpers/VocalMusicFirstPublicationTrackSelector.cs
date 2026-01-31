@@ -190,7 +190,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         else
         {
             // Flat publication - get tracks directly (no sections)
-            // For flat publications, GetBiblePublicationTracks with sectionNumber=0 should work
+            // For flat publications, GetBiblePublicationTracks with sectionCode=0 should work
             tracks = await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, 0);
         }
 

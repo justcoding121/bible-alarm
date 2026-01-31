@@ -72,7 +72,7 @@ public class TrackMetadata
                     return LookUpPathBuilder.BuildDramaTrackLookUpPath(PublicationCode, LanguageCode, TrackNumber, NaturalKey);
                 }
                 // Traditional Bible publication (uses GETPUBMEDIALINKS)
-                return LookUpPathBuilder.BuildBiblePublicationTrackLookUpPath(LanguageCode, PublicationCode, SectionNumber, TrackNumber);
+                return LookUpPathBuilder.BuildBiblePublicationTrackLookUpPath(LanguageCode, PublicationCode, SectionCode, TrackNumber);
             }
             // Music (uses GETPUBMEDIALINKS)
             return LookUpPathBuilder.BuildMusicTrackLookUpPath(PublicationCode, LanguageCode, TrackNumber, DownloadCode, OriginalTrackNumber);
@@ -80,7 +80,7 @@ public class TrackMetadata
         set => _lookUpPath = value;
     }
 
-    public int SectionNumber { get; set; }
+    public string? SectionCode { get; set; }
     public int TrackNumber { get; set; }
 
     public TimeSpan FinishedDuration { get; set; }

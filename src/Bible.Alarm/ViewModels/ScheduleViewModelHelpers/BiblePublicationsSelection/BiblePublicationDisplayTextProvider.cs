@@ -313,19 +313,20 @@ public sealed class BiblePublicationDisplayTextProvider
 
         var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
         var publicationCode = currentSchedule.BiblePublicationCode;
-        var sectionNumber = currentSchedule.BiblePublicationSectionNumber ?? 0;
+        var sectionCode = currentSchedule.BiblePublicationSectionCode;
+        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
 
         try
         {
             // Avoid duplicate queries when languageCode is empty.
             var tracks = string.IsNullOrWhiteSpace(languageCode)
-                ? await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNumber)
-                : await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
+                ? await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionIndex)
+                : await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionIndex);
             
             // If no tracks found with language, try without language
             if (tracks.Count == 0 && !string.IsNullOrWhiteSpace(languageCode))
             {
-                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNumber);
+                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionIndex);
             }
 
             return tracks.Count > 1;

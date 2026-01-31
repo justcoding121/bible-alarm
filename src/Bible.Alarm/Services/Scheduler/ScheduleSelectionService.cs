@@ -46,7 +46,7 @@ public sealed class ScheduleSelectionService
     /// Only queries media index DB for section lists, tracks, etc.
     /// </summary>
     public BiblePublicationSchedule? LoadBiblePublicationForSelection(int scheduleId, bool isNewSchedule, BiblePublicationSchedule? currentBiblePublication,
-        string? languageCode, string? publicationCode, int? sectionNumber, int? trackNumber, TimeSpan? finishedDuration)
+        string? languageCode, string? publicationCode, string? sectionCode, int? trackNumber, TimeSpan? finishedDuration)
     {
         // For new schedules, return currentBiblePublication (which may be null)
         if (isNewSchedule)
@@ -57,17 +57,16 @@ public sealed class ScheduleSelectionService
         // For existing schedules, create BiblePublicationSchedule from CurrentSchedule properties
         // All data is already loaded from AlarmDB when the schedule page opened
         // No need to query AlarmDB again - only media index DB queries are needed for selection lists
-        if (!string.IsNullOrWhiteSpace(languageCode) &&
-            !string.IsNullOrWhiteSpace(publicationCode) &&
-            sectionNumber.HasValue &&
+        if (!string.IsNullOrWhiteSpace(publicationCode) &&
             trackNumber.HasValue)
         {
             return new BiblePublicationSchedule
             {
                 Id = 0, // Will be set when saved
-                LanguageCode = languageCode,
+                // For publications without language, we persist empty string (DB requires a value).
+                LanguageCode = languageCode ?? string.Empty,
                 PublicationCode = publicationCode,
-                SectionCode = sectionNumber.Value.ToString(),
+                SectionCode = Bible.Alarm.Shared.Helpers.SectionCodeHelper.Normalize(sectionCode),
                 TrackNumber = trackNumber.Value,
                 FinishedDuration = finishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = scheduleId

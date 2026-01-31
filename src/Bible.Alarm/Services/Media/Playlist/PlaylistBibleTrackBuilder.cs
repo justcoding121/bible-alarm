@@ -34,29 +34,29 @@ public class PlaylistBiblePublicationTrackBuilder
         this.urlConstructionService = urlConstructionService;
     }
 
-    public record TrackInfo(int SectionNumber, BiblePublicationTrack Track, string Url);
+    public record TrackInfo(int SectionIndex, string? SectionCode, BiblePublicationTrack Track, string Url);
 
     /// <summary>
     /// Converts SectionCode (string) to the int section number needed for media service calls.
     /// Tries to parse SectionCode to int.
     /// Returns 0 for null/empty (non-sectioned publications).
     /// </summary>
-    private async Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
+    private Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
     {
         if (string.IsNullOrEmpty(sectionCode))
         {
-            return 0;
+            return Task.FromResult(0);
         }
 
-        // Try to parse SectionCode directly to int
-        if (int.TryParse(sectionCode, out var sectionNumber))
+        // Try to parse section code directly to int
+        if (int.TryParse(sectionCode, out var sectionIndex))
         {
-            return sectionNumber;
+            return Task.FromResult(sectionIndex);
         }
 
         // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
         // For non-numeric section codes, return 0
-        return 0;
+        return Task.FromResult(0);
     }
 
     public async Task<List<PlayItem>> BuildBiblePublicationTracks(
@@ -73,7 +73,8 @@ public class PlaylistBiblePublicationTrackBuilder
         var numberOfTracksToRead = isIndefinite ? 1 : schedule.NumberOfTracksToPlay;
         var markedSeekTrack = false;
 
-        var currentSectionNumber = initialTrackInfo.SectionNumber;
+        var currentSectionIndex = initialTrackInfo.SectionIndex;
+        var currentSectionCode = initialTrackInfo.SectionCode;
         var currentTrack = initialTrackInfo.Track;
         var currentUrl = initialTrackInfo.Url;
 
@@ -82,7 +83,7 @@ public class PlaylistBiblePublicationTrackBuilder
             var (trackMetadata, updatedMarkedSeekTrack) = await CreateTrackMetadataAsync(
                 scheduleId,
                 biblePublicationSchedule,
-                currentSectionNumber,
+                currentSectionCode,
                 currentTrack.Number,
                 numberOfTracksToRead,
                 schedule,
@@ -95,8 +96,9 @@ public class PlaylistBiblePublicationTrackBuilder
             numberOfTracksToRead--;
             if (numberOfTracksToRead > 0)
             {
-                var next = await GetNextTrackInfo(biblePublicationSchedule, currentSectionNumber, currentTrack.Number, getNextBiblePublicationTrackAsync);
-                currentSectionNumber = next.SectionNumber;
+                var next = await GetNextTrackInfo(biblePublicationSchedule, currentSectionIndex, currentTrack.Number, getNextBiblePublicationTrackAsync);
+                currentSectionIndex = next.SectionIndex;
+                currentSectionCode = next.SectionCode;
                 currentTrack = next.Track;
                 currentUrl = next.Url;
             }
@@ -114,17 +116,17 @@ public class PlaylistBiblePublicationTrackBuilder
     private async Task<int> GetAvailableTracksCount(
         string languageCode,
         string publicationCode,
-        int sectionNumber,
+        int sectionCode,
         int currentTrackNumber)
     {
         // Non-sectioned publication
-        if (sectionNumber == 0)
+        if (sectionCode == 0)
         {
             return await GetAvailableTracksCountForNonSectioned(languageCode, publicationCode, currentTrackNumber);
         }
 
         // Sectioned publication
-        return await GetAvailableTracksCountForSectioned(languageCode, publicationCode, sectionNumber, currentTrackNumber);
+        return await GetAvailableTracksCountForSectioned(languageCode, publicationCode, sectionCode, currentTrackNumber);
     }
 
     private async Task<int> GetAvailableTracksCountForNonSectioned(
@@ -154,7 +156,7 @@ public class PlaylistBiblePublicationTrackBuilder
     private async Task<int> GetAvailableTracksCountForSectioned(
         string languageCode,
         string publicationCode,
-        int sectionNumber,
+        int sectionCode,
         int currentTrackNumber)
     {
         var totalCount = 0;
@@ -167,12 +169,12 @@ public class PlaylistBiblePublicationTrackBuilder
         }
 
         // Get tracks in current section from current track onwards
-        var currentSectionTracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
+        var currentSectionTracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionCode);
         var remainingInCurrentSection = currentSectionTracks.Count(kvp => kvp.Key >= currentTrackNumber);
         totalCount += remainingInCurrentSection;
 
         // Add all tracks from subsequent sections
-        foreach (var section in sections.Where(s => s.Key > sectionNumber))
+        foreach (var section in sections.Where(s => s.Key > sectionCode))
         {
             var sectionTracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, section.Key);
             totalCount += sectionTracks.Count;
@@ -184,13 +186,13 @@ public class PlaylistBiblePublicationTrackBuilder
     public async Task<TrackInfo> GetInitialTrackInfo(BiblePublicationSchedule biblePublicationSchedule)
     {
         // Convert SectionCode to int for media service calls
-        var sectionNumber = await ConvertSectionCodeToIntAsync(
+        var sectionIndex = await ConvertSectionCodeToIntAsync(
             biblePublicationSchedule.SectionCode,
             biblePublicationSchedule.LanguageCode,
             biblePublicationSchedule.PublicationCode);
 
         // For non-sectioned publications, get tracks directly from publication
-        if (sectionNumber == 0)
+        if (sectionIndex == 0)
         {
             return await GetInitialTrackInfoForNonSectionedPublication(biblePublicationSchedule);
         }
@@ -198,13 +200,19 @@ public class PlaylistBiblePublicationTrackBuilder
         var tracks = await mediaService.GetBiblePublicationTracks(
             biblePublicationSchedule.LanguageCode,
             biblePublicationSchedule.PublicationCode,
-            sectionNumber);
+            sectionIndex);
 
         if (!tracks.TryGetValue(biblePublicationSchedule.TrackNumber, out var trackDetail))
         {
             logger.Error(
-                $"Track: ${biblePublicationSchedule.TrackNumber}, section: {sectionNumber}, language: {biblePublicationSchedule.LanguageCode}, pub code: {biblePublicationSchedule.PublicationCode} not in lookup.");
-            throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} not found in section {sectionNumber}");
+                $"Track: ${biblePublicationSchedule.TrackNumber}, sectionIndex: {sectionIndex}, language: {biblePublicationSchedule.LanguageCode}, pub code: {biblePublicationSchedule.PublicationCode} not in lookup.");
+            throw new InvalidOperationException($"Track {biblePublicationSchedule.TrackNumber} not found in section {sectionIndex}");
+        }
+
+        var sectionCode = biblePublicationSchedule.SectionCode;
+        if (string.IsNullOrWhiteSpace(sectionCode) && sectionIndex > 0)
+        {
+            sectionCode = sectionIndex.ToString();
         }
 
         // Compute URL on-demand using TrackMetadata
@@ -213,7 +221,7 @@ public class PlaylistBiblePublicationTrackBuilder
             IsBibleContent = true,
             LanguageCode = biblePublicationSchedule.LanguageCode,
             PublicationCode = biblePublicationSchedule.PublicationCode,
-            SectionNumber = sectionNumber,
+            SectionCode = sectionCode,
             TrackNumber = trackDetail.Number
         };
 
@@ -223,7 +231,7 @@ public class PlaylistBiblePublicationTrackBuilder
             var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
                 biblePublicationSchedule.PublicationCode,
                 biblePublicationSchedule.LanguageCode,
-                sectionNumber > 0 ? sectionNumber.ToString() : null,
+                sectionCode,
                 trackDetail.Number);
             if (!string.IsNullOrEmpty(lookUpPath))
             {
@@ -234,11 +242,12 @@ public class PlaylistBiblePublicationTrackBuilder
         var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
         if (string.IsNullOrEmpty(url))
         {
-            throw new InvalidOperationException($"Failed to get URL for track {biblePublicationSchedule.TrackNumber} in section {sectionNumber}");
+            throw new InvalidOperationException($"Failed to get URL for track {biblePublicationSchedule.TrackNumber} in section {sectionCode ?? "(none)"}");
         }
 
         return new TrackInfo(
-            sectionNumber,
+            sectionIndex,
+            sectionCode,
             trackDetail,
             url);
     }
@@ -273,7 +282,7 @@ public class PlaylistBiblePublicationTrackBuilder
             IsBibleContent = true,
             LanguageCode = biblePublicationSchedule.LanguageCode,
             PublicationCode = biblePublicationSchedule.PublicationCode,
-            SectionNumber = 0, // Non-sectioned
+            SectionCode = null, // Non-sectioned
             TrackNumber = track.Number
         };
 
@@ -299,6 +308,7 @@ public class PlaylistBiblePublicationTrackBuilder
 
         return new TrackInfo(
             0, // No section for non-sectioned publications
+            null,
             track,
             url);
     }
@@ -306,7 +316,7 @@ public class PlaylistBiblePublicationTrackBuilder
     private async Task<(TrackMetadata TrackMetadata, bool MarkedSeekTrack)> CreateTrackMetadataAsync(
         int scheduleId,
         BiblePublicationSchedule biblePublicationSchedule,
-        int sectionNumber,
+        string? sectionCode,
         int trackNumber,
         int remainingTracks,
         AlarmSchedule schedule,
@@ -319,7 +329,7 @@ public class PlaylistBiblePublicationTrackBuilder
             IsBibleContent = true,
             PublicationCode = biblePublicationSchedule.PublicationCode,
             LanguageCode = biblePublicationSchedule.LanguageCode,
-            SectionNumber = sectionNumber,
+            SectionCode = sectionCode,
             TrackNumber = trackNumber,
             // In finite mode, mark the last track so playback stops/dismisses after the session.
             // In indefinite mode, never mark a track as last.
@@ -332,7 +342,7 @@ public class PlaylistBiblePublicationTrackBuilder
             var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
                 biblePublicationSchedule.PublicationCode,
                 biblePublicationSchedule.LanguageCode,
-                sectionNumber > 0 ? sectionNumber.ToString() : null,
+                sectionCode,
                 trackNumber);
             if (!string.IsNullOrEmpty(lookUpPath))
             {
@@ -340,13 +350,13 @@ public class PlaylistBiblePublicationTrackBuilder
             }
         }
 
-        var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, biblePublicationSchedule, trackMetadata, sectionNumber);
+        var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, biblePublicationSchedule, trackMetadata, sectionCode);
         logger.Debug("[PlaylistBuild] ShouldSetFinishedDuration: {ShouldSet}, markedSeekTrack: {MarkedSeekTrack}, AlwaysPlayFromStart: {AlwaysPlayFromStart}, ScheduleFinishedDuration: {ScheduleFinishedDuration}, SectionMatch: {SectionMatch}",
             shouldSet,
             markedSeekTrack,
             schedule.AlwaysPlayFromStart,
             biblePublicationSchedule.FinishedDuration,
-            sectionNumber == trackMetadata.SectionNumber);
+            string.Equals(sectionCode, trackMetadata.SectionCode, StringComparison.OrdinalIgnoreCase));
 
         if (shouldSet)
         {
@@ -363,26 +373,26 @@ public class PlaylistBiblePublicationTrackBuilder
         AlarmSchedule schedule,
         BiblePublicationSchedule biblePublicationSchedule,
         TrackMetadata trackMetadata,
-        int sectionNumber)
+        string? sectionCode)
     {
         return !markedSeekTrack &&
                !schedule.AlwaysPlayFromStart &&
                !biblePublicationSchedule.FinishedDuration.Equals(TimeSpan.Zero) &&
                biblePublicationSchedule.LanguageCode == trackMetadata.LanguageCode &&
                biblePublicationSchedule.PublicationCode == trackMetadata.PublicationCode &&
-               sectionNumber == trackMetadata.SectionNumber;
+               string.Equals(sectionCode, trackMetadata.SectionCode, StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<TrackInfo> GetNextTrackInfo(
         BiblePublicationSchedule biblePublicationSchedule,
-        int currentSectionNumber,
+        int currentSectionIndex,
         int currentTrackNumber,
         Func<string, string, int, int, Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>>> getNextBiblePublicationTrackAsync)
     {
         var next = await getNextBiblePublicationTrackAsync(
             biblePublicationSchedule.LanguageCode,
             biblePublicationSchedule.PublicationCode,
-            currentSectionNumber,
+            currentSectionIndex,
             currentTrackNumber);
 
         if (next.Value == null)
@@ -391,14 +401,14 @@ public class PlaylistBiblePublicationTrackBuilder
         }
 
         // Compute URL on-demand using TrackMetadata
-        // Parse SectionCode to get section number
-        var sectionNumber = next.Key != null && int.TryParse(next.Key.SectionCode, out var num) ? num : 0;
+        var nextSectionCode = next.Key?.SectionCode;
+        var nextSectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(nextSectionCode);
         var trackMetadata = new TrackMetadata
         {
             IsBibleContent = true,
             LanguageCode = biblePublicationSchedule.LanguageCode,
             PublicationCode = biblePublicationSchedule.PublicationCode,
-            SectionNumber = sectionNumber,
+            SectionCode = nextSectionCode,
             TrackNumber = next.Value.Number
         };
 
@@ -408,7 +418,7 @@ public class PlaylistBiblePublicationTrackBuilder
             var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
                 biblePublicationSchedule.PublicationCode,
                 biblePublicationSchedule.LanguageCode,
-                sectionNumber > 0 ? sectionNumber.ToString() : null,
+                nextSectionCode,
                 next.Value.Number);
             if (!string.IsNullOrEmpty(lookUpPath))
             {
@@ -424,7 +434,8 @@ public class PlaylistBiblePublicationTrackBuilder
 
         // For non-sectioned publications, Key (section) will be null, use 0
         return new TrackInfo(
-            sectionNumber,
+            nextSectionIndex,
+            nextSectionCode,
             next.Value,
             url);
     }

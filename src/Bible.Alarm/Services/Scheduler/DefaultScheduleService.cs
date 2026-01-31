@@ -185,7 +185,7 @@ public sealed class DefaultScheduleService(
         // Generate meaningful values from available metadata, but pass empty if not available
         // Builders will handle empty string fallbacks
         var title = firstPlayItem.Metadata?.PlayType == PlayType.Bible
-            ? $"Section {firstPlayItem.Metadata.SectionNumber} Track {firstPlayItem.Metadata.TrackNumber}"
+            ? $"Section {firstPlayItem.Metadata.SectionCode} Track {firstPlayItem.Metadata.TrackNumber}"
             : firstPlayItem.Metadata?.TrackNumber != null
                 ? $"Track {firstPlayItem.Metadata.TrackNumber}"
                 : string.Empty;

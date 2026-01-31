@@ -15,7 +15,7 @@ public interface IBiblePublicationSectionService : IDisposable
     /// <summary>
     /// Gets the name of a Bible section by language code, publication code, and section number.
     /// </summary>
-    Task<string?> GetSectionNameAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default);
+    Task<string?> GetSectionNameAsync(string languageCode, string publicationCode, int sectionCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all BiblePublicationSections for a given publication (by language code and publication code).
@@ -31,6 +31,6 @@ public interface IBiblePublicationSectionService : IDisposable
     /// <summary>
     /// Gets a BiblePublicationSection by language code, publication code, and section number.
     /// </summary>
-    Task<BiblePublicationSection?> GetSectionAsync(string languageCode, string publicationCode, int sectionNumber, CancellationToken cancellationToken = default);
+    Task<BiblePublicationSection?> GetSectionAsync(string languageCode, string publicationCode, int sectionCode, CancellationToken cancellationToken = default);
 }
 

@@ -160,12 +160,12 @@ internal sealed class MusicNamePopulator
             if (!string.IsNullOrWhiteSpace(music.SectionCode))
             {
                 // Convert SectionCode to int for lookup
-                var sectionNumber = await SectionCodeConverter.ConvertToIntAsync(
+                var sectionCode = await SectionCodeConverter.ConvertToIntAsync(
                     music.SectionCode,
                     music.LanguageCode ?? string.Empty, // For melodies, LanguageCode is null
                     music.PublicationCode);
 
-                if (sectionNumber <= 0)
+                if (sectionCode <= 0)
                 {
                     return;
                 }
@@ -181,7 +181,7 @@ internal sealed class MusicNamePopulator
                     var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
                         music.LanguageCode,
                         music.PublicationCode,
-                        sectionNumber);
+                        sectionCode);
 
                     if (!string.IsNullOrWhiteSpace(sectionName))
                     {

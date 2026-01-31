@@ -44,7 +44,7 @@ internal sealed class PublicationLanguageSeeder
         }
 
         // Add all languages from SectionLanguages
-        foreach (var ((publicationCode, sectionNumber), languages) in dataStore.SectionLanguages)
+        foreach (var ((publicationCode, sectionCode), languages) in dataStore.SectionLanguages)
         {
             foreach (var languageCode in languages.Keys)
             {

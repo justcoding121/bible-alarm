@@ -97,7 +97,7 @@ public sealed class BiblePublicationSelectionStateHandler
                 {
                     LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                     PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                    SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
+                    SectionCode = currentSchedule.BiblePublicationSectionCode,
                     TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                     FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
                 };
@@ -113,7 +113,7 @@ public sealed class BiblePublicationSelectionStateHandler
                 {
                     LanguageCode = newLanguageCode,
                     PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
-                    SectionCode = (currentSchedule?.BiblePublicationSectionNumber ?? 1).ToString(),
+                    SectionCode = currentSchedule?.BiblePublicationSectionCode,
                     TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
                 };
             }
@@ -265,7 +265,7 @@ public sealed class BiblePublicationSelectionStateHandler
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
+                    SectionCode = currentSchedule.BiblePublicationSectionCode,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -278,7 +278,7 @@ public sealed class BiblePublicationSelectionStateHandler
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
-                SectionCode = (currentSchedule?.BiblePublicationSectionNumber ?? 1).ToString(),
+                    SectionCode = currentSchedule?.BiblePublicationSectionCode,
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
@@ -429,7 +429,7 @@ public sealed class BiblePublicationSelectionStateHandler
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
+                SectionCode = currentSchedule.BiblePublicationSectionCode,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -440,7 +440,7 @@ public sealed class BiblePublicationSelectionStateHandler
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
-                SectionCode = (currentSchedule?.BiblePublicationSectionNumber ?? 1).ToString(),
+                SectionCode = currentSchedule?.BiblePublicationSectionCode,
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
         }

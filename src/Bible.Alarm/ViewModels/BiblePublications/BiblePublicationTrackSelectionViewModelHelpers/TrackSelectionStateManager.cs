@@ -1,5 +1,6 @@
 #nullable enable
 using AutoMapper;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -19,13 +20,13 @@ public sealed class TrackSelectionStateManager
     // Track last language, publication code, and section number to detect changes
     private string? lastLanguageCode;
     private string? lastPublicationCode;
-    private int? lastSectionNumber;
+    private string? lastSectionCode;
 
     public BiblePublicationSchedule? Current => current;
     public bool InitComplete => initComplete;
     public string? LastLanguageCode => lastLanguageCode;
     public string? LastPublicationCode => lastPublicationCode;
-    public int? LastSectionNumber => lastSectionNumber;
+    public string? LastSectionCode => lastSectionCode;
 
     public void HandleBiblePublicationInitialized(
         IState<ApplicationState> state,
@@ -47,25 +48,24 @@ public sealed class TrackSelectionStateManager
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
         var newPublicationCode = currentSchedule.BiblePublicationCode;
-        var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
+        var newSectionCode = currentSchedule.BiblePublicationSectionCode;
 
-        // For non-sectioned publications, sectionNumber is 0 or null - that's valid
+        // For non-sectioned publications, sectionCode is 0 or null - that's valid
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
             Log.Debug("TrackSelectionStateManager.HandleBiblePublicationInitialized: Missing language or publication code, returning");
             return;
         }
 
-        // Use 0 for non-sectioned publications
-        var effectiveSectionNumber = newSectionNumber ?? 0;
+        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(newSectionCode);
 
-        Log.Debug("TrackSelectionStateManager.HandleBiblePublicationInitialized: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionNumber={SectionNumber}",
-            newLanguageCode, newPublicationCode, effectiveSectionNumber);
+        Log.Debug("TrackSelectionStateManager.HandleBiblePublicationInitialized: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}, sectionIndex={SectionIndex}",
+            newLanguageCode, newPublicationCode, newSectionCode ?? "(none)", sectionIndex);
 
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        lastSectionNumber = effectiveSectionNumber;
+        lastSectionCode = newSectionCode;
 
         // Derive from CurrentSchedule (single source of truth)
         // currentSchedule is already declared above
@@ -76,7 +76,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
+                SectionCode = newSectionCode,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -89,7 +89,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionCode = effectiveSectionNumber.ToString(),
+                SectionCode = newSectionCode,
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
@@ -99,7 +99,7 @@ public sealed class TrackSelectionStateManager
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-            await initialize(newLanguageCode, newPublicationCode, effectiveSectionNumber);
+            await initialize(newLanguageCode, newPublicationCode, sectionIndex);
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
         });
@@ -121,22 +121,21 @@ public sealed class TrackSelectionStateManager
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
         var newPublicationCode = currentSchedule.BiblePublicationCode;
-        var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
+        var newSectionCode = currentSchedule.BiblePublicationSectionCode;
 
-        // For non-sectioned publications, sectionNumber is 0 or null - that's valid
+        // For non-sectioned publications, sectionCode is 0 or null - that's valid
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
             return;
         }
 
-        // Use 0 for non-sectioned publications
-        var effectiveSectionNumber = newSectionNumber ?? 0;
+        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(newSectionCode);
 
-        // Check if language, publication code, or section number changed
+        // Check if language, publication code, or section code changed
         var languageChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
-        var sectionNumberChanged = lastSectionNumber != effectiveSectionNumber;
-        var needsRepopulation = languageChanged || publicationCodeChanged || sectionNumberChanged;
+        var sectionCodeChanged = !string.Equals(lastSectionCode, newSectionCode, StringComparison.OrdinalIgnoreCase);
+        var needsRepopulation = languageChanged || publicationCodeChanged || sectionCodeChanged;
 
         if (!needsRepopulation && initComplete)
         {
@@ -146,7 +145,7 @@ public sealed class TrackSelectionStateManager
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        lastSectionNumber = effectiveSectionNumber;
+        lastSectionCode = newSectionCode;
 
         // Derive from CurrentSchedule (single source of truth)
         // currentSchedule is already declared above
@@ -157,7 +156,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
+                SectionCode = newSectionCode,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -170,7 +169,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionCode = effectiveSectionNumber.ToString(),
+                SectionCode = newSectionCode,
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
             lastCurrent = current;
@@ -182,7 +181,7 @@ public sealed class TrackSelectionStateManager
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                await initialize(newLanguageCode, newPublicationCode, effectiveSectionNumber);
+                await initialize(newLanguageCode, newPublicationCode, sectionIndex);
                 await Task.Delay(100);
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
             });
@@ -206,9 +205,9 @@ public sealed class TrackSelectionStateManager
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
         var newPublicationCode = currentSchedule.BiblePublicationCode;
-        var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
+        var newSectionCode = currentSchedule.BiblePublicationSectionCode;
 
-        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || !newSectionNumber.HasValue)
+        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode) || string.IsNullOrWhiteSpace(newSectionCode))
         {
             return;
         }
@@ -216,7 +215,7 @@ public sealed class TrackSelectionStateManager
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        lastSectionNumber = newSectionNumber.Value;
+        lastSectionCode = newSectionCode;
 
         // Derive from CurrentSchedule (single source of truth)
         // currentSchedule is already declared above
@@ -227,7 +226,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
+                SectionCode = newSectionCode,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -238,7 +237,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionCode = newSectionNumber.Value.ToString(),
+                SectionCode = newSectionCode,
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
         }
@@ -260,21 +259,20 @@ public sealed class TrackSelectionStateManager
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
         var newPublicationCode = currentSchedule.BiblePublicationCode;
-        var newSectionNumber = currentSchedule.BiblePublicationSectionNumber;
+        var newSectionCode = currentSchedule.BiblePublicationSectionCode;
 
-        // For non-sectioned publications, sectionNumber is 0 or null - that's valid
+        // For non-sectioned publications, sectionCode is 0 or null - that's valid
         if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
         {
             return;
         }
 
-        // Use 0 for non-sectioned publications
-        var effectiveSectionNumber = newSectionNumber ?? 0;
+        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(newSectionCode);
 
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
-        lastSectionNumber = effectiveSectionNumber;
+        lastSectionCode = newSectionCode;
 
         // Derive from CurrentSchedule (single source of truth)
         // currentSchedule is already declared above
@@ -285,7 +283,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
+                SectionCode = newSectionCode,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
@@ -296,7 +294,7 @@ public sealed class TrackSelectionStateManager
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
-                SectionCode = effectiveSectionNumber.ToString(),
+                SectionCode = newSectionCode,
                 TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
             };
         }

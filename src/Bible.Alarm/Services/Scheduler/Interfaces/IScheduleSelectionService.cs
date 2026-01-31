@@ -20,6 +20,6 @@ public interface IScheduleSelectionService : IDisposable
     /// Only queries media index DB for section lists, tracks, etc.
     /// </summary>
     BiblePublicationSchedule? LoadBiblePublicationForSelection(int scheduleId, bool isNewSchedule, BiblePublicationSchedule? currentBiblePublication,
-        string? languageCode, string? publicationCode, int? sectionNumber, int? trackNumber, TimeSpan? finishedDuration);
+        string? languageCode, string? publicationCode, string? sectionCode, int? trackNumber, TimeSpan? finishedDuration);
 }
 

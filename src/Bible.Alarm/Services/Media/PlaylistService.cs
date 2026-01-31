@@ -96,7 +96,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         if (trackMetadata.PlayType == PlayType.Bible)
         {
-            trackChangeDetector.SetLastKnownBibleTrack((int)trackMetadata.ScheduleId, trackMetadata.SectionNumber, trackMetadata.TrackNumber);
+            var sectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(trackMetadata.SectionCode);
+            trackChangeDetector.SetLastKnownBibleTrack((int)trackMetadata.ScheduleId, sectionIndex, trackMetadata.TrackNumber);
         }
 
         if (trackChanged)
@@ -152,16 +153,12 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         if (trackMetadata.PlayType == PlayType.Bible && nextTrackInfo.NextTrack != null)
         {
-            var nextSectionNumber = 0;
-            var nextSectionCode = nextTrackInfo.NextTrack.Value.Key?.SectionCode;
-            if (!string.IsNullOrWhiteSpace(nextSectionCode) && int.TryParse(nextSectionCode, out var parsedSection))
-            {
-                nextSectionNumber = parsedSection;
-            }
+            var nextSectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(
+                nextTrackInfo.NextTrack.Value.Key?.SectionCode);
 
             trackChangeDetector.SetLastKnownBibleTrack(
                 (int)trackMetadata.ScheduleId,
-                nextSectionNumber,
+                nextSectionIndex,
                 nextTrackInfo.NextTrack.Value.Value.Number);
         }
 
@@ -180,7 +177,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             var nextTrack = await trackNavigator.GetNextBiblePublicationTrack(
                 trackMetadata.LanguageCode,
                 trackMetadata.PublicationCode,
-                trackMetadata.SectionNumber,
+                Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(trackMetadata.SectionCode),
                 trackMetadata.TrackNumber);
             return new NextTrackInfo(null, nextTrack);
         }
@@ -235,7 +232,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             IsBibleContent = true,
             PublicationCode = biblePublicationSchedule.PublicationCode,
             LanguageCode = biblePublicationSchedule.LanguageCode,
-            SectionNumber = trackInfo.SectionNumber,
+            SectionCode = trackInfo.SectionCode,
             TrackNumber = trackInfo.Track.Number,
             IsLastTrack = false
         };
@@ -282,7 +279,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
 
         // Convert SectionCode to int for track navigator
-        var sectionNumber = await ConvertSectionCodeToIntAsync(
+        var sectionIndex = await ConvertSectionCodeToIntAsync(
             schedule.BiblePublicationSchedule.SectionCode,
             schedule.BiblePublicationSchedule.LanguageCode,
             schedule.BiblePublicationSchedule.PublicationCode);
@@ -290,13 +287,13 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var next = await trackNavigator.GetNextBiblePublicationTrack(
             schedule.BiblePublicationSchedule.LanguageCode,
             schedule.BiblePublicationSchedule.PublicationCode,
-            sectionNumber,
+            sectionIndex,
             schedule.BiblePublicationSchedule.TrackNumber);
 
         var updatedSchedule = await scheduleUpdater.UpdateScheduleToNextTrackAsync(scheduleId, next);
         trackChangeDetector.SetLastKnownBibleTrack(
             scheduleId,
-            next.Key != null && int.TryParse(next.Key.SectionCode, out var nextSectionNumber) ? nextSectionNumber : 0,
+            Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(next.Key?.SectionCode),
             next.Value.Number);
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
@@ -310,7 +307,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
 
         // Convert SectionCode to int for track navigator
-        var sectionNumber = await ConvertSectionCodeToIntAsync(
+        var sectionIndex = await ConvertSectionCodeToIntAsync(
             schedule.BiblePublicationSchedule.SectionCode,
             schedule.BiblePublicationSchedule.LanguageCode,
             schedule.BiblePublicationSchedule.PublicationCode);
@@ -318,7 +315,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var previous = await trackNavigator.GetPreviousBiblePublicationTrack(
             schedule.BiblePublicationSchedule.LanguageCode,
             schedule.BiblePublicationSchedule.PublicationCode,
-            sectionNumber,
+            sectionIndex,
             schedule.BiblePublicationSchedule.TrackNumber);
 
         // For non-sectioned publications, Key (section) will be null
@@ -330,33 +327,33 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var updatedSchedule = await scheduleUpdater.UpdateScheduleToPreviousTrackAsync(scheduleId, previous);
         trackChangeDetector.SetLastKnownBibleTrack(
             scheduleId,
-            previous.Key != null && int.TryParse(previous.Key.SectionCode, out var prevSectionNumber) ? prevSectionNumber : 0,
+            Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(previous.Key?.SectionCode),
             previous.Value.Number);
         dispatcher.Dispatch(new UpdateScheduleAction(updatedSchedule));
     }
 
     public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextBiblePublicationTrack(string languageCode,
-        string publicationCode, int sectionNumber, int track)
+        string publicationCode, int sectionCode, int track)
     {
-        return await trackNavigator.GetNextBiblePublicationTrack(languageCode, publicationCode, sectionNumber, track);
+        return await trackNavigator.GetNextBiblePublicationTrack(languageCode, publicationCode, sectionCode, track);
     }
 
     public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(string languageCode,
-        string publicationCode, int sectionNumber, int track)
+        string publicationCode, int sectionCode, int track)
     {
-        return await trackNavigator.GetPreviousBiblePublicationTrack(languageCode, publicationCode, sectionNumber, track);
+        return await trackNavigator.GetPreviousBiblePublicationTrack(languageCode, publicationCode, sectionCode, track);
     }
 
     public async Task<KeyValuePair<int, BiblePublicationSection>> GetPreviousBiblePublicationSection(string languageCode, string publicationCode,
-        int sectionNumber)
+        int sectionCode)
     {
-        return await trackNavigator.GetPreviousBiblePublicationSection(languageCode, publicationCode, sectionNumber);
+        return await trackNavigator.GetPreviousBiblePublicationSection(languageCode, publicationCode, sectionCode);
     }
 
     public async Task<KeyValuePair<int, BiblePublicationSection>> GetNextBiblePublicationSection(string languageCode, string publicationCode,
-        int sectionNumber)
+        int sectionCode)
     {
-        return await trackNavigator.GetNextBiblePublicationSection(languageCode, publicationCode, sectionNumber);
+        return await trackNavigator.GetNextBiblePublicationSection(languageCode, publicationCode, sectionCode);
     }
 
     private async Task<PlayItem> NextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)
@@ -462,22 +459,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     /// Tries to parse SectionCode to int.
     /// Returns 0 for null/empty (non-sectioned publications).
     /// </summary>
-    private async Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
+    private Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
     {
-        if (string.IsNullOrEmpty(sectionCode))
-        {
-            return 0;
-        }
-
-        // Try to parse SectionCode directly to int
-        if (int.TryParse(sectionCode, out var sectionNumber))
-        {
-            return sectionNumber;
-        }
-
-        // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
-        // For non-numeric section codes, return 0
-        return 0;
+        return Task.FromResult(Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(sectionCode));
     }
 
     private static int CalculateTrackIndex(int currentTrackNumber, int totalTracks, bool next)
@@ -581,7 +565,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var next = await trackNavigator.GetNextBiblePublicationTrack(
             currentTrackMetadata.LanguageCode,
             currentTrackMetadata.PublicationCode,
-            currentTrackMetadata.SectionNumber,
+            Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(currentTrackMetadata.SectionCode),
             currentTrackMetadata.TrackNumber);
 
         if (next.Value == null)
@@ -589,7 +573,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             throw new InvalidOperationException("Next track Value is null");
         }
 
-        var nextSectionNumber = next.Key != null && int.TryParse(next.Key.SectionCode, out var num) ? num : 0;
         var nextTrackNumber = next.Value.Number;
 
         var metadata = new TrackMetadata
@@ -598,7 +581,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             IsBibleContent = true,
             LanguageCode = currentTrackMetadata.LanguageCode,
             PublicationCode = currentTrackMetadata.PublicationCode,
-            SectionNumber = nextSectionNumber,
+            SectionCode = next.Key?.SectionCode,
             TrackNumber = nextTrackNumber,
             IsLastTrack = false
         };
@@ -643,7 +626,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var previous = await trackNavigator.GetPreviousBiblePublicationTrack(
             currentTrackMetadata.LanguageCode,
             currentTrackMetadata.PublicationCode,
-            currentTrackMetadata.SectionNumber,
+            Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(currentTrackMetadata.SectionCode),
             currentTrackMetadata.TrackNumber);
 
         if (previous.Value == null)
@@ -651,7 +634,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             throw new InvalidOperationException("Previous track Value is null");
         }
 
-        var prevSectionNumber = previous.Key != null && int.TryParse(previous.Key.SectionCode, out var num) ? num : 0;
         var prevTrackNumber = previous.Value.Number;
 
         var metadata = new TrackMetadata
@@ -660,7 +642,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             IsBibleContent = true,
             LanguageCode = currentTrackMetadata.LanguageCode,
             PublicationCode = currentTrackMetadata.PublicationCode,
-            SectionNumber = prevSectionNumber,
+            SectionCode = previous.Key?.SectionCode,
             TrackNumber = prevTrackNumber,
             IsLastTrack = false
         };

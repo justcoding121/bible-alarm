@@ -16,19 +16,19 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
     public async Task PopulateTracks(
         string languageCode,
         string publicationCode,
-        int sectionNumber,
+        int sectionCode,
         BiblePublicationSchedule? current,
         ObservableCollection<BiblePublicationTrackListViewItemModel> tracks,
         Action<BiblePublicationTrackListViewItemModel?> setSelectedTrack)
     {
-        Log.Debug("TrackSelectionDataProvider.PopulateTracks: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionNumber={SectionNumber}",
-            languageCode, publicationCode, sectionNumber);
+        Log.Debug("TrackSelectionDataProvider.PopulateTracks: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+            languageCode, publicationCode, sectionCode);
 
         IEnumerable<BiblePublicationTrack> tracksFromDb;
 
-        // If sectionNumber is 0, this is a non-sectioned publication (drama/video)
+        // If sectionCode is 0, this is a non-sectioned publication (drama/video)
         // Load tracks directly from the publication
-        if (sectionNumber <= 0 && biblePublicationService != null)
+        if (sectionCode <= 0 && biblePublicationService != null)
         {
             Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loading non-sectioned tracks for publication={PublicationCode}", publicationCode);
             var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
@@ -38,8 +38,8 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
         else
         {
             // Sectioned publication - use standard approach
-            Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loading sectioned tracks for section={SectionNumber}", sectionNumber);
-            var sectionedTracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
+            Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loading sectioned tracks for section={SectionCode}", sectionCode);
+            var sectionedTracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionCode);
             tracksFromDb = sectionedTracks.Values;
             Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} sectioned tracks", sectionedTracks.Count);
         }

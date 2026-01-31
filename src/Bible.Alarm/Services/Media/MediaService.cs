@@ -222,14 +222,14 @@ public sealed class MediaService(
         return sections ?? new SortedDictionary<int, BiblePublicationSection>();
     }
 
-    public async Task<BiblePublicationSection> GetBiblePublicationSection(string languageCode, string versionCode, int sectionNumber)
+    public async Task<BiblePublicationSection> GetBiblePublicationSection(string languageCode, string versionCode, int sectionCode)
     {
         await mediaIndexService.Verify();
-        return await biblePublicationSectionService.GetSectionAsync(languageCode, versionCode, sectionNumber, cancellationTokenSource.Token);
+        return await biblePublicationSectionService.GetSectionAsync(languageCode, versionCode, sectionCode, cancellationTokenSource.Token);
     }
 
     public async Task<SortedDictionary<int, BiblePublicationTrack>>
-        GetBiblePublicationTracks(string languageCode, string versionCode, int sectionNumber)
+        GetBiblePublicationTracks(string languageCode, string versionCode, int sectionCode)
     {
         await mediaIndexService.Verify();
         
@@ -239,15 +239,15 @@ public sealed class MediaService(
         {
             // Publication has LanguageId == null - query tracks directly from database
             Log.Debug("Publication {PublicationCode} has LanguageId == null, querying tracks directly", versionCode);
-            return await GetTracksForPublicationWithoutLanguage(versionCode, sectionNumber);
+            return await GetTracksForPublicationWithoutLanguage(versionCode, sectionCode);
         }
         
         // Publication has a language - use standard query
-        return await biblePublicationTrackService.GetTracksBySectionAsync(languageCode, versionCode, sectionNumber, cancellationTokenSource.Token);
+        return await biblePublicationTrackService.GetTracksBySectionAsync(languageCode, versionCode, sectionCode, cancellationTokenSource.Token);
     }
     
     private async Task<SortedDictionary<int, BiblePublicationTrack>> GetTracksForPublicationWithoutLanguage(
-        string publicationCode, int sectionNumber)
+        string publicationCode, int sectionCode)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -256,7 +256,7 @@ public sealed class MediaService(
         // SectionCode patterns observed:
         // - "1" (numeric)
         // - "iam-1" (prefix + "-" + number)
-        var sectionNumberString = sectionNumber.ToString();
+        var sectionCodeString = sectionCode.ToString();
 
         var publicationId = await db.BiblePublications
             .AsNoTracking()
@@ -273,8 +273,8 @@ public sealed class MediaService(
             .AsNoTracking()
             .Where(s => s.BiblePublicationId == publicationId)
             .Where(s =>
-                s.SectionCode == sectionNumberString ||
-                EF.Functions.Like(s.SectionCode, "%-" + sectionNumberString))
+                s.SectionCode == sectionCodeString ||
+                EF.Functions.Like(s.SectionCode, "%-" + sectionCodeString))
             .OrderBy(s => s.Id)
             .FirstOrDefaultAsync(cancellationTokenSource.Token);
 
@@ -301,10 +301,10 @@ public sealed class MediaService(
     }
 
     public async Task<BiblePublicationTrack> GetBiblePublicationTrack(string languageCode,
-        string versionCode, int sectionNumber, int trackNumber)
+        string versionCode, int sectionCode, int trackNumber)
     {
         await mediaIndexService.Verify();
-        return await biblePublicationTrackService.GetTrackAsync(languageCode, versionCode, sectionNumber, trackNumber, cancellationTokenSource.Token);
+        return await biblePublicationTrackService.GetTrackAsync(languageCode, versionCode, sectionCode, trackNumber, cancellationTokenSource.Token);
     }
 
     public async Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases()
@@ -492,10 +492,10 @@ public sealed class MediaService(
     }
 
     public async Task UpdateBiblePublicationTrackUrl(string languageCode, string versionCode,
-        int sectionNumber, int trackNumber, string url)
+        int sectionCode, int trackNumber, string url)
     {
         await mediaIndexService.Verify();
-        await biblePublicationTrackService.UpdateTrackUrlAsync(languageCode, versionCode, sectionNumber, trackNumber, url, cancellationTokenSource.Token);
+        await biblePublicationTrackService.UpdateTrackUrlAsync(languageCode, versionCode, sectionCode, trackNumber, url, cancellationTokenSource.Token);
     }
 
     public async Task UpdateVocalTrackUrl(string languageCode, string publicationCode,
@@ -518,7 +518,7 @@ public sealed class MediaService(
             await UpdateBiblePublicationTrackUrl(
                 trackMetadata.LanguageCode,
                 trackMetadata.PublicationCode,
-                trackMetadata.SectionNumber,
+                SectionCodeHelper.GetSectionIndexOrZero(trackMetadata.SectionCode),
                 trackMetadata.TrackNumber,
                 url);
         }

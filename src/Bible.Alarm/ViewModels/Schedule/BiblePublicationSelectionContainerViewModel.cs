@@ -48,7 +48,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     private string? lastProcessedLanguageName;
     private string? lastProcessedPublicationCode;
     private string? lastProcessedPublicationName;
-    private int? lastProcessedSectionNumber;
+    private string? lastProcessedSectionCode;
     private string? lastProcessedSectionName;
     private int? lastProcessedTrackNumber;
     private bool shouldScrollToContainer;
@@ -101,7 +101,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
                 currentSchedule.BiblePublicationCategoryName,
                 currentSchedule.BiblePublicationLanguageCode,
                 currentSchedule.BiblePublicationCode,
-                currentSchedule.BiblePublicationSectionNumber,
+                currentSchedule.BiblePublicationSectionCode,
                 currentSchedule.BiblePublicationTrackNumber);
 
             // Initialize last processed state to prevent duplicate processing
@@ -113,7 +113,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
             lastProcessedPublicationCode = currentSchedule.BiblePublicationCode;
             lastProcessedPublicationName = currentSchedule.BiblePublicationName;
-            lastProcessedSectionNumber = currentSchedule.BiblePublicationSectionNumber;
+            lastProcessedSectionCode = currentSchedule.BiblePublicationSectionCode;
             lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
             lastProcessedTrackNumber = currentSchedule.BiblePublicationTrackNumber;
 
@@ -235,7 +235,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
                 currentSchedule.BiblePublicationLanguageName == lastProcessedLanguageName &&
                 currentSchedule.BiblePublicationCode == lastProcessedPublicationCode &&
                 currentSchedule.BiblePublicationName == lastProcessedPublicationName &&
-                currentSchedule.BiblePublicationSectionNumber == lastProcessedSectionNumber &&
+                string.Equals(currentSchedule.BiblePublicationSectionCode, lastProcessedSectionCode, StringComparison.OrdinalIgnoreCase) &&
                 currentSchedule.BiblePublicationSectionName == lastProcessedSectionName &&
                 currentSchedule.BiblePublicationTrackNumber == lastProcessedTrackNumber)
             {
@@ -278,7 +278,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
                 lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
                 lastProcessedPublicationCode = currentSchedule.BiblePublicationCode;
                 lastProcessedPublicationName = currentSchedule.BiblePublicationName;
-                lastProcessedSectionNumber = currentSchedule.BiblePublicationSectionNumber;
+            lastProcessedSectionCode = currentSchedule.BiblePublicationSectionCode;
                 lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
                 lastProcessedTrackNumber = currentSchedule.BiblePublicationTrackNumber;
             }
@@ -419,7 +419,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
                 currentSchedule.BiblePublicationCategoryName ?? string.Empty,
                 currentSchedule.BiblePublicationLanguageCode ?? string.Empty,
                 currentSchedule.BiblePublicationCode ?? string.Empty,
-                currentSchedule.BiblePublicationSectionNumber?.ToString() ?? string.Empty);
+                currentSchedule.BiblePublicationSectionCode ?? string.Empty);
 
             if (string.Equals(signature, lastSelectabilitySignature, StringComparison.Ordinal))
             {

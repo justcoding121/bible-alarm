@@ -328,14 +328,13 @@ public sealed class MusicCascadeHandler
         }
 
         SortedDictionary<int, BiblePublicationTrack>? tracks = null;
-        int sectionNum = 0;
+        int sectionIndex = 0;
 
         if (publication.LanguageId == null)
         {
             // Publication without language - use GetBiblePublicationTracks with empty language code
-            // Get section number from section code
-            sectionNum = MusicCascadeSelectionHelper.GetSectionNumberFromSectionCode(sectionCode);
-            tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNum);
+            sectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
+            tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionIndex);
         }
         else
         {
@@ -346,15 +345,15 @@ public sealed class MusicCascadeHandler
                 var section = sections.Values.FirstOrDefault(s => s.SectionCode == sectionCode);
                 if (section != null)
                 {
-                    sectionNum = sections.FirstOrDefault(kvp => kvp.Value.SectionCode == sectionCode).Key;
-                    tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNum);
+                    sectionIndex = sections.FirstOrDefault(kvp => kvp.Value.SectionCode == sectionCode).Key;
+                    tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionIndex);
                 }
             }
         }
 
         if (tracks == null || tracks.Count == 0)
         {
-            logger.Warning("MusicCascadeHandler: No tracks found for section={SectionCode}", sectionCode);
+            logger.Warning("MusicCascadeHandler: No tracks found for sectionCode={SectionCode}", sectionCode);
             return;
         }
 

@@ -459,21 +459,17 @@ public sealed class MusicDisplayTextProvider
             ? (currentSchedule.MusicLanguageCode ?? string.Empty)
             : string.Empty;
         var publicationCode = currentSchedule.MusicPublicationCode;
-        var sectionNumber = currentSchedule.MusicSectionCode != null && int.TryParse(currentSchedule.MusicSectionCode, out var sectionNum)
-            ? sectionNum
-            : (currentSchedule.MusicSectionCode != null && currentSchedule.MusicSectionCode.Contains('-')
-                ? (int.TryParse(currentSchedule.MusicSectionCode.Split('-').Last(), out var extractedNum) ? extractedNum : 0)
-                : 0);
+        var sectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(currentSchedule.MusicSectionCode);
 
         try
         {
             // Try with language first
-            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNumber);
+            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionIndex);
             
             // If no tracks found with language, try without language
             if (tracks.Count == 0)
             {
-                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNumber);
+                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionIndex);
             }
 
             return tracks.Count > 1;

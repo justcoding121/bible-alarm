@@ -12,7 +12,7 @@ internal sealed class LookupDataCollector
     public LookupKeys CollectKeys(List<AlarmSchedule> alarmSchedules)
     {
         var publicationKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
-        var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, int SectionNumber)>();
+        var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, int SectionCode)>();
         var vocalMusicLanguageCodes = new HashSet<string>();
         var vocalMusicKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var vocalTrackKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
@@ -29,9 +29,9 @@ internal sealed class LookupDataCollector
                 {
                     publicationKeys.Add((br.LanguageCode, br.PublicationCode));
                     // Convert SectionCode to int for lookup key
-                    if (!string.IsNullOrEmpty(br.SectionCode) && int.TryParse(br.SectionCode, out var sectionNum) && sectionNum > 0)
+                    if (!string.IsNullOrEmpty(br.SectionCode) && int.TryParse(br.SectionCode, out var sectionCode) && sectionCode > 0)
                     {
-                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, sectionNum));
+                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, sectionCode));
                     }
                 }
             }
@@ -81,7 +81,7 @@ internal sealed class LookupDataCollector
 
     public sealed record LookupKeys(
         HashSet<(string LanguageCode, string PublicationCode)> PublicationKeys,
-        HashSet<(string LanguageCode, string PublicationCode, int SectionNumber)> SectionKeys,
+        HashSet<(string LanguageCode, string PublicationCode, int SectionCode)> SectionKeys,
         HashSet<string> VocalMusicLanguageCodes,
         HashSet<(string LanguageCode, string PublicationCode)> VocalMusicKeys,
         HashSet<(string LanguageCode, string PublicationCode)> VocalTrackKeys,

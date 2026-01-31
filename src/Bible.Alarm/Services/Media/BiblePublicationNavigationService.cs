@@ -15,22 +15,22 @@ public sealed class BiblePublicationNavigationService(
     /// Tries to parse SectionCode to int.
     /// Returns 0 for null/empty (non-sectioned publications).
     /// </summary>
-    private async Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
+    private Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
     {
         if (string.IsNullOrEmpty(sectionCode))
         {
-            return 0;
+            return Task.FromResult(0);
         }
 
         // Try to parse SectionCode directly to int
-        if (int.TryParse(sectionCode, out var sectionNumber))
+        if (int.TryParse(sectionCode, out var sectionIndex))
         {
-            return sectionNumber;
+            return Task.FromResult(sectionIndex);
         }
 
         // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
         // For non-numeric section codes, return 0
-        return 0;
+        return Task.FromResult(0);
     }
 
     public async Task<bool> MoveToPreviousSectionAsync(BiblePublicationSchedule schedule)
@@ -44,7 +44,7 @@ public sealed class BiblePublicationNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var sectionNumber = await ConvertSectionCodeToIntAsync(
+            var sectionCode = await ConvertSectionCodeToIntAsync(
                 schedule.SectionCode,
                 schedule.LanguageCode,
                 schedule.PublicationCode);
@@ -52,7 +52,7 @@ public sealed class BiblePublicationNavigationService(
             var nextSection = await playlistService.GetPreviousBiblePublicationSection(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                sectionNumber);
+                sectionCode);
 
             if (nextSection.Value == null)
             {
@@ -82,7 +82,7 @@ public sealed class BiblePublicationNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var sectionNumber = await ConvertSectionCodeToIntAsync(
+            var sectionCode = await ConvertSectionCodeToIntAsync(
                 schedule.SectionCode,
                 schedule.LanguageCode,
                 schedule.PublicationCode);
@@ -90,7 +90,7 @@ public sealed class BiblePublicationNavigationService(
             var nextSection = await playlistService.GetNextBiblePublicationSection(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                sectionNumber);
+                sectionCode);
 
             if (nextSection.Value == null)
             {
@@ -120,7 +120,7 @@ public sealed class BiblePublicationNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var sectionNumber = await ConvertSectionCodeToIntAsync(
+            var sectionCode = await ConvertSectionCodeToIntAsync(
                 schedule.SectionCode,
                 schedule.LanguageCode,
                 schedule.PublicationCode);
@@ -128,7 +128,7 @@ public sealed class BiblePublicationNavigationService(
             var prevTrack = await playlistService.GetPreviousBiblePublicationTrack(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                sectionNumber,
+                sectionCode,
                 schedule.TrackNumber);
 
             if (prevTrack.Key == null || prevTrack.Value == null)
@@ -159,7 +159,7 @@ public sealed class BiblePublicationNavigationService(
         {
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
-            var sectionNumber = await ConvertSectionCodeToIntAsync(
+            var sectionCode = await ConvertSectionCodeToIntAsync(
                 schedule.SectionCode,
                 schedule.LanguageCode,
                 schedule.PublicationCode);
@@ -167,7 +167,7 @@ public sealed class BiblePublicationNavigationService(
             var nextTrack = await playlistService.GetNextBiblePublicationTrack(
                 schedule.LanguageCode,
                 schedule.PublicationCode,
-                sectionNumber,
+                sectionCode,
                 schedule.TrackNumber);
 
             if (nextTrack.Key == null || nextTrack.Value == null)

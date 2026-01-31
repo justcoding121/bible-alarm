@@ -24,21 +24,23 @@ internal sealed class TrackSelectionResolver
         ScheduleStateItem currentSchedule,
         Func<ILanguageContentService?> getLanguageContentService)
     {
-        if (sectionItem.Number <= 0)
+        if (string.IsNullOrWhiteSpace(sectionItem.Section.SectionCode))
         {
-            logger.Warning("TrackSelectionResolver: Invalid section number {SectionNumber} for publication={PublicationCode}",
-                sectionItem.Number, currentSchedule.BiblePublicationCode);
+            logger.Warning("TrackSelectionResolver: Invalid section code for publication={PublicationCode}",
+                currentSchedule.BiblePublicationCode);
             return null;
         }
 
         var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
 
         // Check if the selected section is the same as the current section
-        var currentSectionNumber = currentSchedule.BiblePublicationSectionNumber;
-        var isSameSection = currentSectionNumber.HasValue && currentSectionNumber.Value == sectionItem.Number;
+        var currentSectionCode = currentSchedule.BiblePublicationSectionCode;
+        var isSameSection = string.Equals(currentSectionCode, sectionItem.Section.SectionCode, StringComparison.OrdinalIgnoreCase);
+
+        var sectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(sectionItem.Section.SectionCode);
 
         // Get tracks for the selected section using the latest language/publication from CurrentSchedule
-        var tracks = await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode!, sectionItem.Number);
+        var tracks = await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode!, sectionIndex);
 
         // If no tracks found, check if section exists and harvest tracks if needed
         if ((tracks == null || tracks.Count == 0) &&
@@ -46,7 +48,7 @@ internal sealed class TrackSelectionResolver
             !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
         {
             logger.Information(
-                "TrackSelectionResolver: No tracks found for section={SectionNumber}, publication={PublicationCode}, language={LanguageCode}. Attempting to fetch tracks...",
+                "TrackSelectionResolver: No tracks found for section={SectionCode}, publication={PublicationCode}, language={LanguageCode}. Attempting to fetch tracks...",
                 sectionItem.Number,
                 currentSchedule.BiblePublicationCode,
                 languageCode);
@@ -61,7 +63,7 @@ internal sealed class TrackSelectionResolver
 
                 if (fetchSuccess)
                 {
-                    tracks = await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode!, sectionItem.Number);
+                    tracks = await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode!, sectionIndex);
                 }
             }
         }
@@ -69,8 +71,8 @@ internal sealed class TrackSelectionResolver
         if (tracks == null || tracks.Count == 0)
         {
             logger.Warning(
-                "TrackSelectionResolver: No tracks found for section={SectionNumber}, publication={PublicationCode}, language={LanguageCode}",
-                sectionItem.Number,
+                "TrackSelectionResolver: No tracks found for section={SectionCode}, publication={PublicationCode}, language={LanguageCode}",
+                sectionItem.Section.SectionCode,
                 currentSchedule.BiblePublicationCode,
                 languageCode ?? "(null)");
             return null;
@@ -113,7 +115,7 @@ internal sealed class TrackSelectionResolver
             CategoryName = currentSchedule.BiblePublicationCategoryName,
             LanguageCode = languageCode, // Can be empty for publications without language
             PublicationCode = currentSchedule.BiblePublicationCode!,
-            SectionNumber = sectionItem.Number,
+            SectionCode = sectionItem.Section.SectionCode,
             TrackNumber = trackNumber,
             // Store display names from list items and current state
             LanguageName = currentSchedule.BiblePublicationLanguageName,

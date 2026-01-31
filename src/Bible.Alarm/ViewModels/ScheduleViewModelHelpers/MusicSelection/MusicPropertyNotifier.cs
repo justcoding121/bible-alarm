@@ -55,7 +55,7 @@ public sealed class MusicPropertyNotifier
         bool musicTypeChanged,
         bool languageCodeChanged,
         bool publicationCodeChanged,
-        bool sectionNumberChanged,
+        bool sectionCodeChanged,
         bool trackNumberChanged,
         bool repeatChanged,
         MusicType? musicType,
@@ -65,8 +65,8 @@ public sealed class MusicPropertyNotifier
         var notifyMusicType = musicTypeChanged;
         var notifyLanguage = musicTypeChanged || languageCodeChanged;
         var notifySongPublication = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
-        var notifySection = musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged;
-        var notifyTrack = musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionNumberChanged || trackNumberChanged;
+        var notifySection = musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged;
+        var notifyTrack = musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged;
 
         // Music type change cascades to all below (including flow direction for RTL support)
         if (notifyMusicType)

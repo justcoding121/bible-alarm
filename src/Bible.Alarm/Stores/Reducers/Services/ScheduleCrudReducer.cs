@@ -62,7 +62,7 @@ public static class ScheduleCrudReducer
             BiblePublicationScheduleId = actionSchedule.BiblePublicationScheduleId,
             BiblePublicationLanguageCode = actionSchedule.BiblePublicationLanguageCode,
             BiblePublicationCode = actionSchedule.BiblePublicationCode,
-            BiblePublicationSectionNumber = actionSchedule.BiblePublicationSectionNumber,
+            BiblePublicationSectionCode = actionSchedule.BiblePublicationSectionCode,
             BiblePublicationTrackNumber = actionSchedule.BiblePublicationTrackNumber,
             BiblePublicationFinishedDuration = actionSchedule.BiblePublicationFinishedDuration,
             MusicId = actionSchedule.MusicId,

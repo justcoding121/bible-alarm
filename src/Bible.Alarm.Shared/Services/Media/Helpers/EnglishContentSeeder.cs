@@ -215,7 +215,7 @@ internal sealed class EnglishContentSeeder
                     {
                         // Use section codes from existing publication (data-driven)
                         sectionCodes = existingPubWithSections.Sections
-                            .OrderBy(s => s.SectionCode)
+                            .OrderBy(s => s.SectionCode, SectionCodeHelper.SectionCodeComparer)
                             .Select(s => s.SectionCode)
                             .ToList();
                         logger.Debug("Using {Count} section codes from existing publication {PublicationCode}", 

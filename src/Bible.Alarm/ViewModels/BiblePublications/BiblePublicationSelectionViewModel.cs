@@ -60,15 +60,16 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         BiblePublicationSchedule? initialCurrent = null;
         string? initialLanguageCode = null;
         string? initialCategoryName = null;
-        if (currentState.CurrentSchedule != null && !string.IsNullOrEmpty(currentState.CurrentSchedule.BiblePublicationLanguageCode))
+        if (currentState.CurrentSchedule != null && !string.IsNullOrEmpty(currentState.CurrentSchedule.BiblePublicationCode))
         {
             // Create a minimal BiblePublicationSchedule from CurrentSchedule
             var currentSchedule = currentState.CurrentSchedule;
             initialCurrent = new BiblePublicationSchedule
             {
-                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
+                // Language can be empty for publications without language (e.g., "iam")
+                LanguageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = (currentSchedule.BiblePublicationSectionNumber ?? 1).ToString(),
+                SectionCode = currentSchedule.BiblePublicationSectionCode,
                 TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
             };
             initialLanguageCode = initialCurrent.LanguageCode;

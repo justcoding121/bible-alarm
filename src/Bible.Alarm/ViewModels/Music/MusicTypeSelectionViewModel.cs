@@ -403,11 +403,11 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
                 }
             }
 
-            var sectionNumber = selectedSection.Key;
+            var sectionIndex = selectedSection.Key;
             var sectionCode = selectedSection.Value.SectionCode;
             var sectionName = selectedSection.Value.Name ?? string.Empty;
 
-            var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionNumber);
+            var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionIndex);
 
             if (sectionTracks == null || sectionTracks.Count == 0)
             {

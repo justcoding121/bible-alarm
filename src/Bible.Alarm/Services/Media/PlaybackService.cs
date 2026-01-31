@@ -736,7 +736,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                b.PlayType == PlayType.Bible &&
                a.LanguageCode == b.LanguageCode &&
                a.PublicationCode == b.PublicationCode &&
-               a.SectionNumber == b.SectionNumber &&
+               a.SectionCode == b.SectionCode &&
                a.TrackNumber == b.TrackNumber;
     }
 

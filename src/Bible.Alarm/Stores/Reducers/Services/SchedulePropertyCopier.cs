@@ -37,7 +37,7 @@ public static class SchedulePropertyCopier
         target.BiblePublicationScheduleId = source.BiblePublicationScheduleId;
         target.BiblePublicationLanguageCode = source.BiblePublicationLanguageCode;
         target.BiblePublicationCode = source.BiblePublicationCode;
-        target.BiblePublicationSectionNumber = source.BiblePublicationSectionNumber;
+        target.BiblePublicationSectionCode = source.BiblePublicationSectionCode;
         target.BiblePublicationTrackNumber = source.BiblePublicationTrackNumber;
         target.BiblePublicationFinishedDuration = source.BiblePublicationFinishedDuration;
 

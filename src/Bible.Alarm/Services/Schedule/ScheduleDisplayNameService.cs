@@ -142,17 +142,17 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         }
 
         // Section name - for non-sectioned publications (SectionCode is null or empty), clear the section name
-        var sectionNumber = await ConvertSectionCodeToIntAsync(
+        var sectionCode = await ConvertSectionCodeToIntAsync(
             biblePublicationSchedule.SectionCode,
             biblePublicationSchedule.LanguageCode,
             biblePublicationSchedule.PublicationCode);
         
-        if (sectionNumber == 0)
+        if (sectionCode == 0)
         {
             // Non-sectioned publication - clear section name
             scheduleStateItem.BiblePublicationSectionName = null;
         }
-        else if (sectionNumber > 0 &&
+        else if (sectionCode > 0 &&
             !string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
             !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode))
         {
@@ -163,7 +163,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                     await biblePublicationSectionService.GetSectionNameAsync(
                         biblePublicationSchedule.LanguageCode,
                         biblePublicationSchedule.PublicationCode,
-                        sectionNumber));
+                        sectionCode));
 
                 if (!string.IsNullOrWhiteSpace(sectionName))
                 {
@@ -186,17 +186,17 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 if (PublicationTypeHelper.HasSectionStructure(biblePublicationSchedule.PublicationCode))
                 {
                     // Sectioned publications (traditional Bible) - load track from section
-                    var sectionNum = await ConvertSectionCodeToIntAsync(
+                    var sectionIndex = await ConvertSectionCodeToIntAsync(
                         biblePublicationSchedule.SectionCode,
                         biblePublicationSchedule.LanguageCode,
                         biblePublicationSchedule.PublicationCode);
-                    if (sectionNum > 0)
+                    if (sectionIndex > 0)
                     {
                         var tracks = await Task.Run(async () =>
                             await mediaService.GetBiblePublicationTracks(
                                 biblePublicationSchedule.LanguageCode,
                                 biblePublicationSchedule.PublicationCode,
-                                sectionNum));
+                                sectionIndex));
 
                         if (tracks != null && tracks.TryGetValue(biblePublicationSchedule.TrackNumber, out var track))
                         {
@@ -285,19 +285,19 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                     // For vocal music, we need language code and section number
                     if (!string.IsNullOrWhiteSpace(music.LanguageCode))
                     {
-                        var sectionNumber = await ConvertSectionCodeToIntAsync(
+                        var sectionCode = await ConvertSectionCodeToIntAsync(
                             music.SectionCode,
                             music.LanguageCode,
                             music.PublicationCode);
 
-                        if (sectionNumber > 0)
+                        if (sectionCode > 0)
                         {
                             var biblePublicationSectionService = serviceProvider.GetRequiredService<IBiblePublicationSectionService>();
                             var sectionName = await Task.Run(async () =>
                                 await biblePublicationSectionService.GetSectionNameAsync(
                                     music.LanguageCode,
                                     music.PublicationCode,
-                                    sectionNumber));
+                                    sectionCode));
 
                             if (!string.IsNullOrWhiteSpace(sectionName))
                             {
@@ -412,22 +412,22 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
     /// Tries to parse SectionCode to int.
     /// Returns 0 for null/empty (non-sectioned publications).
     /// </summary>
-    private async Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
+    private Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
     {
         if (string.IsNullOrEmpty(sectionCode))
         {
-            return 0;
+            return Task.FromResult(0);
         }
 
         // Try to parse SectionCode directly to int
-        if (int.TryParse(sectionCode, out var sectionNumber))
+        if (int.TryParse(sectionCode, out var sectionIndex))
         {
-            return sectionNumber;
+            return Task.FromResult(sectionIndex);
         }
 
         // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
         // For non-numeric section codes, return 0
-        return 0;
+        return Task.FromResult(0);
     }
 }
 

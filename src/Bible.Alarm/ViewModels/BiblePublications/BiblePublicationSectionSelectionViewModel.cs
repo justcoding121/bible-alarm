@@ -97,7 +97,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 // Validate section number - section 0 is invalid (sections should start from 1)
                 if (x.Number <= 0)
                 {
-                    logger.Warning("BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Invalid section number {SectionNumber} for publication={PublicationCode}",
+                    logger.Warning("BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Invalid section number {SectionCode} for publication={PublicationCode}",
                         x.Number, currentSchedule.BiblePublicationCode);
                     return;
                 }
@@ -122,9 +122,9 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 // GetBiblePublicationTracks handles this case
                 var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
 
-                // Check if the selected section is the same as the current section
-                var currentSectionNumber = currentSchedule.BiblePublicationSectionNumber;
-                var isSameSection = currentSectionNumber.HasValue && currentSectionNumber.Value == x.Number;
+                // Check if the selected section is the same as the current section (for debugging / future optimizations)
+                var currentSectionCode = currentSchedule.BiblePublicationSectionCode;
+                _ = string.Equals(currentSectionCode, x.Section.SectionCode, StringComparison.OrdinalIgnoreCase);
 
                 // Update progress
                 ProgressPercent = 0.3;
@@ -281,7 +281,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         {
             LanguageCode = newLanguageCode, // Can be empty for publications without language
             PublicationCode = newPublicationCode,
-            SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
+            SectionCode = currentSchedule.BiblePublicationSectionCode,
             TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
             FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
         };

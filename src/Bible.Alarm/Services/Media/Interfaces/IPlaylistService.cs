@@ -18,15 +18,15 @@ public interface IPlaylistService : IDisposable
     Task MoveToPreviousBiblePublicationTrack(int scheduleId);
 
     Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextBiblePublicationTrack(string languageCode, string publicationCode,
-        int sectionNumber, int track);
+        int sectionCode, int track);
 
     Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(string languageCode, string publicationCode,
-        int sectionNumber, int track);
+        int sectionCode, int track);
 
     Task<KeyValuePair<int, BiblePublicationSection>>
-        GetPreviousBiblePublicationSection(string languageCode, string publicationCode, int sectionNumber);
+        GetPreviousBiblePublicationSection(string languageCode, string publicationCode, int sectionCode);
 
-    Task<KeyValuePair<int, BiblePublicationSection>> GetNextBiblePublicationSection(string languageCode, string publicationCode, int sectionNumber);
+    Task<KeyValuePair<int, BiblePublicationSection>> GetNextBiblePublicationSection(string languageCode, string publicationCode, int sectionCode);
     Task<bool> ShouldResumeFromLastPositionAsync(int scheduleId);
 
     /// <summary>

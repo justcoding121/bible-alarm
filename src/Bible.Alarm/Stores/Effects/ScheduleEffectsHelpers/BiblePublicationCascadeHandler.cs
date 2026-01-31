@@ -57,7 +57,7 @@ public sealed class BiblePublicationCascadeHandler
 
             var languageCode = currentSchedule.BiblePublicationLanguageCode;
             var publicationCode = currentSchedule.BiblePublicationCode;
-            var sectionNumber = currentSchedule.BiblePublicationSectionNumber;
+            var sectionCode = currentSchedule.BiblePublicationSectionCode;
             var trackNumber = currentSchedule.BiblePublicationTrackNumber;
 
             if (!string.IsNullOrWhiteSpace(languageCode) && string.IsNullOrWhiteSpace(publicationCode))
@@ -67,13 +67,13 @@ public sealed class BiblePublicationCascadeHandler
             }
 
             if (!string.IsNullOrWhiteSpace(publicationCode) && 
-                (!sectionNumber.HasValue || sectionNumber.Value <= 0))
+                string.IsNullOrWhiteSpace(sectionCode))
             {
                 await HandlePublicationCascadeAsync(currentSchedule, dispatcher);
                 return; // Publication cascade handles section and track
             }
 
-            if (sectionNumber.HasValue && sectionNumber.Value > 0 &&
+            if (!string.IsNullOrWhiteSpace(sectionCode) &&
                 (!trackNumber.HasValue || trackNumber.Value <= 0))
             {
                 await HandleSectionCascadeAsync(currentSchedule, dispatcher);
@@ -136,7 +136,7 @@ public sealed class BiblePublicationCascadeHandler
                             Name = currentSchedule.BiblePublicationName ?? existingPublicationCode
                         });
 
-                        var (resultSectionNum, resultTrackNum, resultSectionName, resultTrackTitle) =
+                        var (resultSectionIndex, resultTrackNum, resultSectionName, resultTrackTitle) =
                             await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
 
                         if (resultTrackNum <= 0)
@@ -147,7 +147,8 @@ public sealed class BiblePublicationCascadeHandler
                         else
                         {
                             var existingPublicationName = currentSchedule.BiblePublicationName ?? existingPublicationCode;
-                            UpdateSchedule(currentSchedule, existingPublicationCode, existingPublicationName, resultSectionNum, resultSectionName, resultTrackNum, resultTrackTitle, dispatcher);
+                            var resultSectionCode = resultSectionIndex > 0 ? resultSectionIndex.ToString() : null;
+                            UpdateSchedule(currentSchedule, existingPublicationCode, existingPublicationName, resultSectionCode, resultSectionName, resultTrackNum, resultTrackTitle, dispatcher);
                             return;
                         }
                     }
@@ -269,7 +270,8 @@ public sealed class BiblePublicationCascadeHandler
         }
 
         // Get section and track
-        int sectionNum = 0;
+        int sectionIndex = 0;
+        string? sectionCode = null;
         int trackNum = 0;
         string sectionName = string.Empty;
         string publicationName = string.Empty;
@@ -297,7 +299,8 @@ public sealed class BiblePublicationCascadeHandler
                 // Sectioned publication - get first section and track
                 var firstSectionKvp = sections.First();
                 var firstSection = firstSectionKvp.Value;
-                sectionNum = firstSectionKvp.Key;
+                sectionIndex = firstSectionKvp.Key;
+                sectionCode = firstSection.SectionCode;
                 sectionName = firstSection.Name;
 
                 // Get tracks for the first section - query directly from database
@@ -363,7 +366,7 @@ public sealed class BiblePublicationCascadeHandler
                 Name = currentSchedule.BiblePublicationName ?? publicationCode
             });
 
-            var (resultSectionNum, resultTrackNum, resultSectionName, resultTrackTitle) =
+            var (resultSectionIndex, resultTrackNum, resultSectionName, resultTrackTitle) =
                 await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
 
             if (resultTrackNum <= 0)
@@ -372,7 +375,8 @@ public sealed class BiblePublicationCascadeHandler
                 return;
             }
 
-            sectionNum = resultSectionNum;
+            sectionIndex = resultSectionIndex;
+            sectionCode = resultSectionIndex > 0 ? resultSectionIndex.ToString() : null;
             trackNum = resultTrackNum;
             sectionName = resultSectionName;
             trackTitle = resultTrackTitle;
@@ -391,7 +395,7 @@ public sealed class BiblePublicationCascadeHandler
             return;
         }
 
-        UpdateSchedule(currentSchedule, publicationCode, publicationName, sectionNum, sectionName, trackNum, trackTitle, dispatcher);
+        UpdateSchedule(currentSchedule, publicationCode, publicationName, sectionCode, sectionName, trackNum, trackTitle, dispatcher);
     }
 
     private async Task HandlePublicationCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
@@ -418,7 +422,7 @@ public sealed class BiblePublicationCascadeHandler
         };
         var publicationModel = new PublicationListViewItemModel(publication);
 
-        var (sectionNum, trackNum, sectionName, trackTitle) =
+        var (sectionIndex, trackNum, sectionName, trackTitle) =
             await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
 
         if (trackNum <= 0)
@@ -427,48 +431,50 @@ public sealed class BiblePublicationCascadeHandler
             return;
         }
 
-        UpdateSchedule(currentSchedule, publicationCode, currentSchedule.BiblePublicationName, sectionNum, sectionName, trackNum, trackTitle, dispatcher);
+        var sectionCode = sectionIndex > 0 ? sectionIndex.ToString() : null;
+        UpdateSchedule(currentSchedule, publicationCode, currentSchedule.BiblePublicationName, sectionCode, sectionName, trackNum, trackTitle, dispatcher);
     }
 
     private async Task HandleSectionCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
     {
         var languageCode = currentSchedule.BiblePublicationLanguageCode!;
         var publicationCode = currentSchedule.BiblePublicationCode!;
-        var sectionNum = currentSchedule.BiblePublicationSectionNumber!.Value;
+        var sectionCode = currentSchedule.BiblePublicationSectionCode;
+        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
 
-        logger.Information("BiblePublicationCascadeHandler: Section cascade - section={SectionNumber}, publication={PublicationCode}",
-            sectionNum, publicationCode);
+        logger.Information("BiblePublicationCascadeHandler: Section cascade - sectionCode={SectionCode}, sectionIndex={SectionIndex}, publication={PublicationCode}",
+            sectionCode ?? "(none)", sectionIndex, publicationCode);
 
-        var tracks = await Task.Run(async () => await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionNum));
+        var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionIndex);
         if (tracks == null || tracks.Count == 0)
         {
-            logger.Warning("BiblePublicationCascadeHandler: No tracks found for section={SectionNumber}", sectionNum);
+            logger.Warning("BiblePublicationCascadeHandler: No tracks found for sectionCode={SectionCode}", sectionCode ?? "(none)");
             return;
         }
 
         var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
-        UpdateSchedule(currentSchedule, publicationCode, currentSchedule.BiblePublicationName, sectionNum, 
+        UpdateSchedule(currentSchedule, publicationCode, currentSchedule.BiblePublicationName, sectionCode,
             currentSchedule.BiblePublicationSectionName ?? string.Empty, firstTrack.Number, firstTrack.Title ?? string.Empty, dispatcher);
     }
 
     private void UpdateSchedule(ScheduleStateItem currentSchedule, string publicationCode, string? publicationName,
-        int sectionNumber, string sectionName, int trackNumber, string trackTitle, IDispatcher dispatcher)
+        string? sectionCode, string sectionName, int trackNumber, string trackTitle, IDispatcher dispatcher)
     {
         // Check if values have actually changed to prevent cascade cycles
-        var sectionNum = sectionNumber > 0 ? sectionNumber : (int?)null;
-        var currentSectionNum = currentSchedule.BiblePublicationSectionNumber;
+        var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
+        var currentSectionCode = currentSchedule.BiblePublicationSectionCode;
         var currentTrackNum = currentSchedule.BiblePublicationTrackNumber;
         var currentTrackTitle = currentSchedule.BiblePublicationTrackTitle;
         
         // If all values are already set correctly, don't dispatch to prevent infinite loop
         if (currentSchedule.BiblePublicationCode == publicationCode &&
-            currentSectionNum == sectionNum &&
+            string.Equals(currentSectionCode, normalizedSectionCode, StringComparison.OrdinalIgnoreCase) &&
             currentTrackNum == trackNumber &&
             currentTrackTitle == trackTitle)
         {
             // Values haven't changed, skip dispatch to prevent cascade cycle
-            logger.Debug("BiblePublicationCascadeHandler: Values unchanged, skipping dispatch to prevent cycle. publication={PublicationCode}, section={SectionNumber}, track={TrackNumber}",
-                publicationCode, sectionNum, trackNumber);
+            logger.Debug("BiblePublicationCascadeHandler: Values unchanged, skipping dispatch to prevent cycle. publication={PublicationCode}, sectionCode={SectionCode}, track={TrackNumber}",
+                publicationCode, normalizedSectionCode ?? "(none)", trackNumber);
             return;
         }
 
@@ -478,7 +484,7 @@ public sealed class BiblePublicationCascadeHandler
         {
             updatedSchedule.BiblePublicationName = publicationName;
         }
-        updatedSchedule.BiblePublicationSectionNumber = sectionNum;
+        updatedSchedule.BiblePublicationSectionCode = normalizedSectionCode;
         // Do not overwrite a populated display name with empty/whitespace (can happen on partial harvest / transient failures)
         if (!string.IsNullOrWhiteSpace(sectionName))
         {

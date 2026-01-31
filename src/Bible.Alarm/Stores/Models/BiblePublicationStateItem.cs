@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 
 namespace Bible.Alarm.Stores.Models;
 
@@ -17,11 +18,14 @@ public sealed class BiblePublicationStateItem : IComparable
     public string PublicationCode { get; set; } = string.Empty;
 
     /// <summary>
-    /// Section number for traditional Bible readings (1-66).
-    /// Null for drama publications which don't have sections.
-    /// Use PublicationTypeHelper.HasSectionStructure() to check if this applies.
+    /// Section code for publications with sections.
+    /// Examples:
+    /// - "1" for Bible book 1
+    /// - "iam-1" for melody disc 1
+    ///
+    /// This is persisted to the schedule DB (BiblePublicationSchedule.SectionCode).
     /// </summary>
-    public int? SectionNumber { get; set; }
+    public string? SectionCode { get; set; }
 
     public int TrackNumber { get; set; }
     public TimeSpan FinishedDuration { get; set; }

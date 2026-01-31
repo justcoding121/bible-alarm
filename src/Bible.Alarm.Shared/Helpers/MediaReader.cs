@@ -41,10 +41,10 @@ public class MediaReader(string indexRoot)
     }
 
     public async Task<SortedDictionary<int, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode,
-        int sectionNumber)
+        int sectionCode)
     {
         var root = indexRoot;
-        var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, sectionNumber.ToString(),
+        var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, sectionCode.ToString(),
             "tracks.json");
         var biblePublicationTracks = await File.ReadAllTextAsync(sectionsIndex);
         return new SortedDictionary<int, BiblePublicationTrack>(JsonSerializer

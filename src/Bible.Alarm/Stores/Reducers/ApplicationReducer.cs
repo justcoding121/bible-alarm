@@ -300,7 +300,7 @@ public static class ApplicationReducer
         updatedSchedule.BiblePublicationLanguageDirection = null;
         updatedSchedule.BiblePublicationCode = null;
         updatedSchedule.BiblePublicationName = null;
-        updatedSchedule.BiblePublicationSectionNumber = null;
+        updatedSchedule.BiblePublicationSectionCode = null;
         updatedSchedule.BiblePublicationSectionName = null;
         updatedSchedule.BiblePublicationTrackNumber = null;
         updatedSchedule.BiblePublicationTrackTitle = null;
@@ -383,7 +383,9 @@ public static class ApplicationReducer
             updatedCurrentSchedule.BiblePublicationCode = !string.IsNullOrEmpty(biblePub.PublicationCode) 
                 ? biblePub.PublicationCode 
                 : updatedCurrentSchedule.BiblePublicationCode;
-            updatedCurrentSchedule.BiblePublicationSectionNumber = biblePub.SectionNumber;
+            updatedCurrentSchedule.BiblePublicationSectionCode = !string.IsNullOrWhiteSpace(biblePub.SectionCode)
+                ? biblePub.SectionCode
+                : null;
             updatedCurrentSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
             // Reset progress to 0.0 when track is changed (by cascade or direct selection)
             updatedCurrentSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
@@ -441,9 +443,9 @@ public static class ApplicationReducer
             }
 
             Log.Debug("ApplicationReducer.OnBiblePublicationTrackSelected: Updated CurrentSchedule with " +
-                "LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionNumber={SectionNumber}, TrackNumber={TrackNumber}, CategoryName={CategoryName}",
+                "LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackNumber={TrackNumber}, CategoryName={CategoryName}",
                 updatedCurrentSchedule.BiblePublicationLanguageCode, updatedCurrentSchedule.BiblePublicationCode,
-                biblePub.SectionNumber, biblePub.TrackNumber, updatedCurrentSchedule.BiblePublicationCategoryName);
+                updatedCurrentSchedule.BiblePublicationSectionCode ?? "null", biblePub.TrackNumber, updatedCurrentSchedule.BiblePublicationCategoryName);
         }
 
         return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);

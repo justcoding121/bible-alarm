@@ -25,9 +25,10 @@ public static class PlaylistTrackUpdater
         var biblePublicationSchedule = schedule.BiblePublicationSchedule ??
             throw new InvalidOperationException($"BiblePublicationSchedule is null for schedule {schedule.Id}");
 
-        // Convert SectionNumber (int) to SectionCode (string)
-        // For non-sectioned publications (SectionNumber == 0), set SectionCode to null
-        biblePublicationSchedule.SectionCode = trackMetadata.SectionNumber > 0 ? trackMetadata.SectionNumber.ToString() : null;
+        // Preserve section code; for non-sectioned publications it will be null/empty.
+        biblePublicationSchedule.SectionCode = string.IsNullOrWhiteSpace(trackMetadata.SectionCode)
+            ? null
+            : trackMetadata.SectionCode;
         biblePublicationSchedule.TrackNumber = trackMetadata.TrackNumber;
         biblePublicationSchedule.LanguageCode = trackMetadata.LanguageCode;
         biblePublicationSchedule.PublicationCode = trackMetadata.PublicationCode;

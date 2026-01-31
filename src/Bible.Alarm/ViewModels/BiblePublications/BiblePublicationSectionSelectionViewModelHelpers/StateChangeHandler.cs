@@ -62,10 +62,10 @@ public class StateChangeHandler
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newLanguageCode = currentSchedule.BiblePublicationLanguageCode;
+        var newLanguageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
         var newPublicationCode = currentSchedule.BiblePublicationCode;
 
-        if (string.IsNullOrEmpty(newLanguageCode) || string.IsNullOrEmpty(newPublicationCode))
+        if (string.IsNullOrEmpty(newPublicationCode))
         {
             return;
         }
@@ -87,33 +87,18 @@ public class StateChangeHandler
 
         // Derive from CurrentSchedule (single source of truth)
         // currentSchedule is already declared above
-        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode))
+        // Create BiblePublicationSchedule from CurrentSchedule
+        var sectionCode = currentSchedule.BiblePublicationSectionCode;
+        var newCurrent = new BiblePublicationSchedule
         {
-            // Create BiblePublicationSchedule from CurrentSchedule
-            var newCurrent = new BiblePublicationSchedule
-            {
-                LanguageCode = currentSchedule.BiblePublicationLanguageCode,
-                PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
-                SectionCode = currentSchedule.BiblePublicationSectionNumber.HasValue ? currentSchedule.BiblePublicationSectionNumber.Value.ToString() : null,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
-                FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
-            };
-            setCurrent(newCurrent);
-            setLastCurrent(newCurrent);
-        }
-        else
-        {
-            // Create a minimal BiblePublicationSchedule from CurrentSchedule
-            var newCurrent = new BiblePublicationSchedule
-            {
-                LanguageCode = newLanguageCode,
-                PublicationCode = newPublicationCode,
-                SectionCode = (currentSchedule?.BiblePublicationSectionNumber ?? 1).ToString(),
-                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
-            };
-            setCurrent(newCurrent);
-            setLastCurrent(newCurrent);
-        }
+            LanguageCode = newLanguageCode,
+            PublicationCode = newPublicationCode ?? string.Empty,
+            SectionCode = sectionCode,
+            TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+            FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
+        };
+        setCurrent(newCurrent);
+        setLastCurrent(newCurrent);
 
         // If language or publication code changed, repopulate sections
         if (needsRepopulation && getInitComplete())

@@ -285,7 +285,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             BiblePublicationScheduleId = source.BiblePublicationScheduleId,
             BiblePublicationLanguageCode = source.BiblePublicationLanguageCode,
             BiblePublicationCode = source.BiblePublicationCode,
-            BiblePublicationSectionNumber = source.BiblePublicationSectionNumber,
+            BiblePublicationSectionCode = source.BiblePublicationSectionCode,
             BiblePublicationTrackNumber = source.BiblePublicationTrackNumber,
             BiblePublicationFinishedDuration = source.BiblePublicationFinishedDuration,
             MusicId = source.MusicId,

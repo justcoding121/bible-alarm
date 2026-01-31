@@ -191,12 +191,12 @@ internal sealed class BiblePublicationNamePopulator
         try
         {
             var biblePublication = schedule.BiblePublicationSchedule;
-            var sectionNumber = await SectionCodeConverter.ConvertToIntAsync(
+            var sectionCode = await SectionCodeConverter.ConvertToIntAsync(
                 biblePublication.SectionCode,
                 biblePublication.LanguageCode,
                 biblePublication.PublicationCode);
             
-            if (sectionNumber <= 0 ||
+            if (sectionCode <= 0 ||
                 string.IsNullOrWhiteSpace(biblePublication.LanguageCode) ||
                 string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
             {
@@ -206,7 +206,7 @@ internal sealed class BiblePublicationNamePopulator
             var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
                 biblePublication.LanguageCode,
                 biblePublication.PublicationCode,
-                sectionNumber);
+                sectionCode);
 
             if (!string.IsNullOrWhiteSpace(sectionName))
             {
@@ -266,12 +266,12 @@ internal sealed class BiblePublicationNamePopulator
         BiblePublicationSchedule biblePublication,
         int scheduleId)
     {
-        var sectionNumber = await SectionCodeConverter.ConvertToIntAsync(
+        var sectionCode = await SectionCodeConverter.ConvertToIntAsync(
             biblePublication.SectionCode,
             biblePublication.LanguageCode,
             biblePublication.PublicationCode);
         
-        if (sectionNumber <= 0 || mediaService == null)
+        if (sectionCode <= 0 || mediaService == null)
         {
             return;
         }
@@ -279,7 +279,7 @@ internal sealed class BiblePublicationNamePopulator
         var tracks = await mediaService.GetBiblePublicationTracks(
             biblePublication.LanguageCode,
             biblePublication.PublicationCode,
-            sectionNumber);
+            sectionCode);
 
         if (tracks != null && tracks.TryGetValue(biblePublication.TrackNumber, out var track))
         {

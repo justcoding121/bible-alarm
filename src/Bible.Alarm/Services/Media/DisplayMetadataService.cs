@@ -51,10 +51,11 @@ public sealed class DisplayMetadataService(
     private async Task SetBibleMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri)
     {
         // Try to get section info first (for sectioned publications)
+        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(trackMetadata.SectionCode);
         var section = await mediaService.GetBiblePublicationSection(
             trackMetadata.LanguageCode,
             trackMetadata.PublicationCode,
-            trackMetadata.SectionNumber);
+            sectionIndex);
 
         if (section != null)
         {

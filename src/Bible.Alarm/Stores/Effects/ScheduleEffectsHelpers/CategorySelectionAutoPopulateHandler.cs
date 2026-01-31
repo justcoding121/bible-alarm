@@ -238,7 +238,8 @@ public sealed class CategorySelectionAutoPopulateHandler
                 publicationCode, publicationWithoutLanguage);
 
             // Step 4: Get first section and track for the publication
-            int sectionNumber = 0;
+            int sectionIndex = 0;
+            string? sectionCode = null;
             int trackNumber = 0;
             string sectionName = string.Empty;
             string publicationName = string.Empty;
@@ -266,7 +267,8 @@ public sealed class CategorySelectionAutoPopulateHandler
                     // Sectioned publication - get first section and track
                     var firstSectionKvp = sections.First();
                     var firstSection = firstSectionKvp.Value;
-                    sectionNumber = firstSectionKvp.Key;
+                    sectionIndex = firstSectionKvp.Key;
+                    sectionCode = firstSection.SectionCode;
                     sectionName = firstSection.Name;
 
                     // Get tracks for the first section - query directly from database
@@ -326,7 +328,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                 var languageModel = new LanguageListViewItemModel(selectedLanguage);
                 // Note: Progress is not passed here because the effect handler runs asynchronously
                 // Progress is shown in the ViewModel while waiting for state changes
-                var (resultPublicationCode, resultSectionNumber, resultTrackNumber, resultSectionName, resultPublicationName, resultTrackTitle) =
+                var (resultPublicationCode, resultSectionCode, resultTrackNumber, resultSectionName, resultPublicationName, resultTrackTitle) =
                     await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(languageModel);
 
                 if (string.IsNullOrEmpty(resultPublicationCode) || resultTrackNumber <= 0)
@@ -338,7 +340,8 @@ public sealed class CategorySelectionAutoPopulateHandler
 
                 // Use the publication code and name from the result (may differ for dramas)
                 publicationCode = resultPublicationCode;
-                sectionNumber = resultSectionNumber;
+                sectionIndex = resultSectionCode;
+                sectionCode = resultSectionCode > 0 ? resultSectionCode.ToString() : null;
                 trackNumber = resultTrackNumber;
                 sectionName = resultSectionName;
                 publicationName = resultPublicationName;
@@ -353,8 +356,8 @@ public sealed class CategorySelectionAutoPopulateHandler
             }
 
             var languageCodeForLog = publicationWithoutLanguage ? "N/A" : (selectedLanguage?.LanguageCode ?? "N/A");
-            logger.Information("CategorySelectionAutoPopulateHandler: Auto-populated - Language={LanguageCode}, Publication={PublicationCode}, Section={SectionNumber}, Track={TrackNumber}, WithoutLanguage={WithoutLanguage}",
-                languageCodeForLog, publicationCode, sectionNumber, trackNumber, publicationWithoutLanguage);
+            logger.Information("CategorySelectionAutoPopulateHandler: Auto-populated - Language={LanguageCode}, Publication={PublicationCode}, Section={SectionCode}, Track={TrackNumber}, WithoutLanguage={WithoutLanguage}",
+                languageCodeForLog, publicationCode, sectionCode, trackNumber, publicationWithoutLanguage);
 
             // Step 6: Update schedule with selected values
             var updatedSchedule = currentSchedule.DeepClone();
@@ -386,7 +389,9 @@ public sealed class CategorySelectionAutoPopulateHandler
             
             updatedSchedule.BiblePublicationCode = publicationCode;
             updatedSchedule.BiblePublicationName = publicationName;
-            updatedSchedule.BiblePublicationSectionNumber = sectionNumber > 0 ? sectionNumber : null;
+            updatedSchedule.BiblePublicationSectionCode = !string.IsNullOrWhiteSpace(sectionCode)
+                ? sectionCode
+                : (sectionIndex > 0 ? sectionIndex.ToString() : null);
             updatedSchedule.BiblePublicationSectionName = sectionName;
             updatedSchedule.BiblePublicationTrackNumber = trackNumber;
             updatedSchedule.BiblePublicationTrackTitle = trackTitle;
@@ -447,7 +452,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                 .Where(sl => sl.PublicationCode == publicationCodeForDb &&
                              sl.Language != null &&
                              sl.Language.LanguageCode == normalizedLanguageCode)
-                .OrderBy(sl => sl.SectionCode)
+                .OrderBy(sl => sl.SectionCode, SectionCodeHelper.SectionCodeComparer)
                 .Select(sl => sl.SectionCode)
                 .FirstOrDefaultAsync();
 

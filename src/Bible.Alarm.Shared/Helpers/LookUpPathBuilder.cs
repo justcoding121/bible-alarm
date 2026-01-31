@@ -13,21 +13,21 @@ public static class LookUpPathBuilder
     /// </summary>
     /// <param name="languageCode">The language code (e.g., "E" for English)</param>
     /// <param name="publicationCode">The publication/publication code (e.g., "nwt")</param>
-    /// <param name="sectionNumber">The Bible section number (1-66), or 0 for non-sectioned publications (videos)</param>
+    /// <param name="sectionCode">The section code (e.g., "1" for Bible books). Null/empty means non-sectioned (videos).</param>
     /// <param name="trackNumber">The track number</param>
     /// <returns>The lookup path query string</returns>
-    public static string BuildBiblePublicationTrackLookUpPath(string languageCode, string publicationCode, int sectionNumber, int trackNumber)
+    public static string BuildBiblePublicationTrackLookUpPath(string languageCode, string publicationCode, string? sectionCode, int trackNumber)
     {
         // For non-sectioned publications (videos), omit booknum parameter and use MP4
-        if (sectionNumber == 0)
+        if (string.IsNullOrWhiteSpace(sectionCode))
         {
             // Videos use MP4, not MP3. Match harvester format: no txtCMSLang for videos
             return $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={languageCode}&track={trackNumber}";
         }
         // For sectioned Bible publications, use booknum (not sectionnum)
-        // Match harvester format: ?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&alllangs=0&langwritten={languageCode}
+        // Match harvester format: ?output=json&pub={publicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}
         // Note: We include track parameter for individual track lookup, harvester doesn't use it when fetching all tracks
-        return $"?output=json&pub={publicationCode}&booknum={sectionNumber}&fileformat=MP3&langwritten={languageCode}&track={trackNumber}";
+        return $"?output=json&pub={publicationCode}&booknum={sectionCode}&fileformat=MP3&langwritten={languageCode}&track={trackNumber}";
     }
 
     /// <summary>

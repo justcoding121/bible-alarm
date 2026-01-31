@@ -18,7 +18,7 @@ internal interface IDataPersister
         string publicationCode,
         string publicationName,
         Dictionary<int, BiblePublicationSection> sections,
-        Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionNumberTrackMap);
+        Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionCodeTrackMap);
 
     // Drama Publications
     Task SaveDramaPublication(

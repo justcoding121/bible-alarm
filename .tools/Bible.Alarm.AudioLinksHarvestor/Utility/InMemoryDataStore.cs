@@ -13,8 +13,8 @@ namespace Bible.Alarm.AudioLinksHarvestor.Utility;
 /// </summary>
 internal class InMemoryDataStore
 {
-    // Bible Publications: (languageCode, publicationCode) -> (publicationName, sections, sectionNumberTrackMap)
-    public ConcurrentDictionary<(string LanguageCode, string PublicationCode), (string PublicationName, Dictionary<int, BiblePublicationSection> Sections, Dictionary<int, Dictionary<int, BiblePublicationTrack>> SectionNumberTrackMap)> BiblePublications { get; } = new();
+    // Bible Publications: (languageCode, publicationCode) -> (publicationName, sections, sectionCodeTrackMap)
+    public ConcurrentDictionary<(string LanguageCode, string PublicationCode), (string PublicationName, Dictionary<int, BiblePublicationSection> Sections, Dictionary<int, Dictionary<int, BiblePublicationTrack>> SectionCodeTrackMap)> BiblePublications { get; } = new();
 
     // Drama Publications: (languageCode, publicationCode) -> (publicationName, tracksBySection, sectionNames)
     public ConcurrentDictionary<(string LanguageCode, string PublicationCode), (string PublicationName, Dictionary<string, List<DramaTrack>> TracksBySection, Dictionary<string, string> SectionNames)> DramaPublications { get; } = new();

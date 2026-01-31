@@ -63,7 +63,7 @@ public sealed class ScheduleDisplayService(
                 // Traditional Bible: "Section Name - Track Number" (e.g., "Genesis - 1")
                 // Convert SectionCode to int for service call
                 if (string.IsNullOrEmpty(scheduleToUse.SectionCode) || 
-                    !int.TryParse(scheduleToUse.SectionCode, out var sectionNum))
+                    !int.TryParse(scheduleToUse.SectionCode, out var sectionCode))
                 {
                     return string.Empty;
                 }
@@ -71,7 +71,7 @@ public sealed class ScheduleDisplayService(
                 var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
                     scheduleToUse.LanguageCode,
                     scheduleToUse.PublicationCode,
-                    sectionNum,
+                    sectionCode,
                     cancellationTokenSource.Token);
 
                 if (sectionName == null)

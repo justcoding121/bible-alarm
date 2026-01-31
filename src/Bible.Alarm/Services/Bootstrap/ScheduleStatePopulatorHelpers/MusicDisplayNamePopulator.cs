@@ -77,7 +77,7 @@ internal sealed class MusicDisplayNamePopulator
             // Since vocals are BiblePublications with Category=Music and LanguageId!=null,
             // we can use the same section lookup mechanism
             // Note: Music sections use SectionCode (string) which may need conversion
-            if (int.TryParse(music.SectionCode, out var sectionNum) && sectionNum > 0)
+            if (int.TryParse(music.SectionCode, out var sectionCode) && sectionCode > 0)
             {
                 // For music publications, sections are typically identified by SectionCode
                 // We'll need to look up the section name from the BiblePublicationSections table

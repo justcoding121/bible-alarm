@@ -128,11 +128,11 @@ public sealed class MusicPublicationSelectionCommandHandler(
                         }
                     }
 
-                    var sectionNumber = selectedSection.Key;
-                    sectionCode = selectedSection.Value.SectionCode;
+                    var sectionIndex = selectedSection.Key;
+                    var selectedSectionCode = selectedSection.Value.SectionCode;
                     sectionName = selectedSection.Value.Name;
 
-                    var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, songPublication.Code, sectionNumber);
+                    var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, songPublication.Code, sectionIndex);
                     if (sectionTracks == null || sectionTracks.Count == 0)
                     {
                         return;
@@ -141,7 +141,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     // Preserve current track if it's valid for this section; otherwise pick random track within the section.
                     if (currentSchedule?.MusicType == MusicType.Music &&
                         currentSchedule.MusicPublicationCode == songPublication.Code &&
-                        string.Equals(currentSchedule.MusicSectionCode, sectionCode, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(currentSchedule.MusicSectionCode, selectedSectionCode, StringComparison.OrdinalIgnoreCase) &&
                         currentSchedule.MusicTrackNumber.HasValue &&
                         sectionTracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var existingTrack))
                     {

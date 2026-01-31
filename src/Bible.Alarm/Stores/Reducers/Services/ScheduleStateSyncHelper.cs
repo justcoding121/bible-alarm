@@ -48,6 +48,9 @@ public static class ScheduleStateSyncHelper
     /// </summary>
     private static bool AreSchedulesEquivalent(ScheduleStateItem current, ScheduleStateItem action)
     {
+        var currentSectionCode = current.BiblePublicationSectionCode;
+        var actionSectionCode = action.BiblePublicationSectionCode;
+
         // Compare key properties that would trigger state changes
         return current.Id == action.Id &&
                current.MusicType == action.MusicType &&
@@ -57,7 +60,7 @@ public static class ScheduleStateSyncHelper
                current.MusicRepeat == action.MusicRepeat &&
                current.BiblePublicationLanguageCode == action.BiblePublicationLanguageCode &&
                current.BiblePublicationCode == action.BiblePublicationCode &&
-               current.BiblePublicationSectionNumber == action.BiblePublicationSectionNumber &&
+               string.Equals(currentSectionCode, actionSectionCode, StringComparison.OrdinalIgnoreCase) &&
                current.BiblePublicationTrackNumber == action.BiblePublicationTrackNumber &&
                current.Name == action.Name &&
                current.IsEnabled == action.IsEnabled &&
@@ -108,15 +111,15 @@ public static class ScheduleStateSyncHelper
             return false;
         }
 
-        // For traditional Bible reading (has section structure), SectionNumber is required
-        // For dramas (no section structure), SectionNumber is not required (null is valid)
+        // For sectioned publications, section code is required.
+        // For dramas (no section structure), section code is not required (null is valid).
         if (PublicationTypeHelper.HasSectionStructure(schedule.BiblePublicationCode))
         {
-            return schedule.BiblePublicationSectionNumber.HasValue &&
-                   schedule.BiblePublicationSectionNumber.Value > 0;
+            var sectionCode = schedule.BiblePublicationSectionCode;
+            return !string.IsNullOrWhiteSpace(sectionCode);
         }
 
-        // For dramas, SectionNumber is not required
+        // For dramas, section code is not required
         return true;
     }
 
@@ -129,10 +132,11 @@ public static class ScheduleStateSyncHelper
 
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(updatedCurrentSchedule.BiblePublicationCode);
 
-        // For traditional Bible reading (has section structure), SectionNumber is required
-        if (hasSectionStructure && !updatedCurrentSchedule.BiblePublicationSectionNumber.HasValue)
+        // For sectioned publications, section code is required
+        var sectionCode = updatedCurrentSchedule.BiblePublicationSectionCode;
+        if (hasSectionStructure && string.IsNullOrWhiteSpace(sectionCode))
         {
-            throw new InvalidOperationException("BiblePublicationSectionNumber must have a value for publications with section structure");
+            throw new InvalidOperationException("BiblePublicationSectionCode must have a value for publications with section structure");
         }
 
         return new BiblePublicationStateItem
@@ -142,7 +146,7 @@ public static class ScheduleStateSyncHelper
             CategoryName = updatedCurrentSchedule.BiblePublicationCategoryName,
             LanguageCode = updatedCurrentSchedule.BiblePublicationLanguageCode ?? string.Empty,
             PublicationCode = updatedCurrentSchedule.BiblePublicationCode ?? string.Empty,
-            SectionNumber = updatedCurrentSchedule.BiblePublicationSectionNumber,
+            SectionCode = sectionCode,
             TrackNumber = updatedCurrentSchedule.BiblePublicationTrackNumber.Value,
             FinishedDuration = updatedCurrentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
             AlarmScheduleId = updatedCurrentSchedule.Id,

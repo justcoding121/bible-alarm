@@ -77,11 +77,11 @@ public sealed class TrackSelectionSyncHandler
             var actionPub = action.CurrentBiblePublicationSchedule;
             Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Received action. " +
                 "CurrentBiblePublicationSchedule: {CurrentBiblePublicationSchedule}, TrackNumber={TrackNumber}, TrackTitle={TrackTitle}, " +
-                "SectionNumber={SectionNumber}, PublicationCode={PublicationCode}",
+                "SectionCode={SectionCode}, PublicationCode={PublicationCode}",
                 actionPub != null ? "not null" : "null",
                 actionPub?.TrackNumber ?? -1,
                 actionPub?.TrackTitle ?? "(null)",
-                actionPub?.SectionNumber ?? -1,
+                actionPub?.SectionCode ?? (actionPub?.SectionCode?.ToString() ?? "(null)"),
                 actionPub?.PublicationCode ?? "(null)");
 
             var currentState = state?.Value;
@@ -93,6 +93,8 @@ public sealed class TrackSelectionSyncHandler
 
             var currentSchedule = currentState.CurrentSchedule;
             var biblePub = action.CurrentBiblePublicationSchedule;
+            var currentSectionCode = currentSchedule.BiblePublicationSectionCode;
+            var actionSectionCode = biblePub.SectionCode;
 
             // The reducer OnBiblePublicationTrackSelected now updates CurrentSchedule synchronously,
             // so we should check if CurrentSchedule already has the action's values.
@@ -100,7 +102,7 @@ public sealed class TrackSelectionSyncHandler
             var alreadyInSync = 
                 currentSchedule.BiblePublicationLanguageCode == biblePub.LanguageCode &&
                 currentSchedule.BiblePublicationCode == biblePub.PublicationCode &&
-                currentSchedule.BiblePublicationSectionNumber == biblePub.SectionNumber &&
+                string.Equals(currentSectionCode, actionSectionCode, StringComparison.OrdinalIgnoreCase) &&
                 currentSchedule.BiblePublicationTrackNumber == biblePub.TrackNumber;
             
             if (alreadyInSync)
@@ -185,7 +187,7 @@ public sealed class TrackSelectionSyncHandler
             }
             
             updatedSchedule.BiblePublicationCode = biblePub.PublicationCode;
-            updatedSchedule.BiblePublicationSectionNumber = biblePub.SectionNumber;
+            updatedSchedule.BiblePublicationSectionCode = actionSectionCode;
             updatedSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
             // Reset progress to 0.0 when track is changed (by cascade or direct selection)
             updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
@@ -213,11 +215,11 @@ public sealed class TrackSelectionSyncHandler
                 updatedSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle ?? string.Empty;
                 
                 // Warn if section/track names are empty for a publication change - this may cause empty UI rows
-                if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationSectionName) && biblePub.SectionNumber > 0)
+                if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationSectionName) && !string.IsNullOrWhiteSpace(actionSectionCode))
                 {
-                    Log.Warning("TrackSelectionSyncHandler: SectionName is empty after publication change but SectionNumber={SectionNumber} is valid. " +
+                    Log.Warning("TrackSelectionSyncHandler: SectionName is empty after publication change but SectionCode={SectionCode} is set. " +
                         "Publication={PublicationCode}. This may cause empty section row in UI.",
-                        biblePub.SectionNumber, biblePub.PublicationCode);
+                        actionSectionCode, biblePub.PublicationCode);
                 }
                 if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationTrackTitle) && biblePub.TrackNumber > 0)
                 {
@@ -247,8 +249,8 @@ public sealed class TrackSelectionSyncHandler
             }
 
             Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Dispatching UpdateScheduleFromViewModelAction. " +
-                "ScheduleId: {ScheduleId}, TrackNumber={TrackNumber}, TrackTitle={TrackTitle}, SectionNumber={SectionNumber}",
-                updatedSchedule.Id, updatedSchedule.BiblePublicationTrackNumber, updatedSchedule.BiblePublicationTrackTitle, updatedSchedule.BiblePublicationSectionNumber);
+                "ScheduleId: {ScheduleId}, TrackNumber={TrackNumber}, TrackTitle={TrackTitle}, SectionCode={SectionCode}",
+                updatedSchedule.Id, updatedSchedule.BiblePublicationTrackNumber, updatedSchedule.BiblePublicationTrackTitle, updatedSchedule.BiblePublicationSectionCode);
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
         }
         catch (Exception ex)
@@ -344,7 +346,8 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.BiblePublicationScheduleId = currentSchedule.BiblePublicationScheduleId;
         updatedSchedule.BiblePublicationLanguageCode = currentSchedule.BiblePublicationLanguageCode;
         updatedSchedule.BiblePublicationCode = currentSchedule.BiblePublicationCode;
-        updatedSchedule.BiblePublicationSectionNumber = currentSchedule.BiblePublicationSectionNumber;
+        updatedSchedule.BiblePublicationSectionCode = currentSchedule.BiblePublicationSectionCode;
+        updatedSchedule.BiblePublicationSectionCode = currentSchedule.BiblePublicationSectionCode;
         updatedSchedule.BiblePublicationTrackNumber = currentSchedule.BiblePublicationTrackNumber;
         updatedSchedule.BiblePublicationFinishedDuration = currentSchedule.BiblePublicationFinishedDuration;
         updatedSchedule.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;

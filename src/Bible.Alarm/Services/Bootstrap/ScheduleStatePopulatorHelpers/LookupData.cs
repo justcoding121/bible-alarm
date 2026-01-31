@@ -65,14 +65,14 @@ internal sealed class LookupDataLoader
             {
                 var sectionName = biblePublicationSectionService != null
                     ? await biblePublicationSectionService.GetSectionNameAsync(
-                        key.LanguageCode, key.PublicationCode, key.SectionNumber)
+                        key.LanguageCode, key.PublicationCode, key.SectionCode)
                     : null;
                 return (Key: key, SectionName: sectionName);
             }
             catch (Exception ex)
             {
-                Log.Logger.Warning(ex, "Error loading section {LanguageCode}/{PublicationCode}/{SectionNumber}",
-                    key.LanguageCode, key.PublicationCode, key.SectionNumber);
+                Log.Logger.Warning(ex, "Error loading section {LanguageCode}/{PublicationCode}/{SectionCode}",
+                    key.LanguageCode, key.PublicationCode, key.SectionCode);
                 return (Key: key, SectionName: (string?)null);
             }
         }).ToList();
@@ -206,7 +206,7 @@ internal sealed class LookupDataLoader
 
     public sealed record LookupData(
         Dictionary<(string LanguageCode, string PublicationCode), BiblePublication> Publications,
-        Dictionary<(string LanguageCode, string PublicationCode, int SectionNumber), string> Sections,
+        Dictionary<(string LanguageCode, string PublicationCode, int SectionCode), string> Sections,
         Dictionary<string, Language> VocalLanguages,
         Dictionary<(string LanguageCode, string PublicationCode), VocalMusic> VocalReleases,
         Dictionary<(string LanguageCode, string PublicationCode), SortedDictionary<int, MusicTrack>> VocalTracks,

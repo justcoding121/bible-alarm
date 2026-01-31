@@ -41,7 +41,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                 return await GetBiblePublicationTrackUrl(
                     trackMetadata.LanguageCode,
                     trackMetadata.PublicationCode,
-                    trackMetadata.SectionNumber,
+                    SectionCodeHelper.GetSectionIndexOrZero(trackMetadata.SectionCode),
                     trackMetadata.TrackNumber,
                     lookUpPath);
             }
@@ -58,7 +58,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
     }
 
-    public async Task<string?> GetBiblePublicationTrackUrl(string languageCode, string pubCode, int sectionNumber, int track,
+    public async Task<string?> GetBiblePublicationTrackUrl(string languageCode, string pubCode, int sectionCode, int track,
         string lookUpPath)
     {
         try
@@ -88,12 +88,12 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                 return null;
             }
 
-            // For videos (sectionNumber == 0), try MP4 first, then MP3 as fallback
+            // For videos (sectionCode == 0), try MP4 first, then MP3 as fallback
             // For regular Bible publications, use MP3
             JsonElement? fileArray = null;
             string fileFormat = "MP3";
             
-            if (sectionNumber == 0)
+            if (sectionCode == 0)
             {
                 // Video - try MP4 first
                 if (languageFiles.TryGetProperty("MP4", out var mp4Files) && mp4Files.ValueKind == JsonValueKind.Array)
@@ -223,7 +223,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Exception in GetBiblePublicationTrackUrl for language '{LanguageCode}', section {SectionNumber}, track {Track}", languageCode, sectionNumber, track);
+            logger.Error(ex, "Exception in GetBiblePublicationTrackUrl for language '{LanguageCode}', section {SectionCode}, track {Track}", languageCode, sectionCode, track);
             return null;
         }
     }

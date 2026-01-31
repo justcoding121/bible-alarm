@@ -43,15 +43,15 @@ public sealed class BiblePublicationSection : IComparable
     public List<BiblePublicationTrack> Tracks { get; set; } = [];
 
     /// <summary>
-    /// Gets the section number by parsing SectionCode.
+    /// Gets the numeric section index by parsing SectionCode.
     /// Returns null if SectionCode cannot be parsed as an integer.
     /// Note: UrlParams["booknum"] is only used for URL construction, not for business logic.
     /// </summary>
-    public int? GetSectionNumber()
+    public int? TryGetSectionIndex()
     {
-        if (int.TryParse(SectionCode, out var sectionNumber))
+        if (int.TryParse(SectionCode, out var sectionIndex))
         {
-            return sectionNumber;
+            return sectionIndex;
         }
         return null;
     }

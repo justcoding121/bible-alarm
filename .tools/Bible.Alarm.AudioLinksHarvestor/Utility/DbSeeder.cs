@@ -261,10 +261,10 @@ internal class DbSeeder : IDataPersister
         string publicationCode,
         string publicationName,
         Dictionary<int, BiblePublicationSection> sections,
-        Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionNumberTrackMap)
+        Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionCodeTrackMap)
     {
         var key = (languageCode.ToUpperInvariant(), publicationCode.ToLowerInvariant());
-        dataStore.BiblePublications[key] = (publicationName, sections, sectionNumberTrackMap);
+        dataStore.BiblePublications[key] = (publicationName, sections, sectionCodeTrackMap);
         return Task.CompletedTask;
     }
 

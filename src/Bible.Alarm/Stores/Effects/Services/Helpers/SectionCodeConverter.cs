@@ -21,10 +21,10 @@ internal static class SectionCodeConverter
             return Task.FromResult(0);
         }
 
-        // Try to parse SectionCode directly to int
-        if (int.TryParse(sectionCode, out var sectionNumber))
+        // Try to parse section code directly to int
+        if (int.TryParse(sectionCode, out var sectionIndex))
         {
-            return Task.FromResult(sectionNumber);
+            return Task.FromResult(sectionIndex);
         }
 
         // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)

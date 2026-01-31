@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Models;
@@ -35,18 +36,18 @@ public sealed class TrackSelectionCommandHandler(
             return;
         }
 
-        // For non-sectioned publications (dramas/videos), section number is 0 or null
-        var effectiveSectionNumber = currentSchedule.BiblePublicationSectionNumber ?? 0;
+        var sectionCode = currentSchedule.BiblePublicationSectionCode;
+        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
 
-        logger.Debug("TrackSelectionCommandHandler: Setting track {TrackNumber} ({TrackTitle}) for section {SectionNumber}",
-            track.Number, track.Title, effectiveSectionNumber);
+        logger.Debug("TrackSelectionCommandHandler: Setting track {TrackNumber} ({TrackTitle}) for section {SectionCode} (index={SectionIndex})",
+            track.Number, track.Title, sectionCode ?? "(none)", sectionIndex);
 
         // Map entity to DTO before dispatching
         var trackSelectedItem = new BiblePublicationStateItem
         {
             LanguageCode = currentSchedule.BiblePublicationLanguageCode,
             PublicationCode = currentSchedule.BiblePublicationCode,
-            SectionNumber = effectiveSectionNumber,
+            SectionCode = sectionCode,
             TrackNumber = track.Number,
             // Store display names from current state and list item
             LanguageName = currentSchedule.BiblePublicationLanguageName,

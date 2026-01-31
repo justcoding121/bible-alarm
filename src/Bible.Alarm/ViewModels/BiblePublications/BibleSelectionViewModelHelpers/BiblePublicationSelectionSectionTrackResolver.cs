@@ -31,7 +31,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         this.languageContentService = languageContentService;
     }
 
-    internal async Task<(int SectionNumber, int TrackNumber, string SectionName, string TrackTitle)>
+    internal async Task<(int SectionCode, int TrackNumber, string SectionName, string TrackTitle)>
         GetFirstSectionAndTrackFromSectionsAsync(
             string? languageCode,
             string publicationCode,
@@ -40,9 +40,9 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
     {
         var firstSectionKvp = sections.First();
         var firstSection = firstSectionKvp.Value;
-        var firstSectionNumber = firstSectionKvp.Key; // Use the dictionary key (parsed from SectionCode)
-        Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First section number={SectionNumber}, name={SectionName}",
-            firstSectionNumber, firstSection.Name);
+        var firstSectionCode = firstSectionKvp.Key; // Use the dictionary key (parsed from SectionCode)
+        Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First section number={SectionCode}, name={SectionName}",
+            firstSectionCode, firstSection.Name);
 
         SortedDictionary<int, BiblePublicationTrack>? tracks;
 
@@ -149,7 +149,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                     {
                         // Re-query tracks after fetching
                         Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: Tracks fetched successfully, re-querying from database");
-                        tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionNumber);
+                        tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionCode);
                     }
                     else
                     {
@@ -165,14 +165,14 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             if (tracks == null || tracks.Count == 0)
             {
                 Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: Falling back to mediaService.GetBiblePublicationTracks");
-                tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionNumber);
+                tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionCode);
             }
         }
 
         if (tracks == null || tracks.Count == 0)
         {
-            Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, section={SectionNumber}",
-                languageCode ?? "(null)", publicationCode, firstSectionNumber);
+            Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, section={SectionCode}",
+                languageCode ?? "(null)", publicationCode, firstSectionCode);
             progress?.UpdateProgress(1.0);
             return (0, 0, string.Empty, string.Empty);
         }
@@ -182,10 +182,10 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             firstTrack.Number, firstTrack.Title);
 
         progress?.UpdateProgress(1.0);
-        return (firstSectionNumber, firstTrack.Number, firstSection.Name, firstTrack.Title);
+        return (firstSectionCode, firstTrack.Number, firstSection.Name, firstTrack.Title);
     }
 
-    internal async Task<(int SectionNumber, int TrackNumber, string SectionName, string TrackTitle)>
+    internal async Task<(int SectionCode, int TrackNumber, string SectionName, string TrackTitle)>
         GetFirstTrackForNonSectionedAsync(string? languageCode, string publicationCode, IFetchProgress? progress = null)
     {
         Log.Debug(
@@ -315,7 +315,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                 .Where(sl => sl.PublicationCode == publicationCodeForDb &&
                            sl.Language != null &&
                            sl.Language.LanguageCode == normalizedLanguageCode)
-                .OrderBy(sl => sl.SectionCode)
+                .OrderBy(sl => sl.SectionCode, SectionCodeHelper.SectionCodeComparer)
                 .Select(sl => sl.SectionCode)
                 .FirstOrDefaultAsync();
 

@@ -457,6 +457,9 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
                 return true;
             }
 
+            var cachedSectionCode = cachedSchedule.BiblePublicationSectionCode;
+            var freshSectionCode = freshSchedule.BiblePublicationSectionCode;
+
             // Compare key properties that matter for state
             if (cachedSchedule.Name != freshSchedule.Name ||
                 cachedSchedule.IsEnabled != freshSchedule.IsEnabled ||
@@ -473,7 +476,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
                 cachedSchedule.BiblePublicationScheduleId != freshSchedule.BiblePublicationScheduleId ||
                 cachedSchedule.BiblePublicationLanguageCode != freshSchedule.BiblePublicationLanguageCode ||
                 cachedSchedule.BiblePublicationCode != freshSchedule.BiblePublicationCode ||
-                cachedSchedule.BiblePublicationSectionNumber != freshSchedule.BiblePublicationSectionNumber ||
+                !string.Equals(cachedSectionCode, freshSectionCode, StringComparison.OrdinalIgnoreCase) ||
                 cachedSchedule.BiblePublicationTrackNumber != freshSchedule.BiblePublicationTrackNumber ||
                 cachedSchedule.MusicId != freshSchedule.MusicId ||
                 cachedSchedule.MusicSectionCode != freshSchedule.MusicSectionCode ||

@@ -113,12 +113,12 @@ internal sealed class BiblePublicationDisplayNamePopulator
     {
         // Convert SectionCode to int for lookup key
         if (!string.IsNullOrEmpty(biblePublication.SectionCode) && 
-            int.TryParse(biblePublication.SectionCode, out var sectionNum) && 
-            sectionNum > 0 &&
+            int.TryParse(biblePublication.SectionCode, out var sectionCode) && 
+            sectionCode > 0 &&
             !string.IsNullOrWhiteSpace(biblePublication.LanguageCode) &&
             !string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
         {
-            var sectionKey = (biblePublication.LanguageCode, biblePublication.PublicationCode, sectionNum);
+            var sectionKey = (biblePublication.LanguageCode, biblePublication.PublicationCode, sectionCode);
             if (lookupData.Sections.TryGetValue(sectionKey, out var sectionName))
             {
                 scheduleStateItem.BiblePublicationSectionName = sectionName;
@@ -152,16 +152,16 @@ internal sealed class BiblePublicationDisplayNamePopulator
         {
             // Convert SectionCode to int for lookup
             if (string.IsNullOrEmpty(biblePublication.SectionCode) || 
-                !int.TryParse(biblePublication.SectionCode, out var sectionNum) || 
-                sectionNum <= 0)
+                !int.TryParse(biblePublication.SectionCode, out var sectionCode) || 
+                sectionCode <= 0)
             {
                 return;
             }
 
             // Find the section in the publication
-            var section = publication.Sections?.FirstOrDefault(s => 
-                s.GetSectionNumber().HasValue && 
-                s.GetSectionNumber().Value == sectionNum);
+            var section = publication.Sections?.FirstOrDefault(s =>
+                s.TryGetSectionIndex().HasValue &&
+                s.TryGetSectionIndex()!.Value == sectionCode);
             
             if (section != null)
             {

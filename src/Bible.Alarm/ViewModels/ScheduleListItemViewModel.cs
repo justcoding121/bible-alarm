@@ -423,7 +423,7 @@ public sealed class ScheduleListItemViewModel(
             return;
         }
 
-        logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - ScheduleId: {ScheduleId}, CurrentPublicationCode: {PublicationCode}, CurrentSectionNumber: {SectionNumber}, CurrentTrackNumber: {TrackNumber}",
+        logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - ScheduleId: {ScheduleId}, CurrentPublicationCode: {PublicationCode}, CurrentSectionCode: {SectionCode}, CurrentTrackNumber: {TrackNumber}",
             schedule.Id,
             schedule.BiblePublicationSchedule?.PublicationCode ?? "null",
             schedule.BiblePublicationSchedule?.SectionCode ?? "null",
