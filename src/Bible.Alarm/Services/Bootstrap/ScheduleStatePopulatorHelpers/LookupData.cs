@@ -17,15 +17,18 @@ internal sealed class LookupDataLoader
     private readonly IBiblePublicationService? BiblePublicationService;
     private readonly IBiblePublicationSectionService? biblePublicationSectionService;
     private readonly IMediaService? mediaService;
+    private readonly IVocalMusicService? vocalMusicService;
 
     public LookupDataLoader(
         IBiblePublicationService? BiblePublicationService,
         IBiblePublicationSectionService? biblePublicationSectionService,
-        IMediaService? mediaService)
+        IMediaService? mediaService,
+        IVocalMusicService? vocalMusicService)
     {
         this.BiblePublicationService = BiblePublicationService;
         this.biblePublicationSectionService = biblePublicationSectionService;
         this.mediaService = mediaService;
+        this.vocalMusicService = vocalMusicService;
     }
 
     public async Task<LookupData> LoadAllAsync(LookupDataCollector.LookupKeys keys)
@@ -78,12 +81,14 @@ internal sealed class LookupDataLoader
             ? mediaService.GetVocalMusicLanguages()
             : Task.FromResult<Dictionary<string, Language>>(new Dictionary<string, Language>());
 
+        // For bootstrap schedule list display, we only need already-downloaded vocal publications
+        // referenced by schedules. Avoid GetVocalMusicReleases (discovery + placeholders) to reduce DB work.
         var vocalReleasesTasks = keys.VocalMusicKeys.GroupBy(k => k.LanguageCode).Select(async group =>
         {
             try
             {
-                var releases = mediaService != null
-                    ? await mediaService.GetVocalMusicReleases(group.Key)
+                var releases = vocalMusicService != null
+                    ? await vocalMusicService.GetByLanguageCodeAsync(group.Key)
                     : null;
                 return (LanguageCode: group.Key, Releases: releases ?? new Dictionary<string, VocalMusic>());
             }

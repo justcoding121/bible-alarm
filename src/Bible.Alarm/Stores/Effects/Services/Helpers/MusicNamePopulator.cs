@@ -23,13 +23,16 @@ internal sealed class MusicNamePopulator
 {
     private readonly IBiblePublicationSectionService? biblePublicationSectionService;
     private readonly IMediaService? mediaService;
+    private readonly IVocalMusicService? vocalMusicService;
 
     public MusicNamePopulator(
         IBiblePublicationSectionService? biblePublicationSectionService,
-        IMediaService? mediaService)
+        IMediaService? mediaService,
+        IVocalMusicService? vocalMusicService)
     {
         this.biblePublicationSectionService = biblePublicationSectionService;
         this.mediaService = mediaService;
+        this.vocalMusicService = vocalMusicService;
     }
 
     /// <summary>
@@ -105,8 +108,11 @@ internal sealed class MusicNamePopulator
                     return;
                 }
 
-                var releases = await mediaService.GetVocalMusicReleases(music.LanguageCode);
-                if (releases.TryGetValue(music.PublicationCode, out var release))
+                // Avoid loading *all* vocal music releases just to get one name.
+                var release = vocalMusicService != null
+                    ? await vocalMusicService.GetByLanguageAndCodeAsync(music.LanguageCode, music.PublicationCode)
+                    : null;
+                if (release != null)
                 {
                     scheduleStateItem.MusicPublicationName = release.Name;
                     Log.Debug("ScheduleEffects: Set MusicPublicationName '{MusicPublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",

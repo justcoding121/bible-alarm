@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,20 +25,60 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
 
+    private static readonly TimeSpan PublicationCacheTtl = TimeSpan.FromSeconds(10);
+
+    private readonly ConcurrentDictionary<PublicationCacheKey, PublicationCacheEntry> publicationWithSectionsCache = new();
+    private readonly ConcurrentDictionary<PublicationCacheKey, PublicationCacheEntry> publicationWithTracksCache = new();
+
+    private readonly record struct PublicationCacheKey(string LanguageCode, string PublicationCode);
+
+    private sealed class PublicationCacheEntry(DateTimeOffset createdAt, Lazy<Task<BiblePublication?>> value)
+    {
+        public DateTimeOffset CreatedAt { get; } = createdAt;
+        public Lazy<Task<BiblePublication?>> Value { get; } = value;
+    }
+
+    // Cache for distinct languages (PublicationLanguages is effectively static at runtime).
+    // This prevents expensive COUNT/DISTINCT queries during playback navigation (next/prev track),
+    // schedule cache refresh, and other state updates.
+    private readonly object distinctLanguagesCacheLock = new();
+    private Dictionary<string, Language>? cachedDistinctLanguagesAll;
+    private readonly Dictionary<string, Dictionary<string, Language>> cachedDistinctLanguagesByCategory =
+        new(StringComparer.OrdinalIgnoreCase);
+
     public async Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
-            using var scope = scopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+            var key = new PublicationCacheKey(normalizedLanguageCode, publicationCode);
+            var now = DateTimeOffset.UtcNow;
 
-            return await dbContext.BiblePublications
-                .AsNoTracking()
-                .Include(x => x.Category)
-                .Include(x => x.Sections)
-                    .ThenInclude(s => s.Tracks)
-                .Where(x => x.PublicationCode == publicationCode && x.Language != null && x.Language.LanguageCode == languageCode)
-                .FirstOrDefaultAsync(cancellationToken);
+            static Lazy<Task<BiblePublication?>> CreateLazy(
+                BiblePublicationService self,
+                string lang,
+                string code,
+                CancellationToken ct)
+                => new(() => self.LoadPublicationWithSectionsUncachedAsync(lang, code, ct),
+                    LazyThreadSafetyMode.ExecutionAndPublication);
+
+            var entry = publicationWithSectionsCache.AddOrUpdate(
+                key,
+                _ => new PublicationCacheEntry(now, CreateLazy(this, normalizedLanguageCode, publicationCode, cancellationToken)),
+                (_, existing) =>
+                    now - existing.CreatedAt <= PublicationCacheTtl
+                        ? existing
+                        : new PublicationCacheEntry(now, CreateLazy(this, normalizedLanguageCode, publicationCode, cancellationToken)));
+
+            try
+            {
+                return await entry.Value.Value;
+            }
+            catch
+            {
+                publicationWithSectionsCache.TryRemove(key, out _);
+                throw;
+            }
         }
         catch (Exception ex)
         {
@@ -47,13 +88,27 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
     }
 
+    private async Task<BiblePublication?> LoadPublicationWithSectionsUncachedAsync(
+        string normalizedLanguageCode,
+        string publicationCode,
+        CancellationToken cancellationToken)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        return await dbContext.BiblePublications
+            .AsNoTracking()
+            .Include(x => x.Category)
+            .Include(x => x.Sections)
+                .ThenInclude(s => s.Tracks)
+            .Where(x => x.PublicationCode == publicationCode && x.Language != null && x.Language.LanguageCode == normalizedLanguageCode)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
-            using var scope = scopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
 
             // For dramas, use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
@@ -72,18 +127,36 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 publicationCodeForDb = publicationCode; // Preserve exact case (e.g., "gnj")
             }
 
-            // Load publication with only non-sectioned tracks (tracks directly under publication, not under a section)
-            var publication = await dbContext.BiblePublications
-                .AsNoTracking()
-                .Include(x => x.Category)
-                .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
-                .Where(x => x.PublicationCode == publicationCodeForDb && x.Language != null && x.Language.LanguageCode == normalizedLanguageCode)
-                .FirstOrDefaultAsync(cancellationToken);
+            var key = new PublicationCacheKey(normalizedLanguageCode, publicationCodeForDb);
+            var now = DateTimeOffset.UtcNow;
 
-            logger.Debug("GetByLanguageAndCodeWithTracksAsync: Loaded publication={PublicationName}, TracksCount={TracksCount} for language={LanguageCode}, code={PublicationCode} (dbCode={DbCode})",
-                publication?.Name ?? "(null)", publication?.Tracks?.Count ?? 0, languageCode, publicationCode, publicationCodeForDb);
+            static Lazy<Task<BiblePublication?>> CreateLazy(
+                BiblePublicationService self,
+                string lang,
+                string code,
+                string originalCodeForLog,
+                string originalInputCodeForLog,
+                CancellationToken ct)
+                => new(() => self.LoadPublicationWithTracksUncachedAsync(lang, code, originalCodeForLog, originalInputCodeForLog, ct),
+                    LazyThreadSafetyMode.ExecutionAndPublication);
 
-            return publication;
+            var entry = publicationWithTracksCache.AddOrUpdate(
+                key,
+                _ => new PublicationCacheEntry(now, CreateLazy(this, normalizedLanguageCode, publicationCodeForDb, publicationCodeForDb, publicationCode, cancellationToken)),
+                (_, existing) =>
+                    now - existing.CreatedAt <= PublicationCacheTtl
+                        ? existing
+                        : new PublicationCacheEntry(now, CreateLazy(this, normalizedLanguageCode, publicationCodeForDb, publicationCodeForDb, publicationCode, cancellationToken)));
+
+            try
+            {
+                return await entry.Value.Value;
+            }
+            catch
+            {
+                publicationWithTracksCache.TryRemove(key, out _);
+                throw;
+            }
         }
         catch (Exception ex)
         {
@@ -91,6 +164,30 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 languageCode, publicationCode);
             throw;
         }
+    }
+
+    private async Task<BiblePublication?> LoadPublicationWithTracksUncachedAsync(
+        string normalizedLanguageCode,
+        string publicationCodeForDb,
+        string publicationCodeForDbForLog,
+        string originalPublicationCodeForLog,
+        CancellationToken cancellationToken)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        // Load publication with only non-sectioned tracks (tracks directly under publication, not under a section)
+        var publication = await dbContext.BiblePublications
+            .AsNoTracking()
+            .Include(x => x.Category)
+            .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
+            .Where(x => x.PublicationCode == publicationCodeForDb && x.Language != null && x.Language.LanguageCode == normalizedLanguageCode)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        logger.Debug("GetByLanguageAndCodeWithTracksAsync: Loaded publication={PublicationName}, TracksCount={TracksCount} for language={LanguageCode}, code={PublicationCode} (dbCode={DbCode})",
+            publication?.Name ?? "(null)", publication?.Tracks?.Count ?? 0, normalizedLanguageCode, originalPublicationCodeForLog, publicationCodeForDbForLog);
+
+        return publication;
     }
 
     public async Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default)
@@ -144,6 +241,23 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
     {
         try
         {
+            // Fast path: return cached result if available
+            var normalizedCategory = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
+            lock (distinctLanguagesCacheLock)
+            {
+                if (normalizedCategory == null && cachedDistinctLanguagesAll != null)
+                {
+                    // Return a copy to avoid callers mutating the cached dictionary.
+                    return new Dictionary<string, Language>(cachedDistinctLanguagesAll);
+                }
+
+                if (normalizedCategory != null &&
+                    cachedDistinctLanguagesByCategory.TryGetValue(normalizedCategory, out var cachedForCategory))
+                {
+                    return new Dictionary<string, Language>(cachedForCategory);
+                }
+            }
+
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
@@ -170,7 +284,22 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             logger.Debug("BiblePublicationService.GetDistinctLanguagesAsync: Found {PublicationLanguageCount} PublicationLanguage entries across {LanguageCount} distinct languages",
                 publicationLanguagesCount, distinctLanguages.Count);
 
-            return distinctLanguages.ToDictionary(x => x.LanguageCode, x => x);
+            var result = distinctLanguages.ToDictionary(x => x.LanguageCode, x => x);
+
+            // Cache result for subsequent calls
+            lock (distinctLanguagesCacheLock)
+            {
+                if (normalizedCategory == null)
+                {
+                    cachedDistinctLanguagesAll = result;
+                }
+                else
+                {
+                    cachedDistinctLanguagesByCategory[normalizedCategory] = result;
+                }
+            }
+
+            return new Dictionary<string, Language>(result);
         }
         catch (Exception ex)
         {

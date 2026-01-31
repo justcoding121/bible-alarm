@@ -236,6 +236,24 @@ public sealed class ScheduleListItemViewModel(
     public string BiblePublicationTrackName
         => bibleDisplayNameProvider.GetBiblePublicationTrackName(ScheduleId);
 
+    public bool IsBibleCategory
+        => bibleDisplayNameProvider.IsBibleCategory(ScheduleId);
+
+    /// <summary>
+    /// Home page display: for Bible category, show "SectionName TrackNumber" (e.g. "Exodus 9") as one line.
+    /// </summary>
+    public string BiblePublicationSectionAndTrackOneLine
+        => bibleDisplayNameProvider.GetBiblePublicationSectionAndTrackOneLine(ScheduleId);
+
+    public bool ShouldShowBiblePublicationSectionAndTrackOneLine
+        => IsBibleCategory && !string.IsNullOrWhiteSpace(BiblePublicationSectionAndTrackOneLine);
+
+    public bool ShouldShowBiblePublicationSectionNameLine
+        => !IsBibleCategory && !string.IsNullOrWhiteSpace(BiblePublicationSectionName);
+
+    public bool ShouldShowBiblePublicationTrackNameLine
+        => !IsBibleCategory && !string.IsNullOrWhiteSpace(BiblePublicationTrackName);
+
     public bool MusicEnabled => Schedule?.MusicEnabled ?? false;
 
     public bool IsEnabled

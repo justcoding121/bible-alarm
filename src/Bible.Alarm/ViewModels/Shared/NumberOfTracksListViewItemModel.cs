@@ -8,13 +8,11 @@ public sealed class NumberOfTracksListViewItemModel : ObservableObject, ICompara
     private string unitSingular;
     private string unitPlural;
 
-    public NumberOfTracksListViewItemModel(int number, bool hasSectionStructure = true)
+    public NumberOfTracksListViewItemModel(int number, string unitSingular, string unitPlural)
     {
         Value = number;
-        // Use "chapter"/"chapters" for sectioned publications (Bible),
-        // "episode"/"episodes" for non-sectioned publications (dramas)
-        unitSingular = hasSectionStructure ? "chapter" : "episode";
-        unitPlural = hasSectionStructure ? "chapters" : "episodes";
+        this.unitSingular = unitSingular;
+        this.unitPlural = unitPlural;
     }
 
     public string Text => $"{Value} {(Value == 1 ? unitSingular : unitPlural)}";
@@ -36,12 +34,12 @@ public sealed class NumberOfTracksListViewItemModel : ObservableObject, ICompara
     }
 
     /// <summary>
-    /// Updates the unit labels (chapter/episode) and notifies Text property changed.
+    /// Updates the unit labels and notifies Text property changed.
     /// </summary>
-    public void UpdateUnitLabels(bool hasSectionStructure)
+    public void UpdateUnitLabels(string newUnitSingular, string newUnitPlural)
     {
-        unitSingular = hasSectionStructure ? "chapter" : "episode";
-        unitPlural = hasSectionStructure ? "chapters" : "episodes";
+        unitSingular = newUnitSingular;
+        unitPlural = newUnitPlural;
         OnPropertyChanged(nameof(Text));
     }
 

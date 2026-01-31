@@ -25,10 +25,11 @@ public sealed class ScheduleDisplayNamePopulator
         var biblePubService = BiblePublicationService ?? ServiceProviderManager.GetService<IBiblePublicationService>();
         var sectionService = biblePublicationSectionService ?? ServiceProviderManager.GetService<IBiblePublicationSectionService>();
         var mediaSvc = mediaService ?? ServiceProviderManager.GetService<IMediaService>();
+        var vocalSvc = ServiceProviderManager.GetService<IVocalMusicService>();
 
         this.biblePublicationNamePopulator = new BiblePublicationNamePopulator(
             biblePubService, sectionService, mediaSvc);
-        this.musicNamePopulator = new MusicNamePopulator(sectionService, mediaSvc);
+        this.musicNamePopulator = new MusicNamePopulator(sectionService, mediaSvc, vocalSvc);
     }
 
     /// <summary>

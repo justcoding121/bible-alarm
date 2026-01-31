@@ -3,7 +3,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -33,7 +32,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     private bool alwaysPlayFromStart;
     private bool playIndefinitely;
     private bool isProcessingStateChange;
-    private string? lastPublicationCode;
+    private string? lastCategoryName;
     private readonly ContainerReadySignaler containerReadySignaler;
 
     private ObservableCollection<NumberOfTracksListViewItemModel> numberOfTracksList = new();
@@ -112,7 +111,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             notificationEnabled = currentSchedule.NotificationEnabled;
             alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
             playIndefinitely = currentSchedule.NumberOfTracksToPlay <= 0;
-            lastPublicationCode = currentSchedule.BiblePublicationCode;
+            lastCategoryName = currentSchedule.BiblePublicationCategoryName;
 
             PopulateNumberOfTracksListView();
 
@@ -120,10 +119,10 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             OnPropertyChanged(nameof(AlwaysPlayFromStart));
             OnPropertyChanged(nameof(PlayIndefinitely));
             OnPropertyChanged(nameof(IsNumberOfTracksSelectionVisible));
-            OnPropertyChanged(nameof(HasSectionStructure));
             OnPropertyChanged(nameof(TrackLabelText));
             OnPropertyChanged(nameof(ModalHeaderText));
             OnPropertyChanged(nameof(RestartLabelText));
+            OnPropertyChanged(nameof(SelectedTracksText));
 
             // Signal that this container is ready (initialized from CurrentSchedule)
             containerReadySignaler.TrySignalReady();
@@ -189,40 +188,29 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                     OnPropertyChanged(nameof(IsNumberOfTracksSelectionVisible));
                 }
 
-                // Check if publication code changed (switched between sectioned and non-sectioned)
-                var newPublicationCode = currentSchedule.BiblePublicationCode;
-                if (lastPublicationCode != null && lastPublicationCode != newPublicationCode)
+                // Check if category changed (Bible/Dramas/Music -> affects UI wording)
+                var newCategoryName = currentSchedule.BiblePublicationCategoryName;
+                if (!string.Equals(lastCategoryName, newCategoryName, StringComparison.OrdinalIgnoreCase))
                 {
-                    var wasHasSectionStructure = PublicationTypeHelper.HasSectionStructure(lastPublicationCode);
-                    var nowHasSectionStructure = PublicationTypeHelper.HasSectionStructure(newPublicationCode);
+                    OnPropertyChanged(nameof(TrackLabelText));
+                    OnPropertyChanged(nameof(TracksLabelText));
+                    OnPropertyChanged(nameof(SelectedTracksText));
+                    OnPropertyChanged(nameof(ModalHeaderText));
+                    OnPropertyChanged(nameof(RestartLabelText));
 
-                    if (wasHasSectionStructure != nowHasSectionStructure)
+                    // Default selection is always 1 (tracks/episodes/chapters).
+                    const int newDefault = 1;
+
+                    // Repopulate the list (unit labels may have changed)
+                    PopulateNumberOfTracksListView(newDefault);
+
+                    // Only update NumberOfTracksToPlay if we're in finite mode.
+                    if (!playIndefinitely)
                     {
-                        // Update label text properties
-                        OnPropertyChanged(nameof(HasSectionStructure));
-                        OnPropertyChanged(nameof(TrackLabelText));
-                        OnPropertyChanged(nameof(TracksLabelText));
-                        OnPropertyChanged(nameof(SelectedTracksText));
-                        OnPropertyChanged(nameof(ModalHeaderText));
-                        OnPropertyChanged(nameof(RestartLabelText));
-
-                        // Default selection is always 1 (chapters/episodes).
-                        const int newDefault = 1;
-                        
-                        // Repopulate the list to update max for non-sectioned publications
-                        // Pass the new default as forced selection so it's selected when list is populated
-                        PopulateNumberOfTracksListView(newDefault);
-                        
-                        // Dispatch update to state
-                        // Only update NumberOfTracksToPlay if we're in finite mode.
-                        // In indefinite mode, NumberOfTracksToPlay must remain 0.
-                        if (!playIndefinitely)
-                        {
-                            DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = newDefault);
-                        }
+                        DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = newDefault);
                     }
                 }
-                lastPublicationCode = newPublicationCode;
+                lastCategoryName = newCategoryName;
             }
         }
         finally
@@ -265,36 +253,86 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     /// </summary>
     public string CurrentNumberOfTracksText => CurrentNumberOfTracks?.Text ?? string.Empty;
 
-    /// <summary>
-    /// Gets whether the current publication has section structure (traditional Bible with chapters).
-    /// Non-sectioned publications are dramas/videos with episodes.
-    /// </summary>
-    public bool HasSectionStructure
+    private enum TracksUnit
     {
-        get
+        Chapter,
+        Episode,
+        Track
+    }
+
+    private TracksUnit GetTracksUnit()
+    {
+        var categoryName = state.Value.CurrentSchedule?.BiblePublicationCategoryName;
+
+        if (string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
         {
-            var publicationCode = state.Value.CurrentSchedule?.BiblePublicationCode;
-            return PublicationTypeHelper.HasSectionStructure(publicationCode);
+            return TracksUnit.Track;
         }
+
+        if (string.Equals(categoryName, "Dramas", StringComparison.OrdinalIgnoreCase))
+        {
+            return TracksUnit.Episode;
+        }
+
+        // Default wording matches the Bible category (and any future categories that behave like Bible).
+        return TracksUnit.Chapter;
+    }
+
+    private (string Singular, string Plural) GetUnitTextTitleCase()
+    {
+        return GetTracksUnit() switch
+        {
+            TracksUnit.Track => ("Track", "Tracks"),
+            TracksUnit.Episode => ("Episode", "Episodes"),
+            _ => ("Chapter", "Chapters")
+        };
+    }
+
+    private (string Singular, string Plural) GetUnitTextLowerCase()
+    {
+        return GetTracksUnit() switch
+        {
+            TracksUnit.Track => ("track", "tracks"),
+            TracksUnit.Episode => ("episode", "episodes"),
+            _ => ("chapter", "chapters")
+        };
     }
 
     /// <summary>
     /// Gets the label text for the tracks selection row.
-    /// Returns "Chapters to play each time" for sectioned publications (Bible),
-    /// or "Episodes to play each time" for non-sectioned publications (dramas).
+    /// Uses category-based wording:
+    /// - Music => Tracks
+    /// - Dramas => Episodes
+    /// - Others => Chapters
     /// </summary>
-    public string TrackLabelText => HasSectionStructure ? "Chapters to play each time" : "Episodes to play each time";
+    public string TrackLabelText
+    {
+        get
+        {
+            var (_, titlePlural) = GetUnitTextTitleCase();
+            return $"{titlePlural} to play each time";
+        }
+    }
 
     /// <summary>
     /// Gets the static label text for the tracks selection row.
-    /// Returns "Number of chapters to play" for sectioned publications (Bible),
-    /// or "Number of episodes to play" for non-sectioned publications (dramas).
+    /// Uses category-based wording:
+    /// - Music => Tracks
+    /// - Dramas => Episodes
+    /// - Others => Chapters
     /// </summary>
-    public string TracksLabelText => HasSectionStructure ? "Number of chapters to play" : "Number of episodes to play";
+    public string TracksLabelText
+    {
+        get
+        {
+            var (_, plural) = GetUnitTextLowerCase();
+            return $"Number of {plural} to play";
+        }
+    }
 
     /// <summary>
     /// Gets the dynamic selected value text showing the number with proper singular/plural.
-    /// Returns format like "3 Chapters", "1 Chapter", "3 Episodes", or "1 Episode".
+    /// Returns format like "3 Chapters", "1 Chapter", "3 Episodes", "1 Episode", "3 Tracks", or "1 Track".
     /// </summary>
     public string SelectedTracksText
     {
@@ -303,12 +341,12 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             var number = CurrentNumberOfTracks?.Value ?? 0;
             if (number == 0)
             {
-                return HasSectionStructure ? "Chapters" : "Episodes";
+                var (_, titlePlural) = GetUnitTextTitleCase();
+                return titlePlural;
             }
-            
-            var unitSingular = HasSectionStructure ? "Chapter" : "Episode";
-            var unitPlural = HasSectionStructure ? "Chapters" : "Episodes";
-            var selectedUnit = number == 1 ? unitSingular : unitPlural;
+
+            var (titleSingular, titlePlural2) = GetUnitTextTitleCase();
+            var selectedUnit = number == 1 ? titleSingular : titlePlural2;
             return $"{number} {selectedUnit}";
         }
     }
@@ -328,19 +366,35 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
     /// <summary>
     /// Gets the header text for the tracks selection modal.
-    /// Returns "Select Number of Chapters" for sectioned publications,
-    /// or "Select Number of Episodes" for non-sectioned publications.
+    /// Uses category-based wording:
+    /// - Music => Tracks
+    /// - Dramas => Episodes
+    /// - Others => Chapters
     /// </summary>
-    public string ModalHeaderText => HasSectionStructure ? "Select Number of Chapters" : "Select Number of Episodes";
+    public string ModalHeaderText
+    {
+        get
+        {
+            var (_, plural) = GetUnitTextTitleCase();
+            return $"Select Number of {plural}";
+        }
+    }
 
     /// <summary>
     /// Gets the label text for the "restart incomplete" toggle.
-    /// Returns "Restart incomplete chapters from the beginning" for sectioned publications,
-    /// or "Restart incomplete episodes from the beginning" for non-sectioned publications.
+    /// Uses category-based wording:
+    /// - Music => tracks
+    /// - Dramas => episodes
+    /// - Others => chapters
     /// </summary>
-    public string RestartLabelText => HasSectionStructure 
-        ? "Restart incomplete chapters from the beginning" 
-        : "Restart incomplete episodes from the beginning";
+    public string RestartLabelText
+    {
+        get
+        {
+            var (_, plural) = GetUnitTextLowerCase();
+            return $"Restart incomplete {plural} from the beginning";
+        }
+    }
 
     public bool NotificationEnabled
     {
@@ -474,7 +528,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         // Preserve the current selection if user has made one, or use forced selection
         var preservedSelection = forceSelection ?? CurrentNumberOfTracks?.Value;
         var currentSchedule = state.Value.CurrentSchedule;
-        var hasSectionStructure = HasSectionStructure;
+        var (unitSingularLower, unitPluralLower) = GetUnitTextLowerCase();
 
         // Default selection is always 1 (chapters/episodes).
         const int defaultTracks = 1;
@@ -490,8 +544,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         const int maxTracksCap = 21; // Must match AlarmSchedule.NumberOfTracksToPlay validation range and modal max
         int maxTracks = maxTracksCap;
         
-        // For non-sectioned publications, get the actual number of episodes
-        if (!hasSectionStructure && currentSchedule != null)
+        // For dramas, get the actual number of episodes (cap to 21).
+        if (GetTracksUnit() == TracksUnit.Episode && currentSchedule != null)
         {
             try
             {
@@ -523,7 +577,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
         for (var i = 1; i <= maxTracks; i++)
         {
-            var tracksVm = new NumberOfTracksListViewItemModel(i, hasSectionStructure);
+            var tracksVm = new NumberOfTracksListViewItemModel(i, unitSingularLower, unitPluralLower);
 
             // If user has made a selection, use that; otherwise use the state's value
             var shouldSelect = preservedSelection.HasValue

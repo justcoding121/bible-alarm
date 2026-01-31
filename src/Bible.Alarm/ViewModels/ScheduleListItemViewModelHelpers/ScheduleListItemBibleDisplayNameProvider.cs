@@ -16,6 +16,22 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
         this.applicationState = applicationState;
     }
 
+    public bool IsBibleCategory(int scheduleId)
+    {
+        if (scheduleId <= 0)
+        {
+            return false;
+        }
+
+        var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
+        if (scheduleStateItem == null)
+        {
+            return false;
+        }
+
+        return string.Equals(scheduleStateItem.BiblePublicationCategoryName, "Bible", StringComparison.OrdinalIgnoreCase);
+    }
+
     public string GetBiblePublicationName(int scheduleId)
     {
         if (scheduleId <= 0)
@@ -48,6 +64,51 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
         }
 
         return string.Empty;
+    }
+
+    public string GetBiblePublicationSectionAndTrackOneLine(int scheduleId)
+    {
+        if (scheduleId <= 0)
+        {
+            return string.Empty;
+        }
+
+        var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
+        if (scheduleStateItem == null)
+        {
+            return string.Empty;
+        }
+
+        // Only for Bible category (per UX requirement).
+        if (!string.Equals(scheduleStateItem.BiblePublicationCategoryName, "Bible", StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Empty;
+        }
+
+        var sectionName = scheduleStateItem.BiblePublicationSectionName;
+        if (string.IsNullOrWhiteSpace(sectionName))
+        {
+            return string.Empty;
+        }
+
+        // Prefer track number (data-driven), fall back to parsing any numeric suffix from track title.
+        int? trackNumber = scheduleStateItem.BiblePublicationTrackNumber is > 0
+            ? scheduleStateItem.BiblePublicationTrackNumber
+            : null;
+
+        if (trackNumber == null && !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
+        {
+            // e.g. "Chapter 9" -> 9
+            var digits = new string(scheduleStateItem.BiblePublicationTrackTitle.Where(char.IsDigit).ToArray());
+            if (int.TryParse(digits, out var parsed) && parsed > 0)
+            {
+                trackNumber = parsed;
+            }
+        }
+
+        return trackNumber.HasValue
+            ? $"{sectionName} {trackNumber.Value}"
+            : sectionName;
     }
 
     public string GetBiblePublicationTrackName(int scheduleId)

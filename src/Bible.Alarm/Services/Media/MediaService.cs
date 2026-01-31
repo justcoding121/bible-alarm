@@ -10,6 +10,7 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using System.Collections.Concurrent;
 
 namespace Bible.Alarm.Services.Media;
 
@@ -37,6 +38,19 @@ public sealed class MediaService(
 
     // Using centralized sorting helper from Bible.Alarm.Shared.Helpers.PublicationSortHelper
 
+    private static readonly TimeSpan BiblePublicationsCacheTtl = TimeSpan.FromSeconds(5);
+
+    private readonly ConcurrentDictionary<BiblePublicationsCacheKey, BiblePublicationsCacheEntry> biblePublicationsCache = new();
+    private readonly ConcurrentDictionary<string, bool> publicationWithoutLanguageCache = new(StringComparer.OrdinalIgnoreCase);
+
+    private readonly record struct BiblePublicationsCacheKey(string LanguageCode, string? CategoryName);
+
+    private sealed class BiblePublicationsCacheEntry(DateTimeOffset createdAt, Lazy<Task<Dictionary<string, BiblePublication>>> value)
+    {
+        public DateTimeOffset CreatedAt { get; } = createdAt;
+        public Lazy<Task<Dictionary<string, BiblePublication>>> Value { get; } = value;
+    }
+
     public async Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null)
     {
         await mediaIndexService.Verify();
@@ -44,6 +58,56 @@ public sealed class MediaService(
     }
 
     public async Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false, IFetchProgress? progress = null)
+    {
+        // Cache only the "read-only" variant used by UI display/selectability checks.
+        // If downloadAll=true or progress is provided, we must execute fresh to support downloads/progress reporting.
+        if (downloadAll || progress != null)
+        {
+            await mediaIndexService.Verify();
+            return await MediaServiceBiblePublicationList.GetBiblePublicationsAsync(
+                BiblePublicationService,
+                languageContentService,
+                scopeFactory,
+                cancellationTokenSource.Token,
+                languageCode,
+                categoryName,
+                downloadAll,
+                progress);
+        }
+
+        var normalizedLanguage = languageCode ?? string.Empty;
+        var normalizedCategory = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
+        var key = new BiblePublicationsCacheKey(normalizedLanguage, normalizedCategory);
+        var now = DateTimeOffset.UtcNow;
+
+        static Lazy<Task<Dictionary<string, BiblePublication>>> CreateLazy(
+            MediaService self,
+            string lang,
+            string? cat)
+            => new(() => self.LoadBiblePublicationsUncachedAsync(lang, cat),
+                LazyThreadSafetyMode.ExecutionAndPublication);
+
+        var entry = biblePublicationsCache.AddOrUpdate(
+            key,
+            _ => new BiblePublicationsCacheEntry(now, CreateLazy(this, normalizedLanguage, normalizedCategory)),
+            (_, existing) =>
+                now - existing.CreatedAt <= BiblePublicationsCacheTtl
+                    ? existing
+                    : new BiblePublicationsCacheEntry(now, CreateLazy(this, normalizedLanguage, normalizedCategory)));
+
+        try
+        {
+            return await entry.Value.Value;
+        }
+        catch
+        {
+            // If the cached task fails, remove it so next call can retry.
+            biblePublicationsCache.TryRemove(key, out _);
+            throw;
+        }
+    }
+
+    private async Task<Dictionary<string, BiblePublication>> LoadBiblePublicationsUncachedAsync(string languageCode, string? categoryName)
     {
         await mediaIndexService.Verify();
         return await MediaServiceBiblePublicationList.GetBiblePublicationsAsync(
@@ -53,8 +117,30 @@ public sealed class MediaService(
             cancellationTokenSource.Token,
             languageCode,
             categoryName,
-            downloadAll,
-            progress);
+            downloadAll: false,
+            progress: null);
+    }
+
+    private async Task<bool> IsPublicationWithoutLanguageAsync(string publicationCode)
+    {
+        if (string.IsNullOrWhiteSpace(publicationCode))
+        {
+            return false;
+        }
+
+        if (publicationWithoutLanguageCache.TryGetValue(publicationCode, out var cached))
+        {
+            return cached;
+        }
+
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+        var publicationWithoutLanguage = await db.BiblePublications
+            .AsNoTracking()
+            .AnyAsync(bp => bp.PublicationCode == publicationCode && bp.LanguageId == null, cancellationTokenSource.Token);
+
+        publicationWithoutLanguageCache[publicationCode] = publicationWithoutLanguage;
+        return publicationWithoutLanguage;
     }
 
     public async Task<SortedDictionary<int, BiblePublicationSection>> GetBiblePublicationSections(
@@ -64,19 +150,11 @@ public sealed class MediaService(
         
         // Check if publication has LanguageId == null (publications without language)
         // If so, use GetSectionsForPublicationWithoutLanguage which handles publications without language
-        using (var scope = scopeFactory.CreateScope())
+        if (await IsPublicationWithoutLanguageAsync(versionCode))
         {
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            var publicationWithoutLanguage = await db.BiblePublications
-                .AsNoTracking()
-                .AnyAsync(bp => bp.PublicationCode == versionCode && bp.LanguageId == null, cancellationTokenSource.Token);
-            
-            if (publicationWithoutLanguage)
-            {
-                // Publication has LanguageId == null - use GetSectionsForPublicationWithoutLanguage which handles this case
-                Log.Debug("Publication {PublicationCode} has LanguageId == null, using GetSectionsForPublicationWithoutLanguage", versionCode);
-                return await GetSectionsForPublicationWithoutLanguage(versionCode);
-            }
+            // Publication has LanguageId == null - use GetSectionsForPublicationWithoutLanguage which handles this case
+            Log.Debug("Publication {PublicationCode} has LanguageId == null, using GetSectionsForPublicationWithoutLanguage", versionCode);
+            return await GetSectionsForPublicationWithoutLanguage(versionCode);
         }
         
         // Publication has a language - use standard query
@@ -153,19 +231,11 @@ public sealed class MediaService(
         
         // Check if publication has LanguageId == null (publications without language)
         // If so, query tracks directly from database without language code
-        using (var scope = scopeFactory.CreateScope())
+        if (await IsPublicationWithoutLanguageAsync(versionCode))
         {
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            var publicationWithoutLanguage = await db.BiblePublications
-                .AsNoTracking()
-                .AnyAsync(bp => bp.PublicationCode == versionCode && bp.LanguageId == null, cancellationTokenSource.Token);
-            
-            if (publicationWithoutLanguage)
-            {
-                // Publication has LanguageId == null - query tracks directly from database
-                Log.Debug("Publication {PublicationCode} has LanguageId == null, querying tracks directly", versionCode);
-                return await GetTracksForPublicationWithoutLanguage(versionCode, sectionNumber);
-            }
+            // Publication has LanguageId == null - query tracks directly from database
+            Log.Debug("Publication {PublicationCode} has LanguageId == null, querying tracks directly", versionCode);
+            return await GetTracksForPublicationWithoutLanguage(versionCode, sectionNumber);
         }
         
         // Publication has a language - use standard query
@@ -261,9 +331,12 @@ public sealed class MediaService(
     public async Task<Dictionary<string, Language>> GetVocalMusicLanguages()
     {
         await mediaIndexService.Verify();
-        var result = await vocalMusicService.GetDistinctLanguagesAsync(cancellationTokenSource.Token);
-        Serilog.Log.Debug("MediaService.GetVocalMusicLanguages: returned {Count} languages",
-            result.Count);
+        
+        // Avoid N+1 queries in VocalMusicService.GetDistinctLanguagesAsync.
+        // PublicationLanguages already has the discovery data we need for Music languages.
+        // This is cached inside BiblePublicationService, so repeated calls are cheap.
+        var result = await BiblePublicationService.GetDistinctLanguagesAsync("Music", cancellationTokenSource.Token);
+        Serilog.Log.Debug("MediaService.GetVocalMusicLanguages: returned {Count} languages", result.Count);
 
         // If no vocal languages found, fall back to basic languages (English)
         // This can happen if the vocal music database doesn't have language metadata

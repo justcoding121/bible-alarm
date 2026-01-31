@@ -100,45 +100,10 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             return;
         }
 
-        // For existing schedules, reload from database to revert optimistic changes
-        if (scheduleId > 0)
-        {
-            logger.Debug("CancelCommand: Existing schedule, reloading from database to revert optimistic changes. ScheduleId={ScheduleId}", scheduleId);
-
-            try
-            {
-                // Reload schedule from database
-                var reloadedSchedule = await Task.Run(async () =>
-                    await alarmScheduleService.GetScheduleByIdAsync(scheduleId, true, true, CancellationToken.None));
-
-                if (reloadedSchedule != null)
-                {
-                    // Map to ScheduleStateItem and populate display names
-                    var scheduleStateItem = mapper.Map<ScheduleStateItem>(reloadedSchedule);
-
-                    // Populate display names (these are not stored in DB, need to be populated)
-                    await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, reloadedSchedule);
-
-                    // Update the schedule in the Schedules collection to revert optimistic changes
-                    logger.Information("CancelCommand: Reloaded schedule from database. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, SectionNumber: {SectionNumber}, TrackNumber: {TrackNumber}",
-                        scheduleStateItem.BiblePublicationLanguageCode ?? "null",
-                        scheduleStateItem.BiblePublicationCode ?? "null",
-                        scheduleStateItem.BiblePublicationSectionNumber ?? 0,
-                        scheduleStateItem.BiblePublicationTrackNumber ?? 0);
-
-                    // Dispatch action to update the schedule in Schedules collection
-                    dispatcher.Dispatch(new UpdateScheduleSuccessAction(scheduleStateItem));
-                }
-                else
-                {
-                    logger.Warning("CancelCommand: Failed to reload schedule from database. ScheduleId={ScheduleId}", scheduleId);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "CancelCommand: Error reloading schedule from database. ScheduleId={ScheduleId}", scheduleId);
-            }
-        }
+        // Existing schedule cancel:
+        // Unsaved edits are applied only to CurrentSchedule (ShouldSave=false), not to the persisted Schedules list.
+        // So we can safely discard the draft by resetting state and navigating home without any DB calls.
+        logger.Debug("CancelCommand: Existing schedule, discarding draft changes (no DB reload). ScheduleId={ScheduleId}", scheduleId);
 
         // Clear CurrentSchedule after cancel (discard draft changes)
         dispatcher.Dispatch(new ResetScheduleStateAction());

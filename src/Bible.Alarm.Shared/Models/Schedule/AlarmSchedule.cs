@@ -179,26 +179,29 @@ public sealed class AlarmSchedule : IComparable
         // Try English "E" with "nwt" first (for new schedules)
         if (bibleLanguages.ContainsKey(DefaultLanguageCode))
         {
-            var englishPublications = await biblePublicationService.GetByLanguageCodeAsync(DefaultLanguageCode);
-            if (englishPublications != null && englishPublications.ContainsKey(PreferredPublicationCode))
+            // Fast path: try "nwt" directly (avoids loading all publications for the language).
+            // If it's not present or not harvested, we'll fall back to enumerating publications.
+            if (PublicationTypeHelper.HasSectionStructure(PreferredPublicationCode))
             {
-                // Try "nwt" first
-                if (PublicationTypeHelper.HasSectionStructure(PreferredPublicationCode))
+                var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                    DefaultLanguageCode, PreferredPublicationCode);
+                if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
                 {
-                    var biblePub = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                        DefaultLanguageCode, PreferredPublicationCode);
-                    if (biblePub != null && biblePub.Sections != null && biblePub.Sections.Count > 0)
-                    {
-                        bibleLanguageCode = DefaultLanguageCode;
-                        biblePublicationCode = PreferredPublicationCode;
-                        selectedBible = biblePub;
-                    }
+                    bibleLanguageCode = DefaultLanguageCode;
+                    biblePublicationCode = PreferredPublicationCode;
+                    selectedBible = biblePub;
                 }
             }
             
             // If "nwt" not available, try other English publications
-            if (selectedBible == null && englishPublications != null)
+            if (selectedBible == null)
             {
+                var englishPublications = await biblePublicationService.GetByLanguageCodeAsync(DefaultLanguageCode);
+                if (englishPublications == null)
+                {
+                    englishPublications = new Dictionary<string, BiblePublication>();
+                }
+
                 // Sort publications by priority: nwt first, then bi12, then others
                 var sortedPublications = PublicationSortHelper.SortByPriority(englishPublications, pub => pub.Name);
                 
@@ -276,13 +279,38 @@ public sealed class AlarmSchedule : IComparable
 
         // Find a melody music publication that has tracks
         string? melodyPublicationCode = null;
-        foreach (var melody in melodyReleases)
+
+        // Fast path: prefer a known sectioned melody publication if present.
+        const string PreferredMelodyPublicationCode = "iam";
+        if (melodyReleases.ContainsKey(PreferredMelodyPublicationCode))
         {
-            var musicWithTracks = await melodyMusicService.GetByCodeWithTracksAsync(melody.Key);
-            if (musicWithTracks?.Tracks != null && musicWithTracks.Tracks.Count > 0)
+            melodyPublicationCode = PreferredMelodyPublicationCode;
+        }
+        else
+        {
+            melodyPublicationCode = melodyReleases.Keys.FirstOrDefault();
+        }
+
+        // Verify selected melody has tracks; if not, fall back to scanning.
+        if (!string.IsNullOrEmpty(melodyPublicationCode))
+        {
+            var musicWithTracks = await melodyMusicService.GetByCodeWithTracksAsync(melodyPublicationCode);
+            if (musicWithTracks?.Tracks == null || musicWithTracks.Tracks.Count == 0)
             {
-                melodyPublicationCode = melody.Key;
-                break;
+                melodyPublicationCode = null;
+            }
+        }
+
+        if (melodyPublicationCode == null)
+        {
+            foreach (var melody in melodyReleases)
+            {
+                var musicWithTracks = await melodyMusicService.GetByCodeWithTracksAsync(melody.Key);
+                if (musicWithTracks?.Tracks != null && musicWithTracks.Tracks.Count > 0)
+                {
+                    melodyPublicationCode = melody.Key;
+                    break;
+                }
             }
         }
 

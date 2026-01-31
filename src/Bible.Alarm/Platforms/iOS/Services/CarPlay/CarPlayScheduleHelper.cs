@@ -109,7 +109,8 @@ public static class CarPlayScheduleHelper
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: * Category * Publication Name, * Subsection * TrackName * Language
+    /// Format: * Publication Name * Section Name * Track Name * Language (+ 🎵 if music enabled)
+    /// For Bible category, section name and track number are combined (e.g. "* Exodus 9") instead of separate section/track parts.
     /// </summary>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
@@ -124,43 +125,61 @@ public static class CarPlayScheduleHelper
         var subtitleParts = new List<string>();
         var isRtl = string.Equals(scheduleItem.BiblePublicationLanguageDirection, "rtl", StringComparison.OrdinalIgnoreCase);
 
-        // Add Category
-        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationCategoryName))
-        {
-            subtitleParts.Add($"* {scheduleItem.BiblePublicationCategoryName}");
-        }
-
         // Add Publication Name
         if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
         {
             subtitleParts.Add($"* {scheduleItem.BiblePublicationName}");
         }
 
-        // Add Subsection (if exists) - only for sectioned publications
-        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
-        if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
-        {
-            subtitleParts.Add($"* {scheduleItem.BiblePublicationSectionName}");
-        }
+        var isBibleCategory = string.Equals(scheduleItem.BiblePublicationCategoryName, "Bible", StringComparison.OrdinalIgnoreCase);
 
-        // Add Track Name
-        if (hasSectionStructure)
+        // Add Section/Track info
+        var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
+
+        if (isBibleCategory && hasSectionStructure)
         {
-            // For sectioned publications, show track number
+            // Bible category: combine section name + track number (e.g. "Exodus 9")
+            var sectionName = scheduleItem.BiblePublicationSectionName;
             var trackNumber = scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0
                 ? scheduleItem.BiblePublicationTrackNumber.Value.ToString()
                 : null;
-            if (trackNumber != null)
+
+            if (!string.IsNullOrWhiteSpace(sectionName) && trackNumber != null)
+            {
+                subtitleParts.Add($"* {sectionName} {trackNumber}");
+            }
+            else if (!string.IsNullOrWhiteSpace(sectionName))
+            {
+                subtitleParts.Add($"* {sectionName}");
+            }
+            else if (trackNumber != null)
             {
                 subtitleParts.Add($"* {trackNumber}");
             }
         }
         else
         {
-            // For non-sectioned publications (dramas/videos), show track title
+            // Non-Bible categories:
+            // - If sectioned, show section name + track title (fallback to track number).
+            // - If non-sectioned, show track title.
+            if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
+            {
+                subtitleParts.Add($"* {scheduleItem.BiblePublicationSectionName}");
+            }
+
             if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
             {
                 subtitleParts.Add($"* {scheduleItem.BiblePublicationTrackTitle}");
+            }
+            else if (hasSectionStructure)
+            {
+                var trackNumber = scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0
+                    ? scheduleItem.BiblePublicationTrackNumber.Value.ToString()
+                    : null;
+                if (trackNumber != null)
+                {
+                    subtitleParts.Add($"* {trackNumber}");
+                }
             }
         }
 

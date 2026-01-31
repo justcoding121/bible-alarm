@@ -37,6 +37,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
     private readonly IMapper mapper;
     private readonly IMediaService? mediaService;
     private readonly IMelodyMusicService? melodyMusicService;
+    private readonly IVocalMusicService? vocalMusicService;
     private readonly IDiskCacheService? diskCacheService;
     private readonly ScheduleStatePopulator statePopulator;
 
@@ -50,6 +51,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         IMapper mapper,
         IMediaService? mediaService,
         IMelodyMusicService? melodyMusicService,
+        IVocalMusicService? vocalMusicService,
         IDiskCacheService? diskCacheService)
     {
         this.databaseSeedService = databaseSeedService;
@@ -61,13 +63,15 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         this.mapper = mapper;
         this.mediaService = mediaService;
         this.melodyMusicService = melodyMusicService;
+        this.vocalMusicService = vocalMusicService;
         this.diskCacheService = diskCacheService;
         this.statePopulator = new ScheduleStatePopulator(
             BiblePublicationService,
             biblePublicationSectionService,
             mapper,
             mediaService,
-            melodyMusicService);
+            melodyMusicService,
+            vocalMusicService);
     }
 
     public async Task<bool> SeedAndMigrateAsync()

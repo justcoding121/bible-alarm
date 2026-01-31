@@ -54,8 +54,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         {
             try
             {
-                var languagesDict = await Task.Run(async () =>
-                    await BiblePublicationService.GetDistinctLanguagesAsync());
+                var languagesDict = await BiblePublicationService.GetDistinctLanguagesAsync();
                 if (languagesDict.TryGetValue(biblePublicationSchedule.LanguageCode, out var language))
                 {
                     scheduleStateItem.BiblePublicationLanguageName = language.Name;
@@ -82,10 +81,17 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         {
             try
             {
-                var publication = await Task.Run(async () =>
-                    await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                // Avoid redundant DB calls:
+                // - For sectioned publications, load with sections once.
+                // - For non-sectioned publications (dramas/videos), load with tracks once and reuse for track title later.
+                var hasSections = PublicationTypeHelper.HasSectionStructure(biblePublicationSchedule.PublicationCode);
+                var publication = hasSections
+                    ? await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
                         biblePublicationSchedule.LanguageCode,
-                        biblePublicationSchedule.PublicationCode));
+                        biblePublicationSchedule.PublicationCode)
+                    : await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(
+                        biblePublicationSchedule.LanguageCode,
+                        biblePublicationSchedule.PublicationCode);
 
                 if (publication != null)
                 {
@@ -111,6 +117,20 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                             scheduleStateItem.BiblePublicationCategoryName = categoryName;
                             logger.Debug("Populated BiblePublicationCategoryName={CategoryName} from publication code for schedule {ScheduleId}",
                                 categoryName, scheduleStateItem.Id);
+                        }
+                    }
+
+                    // For non-sectioned publications, we already loaded tracks above: populate track title here
+                    // so we don't need a second call to GetByLanguageAndCodeWithTracksAsync later.
+                    if (!hasSections &&
+                        biblePublicationSchedule.TrackNumber > 0 &&
+                        publication.Tracks != null &&
+                        publication.Tracks.Count > 0)
+                    {
+                        var track = publication.Tracks.FirstOrDefault(t => t.Number == biblePublicationSchedule.TrackNumber);
+                        if (track != null && !string.IsNullOrWhiteSpace(track.Title))
+                        {
+                            scheduleStateItem.BiblePublicationTrackTitle = track.Title;
                         }
                     }
                 }
@@ -187,33 +207,6 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         }
                     }
                 }
-                else if (BiblePublicationService != null)
-                {
-                    // Non-sectioned publications (drama/video) - load track directly from publication
-                    var publication = await Task.Run(async () =>
-                        await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(
-                            biblePublicationSchedule.LanguageCode,
-                            biblePublicationSchedule.PublicationCode));
-
-                    if (publication != null)
-                    {
-                        var track = publication.Tracks.FirstOrDefault(t => t.Number == biblePublicationSchedule.TrackNumber);
-                        if (track != null && !string.IsNullOrWhiteSpace(track.Title))
-                        {
-                            scheduleStateItem.BiblePublicationTrackTitle = track.Title;
-                        }
-
-                        // Populate category from publication (for non-sectioned publications that weren't loaded earlier)
-                        if (publication.Category != null && 
-                            (scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)))
-                        {
-                            scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
-                            scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
-                            logger.Debug("Populated BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName={CategoryName} for non-sectioned publication in schedule {ScheduleId}",
-                                publication.CategoryId, publication.Category.CategoryName, scheduleStateItem.Id);
-                        }
-                    }
-                }
             }
             catch (Exception ex)
             {
@@ -230,8 +223,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         {
             try
             {
-                var languagesDict = await Task.Run(async () =>
-                    await mediaService.GetVocalMusicLanguages());
+                var languagesDict = await mediaService.GetVocalMusicLanguages();
                 if (languagesDict.TryGetValue(music.LanguageCode, out var language))
                 {
                     scheduleStateItem.MusicLanguageName = language.Name;
@@ -259,9 +251,9 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                     !string.IsNullOrWhiteSpace(music.LanguageCode))
                 {
                     // Populate for vocals
-                    var releases = await Task.Run(async () =>
-                        await mediaService.GetVocalMusicReleases(music.LanguageCode));
-                    if (releases.TryGetValue(music.PublicationCode, out var release))
+                    var vocalMusicService = serviceProvider.GetRequiredService<IVocalMusicService>();
+                    var release = await vocalMusicService.GetByLanguageAndCodeAsync(music.LanguageCode, music.PublicationCode);
+                    if (release != null)
                     {
                         scheduleStateItem.MusicPublicationName = release.Name;
                     }
@@ -269,8 +261,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 else if (music.MusicType == MusicType.Music)
                 {
                     // Populate for melodies (instrumental music)
-                    var releases = await Task.Run(async () =>
-                        await mediaService.GetMelodyMusicReleases());
+                    var releases = await mediaService.GetMelodyMusicReleases();
                     if (releases.TryGetValue(music.PublicationCode, out var melodyRelease))
                     {
                         scheduleStateItem.MusicPublicationName = melodyRelease.Name;
@@ -323,28 +314,17 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                     using var scope = scopeFactory.CreateScope();
                     var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-                    // EF Core can't translate StringComparison.OrdinalIgnoreCase, so we need to load and filter in memory
-                    // or use ToLower() in the query. Using ToLower() is more efficient.
-                    var sectionCodeLower = music.SectionCode?.ToLowerInvariant();
-                    var section = await Task.Run(async () =>
-                    {
-                        var sections = await dbContext.BiblePublicationSections
-                            .AsNoTracking()
-                            .Include(x => x.BiblePublication)
-                                .ThenInclude(x => x.Category)
-                            .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode
-                                && x.BiblePublication.Category.CategoryName == "Music"
-                                && x.BiblePublication.LanguageId == null
-                                && x.SectionCode != null)
-                            .ToListAsync();
-
-                        // Filter in memory for case-insensitive comparison
-                        var matchingSection = sections.FirstOrDefault(x => 
-                            x.SectionCode != null && 
-                            x.SectionCode.Equals(music.SectionCode, StringComparison.OrdinalIgnoreCase));
-
-                        return matchingSection?.Name;
-                    });
+                    // Use ToLower() for case-insensitive matching (translatable by EF Core).
+                    var sectionCodeLower = music.SectionCode.ToLowerInvariant();
+                    var section = await dbContext.BiblePublicationSections
+                        .AsNoTracking()
+                        .Where(x => x.BiblePublication.PublicationCode == music.PublicationCode
+                                    && x.BiblePublication.Category.CategoryName == "Music"
+                                    && x.BiblePublication.LanguageId == null
+                                    && x.SectionCode != null
+                                    && x.SectionCode.ToLower() == sectionCodeLower)
+                        .Select(x => x.Name)
+                        .FirstOrDefaultAsync();
 
                     if (!string.IsNullOrWhiteSpace(section))
                     {

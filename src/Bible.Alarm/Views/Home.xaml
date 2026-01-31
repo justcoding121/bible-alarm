@@ -533,7 +533,16 @@
                                                    TextColor="{DynamicResource PrimaryTextColor}"
                                                    LineBreakMode="WordWrap"
                                                    IsVisible="{Binding BiblePublicationName, Converter={StaticResource isStringNotEmptyConverter}}" />
-                                            <!-- 3. Schedule section Name (if sectioned) -->
+                                            <!-- 3. Bible-only: combine section + track number on one line (e.g. "Exodus 9") -->
+                                            <Label Margin="{DynamicResource MarginThickness0}"
+                                                   HorizontalOptions="Fill"
+                                                   HorizontalTextAlignment="Start"
+                                                   FontSize="{DynamicResource MediumFontSize}"
+                                                   Text="{Binding BiblePublicationSectionAndTrackOneLine}"
+                                                   TextColor="{DynamicResource PrimaryTextColor}"
+                                                   LineBreakMode="WordWrap"
+                                                   IsVisible="{Binding ShouldShowBiblePublicationSectionAndTrackOneLine}" />
+                                            <!-- 4. Non-Bible: Schedule section Name (if sectioned) -->
                                             <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"
                                                    HorizontalTextAlignment="Start"
@@ -541,8 +550,8 @@
                                                    Text="{Binding BiblePublicationSectionName}"
                                                    TextColor="{DynamicResource PrimaryTextColor}"
                                                    LineBreakMode="WordWrap"
-                                                   IsVisible="{Binding BiblePublicationSectionName, Converter={StaticResource isStringNotEmptyConverter}}" />
-                                            <!-- 4. Schedule Track Name -->
+                                                   IsVisible="{Binding ShouldShowBiblePublicationSectionNameLine}" />
+                                            <!-- 5. Non-Bible: Schedule Track Name -->
                                             <Label Margin="{DynamicResource MarginThickness0}"
                                                    HorizontalOptions="Fill"
                                                    HorizontalTextAlignment="Start"
@@ -550,8 +559,8 @@
                                                    Text="{Binding BiblePublicationTrackName}"
                                                    TextColor="{DynamicResource PrimaryTextColor}"
                                                    LineBreakMode="WordWrap"
-                                                   IsVisible="{Binding BiblePublicationTrackName, Converter={StaticResource isStringNotEmptyConverter}}" />
-                                            <!-- 5. Language Name -->
+                                                   IsVisible="{Binding ShouldShowBiblePublicationTrackNameLine}" />
+                                            <!-- 6. Language Name -->
                                             <Grid Margin="{DynamicResource MarginThickness0}"
                                                   HorizontalOptions="Fill"
                                                   VerticalOptions="Start"
