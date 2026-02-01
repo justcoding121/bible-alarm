@@ -359,10 +359,15 @@ public sealed class MusicCascadeHandler
         var currentSectionCode = currentSchedule.MusicSectionCode;
         var currentTrackNum = currentSchedule.MusicTrackNumber;
         var currentTrackTitle = currentSchedule.MusicTrackName;
+        var currentPublicationCode = currentSchedule.MusicPublicationCode;
+
+        var publicationChanged = !string.Equals(currentPublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase);
+        var sectionChanged = !string.Equals(currentSectionCode, sectionCode, StringComparison.OrdinalIgnoreCase);
+        var trackChanged = currentTrackNum != trackNumber;
         
         // If all values are already set correctly, don't dispatch to prevent infinite loop
         if (currentSchedule.MusicPublicationCode == publicationCode &&
-            currentSectionCode == sectionCode &&
+            string.Equals(currentSectionCode, sectionCode, StringComparison.OrdinalIgnoreCase) &&
             currentTrackNum == trackNumber &&
             currentTrackTitle == trackTitle)
         {
@@ -374,19 +379,36 @@ public sealed class MusicCascadeHandler
 
         var updatedSchedule = currentSchedule.DeepClone();
         updatedSchedule.MusicPublicationCode = publicationCode;
-        if (!string.IsNullOrWhiteSpace(publicationName))
+        // If the selection changed, do not preserve old display names from a different selection.
+        if (publicationChanged)
+        {
+            updatedSchedule.MusicPublicationName = !string.IsNullOrWhiteSpace(publicationName)
+                ? publicationName
+                : publicationCode;
+        }
+        else if (!string.IsNullOrWhiteSpace(publicationName))
         {
             updatedSchedule.MusicPublicationName = publicationName;
         }
         updatedSchedule.MusicSectionCode = sectionCode;
-        // Do not overwrite a populated display name with empty/whitespace (can happen on partial harvest / transient failures)
-        if (!string.IsNullOrWhiteSpace(sectionName))
+        if (publicationChanged || sectionChanged)
+        {
+            updatedSchedule.MusicSectionName = !string.IsNullOrWhiteSpace(sectionName)
+                ? sectionName
+                : null;
+        }
+        else if (!string.IsNullOrWhiteSpace(sectionName))
         {
             updatedSchedule.MusicSectionName = sectionName;
         }
         updatedSchedule.MusicTrackNumber = trackNumber;
-        // Do not overwrite a populated display name with empty/whitespace (can happen on partial harvest / transient failures)
-        if (!string.IsNullOrWhiteSpace(trackTitle))
+        if (publicationChanged || sectionChanged || trackChanged)
+        {
+            updatedSchedule.MusicTrackName = !string.IsNullOrWhiteSpace(trackTitle)
+                ? trackTitle
+                : null;
+        }
+        else if (!string.IsNullOrWhiteSpace(trackTitle))
         {
             updatedSchedule.MusicTrackName = trackTitle;
         }

@@ -27,8 +27,7 @@ Each row is a `ScheduleListItemViewModel` and the template displays:
 ### Step 1: Bootstrapping populates Fluxor state
 
 `ScheduleBootstrapService.InitializeAsync()` loads schedule data into `ApplicationState.Schedules` as `ScheduleStateItem`s:
-- from **disk cache** key `"ScheduleList"` when present (fast path)
-- otherwise from the Schedule DB + display-name population (slower path)
+- from the Schedule DB + display-name population (no disk cache)
 
 File:
 - `src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs`

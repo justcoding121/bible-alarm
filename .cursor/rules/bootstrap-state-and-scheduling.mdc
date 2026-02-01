@@ -76,15 +76,12 @@ Schedule bootstrap:
 
 Key behaviors:
 - avoids reloading from DB if schedules already exist in state
-- uses disk cache key `"ScheduleList"` (stores `List<ScheduleStateItem>`)
 - loads a language dictionary in parallel (used for display name lookups)
-- on cache miss:
-  - reads schedules from DB via `IAlarmScheduleService`
-  - populates display names via `ScheduleStatePopulator`
-  - stores result in cache
+- loads schedules from the Schedule DB via `IAlarmScheduleService`
+- populates display names via `ScheduleStatePopulator`
 
-Cache invalidation:
-- effects invalidate `"ScheduleList"` before/after mutations (save/delete) to avoid stale state
+Note:
+- The app no longer persists a `ScheduleList` disk cache. Home renders from Fluxor state populated from DB.
 
 ---
 
@@ -95,7 +92,6 @@ Cache invalidation:
 Typical sequence:
 - UI dispatches `UpdateScheduleFromViewModelAction(scheduleStateItem, musicUpdated, biblePublicationUpdated, shouldSave: true)`
 - `ScheduleEffects.HandleUpdateScheduleFromViewModel()`:
-  - invalidates cache
   - maps state → DB model
   - persists via `IAlarmScheduleService` (Schedule DB)
   - updates OS-level alarm/notification via `IAlarmService`

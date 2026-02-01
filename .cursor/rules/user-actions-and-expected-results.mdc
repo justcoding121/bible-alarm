@@ -154,7 +154,7 @@ What happens:
 - Maps `ScheduleStateItem` → `AlarmSchedule` (AutoMapper + save helpers)
 - Writes to Schedule DB
 - Updates OS notification scheduling via `IAlarmService`
-- Updates Fluxor state and refreshes the `"ScheduleList"` disk cache.
+- Updates Fluxor state (Home renders from state; no `ScheduleList` disk cache).
 
 Expected result:
 - Home list updates immediately (time/name/category/track text), and the alarm is scheduled on the OS.

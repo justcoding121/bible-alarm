@@ -16,13 +16,11 @@ public class ScheduleUpdateHandler
 {
     private readonly IMapper mapper;
     private readonly ScheduleDisplayNamePopulator displayNamePopulator;
-    private readonly ScheduleCacheManager cacheManager;
 
-    public ScheduleUpdateHandler(IMapper mapper, ScheduleDisplayNamePopulator displayNamePopulator, ScheduleCacheManager cacheManager)
+    public ScheduleUpdateHandler(IMapper mapper, ScheduleDisplayNamePopulator displayNamePopulator)
     {
         this.mapper = mapper;
         this.displayNamePopulator = displayNamePopulator;
-        this.cacheManager = cacheManager;
     }
 
     public async Task HandleAsync(UpdateScheduleAction action, IDispatcher dispatcher)
@@ -37,10 +35,6 @@ public class ScheduleUpdateHandler
                 Log.Warning("ScheduleEffects: HandleUpdateSchedule - Schedule is null, skipping");
                 return;
             }
-
-            // Clear cache BEFORE processing (schedule was already saved to DB in PlaylistService)
-            // This prevents stale cache if process crashes after save but before refresh
-            cacheManager.InvalidateScheduleCache();
 
             // Transform DB entity to State DTO
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);

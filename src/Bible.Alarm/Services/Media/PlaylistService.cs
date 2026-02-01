@@ -3,7 +3,6 @@ using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Playlist;
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
-using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -26,7 +25,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     private readonly IGeneralSettingsService generalSettingsService;
     private readonly IBiblePublicationService BiblePublicationService;
     private readonly IMelodyMusicService melodyMusicService;
-    private readonly IDiskCacheService? diskCacheService;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
     private PlaylistScheduleManager? _scheduleManager;
@@ -56,7 +54,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         IBiblePublicationService BiblePublicationService,
         IMelodyMusicService melodyMusicService,
         IMediaUrlRefreshService urlRefreshService,
-        IDiskCacheService? diskCacheService,
         IUrlConstructionService? urlConstructionService = null)
     {
         this.logger = logger;
@@ -67,7 +64,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         this.BiblePublicationService = BiblePublicationService;
         this.melodyMusicService = melodyMusicService;
         this.urlRefreshService = urlRefreshService;
-        this.diskCacheService = diskCacheService;
         biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, mediaService, urlRefreshService, BiblePublicationService, urlConstructionService);
         musicTrackBuilder = new PlaylistMusicTrackBuilder(logger, mediaService, melodyMusicService, urlRefreshService, urlConstructionService);
         trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);
@@ -131,9 +127,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         TrackMetadata trackMetadata,
         int? nextTrackNumber)
     {
-        const string CacheKey = "ScheduleList";
-        diskCacheService?.Remove(CacheKey);
-
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
             schedule => PlaylistTrackUpdater.UpdateScheduleForPlayedTrackInternal(schedule, trackMetadata, nextTrackNumber),
@@ -143,9 +136,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     {
         // Get next track/track before updating
         var nextTrackInfo = await GetNextTrackInfoAsync(trackMetadata);
-
-        const string CacheKey = "ScheduleList";
-        diskCacheService?.Remove(CacheKey);
 
         // Update schedule using service
         var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(

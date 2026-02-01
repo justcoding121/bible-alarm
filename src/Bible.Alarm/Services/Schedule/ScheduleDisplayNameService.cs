@@ -10,6 +10,7 @@ using Bible.Alarm.Stores.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using System.Net;
 
 namespace Bible.Alarm.Services.Schedule;
 
@@ -181,6 +182,21 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             {
                 logger.Warning(ex, "Error populating BiblePublicationName and Category");
             }
+
+            // Final fallbacks: never leave the editor blank if we at least have codes.
+            if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
+            {
+                scheduleStateItem.BiblePublicationName = publicationCode;
+            }
+
+            if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName))
+            {
+                var categoryName = JwSourceHelper.GetCategoryName(publicationCode);
+                if (!string.IsNullOrWhiteSpace(categoryName))
+                {
+                    scheduleStateItem.BiblePublicationCategoryName = categoryName;
+                }
+            }
         }
 
         // Section name - for non-sectioned publications (SectionCode is null or empty), clear the section name
@@ -217,7 +233,10 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         if (!string.IsNullOrWhiteSpace(sectionName))
                         {
                             scheduleStateItem.BiblePublicationSectionName = sectionName;
-                            return;
+                            // IMPORTANT:
+                            // Do NOT return here. For no-language sectioned publications (e.g. "iam"),
+                            // we still need to populate the track title (melody numbers) below.
+                            // We only want to skip *other section-name* strategies.
                         }
                     }
                     catch (Exception ex)
@@ -227,7 +246,8 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 }
 
                 // Fallback: language-bound section lookup (traditional Bible section structure).
-                if (!string.IsNullOrWhiteSpace(scheduleLanguageCode))
+                if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName) &&
+                    !string.IsNullOrWhiteSpace(scheduleLanguageCode))
                 {
                     var biblePublicationSectionService = serviceProvider.GetRequiredService<IBiblePublicationSectionService>();
                     var sectionName = await Task.Run(async () =>
@@ -260,6 +280,31 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                     var sectionCodeForTracks = SectionCodeHelper.Normalize(biblePublicationSchedule.SectionCode);
                     if (!string.IsNullOrWhiteSpace(sectionCodeForTracks))
                     {
+                        var categoryName =
+                            scheduleStateItem.BiblePublicationCategoryName
+                            ?? JwSourceHelper.GetCategoryName(publicationCode)
+                            ?? string.Empty;
+
+                        // For Music-category schedules (e.g. "iam"), prefer MelodyMusicService tracks
+                        // so we show the melody numbers instead of a meaningless track index.
+                        if (string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
+                        {
+                            try
+                            {
+                                var melodyTracks = await mediaService.GetMelodyMusicTracksBySection(publicationCode, sectionCodeForTracks);
+                                if (melodyTracks.TryGetValue(biblePublicationSchedule.TrackNumber, out var melodyTrack) && melodyTrack != null)
+                                {
+                                    scheduleStateItem.BiblePublicationTrackTitle = FormatMelodyDisplayTitle(melodyTrack.Title);
+                                    return;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.Debug(ex, "Failed to resolve melody track title (PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackNumber={TrackNumber})",
+                                    publicationCode, sectionCodeForTracks, biblePublicationSchedule.TrackNumber);
+                            }
+                        }
+
                         // Try language-bound first; if empty (no-language publications like "iam"), fall back to empty language.
                         var languageForTracks = scheduleLanguageCode ?? string.Empty;
                         var tracks = await Task.Run(async () =>
@@ -281,7 +326,10 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         {
                             if (!string.IsNullOrWhiteSpace(track.Title))
                             {
-                                scheduleStateItem.BiblePublicationTrackTitle = track.Title;
+                                scheduleStateItem.BiblePublicationTrackTitle =
+                                    string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase)
+                                        ? FormatMelodyDisplayTitle(track.Title)
+                                        : track.Title;
                             }
                         }
                     }
@@ -291,7 +339,45 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             {
                 logger.Warning(ex, "Error populating BiblePublicationTrackTitle");
             }
+
+            // Fallback: show a stable label even if track title lookup fails.
+            if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
+            {
+                var categoryName =
+                    scheduleStateItem.BiblePublicationCategoryName
+                    ?? JwSourceHelper.GetCategoryName(publicationCode)
+                    ?? string.Empty;
+
+                // Never label Music-category schedules as "Chapter".
+                scheduleStateItem.BiblePublicationTrackTitle =
+                    string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase)
+                        ? $"Track {biblePublicationSchedule.TrackNumber}"
+                        : PublicationTypeHelper.HasSectionStructure(publicationCode)
+                            ? $"Chapter {biblePublicationSchedule.TrackNumber}"
+                            : $"Track {biblePublicationSchedule.TrackNumber}";
+            }
         }
+    }
+
+    private static string? FormatMelodyDisplayTitle(string? rawTitle)
+    {
+        if (string.IsNullOrWhiteSpace(rawTitle))
+        {
+            return null;
+        }
+
+        var decoded = WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ').Trim();
+        if (decoded.Length == 0)
+        {
+            return null;
+        }
+
+        var parts = decoded.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var count = parts.Length;
+
+        return count > 1
+            ? $"Melody Numbers({count}) {decoded}"
+            : $"Melody Number(s) {decoded}";
     }
 
     private async Task PopulateMusicDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music)

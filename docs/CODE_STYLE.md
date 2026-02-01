@@ -100,6 +100,18 @@ if (value > 0) // Check if the value is valid
 public int Value { get; set; }
 ```
 
+## 4. Max 500 LOC Per Code File
+
+**Rule**: Keep a single code file to **500 lines of code (LOC) max**. If it grows beyond this, split it into cohesive helper classes/services.
+
+**Rationale**: Smaller files are easier to navigate, review, test, and refactor.
+
+**Structure Guidance**:
+- Split large classes into helper classes with clear responsibilities (avoid “misc” helpers).
+- Use folder structure to reflect dependency hierarchy:
+  - Higher-level orchestration/feature classes may depend on helpers in the same folder or subfolders (e.g. `Helpers/`, `Internal/`).
+  - Helpers should not depend back on higher-level classes (avoid “upward” dependencies and cyclic relationships across folders).
+
 ## Additional Guidelines
 
 ### Summary Comments

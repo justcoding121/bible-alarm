@@ -460,6 +460,11 @@ public sealed class BiblePublicationCascadeHandler
         var currentSectionCode = currentSchedule.BiblePublicationSectionCode;
         var currentTrackNum = currentSchedule.BiblePublicationTrackNumber;
         var currentTrackTitle = currentSchedule.BiblePublicationTrackTitle;
+        var currentPublicationCode = currentSchedule.BiblePublicationCode;
+        
+        var publicationChanged = !string.Equals(currentPublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase);
+        var sectionChanged = !string.Equals(currentSectionCode, normalizedSectionCode, StringComparison.OrdinalIgnoreCase);
+        var trackChanged = currentTrackNum != trackNumber;
         
         // If all values are already set correctly, don't dispatch to prevent infinite loop
         if (currentSchedule.BiblePublicationCode == publicationCode &&
@@ -475,19 +480,37 @@ public sealed class BiblePublicationCascadeHandler
 
         var updatedSchedule = currentSchedule.DeepClone();
         updatedSchedule.BiblePublicationCode = publicationCode;
-        if (!string.IsNullOrWhiteSpace(publicationName))
+        // If the selection changed, do not preserve old display names from a different selection.
+        if (publicationChanged)
+        {
+            updatedSchedule.BiblePublicationName = !string.IsNullOrWhiteSpace(publicationName)
+                ? publicationName
+                : publicationCode;
+        }
+        else if (!string.IsNullOrWhiteSpace(publicationName))
         {
             updatedSchedule.BiblePublicationName = publicationName;
         }
         updatedSchedule.BiblePublicationSectionCode = normalizedSectionCode;
-        // Do not overwrite a populated display name with empty/whitespace (can happen on partial harvest / transient failures)
-        if (!string.IsNullOrWhiteSpace(sectionName))
+        // If the selection changed, clear stale display names even if new names aren't available yet.
+        if (publicationChanged || sectionChanged)
+        {
+            updatedSchedule.BiblePublicationSectionName = !string.IsNullOrWhiteSpace(sectionName)
+                ? sectionName
+                : null;
+        }
+        else if (!string.IsNullOrWhiteSpace(sectionName))
         {
             updatedSchedule.BiblePublicationSectionName = sectionName;
         }
         updatedSchedule.BiblePublicationTrackNumber = trackNumber;
-        // Do not overwrite a populated display name with empty/whitespace (can happen on partial harvest / transient failures)
-        if (!string.IsNullOrWhiteSpace(trackTitle))
+        if (publicationChanged || sectionChanged || trackChanged)
+        {
+            updatedSchedule.BiblePublicationTrackTitle = !string.IsNullOrWhiteSpace(trackTitle)
+                ? trackTitle
+                : null;
+        }
+        else if (!string.IsNullOrWhiteSpace(trackTitle))
         {
             updatedSchedule.BiblePublicationTrackTitle = trackTitle;
         }

@@ -146,6 +146,18 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
             var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode ?? string.Empty);
             if (hasSectionStructure)
             {
+                // For Music publications (e.g., "iam"), show "<PublicationName> <TrackNumber>" instead of bare "17".
+                var categoryName =
+                    scheduleStateItem.BiblePublicationCategoryName
+                    ?? JwSourceHelper.GetCategoryName(scheduleStateItem.BiblePublicationCode ?? string.Empty)
+                    ?? string.Empty;
+
+                if (string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase) &&
+                    !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
+                {
+                    return $"{scheduleStateItem.BiblePublicationName} {scheduleStateItem.BiblePublicationTrackNumber.Value}";
+                }
+
                 return scheduleStateItem.BiblePublicationTrackNumber.Value.ToString();
             }
         }

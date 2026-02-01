@@ -1,6 +1,6 @@
 ---
 description: "Caching + Preferences: what is cached, where, why, and how invalidation works"
-globs: "{src/Bible.Alarm/Services/Storage/**,src/Bible.Alarm/Common/Services/Storage/**,src/Bible.Alarm/Common/Helpers/LastPlayedMetadataHelper.cs,src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs,src/Bible.Alarm/Stores/Effects/Services/ScheduleCacheManager.cs,src/Bible.Alarm/Services/Media/MediaCacheService.cs,src/Bible.Alarm/Services/Media/MediaIndexService.cs,src/Bible.Alarm/Services/Database/*VersionService.cs,src/Bible.Alarm/Platforms/Android/Services/Media/MediaSessionHelper.cs,src/Bible.Alarm.Shared/Services/Schedule/GeneralSettingsService.cs}"
+globs: "{src/Bible.Alarm/Services/Storage/**,src/Bible.Alarm/Common/Services/Storage/**,src/Bible.Alarm/Common/Helpers/LastPlayedMetadataHelper.cs,src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs,src/Bible.Alarm/Services/Media/MediaCacheService.cs,src/Bible.Alarm/Services/Media/MediaIndexService.cs,src/Bible.Alarm/Services/Database/*VersionService.cs,src/Bible.Alarm/Platforms/Android/Services/Media/MediaSessionHelper.cs,src/Bible.Alarm.Shared/Services/Schedule/GeneralSettingsService.cs}"
 alwaysApply: false
 ---
 
@@ -25,39 +25,8 @@ Storage backend:
 - stores values as **JSON** under a key prefix:
   - `DiskCache_` (internal prefix)
 
-### Primary cached payload: `"ScheduleList"`
-
-Used in:
-- `src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs` (startup load path)
-- `src/Bible.Alarm/Stores/Effects/Services/ScheduleCacheManager.cs` (refresh/invalidate)
-- `src/Bible.Alarm/Services/Media/PlaylistService.cs` and `TrackMarker` (invalidate on track pointer changes)
-
-What’s cached:
-- `List<ScheduleStateItem>` (not view models)
-
-Why it exists:
-- avoids hitting the Schedule DB on every cold start
-- avoids expensive display-name lookups (which can touch the media index DB)
-- improves perceived performance: Home can render the schedule list quickly
-
-### Invalidation rules (key points)
-
-Rule of thumb: **invalidate before you mutate** to avoid a “crash after save = stale cache forever” scenario.
-
-- Before schedule mutations (create/update/delete):
-  - `ScheduleCacheManager.InvalidateScheduleCache()` removes `"ScheduleList"`
-
-- When track pointers change because playback advanced/finished:
-  - `TrackMarker` removes `"ScheduleList"` before `UpdateScheduleByIdAsync(...)`
-  - (so Home doesn’t show an old “current chapter/track” after restart)
-
-### Refresh rules (key points)
-
-- After create/delete:
-  - `ScheduleCacheManager.RefreshScheduleCacheAsync()` prefers refreshing from **Fluxor state** (fast path), then writes to disk
-
-- After update where display names might change:
-  - `ScheduleCacheManager.RefreshSingleScheduleAsync(scheduleId)` repopulates display names and updates state (with `skipCacheRefresh=true` to prevent cycles), then rewrites the cache
+Note:
+- The app does **not** persist a `ScheduleList` disk cache anymore. Schedule list state is loaded from the Schedule DB during bootstrap.
 
 ---
 
@@ -90,7 +59,7 @@ Why:
      - `src/Bible.Alarm/Platforms/Android/Services/Media/MediaSessionHelper.cs` applies metadata to MediaSession at process start
 
 3) **Disk cache payloads** (JSON blobs)
-   - `DiskCache_ScheduleList` (effective key; actual stored key is `DiskCache_` + `"ScheduleList"`)
+   - (No `ScheduleList` payload; schedule list is not cached to Preferences)
 
 ### Preferences vs Schedule DB “GeneralSettings”
 
@@ -134,9 +103,6 @@ Cleanup:
 
 ## Where caching touches UX directly
 
-- **Home list loads faster** because `ScheduleBootstrapService` can read `"ScheduleList"` from disk without querying DB.
-- **Home list stays accurate** because cache is invalidated on:
-  - save/delete
-  - track pointer changes during playback
+- **Home list** is driven by Fluxor state populated from Schedule DB during bootstrap (no disk cache).
 - **Android Auto shows something immediately** on process start because MediaSession is pre-populated from Preferences “last played metadata”.
 

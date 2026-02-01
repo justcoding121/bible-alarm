@@ -4,7 +4,6 @@ using AutoMapper;
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Database.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -40,7 +39,6 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
     private readonly IMediaService? mediaService;
     private readonly IMelodyMusicService? melodyMusicService;
     private readonly IVocalMusicService? vocalMusicService;
-    private readonly IDiskCacheService? diskCacheService;
     private readonly ScheduleStatePopulator statePopulator;
 
     public ScheduleBootstrapService(
@@ -53,8 +51,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         IMapper mapper,
         IMediaService? mediaService,
         IMelodyMusicService? melodyMusicService,
-        IVocalMusicService? vocalMusicService,
-        IDiskCacheService? diskCacheService)
+        IVocalMusicService? vocalMusicService)
     {
         this.databaseSeedService = databaseSeedService;
         this.scheduleMigrationService = scheduleMigrationService;
@@ -66,7 +63,6 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         this.mediaService = mediaService;
         this.melodyMusicService = melodyMusicService;
         this.vocalMusicService = vocalMusicService;
-        this.diskCacheService = diskCacheService;
         this.statePopulator = new ScheduleStatePopulator(
             BiblePublicationService,
             biblePublicationSectionService,
@@ -131,93 +127,24 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
             Log.Logger.Information("[BOOTSTRAP] Schedule seed/migration completed in {ElapsedMs:F2}ms", seedElapsed);
 #endif
 
-            // Load schedules from cache or factory
-            // Cache stores as List<ScheduleStateItem> for JSON serialization
-            const string CacheKey = "ScheduleList";
-
+            // No ScheduleList disk cache: always load from DB and populate display names deterministically.
+            // This avoids “stale state” / “overwrite state shortly after save” issues.
+            var languagesDict = await languagesTask;
 #if DEBUG
-            var cacheStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
+            var languagesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - languagesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            Log.Logger.Information("[BOOTSTRAP] Loaded languages dictionary in {ElapsedMs:F2}ms", languagesElapsed);
 #endif
-            ObservableHashSet<ScheduleStateItem> initialSchedules;
-            Dictionary<string, Language>? languagesDict = null;
 
-            if (diskCacheService != null)
+            if (scheduleWasSeeded)
             {
-                // Avoid unnecessary DB work:
-                // If schedule list is already cached, we can load it without loading the full languages dictionary
-                // (which triggers PublicationLanguages queries). We only need languagesDict when we have a cache miss
-                // and must build schedules from the database.
-                List<ScheduleStateItem>? cachedSchedulesList = null;
-                try
-                {
-                    cachedSchedulesList = await diskCacheService.GetAsync<List<ScheduleStateItem>>(CacheKey);
-                }
-                catch (Exception ex)
-                {
-                    Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to read schedule list cache, will fall back to factory");
-                }
-
-                if (cachedSchedulesList != null && cachedSchedulesList.Count > 0)
-                {
-                    initialSchedules = new ObservableHashSet<ScheduleStateItem>();
-                    foreach (var item in cachedSchedulesList)
-                    {
-                        initialSchedules.Add(item);
-                    }
-                }
-                else
-                {
-                    // Cache miss: languages task is already running in parallel, await it now for the factory
-                    languagesDict = await languagesTask;
-#if DEBUG
-                    var languagesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - languagesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                    Log.Logger.Information("[BOOTSTRAP] Loaded languages dictionary in {ElapsedMs:F2}ms", languagesElapsed);
-#endif
-
-                    // If a schedule was seeded, invalidate cache to ensure the new schedule is included
-                    if (scheduleWasSeeded)
-                    {
-                        Log.Logger.Debug("[BOOTSTRAP] Schedule was seeded, invalidating cache to include new schedule");
-                        diskCacheService.Remove(CacheKey);
-                    }
-
-                    // Use cache with factory - factory will be called if cache miss or deserialization fails
-                    var schedulesFromFactory = await diskCacheService.GetOrSetAsync(
-                        CacheKey,
-                        async () =>
-                        {
-                            // Factory: Load schedules from database and populate state items
-                            return await LoadSchedulesListAsync(languagesDict);
-                        });
-
-                    // Convert List to ObservableHashSet
-                    initialSchedules = new ObservableHashSet<ScheduleStateItem>();
-                    foreach (var item in schedulesFromFactory)
-                    {
-                        initialSchedules.Add(item);
-                    }
-                }
-
-#if DEBUG
-                var cacheElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - cacheStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                Log.Logger.Information("[BOOTSTRAP] Loaded {Count} schedules from cache in {ElapsedMs:F2}ms", initialSchedules.Count, cacheElapsed);
-#endif
+                Log.Logger.Debug("[BOOTSTRAP] Schedule was seeded during bootstrap");
             }
-            else
+
+            var schedulesList = await LoadSchedulesListAsync(languagesDict);
+            var initialSchedules = new ObservableHashSet<ScheduleStateItem>();
+            foreach (var item in schedulesList)
             {
-                // Fallback if cache service not available
-                Log.Logger.Warning("[BOOTSTRAP] IDiskCacheService not available, loading schedules without cache");
-                languagesDict = await languagesTask;
-#if DEBUG
-                var languagesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - languagesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                Log.Logger.Information("[BOOTSTRAP] Loaded languages dictionary in {ElapsedMs:F2}ms", languagesElapsed);
-#endif
-                var schedulesList = await LoadSchedulesListAsync(languagesDict);
-                initialSchedules = new ObservableHashSet<ScheduleStateItem>();
-                foreach (var item in schedulesList)
-                {
-                    initialSchedules.Add(item);
-                }
+                initialSchedules.Add(item);
             }
 
 #if DEBUG
@@ -228,37 +155,6 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
             var dispatchElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - dispatchStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             Log.Logger.Information("[BOOTSTRAP] Dispatched InitializeAction in {ElapsedMs:F2}ms", dispatchElapsed);
 #endif
-
-            // After initial load from cache, invalidate and refresh cache in background (non-blocking)
-            // This ensures cache corruption is detected and fixed automatically.
-            // UI is only updated if differences are detected between cached and fresh data.
-            if (diskCacheService != null)
-            {
-                // If we loaded schedules from cache successfully, skip the immediate DB refresh.
-                // The cache is already used as the source of truth for startup speed, and we refresh it after mutations (save/delete).
-                // This avoids an unconditional DB load immediately after a cache hit (seen in startup logs).
-                if (diskCacheService.ContainsKey(CacheKey))
-                {
-                    Log.Logger.Debug("[BOOTSTRAP] Cache key {CacheKey} present, skipping immediate background refresh", CacheKey);
-                }
-                else
-                {
-                // Capture languagesDict for background refresh
-                var languagesDictForRefresh = languagesDict;
-                // Fire and forget - runs asynchronously without blocking UI
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await RefreshCacheAndUpdateStateIfNeededAsync(initialSchedules, languagesDictForRefresh);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Logger.Warning(ex, "[BOOTSTRAP] Error refreshing cache after initial load");
-                    }
-                });
-                }
-            }
 
 #if DEBUG
             var schedulesElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - schedulesStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
@@ -356,141 +252,6 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
             Log.Logger.Error(mainThreadEx, "Error invoking MainThread for InitializeAction dispatch");
             throw;
         }
-    }
-
-    /// <summary>
-    /// Refreshes the cache from database and updates state ONLY if data differs from cached version.
-    /// Runs asynchronously in background without blocking UI.
-    /// This ensures cache corruption is detected and fixed automatically.
-    /// </summary>
-    private async Task RefreshCacheAndUpdateStateIfNeededAsync(
-        ObservableHashSet<ScheduleStateItem> cachedSchedules,
-        Dictionary<string, Language>? languagesDict)
-    {
-        const string CacheKey = "ScheduleList";
-
-        try
-        {
-            Log.Logger.Debug("[BOOTSTRAP] Starting cache refresh after initial load (background, non-blocking)");
-
-            // Invalidate cache to force fresh load
-            diskCacheService?.Remove(CacheKey);
-
-            // Load fresh data from database
-            var freshSchedulesList = await LoadSchedulesListAsync(languagesDict);
-
-            // Convert to ObservableHashSet for comparison
-            var freshSchedules = new ObservableHashSet<ScheduleStateItem>();
-            foreach (var item in freshSchedulesList)
-            {
-                freshSchedules.Add(item);
-            }
-
-            // Compare cached vs fresh data
-            if (AreSchedulesDifferent(cachedSchedules, freshSchedules))
-            {
-                Log.Logger.Information(
-                    "[BOOTSTRAP] Cache refresh detected differences - cached: {CachedCount}, fresh: {FreshCount}. Updating UI state with fresh data",
-                    cachedSchedules.Count, freshSchedules.Count);
-
-                // Update cache with fresh data
-                if (diskCacheService != null)
-                {
-                    await diskCacheService.SetAsync(CacheKey, freshSchedulesList);
-                    Log.Logger.Debug("[BOOTSTRAP] Cache repopulated with fresh data");
-                }
-
-                // Update UI state with fresh data (only if differences detected)
-                await DispatchInitializeActionAsync(freshSchedules);
-                Log.Logger.Information("[BOOTSTRAP] UI state updated with refreshed data");
-            }
-            else
-            {
-                Log.Logger.Debug("[BOOTSTRAP] Cache refresh - no differences detected, repopulating cache without UI update");
-
-                // Repopulate cache even if no differences (ensures cache is valid)
-                // UI is NOT updated since data is identical
-                if (diskCacheService != null)
-                {
-                    await diskCacheService.SetAsync(CacheKey, freshSchedulesList);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Logger.Error(ex, "[BOOTSTRAP] Error during cache refresh");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Compares two schedule collections to detect differences.
-    /// Returns true if schedules differ in count, IDs, or key properties.
-    /// </summary>
-    private static bool AreSchedulesDifferent(
-        ObservableHashSet<ScheduleStateItem> cached,
-        ObservableHashSet<ScheduleStateItem> fresh)
-    {
-        // Quick check: different count
-        if (cached.Count != fresh.Count)
-        {
-            return true;
-        }
-
-        // Create lookup by ID for efficient comparison
-        var cachedById = cached.ToDictionary(s => s.Id);
-        var freshById = fresh.ToDictionary(s => s.Id);
-
-        // Check if all IDs match
-        if (cachedById.Keys.Count != freshById.Keys.Count ||
-            !cachedById.Keys.All(id => freshById.ContainsKey(id)) ||
-            !freshById.Keys.All(id => cachedById.ContainsKey(id)))
-        {
-            return true;
-        }
-
-        // Compare key properties for each schedule
-        foreach (var cachedSchedule in cached)
-        {
-            if (!freshById.TryGetValue(cachedSchedule.Id, out var freshSchedule))
-            {
-                return true;
-            }
-
-            var cachedSectionCode = cachedSchedule.BiblePublicationSectionCode;
-            var freshSectionCode = freshSchedule.BiblePublicationSectionCode;
-
-            // Compare key properties that matter for state
-            if (cachedSchedule.Name != freshSchedule.Name ||
-                cachedSchedule.IsEnabled != freshSchedule.IsEnabled ||
-                cachedSchedule.Hour != freshSchedule.Hour ||
-                cachedSchedule.Minute != freshSchedule.Minute ||
-                cachedSchedule.Second != freshSchedule.Second ||
-                cachedSchedule.DaysOfWeek != freshSchedule.DaysOfWeek ||
-                cachedSchedule.NotificationEnabled != freshSchedule.NotificationEnabled ||
-                cachedSchedule.MusicEnabled != freshSchedule.MusicEnabled ||
-                cachedSchedule.SnoozeMinutes != freshSchedule.SnoozeMinutes ||
-                cachedSchedule.NumberOfTracksToPlay != freshSchedule.NumberOfTracksToPlay ||
-                cachedSchedule.AlwaysPlayFromStart != freshSchedule.AlwaysPlayFromStart ||
-                cachedSchedule.CurrentPlayItem != freshSchedule.CurrentPlayItem ||
-                cachedSchedule.BiblePublicationScheduleId != freshSchedule.BiblePublicationScheduleId ||
-                cachedSchedule.BiblePublicationLanguageCode != freshSchedule.BiblePublicationLanguageCode ||
-                cachedSchedule.BiblePublicationCode != freshSchedule.BiblePublicationCode ||
-                !string.Equals(cachedSectionCode, freshSectionCode, StringComparison.OrdinalIgnoreCase) ||
-                cachedSchedule.BiblePublicationTrackNumber != freshSchedule.BiblePublicationTrackNumber ||
-                cachedSchedule.MusicId != freshSchedule.MusicId ||
-                cachedSchedule.MusicSectionCode != freshSchedule.MusicSectionCode ||
-                cachedSchedule.MusicType != freshSchedule.MusicType ||
-                cachedSchedule.MusicPublicationCode != freshSchedule.MusicPublicationCode ||
-                cachedSchedule.MusicLanguageCode != freshSchedule.MusicLanguageCode ||
-                cachedSchedule.MusicTrackNumber != freshSchedule.MusicTrackNumber ||
-                cachedSchedule.MusicRepeat != freshSchedule.MusicRepeat)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
 

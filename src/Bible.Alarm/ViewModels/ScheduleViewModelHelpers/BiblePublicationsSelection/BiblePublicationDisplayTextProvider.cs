@@ -69,15 +69,25 @@ public sealed class BiblePublicationDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
 
-        // Read from CurrentSchedule for language name (populated during bootstrap/effects)
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageName))
+        if (currentSchedule == null)
+        {
+            return string.Empty;
+        }
+
+        // Prefer display name (populated during bootstrap/effects), otherwise fall back to the language code.
+        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageName))
         {
             logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - Returning '{LanguageName}' (LanguageCode: {LanguageCode})",
                 currentSchedule.BiblePublicationLanguageName, currentSchedule.BiblePublicationLanguageCode ?? "null");
             return currentSchedule.BiblePublicationLanguageName;
         }
 
-        logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - CurrentSchedule is null or BiblePublicationLanguageName is empty. Returning empty string.");
+        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode))
+        {
+            return currentSchedule.BiblePublicationLanguageCode!;
+        }
+
+        logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - LanguageName and LanguageCode are empty. Returning empty string.");
         return string.Empty;
     }
 
@@ -85,10 +95,20 @@ public sealed class BiblePublicationDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
 
-        // Read from CurrentSchedule for publication name (populated during bootstrap/effects)
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationName))
+        if (currentSchedule == null)
+        {
+            return string.Empty;
+        }
+
+        // Prefer display name (populated during bootstrap/effects), otherwise fall back to the publication code.
+        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationName))
         {
             return currentSchedule.BiblePublicationName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
+        {
+            return currentSchedule.BiblePublicationCode!;
         }
 
         return string.Empty;
@@ -98,10 +118,20 @@ public sealed class BiblePublicationDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
 
-        // Read from CurrentSchedule for section name (populated during bootstrap/effects)
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationSectionName))
+        if (currentSchedule == null)
+        {
+            return string.Empty;
+        }
+
+        // Prefer display name (populated during bootstrap/effects), otherwise fall back to the section code.
+        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationSectionName))
         {
             return currentSchedule.BiblePublicationSectionName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationSectionCode))
+        {
+            return currentSchedule.BiblePublicationSectionCode!;
         }
 
         return string.Empty;
@@ -111,10 +141,44 @@ public sealed class BiblePublicationDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
 
-        // Always show the track title from DB (populated during bootstrap/selection)
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationTrackTitle))
+        if (currentSchedule == null)
+        {
+            return string.Empty;
+        }
+
+        // Prefer track title (populated during bootstrap/selection), otherwise fall back to track number.
+        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationTrackTitle))
         {
             return currentSchedule.BiblePublicationTrackTitle;
+        }
+
+        if (currentSchedule.BiblePublicationTrackNumber is > 0)
+        {
+            var pubCode = currentSchedule.BiblePublicationCode ?? string.Empty;
+
+            // IMPORTANT:
+            // PublicationTypeHelper.HasSectionStructure(pubCode) is true for both Bible (book+chapter)
+            // and some non-Bible sectioned catalogs (e.g., music like "iam").
+            // Only label as "Chapter" when the publication is actually in the Bible category.
+            var categoryName =
+                currentSchedule.BiblePublicationCategoryName
+                ?? JwSourceHelper.GetCategoryName(pubCode)
+                ?? string.Empty;
+
+            var isBible = string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase);
+            var isMusic = string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
+
+            if (isBible && PublicationTypeHelper.HasSectionStructure(pubCode))
+            {
+                return $"Chapter {currentSchedule.BiblePublicationTrackNumber.Value}";
+            }
+
+            if (isMusic && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationName))
+            {
+                return $"{currentSchedule.BiblePublicationName} {currentSchedule.BiblePublicationTrackNumber.Value}";
+            }
+
+            return $"Track {currentSchedule.BiblePublicationTrackNumber.Value}";
         }
 
         return string.Empty;
@@ -124,9 +188,24 @@ public sealed class BiblePublicationDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
 
-        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName))
+        if (currentSchedule == null)
+        {
+            return string.Empty;
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName))
         {
             return currentSchedule.BiblePublicationCategoryName;
+        }
+
+        // Fall back to deriving category from publication code (helps when display names haven't been hydrated yet).
+        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
+        {
+            var categoryName = JwSourceHelper.GetCategoryName(currentSchedule.BiblePublicationCode);
+            if (!string.IsNullOrWhiteSpace(categoryName))
+            {
+                return categoryName;
+            }
         }
 
         return string.Empty;

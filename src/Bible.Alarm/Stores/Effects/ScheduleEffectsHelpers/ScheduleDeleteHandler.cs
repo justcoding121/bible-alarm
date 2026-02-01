@@ -24,22 +24,19 @@ public class ScheduleDeleteHandler
     private readonly IAlarmService? alarmService;
     private readonly IMediaCacheService? mediaCacheService;
     private readonly ScheduleDisplayNamePopulator displayNamePopulator;
-    private readonly ScheduleCacheManager cacheManager;
 
     public ScheduleDeleteHandler(
         IMapper mapper,
         IAlarmScheduleService? alarmScheduleService,
         IAlarmService? alarmService,
         IMediaCacheService? mediaCacheService,
-        ScheduleDisplayNamePopulator displayNamePopulator,
-        ScheduleCacheManager cacheManager)
+        ScheduleDisplayNamePopulator displayNamePopulator)
     {
         this.mapper = mapper;
         this.alarmScheduleService = alarmScheduleService;
         this.alarmService = alarmService;
         this.mediaCacheService = mediaCacheService;
         this.displayNamePopulator = displayNamePopulator;
-        this.cacheManager = cacheManager;
     }
 
     public async Task HandleAsync(DeleteScheduleAction action, IDispatcher dispatcher)
@@ -116,9 +113,6 @@ public class ScheduleDeleteHandler
                 return;
             }
 
-            // Clear cache BEFORE delete to prevent stale cache if process crashes
-            cacheManager.InvalidateScheduleCache();
-
             // Delete cached media files for this schedule (on background thread)
             if (mediaCacheService != null)
             {
@@ -142,9 +136,6 @@ public class ScheduleDeleteHandler
 
             Log.Information("ScheduleEffects: HandleDeleteSchedule - Dispatched RemoveScheduleSuccessAction for ScheduleId: {ScheduleId}",
                 action.ScheduleId);
-
-            // Refresh cache in background after successful delete
-            _ = Task.Run(async () => await cacheManager.RefreshScheduleCacheAsync());
         }
         catch (Exception ex)
         {

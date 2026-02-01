@@ -5,7 +5,6 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Effects.Services;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -20,18 +19,15 @@ public class ScheduleCreateHandler
     private readonly IMapper mapper;
     private readonly IAlarmScheduleService? alarmScheduleService;
     private readonly IAlarmService? alarmService;
-    private readonly ScheduleCacheManager cacheManager;
 
     public ScheduleCreateHandler(
         IMapper mapper,
         IAlarmScheduleService? alarmScheduleService,
-        IAlarmService? alarmService,
-        ScheduleCacheManager cacheManager)
+        IAlarmService? alarmService)
     {
         this.mapper = mapper;
         this.alarmScheduleService = alarmScheduleService;
         this.alarmService = alarmService;
-        this.cacheManager = cacheManager;
     }
 
     public async Task HandleAsync(CreateScheduleAction action, IDispatcher dispatcher)
@@ -49,9 +45,6 @@ public class ScheduleCreateHandler
                 }
                 return;
             }
-
-            // Clear cache BEFORE save to prevent stale cache if process crashes
-            cacheManager.InvalidateScheduleCache();
 
             // Map domain model (ScheduleStateItem) → DB entity (AlarmSchedule) on background thread
             var dbSchedule = await Task.Run(() => mapper.Map<AlarmSchedule>(action.Schedule));
@@ -107,9 +100,6 @@ public class ScheduleCreateHandler
 
             Log.Information("ScheduleEffects: HandleCreateSchedule - Dispatched CreateScheduleSuccessAction for ScheduleId: {ScheduleId}",
                 scheduleStateItem.Id);
-
-            // Refresh cache in background after successful save
-            _ = Task.Run(async () => await cacheManager.RefreshScheduleCacheAsync());
         }
         catch (Exception ex)
         {

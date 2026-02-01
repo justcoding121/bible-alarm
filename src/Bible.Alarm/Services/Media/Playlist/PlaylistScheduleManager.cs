@@ -57,8 +57,11 @@ public class PlaylistScheduleManager
 
         if (schedule == null)
         {
-            schedule = await AlarmSchedule.GetSampleSchedule(false, BiblePublicationService, melodyMusicService);
-            schedule = await alarmScheduleService.AddScheduleAsync(schedule, cancellationToken);
+            // Do NOT create schedules here.
+            // Schedule creation/seeding belongs to bootstrap (`IDatabaseSeedService`) and the UI "Add schedule" flow.
+            // Creating schedules from playback logic can cause duplicated schedules on fresh installs.
+            logger.Error("GetRelevantScheduleToPlay: No schedules found in DB; bootstrap/seeding should have ensured at least one schedule exists.");
+            throw new InvalidOperationException("No schedules found in database.");
         }
 
         return schedule.Id;

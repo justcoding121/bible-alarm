@@ -344,8 +344,13 @@ public static class ApplicationReducer
         if (updatedCurrentSchedule != null && action.CurrentBiblePublicationSchedule != null)
         {
             var biblePub = action.CurrentBiblePublicationSchedule;
+            var previous = updatedCurrentSchedule;
             updatedCurrentSchedule = updatedCurrentSchedule.DeepClone();
             
+            var publicationChanged = !string.Equals(previous.BiblePublicationCode, biblePub.PublicationCode, StringComparison.OrdinalIgnoreCase);
+            var sectionChanged = !string.Equals(previous.BiblePublicationSectionCode, biblePub.SectionCode, StringComparison.OrdinalIgnoreCase);
+            var trackChanged = previous.BiblePublicationTrackNumber != biblePub.TrackNumber;
+
             // Update ALL bible publication fields to ensure CurrentSchedule is fully in sync
             // This prevents ViewModels from reading stale values when they dispatch updates
             updatedCurrentSchedule.BiblePublicationScheduleId = biblePub.Id > 0 ? biblePub.Id : updatedCurrentSchedule.BiblePublicationScheduleId;
@@ -397,9 +402,16 @@ public static class ApplicationReducer
             updatedCurrentSchedule.BiblePublicationSectionName = !string.IsNullOrEmpty(biblePub.SectionName) 
                 ? biblePub.SectionName 
                 : updatedCurrentSchedule.BiblePublicationSectionName;
-            updatedCurrentSchedule.BiblePublicationTrackTitle = !string.IsNullOrEmpty(biblePub.TrackTitle) 
-                ? biblePub.TrackTitle 
-                : updatedCurrentSchedule.BiblePublicationTrackTitle;
+            // If the selection changed but the action didn't provide a title, clear it to avoid stale titles
+            // (e.g. switching from Bible → Music, or between sections/tracks).
+            if (!string.IsNullOrEmpty(biblePub.TrackTitle))
+            {
+                updatedCurrentSchedule.BiblePublicationTrackTitle = biblePub.TrackTitle;
+            }
+            else if (publicationChanged || sectionChanged || trackChanged)
+            {
+                updatedCurrentSchedule.BiblePublicationTrackTitle = null;
+            }
             
             // ALWAYS preserve category - category can only be changed via CategorySelectionAction
             // DeepClone() already preserves the category, but explicitly ensure it's never null/empty
