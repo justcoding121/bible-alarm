@@ -19,7 +19,23 @@ public static class ScheduleEntityUpdater
     {
         UpdateBasicScheduleProperties(existing, dbSchedule);
 
-        if (action.MusicUpdated)
+        // Category=Music schedules use the BiblePublicationSchedule for music content.
+        // In that case, "begin with music" (AlarmMusic) must be disabled/removed.
+        var isMusicCategorySchedule =
+            action.Schedule != null &&
+            !string.IsNullOrWhiteSpace(action.Schedule.BiblePublicationCategoryName) &&
+            string.Equals(action.Schedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase);
+
+        if (isMusicCategorySchedule)
+        {
+            if (existing.Music != null)
+            {
+                Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Category=Music schedule, removing existing AlarmMusic (begin-with-music) for ScheduleId={ScheduleId}",
+                    existing.Id);
+                existing.Music = null;
+            }
+        }
+        else if (action.MusicUpdated)
         {
             UpdateMusicEntity(existing, dbSchedule, action);
         }

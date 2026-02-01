@@ -340,8 +340,8 @@ public sealed class CategorySelectionAutoPopulateHandler
 
                 // Use the publication code and name from the result (may differ for dramas)
                 publicationCode = resultPublicationCode;
-                sectionIndex = resultSectionCode;
-                sectionCode = resultSectionCode > 0 ? resultSectionCode.ToString() : null;
+                sectionCode = string.IsNullOrWhiteSpace(resultSectionCode) ? null : resultSectionCode;
+                sectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
                 trackNumber = resultTrackNumber;
                 sectionName = resultSectionName;
                 publicationName = resultPublicationName;

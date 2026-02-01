@@ -23,7 +23,6 @@ namespace Bible.Alarm.ViewModels;
 public sealed class ScheduleListItemViewModel(
     ILogger logger,
     ISchedulePlaybackService playbackService,
-    IScheduleDisplayService displayService,
     IScheduleStateService scheduleStateService,
     IPlaylistService playlistService,
     IState<ApplicationState> applicationState,
@@ -37,7 +36,7 @@ public sealed class ScheduleListItemViewModel(
     private readonly ScheduleListItemPropertyManager propertyManager = new(logger, scheduleStateService);
     private readonly ScheduleListItemCommandHandler commandHandler = new(logger, playbackService, playlistService);
     private readonly ScheduleListItemStateHandler stateHandler = new(logger, mapper, applicationState);
-    private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, displayService, applicationState);
+    private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, applicationState);
     private readonly ScheduleListItemBibleDisplayNameProvider bibleDisplayNameProvider = new(applicationState);
     private ScheduleListItemStateChangeApplier? stateChangeApplier;
     private ScheduleListItemStateChangeApplier StateChangeApplier => stateChangeApplier ??= new(logger, applicationState, stateHandler, propertyManager);
@@ -355,7 +354,7 @@ public sealed class ScheduleListItemViewModel(
 
     /// <summary>
     /// Refreshes subtitle from ScheduleStateItem in state (uses pre-populated SectionName).
-    /// Falls back to async database lookup if SectionName is not available in state.
+    /// State-only: Home list should not trigger ad-hoc DB calls.
     /// </summary>
     private void RefreshSubTitleFromState(ScheduleStateItem? providedScheduleStateItem = null)
     {
@@ -372,33 +371,8 @@ public sealed class ScheduleListItemViewModel(
             OnPropertyChanged);
     }
 
-    /// <summary>
-    /// Async fallback method for refreshing track name from database.
-    /// Only used if SectionName is not available in state.
-    /// </summary>
-    public async Task RefreshTrackNameAsync(bool force = false)
-    {
-        if (Schedule?.Id <= 0)
-        {
-            return;
-        }
-
-        var schedule = Schedule;
-        if (schedule == null)
-        {
-            return;
-        }
-
-        await subtitleManager.RefreshTrackNameAsync(
-            schedule.Id,
-            force,
-            value => SubTitle = value,
-            value => Language = value,
-            OnPropertyChanged);
-    }
-
     public void RefreshTrackName(bool force = false) =>
-        // Try state first, then fallback to async lookup
+        // Refresh from state only (no DB fallback)
         RefreshSubTitleFromState();
 
     public int CompareTo(object? obj) => obj is not ScheduleListItemViewModel other ? 1 : ScheduleId.CompareTo(other.ScheduleId);

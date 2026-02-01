@@ -49,49 +49,80 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
 
     private async Task PopulateBiblePublicationDisplayNamesAsync(ScheduleStateItem scheduleStateItem, BiblePublicationSchedule biblePublicationSchedule)
     {
+        var scheduleLanguageCode = biblePublicationSchedule.LanguageCode;
+        var publicationCode = biblePublicationSchedule.PublicationCode;
+
         // Language name and direction
-        if (!string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) && BiblePublicationService != null)
+        if (!string.IsNullOrWhiteSpace(scheduleLanguageCode) && BiblePublicationService != null)
         {
             try
             {
                 var languagesDict = await BiblePublicationService.GetDistinctLanguagesAsync();
-                if (languagesDict.TryGetValue(biblePublicationSchedule.LanguageCode, out var language))
+                if (languagesDict.TryGetValue(scheduleLanguageCode, out var language))
                 {
                     scheduleStateItem.BiblePublicationLanguageName = language.Name;
                     scheduleStateItem.BiblePublicationLanguageDirection = language.Direction;
                 }
                 else
                 {
-                    scheduleStateItem.BiblePublicationLanguageName = biblePublicationSchedule.LanguageCode;
+                    scheduleStateItem.BiblePublicationLanguageName = scheduleLanguageCode;
                     scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating BiblePublicationLanguageName");
-                scheduleStateItem.BiblePublicationLanguageName = biblePublicationSchedule.LanguageCode;
+                scheduleStateItem.BiblePublicationLanguageName = scheduleLanguageCode;
                 scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
             }
         }
 
         // Publication name and category
-        if (!string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
-            !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode) &&
-            BiblePublicationService != null)
+        if (!string.IsNullOrWhiteSpace(publicationCode))
         {
             try
             {
-                // Avoid redundant DB calls:
-                // - For sectioned publications, load with sections once.
-                // - For non-sectioned publications (dramas/videos), load with tracks once and reuse for track title later.
-                var hasSections = PublicationTypeHelper.HasSectionStructure(biblePublicationSchedule.PublicationCode);
-                var publication = hasSections
-                    ? await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                        biblePublicationSchedule.LanguageCode,
-                        biblePublicationSchedule.PublicationCode)
-                    : await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(
-                        biblePublicationSchedule.LanguageCode,
-                        biblePublicationSchedule.PublicationCode);
+                var hasSections = PublicationTypeHelper.HasSectionStructure(publicationCode);
+                Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication? publication = null;
+                var publicationWithoutLanguage = false;
+
+                // First attempt: language-bound query (normal publications).
+                if (!string.IsNullOrWhiteSpace(scheduleLanguageCode) && BiblePublicationService != null)
+                {
+                    // Avoid redundant DB calls:
+                    // - For sectioned publications, load with sections once.
+                    // - For non-sectioned publications (dramas/videos), load with tracks once and reuse for track title later.
+                    publication = hasSections
+                        ? await BiblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                            scheduleLanguageCode,
+                            publicationCode)
+                        : await BiblePublicationService.GetByLanguageAndCodeWithTracksAsync(
+                            scheduleLanguageCode,
+                            publicationCode);
+                }
+
+                // Fallback: publications without language FK (e.g., melody music like "iam").
+                if (publication == null)
+                {
+                    try
+                    {
+                        var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+                        using var scope = scopeFactory.CreateScope();
+                        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+                        publication = await dbContext.BiblePublications
+                            .AsNoTracking()
+                            .Include(x => x.Category)
+                            .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
+                            .FirstOrDefaultAsync();
+
+                        publicationWithoutLanguage = publication != null;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Warning(ex, "Error loading publication without language FK from media index (PublicationCode={PublicationCode})", publicationCode);
+                    }
+                }
 
                 if (publication != null)
                 {
@@ -111,7 +142,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                     else
                     {
                         // Fallback: derive category name from publication code
-                        var categoryName = JwSourceHelper.GetCategoryName(biblePublicationSchedule.PublicationCode);
+                        var categoryName = JwSourceHelper.GetCategoryName(publicationCode);
                         if (!string.IsNullOrWhiteSpace(categoryName))
                         {
                             scheduleStateItem.BiblePublicationCategoryName = categoryName;
@@ -133,6 +164,17 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                             scheduleStateItem.BiblePublicationTrackTitle = track.Title;
                         }
                     }
+
+                    // For no-language publications, the schedule category is not persisted in Schedule DB.
+                    // Ensure category is set based on media index so the schedule editor can render correctly.
+                    if (publicationWithoutLanguage && string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName))
+                    {
+                        var categoryName = JwSourceHelper.GetCategoryName(publicationCode);
+                        if (!string.IsNullOrWhiteSpace(categoryName))
+                        {
+                            scheduleStateItem.BiblePublicationCategoryName = categoryName;
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -144,8 +186,8 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         // Section name - for non-sectioned publications (SectionCode is null or empty), clear the section name
         var sectionCode = await ConvertSectionCodeToIntAsync(
             biblePublicationSchedule.SectionCode,
-            biblePublicationSchedule.LanguageCode,
-            biblePublicationSchedule.PublicationCode);
+            scheduleLanguageCode ?? string.Empty,
+            publicationCode ?? string.Empty);
         
         if (sectionCode == 0)
         {
@@ -153,21 +195,58 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             scheduleStateItem.BiblePublicationSectionName = null;
         }
         else if (sectionCode > 0 &&
-            !string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
-            !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode))
+            !string.IsNullOrWhiteSpace(publicationCode))
         {
             try
             {
-                var biblePublicationSectionService = serviceProvider.GetRequiredService<IBiblePublicationSectionService>();
-                var sectionName = await Task.Run(async () =>
-                    await biblePublicationSectionService.GetSectionNameAsync(
-                        biblePublicationSchedule.LanguageCode,
-                        biblePublicationSchedule.PublicationCode,
-                        sectionCode));
+                var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublicationSchedule.SectionCode);
 
-                if (!string.IsNullOrWhiteSpace(sectionName))
+                // First try: no-language section lookup by exact SectionCode (e.g. "iam-1").
+                // This is required for melody disc-style publications where LanguageId == null in media index.
+                if (!string.IsNullOrWhiteSpace(normalizedSectionCode))
                 {
-                    scheduleStateItem.BiblePublicationSectionName = sectionName;
+                    try
+                    {
+                        var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+                        using var scope = scopeFactory.CreateScope();
+                        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+                        var sectionCodeLower = normalizedSectionCode.ToLowerInvariant();
+                        var sectionName = await dbContext.BiblePublicationSections
+                            .AsNoTracking()
+                            .Where(x => x.BiblePublication.PublicationCode == publicationCode
+                                        && x.BiblePublication.LanguageId == null
+                                        && x.SectionCode != null
+                                        && x.SectionCode.ToLower() == sectionCodeLower)
+                            .Select(x => x.Name)
+                            .FirstOrDefaultAsync();
+
+                        if (!string.IsNullOrWhiteSpace(sectionName))
+                        {
+                            scheduleStateItem.BiblePublicationSectionName = sectionName;
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Debug(ex, "No-language section lookup failed (PublicationCode={PublicationCode}, SectionCode={SectionCode})", publicationCode, normalizedSectionCode);
+                    }
+                }
+
+                // Fallback: language-bound section lookup (traditional Bible section structure).
+                if (!string.IsNullOrWhiteSpace(scheduleLanguageCode))
+                {
+                    var biblePublicationSectionService = serviceProvider.GetRequiredService<IBiblePublicationSectionService>();
+                    var sectionName = await Task.Run(async () =>
+                        await biblePublicationSectionService.GetSectionNameAsync(
+                            scheduleLanguageCode,
+                            publicationCode,
+                            sectionCode));
+
+                    if (!string.IsNullOrWhiteSpace(sectionName))
+                    {
+                        scheduleStateItem.BiblePublicationSectionName = sectionName;
+                    }
                 }
             }
             catch (Exception ex)
@@ -178,25 +257,35 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
 
         // Track title
         if (biblePublicationSchedule.TrackNumber > 0 &&
-            !string.IsNullOrWhiteSpace(biblePublicationSchedule.LanguageCode) &&
-            !string.IsNullOrWhiteSpace(biblePublicationSchedule.PublicationCode))
+            !string.IsNullOrWhiteSpace(publicationCode))
         {
             try
             {
-                if (PublicationTypeHelper.HasSectionStructure(biblePublicationSchedule.PublicationCode))
+                if (PublicationTypeHelper.HasSectionStructure(publicationCode))
                 {
                     // Sectioned publications (traditional Bible) - load track from section
                     var sectionIndex = await ConvertSectionCodeToIntAsync(
                         biblePublicationSchedule.SectionCode,
-                        biblePublicationSchedule.LanguageCode,
-                        biblePublicationSchedule.PublicationCode);
+                        scheduleLanguageCode ?? string.Empty,
+                        publicationCode);
                     if (sectionIndex > 0)
                     {
+                        // Try language-bound first; if empty (no-language publications like "iam"), fall back to empty language.
+                        var languageForTracks = scheduleLanguageCode ?? string.Empty;
                         var tracks = await Task.Run(async () =>
                             await mediaService.GetBiblePublicationTracks(
-                                biblePublicationSchedule.LanguageCode,
-                                biblePublicationSchedule.PublicationCode,
+                                languageForTracks,
+                                publicationCode,
                                 sectionIndex));
+
+                        if (tracks == null || tracks.Count == 0)
+                        {
+                            tracks = await Task.Run(async () =>
+                                await mediaService.GetBiblePublicationTracks(
+                                    string.Empty,
+                                    publicationCode,
+                                    sectionIndex));
+                        }
 
                         if (tracks != null && tracks.TryGetValue(biblePublicationSchedule.TrackNumber, out var track))
                         {
@@ -409,25 +498,12 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
 
     /// <summary>
     /// Converts SectionCode (string) to the int section number needed for media service calls.
-    /// Tries to parse SectionCode to int.
     /// Returns 0 for null/empty (non-sectioned publications).
+    /// Supports codes like "iam-1" by extracting the numeric suffix.
     /// </summary>
     private Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
     {
-        if (string.IsNullOrEmpty(sectionCode))
-        {
-            return Task.FromResult(0);
-        }
-
-        // Try to parse SectionCode directly to int
-        if (int.TryParse(sectionCode, out var sectionIndex))
-        {
-            return Task.FromResult(sectionIndex);
-        }
-
-        // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
-        // For non-numeric section codes, return 0
-        return Task.FromResult(0);
+        return Task.FromResult(SectionCodeHelper.GetSectionIndexOrZero(sectionCode));
     }
 }
 

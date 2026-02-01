@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Helpers;
 
 namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 
@@ -29,9 +30,10 @@ internal sealed class LookupDataCollector
                 {
                     publicationKeys.Add((br.LanguageCode, br.PublicationCode));
                     // Convert SectionCode to int for lookup key
-                    if (!string.IsNullOrEmpty(br.SectionCode) && int.TryParse(br.SectionCode, out var sectionCode) && sectionCode > 0)
+                    var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(br.SectionCode);
+                    if (sectionIndex > 0)
                     {
-                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, sectionCode));
+                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, sectionIndex));
                     }
                 }
             }

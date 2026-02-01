@@ -1,7 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
@@ -9,8 +8,6 @@ using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
@@ -22,7 +19,6 @@ public sealed class MusicPublicationSelectionCommandHandler(
     INavigationService navigationService,
     IState<ApplicationState> state,
     IDispatcher dispatcher,
-    IServiceScopeFactory scopeFactory,
     IMediaService mediaService)
 {
     public async Task HandleTrackSelectionAsync(
@@ -55,21 +51,9 @@ public sealed class MusicPublicationSelectionCommandHandler(
         // Give UI thread enough time to render the progress indicator
         await Task.Delay(300);
 
-        // Determine if this is a melody music publication (LanguageId == null) or vocal music (LanguageId != null)
-        // This is data-driven, not hard-coded
-        bool isMelodyMusic = false;
-        using (var scope = scopeFactory.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            var publication = await db.BiblePublications
-                .AsNoTracking()
-                .Where(bp => bp.PublicationCode == songPublication.Code &&
-                             bp.Category != null &&
-                             bp.Category.CategoryName == "Music")
-                .FirstOrDefaultAsync();
-            
-            isMelodyMusic = publication?.LanguageId == null;
-        }
+        // No DB probing: the tapped row already knows if it has LanguageId or not.
+        // Publications without language FK (LanguageId == null) are melody/instrumental.
+        var isMelodyMusic = songPublication.IsPublicationWithoutLanguage;
 
         // For melody music, language code is not needed
         // For vocal music, language code is required
@@ -131,6 +115,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     var sectionIndex = selectedSection.Key;
                     var selectedSectionCode = selectedSection.Value.SectionCode;
                     sectionName = selectedSection.Value.Name;
+                    sectionCode = selectedSectionCode;
 
                     var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, songPublication.Code, sectionIndex);
                     if (sectionTracks == null || sectionTracks.Count == 0)

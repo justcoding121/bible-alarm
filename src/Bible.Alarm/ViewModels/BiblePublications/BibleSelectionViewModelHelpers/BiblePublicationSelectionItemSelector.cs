@@ -1,7 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -9,7 +8,6 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
@@ -61,7 +59,7 @@ public sealed class BiblePublicationSelectionItemSelector
     /// When user selects a publication, cascade to get first section and track.
     /// Dynamically detects if publication has sections by querying the database.
     /// </summary>
-    public async Task<(int SectionCode, int TrackNumber, string SectionName, string TrackTitle)> 
+    public async Task<(string? SectionCode, int TrackNumber, string SectionName, string TrackTitle)> 
         GetSectionAndTrackForPublicationAsync(
             PublicationListViewItemModel publication,
             LanguageListViewItemModel language,
@@ -73,12 +71,26 @@ public sealed class BiblePublicationSelectionItemSelector
         // Show progress while fetching
         progress?.UpdateProgress(0.1);
         
+        // Each list item carries whether it has a language FK (LanguageId != null) or not.
+        // Use that to decide the DB query path (no extra DB probing here).
+        var publicationWithoutLanguage = publication.IsPublicationWithoutLanguage;
+
         // First, try to get sections from the database
         // IMPORTANT: Prefer direct DB query to avoid triggering background "ensure all sections" work.
         // Section presence is enough to determine sectioned vs non-sectioned for cascade defaults.
-        var sections = biblePublicationSectionService != null
-            ? await biblePublicationSectionService.GetSectionsByPublicationAsync(language.Code, publication.Code, default)
-            : await mediaService.GetBiblePublicationSections(language.Code, publication.Code);
+        SortedDictionary<int, BiblePublicationSection> sections;
+        if (publicationWithoutLanguage)
+        {
+            sections = biblePublicationSectionService != null
+                ? await biblePublicationSectionService.GetSectionsByPublicationWithoutLanguageAsync(publication.Code, default)
+                : await mediaService.GetSectionsForPublicationWithoutLanguage(publication.Code);
+        }
+        else
+        {
+            sections = biblePublicationSectionService != null
+                ? await biblePublicationSectionService.GetSectionsByPublicationAsync(language.Code, publication.Code, default)
+                : await mediaService.GetBiblePublicationSections(language.Code, publication.Code);
+        }
 
         progress?.UpdateProgress(0.3);
 
@@ -89,15 +101,15 @@ public sealed class BiblePublicationSelectionItemSelector
                 sections.Count);
             progress?.UpdateProgress(0.5);
             var sectionedResult = await sectionTrackResolver.GetFirstSectionAndTrackFromSectionsAsync(
-                language.Code,
+                publicationWithoutLanguage ? null : language.Code,
                 publication.Code,
                 sections,
                 progress);
             Log.Debug("GetSectionAndTrackForPublicationAsync: Sectioned result: sectionCode={SectionCode}, trackNumber={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
                 sectionedResult.SectionCode, sectionedResult.TrackNumber, sectionedResult.SectionName, sectionedResult.TrackTitle);
             
-            // Warn if names are empty but numbers are valid
-            if (sectionedResult.SectionCode > 0 && string.IsNullOrWhiteSpace(sectionedResult.SectionName))
+            // Warn if names are empty but codes/numbers are valid
+            if (!string.IsNullOrWhiteSpace(sectionedResult.SectionCode) && string.IsNullOrWhiteSpace(sectionedResult.SectionName))
             {
                 Log.Warning("GetSectionAndTrackForPublicationAsync: SectionName is empty for sectionCode={SectionCode}", 
                     sectionedResult.SectionCode);
@@ -114,7 +126,10 @@ public sealed class BiblePublicationSelectionItemSelector
         // No sections found - this is a non-sectioned publication (drama/video)
         Log.Debug("GetSectionAndTrackForPublicationAsync: No sections found, using non-sectioned flow");
         progress?.UpdateProgress(0.5);
-        var result = await sectionTrackResolver.GetFirstTrackForNonSectionedAsync(language.Code, publication.Code, progress);
+        var result = await sectionTrackResolver.GetFirstTrackForNonSectionedAsync(
+            publicationWithoutLanguage ? null : language.Code,
+            publication.Code,
+            progress);
         Log.Debug("GetSectionAndTrackForPublicationAsync: Non-sectioned result: trackNumber={TrackNumber}, trackTitle={TrackTitle}",
             result.TrackNumber, result.TrackTitle);
         return result;
@@ -124,7 +139,7 @@ public sealed class BiblePublicationSelectionItemSelector
     /// When user selects a language, cascade to get first publication, section, and track.
     /// Dynamically detects if publication has sections by querying the database.
     /// </summary>
-    public async Task<(string? PublicationCode, int SectionCode, int TrackNumber, string SectionName, string PublicationName, string TrackTitle)>
+    public async Task<(string? PublicationCode, string? SectionCode, int TrackNumber, string SectionName, string PublicationName, string TrackTitle)>
         GetPublicationSectionAndTrackForLanguageAsync(LanguageListViewItemModel language, IFetchProgress? progress = null)
     {
         Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Starting for language={LanguageCode}", language.Code);
@@ -143,7 +158,7 @@ public sealed class BiblePublicationSelectionItemSelector
         {
             Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: No publications found for language={LanguageCode}, category={CategoryName}", 
                 language.Code, categoryName ?? "(null)");
-            return (null, 0, 0, string.Empty, string.Empty, string.Empty);
+            return (null, null, 0, string.Empty, string.Empty, string.Empty);
         }
 
         // Find the first publication - prioritize publications without LanguageId (like "iam" for Music)
@@ -158,7 +173,7 @@ public sealed class BiblePublicationSelectionItemSelector
         {
             Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: No publication found for language={LanguageCode}, category={CategoryName}", 
                 language.Code, categoryName ?? "(null)");
-            return (null, 0, 0, string.Empty, string.Empty, string.Empty);
+            return (null, null, 0, string.Empty, string.Empty, string.Empty);
         }
 
         var publicationName = publication.Name;
@@ -235,8 +250,8 @@ public sealed class BiblePublicationSelectionItemSelector
             Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Sectioned result: sectionCode={SectionCode}, sectionName={SectionName}, trackNumber={TrackNumber}, trackTitle={TrackTitle}",
                 sectionCode, sectionName, firstTrackNumber, firstTrackTitle);
 
-            // Warn if names are empty but numbers are valid
-            if (sectionCode > 0 && string.IsNullOrWhiteSpace(sectionName))
+            // Warn if names are empty but codes/numbers are valid
+            if (!string.IsNullOrWhiteSpace(sectionCode) && string.IsNullOrWhiteSpace(sectionName))
             {
                 Log.Warning("GetPublicationSectionAndTrackForLanguageAsync: SectionName is empty for sectionCode={SectionCode}", 
                     sectionCode);
@@ -258,6 +273,6 @@ public sealed class BiblePublicationSelectionItemSelector
         var (_, trackNumber, _, trackTitle) = await sectionTrackResolver.GetFirstTrackForNonSectionedAsync(languageCodeForQuery, publicationCode, progress);
         Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Non-sectioned result: trackNumber={TrackNumber}, trackTitle={TrackTitle}",
             trackNumber, trackTitle);
-        return (publicationCode, 0, trackNumber, string.Empty, publicationName, trackTitle);
+        return (publicationCode, null, trackNumber, string.Empty, publicationName, trackTitle);
     }
 }

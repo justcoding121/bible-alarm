@@ -171,6 +171,10 @@ public sealed class ScheduleSaveService : IScheduleSaveService
 
         var scheduleStateItem = mapper.Map<ScheduleStateItem>(model);
 
+        // Preserve category from CurrentSchedule state (not persisted in DB model)
+        scheduleStateItem.BiblePublicationCategoryId = currentSchedule.BiblePublicationCategoryId;
+        scheduleStateItem.BiblePublicationCategoryName = currentSchedule.BiblePublicationCategoryName;
+
         // Ensure MusicEnabled, NumberOfTracksToPlay, AlwaysPlayFromStart, and all display names are set from CurrentSchedule state
         // Disable music when Music category is selected (Music category publications don't use the music selection container)
         var isMusicCategory = !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
@@ -185,6 +189,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             scheduleStateItem.MusicLanguageCode = null;
             scheduleStateItem.MusicSectionCode = null;
             scheduleStateItem.MusicRepeat = null;
+            scheduleStateItem.MusicId = null;
             logger.Information("PrepareScheduleStateItem: Music category selected - disabled music and cleared music data");
         }
         else
@@ -223,7 +228,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             scheduleStateItem.MusicTrackName ?? "null");
 
         // If music was updated, always use music properties from CurrentSchedule state
-        if (musicUpdated)
+        if (musicUpdated && !isMusicCategory)
         {
             logger.Information("PrepareScheduleStateItem: musicUpdated=true, overriding with CurrentSchedule state");
             if (currentSchedule.MusicType.HasValue &&

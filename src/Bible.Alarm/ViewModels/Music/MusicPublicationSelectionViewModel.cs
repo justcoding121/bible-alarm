@@ -56,7 +56,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         var biblePublicationService = serviceProvider.GetService<IBiblePublicationService>();
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
         dataProvider = new MusicPublicationSelectionDataProvider(mediaService, biblePublicationService, languageContentService, scopeFactory);
-        commandHandler = new MusicPublicationSelectionCommandHandler(navigationService, state, dispatcher, scopeFactory, mediaService);
+        commandHandler = new MusicPublicationSelectionCommandHandler(navigationService, state, dispatcher, mediaService);
         propertyManager = new MusicPublicationSelectionPropertyManager();
 
         state.StateChanged += OnMusicInitialized;

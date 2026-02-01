@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -36,27 +37,56 @@ public class PlaylistBiblePublicationTrackBuilder
 
     public record TrackInfo(int SectionIndex, string? SectionCode, BiblePublicationTrack Track, string Url);
 
+    private static bool TryApplyDiscMusicLookUpPath(
+        TrackMetadata trackMetadata,
+        string publicationCode,
+        string languageCode,
+        string? sectionCode,
+        int trackNumber)
+    {
+        var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
+        if (string.IsNullOrWhiteSpace(normalizedSectionCode))
+        {
+            return false;
+        }
+
+        // Melody disc-style codes (e.g., "iam-1") need MUSIC-style lookup:
+        // pub=iam-1&track=1 (NOT booknum=iam-1).
+        if (!normalizedSectionCode.Contains('-'))
+        {
+            return false;
+        }
+
+        if (!normalizedSectionCode.StartsWith(publicationCode + "-", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (SectionCodeHelper.GetSectionIndexOrZero(normalizedSectionCode) <= 0)
+        {
+            return false;
+        }
+
+        trackMetadata.DownloadCode = normalizedSectionCode;
+        trackMetadata.OriginalTrackNumber = trackNumber;
+        trackMetadata.LookUpPath = LookUpPathBuilder.BuildMusicTrackLookUpPath(
+            publicationCode,
+            languageCode,
+            trackNumber,
+            downloadCode: normalizedSectionCode,
+            originalTrackNumber: trackNumber);
+
+        return true;
+    }
+
     /// <summary>
     /// Converts SectionCode (string) to the int section number needed for media service calls.
-    /// Tries to parse SectionCode to int.
     /// Returns 0 for null/empty (non-sectioned publications).
+    /// Supports codes like "iam-1" by extracting the numeric suffix.
     /// </summary>
     private Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
     {
-        if (string.IsNullOrEmpty(sectionCode))
-        {
-            return Task.FromResult(0);
-        }
-
-        // Try to parse section code directly to int
-        if (int.TryParse(sectionCode, out var sectionIndex))
-        {
-            return Task.FromResult(sectionIndex);
-        }
-
-        // If parsing fails, SectionCode is not numeric (e.g., "gen" for Genesis)
-        // For non-numeric section codes, return 0
-        return Task.FromResult(0);
+        return Task.FromResult(SectionCodeHelper.GetSectionIndexOrZero(sectionCode));
     }
 
     public async Task<List<PlayItem>> BuildBiblePublicationTracks(
@@ -225,8 +255,16 @@ public class PlaylistBiblePublicationTrackBuilder
             TrackNumber = trackDetail.Number
         };
 
-        // Use UrlConstructionService to get the lookup path from database
-        if (urlConstructionService != null)
+        // Special-case: "iam-1" style sections use MUSIC-style lookup (pub=iam-1), not booknum=iam-1.
+        var lookUpPathApplied = TryApplyDiscMusicLookUpPath(
+            trackMetadata,
+            biblePublicationSchedule.PublicationCode,
+            biblePublicationSchedule.LanguageCode,
+            sectionCode,
+            trackDetail.Number);
+
+        // Otherwise use UrlConstructionService to get the lookup path from database
+        if (!lookUpPathApplied && urlConstructionService != null)
         {
             var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
                 biblePublicationSchedule.PublicationCode,
@@ -336,8 +374,15 @@ public class PlaylistBiblePublicationTrackBuilder
             IsLastTrack = !isIndefinite && remainingTracks == 1
         };
 
-        // Use UrlConstructionService to get the lookup path from database
-        if (urlConstructionService != null)
+        var lookUpPathApplied = TryApplyDiscMusicLookUpPath(
+            trackMetadata,
+            biblePublicationSchedule.PublicationCode,
+            biblePublicationSchedule.LanguageCode,
+            sectionCode,
+            trackNumber);
+
+        // Otherwise use UrlConstructionService to get the lookup path from database
+        if (!lookUpPathApplied && urlConstructionService != null)
         {
             var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
                 biblePublicationSchedule.PublicationCode,
@@ -412,8 +457,15 @@ public class PlaylistBiblePublicationTrackBuilder
             TrackNumber = next.Value.Number
         };
 
-        // Use UrlConstructionService to get the lookup path from database
-        if (urlConstructionService != null)
+        var lookUpPathApplied = TryApplyDiscMusicLookUpPath(
+            trackMetadata,
+            biblePublicationSchedule.PublicationCode,
+            biblePublicationSchedule.LanguageCode,
+            nextSectionCode,
+            next.Value.Number);
+
+        // Otherwise use UrlConstructionService to get the lookup path from database
+        if (!lookUpPathApplied && urlConstructionService != null)
         {
             var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
                 biblePublicationSchedule.PublicationCode,

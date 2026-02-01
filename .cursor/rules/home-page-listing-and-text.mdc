@@ -1,0 +1,139 @@
+---
+description: "Home page schedule listing: how it’s populated and how list text is computed"
+globs: "{src/Bible.Alarm/Views/Home.xaml*,src/Bible.Alarm/ViewModels/HomeViewModel*.cs,src/Bible.Alarm/ViewModels/HomeViewModelHelpers/**,src/Bible.Alarm/ViewModels/ScheduleListItemViewModel*.cs,src/Bible.Alarm/ViewModels/ScheduleListItemViewModelHelpers/**,src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs,src/Bible.Alarm/Services/Schedule/ScheduleDisplayNameService.cs,src/Bible.Alarm/Services/Media/ScheduleDisplayService.cs}"
+alwaysApply: false
+---
+
+## What the Home list is bound to
+
+XAML:
+- `src/Bible.Alarm/Views/Home.xaml`
+
+The `CollectionView.ItemsSource` is:
+- `HomeViewModel.Schedules` (type: `ObservableHashSet<ScheduleListItemViewModel>`)
+
+Each row is a `ScheduleListItemViewModel` and the template displays:
+- time + meridian + days-of-week badges
+- schedule name
+- publication/section/track text (from state-derived display names)
+- language text
+- a “music enabled” icon
+- play button + delete swipe
+
+---
+
+## Where the schedule list data comes from
+
+### Step 1: Bootstrapping populates Fluxor state
+
+`ScheduleBootstrapService.InitializeAsync()` loads schedule data into `ApplicationState.Schedules` as `ScheduleStateItem`s:
+- from **disk cache** key `"ScheduleList"` when present (fast path)
+- otherwise from the Schedule DB + display-name population (slower path)
+
+File:
+- `src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs`
+
+### Step 2: HomeViewModel reacts to Fluxor state changes
+
+`HomeViewModel` subscribes to:
+- `state.StateChanged += OnStateChanged`
+
+File:
+- `src/Bible.Alarm/ViewModels/HomeViewModel.cs`
+
+The handler delegates to:
+- `HomeStateChangeHandler.HandleStateChangedAsync(stateValue)`
+
+Key behavior:
+- Home does *not* directly query EF DbContexts.
+- It renders whatever is in Fluxor `ApplicationState.Schedules`.
+
+---
+
+## How Home builds row view models (performance design)
+
+To keep UI smooth, Home splits work between background and UI thread.
+
+### Off-UI thread: CPU-heavy mapping
+
+`ScheduleDataPreparer.PrepareScheduleDataOffUIThread(...)`:
+- snapshots the state schedules list
+- filters out invalid IDs (`Id <= 0`)
+- maps `ScheduleStateItem` → `AlarmSchedule` via AutoMapper
+
+File:
+- `src/Bible.Alarm/ViewModels/HomeViewModelHelpers/ScheduleDataPreparer.cs`
+
+### UI thread: ViewModel reuse + initialization
+
+`ScheduleViewModelManager.PrepareScheduleViewModelsOnUIThread(...)`:
+- reuses existing `ScheduleListItemViewModel` instances per scheduleId when possible (stored in a dictionary)
+- initializes each view model using the **pre-mapped** `AlarmSchedule` and the matching `ScheduleStateItem`
+
+File:
+- `src/Bible.Alarm/ViewModels/HomeViewModelHelpers/ScheduleViewModelManager.cs`
+
+This design minimizes:
+- UI thread CPU load
+- allocations when schedules update frequently (track pointers, enable toggles)
+
+---
+
+## How row “text” is computed
+
+There are two distinct text mechanisms:
+
+### A) Inline “card fields” (publication/section/track lines)
+
+In `ScheduleListItemViewModel`, the following properties are *read directly from Fluxor state* via helper:
+- `BiblePublicationName`
+- `BiblePublicationSectionName`
+- `BiblePublicationTrackName`
+- Bible-only combined line: `BiblePublicationSectionAndTrackOneLine` (e.g. `"Exodus 9"`)
+
+Helper:
+- `ScheduleListItemBibleDisplayNameProvider`
+  - file: `src/Bible.Alarm/ViewModels/ScheduleListItemViewModelHelpers/ScheduleListItemBibleDisplayNameProvider.cs`
+
+Notes:
+- It treats “Bible” category specially (one-line `"SectionName TrackNumber"`).
+- If category name is temporarily missing (category isn’t persisted in Schedule DB), it falls back to inferring category from the publication code.
+
+### B) The `SubTitle` + `Language` strings
+
+`ScheduleListItemSubtitleManager` builds `SubTitle` from the `ScheduleStateItem` in Fluxor state:
+- it prefers state because display names (section name / track title) are pre-populated during bootstrap and updates
+- it only falls back to DB lookups when state is missing the required display names *and* it is not just “waiting” for display name population
+
+File:
+- `src/Bible.Alarm/ViewModels/ScheduleListItemViewModelHelpers/ScheduleListItemSubtitleManager.cs`
+
+Subtitle format:
+- `Category • Publication • (SectionName if sectioned) • (TrackNumber or TrackTitle) • Language`
+
+Track portion rules:
+- if sectioned:
+  - for **Music category** schedules, it prefers `TrackTitle` if available
+  - otherwise it uses the numeric track number
+- if non-sectioned:
+  - uses track title (dramas/videos)
+
+Fallback (async) when needed:
+- calls `IScheduleDisplayService.GetTrackDisplayNameAsync(scheduleId, force)`
+  - file: `src/Bible.Alarm/Services/Media/ScheduleDisplayService.cs`
+  - returns:
+    - sectioned: `"Section Name - TrackNumber"`
+    - non-sectioned: `"Track Title"`
+
+---
+
+## How navigation from Home works (row tap vs button tap)
+
+Code-behind ensures that tapping on controls (buttons/switches) does not trigger navigation:
+- `Home.xaml.cs` checks tap position vs interactive controls
+- if tap is not on a control, it executes `HomeViewModel.ViewScheduleCommand`
+
+Files:
+- `src/Bible.Alarm/Views/Home.xaml.cs`
+- `src/Bible.Alarm/ViewModels/HomeViewModelHelpers/CommandHandler.cs`
+

@@ -1,0 +1,161 @@
+---
+description: "Databases: Schedule DB + Media index DB (schema, relationships, and category usage)"
+globs: "{src/Bible.Alarm.Shared/Database/**,src/Bible.Alarm.Shared/Models/**,.tools/Bible.Alarm.DbMigration/**,src/Bible.Alarm/Services/Bootstrap/DatabaseBootstrapService.cs,src/Bible.Alarm/Services/Database/**}"
+alwaysApply: false
+---
+
+## Overview: two SQLite databases
+
+Bible Alarm uses **two separate SQLite databases**:
+
+1) **Schedule DB** (user data)
+   - filename: `bibleAlarm.db` (`AppConstants.Database.ScheduleDatabaseFileName`)
+   - context: `src/Bible.Alarm.Shared/Database/ScheduleDbContext.cs`
+   - shipped as an embedded resource for “fast clean install”
+
+2) **Media index DB** (catalog)
+   - filename: `mediaIndex.db` (`AppConstants.Database.MediaIndexDatabaseFileName`)
+   - context: `src/Bible.Alarm.Shared/Database/MediaDbContext.cs`
+   - shipped as `index.zip` embedded resource and extracted at runtime
+
+Both DbContexts are registered in DI in:
+- `src/Bible.Alarm/Common/Helpers/ServiceRegistrationHelper.cs`
+  - `UseSqlite(..., b => b.MigrationsAssembly("Bible.Alarm.Shared"))`
+
+---
+
+## Media index DB (MediaDbContext) schema & relationships
+
+DbContext:
+- `src/Bible.Alarm.Shared/Database/MediaDbContext.cs`
+
+### Tables (high-signal)
+
+- `Languages`
+  - `LanguageCode` is unique (also enforced by EF)
+  - includes text direction (`ltr`/`rtl`)
+
+- `Categories`
+  - logical grouping: “Bible”, “Music”, “Dramas”, “Video”
+
+- `BaseUrls` (+ `UrlParams`)
+  - URL construction metadata used to build JW API URLs
+
+- `BiblePublications`
+  - `CategoryId` required
+  - `LanguageId` optional:
+    - **null LanguageId** = “no-language” publications (not language-specific), e.g. melody music
+
+- `BiblePublicationSections`
+  - optional depending on publication type
+  - cascade delete from `BiblePublications`
+
+- `BiblePublicationTracks`
+  - tracks can be:
+    - sectioned (linked to `BiblePublicationSections`)
+    - flat (section FK null)
+
+- `PublicationLanguages` (discovery table)
+  - “catalog” of which languages exist per publication
+  - `LanguageId` can be null for “no-language” availability rows
+  - includes optional `HarvestType` override (Flat / Sectioned / MediatorSectioned)
+
+- `SectionLanguages` (discovery table)
+  - “catalog” of which languages exist per section of a publication
+  - required `PublicationLanguageId` → enforces “section implies publication exists”
+
+### Relationship sketch
+
+```text
+Category (1) ──< BiblePublications (many)
+Category (1) ──< PublicationLanguages (many)
+
+Language (1) ──< BiblePublications (many)        [optional FK]
+Language (1) ──< PublicationLanguages (many)     [optional FK]
+Language (1) ──< SectionLanguages (many)         [optional FK]
+
+BiblePublications (1) ──< BiblePublicationSections (many)  [cascade]
+BiblePublications (1) ──< BiblePublicationTracks (many)    [cascade]
+
+BiblePublicationSections (1) ──< BiblePublicationTracks (many) [optional section FK]
+
+PublicationLanguages (1) ──< SectionLanguages (many) [cascade]
+```
+
+### How categories are used (media DB)
+
+Categories are used to:
+- filter the language list by category (`PublicationLanguages` drives “languages available in this category”)
+- filter publications by category (e.g. “Music” schedules vs “Bible” schedules)
+- support “no-language” category publications (notably **instrumental music**) via `BiblePublications.LanguageId == null`
+
+The schedule UI category selection and cascade logic depends on category strings matching the DB’s `Category.CategoryName` (e.g. `"Music"`).
+
+---
+
+## Schedule DB (ScheduleDbContext) schema & relationships
+
+DbContext:
+- `src/Bible.Alarm.Shared/Database/ScheduleDbContext.cs`
+
+### Tables (high-signal)
+
+- `AlarmSchedules`
+  - core schedule definition: time, days-of-week, enabled flags
+  - alarm options: snooze, number of tracks, always-play-from-start
+  - `CronExpression` is derived and used to compute next fire time (Quartz)
+
+- `BiblePublicationSchedules` (1:1 with `AlarmSchedules`)
+  - the main “what to play” pointer:
+    - `LanguageCode`
+    - `PublicationCode`
+    - optional `SectionCode`
+    - `TrackNumber`
+    - `FinishedDuration`
+
+- `AlarmMusic` (1:1 with `AlarmSchedules`)
+  - “begin with music” configuration (pre-roll music)
+  - has `MusicType` (instrumental vs vocal), and can also be sectioned (disc/section)
+  - code notes label it as “obsolete/backward compatibility” but it’s still used for begin-with-music
+
+- `AlarmNotifications`
+  - tracks OS-level scheduling metadata per schedule
+
+- `GeneralSettings`
+  - key/value settings (`AppConstants.GeneralSettingsKeys.*`)
+
+### Schedule DB relationships
+
+- `AlarmSchedule` ↔ `BiblePublicationSchedule` is **one-to-one** (cascade delete)
+- `AlarmSchedule` ↔ `AlarmMusic` is **one-to-one** (cascade delete)
+- `AlarmSchedule` ↔ `AlarmNotifications` is **one-to-many**
+
+---
+
+## Migration & “fast install” strategy (runtime)
+
+### Schedule DB (user DB) bootstrap strategy
+
+Implemented in:
+- `src/Bible.Alarm/Services/Bootstrap/DatabaseBootstrapService.cs`
+
+Flow:
+- If `bibleAlarm.db` file does not exist:
+  - try to copy an embedded `Resources/bibleAlarm.db` to storage
+  - then verify schema via `GetPendingMigrationsAsync()`
+- Always checks pending migrations:
+  - if any, runs `MigrateAsync()`
+- If migration verification fails (corruption, incompatibility):
+  - attempts recovery by deleting DB and re-copying the bundled DB, then migrating again
+- Records DB version via `IScheduleDatabaseVersionService` to skip work on later boots
+
+### Media DB bootstrap strategy
+
+Two cooperating services:
+- `src/Bible.Alarm/Services/Media/MediaIndexService.cs`
+  - extracts embedded `index.zip` into `mediaIndex.db` if missing
+  - handles file-lock edge cases with Polly retries and explicit connection closing
+- `src/Bible.Alarm/Services/Database/MediaMigrationService.cs`
+  - applies EF migrations only when upgrading from an older app version
+  - skips migration check when `IMediaIndexVersionService` says the bundled DB version is current
+

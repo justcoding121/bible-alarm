@@ -1,0 +1,318 @@
+---
+description: "Schedule page cascade deep dive (Bible container + Music container + ad-hoc harvest + save persistence)"
+globs: "{src/Bible.Alarm/Stores/Effects/ScheduleEffects.cs,src/Bible.Alarm/Stores/Effects/ScheduleEffectsHelpers/**,src/Bible.Alarm/ViewModels/Schedule/**,src/Bible.Alarm/ViewModels/BiblePublications/**,src/Bible.Alarm/ViewModels/Music/**,src/Bible.Alarm/Services/Schedule/**,src/Bible.Alarm/Services/Media/**,src/Bible.Alarm.Shared/Services/Media/**}"
+alwaysApply: false
+---
+
+## Why this doc exists
+
+The **Schedule** page has some of the most complicated logic in the app because it combines:
+- a **multi-step selection cascade** (category/language/publication/section/track)
+- a **mixed data model**: some publications are **language-bound**, some are **no-language** (`LanguageId == null`)
+- **two music concepts** that must not conflict:
+  - schedule category `"Music"` = the schedule’s **main** content is music (stored in `BiblePublicationSchedule`)
+  - “begin with music” = optional pre-roll music (stored in `AlarmMusic` + `AlarmSchedule.MusicEnabled`)
+- **ad-hoc harvesting**: when a user picks a non-seeded language/publication, we fetch just enough into `mediaIndex.db` so cascade can proceed
+
+This doc answers:
+- how Bible container + Music container are initially populated (new vs existing schedule)
+- how cascade uses `mediaIndex.db` tables (and when it triggers ad-hoc harvest)
+- how Save persists the selections into the Schedule DB
+- how different publication shapes (harvest type / language/no-language / sectioned/non-sectioned) affect cascade
+
+---
+
+## Initial population (new schedule vs existing schedule)
+
+### New schedule
+
+When creating a new schedule, the initial `ScheduleStateItem` is produced by:
+- `src/Bible.Alarm/Services/Schedule/ScheduleInitializationService.cs` → `InitializeNewScheduleAsync()`
+  - calls `AlarmSchedule.GetSampleSchedule(...)` to generate a “sane defaults” model
+  - maps to `ScheduleStateItem` via AutoMapper
+  - then populates *display names* before dispatching to state via `IScheduleDisplayNameService.PopulateDisplayNamesAsync(...)`
+
+Key outcome:
+- the schedule page starts with a **complete** selection (category + publication + first track)
+- music defaults are pre-filled (instrumental/melody defaults), so “enable begin-with-music” can be immediate
+
+### Existing schedule
+
+When viewing an existing schedule, the state is loaded from Schedule DB:
+- `ScheduleInitializationService.LoadExistingScheduleAsync(scheduleId, isEnabled)`
+  - loads `AlarmSchedule` with `includeMusic: true` and `includeBiblePublication: true`
+  - maps to `ScheduleStateItem`
+  - populates display names via `IScheduleDisplayNameService.PopulateDisplayNamesAsync(...)`
+
+Key outcome:
+- the schedule editor is always driven by `ApplicationState.CurrentSchedule` (“single source of truth”)
+- display names are resolved from `mediaIndex.db` (or best-effort fallbacks)
+
+---
+
+## Where cascade actually runs (wiring + triggers)
+
+### The only two triggers
+
+Cascade is **only** triggered by Fluxor effects when `UpdateScheduleFromViewModelAction` is dispatched with flags:
+- Bible cascade: `action.BiblePublicationUpdated == true`
+- Music cascade: `action.MusicUpdated == true`
+
+Wiring:
+- `src/Bible.Alarm/Stores/Effects/ScheduleEffects.cs`
+  - `HandleBiblePublicationCascade(UpdateScheduleFromViewModelAction ...)`
+  - `HandleMusicCascade(UpdateScheduleFromViewModelAction ...)`
+
+Category change is separate:
+- `HandleCategorySelection(CategorySelectionAction ...)` runs `CategorySelectionAutoPopulateHandler`
+
+### Important invariant (prevents infinite loops)
+
+Cascade handlers update state via:
+- `dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, ..., shouldSave:false))`
+
+And each handler **compares “current vs computed”** before dispatching to avoid cascade cycles.
+
+---
+
+## Bible container cascade (Category → Language → Publication → Section → Track)
+
+### Main handlers
+
+- Category selection auto-fill:
+  - `src/Bible.Alarm/Stores/Effects/ScheduleEffectsHelpers/CategorySelectionAutoPopulateHandler.cs`
+- Bible publication cascade:
+  - `src/Bible.Alarm/Stores/Effects/ScheduleEffectsHelpers/BiblePublicationCascadeHandler.cs`
+- Shared selection “brain” (also used by modals):
+  - `src/Bible.Alarm/ViewModels/BiblePublications/BibleSelectionViewModelHelpers/BiblePublicationSelectionItemSelector.cs`
+  - `.../BiblePublicationSelectionSectionTrackResolver.cs`
+
+### Media index tables the Bible cascade depends on
+
+These tables live in `mediaIndex.db` (`MediaDbContext`):
+- **Discovery / availability**
+  - `PublicationLanguages`: which language supports which publication, plus `HarvestType`
+  - `SectionLanguages`: which language supports which *section* (for sectioned publications)
+- **Actual harvested content** (what UI can browse)
+  - `BiblePublications` (may have `LanguageId != null` or `LanguageId == null`)
+  - `BiblePublicationSections`
+  - `BiblePublicationTracks`
+
+### How category selection auto-populates (high-level)
+
+`CategorySelectionAutoPopulateHandler` does:
+- choose language:
+  - preserve previous language if it exists in `PublicationLanguages` for the chosen category
+  - else default to `"E"` if available
+- choose publication:
+  - query candidate publication codes from `PublicationLanguages` (sorted with priority, e.g. `nwt` first)
+  - for each candidate:
+    - check “already harvested enough to use?” via `CheckIfPublicationWithFirstSectionHarvestedAsync(...)`
+    - if not harvested:
+      - trigger ad-hoc harvest via `ILanguageContentService.EnsurePublicationExistsAsync(pub, lang)`
+    - verify it’s queryable **with language** (i.e. content landed in `BiblePublications` with `LanguageId != null`)
+  - if no language-bound publication exists:
+    - fall back to a **no-language publication** in that category (`BiblePublications.LanguageId == null`)
+- choose section + track:
+  - if no-language publication:
+    - query sections via `IMediaService.GetSectionsForPublicationWithoutLanguage(publicationCode)`
+    - then query tracks directly via `MediaDbContext` (or fall back to flat track list)
+  - if language-bound publication:
+    - delegate to `BiblePublicationSelectionItemSelector.GetPublicationSectionAndTrackForLanguageAsync(...)`
+
+Finally, it dispatches an updated `ScheduleStateItem` with:
+- chosen category fields
+- language fields (or cleared if true no-language fallback and no languages exist)
+- publication + section + track (and resets progress)
+
+### How BiblePublicationCascadeHandler fills missing pieces
+
+The Bible cascade handler runs only when `biblePublicationUpdated=true` and fills “lower” fields when they are missing:
+- if `LanguageCode` is set but `PublicationCode` is missing → pick publication+section+track
+- else if `PublicationCode` is set but `SectionCode` is missing → pick section+track for that publication
+- else if `SectionCode` is set but `TrackNumber` is missing → pick first track in that section
+
+Key nuance for **existing schedules**:
+- if the schedule already has a `PublicationCode`, the handler tries to **keep it**:
+  - verify that publication can be queried with the selected language (`BiblePublications.LanguageId != null` for that language)
+  - if it can: `EnsurePublicationExistsAsync(existingPub, lang)` and then pick section/track for it
+  - if it can’t: fall back to the normal “choose first valid publication” algorithm
+
+---
+
+## Ad-hoc harvesting (how cascade “downloads a language”)
+
+All ad-hoc harvesting is done by the shared service:
+- `src/Bible.Alarm.Shared/Services/Media/LanguageContentService.cs`
+
+### EnsurePublicationExistsAsync (what it really does)
+
+- Entry point: `ILanguageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode)`
+- Implementation: `PublicationEnsurer.EnsurePublicationExistsAsync(...)`
+  - first checks if `BiblePublications` already contains the publication for that language
+  - then checks `PublicationLanguages` to confirm it’s available and to get `HarvestType`
+  - **refuses** to fetch if `PublicationLanguages.LanguageId == null` (no-language publications can’t be fetched “for a language”)
+
+Fetch strategy by `HarvestType`:
+- **Sectioned**
+  - does **first-section-only** bootstrap for speed:
+    - finds first section code from `SectionLanguages`
+    - fetches just that section + its tracks (enough for cascade defaults)
+  - later, selecting other sections/tracks can trigger additional fetches
+- **Flat** or **MediatorSectioned**
+  - fetches publication tracks directly (`FetchPublicationTracksAsync`)
+
+Critical subtlety:
+- for sectioned publications, “sections exist” does **not** guarantee “tracks exist”
+  - `BiblePublicationSelectionSectionTrackResolver` will call `FetchSectionTracksAsync(...)` if tracks are missing for the chosen section
+
+---
+
+## How different publication shapes affect Bible cascade
+
+Think in these axes:
+- **Language-bound** vs **no-language** (`LanguageId != null` vs `LanguageId == null`)
+- **Sectioned** vs **non-sectioned** (sections exist vs flat tracks)
+- **Harvest type** (Flat / Sectioned / MediatorSectioned)
+
+### Language-bound + Sectioned (common Bible pattern)
+
+- Examples: many Bible publications (`nwt`, etc.)
+- Tables used:
+  - `PublicationLanguages` / `SectionLanguages` for discovery
+  - `BiblePublicationSections` / `BiblePublicationTracks` for content
+- Cascade behavior:
+  - selection tries DB-first for “is sectioned?” by querying sections
+  - if tracks are missing for first section: fetch just that section’s tracks
+
+### Language-bound + Non-sectioned (flat tracks)
+
+- Examples: many “video-like” or “drama-like” publications that don’t have sections in DB
+- Cascade behavior:
+  - section is cleared/hidden; the “track title” becomes the primary subtitle
+  - ad-hoc harvest for these is just `FetchPublicationTracksAsync(...)`
+
+### MediatorSectioned (dramas)
+
+- Discovery is more dynamic; publication codes can be case-sensitive (“Dramas” vs “DramaticBibleReadings”)
+- The ad-hoc path still ends up as tracks in `BiblePublicationTracks`, but the fetcher uses Mediator logic.
+
+### No-language publications (LanguageId == null)
+
+- Example class: melody releases (e.g. `iam`), and some other special publications
+- Cascade behavior:
+  - language row may be hidden in selection UIs
+  - handler queries via “without language” paths:
+    - sections: `IMediaService.GetSectionsForPublicationWithoutLanguage(code)`
+    - tracks: direct DB query for `BiblePublications.LanguageId == null` (or `GetBiblePublicationTracks("", code, sectionIndex)`)
+  - ad-hoc harvest is **not** supported for these via `EnsurePublicationExistsAsync` (they’re expected to ship in the index already)
+
+---
+
+## Music container cascade (MusicType → Language → Publication → Section → Track)
+
+### “Music selection container” is only for begin-with-music
+
+The Music container edits *pre-roll music* (stored as `AlarmMusic`), not the schedule’s main content.
+
+UI-level guard:
+- `src/Bible.Alarm/ViewModels/Schedule/MusicSelectionContainerViewModel.cs`
+  - `IsMusicSelectionVisible` returns **false** when the schedule category is `"Music"`
+
+### Music type filter (what changes when MusicType changes)
+
+Music selection supports two modes:
+- `MusicType.Music` (instrumental)
+  - **no language** selection in UI (`MusicDisplayTextProvider.GetIsMusicLanguageVisible() == false`)
+  - publications selected from `BiblePublications` where:
+    - `Category == "Music"`
+    - `LanguageId == null`
+  - section visibility is determined by `PublicationTypeHelper.HasSectionStructure(publicationCode)`
+- `MusicType.VocalMusic` (vocal)
+  - language selector is visible
+  - publications selected from `PublicationLanguages`/`BiblePublications` where:
+    - `Category == "Music"`
+    - `LanguageId != null` for the chosen `MusicLanguageCode`
+  - may trigger ad-hoc harvest via `EnsurePublicationExistsAsync(pub, lang)`
+
+Selectability (whether a row is tappable) also respects this filter:
+- `MusicDisplayTextProvider.GetIsSongPublicationSelectableAsync()`:
+  - instrumental counts **downloaded** no-language music publications (`LanguageId == null` and `Id > 0`)
+  - vocal counts downloaded publications for the chosen language (`Id > 0`)
+
+### Music cascade handler
+
+- `src/Bible.Alarm/Stores/Effects/ScheduleEffectsHelpers/MusicCascadeHandler.cs`
+
+Algorithm:
+- if `MusicType == VocalMusic` and `MusicLanguageCode` missing:
+  - set default language to `"E"` and dispatch state update (then language cascade runs)
+- if `MusicType == Music` (instrumental) and `MusicPublicationCode` missing:
+  - select first **no-language** Music publication (`BiblePublications.LanguageId == null`)
+- if language is set but publication missing:
+  - select first music publication in that language (and harvest it if absent)
+- once publication is known:
+  - pick section+track using `MusicCascadeSelectionHelper.GetFirstSectionAndTrackAsync(...)`
+
+### Special repair case: switching music types
+
+When the user switches to instrumental music, state might temporarily have a track number but no section name.
+To fill that:
+- `src/Bible.Alarm/Stores/Effects/ScheduleEffects.cs` → `PopulateMusicSectionNameForStateAsync(...)`
+  - only runs when `ShouldSave=false` and `musicUpdated=true`
+  - only applies to no-language instrumental publications with sections
+  - queries `BiblePublicationTracks → Section` to find the section that contains the selected track number
+
+---
+
+## Mutual exclusivity: “Start with music” vs schedule category “Music”
+
+These are mutually exclusive by design:
+- If schedule category is `"Music"`, the schedule’s main `BiblePublicationSchedule` already points at a Music publication.
+- Therefore `AlarmMusic` (“begin with music”) is disabled/cleared.
+
+Enforced in two layers:
+- `src/Bible.Alarm/Services/Schedule/ScheduleSaveService.cs`
+  - when `BiblePublicationCategoryName == "Music"`:
+    - forces `model.MusicEnabled = false`
+    - sets `model.Music = null`
+  - also clears music fields when mapping the saved model back to `ScheduleStateItem`
+- `src/Bible.Alarm/Stores/Effects/Services/ScheduleEntityUpdater.cs`
+  - if category is `"Music"`, it removes `existing.Music` even if present
+
+---
+
+## Save persistence (what fields end up in Schedule DB)
+
+### What gets saved for Bible selection
+
+The schedule’s main content is persisted into Schedule DB tables:
+- `AlarmSchedules` (time/days/name/flags)
+- `BiblePublicationSchedules` (1:1)
+  - `PublicationCode`
+  - `LanguageCode` (nullable)
+  - `SectionCode` (nullable)
+  - `TrackNumber`
+  - `FinishedDuration` reset is controlled by `biblePublicationUpdated`
+
+### What gets saved for begin-with-music
+
+Begin-with-music is stored as:
+- `AlarmSchedules.MusicEnabled` (boolean)
+- `AlarmMusic` (1:1) when enabled/selected
+  - `MusicType`
+  - `PublicationCode`
+  - `LanguageCode` (vocal only)
+  - `SectionCode` (for sectioned melody releases)
+  - `TrackNumber`
+  - `Repeat`
+
+### The save path
+
+- `ScheduleSaveService.PrepareModelForSave(...)` maps `ScheduleStateItem → AlarmSchedule`
+  - applies the Category=Music rule (disable/clear begin-with-music)
+  - ensures music entity is created/updated only when `musicUpdated` is true
+- Effects persist:
+  - `ScheduleEffects.HandleUpdateScheduleFromViewModel(shouldSave:true)`
+  - uses `ScheduleEntityUpdater.UpdateScheduleEntity(...)` to merge into tracked EF entities
+

@@ -1,0 +1,199 @@
+---
+description: "Playback architecture (MediaElement) + Android Auto + iOS CarPlay + foreground service behavior"
+globs: "{src/Bible.Alarm/Services/Media/**,libraries/CommunityToolkit.Maui.MediaElement/**,src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/**,src/Bible.Alarm/Platforms/Android/Services/Media/**,src/Bible.Alarm/Platforms/iOS/Services/CarPlay/**,src/Bible.Alarm/Platforms/iOS/Services/Media/**}"
+alwaysApply: false
+---
+
+## Playback architecture (shared)
+
+### Main layers
+
+- **Playlist creation / navigation (domain)**
+  - `src/Bible.Alarm/Services/Media/PlaylistService.cs`
+  - builds `PlayItem`s (URLs + metadata) based on:
+    - Schedule DB pointers (`BiblePublicationSchedule`, optional `AlarmMusic`)
+    - Media index DB (publication/section/track structure)
+  - advances schedule pointers when tracks are played/finished
+
+- **Preparation (downloads/caching)**
+  - `IPreparePlaybackService` + `IDownloadService` + cache services
+  - `PlaybackService` will:
+    - prepare an initial playlist
+    - lazily download a track on-demand if needed
+    - pre-download “next” track in the background while current track plays
+
+- **Player wrapper**
+  - `src/Bible.Alarm/Services/Media/AudioPlayer.cs`
+  - wraps `CommunityToolkit.Maui.MediaElement` (`MediaElement`) and exposes an app-facing `IAudioPlayer`
+  - manages:
+    - MediaElement creation/lifecycle (lazy, on-demand)
+    - event wiring (opened/ended/failed)
+    - progress tracking + dispatch to Fluxor
+
+- **Orchestrator**
+  - `src/Bible.Alarm/Services/Media/PlaybackService.cs`
+  - owns the “session”:
+    - current schedule id
+    - playlist
+    - current track index
+    - “indefinite playback” rules
+  - handles system control messages (next/prev/play/pause/seek) via `WeakReferenceMessenger`
+
+### Next/Prev behavior vs “Play indefinitely”
+
+Schedule setting:
+- “Play indefinitely” is persisted as `AlarmSchedule.NumberOfTracksToPlay <= 0` (the schedule editor stores **0** for indefinite).
+
+Session behavior:
+- When a playback session starts, `PlaybackService.PrepareAndPlayAsync(...)` snapshots the mode once:
+  - `stateManager.IsIndefinitePlayback = (schedule.NumberOfTracksToPlay <= 0)`
+- **Any manual next/prev press** immediately forces the current session to behave as indefinite:
+  - `PlaybackService.PlayNextAsync()` and `PlayPreviousAsync()` set `stateManager.IsIndefinitePlayback = true`
+
+Playlist sizing:
+- Finite (`NumberOfTracksToPlay > 0`):
+  - initial in-memory playlist contains “begin-with-music” (0–1 track) + **N Bible tracks**
+  - when the last track ends naturally, playback **stops/dismisses**
+- Indefinite (`NumberOfTracksToPlay == 0`):
+  - initial in-memory playlist contains “begin-with-music” (0–1 track) + **1 Bible track**
+  - when the last in-memory track ends, playback **extends the playlist dynamically** and continues
+
+Next button:
+- If there is a next in-memory track: moves to it.
+- If currently at the end of the in-memory playlist:
+  - **Indefinite session**: tries to append the next logical `PlayItem` and continues
+  - **Finite session**: stops/dismisses
+  - Since manual next sets the session indefinite, pressing Next at the end will typically **continue** by extending the playlist.
+
+Previous button:
+- If there is a previous in-memory track: moves to it (and restarts from the beginning).
+- If currently at the first track:
+  - attempts to **prepend** the previous logical `PlayItem` (wrap-around/back extension)
+  - if prepend fails, it restarts the current track from the beginning
+
+Where this logic lives:
+- `src/Bible.Alarm/Services/Media/PlaybackService.cs` (session flags + dynamic append/prepend)
+- `src/Bible.Alarm/Services/Media/Playback/PlaybackEventHandler.cs` (auto-advance on media end/failure)
+- `src/Bible.Alarm/Services/Media/Playback/PlaybackNavigationHandler.cs` (manual next/prev)
+- `src/Bible.Alarm/Services/Media/Playlist/PlaylistBibleTrackBuilder.cs` (finite vs indefinite initial Bible track list)
+
+### “Begin with music” vs “Music category schedules”
+
+Two distinct concepts:
+
+1) **Begin with music** (pre-roll)
+   - stored in Schedule DB as `AlarmMusic` (“MusicEnabled” + `AlarmMusic`)
+   - `PlaylistService.NextTracks()` adds a music `PlayItem` first when enabled, then Bible content
+
+2) **Music category schedules**
+   - category is `"Music"` in schedule state (not persisted in Schedule DB)
+   - in this mode, the **BiblePublicationSchedule points at a Music publication** from the media index
+   - therefore “begin with music” is disabled/cleared during save/update
+
+Enforced by:
+- `src/Bible.Alarm/Services/Schedule/ScheduleSaveService.cs`
+- `src/Bible.Alarm/Stores/Effects/Services/ScheduleEntityUpdater.cs`
+
+### TagLibSharp usage
+
+The app uses `TagLibSharp` to extract metadata/artwork from cached media files for display/system integration (Now Playing, notifications).
+
+---
+
+## CommunityToolkit.Maui.MediaElement integration
+
+The app uses a project reference to a local copy/fork:
+- `libraries/CommunityToolkit.Maui.MediaElement/`
+
+`MauiProgram` enables it with:
+- `.UseMauiCommunityToolkitMediaElement()`
+
+Platform notes (library-level, high-level):
+- Android uses ExoPlayer under the hood (via toolkit implementation)
+- iOS uses AVPlayer
+
+---
+
+## Android: keeping playback alive (foreground service + MediaSession)
+
+### Why foreground services are critical on Android
+
+Android can kill background-started processes quickly (especially after alarms, or when Android Auto starts the app) unless the app is in a foreground service state with a notification.
+
+Bible Alarm uses foreground services to:
+- survive long bootstrap/migration work
+- survive media download / preparation
+- keep Android Auto connected/controllable
+
+### Foreground service coordination (single-owner rule)
+
+Android only allows one foreground service “owner” to be active at a time for the app.
+
+Coordinator:
+- `src/Bible.Alarm/Platforms/Android/Services/Media/ForegroundServiceCoordinator.cs`
+
+Key ideas:
+- coordinates ownership between:
+  - MediaElement’s media controls service (notification ID 1)
+  - Android Auto service (notification ID 2)
+  - Alarm foreground service (notification ID 2)
+- starts Android Auto foreground with placeholder metadata if real metadata isn’t ready yet (prevents kill during bootstrap)
+- on alarm trigger, starts an “Alarm foreground service” immediately, then hands off to MediaElement when playback starts
+
+Alarm entrypoint calls:
+- `ForegroundServiceCoordinator.OnAlarmTriggered(context, scheduleId)` from `AlarmRingerReceiver`
+
+### MediaSessionCompat (Android Auto + system controls)
+
+Manager:
+- `src/Bible.Alarm/Platforms/Android/Services/Media/MediaSessionManager.cs`
+
+Key behaviors:
+- creates/owns a shared `MediaSessionCompat`
+- updates playback state + metadata so Android Auto and system UI can control playback
+- **keeps the MediaSession active even when playback is stopped** so Android Auto can discover the app when the car connects
+
+---
+
+## Android Auto (two implementations)
+
+Bible Alarm supports both:
+- **Modern “Car App”** (AndroidX Car App Library)
+  - `src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/CarAppService.cs`
+- **Legacy MediaBrowserServiceCompat** (phone projection older stacks)
+  - `src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/LegacyMediaBrowserService.cs`
+
+Both rely on:
+- the shared `MediaSessionCompat`
+- schedule data sourced from Fluxor state (helpers live in `AndroidAutoScheduleHelper.cs`)
+
+---
+
+## iOS CarPlay + system media controls
+
+### CarPlay UI
+
+Delegate:
+- `src/Bible.Alarm/Platforms/iOS/Services/CarPlay/CarPlaySceneDelegate.cs`
+
+Behavior:
+- when CarPlay connects, sets a root `CPListTemplate` listing schedules
+- pulls schedule list from Fluxor state via helper:
+  - `CarPlayScheduleHelper.LoadScheduleStateItemsFromState()`
+- tapping a schedule triggers playback through:
+  - `CarPlayPlaybackHandler.HandleScheduleItemClicked(scheduleId)`
+
+Important note in code:
+- CarPlay requires the `com.apple.developer.carplay-audio` entitlement; without it, the delegate will never be called.
+
+### Now Playing integration
+
+Now Playing manager:
+- `src/Bible.Alarm/Platforms/iOS/Services/Media/iOSNowPlayingInfoManager.cs`
+
+Key behaviors:
+- updates `MPNowPlayingInfoCenter` for lock screen / control center / CarPlay
+- intentionally preserves artwork (never clears it) to avoid “empty lock screen” visuals
+
+The app also wires Remote Command Center to support play/pause/next/prev/seek from the system UI.
+

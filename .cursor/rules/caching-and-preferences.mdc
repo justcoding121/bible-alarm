@@ -1,0 +1,142 @@
+---
+description: "Caching + Preferences: what is cached, where, why, and how invalidation works"
+globs: "{src/Bible.Alarm/Services/Storage/**,src/Bible.Alarm/Common/Services/Storage/**,src/Bible.Alarm/Common/Helpers/LastPlayedMetadataHelper.cs,src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs,src/Bible.Alarm/Stores/Effects/Services/ScheduleCacheManager.cs,src/Bible.Alarm/Services/Media/MediaCacheService.cs,src/Bible.Alarm/Services/Media/MediaIndexService.cs,src/Bible.Alarm/Services/Database/*VersionService.cs,src/Bible.Alarm/Platforms/Android/Services/Media/MediaSessionHelper.cs,src/Bible.Alarm.Shared/Services/Schedule/GeneralSettingsService.cs}"
+alwaysApply: false
+---
+
+## Cache taxonomy (important distinction)
+
+This app uses multiple “caches”, each with different goals and lifetimes:
+
+- **Disk cache (Preferences-backed JSON)**: small-ish structured data for fast startup (especially the Home schedule list).
+- **Media cache (files on disk)**: downloaded audio files for offline and to avoid repeated downloads.
+- **Media index extraction**: the shipped `index.zip` is extracted into `mediaIndex.db` (effectively a local catalog cache).
+- **In-memory caches**: view model reuse on Home (to avoid recreating list items) and “in-progress download” tracking.
+
+---
+
+## Disk cache (`IDiskCacheService`) — what/why/how
+
+Implementation:
+- `src/Bible.Alarm/Services/Storage/DiskCacheService.cs`
+
+Storage backend:
+- `Preferences` via `IThreadSafePreferencesService`
+- stores values as **JSON** under a key prefix:
+  - `DiskCache_` (internal prefix)
+
+### Primary cached payload: `"ScheduleList"`
+
+Used in:
+- `src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs` (startup load path)
+- `src/Bible.Alarm/Stores/Effects/Services/ScheduleCacheManager.cs` (refresh/invalidate)
+- `src/Bible.Alarm/Services/Media/PlaylistService.cs` and `TrackMarker` (invalidate on track pointer changes)
+
+What’s cached:
+- `List<ScheduleStateItem>` (not view models)
+
+Why it exists:
+- avoids hitting the Schedule DB on every cold start
+- avoids expensive display-name lookups (which can touch the media index DB)
+- improves perceived performance: Home can render the schedule list quickly
+
+### Invalidation rules (key points)
+
+Rule of thumb: **invalidate before you mutate** to avoid a “crash after save = stale cache forever” scenario.
+
+- Before schedule mutations (create/update/delete):
+  - `ScheduleCacheManager.InvalidateScheduleCache()` removes `"ScheduleList"`
+
+- When track pointers change because playback advanced/finished:
+  - `TrackMarker` removes `"ScheduleList"` before `UpdateScheduleByIdAsync(...)`
+  - (so Home doesn’t show an old “current chapter/track” after restart)
+
+### Refresh rules (key points)
+
+- After create/delete:
+  - `ScheduleCacheManager.RefreshScheduleCacheAsync()` prefers refreshing from **Fluxor state** (fast path), then writes to disk
+
+- After update where display names might change:
+  - `ScheduleCacheManager.RefreshSingleScheduleAsync(scheduleId)` repopulates display names and updates state (with `skipCacheRefresh=true` to prevent cycles), then rewrites the cache
+
+---
+
+## Preferences — how/why they’re used
+
+### Thread-safe Preferences wrapper (why it exists)
+
+Implementation:
+- `src/Bible.Alarm/Common/Services/Storage/ThreadSafePreferencesService.cs`
+
+Why:
+- on Windows in particular, the Preferences backing file can be locked if multiple threads write concurrently.
+- this service serializes all Preference operations via a `SemaphoreSlim` and adds retry logic for `Set()` to avoid transient IO lock failures.
+
+### What is stored in Preferences (high-signal keys)
+
+1) **DB/index version markers** (startup optimization)
+   - Schedule DB version:
+     - `ScheduleDatabaseVersion` in `ScheduleDatabaseVersionService`
+     - file: `src/Bible.Alarm/Services/Database/ScheduleDatabaseVersionService.cs`
+   - Media index version:
+     - `MediaIndexVersion` in `MediaIndexVersionService`
+     - file: `src/Bible.Alarm/Services/Media/MediaIndexVersionService.cs`
+     - backwards compatible with legacy `version.dat` file (migration happens automatically)
+
+2) **Last played metadata** (system media integration)
+   - keys: `LastPlayedTitle`, `LastPlayedArtist`, `LastPlayedAlbum`, `LastPlayedArtworkUrl`, `LastPlayedScheduleId`
+   - helper: `src/Bible.Alarm/Common/Helpers/LastPlayedMetadataHelper.cs`
+   - used by Android **before DI exists**:
+     - `src/Bible.Alarm/Platforms/Android/Services/Media/MediaSessionHelper.cs` applies metadata to MediaSession at process start
+
+3) **Disk cache payloads** (JSON blobs)
+   - `DiskCache_ScheduleList` (effective key; actual stored key is `DiskCache_` + `"ScheduleList"`)
+
+### Preferences vs Schedule DB “GeneralSettings”
+
+Do not conflate these:
+- **Preferences**: device-local key/value (fast, accessible very early; used for version markers and last-played metadata).
+- **Schedule DB `GeneralSettings`**: durable app settings stored in SQLite (migratable with the app’s DB, queried by services).
+
+General settings live in:
+- `src/Bible.Alarm.Shared/Services/Schedule/GeneralSettingsService.cs`
+
+Examples of keys (constants):
+- `AppConstants.GeneralSettingsKeys.*` in `src/Bible.Alarm.Shared/Constants/AppConstants.cs`
+
+---
+
+## Media file cache (`IMediaCacheService`) — what/why/how
+
+Implementation:
+- `src/Bible.Alarm/Services/Media/MediaCacheService.cs`
+
+Location:
+- under `StorageRoot` (NOT temporary cache root) so the OS is less likely to delete it:
+  - `StorageRoot/MediaCache/<scheduleId>/...`
+  - directory name from `AppConstants.FilePaths.MediaCacheDirectoryName`
+
+Why:
+- enable offline playback and fast starts
+- prevent repeated downloads for schedules used daily
+- stable “what to download next” behavior for alarms
+
+Key design decision:
+- cache file names are derived from a **stable lookup path** (`TrackMetadata.LookUpPath`) rather than the CDN URL (which can change).
+
+Concurrency control:
+- `inProgressDownloads` dictionary (lookupPath-based) deduplicates concurrent requests for the same file.
+
+Cleanup:
+- periodic cleanup deletes unused files and orphaned folders (folders for schedules that no longer exist)
+
+---
+
+## Where caching touches UX directly
+
+- **Home list loads faster** because `ScheduleBootstrapService` can read `"ScheduleList"` from disk without querying DB.
+- **Home list stays accurate** because cache is invalidated on:
+  - save/delete
+  - track pointer changes during playback
+- **Android Auto shows something immediately** on process start because MediaSession is pre-populated from Preferences “last played metadata”.
+

@@ -1,0 +1,205 @@
+---
+description: "Bible Alarm: architecture overview + key entry points"
+globs: "**"
+alwaysApply: true
+---
+
+## Purpose of this doc
+
+This project is a **.NET MAUI** app (Android/iOS/Windows) that helps users **wake up / build a daily routine** by automatically playing Jehovah’s Witnesses (JW) media (Bible readings, music, dramas, videos) at scheduled times.
+
+## Overall goal of the app (what it’s used for)
+
+- **Primary goal**: behave like an alarm clock, but instead of (or before) a ringtone it plays selected JW.org content (often Bible chapters).
+- **Typical use**:
+  - configure one or more recurring schedules (time + days)
+  - choose what to play (language, publication, section, track; optionally “begin with music”)
+  - at alarm time, the app triggers playback (and can pre-download media so playback starts reliably)
+  - supports car experiences (Android Auto / CarPlay) and system media controls for starting/controlling playback
+- **Design constraints**:
+  - alarms must work even when the app is not running (OS notifications/alarms + background bootstrap)
+  - playback should survive platform lifecycle constraints (foreground services on Android, background audio on iOS)
+  - large media catalogs must be discoverable without shipping full audio (media index DB + ad-hoc harvesting + caching)
+
+This file is meant to give Cursor **reliable navigation anchors**:
+- where the app starts and bootstraps
+- where data lives (two SQLite DBs)
+- where side-effects happen (Fluxor Effects)
+- how alarms trigger playback (platform services)
+- how the media index is built/updated (harvester tool + embedded resource)
+
+If you need deeper detail, also read:
+- `media-index-and-harvesting.mdc`
+- `databases-and-migrations.mdc`
+- `bootstrap-state-and-scheduling.mdc`
+- `schedule-cascade-deep-dive.mdc`
+- `playback-androidauto-carplay.mdc`
+- `caching-and-preferences.mdc`
+- `home-page-listing-and-text.mdc`
+- `user-actions-and-expected-results.mdc`
+
+---
+
+## Repository map (high-signal)
+
+- **App (MAUI)**: `src/Bible.Alarm/`
+  - **Startup**: `MauiProgram.cs`
+  - **DI registration**: `Common/Helpers/ServiceRegistrationHelper.cs`
+  - **Bootstrap orchestration**: `Services/Bootstrap/BootstrapOrchestrator.cs`
+  - **Fluxor store + effects**: `Stores/**`
+  - **Schedule services (app layer)**: `Services/Schedule/**`
+  - **Media/playback services (app layer)**: `Services/Media/**`
+  - **Platform integrations**: `Platforms/Android/**`, `Platforms/iOS/**`, `Platforms/Windows/**`
+- **Shared library (domain + EF models + migrations)**: `src/Bible.Alarm.Shared/`
+  - **EF DbContexts**: `Database/MediaDbContext.cs`, `Database/ScheduleDbContext.cs`
+  - **EF migrations**: `Database/Migrations/{Media,Schedule}/`
+  - **Schedule domain models**: `Models/Schedule/**`
+  - **Media domain models**: `Models/Media/**`
+  - **Constants**: `Constants/AppConstants.cs`
+  - **Shared services** (e.g. media fetching helpers): `Services/**`
+- **Tooling**
+  - **Media index harvester**: `.tools/Bible.Alarm.AudioLinksHarvestor/` (builds `mediaIndex.db` → `index.zip`)
+  - **EF migration helper tool**: `.tools/Bible.Alarm.DbMigration/`
+  - **Embedded media index artifact**: `.tools/_index/index.zip` (embedded into app)
+
+---
+
+## Runtime architecture (at a glance)
+
+### Key components
+
+- **UI + MVVM**
+  - ViewModels in `src/Bible.Alarm/ViewModels/**`
+  - Pages in `src/Bible.Alarm/Views/**`
+  - MVVM helpers and messages: `CommunityToolkit.Mvvm` (e.g. `WeakReferenceMessenger`)
+- **State management**
+  - **Fluxor** for global state (`ApplicationState`, `PlaybackState`, etc.)
+  - **Reducers** are pure; **Effects** do async work (DB/API) and dispatch success/failure actions
+- **Data**
+  - **Schedule DB** (user data): `bibleAlarm.db` (SQLite, EF Core)
+  - **Media index DB** (catalog/index): `mediaIndex.db` (SQLite, EF Core, shipped as embedded `index.zip`)
+- **Playback**
+  - `AudioPlayer` wraps a MAUI `MediaElement` (from `CommunityToolkit.Maui.MediaElement`)
+  - `PlaybackService` orchestrates preparation/download, playlist navigation, and system controls
+- **Alarms & background**
+  - Schedules create OS notifications/alarms via `INotificationService`
+  - Periodic background job ensures alarms are scheduled + pre-caches media
+  - Platform entrypoints (esp. Android) can bootstrap the app in background
+
+---
+
+## Startup & bootstrap flow
+
+### Entry point
+
+- `src/Bible.Alarm/MauiProgram.cs`
+  - registers libraries (CommunityToolkit MediaElement, Syncfusion)
+  - calls `ServiceRegistrationHelper.RegisterServices(builder.Services)`
+
+### Bootstrap orchestration
+
+- `src/Bible.Alarm/Services/Bootstrap/BootstrapOrchestrator.cs`
+  - runs core init in parallel:
+    - DB init/migrations (`IDatabaseBootstrapService`)
+    - Fluxor init (`IFluxorBootstrapService`)
+    - resource copy (`IResourceBootstrapService`, e.g. embedded files)
+  - sends an `InitializedMessage` early to show UI while schedules load
+  - loads schedules into Fluxor state (`IScheduleBootstrapService`)
+  - runs platform bootstrap (`IPlatformBootstrapService`) for channels/jobs
+
+### Why “bootstrap can run from multiple entrypoints”
+
+Android Auto, alarm receivers, etc. can start the process without the UI. The bootstrap is guarded so it runs once, and the UI can re-trigger schedule loading if needed.
+
+---
+
+## Data stores (two DBs)
+
+### Schedule DB (user data)
+
+- file: `bibleAlarm.db` (`AppConstants.Database.ScheduleDatabaseFileName`)
+- context: `src/Bible.Alarm.Shared/Database/ScheduleDbContext.cs`
+- main tables:
+  - `AlarmSchedules`
+  - `BiblePublicationSchedules` (1:1 with `AlarmSchedules`)
+  - `AlarmMusic` (1:1 with `AlarmSchedules`, “begin with music”, legacy/back-compat)
+  - `AlarmNotifications`, `GeneralSettings`
+
+### Media index DB (catalog/index)
+
+- file: `mediaIndex.db` (`AppConstants.Database.MediaIndexDatabaseFileName`)
+- context: `src/Bible.Alarm.Shared/Database/MediaDbContext.cs`
+- populated by the harvester tool; shipped to app as `index.zip` embedded resource
+
+See `databases-and-migrations.mdc` for schema + relationships.
+
+---
+
+## Core user flows
+
+### “Create/edit schedule” flow (state → DB)
+
+High-level:
+
+1. UI edits `ScheduleStateItem` in Fluxor state.
+2. UI dispatches `UpdateScheduleFromViewModelAction` (or create/delete actions).
+3. `ScheduleEffects` runs:
+   - maps `ScheduleStateItem` ⇄ `AlarmSchedule` (AutoMapper)
+   - persists via `IAlarmScheduleService`
+   - schedules/reschedules OS notification via `IAlarmService`
+4. Reducers update state with the saved model.
+
+Key files:
+- `src/Bible.Alarm/Stores/Effects/ScheduleEffects.cs`
+- `src/Bible.Alarm/Stores/Effects/Services/ScheduleEntityUpdater.cs`
+- `src/Bible.Alarm/Services/Schedule/ScheduleSaveService.cs`
+
+### “Alarm triggers playback” flow (Android example)
+
+1. OS triggers broadcast receiver: `Platforms/Android/Services/BroadcastReceivers/AlarmRingerReceiver.cs`
+2. Receiver:
+   - starts a foreground service ASAP (prevents kill during bootstrap/download)
+   - builds DI container and runs bootstrap (background)
+   - waits for bootstrap completion
+   - invokes `IAndroidAlarmHandler.HandleAsync(scheduleId, isAlarm)`
+   - reschedules next occurrence immediately for recurring alarms
+
+Periodic maintenance:
+- `SchedulerService` runs periodically to ensure notifications exist and to pre-cache upcoming media:
+  - `Services/Scheduler/SchedulerService.cs`
+
+### “Playback” flow
+
+- `PlaybackService` prepares playlist → drives `AudioPlayer` → reacts to media events → updates Fluxor + system media session.
+  - `Services/Media/PlaybackService.cs`
+  - `Services/Media/AudioPlayer.cs`
+
+---
+
+## Technology choices (what to remember when editing)
+
+- **DI (`Microsoft.Extensions.DependencyInjection`)**:
+  - **Why**: keeps MAUI UI code thin; enables platform-specific swapping behind shared interfaces (`INotificationService`, storage, etc.)
+  - **How**: most services are registered as singletons; DbContexts are scoped
+  - **Where**: `src/Bible.Alarm/Common/Helpers/ServiceRegistrationHelper.cs`
+- **Fluxor**:
+  - **Why**: centralizes schedule/editor state + avoids “who owns truth?” across many modals/pages + Android Auto/CarPlay
+  - **Rule**: reducers are pure; async/IO belongs in effects
+  - **Where**: `src/Bible.Alarm/Stores/**` (notably `Stores/Effects/ScheduleEffects.cs`)
+- **AutoMapper**:
+  - **Why**: reduces boilerplate mapping between EF entities and UI/state DTOs
+  - **Where**: profiles in `src/Bible.Alarm/Stores/Mapping/**` (e.g. schedule mappings)
+- **Polly**:
+  - **Why**: resilient handling of flaky networks + transient file locks (SQLite/WAL, Android file handles)
+  - **Where**: downloads (`DownloadService`), file ops (`MediaIndexService`), UI wait helpers
+- **Quartz**:
+  - **Why**: robust Cron parsing for “next fire time” calculation
+  - **Important**: not used as a job scheduler; OS notifications + periodic jobs do the real scheduling
+  - **Where**: `AlarmSchedule.NextFireDate()` in `src/Bible.Alarm.Shared/Models/Schedule/AlarmSchedule.cs`
+- **CommunityToolkit**:
+  - **Why**: lightweight MVVM primitives (messaging) + MediaElement-based playback integration
+  - **Where**: `WeakReferenceMessenger` (system control messages) and `UseMauiCommunityToolkitMediaElement()`
+- **TagLibSharp**:
+  - **Why**: extract title/artwork from cached audio files for a richer “Now Playing” experience
+  - **Where**: metadata display / platform now-playing services
+

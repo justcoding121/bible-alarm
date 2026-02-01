@@ -115,7 +115,7 @@ internal sealed class BiblePublicationNamePopulator
     /// </summary>
     public async Task PopulateBiblePublicationNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BiblePublicationSchedule == null || biblePublicationService == null)
+        if (schedule.BiblePublicationSchedule == null)
         {
             return;
         }
@@ -123,52 +123,90 @@ internal sealed class BiblePublicationNamePopulator
         try
         {
             var biblePublication = schedule.BiblePublicationSchedule;
-            if (string.IsNullOrWhiteSpace(biblePublication.LanguageCode) ||
-                string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
+            if (string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
             {
                 return;
             }
 
-            var publication = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
-                biblePublication.LanguageCode,
-                biblePublication.PublicationCode);
-
-            if (publication != null)
+            // Normal (language-bound) publications.
+            if (!string.IsNullOrWhiteSpace(biblePublication.LanguageCode) && biblePublicationService != null)
             {
-                if (!string.IsNullOrWhiteSpace(publication.Name))
-                {
-                    scheduleStateItem.BiblePublicationName = publication.Name;
-                    Log.Debug("ScheduleEffects: Set BiblePublicationName '{BiblePublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                        publication.Name, schedule.Id, biblePublication.PublicationCode);
-                }
+                var publication = await biblePublicationService.GetByLanguageAndCodeWithSectionsAsync(
+                    biblePublication.LanguageCode,
+                    biblePublication.PublicationCode);
 
-                // Only populate category if it's not already set (initial population from DB)
-                // Category can only be changed via CategorySelectionAction, not from publication
-                if ((scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)))
+                if (publication != null)
                 {
-                    if (publication.Category != null)
+                    if (!string.IsNullOrWhiteSpace(publication.Name))
                     {
-                        scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
-                        scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
-                        Log.Debug("ScheduleEffects: Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode}) - initial population",
-                            publication.CategoryId, publication.Category.CategoryName, schedule.Id, biblePublication.PublicationCode);
+                        scheduleStateItem.BiblePublicationName = publication.Name;
+                        Log.Debug("ScheduleEffects: Set BiblePublicationName '{BiblePublicationName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                            publication.Name, schedule.Id, biblePublication.PublicationCode);
+                    }
+
+                    // Only populate category if it's not already set (initial population from DB)
+                    // Category can only be changed via CategorySelectionAction, not from publication
+                    if ((scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)))
+                    {
+                        if (publication.Category != null)
+                        {
+                            scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
+                            scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
+                            Log.Debug("ScheduleEffects: Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode}) - initial population",
+                                publication.CategoryId, publication.Category.CategoryName, schedule.Id, biblePublication.PublicationCode);
+                        }
+                        else
+                        {
+                            // Fallback: derive category name from publication code
+                            var categoryName = JwSourceHelper.GetCategoryName(biblePublication.PublicationCode);
+                            if (!string.IsNullOrWhiteSpace(categoryName))
+                            {
+                                scheduleStateItem.BiblePublicationCategoryName = categoryName;
+                                Log.Debug("ScheduleEffects: Set BiblePublicationCategoryName='{CategoryName}' from publication code for schedule {ScheduleId} (PublicationCode: {PublicationCode}) - initial population",
+                                    categoryName, schedule.Id, biblePublication.PublicationCode);
+                            }
+                        }
                     }
                     else
                     {
-                        // Fallback: derive category name from publication code
-                        var categoryName = JwSourceHelper.GetCategoryName(biblePublication.PublicationCode);
-                        if (!string.IsNullOrWhiteSpace(categoryName))
-                        {
-                            scheduleStateItem.BiblePublicationCategoryName = categoryName;
-                            Log.Debug("ScheduleEffects: Set BiblePublicationCategoryName='{CategoryName}' from publication code for schedule {ScheduleId} (PublicationCode: {PublicationCode}) - initial population",
-                                categoryName, schedule.Id, biblePublication.PublicationCode);
-                        }
+                        Log.Debug("ScheduleEffects: Preserving existing category '{CategoryName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                            scheduleStateItem.BiblePublicationCategoryName, schedule.Id, biblePublication.PublicationCode);
                     }
                 }
-                else
+
+                return;
+            }
+
+            // Publications without a language FK (e.g. melody music like "iam") – resolve via media index.
+            if (mediaService != null)
+            {
+                var languageCode = biblePublication.LanguageCode ?? string.Empty;
+                var pubs = await mediaService.GetBiblePublications(languageCode, categoryName: null, downloadAll: false, progress: null);
+                var pub = pubs.Values.FirstOrDefault(p =>
+                    p != null && string.Equals(p.PublicationCode, biblePublication.PublicationCode, StringComparison.OrdinalIgnoreCase));
+
+                if (pub != null)
                 {
-                    Log.Debug("ScheduleEffects: Preserving existing category '{CategoryName}' for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
-                        scheduleStateItem.BiblePublicationCategoryName, schedule.Id, biblePublication.PublicationCode);
+                    if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName) && !string.IsNullOrWhiteSpace(pub.Name))
+                    {
+                        scheduleStateItem.BiblePublicationName = pub.Name;
+                    }
+
+                    if ((scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)) &&
+                        pub.Category != null)
+                    {
+                        scheduleStateItem.BiblePublicationCategoryId = pub.CategoryId;
+                        scheduleStateItem.BiblePublicationCategoryName = pub.Category.CategoryName;
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName))
+                {
+                    var categoryName = JwSourceHelper.GetCategoryName(biblePublication.PublicationCode);
+                    if (!string.IsNullOrWhiteSpace(categoryName))
+                    {
+                        scheduleStateItem.BiblePublicationCategoryName = categoryName;
+                    }
                 }
             }
         }
@@ -183,7 +221,7 @@ internal sealed class BiblePublicationNamePopulator
     /// </summary>
     public async Task PopulateSectionNameAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BiblePublicationSchedule == null || biblePublicationSectionService == null)
+        if (schedule.BiblePublicationSchedule == null)
         {
             return;
         }
@@ -197,22 +235,58 @@ internal sealed class BiblePublicationNamePopulator
                 biblePublication.PublicationCode);
             
             if (sectionCode <= 0 ||
-                string.IsNullOrWhiteSpace(biblePublication.LanguageCode) ||
                 string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
             {
                 return;
             }
 
-            var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
-                biblePublication.LanguageCode,
-                biblePublication.PublicationCode,
-                sectionCode);
+            // Prefer schedule DB SectionCode exact match when resolving via media service.
+            var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
 
-            if (!string.IsNullOrWhiteSpace(sectionName))
+            // Language-bound section service.
+            if (!string.IsNullOrWhiteSpace(biblePublication.LanguageCode) && biblePublicationSectionService != null)
             {
-                scheduleStateItem.BiblePublicationSectionName = sectionName;
-                Log.Debug("ScheduleEffects: Set BiblePublicationSectionName '{BiblePublicationSectionName}' for schedule {ScheduleId} (SectionCode: {SectionCode})",
-                    sectionName, schedule.Id, biblePublication.SectionCode);
+                var sectionName = await biblePublicationSectionService.GetSectionNameAsync(
+                    biblePublication.LanguageCode,
+                    biblePublication.PublicationCode,
+                    sectionCode);
+
+                if (!string.IsNullOrWhiteSpace(sectionName))
+                {
+                    scheduleStateItem.BiblePublicationSectionName = sectionName;
+                    Log.Debug("ScheduleEffects: Set BiblePublicationSectionName '{BiblePublicationSectionName}' for schedule {ScheduleId} (SectionCode: {SectionCode})",
+                        sectionName, schedule.Id, biblePublication.SectionCode);
+                }
+
+                return;
+            }
+
+            // No-language publications: resolve section name from media index.
+            if (mediaService != null)
+            {
+                var languageCode = biblePublication.LanguageCode ?? string.Empty;
+                var sections = await mediaService.GetBiblePublicationSections(languageCode, biblePublication.PublicationCode);
+                if (sections != null && sections.Count > 0)
+                {
+                    var match = sections.Values.FirstOrDefault(s =>
+                        s != null &&
+                        !string.IsNullOrWhiteSpace(s.SectionCode) &&
+                        normalizedSectionCode != null &&
+                        string.Equals(s.SectionCode, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+
+                    if (match != null && !string.IsNullOrWhiteSpace(match.Name))
+                    {
+                        scheduleStateItem.BiblePublicationSectionName = match.Name;
+                        return;
+                    }
+
+                    if (sections.TryGetValue(sectionCode, out var sectionByIndex) &&
+                        sectionByIndex != null &&
+                        !string.IsNullOrWhiteSpace(sectionByIndex.Name))
+                    {
+                        scheduleStateItem.BiblePublicationSectionName = sectionByIndex.Name;
+                    }
+                }
             }
         }
         catch (Exception ex)
@@ -228,7 +302,7 @@ internal sealed class BiblePublicationNamePopulator
     /// </summary>
     public async Task PopulateTrackTitleAsync(ScheduleStateItem scheduleStateItem, AlarmSchedule schedule)
     {
-        if (schedule.BiblePublicationSchedule == null || biblePublicationService == null)
+        if (schedule.BiblePublicationSchedule == null)
         {
             return;
         }
@@ -236,23 +310,26 @@ internal sealed class BiblePublicationNamePopulator
         try
         {
             var biblePublication = schedule.BiblePublicationSchedule;
+            var languageCode = biblePublication.LanguageCode ?? string.Empty;
+            var publicationCode = biblePublication.PublicationCode ?? string.Empty;
 
-            if (biblePublication.TrackNumber <= 0 ||
-                string.IsNullOrWhiteSpace(biblePublication.LanguageCode) ||
-                string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
+            if (biblePublication.TrackNumber <= 0 || string.IsNullOrWhiteSpace(publicationCode))
             {
                 return;
             }
 
-            if (PublicationTypeHelper.HasSectionStructure(biblePublication.PublicationCode))
+            if (PublicationTypeHelper.HasSectionStructure(publicationCode))
             {
                 // Sectioned publications (traditional Bible) - load track from section
-                await PopulateTrackTitleFromSectionAsync(scheduleStateItem, biblePublication, schedule.Id);
+                await PopulateTrackTitleFromSectionAsync(scheduleStateItem, languageCode, publicationCode, biblePublication.SectionCode, biblePublication.TrackNumber, schedule.Id);
             }
             else
             {
                 // Non-sectioned publications (drama/video) - load track directly from publication
-                await PopulateTrackTitleFromPublicationAsync(scheduleStateItem, biblePublication, schedule.Id);
+                if (!string.IsNullOrWhiteSpace(languageCode) && biblePublicationService != null)
+                {
+                    await PopulateTrackTitleFromPublicationAsync(scheduleStateItem, biblePublication, schedule.Id);
+                }
             }
         }
         catch (Exception ex)
@@ -263,13 +340,13 @@ internal sealed class BiblePublicationNamePopulator
 
     private async Task PopulateTrackTitleFromSectionAsync(
         ScheduleStateItem scheduleStateItem,
-        BiblePublicationSchedule biblePublication,
+        string languageCode,
+        string publicationCode,
+        string? sectionCodeString,
+        int trackNumber,
         int scheduleId)
     {
-        var sectionCode = await SectionCodeConverter.ConvertToIntAsync(
-            biblePublication.SectionCode,
-            biblePublication.LanguageCode,
-            biblePublication.PublicationCode);
+        var sectionCode = await SectionCodeConverter.ConvertToIntAsync(sectionCodeString, languageCode, publicationCode);
         
         if (sectionCode <= 0 || mediaService == null)
         {
@@ -277,17 +354,17 @@ internal sealed class BiblePublicationNamePopulator
         }
 
         var tracks = await mediaService.GetBiblePublicationTracks(
-            biblePublication.LanguageCode,
-            biblePublication.PublicationCode,
+            languageCode,
+            publicationCode,
             sectionCode);
 
-        if (tracks != null && tracks.TryGetValue(biblePublication.TrackNumber, out var track))
+        if (tracks != null && tracks.TryGetValue(trackNumber, out var track))
         {
             if (!string.IsNullOrWhiteSpace(track.Title))
             {
                 scheduleStateItem.BiblePublicationTrackTitle = track.Title;
                 Log.Debug("ScheduleEffects: Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (SectionCode: {SectionCode}, TrackNumber: {TrackNumber})",
-                    track.Title, scheduleId, biblePublication.SectionCode, biblePublication.TrackNumber);
+                    track.Title, scheduleId, sectionCodeString, trackNumber);
             }
         }
     }

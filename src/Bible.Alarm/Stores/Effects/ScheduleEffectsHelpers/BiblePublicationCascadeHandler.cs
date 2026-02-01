@@ -136,7 +136,7 @@ public sealed class BiblePublicationCascadeHandler
                             Name = currentSchedule.BiblePublicationName ?? existingPublicationCode
                         });
 
-                        var (resultSectionIndex, resultTrackNum, resultSectionName, resultTrackTitle) =
+                        var (resultSectionCode, resultTrackNum, resultSectionName, resultTrackTitle) =
                             await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
 
                         if (resultTrackNum <= 0)
@@ -147,7 +147,6 @@ public sealed class BiblePublicationCascadeHandler
                         else
                         {
                             var existingPublicationName = currentSchedule.BiblePublicationName ?? existingPublicationCode;
-                            var resultSectionCode = resultSectionIndex > 0 ? resultSectionIndex.ToString() : null;
                             UpdateSchedule(currentSchedule, existingPublicationCode, existingPublicationName, resultSectionCode, resultSectionName, resultTrackNum, resultTrackTitle, dispatcher);
                             return;
                         }
@@ -366,7 +365,7 @@ public sealed class BiblePublicationCascadeHandler
                 Name = currentSchedule.BiblePublicationName ?? publicationCode
             });
 
-            var (resultSectionIndex, resultTrackNum, resultSectionName, resultTrackTitle) =
+            var (resultSectionCode, resultTrackNum, resultSectionName, resultTrackTitle) =
                 await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
 
             if (resultTrackNum <= 0)
@@ -375,8 +374,8 @@ public sealed class BiblePublicationCascadeHandler
                 return;
             }
 
-            sectionIndex = resultSectionIndex;
-            sectionCode = resultSectionIndex > 0 ? resultSectionIndex.ToString() : null;
+            sectionCode = resultSectionCode;
+            sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
             trackNum = resultTrackNum;
             sectionName = resultSectionName;
             trackTitle = resultTrackTitle;
@@ -422,7 +421,7 @@ public sealed class BiblePublicationCascadeHandler
         };
         var publicationModel = new PublicationListViewItemModel(publication);
 
-        var (sectionIndex, trackNum, sectionName, trackTitle) =
+        var (selectedSectionCode, trackNum, sectionName, trackTitle) =
             await itemSelector.GetSectionAndTrackForPublicationAsync(publicationModel, languageModel);
 
         if (trackNum <= 0)
@@ -431,8 +430,7 @@ public sealed class BiblePublicationCascadeHandler
             return;
         }
 
-        var sectionCode = sectionIndex > 0 ? sectionIndex.ToString() : null;
-        UpdateSchedule(currentSchedule, publicationCode, currentSchedule.BiblePublicationName, sectionCode, sectionName, trackNum, trackTitle, dispatcher);
+        UpdateSchedule(currentSchedule, publicationCode, currentSchedule.BiblePublicationName, selectedSectionCode, sectionName, trackNum, trackTitle, dispatcher);
     }
 
     private async Task HandleSectionCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)

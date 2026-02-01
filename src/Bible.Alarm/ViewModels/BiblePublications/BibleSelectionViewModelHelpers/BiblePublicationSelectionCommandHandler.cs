@@ -5,7 +5,6 @@ using AutoMapper;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -14,8 +13,6 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -81,10 +78,6 @@ public sealed class BiblePublicationSelectionCommandHandler
                 return;
             }
 
-            // Track start time to ensure minimum display duration
-            var startTime = DateTime.UtcNow;
-            const int minimumDisplayMs = 800; // Minimum time to show progress indicator
-
             // Show progress immediately on UI thread BEFORE any async work
             // This ensures the UI updates first, then the API calls are made
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -98,48 +91,15 @@ public sealed class BiblePublicationSelectionCommandHandler
             // Give UI thread enough time to render the progress indicator
             await Task.Delay(300);
 
-            var languageCode = currentSchedule.BiblePublicationLanguageCode;
-            
-            // If language code is empty, try to determine it from the selected publication
-            // This handles the case when switching from a publication without language to one with language
-            // IMPORTANT: If the publication doesn't have a language (LanguageId == null), we should still proceed
-            // The current language code will remain empty/null, and the publication will be queried without language
-            if (string.IsNullOrEmpty(languageCode))
-            {
-                Log.Debug("CreateSectionSelectionCommand: LanguageCode is empty, attempting to determine language from publication={PublicationCode}",
-                    x.Code);
-                
-                // Query the database to find the language for this publication
-                var langScopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
-                if (langScopeFactory != null)
-                {
-                    using var langScope = langScopeFactory.CreateScope();
-                    var db = langScope.ServiceProvider.GetRequiredService<Bible.Alarm.Shared.Database.MediaDbContext>();
-                    var publication = await db.BiblePublications
-                        .AsNoTracking()
-                        .Include(bp => bp.Language)
-                        .Where(bp => bp.PublicationCode == x.Code && bp.LanguageId != null)
-                        .FirstOrDefaultAsync();
-                    
-                    if (publication?.Language != null)
-                    {
-                        languageCode = publication.Language.LanguageCode;
-                        Log.Debug("CreateSectionSelectionCommand: Determined language={LanguageCode} from publication={PublicationCode}",
-                            languageCode, x.Code);
-                    }
-                    else
-                    {
-                        // Publication doesn't have a language (LanguageId == null) - this is valid
-                        // We'll proceed with languageCode = null/empty, and the itemSelector will handle it
-                        Log.Debug("CreateSectionSelectionCommand: Publication={PublicationCode} does not have LanguageId (publication without language), proceeding with empty language code",
-                            x.Code);
-                    }
-                }
-                else
-                {
-                    Log.Warning("CreateSectionSelectionCommand: LanguageCode is empty and IServiceScopeFactory is not available, but proceeding anyway");
-                }
-            }
+            // No DB probing: the tapped publication row already knows whether it has LanguageId or not.
+            // If it's a publication without language FK, force empty language for queries.
+            // Otherwise, prefer the currently-selected language in the UI, then fall back to schedule language.
+            var languageCode = x.IsPublicationWithoutLanguage
+                ? string.Empty
+                : (currentSchedule.BiblePublicationLanguageCode ??
+                   getCurrentLanguage()?.Code ??
+                   x.PublicationLanguageCode ??
+                   "E");
 
             // Get language from the languages collection
             // If languageCode is empty/null, create a minimal language item (for publications without language)
@@ -189,7 +149,8 @@ public sealed class BiblePublicationSelectionCommandHandler
                     text => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressText(text)),
                     isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => setShowProgress(isVisible)));
                 
-                var (sectionCode, trackNumber, sectionName, trackTitle) = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressTracker);
+                var (sectionCode, trackNumber, sectionName, trackTitle) =
+                    await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressTracker);
 
             Log.Debug("CreateSectionSelectionCommand: Result sectionCode={SectionCode}, trackNumber={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
                 sectionCode, trackNumber, sectionName, trackTitle);
@@ -202,7 +163,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             }
 
             // Warn if names are empty - this could cause empty rows in the UI
-            if (sectionCode > 0 && string.IsNullOrWhiteSpace(sectionName))
+            if (!string.IsNullOrWhiteSpace(sectionCode) && string.IsNullOrWhiteSpace(sectionName))
             {
                 Log.Warning("CreateSectionSelectionCommand: SectionName is empty for sectionCode={SectionCode}, publication={PublicationCode}. This may cause empty section row in UI.",
                     sectionCode, x.Code);
@@ -213,11 +174,10 @@ public sealed class BiblePublicationSelectionCommandHandler
                     trackNumber, x.Code);
             }
 
-            var sectionCodeString = sectionCode > 0 ? sectionCode.ToString() : null;
-            var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionCodeString, trackNumber, sectionName, trackTitle, currentLanguage, currentSchedule);
+            var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionCode, trackNumber, sectionName, trackTitle, currentLanguage, currentSchedule);
 
             Log.Information("CreateSectionSelectionCommand: Dispatching selection for publication={PublicationCode}, section={SectionCode}, track={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
-                x.Code, sectionCode, trackNumber, sectionName, trackTitle);
+                x.Code, sectionCode ?? "(null)", trackNumber, sectionName, trackTitle);
 
                 var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
                 actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);
@@ -355,7 +315,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                     return;
                 }
 
-                // Validate that we have valid track number (sectionCode can be 0 for non-sectioned publications like dramas)
+                // Validate that we have valid track number (sectionCode can be null for non-sectioned publications like dramas)
                 if (trackNumber <= 0)
                 {
                     Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid track ({TrackNumber}) for language {LanguageCode}", 
@@ -387,9 +347,8 @@ public sealed class BiblePublicationSelectionCommandHandler
                 // If fetching/harvesting fails, we must keep the previous language selection (and schedule state) unchanged.
                 updateSelectedLanguage(x);
 
-                var sectionCodeString = sectionCode > 0 ? sectionCode.ToString() : null;
                 var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(
-                    x, publicationCode, sectionCodeString, trackNumber, sectionName, publicationName, trackTitle, currentSchedule);
+                    x, publicationCode, sectionCode, trackNumber, sectionName, publicationName, trackTitle, currentSchedule);
                 var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
                 actionDispatcher.DispatchLanguageSelectionActions(biblePublicationItem);
                 

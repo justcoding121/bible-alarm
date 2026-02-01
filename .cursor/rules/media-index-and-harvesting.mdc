@@ -1,0 +1,169 @@
+---
+description: "Media index (mediaIndex.db): how it’s harvested, seeded, and used for ad-hoc downloads"
+globs: "{.tools/Bible.Alarm.AudioLinksHarvestor/**,src/Bible.Alarm/Services/Media/**,src/Bible.Alarm.Shared/Services/Media/**,src/Bible.Alarm.Shared/Models/Media/**,src/Bible.Alarm.Shared/Models/Enums/HarvestType.cs}"
+alwaysApply: false
+---
+
+## What “the media index” is
+
+Bible Alarm ships with a **SQLite “media index” database** (`mediaIndex.db`) that contains:
+- languages (JW language codes + direction)
+- categories (Bible/Music/Dramas/Video)
+- publications + (optional) sections + tracks
+- URL construction parameters for JW CDN APIs
+- “discovery tables” that list which languages/sections exist for a publication
+
+At runtime, the app:
+- reads the index to populate pickers and resolve “what should play next”
+- **downloads audio files** into cache on demand (or prefetch)
+- may **ad-hoc harvest** a publication in a non-seeded language using the same JW APIs the harvester uses
+
+---
+
+## Where the index comes from (build-time)
+
+### Harvester tool
+
+Tool project:
+- `.tools/Bible.Alarm.AudioLinksHarvestor/Program.cs`
+
+It builds an index artifact at:
+- `.tools/_index/index.zip` (see `.tools/Bible.Alarm.AudioLinksHarvestor/Utility/DirectoryHelper.cs`)
+
+The MAUI app embeds that zip as an embedded resource:
+- `src/Bible.Alarm/Bible.Alarm.csproj` embeds `..\..\.tools\_index\index.zip` as `Resources\index.zip`
+
+### Harvester phases (important mental model)
+
+The harvester runs in two big phases:
+
+1) **DISCOVERY**
+   - uses JW APIs to discover which languages exist for each publication/section
+   - writes to in-memory stores, then later seeds “discovery tables”:
+     - `PublicationLanguages`
+     - `SectionLanguages`
+
+2) **HARVESTING + SEEDING**
+   - downloads/constructs the actual publication/section/track records that the app uses
+   - seeds **English (“E”) by default**
+   - seeds “no-language” melody music (e.g. `iam`) separately
+   - zips the resulting SQLite DB into `index.zip`
+
+---
+
+## Harvest types (three modes)
+
+Enum:
+- `src/Bible.Alarm.Shared/Models/Enums/HarvestType.cs`
+
+### 1) Flat
+
+- publications: most **vocal music**, **video**
+- shape: Publication → Tracks
+- API: `GETPUBMEDIALINKS` with `track=` or equivalent flat listing
+
+### 2) Sectioned
+
+- publications: **Bible** (books/parts), **melody music** (e.g. `iam` discs/sections)
+- shape: Publication → Sections → Tracks
+- API: `GETPUBMEDIALINKS` with section/book parameters (harvester uses “booknum”-style sectioning)
+
+### 3) MediatorSectioned
+
+- publications: **dramas**
+- shape: Publication → Sections (discovered dynamically) → Tracks
+- APIs:
+  - Mediator API for discovery: `https://app.jw-cdn.org/apis/mediator/v1/...`
+  - then `GETPUBMEDIALINKS` for the actual track links for each discovered section code
+
+---
+
+## Default seeded language and how others appear
+
+### Default seeded language
+
+English is the default seeded language:
+- `AppConstants.Media.DefaultLanguageCode = "E"` (`src/Bible.Alarm.Shared/Constants/AppConstants.cs`)
+- Harvester seeds English via:
+  - `.tools/Bible.Alarm.AudioLinksHarvestor/Seeders/EnglishSeeder.cs`
+  - `ILanguageContentService.SeedEnglishPublicationAsync(publicationCode)`
+
+### Language discovery (catalog of what exists)
+
+Harvester discovery saves:
+- per-publication availability in `PublicationLanguages`
+- per-section availability (Bible / sectioned content) in `SectionLanguages`
+
+Those tables are intentionally separate from the “actual content” tables; they let the app answer:
+- “does publication X exist in language Y?”
+- “does section Z exist in language Y?”
+
+### Ad-hoc download (runtime)
+
+When the user picks a language/publication that isn’t pre-seeded:
+- the app consults discovery tables to confirm availability
+- then calls the shared media fetchers through:
+  - `ILanguageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode)`
+
+This is used heavily by the **schedule cascade auto-population** when a language/category is selected and the publication hasn’t been harvested yet:
+- `CategorySelectionAutoPopulateHandler` and `BiblePublicationCascadeHandler`
+
+Important nuance (cascade relies on this):
+- `EnsurePublicationExistsAsync(...)` consults `PublicationLanguages` for `HarvestType` and then fetches:
+  - **Flat**: publication tracks
+  - **Sectioned**: only the **first section + its tracks** (fast bootstrap for defaults), using `SectionLanguages` to find the “first section”
+- Selecting a different section later can trigger additional track fetches (tracks are not guaranteed to exist just because sections exist).
+
+For the full “selection cascade ↔ tables ↔ ad-hoc fetch” story, see:
+- `schedule-cascade-deep-dive.mdc`
+
+---
+
+## APIs used (and what for)
+
+### GETPUBMEDIALINKS (primary)
+
+Constant:
+- `AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl = "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS"`
+
+Used for:
+- Bible audio links
+- vocal music links
+- melody music links
+- video links
+- drama links (after section discovery)
+
+Common query params (varies by harvest type):
+- `output=json`
+- `pub={publicationCode}`
+- `fileformat=mp3|mp4`
+- `langwritten={LanguageCode}` (e.g. `E`)
+- `alllangs=1` during discovery
+- section selection (book/disc/etc.) for sectioned publications
+
+### Mediator API (category discovery)
+
+Constant:
+- `AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl = "https://app.jw-cdn.org/apis/mediator/v1"`
+
+Used mainly for:
+- drama section discovery (and in some cases localized metadata)
+
+### Languages list (seed language table)
+
+Harvester seeds the full language list using the JW site language endpoint:
+- implemented in `.tools/Bible.Alarm.AudioLinksHarvestor/Seeders/LanguageSeeder.cs` (called from `DbSeeder`)
+
+---
+
+## How the app gets the index at runtime
+
+On first run (or if missing), the app extracts the embedded resource:
+- `src/Bible.Alarm/Services/Media/MediaIndexService.cs`
+  - copies embedded `index.zip` into storage root
+  - extracts to produce `mediaIndex.db`
+  - writes a version stamp via `IMediaIndexVersionService`
+
+Notes:
+- The code currently assumes the media index is updated by **app updates**, not by downloading a new index from the network (see comments in `MediaIndexService`).
+

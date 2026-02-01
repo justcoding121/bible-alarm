@@ -1,0 +1,112 @@
+---
+description: "EF Core migrations workflow (DbMigration tool) + how migrations are applied at runtime"
+globs: "{.tools/Bible.Alarm.DbMigration/**,src/Bible.Alarm.Shared/Database/Migrations/**,src/Bible.Alarm.Shared/Database/*DbContext*.cs,src/Bible.Alarm/Services/Bootstrap/DatabaseBootstrapService.cs,src/Bible.Alarm/Services/Database/**}"
+alwaysApply: false
+---
+
+## Why there is a separate migration tool project
+
+The MAUI app project (`src/Bible.Alarm`) deliberately does **not** include EF “design-time” tooling packages.
+
+Instead, migrations are managed via:
+- `.tools/Bible.Alarm.DbMigration/` (console + design-time factories)
+
+This keeps MAUI runtime dependencies clean and makes EF CLI operations predictable.
+
+---
+
+## Where migrations live
+
+Migrations are generated into the Shared project:
+- `src/Bible.Alarm.Shared/Database/Migrations/Schedule/**`
+- `src/Bible.Alarm.Shared/Database/Migrations/Media/**`
+
+The DbContexts are in:
+- `src/Bible.Alarm.Shared/Database/ScheduleDbContext.cs`
+- `src/Bible.Alarm.Shared/Database/MediaDbContext.cs`
+
+The migrations assembly for both contexts is configured as:
+- `"Bible.Alarm.Shared"` (see DI registration in `ServiceRegistrationHelper.cs`)
+
+---
+
+## Common commands (developer workflow)
+
+### Create a migration
+
+Schedule DB:
+
+```bash
+dotnet ef migrations add <MigrationName> --project .tools/Bible.Alarm.DbMigration --context ScheduleDbContext --output-dir ../src/Bible.Alarm.Shared/Database/Migrations/Schedule
+```
+
+Media DB:
+
+```bash
+dotnet ef migrations add <MigrationName> --project .tools/Bible.Alarm.DbMigration --context MediaDbContext --output-dir ../src/Bible.Alarm.Shared/Database/Migrations/Media
+```
+
+### Apply migrations to a local DB (for testing)
+
+```bash
+dotnet ef database update --project .tools/Bible.Alarm.DbMigration --context ScheduleDbContext
+dotnet ef database update --project .tools/Bible.Alarm.DbMigration --context MediaDbContext
+```
+
+---
+
+## The DbMigration console helper
+
+Entry point:
+- `.tools/Bible.Alarm.DbMigration/Program.cs`
+
+It provides:
+- listing migrations
+- showing “pending vs applied”
+- generating a **fresh empty schedule DB** with all migrations applied (used for shipping a bundled `bibleAlarm.db`)
+
+### Generate the bundled empty Schedule DB
+
+Command:
+
+```bash
+dotnet run --project .tools/Bible.Alarm.DbMigration -- generate-empty-schedule-db [outputPath]
+```
+
+Default output (when no outputPath is provided):
+- `src/Bible.Alarm/Resources/bibleAlarm.db`
+
+Important: it checkpoints WAL via `PRAGMA wal_checkpoint(TRUNCATE)` before copying, to ensure the schema is fully in the main DB file.
+
+---
+
+## Runtime migration strategy (what happens on user devices)
+
+### Schedule DB runtime (user-owned DB)
+
+Service:
+- `src/Bible.Alarm/Services/Bootstrap/DatabaseBootstrapService.cs`
+
+Goals:
+- make clean install fast by copying a bundled empty DB (`Resources/bibleAlarm.db`)
+- still support upgrades via EF migrations
+- recover from corruption by re-copying the bundled DB
+
+Flow:
+- copy bundled DB if missing
+- check pending migrations (fast if schema is valid)
+- apply migrations if needed
+- store “version current” marker via `IScheduleDatabaseVersionService`
+
+### Media DB runtime (shipped catalog)
+
+Two cooperating services:
+- `src/Bible.Alarm/Services/Media/MediaIndexService.cs`
+  - ensures `mediaIndex.db` exists by extracting embedded `index.zip`
+- `src/Bible.Alarm/Services/Database/MediaMigrationService.cs`
+  - applies migrations only when upgrading from an older app version
+  - skips migration check entirely when `IMediaIndexVersionService` says the bundled version is current
+
+Practical implication:
+- On most runs, **no migrations are applied** at runtime for the media index; it’s replaced by app update.
+

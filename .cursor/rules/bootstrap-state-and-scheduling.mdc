@@ -1,0 +1,215 @@
+---
+description: "Bootstrap + state management + schedule editor flow (Fluxor, AutoMapper, cascades, caching)"
+globs: "{src/Bible.Alarm/MauiProgram.cs,src/Bible.Alarm/Common/Helpers/ServiceRegistrationHelper.cs,src/Bible.Alarm/Services/Bootstrap/**,src/Bible.Alarm/Stores/**,src/Bible.Alarm/Services/Schedule/**,src/Bible.Alarm/ViewModels/**,src/Bible.Alarm/Views/**}"
+alwaysApply: false
+---
+
+## Boot flow (UI + background entrypoints)
+
+### Startup entrypoints
+
+- App startup: `src/Bible.Alarm/MauiProgram.cs`
+- Bootstrap orchestration: `src/Bible.Alarm/Services/Bootstrap/BootstrapOrchestrator.cs`
+
+Bootstrap can run:
+- in the UI process (normal app launch)
+- in a background process (Android Auto services, alarm receiver)
+
+The orchestrator is protected by a semaphore and a static “already verified” flag, so it is safe to call multiple times.
+
+### What bootstrap does (in order)
+
+In `BootstrapOrchestrator.VerifyServicesAsync(initializeUi)`:
+- runs in parallel:
+  - `DatabaseBootstrapService.InitializeAsync()` (schedule DB migration + media migration)
+  - `FluxorBootstrapService.InitializeAsync()` (store init)
+  - `ResourceBootstrapService.CopyResourcesAsync()` (embedded resources)
+- sends `InitializedMessage` early when `initializeUi=true` to show the Home page while schedule loading continues
+- loads schedules into Fluxor state via `ScheduleBootstrapService.InitializeAsync()`
+- runs platform bootstrap via `IPlatformBootstrapService.InitializeAsync()` (notification channels + background jobs)
+
+---
+
+## State management (Fluxor) patterns used here
+
+### What lives in Fluxor
+
+- `ApplicationState` holds:
+  - schedule list (`Schedules`)
+  - current schedule being edited (`CurrentSchedule`)
+  - other UI-derived state
+
+There is also a `PlaybackState` used for system controls / default schedule metadata.
+
+### Why “Effects” exist
+
+Effects are the project’s rule for:
+- DB reads/writes
+- API calls / network
+- disk cache IO
+- mapping DB entities ↔ UI DTOs
+
+Reducers are kept pure (state-in → state-out).
+
+Primary effect module:
+- `src/Bible.Alarm/Stores/Effects/ScheduleEffects.cs`
+
+### AutoMapper usage
+
+AutoMapper is registered with:
+- `services.AddAutoMapper(cfg => cfg.AddMaps(typeof(ServiceRegistrationHelper).Assembly));`
+  - `src/Bible.Alarm/Common/Helpers/ServiceRegistrationHelper.cs`
+
+Mapping profiles live under:
+- `src/Bible.Alarm/Stores/Mapping/**` (e.g. `ScheduleMappingProfile.cs`)
+
+It’s used to map between:
+- DB entities: `AlarmSchedule`, `BiblePublicationSchedule`, `AlarmMusic`
+- UI/state DTOs: `ScheduleStateItem`, list item models, etc.
+
+---
+
+## Schedule list load & caching
+
+Schedule bootstrap:
+- `src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs`
+
+Key behaviors:
+- avoids reloading from DB if schedules already exist in state
+- uses disk cache key `"ScheduleList"` (stores `List<ScheduleStateItem>`)
+- loads a language dictionary in parallel (used for display name lookups)
+- on cache miss:
+  - reads schedules from DB via `IAlarmScheduleService`
+  - populates display names via `ScheduleStatePopulator`
+  - stores result in cache
+
+Cache invalidation:
+- effects invalidate `"ScheduleList"` before/after mutations (save/delete) to avoid stale state
+
+---
+
+## Schedule editor save/update flow (important wiring)
+
+### “Save” path (state → DB → state)
+
+Typical sequence:
+- UI dispatches `UpdateScheduleFromViewModelAction(scheduleStateItem, musicUpdated, biblePublicationUpdated, shouldSave: true)`
+- `ScheduleEffects.HandleUpdateScheduleFromViewModel()`:
+  - invalidates cache
+  - maps state → DB model
+  - persists via `IAlarmScheduleService` (Schedule DB)
+  - updates OS-level alarm/notification via `IAlarmService`
+  - maps saved DB model → state DTO
+  - dispatches `UpdateScheduleSuccessAction`
+
+Key modules:
+- `src/Bible.Alarm/Stores/Effects/ScheduleEffects.cs`
+- `src/Bible.Alarm/Stores/Effects/Services/ScheduleEntityUpdater.cs`
+- `src/Bible.Alarm/Services/Schedule/ScheduleSaveService.cs`
+
+### Category “Music” special case (critical behavior)
+
+When the schedule’s selected category is `"Music"`:
+- the schedule’s **main BiblePublicationSchedule actually points at a Music publication** in the media index
+- “begin with music” (AlarmMusic) becomes meaningless and is force-disabled
+
+Enforced in two layers:
+- `ScheduleSaveService` clears/disables music when `BiblePublicationCategoryName == "Music"`
+- `ScheduleEntityUpdater` removes `existing.Music` for Category=Music schedules
+
+---
+
+## Cascade logic (auto-populating selections)
+
+The schedule editor uses **cascade handlers** so that selecting higher-level fields (category/language/publication/section) auto-selects the next valid fields.
+
+If you’re working on this area, also read:
+- `schedule-cascade-deep-dive.mdc` (full “how it really works”, including ad-hoc harvest + no-language publications + save persistence)
+
+### Category cascade (category → language → publication → section → track)
+
+- `src/Bible.Alarm/Stores/Effects/ScheduleEffectsHelpers/CategorySelectionAutoPopulateHandler.cs`
+
+Key behaviors:
+- tries to preserve previous language if it exists in the new category
+- otherwise defaults to English `"E"` when available
+- harvests the chosen publication on-demand via `ILanguageContentService.EnsurePublicationExistsAsync(...)` when needed
+- supports “no-language” publications (`LanguageId == null`) by selecting them without harvesting
+
+### Bible cascade (language → publication → section → track)
+
+- `src/Bible.Alarm/Stores/Effects/ScheduleEffectsHelpers/BiblePublicationCascadeHandler.cs`
+
+Key behaviors:
+- keeps user-selected publication when possible, and only falls back to a new one if it can’t be queried for that language
+- uses PublicationLanguages + BiblePublications to choose a valid publication for the language
+- supports “no-language” publications for some categories (notably Music)
+- guards against infinite dispatch loops by comparing current vs computed values before dispatching
+
+### Music cascade (music type → language → publication → section → track)
+
+- `src/Bible.Alarm/Stores/Effects/ScheduleEffectsHelpers/MusicCascadeHandler.cs`
+
+Key behaviors:
+- for VocalMusic, defaults language to English `"E"`
+- for Instrumental music, selects publications where `LanguageId == null`
+- respects sectioned melody publications (e.g. discs) via `SectionCode`
+- when switching music types, `ScheduleEffects` may populate missing `MusicSectionName` from the selected track (instrumental/no-language, sectioned publications):
+  - `src/Bible.Alarm/Stores/Effects/ScheduleEffects.cs` → `PopulateMusicSectionNameForStateAsync(...)`
+
+---
+
+## Pages / ViewModels (interaction model)
+
+The app follows a “container + selection modal” pattern:
+- Home shows schedule list and navigates into schedule details
+- Schedule editor opens modals for category/language/publication/track/music selection
+- selection modals dispatch actions; reducers update state; effects may fetch/migrate/harvest and then dispatch more actions
+
+Key rule: **Pages/ViewModels do not write to EF DbContexts directly**. Persistence happens through Fluxor Effects + schedule/media services.
+
+### Page map (what each page is responsible for)
+
+These are registered in DI in `ServiceRegistrationHelper.RegisterViewModels()` and `RegisterUiComponents()`:
+
+- **Home** (`Views/Home.xaml*` + `HomeViewModel`)
+  - shows schedule list from Fluxor state
+  - opens the schedule editor
+  - schedule list itself comes from `ScheduleBootstrapService` (cache/DB) and is kept fresh by effects on save/delete
+
+- **Schedule editor** (`Views/Schedule/Schedule.xaml*` + `ScheduleViewModel`)
+  - edits the currently selected `ScheduleStateItem`
+  - dispatches `UpdateScheduleFromViewModelAction` for:
+    - toggles (enabled, notification enabled, music enabled)
+    - time/day changes
+    - bible/music selection changes (often with `shouldSave:false` first so cascades can run)
+  - “Save” persists via `ScheduleEffects` (state → DB → state) and reschedules OS notification via `IAlarmService`
+
+- **Category selection** (`Views/Bible/CategorySelectionModal.xaml*` + `CategorySelectionViewModel`)
+  - dispatches `CategorySelectionAction`
+  - effect runs `CategorySelectionAutoPopulateHandler` to auto-pick language/publication/track
+
+- **Bible selection flow**
+  - language modal: `BiblePublicationLanguageModal`
+  - publication modal: `BiblePublicationSelectionModal`
+  - section modal: `BiblePublicationSectionSelectionModal`
+  - track modal: `BiblePublicationTrackSelectionModal`
+  - underlying logic uses cascade + ad-hoc harvest when the selected language/publication isn’t seeded yet
+
+- **Music selection flow**
+  - music type modal: `MusicTypeSelectionModal`
+  - language modal: `MusicLanguageModal` (vocal music)
+  - publication/section/track modals: `MusicPublicationSelectionModal`, `MusicSectionSelectionModal`, `MusicTrackSelectionModal`
+  - logic uses `MusicCascadeHandler` and the media index to handle:
+    - vocal music (language-specific)
+    - instrumental/melody music (often `LanguageId == null`, sectioned by disc)
+
+- **Alarm / playback UI**
+  - `AlarmModal` + `AlarmViewModel`
+  - driven by `PlaybackService` state/actions and system events (alarm trigger, Android Auto/CarPlay controls)
+
+DI registers:
+- ViewModels (`services.AddTransient<...ViewModel>()`)
+- Pages (`services.AddTransient<...>()`)
+in `ServiceRegistrationHelper.RegisterViewModels/RegisterUiComponents`.
+

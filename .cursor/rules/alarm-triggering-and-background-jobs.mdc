@@ -1,0 +1,89 @@
+---
+description: "How alarms trigger playback + background/periodic jobs (Android/iOS/Windows)"
+globs: "{src/Bible.Alarm/Services/Scheduler/**,src/Bible.Alarm/Platforms/Android/Services/BroadcastReceivers/**,src/Bible.Alarm/Platforms/Android/Services/Jobs/**,src/Bible.Alarm/Platforms/Windows/**,src/Bible.Alarm/Platforms/iOS/**}"
+alwaysApply: false
+---
+
+## Mental model
+
+There are two layers of “scheduling” in this app:
+
+1) **App-level schedule definition** (what the user configures)
+   - stored in Schedule DB: `AlarmSchedule` + `BiblePublicationSchedule` (+ optional `AlarmMusic`)
+
+2) **OS-level scheduling** (how the device wakes us / notifies us)
+   - done by `INotificationService` per platform
+   - maintained by a periodic job to recover from missed/cleared notifications
+
+Quartz is used for **Cron parsing / next fire time** only (see `AlarmSchedule.NextFireDate()`), not as a background job runner.
+
+---
+
+## When an alarm “fires”
+
+### OS notification scheduling
+
+The app schedules OS notifications via:
+- `src/Bible.Alarm/Services/Scheduler/AlarmService.cs`
+
+Behavior:
+- only schedules when `schedule.IsEnabled` and notifications are available (`notificationService.CanScheduleAsync()`)
+- update path removes existing notification then re-adds (if enabled)
+
+The platform `INotificationService` implementation is responsible for:
+- creating the OS alarm/notification trigger
+- embedding extras like `ScheduleId` / `IsAlarm` in the pending intent (Android)
+
+### Android: BroadcastReceiver entrypoint
+
+Receiver:
+- `src/Bible.Alarm/Platforms/Android/Services/BroadcastReceivers/AlarmRingerReceiver.cs`
+
+Flow:
+- creates `MediaSession` immediately (for Android Auto/system controls)
+- starts a **foreground service immediately** when it’s an alarm (prevents Android from killing the process mid-bootstrap/download)
+  - `ForegroundServiceCoordinator.OnAlarmTriggered(context, scheduleId)`
+- creates DI container (`MauiAppHolder.CreateAndStore()`)
+- runs bootstrap in background (`MauiProgram.InitializePlatformBootstrap(..., isForeground: false)`)
+- waits for bootstrap completion (`MauiProgram.WaitForBootstrapAsync()`)
+- resolves `IAndroidAlarmHandler` and calls `HandleAsync(scheduleId, isAlarm)`
+- reschedules the next occurrence immediately after firing:
+  - `ISchedulerService.RescheduleNextOccurrenceAsync(scheduleId)`
+
+Key reason for the foreground service:
+- alarms are time-sensitive and often occur while the app is not running; Android may kill a background-started process quickly unless it enters foreground service state.
+
+---
+
+## Periodic background work (“maintenance job”)
+
+### Purpose
+
+The periodic job exists to:
+- clean old cached media
+- ensure OS notifications are still scheduled for enabled alarms
+- pre-download/prepare media cache for upcoming alarms
+
+### Core implementation
+
+Service:
+- `src/Bible.Alarm/Services/Scheduler/SchedulerService.cs`
+
+Important behaviors:
+- waits for bootstrap completion before running (avoids lock timeouts while DB init is running)
+- guarded by a semaphore so periodic runs can’t overlap
+- for each enabled schedule:
+  - if notification missing → schedule it (`alarmService.Create(schedule)`)
+  - else → set up alarm cache (`mediaCacheService.SetupAlarmCacheAsync(schedule.Id)`)
+
+### Platform runners
+
+- **Android**: JobScheduler job
+  - `src/Bible.Alarm/Platforms/Android/Services/Jobs/SchedulerJob.cs`
+  - runs roughly every 30 minutes (per code comments/behavior)
+
+- **Windows**: periodic timer helper
+  - `src/Bible.Alarm/Platforms/Windows/Helpers/WindowsPeriodicBackgroundTasks.cs`
+
+(iOS background behavior is constrained by iOS policy; the app primarily relies on notification triggers + background audio capabilities rather than long-running background jobs.)
+

@@ -1,0 +1,187 @@
+---
+description: "User actions → what happens (commands/actions/effects) and expected results"
+globs: "{src/Bible.Alarm/Views/**,src/Bible.Alarm/ViewModels/**,src/Bible.Alarm/Stores/Actions/**,src/Bible.Alarm/Stores/Effects/**,src/Bible.Alarm/Stores/Reducers/**,src/Bible.Alarm/Services/Schedule/**,src/Bible.Alarm/Services/Media/**,src/Bible.Alarm/Services/Scheduler/**}"
+alwaysApply: false
+---
+
+## Home page actions
+
+### Action: Tap “+” (add schedule)
+
+Where:
+- `Home.xaml` add button → `HomeViewModel.AddScheduleCommand`
+- command created in `HomeViewModelHelpers/CommandHandler.cs`
+
+What happens:
+- Dispatches:
+  - `ResetScheduleStateAction` (clears current schedule state)
+  - `ResetContainerReadinessAction` (forces schedule page containers to re-signal ready)
+  - `SetSchedulePageOverlayAction { IsVisible = true }` (shows a loading overlay on the schedule page)
+- Navigates to Schedule page (`INavigationService.NavigateToScheduleAsync()`).
+
+Expected result:
+- Schedule page opens immediately with an overlay while container view models initialize and bind.
+
+### Action: Tap a schedule card (not on a button)
+
+Where:
+- `Home.xaml.cs` `OnScheduleItemTapped` checks whether tap was on interactive control; if not, executes `ViewScheduleCommand`
+- `HomeViewModel.ViewScheduleCommand` created in `HomeViewModelHelpers/CommandHandler.cs`
+
+What happens:
+- Sets `ScheduleListItemViewModel.IsNavigating = true` (spinner on the row)
+- Shows a progress bar temporarily
+- Applies skip rules:
+  - skip navigation if playback is already active for that schedule, or the user just hit Play (cooldown)
+- Dispatches `SetSchedulePageOverlayAction { IsVisible = true }` and navigates with scheduleId.
+
+Expected result:
+- Schedule page opens for that schedule; overlay hides once schedule containers are ready.
+
+### Action: Swipe delete schedule
+
+Where:
+- `Home.xaml` swipe action binds to `ScheduleListItemViewModel.DeleteCommand`
+
+What happens:
+- Blocks deletion of the last schedule (toast)
+- Dispatches `DeleteScheduleAction(scheduleId)`
+- `ScheduleEffects.HandleDeleteSchedule` performs DB deletion and dispatches success/failure actions
+- Reducers remove the schedule from `ApplicationState.Schedules`
+- Home list updates via `HomeStateChangeHandler` (and may show progress during delete).
+
+Expected result:
+- Schedule disappears from Home; its OS alarm/notification is removed; media cache cleanup may run depending on delete effect logic.
+
+### Action: Tap play button on a schedule card
+
+Where:
+- `ScheduleListItemViewModel.PlayCommand`
+
+What happens:
+- Immediately sets `IsBusy=true` on the row (play button spinner)
+- Calls `ISchedulePlaybackService.PlayScheduleAsync(scheduleId)`
+- Playback preparation begins (downloads if needed), then modal/UI updates via playback state/actions.
+
+Expected result:
+- Playback modal appears and audio begins (or falls back to default alarm sound if alarm playback and download fails).
+
+### Action: Tap time text (toggle enabled)
+
+Where:
+- `Home.xaml` binds a tap gesture to `ScheduleListItemViewModel.ToggleEnabledCommand`
+
+What happens:
+- Toggles `IsEnabled` locally
+- Kicks off background update via `ScheduleListItemPropertyManager.HandleIsEnabledChanged(...)`:
+  - persists change (Schedule DB)
+  - schedules/reschedules OS notification via `IAlarmService` / `INotificationService`
+  - on failure: reverts UI back to previous value
+
+Expected result:
+- Alarm enabled/disabled immediately in UI, then OS-level schedule is updated shortly after.
+
+---
+
+## Schedule page actions (editor)
+
+### Action: Change category
+
+Where:
+- Category selection modal dispatches `CategorySelectionAction`
+- Effect: `ScheduleEffects.HandleCategorySelection` runs `CategorySelectionAutoPopulateHandler`
+
+What happens:
+- Picks a language (preserve previous if possible; else default `E`)
+- Picks a valid publication for that category/language (may harvest ad-hoc if needed)
+- Picks first valid section/track
+- Dispatches `UpdateScheduleFromViewModelAction(..., shouldSave:false)` to update state without writing DB yet.
+
+Expected result:
+- The schedule’s Bible publication fields auto-fill with a valid selection.
+
+### Action: Change language/publication/section/track (Bible side)
+
+Where:
+- container view models dispatch `UpdateScheduleFromViewModelAction(..., biblePublicationUpdated:true, shouldSave:false/true)`
+- Effect: `ScheduleEffects.HandleBiblePublicationCascade` runs `BiblePublicationCascadeHandler`
+
+What happens:
+- Cascades Language → Publication → Section → Track
+- May call `ILanguageContentService.EnsurePublicationExistsAsync` to harvest a missing language/publication
+- Updates state without saving to DB until the Save command (or until a specific interaction chooses `shouldSave:true`).
+
+Expected result:
+- The UI always ends up with a consistent (language, publication, section, track) selection.
+ 
+Deep dive:
+- `schedule-cascade-deep-dive.mdc`
+
+### Action: Toggle “begin with music” / change music type/language/publication/track
+
+Where:
+- music container dispatches `UpdateScheduleFromViewModelAction(..., musicUpdated:true, shouldSave:false/true)`
+- Effect: `ScheduleEffects.HandleMusicCascade` runs `MusicCascadeHandler`
+
+What happens:
+- Cascades MusicType → Language → Publication → Section → Track
+- Instrumental music often uses `LanguageId == null` publications and may be sectioned by disc.
+
+Expected result:
+- Music selection stays valid and complete, with section/track auto-selected.
+ 
+Deep dive:
+- `schedule-cascade-deep-dive.mdc`
+
+### Action: Category == “Music” (special case)
+
+What happens:
+- Music selection UI is hidden (`ScheduleViewModel.IsMusicSelectionVisible == false`)
+- “begin with music” is disabled/cleared during save/update
+- the schedule’s main `BiblePublicationSchedule` points at a Music publication in the media index.
+
+Expected result:
+- A “Music category schedule” plays music as its main content, not as pre-roll.
+
+### Action: Tap Save
+
+Where:
+- `ScheduleViewModel.SaveCommand` (wired via `ScheduleCommandExecutor`/`ScheduleCommandService`)
+- Effect: `ScheduleEffects.HandleCreateSchedule` or `HandleUpdateScheduleFromViewModel`
+
+What happens:
+- Validates state
+- Maps `ScheduleStateItem` → `AlarmSchedule` (AutoMapper + save helpers)
+- Writes to Schedule DB
+- Updates OS notification scheduling via `IAlarmService`
+- Updates Fluxor state and refreshes the `"ScheduleList"` disk cache.
+
+Expected result:
+- Home list updates immediately (time/name/category/track text), and the alarm is scheduled on the OS.
+
+---
+
+## Playback actions (system controls)
+
+Where:
+- `PlaybackService` implements `IRecipient<...ButtonPressedMessage>` for play/pause/next/prev/seek.
+
+Expected result:
+- system UI / Android Auto / CarPlay controls trigger the same playback operations as in-app controls.
+
+### Action: Press Next / Previous (and how “Play indefinitely” affects it)
+
+Key rule:
+- Even if the schedule is configured with a finite number of tracks, **manual next/prev makes the current playback session behave as indefinite** (so it can extend past the initial finite playlist).
+
+Behavior summary:
+- **Finite schedule** (`NumberOfTracksToPlay > 0`):
+  - natural playback ends after the in-memory playlist finishes (stops/dismisses)
+  - manual **Next** at the end will typically continue by dynamically appending the next track
+- **Indefinite schedule** (`NumberOfTracksToPlay == 0`):
+  - playback appends tracks dynamically at the end and continues
+
+Implementation:
+- `src/Bible.Alarm/Services/Media/PlaybackService.cs` (`PlayNextAsync` / `PlayPreviousAsync`)
+- `src/Bible.Alarm/Services/Media/Playback/PlaybackEventHandler.cs` (auto-extend vs stop at end)
+

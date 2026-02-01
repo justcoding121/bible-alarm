@@ -29,7 +29,15 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
             return false;
         }
 
-        return string.Equals(scheduleStateItem.BiblePublicationCategoryName, "Bible", StringComparison.OrdinalIgnoreCase);
+        if (string.Equals(scheduleStateItem.BiblePublicationCategoryName, "Bible", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Fallback: category name isn't persisted and might be temporarily missing.
+        // Infer from publication code.
+        var inferred = JwSourceHelper.GetCategoryName(scheduleStateItem.BiblePublicationCode ?? string.Empty);
+        return string.Equals(inferred, "Bible", StringComparison.OrdinalIgnoreCase);
     }
 
     public string GetBiblePublicationName(int scheduleId)
@@ -80,7 +88,7 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
         }
 
         // Only for Bible category (per UX requirement).
-        if (!string.Equals(scheduleStateItem.BiblePublicationCategoryName, "Bible", StringComparison.OrdinalIgnoreCase))
+        if (!IsBibleCategory(scheduleId))
         {
             return string.Empty;
         }

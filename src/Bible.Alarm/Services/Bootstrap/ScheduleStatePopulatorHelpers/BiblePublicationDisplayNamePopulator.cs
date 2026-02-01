@@ -111,14 +111,12 @@ internal sealed class BiblePublicationDisplayNamePopulator
         BiblePublicationSchedule biblePublication,
         LookupDataLoader.LookupData lookupData)
     {
-        // Convert SectionCode to int for lookup key
-        if (!string.IsNullOrEmpty(biblePublication.SectionCode) && 
-            int.TryParse(biblePublication.SectionCode, out var sectionCode) && 
-            sectionCode > 0 &&
+        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(biblePublication.SectionCode);
+        if (sectionIndex > 0 &&
             !string.IsNullOrWhiteSpace(biblePublication.LanguageCode) &&
             !string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
         {
-            var sectionKey = (biblePublication.LanguageCode, biblePublication.PublicationCode, sectionCode);
+            var sectionKey = (biblePublication.LanguageCode, biblePublication.PublicationCode, sectionIndex);
             if (lookupData.Sections.TryGetValue(sectionKey, out var sectionName))
             {
                 scheduleStateItem.BiblePublicationSectionName = sectionName;
@@ -150,10 +148,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
         // For sectioned publications, find track in the section's tracks
         if (PublicationTypeHelper.HasSectionStructure(biblePublication.PublicationCode))
         {
-            // Convert SectionCode to int for lookup
-            if (string.IsNullOrEmpty(biblePublication.SectionCode) || 
-                !int.TryParse(biblePublication.SectionCode, out var sectionCode) || 
-                sectionCode <= 0)
+            var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(biblePublication.SectionCode);
+            if (sectionIndex <= 0)
             {
                 return;
             }
@@ -161,7 +157,7 @@ internal sealed class BiblePublicationDisplayNamePopulator
             // Find the section in the publication
             var section = publication.Sections?.FirstOrDefault(s =>
                 s.TryGetSectionIndex().HasValue &&
-                s.TryGetSectionIndex()!.Value == sectionCode);
+                s.TryGetSectionIndex()!.Value == sectionIndex);
             
             if (section != null)
             {

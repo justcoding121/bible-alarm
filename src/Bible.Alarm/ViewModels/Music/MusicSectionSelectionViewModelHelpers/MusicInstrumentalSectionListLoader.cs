@@ -30,9 +30,9 @@ internal sealed class MusicInstrumentalSectionListLoader
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (items, selected) = await Task.Run(async () =>
         {
-            // For music publications (publications without language like "iam"), use empty string as language code
-            // GetBiblePublicationSections will detect LanguageId == null and handle it appropriately
-            var sectionsFromDb = await mediaService.GetBiblePublicationSections(string.Empty, publicationCode, progress);
+            // Instrumental music publications are stored without a language FK.
+            // No DB probing needed: query the without-language path directly.
+            var sectionsFromDb = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
 
             // If no sections found, sections might be being fetched (though music should be pre-harvested)
             // Add retry logic similar to Bible container for consistency
@@ -50,7 +50,7 @@ internal sealed class MusicInstrumentalSectionListLoader
                     await Task.Delay(1000 * (retry + 2));
 
                     // Re-query to see if sections are now available
-                    sectionsFromDb = await mediaService.GetBiblePublicationSections(string.Empty, publicationCode, progress);
+                    sectionsFromDb = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
 
                     if (sectionsFromDb != null && sectionsFromDb.Count > 0)
                     {

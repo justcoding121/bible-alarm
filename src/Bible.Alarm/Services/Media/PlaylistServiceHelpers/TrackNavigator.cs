@@ -87,8 +87,19 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
         }
 
         // Sectioned publication logic
-        var currentSection = await mediaService.GetBiblePublicationSection(languageCode, publicationCode, sectionCode)
-            ?? throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={sectionCode}");
+        //
+        // IMPORTANT:
+        // Some sectioned publications are stored in the media index WITHOUT a language FK (LanguageId == null),
+        // e.g. melody music "iam" with section codes like "iam-1".
+        //
+        // In that case, calling GetBiblePublicationSection(languageCode, pub, sectionIndex) will fail because
+        // the section isn't language-bound. Always resolve "current section" from the sections dictionary
+        // returned by GetBiblePublicationSections(...) (which is already no-language aware).
+        var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+        if (!sections.TryGetValue(sectionCode, out var currentSection) || currentSection == null)
+        {
+            throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={sectionCode}");
+        }
 
         var tracks = await GetTracksCachedAsync(languageCode, publicationCode, sectionCode);
         var nextTrack = tracks.SkipWhile(kvp => kvp.Key <= track).FirstOrDefault();
@@ -132,8 +143,12 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
         }
 
         // Sectioned publication logic
-        var currentSection = await mediaService.GetBiblePublicationSection(languageCode, publicationCode, sectionCode)
-            ?? throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={sectionCode}");
+        // See GetNextBiblePublicationTrack for why we resolve sections via GetSectionsCachedAsync.
+        var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+        if (!sections.TryGetValue(sectionCode, out var currentSection) || currentSection == null)
+        {
+            throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={sectionCode}");
+        }
 
         var tracks = await GetTracksCachedAsync(languageCode, publicationCode, sectionCode);
         var previousTrack = tracks.Reverse().SkipWhile(kvp => kvp.Key >= track).FirstOrDefault();

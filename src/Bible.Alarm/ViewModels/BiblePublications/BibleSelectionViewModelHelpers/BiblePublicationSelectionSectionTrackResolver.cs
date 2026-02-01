@@ -31,7 +31,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         this.languageContentService = languageContentService;
     }
 
-    internal async Task<(int SectionCode, int TrackNumber, string SectionName, string TrackTitle)>
+    internal async Task<(string? SectionCode, int TrackNumber, string SectionName, string TrackTitle)>
         GetFirstSectionAndTrackFromSectionsAsync(
             string? languageCode,
             string publicationCode,
@@ -40,9 +40,9 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
     {
         var firstSectionKvp = sections.First();
         var firstSection = firstSectionKvp.Value;
-        var firstSectionCode = firstSectionKvp.Key; // Use the dictionary key (parsed from SectionCode)
-        Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First section number={SectionCode}, name={SectionName}",
-            firstSectionCode, firstSection.Name);
+        var firstSectionIndex = firstSectionKvp.Key; // Dictionary key is the parsed "index" for service calls
+        Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First section index={SectionIndex}, sectionCode={SectionCode}, name={SectionName}",
+            firstSectionIndex, firstSection.SectionCode, firstSection.Name);
 
         SortedDictionary<int, BiblePublicationTrack>? tracks;
 
@@ -149,7 +149,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                     {
                         // Re-query tracks after fetching
                         Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: Tracks fetched successfully, re-querying from database");
-                        tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionCode);
+                        tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionIndex);
                     }
                     else
                     {
@@ -165,16 +165,16 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             if (tracks == null || tracks.Count == 0)
             {
                 Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: Falling back to mediaService.GetBiblePublicationTracks");
-                tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionCode);
+                tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionIndex);
             }
         }
 
         if (tracks == null || tracks.Count == 0)
         {
-            Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, section={SectionCode}",
-                languageCode ?? "(null)", publicationCode, firstSectionCode);
+            Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, sectionIndex={SectionIndex}, sectionCode={SectionCode}",
+                languageCode ?? "(null)", publicationCode, firstSectionIndex, firstSection.SectionCode);
             progress?.UpdateProgress(1.0);
-            return (0, 0, string.Empty, string.Empty);
+            return (null, 0, string.Empty, string.Empty);
         }
 
         var firstTrack = tracks.Values.First();
@@ -182,10 +182,10 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             firstTrack.Number, firstTrack.Title);
 
         progress?.UpdateProgress(1.0);
-        return (firstSectionCode, firstTrack.Number, firstSection.Name, firstTrack.Title);
+        return (firstSection.SectionCode, firstTrack.Number, firstSection.Name, firstTrack.Title);
     }
 
-    internal async Task<(int SectionCode, int TrackNumber, string SectionName, string TrackTitle)>
+    internal async Task<(string? SectionCode, int TrackNumber, string SectionName, string TrackTitle)>
         GetFirstTrackForNonSectionedAsync(string? languageCode, string publicationCode, IFetchProgress? progress = null)
     {
         Log.Debug(
@@ -197,7 +197,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         if (biblePublicationService == null)
         {
             Log.Warning("GetFirstTrackForNonSectionedAsync: biblePublicationService is null, returning empty result");
-            return (0, 0, string.Empty, string.Empty);
+            return (null, 0, string.Empty, string.Empty);
         }
 
         BiblePublication? publication;
@@ -257,7 +257,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         {
             Log.Warning("GetFirstTrackForNonSectionedAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}",
                 languageCode ?? "(null)", publicationCode);
-            return (0, 0, string.Empty, string.Empty);
+            return (null, 0, string.Empty, string.Empty);
         }
 
         var firstTrack = publication.Tracks.OrderBy(t => t.Number).First();
@@ -265,7 +265,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             firstTrack.Number, firstTrack.Title);
 
         progress?.UpdateProgress(1.0);
-        return (0, firstTrack.Number, string.Empty, firstTrack.Title);
+        return (null, firstTrack.Number, string.Empty, firstTrack.Title);
     }
 
     internal async Task<bool> CheckIfPublicationWithFirstSectionHarvestedAsync(string publicationCode, string languageCode)

@@ -1,10 +1,7 @@
 #nullable enable
-using Bible.Alarm.Common.Messenger;
-using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
-using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 
@@ -15,7 +12,6 @@ namespace Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
 /// </summary>
 public sealed class ScheduleListItemSubtitleManager(
     ILogger logger,
-    IScheduleDisplayService displayService,
     IState<ApplicationState> applicationState)
 {
     private string subtitle = string.Empty;
@@ -35,7 +31,7 @@ public sealed class ScheduleListItemSubtitleManager(
 
     /// <summary>
     /// Refreshes subtitle from ScheduleStateItem in state (uses pre-populated SectionName).
-    /// Falls back to async database lookup if SectionName is not available in state.
+    /// Intentionally state-only: Home list rendering should not trigger ad-hoc DB calls.
     /// </summary>
     public void RefreshSubTitleFromState(int scheduleId, ScheduleStateItem? providedScheduleStateItem, Action<string> setSubTitle, Action<string> setLanguage, Action<string> onPropertyChanged)
     {
@@ -101,14 +97,12 @@ public sealed class ScheduleListItemSubtitleManager(
                 ClearLanguage(setLanguage, onPropertyChanged);
             }
 
-            // Only fall back to async lookup if display names are not expected to be populated
-            logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Falling back to async lookup for schedule {ScheduleId}", scheduleId);
-            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, onPropertyChanged);
+            // No DB fallback: state will be enriched by bootstrap / schedule effects.
         }
         catch (Exception e)
         {
             logger.Error(e, "An error happened while refreshing subtitle from state for schedule {ScheduleId}", scheduleId);
-            _ = RefreshTrackNameAsync(scheduleId, force: false, setSubTitle, setLanguage, onPropertyChanged);
+            // No DB fallback.
         }
     }
 
@@ -156,13 +150,25 @@ public sealed class ScheduleListItemSubtitleManager(
         var hasSectionStructureForTrack = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode);
         if (hasSectionStructureForTrack)
         {
-            // For sectioned publications, show track number
-            var trackNumber = scheduleStateItem.BiblePublicationTrackNumber.HasValue && scheduleStateItem.BiblePublicationTrackNumber.Value > 0
-                ? scheduleStateItem.BiblePublicationTrackNumber.Value.ToString()
-                : null;
-            if (trackNumber != null)
+            // For sectioned publications:
+            // - Bible: show the track number (e.g., "9")
+            // - Music (e.g., "iam"): prefer the track title (e.g., "Melody Number(s) 195, 224") when available
+            var categoryName = scheduleStateItem.BiblePublicationCategoryName;
+            var isMusicCategory = string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
+
+            if (isMusicCategory && !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
             {
-                parts.Add(trackNumber);
+                parts.Add(scheduleStateItem.BiblePublicationTrackTitle);
+            }
+            else
+            {
+                var trackNumber = scheduleStateItem.BiblePublicationTrackNumber.HasValue && scheduleStateItem.BiblePublicationTrackNumber.Value > 0
+                    ? scheduleStateItem.BiblePublicationTrackNumber.Value.ToString()
+                    : null;
+                if (trackNumber != null)
+                {
+                    parts.Add(trackNumber);
+                }
             }
         }
         else
@@ -191,62 +197,5 @@ public sealed class ScheduleListItemSubtitleManager(
     {
         setLanguage(string.Empty);
         onPropertyChanged("Language");
-    }
-
-    /// <summary>
-    /// Async fallback method for refreshing track name from database.
-    /// Only used if SectionName is not available in state.
-    /// </summary>
-    public async Task RefreshTrackNameAsync(int scheduleId, bool force, Action<string> setSubTitle, Action<string> setLanguage, Action<string> onPropertyChanged)
-    {
-        if (scheduleId <= 0)
-        {
-            return;
-        }
-
-        try
-        {
-            // Try to get Language from state first (synchronous)
-            var scheduleStateItem = applicationState.Value.Schedules
-                .FirstOrDefault(s => s.Id == scheduleId);
-
-            string language = string.Empty;
-            if (scheduleStateItem != null)
-            {
-                if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
-                {
-                    language = scheduleStateItem.BiblePublicationLanguageName;
-                }
-                else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageCode))
-                {
-                    language = scheduleStateItem.BiblePublicationLanguageCode;
-                }
-            }
-
-            // Run database operations off UI thread
-            var displayName = await Task.Run(async () =>
-                await displayService.GetTrackDisplayNameAsync(scheduleId, force));
-
-            // Update UI on main thread
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (!string.IsNullOrEmpty(displayName))
-                {
-                    setSubTitle(displayName);
-                    onPropertyChanged("SubTitle");
-                    
-                    // Hide progress bar when subtitle is updated (indicates track change is complete)
-                    WeakReferenceMessenger.Default.Send(new HideProgressBarMessage());
-                }
-
-                // Update Language property
-                setLanguage(language);
-                onPropertyChanged("Language");
-            });
-        }
-        catch (Exception e)
-        {
-            logger.Error(e, "An error happened while refreshing track name for schedule {ScheduleId}", scheduleId);
-        }
     }
 }

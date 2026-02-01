@@ -127,7 +127,9 @@ public static class AndroidAutoScheduleHelper
             subtitleParts.Add($"* {scheduleItem.BiblePublicationName}");
         }
 
-        var isBibleCategory = string.Equals(scheduleItem.BiblePublicationCategoryName, "Bible", StringComparison.OrdinalIgnoreCase);
+        var isBibleCategory =
+            string.Equals(scheduleItem.BiblePublicationCategoryName, "Bible", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty), "Bible", StringComparison.OrdinalIgnoreCase);
 
         // Add Section/Track info
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
