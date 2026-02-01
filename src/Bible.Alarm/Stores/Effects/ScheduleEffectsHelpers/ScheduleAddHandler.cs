@@ -1,8 +1,8 @@
 #nullable enable
 
 using AutoMapper;
+using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Effects.Services;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -15,12 +15,12 @@ namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 public class ScheduleAddHandler
 {
     private readonly IMapper mapper;
-    private readonly ScheduleDisplayNamePopulator displayNamePopulator;
+    private readonly IScheduleDisplayNameService scheduleDisplayNameService;
 
-    public ScheduleAddHandler(IMapper mapper, ScheduleDisplayNamePopulator displayNamePopulator)
+    public ScheduleAddHandler(IMapper mapper, IScheduleDisplayNameService scheduleDisplayNameService)
     {
         this.mapper = mapper;
-        this.displayNamePopulator = displayNamePopulator;
+        this.scheduleDisplayNameService = scheduleDisplayNameService;
     }
 
     public async Task HandleAsync(AddScheduleAction action, IDispatcher dispatcher)
@@ -39,17 +39,8 @@ public class ScheduleAddHandler
             // Transform DB entity to State DTO (following Fluxor best practices)
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
 
-            // Populate BiblePublicationLanguageName, BiblePublicationName, BiblePublicationSectionName, and TrackTitle if BiblePublicationSchedule exists
-            await displayNamePopulator.PopulatePublicationNameAsync(scheduleStateItem, action.Schedule);
-            await displayNamePopulator.PopulateBiblePublicationNameAsync(scheduleStateItem, action.Schedule);
-            await displayNamePopulator.PopulateSectionNameAsync(scheduleStateItem, action.Schedule);
-            await displayNamePopulator.PopulateTrackTitleAsync(scheduleStateItem, action.Schedule);
-
-            // Populate music display properties if Music exists
-            await displayNamePopulator.PopulateMusicLanguageNameAsync(scheduleStateItem, action.Schedule);
-            await displayNamePopulator.PopulateMusicPublicationNameAsync(scheduleStateItem, action.Schedule);
-            await displayNamePopulator.PopulateMusicSectionNameAsync(scheduleStateItem, action.Schedule);
-            await displayNamePopulator.PopulateMusicTrackNameAsync(scheduleStateItem, action.Schedule);
+            // Populate display names from media index (single-schedule hydration).
+            await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, action.Schedule);
 
             // Dispatch success action with DTO (reducer will handle this)
             dispatcher.Dispatch(new AddScheduleSuccessAction(scheduleStateItem));

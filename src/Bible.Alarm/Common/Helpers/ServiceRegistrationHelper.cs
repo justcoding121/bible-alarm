@@ -141,7 +141,6 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IAlarmService, AlarmService>();
         services.AddSingleton<IScheduleStateService, ScheduleStateService>();
         services.AddSingleton<ISchedulePlaybackService, SchedulePlaybackService>();
-        services.AddSingleton<IScheduleDisplayService, ScheduleDisplayService>();
         services.AddSingleton<ISchedulePersistenceService, SchedulePersistenceService>();
         services.AddSingleton<IDefaultScheduleService, DefaultScheduleService>();
         services.AddSingleton<IAlarmScheduleService, AlarmScheduleService>();

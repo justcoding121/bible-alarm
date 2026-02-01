@@ -126,7 +126,8 @@ internal sealed class MusicDisplayNamePopulator
                 lookupData.MelodyTracksBySection.TryGetValue((music.PublicationCode, music.SectionCode), out var sectionTracks) &&
                 sectionTracks.TryGetValue(music.TrackNumber, out var sectionTrack))
             {
-                scheduleStateItem.MusicTrackName = $"Melody Number(s) {sectionTrack.Title}";
+                // Titles for melody tracks should come from harvested track titles as-is.
+                scheduleStateItem.MusicTrackName = sectionTrack.Title;
                 Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
                     sectionTrack.Title, schedule.Id, music.TrackNumber);
                 return;
@@ -135,7 +136,8 @@ internal sealed class MusicDisplayNamePopulator
             if (lookupData.MelodyTracksFlat.TryGetValue(music.PublicationCode, out var flatTracks) &&
                 flatTracks.TryGetValue(music.TrackNumber, out var flatTrack))
             {
-                scheduleStateItem.MusicTrackName = $"Melody Number(s) {flatTrack.Title}";
+                // Titles for melody tracks should come from harvested track titles as-is.
+                scheduleStateItem.MusicTrackName = flatTrack.Title;
                 Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
                     flatTrack.Title, schedule.Id, music.TrackNumber);
             }

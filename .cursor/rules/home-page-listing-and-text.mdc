@@ -1,6 +1,6 @@
 ---
 description: "Home page schedule listing: how it’s populated and how list text is computed"
-globs: "{src/Bible.Alarm/Views/Home.xaml*,src/Bible.Alarm/ViewModels/HomeViewModel*.cs,src/Bible.Alarm/ViewModels/HomeViewModelHelpers/**,src/Bible.Alarm/ViewModels/ScheduleListItemViewModel*.cs,src/Bible.Alarm/ViewModels/ScheduleListItemViewModelHelpers/**,src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs,src/Bible.Alarm/Services/Schedule/ScheduleDisplayNameService.cs,src/Bible.Alarm/Services/Media/ScheduleDisplayService.cs}"
+globs: "{src/Bible.Alarm/Views/Home.xaml*,src/Bible.Alarm/ViewModels/HomeViewModel*.cs,src/Bible.Alarm/ViewModels/HomeViewModelHelpers/**,src/Bible.Alarm/ViewModels/ScheduleListItemViewModel*.cs,src/Bible.Alarm/ViewModels/ScheduleListItemViewModelHelpers/**,src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs,src/Bible.Alarm/Services/Bootstrap/ScheduleStatePopulator.cs,src/Bible.Alarm/Services/Bootstrap/ScheduleStatePopulatorHelpers/**}"
 alwaysApply: false
 ---
 
@@ -27,7 +27,11 @@ Each row is a `ScheduleListItemViewModel` and the template displays:
 ### Step 1: Bootstrapping populates Fluxor state
 
 `ScheduleBootstrapService.InitializeAsync()` loads schedule data into `ApplicationState.Schedules` as `ScheduleStateItem`s:
-- from the Schedule DB + display-name population (no disk cache)
+- from the Schedule DB + **batched media-index display-name hydration** (no disk cache)
+
+The bootstrap “display-name hydration” is intentionally a batch operation to avoid N+1:
+- `ScheduleStatePopulator` collects distinct lookup keys across all schedules
+- `LookupDataLoader` loads publications/sections/tracks in parallel (bounded) and includes a no-language fallback path (e.g. `iam` with `LanguageId == null`)
 
 File:
 - `src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs`
@@ -102,7 +106,7 @@ Notes:
 
 `ScheduleListItemSubtitleManager` builds `SubTitle` from the `ScheduleStateItem` in Fluxor state:
 - it prefers state because display names (section name / track title) are pre-populated during bootstrap and updates
-- it only falls back to DB lookups when state is missing the required display names *and* it is not just “waiting” for display name population
+- it intentionally does **not** fall back to DB lookups (Home rendering should not trigger ad-hoc DB work)
 
 File:
 - `src/Bible.Alarm/ViewModels/ScheduleListItemViewModelHelpers/ScheduleListItemSubtitleManager.cs`
@@ -116,13 +120,6 @@ Track portion rules:
   - otherwise it uses the numeric track number
 - if non-sectioned:
   - uses track title (dramas/videos)
-
-Fallback (async) when needed:
-- calls `IScheduleDisplayService.GetTrackDisplayNameAsync(scheduleId, force)`
-  - file: `src/Bible.Alarm/Services/Media/ScheduleDisplayService.cs`
-  - returns:
-    - sectioned: `"Section Name - TrackNumber"`
-    - non-sectioned: `"Track Title"`
 
 ---
 

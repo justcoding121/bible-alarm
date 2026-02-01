@@ -2,6 +2,7 @@
 using AutoMapper;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -21,15 +22,18 @@ public sealed class ScheduleUpdateProcessor
     private readonly IMapper mapper;
     private readonly IAlarmScheduleService? alarmScheduleService;
     private readonly IAlarmService? alarmService;
+    private readonly IScheduleDisplayNameService scheduleDisplayNameService;
 
     public ScheduleUpdateProcessor(
         IMapper mapper,
         IAlarmScheduleService? alarmScheduleService = null,
-        IAlarmService? alarmService = null)
+        IAlarmService? alarmService = null,
+        IScheduleDisplayNameService? scheduleDisplayNameService = null)
     {
         this.mapper = mapper;
         this.alarmScheduleService = alarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
         this.alarmService = alarmService ?? ServiceProviderManager.GetService<IAlarmService>();
+        this.scheduleDisplayNameService = scheduleDisplayNameService ?? ServiceProviderManager.GetService<IScheduleDisplayNameService>()!;
     }
 
     /// <summary>
@@ -109,19 +113,19 @@ public sealed class ScheduleUpdateProcessor
     /// </summary>
     public async Task<ScheduleStateItem> MapAndPreserveDisplayNames(UpdateScheduleFromViewModelAction action, AlarmSchedule savedSchedule)
     {
-        return await Task.Run(() =>
+        var scheduleStateItem = mapper.Map<ScheduleStateItem>(savedSchedule);
+        LogMappingResult(scheduleStateItem);
+
+        if (action.Schedule != null)
         {
-            var scheduleStateItem = mapper.Map<ScheduleStateItem>(savedSchedule);
-            LogMappingResult(scheduleStateItem);
+            // Preserve key music selection fields if the DB mapping lags behind in edge cases.
+            PreserveMusicPropertiesIfNeeded(scheduleStateItem, action.Schedule);
+        }
 
-            if (action.Schedule != null)
-            {
-                CopyDisplayNamesFromAction(scheduleStateItem, action.Schedule);
-                PreserveMusicPropertiesIfNeeded(scheduleStateItem, action.Schedule);
-            }
+        // Populate display names from media index (single-schedule hydration).
+        await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, savedSchedule);
 
-            return scheduleStateItem;
-        });
+        return scheduleStateItem;
     }
 
     /// <summary>
@@ -141,30 +145,8 @@ public sealed class ScheduleUpdateProcessor
     /// </summary>
     public void CopyDisplayNamesFromAction(ScheduleStateItem scheduleStateItem, ScheduleStateItem actionSchedule)
     {
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Copying display names from action.Schedule. action.Schedule.MusicType={MusicType}, action.Schedule.MusicTrackNumber={TrackNumber}",
-            actionSchedule.MusicType?.ToString() ?? "null",
-            actionSchedule.MusicTrackNumber?.ToString() ?? "null");
-
-        scheduleStateItem.BiblePublicationLanguageName = actionSchedule.BiblePublicationLanguageName;
-        scheduleStateItem.BiblePublicationName = actionSchedule.BiblePublicationName;
-        
-        // For non-sectioned publications, clear the section name and use track title (e.g., dramas, videos)
-        if (!PublicationTypeHelper.HasSectionStructure(actionSchedule.BiblePublicationCode))
-        {
-            scheduleStateItem.BiblePublicationSectionName = null;
-            // For dramas/videos, the track title is used as subtitle instead of section name
-            scheduleStateItem.BiblePublicationTrackTitle = actionSchedule.BiblePublicationTrackTitle;
-        }
-        else
-        {
-            scheduleStateItem.BiblePublicationSectionName = actionSchedule.BiblePublicationSectionName;
-            scheduleStateItem.BiblePublicationTrackTitle = actionSchedule.BiblePublicationTrackTitle;
-        }
-        
-        scheduleStateItem.MusicLanguageName = actionSchedule.MusicLanguageName;
-        scheduleStateItem.MusicLanguageDirection = actionSchedule.MusicLanguageDirection;
-        scheduleStateItem.MusicPublicationName = actionSchedule.MusicPublicationName;
-        scheduleStateItem.MusicTrackName = actionSchedule.MusicTrackName;
+        // Deprecated: Schedule display names are hydrated from media index on save.
+        // Kept only to avoid breaking older call sites; do not use.
     }
 
     /// <summary>

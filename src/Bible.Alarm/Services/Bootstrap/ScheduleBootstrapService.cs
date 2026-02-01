@@ -17,6 +17,7 @@ using Bible.Alarm.Stores;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 using Bible.Alarm.Shared.Models.Schedule;
+using Microsoft.Extensions.DependencyInjection;
 
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Effects;
@@ -40,6 +41,7 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
     private readonly IMelodyMusicService? melodyMusicService;
     private readonly IVocalMusicService? vocalMusicService;
     private readonly ScheduleStatePopulator statePopulator;
+    private readonly IServiceScopeFactory scopeFactory;
 
     public ScheduleBootstrapService(
         IDatabaseSeedService databaseSeedService,
@@ -51,7 +53,8 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         IMapper mapper,
         IMediaService? mediaService,
         IMelodyMusicService? melodyMusicService,
-        IVocalMusicService? vocalMusicService)
+        IVocalMusicService? vocalMusicService,
+        IServiceScopeFactory scopeFactory)
     {
         this.databaseSeedService = databaseSeedService;
         this.scheduleMigrationService = scheduleMigrationService;
@@ -63,13 +66,15 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         this.mediaService = mediaService;
         this.melodyMusicService = melodyMusicService;
         this.vocalMusicService = vocalMusicService;
+        this.scopeFactory = scopeFactory;
         this.statePopulator = new ScheduleStatePopulator(
             BiblePublicationService,
             biblePublicationSectionService,
             mapper,
             mediaService,
             melodyMusicService,
-            vocalMusicService);
+            vocalMusicService,
+            scopeFactory);
     }
 
     public async Task<bool> SeedAndMigrateAsync()

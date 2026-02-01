@@ -294,8 +294,12 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                                 var melodyTracks = await mediaService.GetMelodyMusicTracksBySection(publicationCode, sectionCodeForTracks);
                                 if (melodyTracks.TryGetValue(biblePublicationSchedule.TrackNumber, out var melodyTrack) && melodyTrack != null)
                                 {
-                                    scheduleStateItem.BiblePublicationTrackTitle = FormatMelodyDisplayTitle(melodyTrack.Title);
-                                    return;
+                                    var normalized = NormalizeTrackTitle(melodyTrack.Title);
+                                    if (!string.IsNullOrWhiteSpace(normalized))
+                                    {
+                                        scheduleStateItem.BiblePublicationTrackTitle = normalized;
+                                        return;
+                                    }
                                 }
                             }
                             catch (Exception ex)
@@ -326,10 +330,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         {
                             if (!string.IsNullOrWhiteSpace(track.Title))
                             {
-                                scheduleStateItem.BiblePublicationTrackTitle =
-                                    string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase)
-                                        ? FormatMelodyDisplayTitle(track.Title)
-                                        : track.Title;
+                                scheduleStateItem.BiblePublicationTrackTitle = NormalizeTrackTitle(track.Title) ?? track.Title;
                             }
                         }
                     }
@@ -359,7 +360,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         }
     }
 
-    private static string? FormatMelodyDisplayTitle(string? rawTitle)
+    private static string? NormalizeTrackTitle(string? rawTitle)
     {
         if (string.IsNullOrWhiteSpace(rawTitle))
         {
@@ -372,12 +373,9 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             return null;
         }
 
-        var parts = decoded.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var count = parts.Length;
-
-        return count > 1
-            ? $"Melody Numbers({count}) {decoded}"
-            : $"Melody Number(s) {decoded}";
+        // IMPORTANT: For melody discs (e.g. "iam"), the harvester owns the final title string.
+        // The app should not add any prefixes or reformatting here.
+        return decoded;
     }
 
     private async Task PopulateMusicDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music)
@@ -539,7 +537,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         }
                         if (tracks.TryGetValue(music.TrackNumber, out var track))
                         {
-                            trackName = $"Melody Number(s) {track.Title}";
+                            trackName = NormalizeTrackTitle(track.Title) ?? track.Title;
                         }
                     }
                 }

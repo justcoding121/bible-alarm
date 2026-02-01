@@ -88,7 +88,8 @@ internal sealed class DefaultMusicPopulator
                 stateItem.MusicLanguageCode = null;
                 stateItem.MusicTrackNumber = randomTrack.Number;
                 stateItem.MusicRepeat = false;
-                stateItem.MusicTrackName = $"Melody Number(s) {randomTrack.Title}";
+                // Titles for melody tracks should come from harvested track titles as-is.
+                stateItem.MusicTrackName = randomTrack.Title;
 
                 Log.Logger.Debug("Populated default music properties for schedule {ScheduleId}. MusicType=Melodies, PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
                     schedule.Id, defaultPublicationCode, randomTrack.Number);

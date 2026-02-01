@@ -20,6 +20,37 @@ At runtime, the app:
 
 ---
 
+## Media DB “shape matrix” (publication / optional language / optional sections)
+
+When reasoning about lookups, the index supports multiple shapes:
+
+- **publication code (always)**:
+  - every content row hangs off a `BiblePublications.PublicationCode` (e.g. `nwt`, `bi12`, `iam`, `osg`)
+- **language (optional)**:
+  - most publications are language-bound (`BiblePublications.LanguageId != null`)
+  - some are intentionally **no-language** (`LanguageId == null`) — notably melody discs like `iam`
+  - app schedules may still carry a “current language” for UX, but media-index queries for no-language pubs should not require a language FK
+- **sections (optional)**:
+  - **sectioned** publications: Publication → Sections → Tracks (Bible, `iam` discs)
+  - **non-sectioned** publications: Publication → Tracks (many vocals/videos)
+
+### Track URL params (where they live)
+
+The index stores per-track URL construction data in `UrlParams`, keyed to a specific track row:
+- `UrlParams.BiblePublicationTrackId` → `BiblePublicationTracks.Id`
+
+The app should treat those harvested URL params as **authoritative** and use them verbatim during playback/download.
+
+### `iam` specifics (disc-style)
+
+- Sections are disc codes like `iam-9`.
+- Track URL params are stored like:
+  - `pub=iam-9` (NOT `booknum=iam-9`)
+  - `track=17`
+- Track titles for `iam` are seeded by the harvester (e.g. `Melody Number(s) 190, 172`) and the app should not add any prefixing/formatting on top.
+
+---
+
 ## Where the index comes from (build-time)
 
 ### Harvester tool

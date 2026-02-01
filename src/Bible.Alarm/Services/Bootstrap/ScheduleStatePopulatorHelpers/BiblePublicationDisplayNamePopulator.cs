@@ -69,8 +69,13 @@ internal sealed class BiblePublicationDisplayNamePopulator
         BiblePublicationSchedule biblePublication,
         LookupDataLoader.LookupData lookupData)
     {
-        if (!string.IsNullOrWhiteSpace(biblePublication.LanguageCode) &&
-            !string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
+        if (string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
+        {
+            return;
+        }
+
+        // Preferred: language-bound publication lookup.
+        if (!string.IsNullOrWhiteSpace(biblePublication.LanguageCode))
         {
             var publicationKey = (biblePublication.LanguageCode, biblePublication.PublicationCode);
             if (lookupData.Publications.TryGetValue(publicationKey, out var publication))
@@ -101,6 +106,27 @@ internal sealed class BiblePublicationDisplayNamePopulator
                             categoryName, schedule.Id, biblePublication.PublicationCode);
                     }
                 }
+
+                return;
+            }
+        }
+
+        // Fallback: no-language publication metadata (e.g. "iam" melody discs stored with LanguageId == null).
+        if (lookupData.NoLanguagePublications.TryGetValue(biblePublication.PublicationCode, out var noLangMeta))
+        {
+            if (!string.IsNullOrWhiteSpace(noLangMeta.Name))
+            {
+                scheduleStateItem.BiblePublicationName = noLangMeta.Name;
+                Log.Logger.Debug("Set BiblePublicationName '{BiblePublicationName}' (no-language) for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                    noLangMeta.Name, schedule.Id, biblePublication.PublicationCode);
+            }
+
+            if (!string.IsNullOrWhiteSpace(noLangMeta.CategoryName))
+            {
+                scheduleStateItem.BiblePublicationCategoryId = noLangMeta.CategoryId;
+                scheduleStateItem.BiblePublicationCategoryName = noLangMeta.CategoryName;
+                Log.Logger.Debug("Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' (no-language) for schedule {ScheduleId} (PublicationCode: {PublicationCode})",
+                    noLangMeta.CategoryId, noLangMeta.CategoryName, schedule.Id, biblePublication.PublicationCode);
             }
         }
     }
@@ -112,9 +138,13 @@ internal sealed class BiblePublicationDisplayNamePopulator
         LookupDataLoader.LookupData lookupData)
     {
         var sectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
-        if (!string.IsNullOrWhiteSpace(sectionCode) &&
-            !string.IsNullOrWhiteSpace(biblePublication.LanguageCode) &&
-            !string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
+        if (string.IsNullOrWhiteSpace(sectionCode) || string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
+        {
+            return;
+        }
+
+        // Preferred: language-bound section lookup.
+        if (!string.IsNullOrWhiteSpace(biblePublication.LanguageCode))
         {
             var sectionKey = (biblePublication.LanguageCode, biblePublication.PublicationCode, sectionCode);
             if (lookupData.Sections.TryGetValue(sectionKey, out var sectionName))
@@ -122,7 +152,16 @@ internal sealed class BiblePublicationDisplayNamePopulator
                 scheduleStateItem.BiblePublicationSectionName = sectionName;
                 Log.Logger.Debug("Set BiblePublicationSectionName '{BiblePublicationSectionName}' for schedule {ScheduleId} (SectionCode: {SectionCode})",
                     sectionName, schedule.Id, biblePublication.SectionCode);
+                return;
             }
+        }
+
+        // Fallback: no-language section lookup (e.g. disc-style sections like "iam-1").
+        if (lookupData.NoLanguageSections.TryGetValue((biblePublication.PublicationCode, sectionCode), out var noLangSectionName))
+        {
+            scheduleStateItem.BiblePublicationSectionName = noLangSectionName;
+            Log.Logger.Debug("Set BiblePublicationSectionName '{BiblePublicationSectionName}' (no-language) for schedule {ScheduleId} (SectionCode: {SectionCode})",
+                noLangSectionName, schedule.Id, biblePublication.SectionCode);
         }
     }
 
@@ -132,65 +171,77 @@ internal sealed class BiblePublicationDisplayNamePopulator
         BiblePublicationSchedule biblePublication,
         LookupDataLoader.LookupData lookupData)
     {
-        if (string.IsNullOrWhiteSpace(biblePublication.LanguageCode) ||
-            string.IsNullOrWhiteSpace(biblePublication.PublicationCode) ||
+        if (string.IsNullOrWhiteSpace(biblePublication.PublicationCode) ||
             biblePublication.TrackNumber <= 0)
         {
             return;
         }
 
-        var publicationKey = (biblePublication.LanguageCode, biblePublication.PublicationCode);
-        if (!lookupData.Publications.TryGetValue(publicationKey, out var publication))
+        // Preferred: language-bound publication lookup (tracks embedded under sections/tracks).
+        if (!string.IsNullOrWhiteSpace(biblePublication.LanguageCode))
         {
-            return;
-        }
-
-        // For sectioned publications, find track in the section's tracks
-        if (PublicationTypeHelper.HasSectionStructure(biblePublication.PublicationCode))
-        {
-            var sectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
-            if (string.IsNullOrWhiteSpace(sectionCode))
+            var publicationKey = (biblePublication.LanguageCode, biblePublication.PublicationCode);
+            if (lookupData.Publications.TryGetValue(publicationKey, out var publication))
             {
+                // For sectioned publications, find track in the section's tracks
+                if (PublicationTypeHelper.HasSectionStructure(biblePublication.PublicationCode))
+                {
+                    var sectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
+                    if (string.IsNullOrWhiteSpace(sectionCode))
+                    {
+                        return;
+                    }
+
+                    // Find the section in the publication
+                    var section = publication.Sections?.FirstOrDefault(s =>
+                        !string.IsNullOrWhiteSpace(s.SectionCode) &&
+                        string.Equals(s.SectionCode, sectionCode, StringComparison.OrdinalIgnoreCase));
+            
+                    if (section != null)
+                    {
+                        // Find the track in the section's tracks
+                        var track = section.Tracks?.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
+                        if (track != null && !string.IsNullOrWhiteSpace(track.Title))
+                        {
+                            scheduleStateItem.BiblePublicationTrackTitle = track.Title;
+                            Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (SectionCode: {SectionCode}, TrackNumber: {TrackNumber})",
+                                track.Title, schedule.Id, biblePublication.SectionCode, biblePublication.TrackNumber);
+                        }
+                    }
+                }
+                else
+                {
+                    // For non-sectioned publications (Drama/Video), find track directly in publication's tracks
+                    var track = publication.Tracks?.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
+                    if (track != null && !string.IsNullOrWhiteSpace(track.Title))
+                    {
+                        scheduleStateItem.BiblePublicationTrackTitle = track.Title;
+                        Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
+                            track.Title, schedule.Id, biblePublication.TrackNumber);
+                    }
+
+                    // Populate category from publication (for non-sectioned publications that weren't loaded earlier)
+                    if (publication.Category != null && 
+                        (scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)))
+                    {
+                        scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
+                        scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
+                        Log.Logger.Debug("Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for non-sectioned publication in schedule {ScheduleId}",
+                            publication.CategoryId, publication.Category.CategoryName, schedule.Id);
+                    }
+                }
+
                 return;
             }
-
-            // Find the section in the publication
-            var section = publication.Sections?.FirstOrDefault(s =>
-                !string.IsNullOrWhiteSpace(s.SectionCode) &&
-                string.Equals(s.SectionCode, sectionCode, StringComparison.OrdinalIgnoreCase));
-            
-            if (section != null)
-            {
-                // Find the track in the section's tracks
-                var track = section.Tracks?.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
-                if (track != null && !string.IsNullOrWhiteSpace(track.Title))
-                {
-                    scheduleStateItem.BiblePublicationTrackTitle = track.Title;
-                    Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (SectionCode: {SectionCode}, TrackNumber: {TrackNumber})",
-                        track.Title, schedule.Id, biblePublication.SectionCode, biblePublication.TrackNumber);
-                }
-            }
         }
-        else
-        {
-            // For non-sectioned publications (Drama/Video), find track directly in publication's tracks
-            var track = publication.Tracks?.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
-            if (track != null && !string.IsNullOrWhiteSpace(track.Title))
-            {
-                scheduleStateItem.BiblePublicationTrackTitle = track.Title;
-                Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
-                    track.Title, schedule.Id, biblePublication.TrackNumber);
-            }
 
-            // Populate category from publication (for non-sectioned publications that weren't loaded earlier)
-            if (publication.Category != null && 
-                (scheduleStateItem.BiblePublicationCategoryId == null || string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName)))
-            {
-                scheduleStateItem.BiblePublicationCategoryId = publication.CategoryId;
-                scheduleStateItem.BiblePublicationCategoryName = publication.Category.CategoryName;
-                Log.Logger.Debug("Set BiblePublicationCategoryId={CategoryId}, BiblePublicationCategoryName='{CategoryName}' for non-sectioned publication in schedule {ScheduleId}",
-                    publication.CategoryId, publication.Category.CategoryName, schedule.Id);
-            }
+        // Fallback: no-language track title lookup (e.g. melody discs stored with LanguageId == null).
+        var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
+        if (lookupData.NoLanguageTrackTitles.TryGetValue((biblePublication.PublicationCode, normalizedSectionCode, biblePublication.TrackNumber), out var noLangTitle))
+        {
+            scheduleStateItem.BiblePublicationTrackTitle = noLangTitle;
+            Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' (no-language) for schedule {ScheduleId} (SectionCode: {SectionCode}, TrackNumber: {TrackNumber})",
+                noLangTitle, schedule.Id, biblePublication.SectionCode, biblePublication.TrackNumber);
         }
     }
 }

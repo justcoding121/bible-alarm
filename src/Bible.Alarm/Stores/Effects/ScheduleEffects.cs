@@ -4,6 +4,7 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
@@ -40,23 +41,22 @@ public class ScheduleEffects(
     IAlarmService? alarmService = null,
     IMediaCacheService? mediaCacheService = null,
     IMediaService? mediaService = null,
-    IState<ApplicationState>? state = null)
+    IState<ApplicationState>? state = null,
+    IScheduleDisplayNameService? scheduleDisplayNameService = null)
 {
     private readonly IMapper mapper = mapper;
     private readonly IAlarmScheduleService? alarmScheduleService = alarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
     private readonly IAlarmService? alarmService = alarmService ?? ServiceProviderManager.GetService<IAlarmService>();
     private readonly IMediaCacheService? mediaCacheService = mediaCacheService ?? ServiceProviderManager.GetService<IMediaCacheService>();
     private readonly IState<ApplicationState>? state = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+    private readonly IScheduleDisplayNameService scheduleDisplayNameService = scheduleDisplayNameService ?? ServiceProviderManager.GetService<IScheduleDisplayNameService>()!;
 
     // Helper classes for modular functionality
-    private readonly ScheduleDisplayNamePopulator displayNamePopulator = new(
-        BiblePublicationService,
-        biblePublicationSectionService,
-        mediaService);
     private readonly ScheduleUpdateProcessor updateProcessor = new(
         mapper,
         alarmScheduleService,
-        alarmService);
+        alarmService,
+        scheduleDisplayNameService: scheduleDisplayNameService);
     private readonly TrackSelectionSyncHandler trackSyncHandler = new(state);
 
     // Effect handlers - initialized lazily when first accessed
@@ -66,10 +66,10 @@ public class ScheduleEffects(
     private ScheduleDeleteHandler? _deleteHandler;
     private ScheduleSuccessHandler? _successHandler;
 
-    private ScheduleAddHandler addHandler => _addHandler ??= new ScheduleAddHandler(mapper, displayNamePopulator);
-    private ScheduleUpdateHandler updateHandler => _updateHandler ??= new ScheduleUpdateHandler(mapper, displayNamePopulator);
-    private ScheduleCreateHandler createHandler => _createHandler ??= new ScheduleCreateHandler(mapper, this.alarmScheduleService, this.alarmService);
-    private ScheduleDeleteHandler deleteHandler => _deleteHandler ??= new ScheduleDeleteHandler(mapper, this.alarmScheduleService, this.alarmService, this.mediaCacheService, displayNamePopulator);
+    private ScheduleAddHandler addHandler => _addHandler ??= new ScheduleAddHandler(mapper, scheduleDisplayNameService);
+    private ScheduleUpdateHandler updateHandler => _updateHandler ??= new ScheduleUpdateHandler(mapper, scheduleDisplayNameService);
+    private ScheduleCreateHandler createHandler => _createHandler ??= new ScheduleCreateHandler(mapper, this.alarmScheduleService, this.alarmService, scheduleDisplayNameService);
+    private ScheduleDeleteHandler deleteHandler => _deleteHandler ??= new ScheduleDeleteHandler(mapper, this.alarmScheduleService, this.alarmService, this.mediaCacheService, scheduleDisplayNameService);
     private ScheduleSuccessHandler successHandler => _successHandler ??= new ScheduleSuccessHandler();
 
     /// <summary>
@@ -259,96 +259,9 @@ public class ScheduleEffects(
     [EffectMethod]
     public async Task HandleBiblePublicationTrackSelected(Bible.Alarm.Stores.Actions.BiblePublications.TrackSelectedAction action, IDispatcher dispatcher)
     {
-        // Reducer updates CurrentSchedule synchronously, but for Music-category schedules (e.g. "iam")
-        // we often need to enrich the track title (melody numbers) asynchronously from the media index.
-        try
-        {
-            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
-            var currentSchedule = currentState.Value.CurrentSchedule;
-            if (currentSchedule == null)
-            {
-                return;
-            }
-
-            var pubCode = currentSchedule.BiblePublicationCode ?? string.Empty;
-            var sectionCode = currentSchedule.BiblePublicationSectionCode;
-            var trackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0;
-
-            var categoryName =
-                currentSchedule.BiblePublicationCategoryName
-                ?? JwSourceHelper.GetCategoryName(pubCode)
-                ?? string.Empty;
-
-            var isMusicCategory = string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
-            if (!isMusicCategory)
-            {
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(pubCode) ||
-                string.IsNullOrWhiteSpace(sectionCode) ||
-                trackNumber <= 0)
-            {
-                return;
-            }
-
-            // Only melody-style sectioned publications (e.g. sectionCode "iam-1") need this enrichment.
-            if (!PublicationTypeHelper.HasSectionStructure(pubCode))
-            {
-                return;
-            }
-
-            // If already enriched, skip.
-            if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationTrackTitle) &&
-                currentSchedule.BiblePublicationTrackTitle.StartsWith("Melody", StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            var currentMediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>()!;
-            var tracks = await currentMediaService.GetMelodyMusicTracksBySection(pubCode, sectionCode);
-            if (!tracks.TryGetValue(trackNumber, out var melodyTrack) || melodyTrack == null)
-            {
-                return;
-            }
-
-            var formatted = FormatMelodyDisplayTitle(melodyTrack.Title);
-            if (string.IsNullOrWhiteSpace(formatted))
-            {
-                return;
-            }
-
-            // Update CurrentSchedule display title only (no cascade, no DB save).
-            var updated = currentSchedule.DeepClone();
-            updated.BiblePublicationTrackTitle = formatted;
-            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updated, musicUpdated: false, biblePublicationUpdated: false, shouldSave: false));
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "ScheduleEffects: Failed to enrich music-category track title after TrackSelectedAction");
-        }
-    }
-
-    private static string? FormatMelodyDisplayTitle(string? rawTitle)
-    {
-        if (string.IsNullOrWhiteSpace(rawTitle))
-        {
-            return null;
-        }
-
-        var decoded = System.Net.WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ').Trim();
-        if (decoded.Length == 0)
-        {
-            return null;
-        }
-
-        // Count comma-separated melody numbers if present: "190, 172" => 2
-        var parts = decoded.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var count = parts.Length;
-
-        return count > 1
-            ? $"Melody Numbers({count}) {decoded}"
-            : $"Melody Number(s) {decoded}";
+        // Reducer updates CurrentSchedule synchronously. No additional display-name enrichment here:
+        // titles should come from harvested track titles + standard hydration paths.
+        await Task.CompletedTask;
     }
 
     /// <summary>

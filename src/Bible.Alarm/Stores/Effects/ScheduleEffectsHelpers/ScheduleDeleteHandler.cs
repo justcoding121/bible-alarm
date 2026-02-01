@@ -4,9 +4,9 @@ using AutoMapper;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
+using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Effects.Services;
 using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.Messaging;
 using Serilog;
@@ -23,20 +23,20 @@ public class ScheduleDeleteHandler
     private readonly IAlarmScheduleService? alarmScheduleService;
     private readonly IAlarmService? alarmService;
     private readonly IMediaCacheService? mediaCacheService;
-    private readonly ScheduleDisplayNamePopulator displayNamePopulator;
+    private readonly IScheduleDisplayNameService scheduleDisplayNameService;
 
     public ScheduleDeleteHandler(
         IMapper mapper,
         IAlarmScheduleService? alarmScheduleService,
         IAlarmService? alarmService,
         IMediaCacheService? mediaCacheService,
-        ScheduleDisplayNamePopulator displayNamePopulator)
+        IScheduleDisplayNameService scheduleDisplayNameService)
     {
         this.mapper = mapper;
         this.alarmScheduleService = alarmScheduleService;
         this.alarmService = alarmService;
         this.mediaCacheService = mediaCacheService;
-        this.displayNamePopulator = displayNamePopulator;
+        this.scheduleDisplayNameService = scheduleDisplayNameService;
     }
 
     public async Task HandleAsync(DeleteScheduleAction action, IDispatcher dispatcher)
@@ -95,10 +95,7 @@ public class ScheduleDeleteHandler
                         if (scheduleFromDb != null)
                         {
                             var mapped = mapper.Map<ScheduleStateItem>(scheduleFromDb);
-                            await displayNamePopulator.PopulatePublicationNameAsync(mapped, scheduleFromDb);
-                            await displayNamePopulator.PopulateBiblePublicationNameAsync(mapped, scheduleFromDb);
-                            await displayNamePopulator.PopulateSectionNameAsync(mapped, scheduleFromDb);
-                            await displayNamePopulator.PopulateTrackTitleAsync(mapped, scheduleFromDb);
+                            await scheduleDisplayNameService.PopulateDisplayNamesAsync(mapped, scheduleFromDb);
                             return mapped;
                         }
                         return null;

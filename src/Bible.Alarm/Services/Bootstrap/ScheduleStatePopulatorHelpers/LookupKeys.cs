@@ -14,6 +14,7 @@ internal sealed class LookupDataCollector
     {
         var publicationKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, string SectionCode)>();
+        var bibleTrackKeys = new HashSet<(string LanguageCode, string PublicationCode, string? SectionCode, int TrackNumber)>();
         var vocalMusicLanguageCodes = new HashSet<string>();
         var vocalMusicKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var vocalTrackKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
@@ -29,9 +30,15 @@ internal sealed class LookupDataCollector
                 if (!string.IsNullOrWhiteSpace(br.LanguageCode) && !string.IsNullOrWhiteSpace(br.PublicationCode))
                 {
                     publicationKeys.Add((br.LanguageCode, br.PublicationCode));
-                    if (!string.IsNullOrWhiteSpace(br.SectionCode))
+                    var normalizedSectionCode = SectionCodeHelper.Normalize(br.SectionCode);
+                    if (!string.IsNullOrWhiteSpace(normalizedSectionCode))
                     {
-                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, br.SectionCode));
+                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, normalizedSectionCode));
+                    }
+
+                    if (br.TrackNumber > 0)
+                    {
+                        bibleTrackKeys.Add((br.LanguageCode, br.PublicationCode, normalizedSectionCode, br.TrackNumber));
                     }
                 }
             }
@@ -60,9 +67,10 @@ internal sealed class LookupDataCollector
                     if (!string.IsNullOrWhiteSpace(music.PublicationCode))
                     {
                         melodyPublicationCodes.Add(music.PublicationCode);
-                        if (!string.IsNullOrWhiteSpace(music.SectionCode))
+                        var normalizedSectionCode = SectionCodeHelper.Normalize(music.SectionCode);
+                        if (!string.IsNullOrWhiteSpace(normalizedSectionCode))
                         {
-                            melodySectionKeys.Add((music.PublicationCode, music.SectionCode));
+                            melodySectionKeys.Add((music.PublicationCode, normalizedSectionCode));
                         }
                     }
                 }
@@ -72,6 +80,7 @@ internal sealed class LookupDataCollector
         return new LookupKeys(
             PublicationKeys: publicationKeys,
             SectionKeys: sectionKeys,
+            BibleTrackKeys: bibleTrackKeys,
             VocalMusicLanguageCodes: vocalMusicLanguageCodes,
             VocalMusicKeys: vocalMusicKeys,
             VocalTrackKeys: vocalTrackKeys,
@@ -82,6 +91,7 @@ internal sealed class LookupDataCollector
     public sealed record LookupKeys(
         HashSet<(string LanguageCode, string PublicationCode)> PublicationKeys,
         HashSet<(string LanguageCode, string PublicationCode, string SectionCode)> SectionKeys,
+        HashSet<(string LanguageCode, string PublicationCode, string? SectionCode, int TrackNumber)> BibleTrackKeys,
         HashSet<string> VocalMusicLanguageCodes,
         HashSet<(string LanguageCode, string PublicationCode)> VocalMusicKeys,
         HashSet<(string LanguageCode, string PublicationCode)> VocalTrackKeys,

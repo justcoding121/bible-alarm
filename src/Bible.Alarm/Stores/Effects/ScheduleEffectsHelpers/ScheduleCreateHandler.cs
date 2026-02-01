@@ -1,6 +1,7 @@
 #nullable enable
 
 using AutoMapper;
+using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -19,15 +20,18 @@ public class ScheduleCreateHandler
     private readonly IMapper mapper;
     private readonly IAlarmScheduleService? alarmScheduleService;
     private readonly IAlarmService? alarmService;
+    private readonly IScheduleDisplayNameService scheduleDisplayNameService;
 
     public ScheduleCreateHandler(
         IMapper mapper,
         IAlarmScheduleService? alarmScheduleService,
-        IAlarmService? alarmService)
+        IAlarmService? alarmService,
+        IScheduleDisplayNameService scheduleDisplayNameService)
     {
         this.mapper = mapper;
         this.alarmScheduleService = alarmScheduleService;
         this.alarmService = alarmService;
+        this.scheduleDisplayNameService = scheduleDisplayNameService;
     }
 
     public async Task HandleAsync(CreateScheduleAction action, IDispatcher dispatcher)
@@ -75,25 +79,11 @@ public class ScheduleCreateHandler
             // Map DB entity → domain model (ScheduleStateItem) on background thread
             var scheduleStateItem = await Task.Run(() =>
             {
-                var mapped = mapper.Map<ScheduleStateItem>(savedSchedule);
-
-                // IMPORTANT: Display names are already populated in action.Schedule (from CurrentSchedule state).
-                // Selection pages/containers populate display names when user selects items (via HandleTrackSelected/HandleTrackSelected effects).
-                // We should NOT query the database here - just preserve the display names from the action.
-                // Copy display names from action.Schedule to scheduleStateItem (which was mapped from savedSchedule, so it doesn't have display names)
-                if (action.Schedule != null)
-                {
-                    mapped.BiblePublicationLanguageName = action.Schedule.BiblePublicationLanguageName;
-                    mapped.BiblePublicationName = action.Schedule.BiblePublicationName;
-                    mapped.BiblePublicationSectionName = action.Schedule.BiblePublicationSectionName;
-                    mapped.MusicLanguageName = action.Schedule.MusicLanguageName;
-                    mapped.MusicLanguageDirection = action.Schedule.MusicLanguageDirection;
-                    mapped.MusicPublicationName = action.Schedule.MusicPublicationName;
-                    mapped.MusicTrackName = action.Schedule.MusicTrackName;
-                }
-
-                return mapped;
+                return mapper.Map<ScheduleStateItem>(savedSchedule);
             });
+
+            // Populate display names from media index (single-schedule hydration).
+            await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, savedSchedule);
 
             // Dispatch success action with DTO (display names preserved from state)
             dispatcher.Dispatch(new CreateScheduleSuccessAction(scheduleStateItem));

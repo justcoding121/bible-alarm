@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using Bible.Alarm.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -48,30 +49,10 @@ public sealed class BiblePublicationSection : IComparable
         {
             return 1;
         }
-        
-        // Natural sort: if SectionCode is numeric, sort as int; otherwise sort as string
-        var thisIsNumeric = int.TryParse(SectionCode, out var thisNum);
-        var otherIsNumeric = int.TryParse(other.SectionCode, out var otherNum);
-        
-        if (thisIsNumeric && otherIsNumeric)
-        {
-            // Both are numeric - compare as integers
-            return thisNum.CompareTo(otherNum);
-        }
-        
-        if (thisIsNumeric && !otherIsNumeric)
-        {
-            // This is numeric, other is not - numeric comes first
-            return -1;
-        }
-        
-        if (!thisIsNumeric && otherIsNumeric)
-        {
-            // This is not numeric, other is - numeric comes first
-            return 1;
-        }
-        
-        // Both are non-numeric - compare as strings
-        return string.Compare(SectionCode, other.SectionCode, StringComparison.OrdinalIgnoreCase);
+
+        // IMPORTANT:
+        // Section codes are stored/treated as strings throughout the app.
+        // The only place we interpret them numerically is for ordering (natural sort).
+        return SectionCodeHelper.SectionCodeComparer.Compare(SectionCode, other.SectionCode);
     }
 }

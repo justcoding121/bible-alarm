@@ -8,6 +8,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
 using Serilog;
+using System.Net;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
@@ -194,7 +195,8 @@ public class MusicEnabledHandler
                             clonedSchedule.MusicSectionName = chosenSection?.Name;
                             clonedSchedule.MusicTrackNumber = chosenTrack.Number;
                             clonedSchedule.MusicRepeat = false;
-                            clonedSchedule.MusicTrackName = $"Melody Number(s) {chosenTrack.Title}";
+                            // Titles for melody tracks should come from harvested track titles as-is.
+                            clonedSchedule.MusicTrackName = WebUtility.HtmlDecode(chosenTrack.Title).Replace('\u00A0', ' ');
 
                             // Update state with music properties (MusicEnabled should already be true from first dispatch)
                             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, false, false, shouldSave: false));
