@@ -269,7 +269,6 @@ public sealed class BiblePublicationCascadeHandler
         }
 
         // Get section and track
-        int sectionIndex = 0;
         string? sectionCode = null;
         int trackNum = 0;
         string sectionName = string.Empty;
@@ -298,7 +297,6 @@ public sealed class BiblePublicationCascadeHandler
                 // Sectioned publication - get first section and track
                 var firstSectionKvp = sections.First();
                 var firstSection = firstSectionKvp.Value;
-                sectionIndex = firstSectionKvp.Key;
                 sectionCode = firstSection.SectionCode;
                 sectionName = firstSection.Name;
 
@@ -375,7 +373,6 @@ public sealed class BiblePublicationCascadeHandler
             }
 
             sectionCode = resultSectionCode;
-            sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
             trackNum = resultTrackNum;
             sectionName = resultSectionName;
             trackTitle = resultTrackTitle;
@@ -438,12 +435,12 @@ public sealed class BiblePublicationCascadeHandler
         var languageCode = currentSchedule.BiblePublicationLanguageCode!;
         var publicationCode = currentSchedule.BiblePublicationCode!;
         var sectionCode = currentSchedule.BiblePublicationSectionCode;
-        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
 
-        logger.Information("BiblePublicationCascadeHandler: Section cascade - sectionCode={SectionCode}, sectionIndex={SectionIndex}, publication={PublicationCode}",
-            sectionCode ?? "(none)", sectionIndex, publicationCode);
+        logger.Information("BiblePublicationCascadeHandler: Section cascade - sectionCode={SectionCode}, publication={PublicationCode}",
+            sectionCode ?? "(none)", publicationCode);
 
-        var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionIndex);
+        var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
+        var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, normalizedSectionCode);
         if (tracks == null || tracks.Count == 0)
         {
             logger.Warning("BiblePublicationCascadeHandler: No tracks found for sectionCode={SectionCode}", sectionCode ?? "(none)");

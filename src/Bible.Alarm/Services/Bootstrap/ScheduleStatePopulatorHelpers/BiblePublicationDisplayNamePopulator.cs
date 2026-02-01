@@ -111,12 +111,12 @@ internal sealed class BiblePublicationDisplayNamePopulator
         BiblePublicationSchedule biblePublication,
         LookupDataLoader.LookupData lookupData)
     {
-        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(biblePublication.SectionCode);
-        if (sectionIndex > 0 &&
+        var sectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
+        if (!string.IsNullOrWhiteSpace(sectionCode) &&
             !string.IsNullOrWhiteSpace(biblePublication.LanguageCode) &&
             !string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
         {
-            var sectionKey = (biblePublication.LanguageCode, biblePublication.PublicationCode, sectionIndex);
+            var sectionKey = (biblePublication.LanguageCode, biblePublication.PublicationCode, sectionCode);
             if (lookupData.Sections.TryGetValue(sectionKey, out var sectionName))
             {
                 scheduleStateItem.BiblePublicationSectionName = sectionName;
@@ -148,16 +148,16 @@ internal sealed class BiblePublicationDisplayNamePopulator
         // For sectioned publications, find track in the section's tracks
         if (PublicationTypeHelper.HasSectionStructure(biblePublication.PublicationCode))
         {
-            var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(biblePublication.SectionCode);
-            if (sectionIndex <= 0)
+            var sectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
+            if (string.IsNullOrWhiteSpace(sectionCode))
             {
                 return;
             }
 
             // Find the section in the publication
             var section = publication.Sections?.FirstOrDefault(s =>
-                s.TryGetSectionIndex().HasValue &&
-                s.TryGetSectionIndex()!.Value == sectionIndex);
+                !string.IsNullOrWhiteSpace(s.SectionCode) &&
+                string.Equals(s.SectionCode, sectionCode, StringComparison.OrdinalIgnoreCase));
             
             if (section != null)
             {

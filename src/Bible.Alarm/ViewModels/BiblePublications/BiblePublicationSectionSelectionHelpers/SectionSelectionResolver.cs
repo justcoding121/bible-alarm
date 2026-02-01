@@ -13,15 +13,9 @@ internal static class SectionSelectionResolver
             return null;
         }
 
-        // Compare SectionCode (string) with Number (int) by converting Number to string or parsing SectionCode
-        // Handle both numeric codes (e.g., "1") and non-numeric codes (e.g., "iam-1")
+        // Treat section code strictly as a string (case-insensitive).
         return sections.FirstOrDefault(b =>
-            b.Number.ToString() == sectionCode ||
-            (int.TryParse(sectionCode, out var num) && num == b.Number) ||
-            (sectionCode.Contains('-') &&
-             sectionCode.Split('-').Length > 1 &&
-             int.TryParse(sectionCode.Split('-')[^1], out var extractedNum) &&
-             extractedNum == b.Number));
+            string.Equals(b.Section.SectionCode, sectionCode, StringComparison.OrdinalIgnoreCase));
     }
 }
 

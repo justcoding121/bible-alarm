@@ -16,7 +16,9 @@ public enum HarvestType
     Flat = 0,
 
     /// <summary>
-    /// Sectioned publications (Bible/iam) with Section → Track structure using booknum parameter
+    /// Sectioned publications with Section → Track structure.
+    /// - Bible uses `booknum={sectionCode}`.
+    /// - Melody disc-style section codes (e.g. `iam-9`) use `pub={sectionCode}` (no `booknum`).
     /// </summary>
     Sectioned = 1,
 

@@ -87,7 +87,7 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
         stateManager.HandleBiblePublicationChanged(
             state,
             busy => propertyManager.IsBusy = busy,
-            async (lang, pub, section) => await Initialize(lang, pub, section),
+            async (lang, pub, sectionCode) => await Initialize(lang, pub, sectionCode),
             SetSelectedTrack);
     }
 
@@ -96,7 +96,7 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
         stateManager.HandleBiblePublicationInitialized(
             state,
             busy => propertyManager.IsBusy = busy,
-            async (lang, pub, section) => await Initialize(lang, pub, section));
+            async (lang, pub, sectionCode) => await Initialize(lang, pub, sectionCode));
     }
 
     /// <summary>
@@ -125,10 +125,8 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
             return;
         }
 
-        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(newSectionCode);
-
-        Log.Debug("BiblePublicationTrackSelectionViewModel.RefreshFromState: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}, sectionIndex={SectionIndex}",
-            newLanguageCode, newPublicationCode, newSectionCode ?? "(none)", sectionIndex);
+        Log.Debug("BiblePublicationTrackSelectionViewModel.RefreshFromState: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+            newLanguageCode, newPublicationCode, newSectionCode ?? "(none)");
 
         stateManager.UpdateFromStateForNonSectioned(state);
 
@@ -137,7 +135,7 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
         {
             stateManager.SetInitComplete(true);
             await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
-            await Initialize(newLanguageCode, newPublicationCode, sectionIndex);
+            await Initialize(newLanguageCode, newPublicationCode, newSectionCode);
             // Set selected track after tracks are populated
             SetSelectedTrack();
             await Task.Delay(100);
@@ -186,15 +184,15 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
         }
     }
 
-    private async Task Initialize(string languageCode, string publicationCode, int sectionIndex)
+    private async Task Initialize(string languageCode, string publicationCode, string? sectionCode)
     {
-        Log.Debug("BiblePublicationTrackSelectionViewModel.Initialize: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionIndex={SectionIndex}, current.TrackNumber={CurrentTrackNumber}",
-            languageCode, publicationCode, sectionIndex, stateManager.Current?.TrackNumber ?? -1);
+        Log.Debug("BiblePublicationTrackSelectionViewModel.Initialize: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}, current.TrackNumber={CurrentTrackNumber}",
+            languageCode, publicationCode, sectionCode ?? "(none)", stateManager.Current?.TrackNumber ?? -1);
 
         await dataProvider.PopulateTracks(
             languageCode,
             publicationCode,
-            sectionIndex,
+            sectionCode,
             stateManager.Current,
             propertyManager.Tracks,
             track => propertyManager.SelectedTrack = track);

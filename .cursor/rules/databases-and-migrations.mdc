@@ -55,6 +55,37 @@ DbContext:
     - sectioned (linked to `BiblePublicationSections`)
     - flat (section FK null)
 
+---
+
+## Media DB “shape matrix” (publication ↔ language ↔ sections)
+
+The Media DB supports a few **independent axes**. Most bugs in cascade/playback/url generation come from assuming one axis implies another.
+
+### Axes (the 3 possibilities you called out)
+
+- **PublicationCode always exists**
+  - `BiblePublications.PublicationCode` is the stable identifier (“nwt”, “iam”, “sjj”, etc.)
+- **Language can exist / not exist**
+  - `BiblePublications.LanguageId != null`: language-bound publication (normal case)
+  - `BiblePublications.LanguageId == null`: “no-language” publication (shared across languages), e.g. melody releases
+- **Sections can exist / not exist**
+  - sectioned: `BiblePublicationSections` rows exist and tracks may have `BiblePublicationSectionId != null`
+  - non-sectioned (flat): no sections; tracks have `BiblePublicationSectionId == null`
+
+### Practical combinations we support
+
+- **Language-bound + Sectioned**
+  - typical Bible pattern: Publication → Sections → Tracks
+  - selection keys: `(LanguageCode, PublicationCode, SectionCode, TrackNumber)`
+- **Language-bound + Flat**
+  - typical vocal music / many videos: Publication → Tracks
+  - selection keys: `(LanguageCode, PublicationCode, TrackNumber)` (no SectionCode)
+- **No-language + Sectioned**
+  - melody discs (e.g. `iam`): Publication → Sections (disc codes) → Tracks
+  - selection keys: `(PublicationCode, SectionCode, TrackNumber)` (no LanguageCode)
+- **No-language + Flat**
+  - less common, but structurally supported: Publication → Tracks (no LanguageCode, no SectionCode)
+
 - `PublicationLanguages` (discovery table)
   - “catalog” of which languages exist per publication
   - `LanguageId` can be null for “no-language” availability rows

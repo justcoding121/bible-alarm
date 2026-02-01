@@ -35,14 +35,14 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         GetFirstSectionAndTrackFromSectionsAsync(
             string? languageCode,
             string publicationCode,
-            SortedDictionary<int, BiblePublicationSection> sections,
+            SortedDictionary<string, BiblePublicationSection> sections,
             IFetchProgress? progress = null)
     {
         var firstSectionKvp = sections.First();
         var firstSection = firstSectionKvp.Value;
-        var firstSectionIndex = firstSectionKvp.Key; // Dictionary key is the parsed "index" for service calls
-        Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First section index={SectionIndex}, sectionCode={SectionCode}, name={SectionName}",
-            firstSectionIndex, firstSection.SectionCode, firstSection.Name);
+        var firstSectionCode = firstSectionKvp.Key;
+        Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First section codeKey={SectionCodeKey}, sectionCode={SectionCode}, name={SectionName}",
+            firstSectionCode, firstSection.SectionCode, firstSection.Name);
 
         SortedDictionary<int, BiblePublicationTrack>? tracks;
 
@@ -149,7 +149,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                     {
                         // Re-query tracks after fetching
                         Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: Tracks fetched successfully, re-querying from database");
-                        tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionIndex);
+                    tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSection.SectionCode);
                     }
                     else
                     {
@@ -165,14 +165,14 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             if (tracks == null || tracks.Count == 0)
             {
                 Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: Falling back to mediaService.GetBiblePublicationTracks");
-                tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSectionIndex);
+                tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, firstSection.SectionCode);
             }
         }
 
         if (tracks == null || tracks.Count == 0)
         {
-            Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, sectionIndex={SectionIndex}, sectionCode={SectionCode}",
-                languageCode ?? "(null)", publicationCode, firstSectionIndex, firstSection.SectionCode);
+            Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, sectionCode={SectionCode}",
+                languageCode ?? "(null)", publicationCode, firstSection.SectionCode);
             progress?.UpdateProgress(1.0);
             return (null, 0, string.Empty, string.Empty);
         }

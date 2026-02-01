@@ -23,7 +23,11 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
 
-    public async Task<SortedDictionary<int, BiblePublicationTrack>> GetTracksBySectionAsync(string languageCode, string publicationCode, int sectionCode, CancellationToken cancellationToken = default)
+    public async Task<SortedDictionary<int, BiblePublicationTrack>> GetTracksBySectionAsync(
+        string languageCode,
+        string publicationCode,
+        string? sectionCode,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -31,7 +35,6 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
-            var sectionCodeString = sectionCode.ToString();
 
             // Fast path: query only the section's tracks (avoid loading all sections and tracks).
             var publicationId = await dbContext.BiblePublications
@@ -47,20 +50,13 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
                 return new SortedDictionary<int, BiblePublicationTrack>();
             }
 
-            var sectionId = await dbContext.BiblePublicationSections
-                .AsNoTracking()
-                .Where(s => s.BiblePublicationId == publicationId && s.SectionCode == sectionCodeString)
-                .Select(s => s.Id)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (sectionId <= 0)
-            {
-                return new SortedDictionary<int, BiblePublicationTrack>();
-            }
-
             var tracks = await dbContext.BiblePublicationTracks
                 .AsNoTracking()
-                .Where(t => t.BiblePublicationId == publicationId && t.BiblePublicationSectionId == sectionId)
+                .Where(t => t.BiblePublicationId == publicationId)
+                .Where(t =>
+                    string.IsNullOrWhiteSpace(sectionCode)
+                        ? t.BiblePublicationSectionId == null
+                        : t.Section != null && t.Section.SectionCode == sectionCode)
                 .OrderBy(t => t.Number)
                 .ToListAsync(cancellationToken);
 
@@ -70,13 +66,19 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublicationTracks by section. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}",
+            logger.Error(ex,
+                "Error getting BiblePublicationTracks by section. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}",
                 languageCode, publicationCode, sectionCode);
             throw;
         }
     }
 
-    public async Task<BiblePublicationTrack?> GetTrackAsync(string languageCode, string publicationCode, int sectionCode, int trackNumber, CancellationToken cancellationToken = default)
+    public async Task<BiblePublicationTrack?> GetTrackAsync(
+        string languageCode,
+        string publicationCode,
+        string? sectionCode,
+        int trackNumber,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -84,7 +86,6 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
-            var sectionCodeString = sectionCode.ToString();
 
             var publicationId = await dbContext.BiblePublications
                 .AsNoTracking()
@@ -99,33 +100,26 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
                 return null;
             }
 
-            var sectionId = await dbContext.BiblePublicationSections
-                .AsNoTracking()
-                .Where(s => s.BiblePublicationId == publicationId && s.SectionCode == sectionCodeString)
-                .Select(s => s.Id)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (sectionId <= 0)
-            {
-                return null;
-            }
-
             return await dbContext.BiblePublicationTracks
                 .AsNoTracking()
-                .Where(t => t.BiblePublicationId == publicationId &&
-                            t.BiblePublicationSectionId == sectionId &&
-                            t.Number == trackNumber)
+                .Where(t => t.BiblePublicationId == publicationId)
+                .Where(t =>
+                    string.IsNullOrWhiteSpace(sectionCode)
+                        ? t.BiblePublicationSectionId == null
+                        : t.Section != null && t.Section.SectionCode == sectionCode)
+                .Where(t => t.Number == trackNumber)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublicationTrack. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackNumber={TrackNumber}",
+            logger.Error(ex,
+                "Error getting BiblePublicationTrack. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackNumber={TrackNumber}",
                 languageCode, publicationCode, sectionCode, trackNumber);
             throw;
         }
     }
 
-    public async Task UpdateTrackUrlAsync(string languageCode, string publicationCode, int sectionCode, int trackNumber, string url, CancellationToken cancellationToken = default)
+    public async Task UpdateTrackUrlAsync(string languageCode, string publicationCode, string? sectionCode, int trackNumber, string url, CancellationToken cancellationToken = default)
     {
         // URLs are now computed on-demand, no need to store them
         // This method is kept for backward compatibility but does nothing

@@ -13,7 +13,7 @@ internal sealed class LookupDataCollector
     public LookupKeys CollectKeys(List<AlarmSchedule> alarmSchedules)
     {
         var publicationKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
-        var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, int SectionCode)>();
+        var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, string SectionCode)>();
         var vocalMusicLanguageCodes = new HashSet<string>();
         var vocalMusicKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var vocalTrackKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
@@ -29,11 +29,9 @@ internal sealed class LookupDataCollector
                 if (!string.IsNullOrWhiteSpace(br.LanguageCode) && !string.IsNullOrWhiteSpace(br.PublicationCode))
                 {
                     publicationKeys.Add((br.LanguageCode, br.PublicationCode));
-                    // Convert SectionCode to int for lookup key
-                    var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(br.SectionCode);
-                    if (sectionIndex > 0)
+                    if (!string.IsNullOrWhiteSpace(br.SectionCode))
                     {
-                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, sectionIndex));
+                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, br.SectionCode));
                     }
                 }
             }
@@ -83,7 +81,7 @@ internal sealed class LookupDataCollector
 
     public sealed record LookupKeys(
         HashSet<(string LanguageCode, string PublicationCode)> PublicationKeys,
-        HashSet<(string LanguageCode, string PublicationCode, int SectionCode)> SectionKeys,
+        HashSet<(string LanguageCode, string PublicationCode, string SectionCode)> SectionKeys,
         HashSet<string> VocalMusicLanguageCodes,
         HashSet<(string LanguageCode, string PublicationCode)> VocalMusicKeys,
         HashSet<(string LanguageCode, string PublicationCode)> VocalTrackKeys,

@@ -31,7 +31,7 @@ public sealed class TrackSelectionStateManager
     public void HandleBiblePublicationInitialized(
         IState<ApplicationState> state,
         Action<bool> setBusy,
-        Func<string, string, int, Task> initialize)
+        Func<string, string, string?, Task> initialize)
     {
         if (initComplete)
         {
@@ -57,10 +57,8 @@ public sealed class TrackSelectionStateManager
             return;
         }
 
-        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(newSectionCode);
-
-        Log.Debug("TrackSelectionStateManager.HandleBiblePublicationInitialized: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}, sectionIndex={SectionIndex}",
-            newLanguageCode, newPublicationCode, newSectionCode ?? "(none)", sectionIndex);
+        Log.Debug("TrackSelectionStateManager.HandleBiblePublicationInitialized: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+            newLanguageCode, newPublicationCode, newSectionCode ?? "(none)");
 
         // Update tracking variables
         lastLanguageCode = newLanguageCode;
@@ -99,7 +97,7 @@ public sealed class TrackSelectionStateManager
         Task.Run(async () =>
         {
             await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-            await initialize(newLanguageCode, newPublicationCode, sectionIndex);
+            await initialize(newLanguageCode, newPublicationCode, newSectionCode);
             await Task.Delay(100);
             await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
         });
@@ -108,7 +106,7 @@ public sealed class TrackSelectionStateManager
     public void HandleBiblePublicationChanged(
         IState<ApplicationState> state,
         Action<bool> setBusy,
-        Func<string, string, int, Task> initialize,
+        Func<string, string, string?, Task> initialize,
         Action setSelectedTrack)
     {
         var stateValue = state.Value;
@@ -128,8 +126,6 @@ public sealed class TrackSelectionStateManager
         {
             return;
         }
-
-        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(newSectionCode);
 
         // Check if language, publication code, or section code changed
         var languageChanged = lastLanguageCode != newLanguageCode;
@@ -181,7 +177,7 @@ public sealed class TrackSelectionStateManager
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                await initialize(newLanguageCode, newPublicationCode, sectionIndex);
+                await initialize(newLanguageCode, newPublicationCode, newSectionCode);
                 await Task.Delay(100);
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
             });
@@ -266,8 +262,6 @@ public sealed class TrackSelectionStateManager
         {
             return;
         }
-
-        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(newSectionCode);
 
         // Update tracking variables
         lastLanguageCode = newLanguageCode;

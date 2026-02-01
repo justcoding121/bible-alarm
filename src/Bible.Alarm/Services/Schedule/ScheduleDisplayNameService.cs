@@ -184,23 +184,16 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         }
 
         // Section name - for non-sectioned publications (SectionCode is null or empty), clear the section name
-        var sectionCode = await ConvertSectionCodeToIntAsync(
-            biblePublicationSchedule.SectionCode,
-            scheduleLanguageCode ?? string.Empty,
-            publicationCode ?? string.Empty);
-        
-        if (sectionCode == 0)
+        var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublicationSchedule.SectionCode);
+        if (string.IsNullOrWhiteSpace(normalizedSectionCode))
         {
             // Non-sectioned publication - clear section name
             scheduleStateItem.BiblePublicationSectionName = null;
         }
-        else if (sectionCode > 0 &&
-            !string.IsNullOrWhiteSpace(publicationCode))
+        else if (!string.IsNullOrWhiteSpace(publicationCode))
         {
             try
             {
-                var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublicationSchedule.SectionCode);
-
                 // First try: no-language section lookup by exact SectionCode (e.g. "iam-1").
                 // This is required for melody disc-style publications where LanguageId == null in media index.
                 if (!string.IsNullOrWhiteSpace(normalizedSectionCode))
@@ -241,7 +234,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         await biblePublicationSectionService.GetSectionNameAsync(
                             scheduleLanguageCode,
                             publicationCode,
-                            sectionCode));
+                            normalizedSectionCode));
 
                     if (!string.IsNullOrWhiteSpace(sectionName))
                     {
@@ -264,11 +257,8 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 if (PublicationTypeHelper.HasSectionStructure(publicationCode))
                 {
                     // Sectioned publications (traditional Bible) - load track from section
-                    var sectionIndex = await ConvertSectionCodeToIntAsync(
-                        biblePublicationSchedule.SectionCode,
-                        scheduleLanguageCode ?? string.Empty,
-                        publicationCode);
-                    if (sectionIndex > 0)
+                    var sectionCodeForTracks = SectionCodeHelper.Normalize(biblePublicationSchedule.SectionCode);
+                    if (!string.IsNullOrWhiteSpace(sectionCodeForTracks))
                     {
                         // Try language-bound first; if empty (no-language publications like "iam"), fall back to empty language.
                         var languageForTracks = scheduleLanguageCode ?? string.Empty;
@@ -276,7 +266,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                             await mediaService.GetBiblePublicationTracks(
                                 languageForTracks,
                                 publicationCode,
-                                sectionIndex));
+                                sectionCodeForTracks));
 
                         if (tracks == null || tracks.Count == 0)
                         {
@@ -284,7 +274,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                                 await mediaService.GetBiblePublicationTracks(
                                     string.Empty,
                                     publicationCode,
-                                    sectionIndex));
+                                    sectionCodeForTracks));
                         }
 
                         if (tracks != null && tracks.TryGetValue(biblePublicationSchedule.TrackNumber, out var track))
@@ -374,12 +364,8 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                     // For vocal music, we need language code and section number
                     if (!string.IsNullOrWhiteSpace(music.LanguageCode))
                     {
-                        var sectionCode = await ConvertSectionCodeToIntAsync(
-                            music.SectionCode,
-                            music.LanguageCode,
-                            music.PublicationCode);
-
-                        if (sectionCode > 0)
+                        var sectionCode = SectionCodeHelper.Normalize(music.SectionCode);
+                        if (!string.IsNullOrWhiteSpace(sectionCode))
                         {
                             var biblePublicationSectionService = serviceProvider.GetRequiredService<IBiblePublicationSectionService>();
                             var sectionName = await Task.Run(async () =>
@@ -494,16 +480,6 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 logger.Warning(ex, "Error populating MusicTrackName");
             }
         }
-    }
-
-    /// <summary>
-    /// Converts SectionCode (string) to the int section number needed for media service calls.
-    /// Returns 0 for null/empty (non-sectioned publications).
-    /// Supports codes like "iam-1" by extracting the numeric suffix.
-    /// </summary>
-    private Task<int> ConvertSectionCodeToIntAsync(string? sectionCode, string languageCode, string publicationCode)
-    {
-        return Task.FromResult(SectionCodeHelper.GetSectionIndexOrZero(sectionCode));
     }
 }
 

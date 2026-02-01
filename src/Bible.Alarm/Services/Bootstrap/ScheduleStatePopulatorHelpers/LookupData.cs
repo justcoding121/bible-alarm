@@ -206,7 +206,7 @@ internal sealed class LookupDataLoader
 
     public sealed record LookupData(
         Dictionary<(string LanguageCode, string PublicationCode), BiblePublication> Publications,
-        Dictionary<(string LanguageCode, string PublicationCode, int SectionCode), string> Sections,
+        Dictionary<(string LanguageCode, string PublicationCode, string SectionCode), string> Sections,
         Dictionary<string, Language> VocalLanguages,
         Dictionary<(string LanguageCode, string PublicationCode), VocalMusic> VocalReleases,
         Dictionary<(string LanguageCode, string PublicationCode), SortedDictionary<int, MusicTrack>> VocalTracks,

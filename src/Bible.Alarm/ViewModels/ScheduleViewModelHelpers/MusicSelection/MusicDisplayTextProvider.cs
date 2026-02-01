@@ -423,7 +423,7 @@ public sealed class MusicDisplayTextProvider
         try
         {
             // Check if publication has LanguageId == null by trying both methods
-            SortedDictionary<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sections;
+            SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sections;
             
             // First try with language
             sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
@@ -459,17 +459,17 @@ public sealed class MusicDisplayTextProvider
             ? (currentSchedule.MusicLanguageCode ?? string.Empty)
             : string.Empty;
         var publicationCode = currentSchedule.MusicPublicationCode;
-        var sectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(currentSchedule.MusicSectionCode);
+        var sectionCode = Bible.Alarm.Shared.Helpers.SectionCodeHelper.Normalize(currentSchedule.MusicSectionCode);
 
         try
         {
             // Try with language first
-            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionIndex);
+            var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionCode);
             
             // If no tracks found with language, try without language
             if (tracks.Count == 0)
             {
-                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionIndex);
+                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionCode);
             }
 
             return tracks.Count > 1;

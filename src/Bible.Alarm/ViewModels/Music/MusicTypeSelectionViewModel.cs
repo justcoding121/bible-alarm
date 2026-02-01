@@ -397,17 +397,16 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
                 var match = sections.FirstOrDefault(kvp =>
                     kvp.Value != null &&
                     string.Equals(kvp.Value.SectionCode, currentSchedule.MusicSectionCode, StringComparison.OrdinalIgnoreCase));
-                if (!EqualityComparer<KeyValuePair<int, BiblePublicationSection>>.Default.Equals(match, default))
+                if (!EqualityComparer<KeyValuePair<string, BiblePublicationSection>>.Default.Equals(match, default))
                 {
                     selectedSection = match;
                 }
             }
 
-            var sectionIndex = selectedSection.Key;
             var sectionCode = selectedSection.Value.SectionCode;
             var sectionName = selectedSection.Value.Name ?? string.Empty;
 
-            var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionIndex);
+            var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionCode);
 
             if (sectionTracks == null || sectionTracks.Count == 0)
             {

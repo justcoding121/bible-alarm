@@ -328,27 +328,16 @@ public sealed class MusicCascadeHandler
         }
 
         SortedDictionary<int, BiblePublicationTrack>? tracks = null;
-        int sectionIndex = 0;
 
         if (publication.LanguageId == null)
         {
             // Publication without language - use GetBiblePublicationTracks with empty language code
-            sectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
-            tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionIndex);
+            tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionCode);
         }
         else
         {
             // Publication with language
-            var sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
-            if (sections != null)
-            {
-                var section = sections.Values.FirstOrDefault(s => s.SectionCode == sectionCode);
-                if (section != null)
-                {
-                    sectionIndex = sections.FirstOrDefault(kvp => kvp.Value.SectionCode == sectionCode).Key;
-                    tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionIndex);
-                }
-            }
+            tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionCode);
         }
 
         if (tracks == null || tracks.Count == 0)

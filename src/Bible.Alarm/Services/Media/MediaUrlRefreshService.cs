@@ -41,7 +41,6 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                 return await GetBiblePublicationTrackUrl(
                     trackMetadata.LanguageCode,
                     trackMetadata.PublicationCode,
-                    SectionCodeHelper.GetSectionIndexOrZero(trackMetadata.SectionCode),
                     trackMetadata.TrackNumber,
                     lookUpPath);
             }
@@ -58,7 +57,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
     }
 
-    public async Task<string?> GetBiblePublicationTrackUrl(string languageCode, string pubCode, int sectionCode, int track,
+    public async Task<string?> GetBiblePublicationTrackUrl(string languageCode, string pubCode, int track,
         string lookUpPath)
     {
         try
@@ -88,12 +87,12 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                 return null;
             }
 
-            // For videos (sectionCode == 0), try MP4 first, then MP3 as fallback
-            // For regular Bible publications, use MP3
+            // For videos, try MP4 first, then MP3 as fallback.
+            // For regular Bible publications, use MP3.
             JsonElement? fileArray = null;
             string fileFormat = "MP3";
             
-            if (sectionCode == 0)
+            if (PublicationTypeHelper.IsVideo(pubCode))
             {
                 // Video - try MP4 first
                 if (languageFiles.TryGetProperty("MP4", out var mp4Files) && mp4Files.ValueKind == JsonValueKind.Array)
@@ -223,7 +222,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Exception in GetBiblePublicationTrackUrl for language '{LanguageCode}', section {SectionCode}, track {Track}", languageCode, sectionCode, track);
+            logger.Error(ex, "Exception in GetBiblePublicationTrackUrl for language '{LanguageCode}', publication '{PublicationCode}', track {Track}", languageCode, pubCode, track);
             return null;
         }
     }

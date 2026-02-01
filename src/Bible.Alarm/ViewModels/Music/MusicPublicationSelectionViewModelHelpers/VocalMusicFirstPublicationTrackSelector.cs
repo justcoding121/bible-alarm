@@ -185,13 +185,12 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         {
             // Sectioned publication - get tracks from first section
             var firstSection = sections.First();
-            tracks = await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, firstSection.Key);
+            tracks = await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, firstSection.Value.SectionCode);
         }
         else
         {
             // Flat publication - get tracks directly (no sections)
-            // For flat publications, GetBiblePublicationTracks with sectionCode=0 should work
-            tracks = await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, 0);
+            tracks = await mediaService.GetBiblePublicationTracks(language.Code, publicationCode, null);
         }
 
         if (tracks == null || tracks.Count == 0)

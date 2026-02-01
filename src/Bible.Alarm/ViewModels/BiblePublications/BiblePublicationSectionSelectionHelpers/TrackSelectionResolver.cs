@@ -37,10 +37,8 @@ internal sealed class TrackSelectionResolver
         var currentSectionCode = currentSchedule.BiblePublicationSectionCode;
         var isSameSection = string.Equals(currentSectionCode, sectionItem.Section.SectionCode, StringComparison.OrdinalIgnoreCase);
 
-        var sectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(sectionItem.Section.SectionCode);
-
         // Get tracks for the selected section using the latest language/publication from CurrentSchedule
-        var tracks = await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode!, sectionIndex);
+        var tracks = await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode!, sectionItem.Section.SectionCode);
 
         // If no tracks found, check if section exists and harvest tracks if needed
         if ((tracks == null || tracks.Count == 0) &&
@@ -49,7 +47,7 @@ internal sealed class TrackSelectionResolver
         {
             logger.Information(
                 "TrackSelectionResolver: No tracks found for section={SectionCode}, publication={PublicationCode}, language={LanguageCode}. Attempting to fetch tracks...",
-                sectionItem.Number,
+                sectionItem.Section.SectionCode,
                 currentSchedule.BiblePublicationCode,
                 languageCode);
 
@@ -63,7 +61,7 @@ internal sealed class TrackSelectionResolver
 
                 if (fetchSuccess)
                 {
-                    tracks = await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode!, sectionIndex);
+                    tracks = await mediaService.GetBiblePublicationTracks(languageCode, currentSchedule.BiblePublicationCode!, sectionItem.Section.SectionCode);
                 }
             }
         }

@@ -14,21 +14,23 @@ public sealed class TrackChangeDetector(
     IAlarmScheduleService alarmScheduleService,
     CancellationToken cancellationToken)
 {
-    private readonly record struct BibleTrackSignature(int SectionIndex, int TrackNumber);
+    private readonly record struct BibleTrackSignature(string? SectionCode, int TrackNumber);
     private readonly ConcurrentDictionary<int, BibleTrackSignature> lastKnownBibleTrackByScheduleId = new();
 
     /// <summary>
     /// Updates the in-memory last-known bible track for a schedule.
     /// Call this after persisting schedule changes to avoid re-reading ScheduleDbContext on every track update.
     /// </summary>
-    public void SetLastKnownBibleTrack(int scheduleId, int sectionIndex, int trackNumber)
+    public void SetLastKnownBibleTrack(int scheduleId, string? sectionCode, int trackNumber)
     {
         if (scheduleId <= 0)
         {
             return;
         }
 
-        lastKnownBibleTrackByScheduleId[scheduleId] = new BibleTrackSignature(sectionIndex, trackNumber);
+        lastKnownBibleTrackByScheduleId[scheduleId] = new BibleTrackSignature(
+            Bible.Alarm.Shared.Helpers.SectionCodeHelper.Normalize(sectionCode)?.ToUpperInvariant(),
+            trackNumber);
     }
 
     /// <summary>
@@ -47,8 +49,9 @@ public sealed class TrackChangeDetector(
             return false;
         }
 
-        var currentSectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(trackMetadata.SectionCode);
-        var current = new BibleTrackSignature(currentSectionIndex, trackMetadata.TrackNumber);
+        var current = new BibleTrackSignature(
+            Bible.Alarm.Shared.Helpers.SectionCodeHelper.Normalize(trackMetadata.SectionCode)?.ToUpperInvariant(),
+            trackMetadata.TrackNumber);
         if (lastKnownBibleTrackByScheduleId.TryGetValue(scheduleId, out var cached))
         {
             return cached != current;
@@ -63,8 +66,9 @@ public sealed class TrackChangeDetector(
         }
 
         var biblePublicationSchedule = scheduleBeforeUpdate.BiblePublicationSchedule;
-        var scheduleSectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(biblePublicationSchedule.SectionCode);
-        var before = new BibleTrackSignature(scheduleSectionIndex, biblePublicationSchedule.TrackNumber);
+        var before = new BibleTrackSignature(
+            Bible.Alarm.Shared.Helpers.SectionCodeHelper.Normalize(biblePublicationSchedule.SectionCode)?.ToUpperInvariant(),
+            biblePublicationSchedule.TrackNumber);
         lastKnownBibleTrackByScheduleId[scheduleId] = before;
 
         return before != current;

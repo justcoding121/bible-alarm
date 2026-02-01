@@ -106,18 +106,17 @@ public sealed class MusicPublicationSelectionCommandHandler(
                         var match = sections.FirstOrDefault(kvp =>
                             kvp.Value != null &&
                             string.Equals(kvp.Value.SectionCode, currentSchedule.MusicSectionCode, StringComparison.OrdinalIgnoreCase));
-                        if (!EqualityComparer<KeyValuePair<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>>.Default.Equals(match, default))
+                        if (!EqualityComparer<KeyValuePair<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>>.Default.Equals(match, default))
                         {
                             selectedSection = match;
                         }
                     }
 
-                    var sectionIndex = selectedSection.Key;
                     var selectedSectionCode = selectedSection.Value.SectionCode;
                     sectionName = selectedSection.Value.Name;
                     sectionCode = selectedSectionCode;
 
-                    var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, songPublication.Code, sectionIndex);
+                    var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, songPublication.Code, selectedSectionCode);
                     if (sectionTracks == null || sectionTracks.Count == 0)
                     {
                         return;

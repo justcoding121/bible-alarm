@@ -78,7 +78,7 @@ public sealed class BiblePublicationSelectionItemSelector
         // First, try to get sections from the database
         // IMPORTANT: Prefer direct DB query to avoid triggering background "ensure all sections" work.
         // Section presence is enough to determine sectioned vs non-sectioned for cascade defaults.
-        SortedDictionary<int, BiblePublicationSection> sections;
+        SortedDictionary<string, BiblePublicationSection> sections;
         if (publicationWithoutLanguage)
         {
             sections = biblePublicationSectionService != null
@@ -207,7 +207,7 @@ public sealed class BiblePublicationSelectionItemSelector
         // Try to get sections to determine if publication is sectioned or not
         // IMPORTANT: Query sections directly from database first to avoid triggering full harvesting
         // Only fetch sections if they don't exist yet
-        SortedDictionary<int, BiblePublicationSection>? sections = null;
+        SortedDictionary<string, BiblePublicationSection>? sections = null;
         if (publicationWithoutLanguage)
         {
             // Query sections for publications without language (LanguageId=null)

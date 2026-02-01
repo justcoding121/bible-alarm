@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -28,23 +29,35 @@ public class MediaReader(string indexRoot)
             .ToDictionary(x => x.PublicationCode, x => x);
     }
 
-    public async Task<SortedDictionary<int, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode)
+    public async Task<SortedDictionary<string, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode)
     {
         var root = indexRoot;
         var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, "sections.json");
         var biblePublicationSections = await File.ReadAllTextAsync(sectionsIndex);
         var sections = JsonSerializer.Deserialize<IEnumerable<BiblePublicationSection>>(biblePublicationSections)!;
-        // Use SectionCode to get section number
-        return new SortedDictionary<int, BiblePublicationSection>(sections
-            .Where(s => int.TryParse(s.SectionCode, out _))
-            .ToDictionary(x => int.TryParse(x.SectionCode, out var num) ? num : 0, x => x));
+        // Keep SectionCode as string end-to-end; only parse for ordering.
+        // Use a SortedDictionary with the shared natural comparer for SectionCode.
+        var map = new Dictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase);
+        foreach (var section in sections)
+        {
+            var code = SectionCodeHelper.Normalize(section.SectionCode);
+            if (string.IsNullOrEmpty(code))
+            {
+                continue;
+            }
+
+            // Keep first occurrence if duplicates exist.
+            map.TryAdd(code, section);
+        }
+
+        return new SortedDictionary<string, BiblePublicationSection>(map, SectionCodeHelper.SectionCodeComparer);
     }
 
     public async Task<SortedDictionary<int, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode,
-        int sectionCode)
+        string sectionCode)
     {
         var root = indexRoot;
-        var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, sectionCode.ToString(),
+        var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, sectionCode,
             "tracks.json");
         var biblePublicationTracks = await File.ReadAllTextAsync(sectionsIndex);
         return new SortedDictionary<int, BiblePublicationTrack>(JsonSerializer

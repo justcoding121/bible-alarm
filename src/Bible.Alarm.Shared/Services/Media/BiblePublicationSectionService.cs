@@ -23,33 +23,37 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
 
-    public async Task<string?> GetSectionNameAsync(string languageCode, string publicationCode, int sectionCode, CancellationToken cancellationToken = default)
+    public async Task<string?> GetSectionNameAsync(string languageCode, string publicationCode, string sectionCode, CancellationToken cancellationToken = default)
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(sectionCode))
+            {
+                return null;
+            }
+
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Use SectionCode directly since BookNum is the same as SectionCode
-            var sectionCodeString = sectionCode.ToString();
             return await dbContext.BiblePublicationSections
                 .AsNoTracking()
                 .Where(x => x.BiblePublication.PublicationCode == publicationCode
                             && x.BiblePublication.Language != null
                             && x.BiblePublication.Language.LanguageCode == languageCode
-                            && x.SectionCode == sectionCodeString)
+                            && x.SectionCode == sectionCode)
                 .Select(x => x.Name)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublicationSection name. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}",
+            logger.Error(ex,
+                "Error getting BiblePublicationSection name. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}",
                 languageCode, publicationCode, sectionCode);
             throw;
         }
     }
 
-    public async Task<SortedDictionary<int, BiblePublicationSection>> GetSectionsByPublicationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
+    public async Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsByPublicationAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -64,27 +68,28 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
                 .SelectMany(x => x.Sections)
                 .ToListAsync(cancellationToken);
 
-            // Filter sections that have numeric SectionCode and order by it
-            // Handle duplicates by taking the first occurrence (similar to GetSectionsByPublicationWithoutLanguageAsync)
-            var sectionsByNumber = new Dictionary<int, BiblePublicationSection>();
-            foreach (var section in sections.OrderBy(s => s.SectionCode, SectionCodeHelper.SectionCodeComparer))
+            // Keep section codes as strings end-to-end.
+            // Only numeric parsing should happen inside the comparer (ordering).
+            var sectionsByCode = new Dictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase);
+            foreach (var section in sections.OrderBy(s => s.SectionCode, StringComparer.OrdinalIgnoreCase))
             {
-                if (int.TryParse(section.SectionCode, out var sectionCode))
+                var normalized = SectionCodeHelper.Normalize(section.SectionCode);
+                if (string.IsNullOrEmpty(normalized))
                 {
-                    // Only add if not already present (handle duplicates gracefully)
-                    if (!sectionsByNumber.ContainsKey(sectionCode))
-                    {
-                        sectionsByNumber[sectionCode] = section;
-                    }
-                    else
-                    {
-                        logger.Warning("GetSectionsByPublicationAsync: Duplicate section number {SectionCode} found for language={LanguageCode}, publication={PublicationCode}. Keeping first occurrence.",
-                            sectionCode, languageCode, publicationCode);
-                    }
+                    continue;
+                }
+
+                if (!sectionsByCode.TryAdd(normalized, section))
+                {
+                    logger.Warning(
+                        "GetSectionsByPublicationAsync: Duplicate section code {SectionCode} found for language={LanguageCode}, publication={PublicationCode}. Keeping first occurrence.",
+                        normalized,
+                        languageCode,
+                        publicationCode);
                 }
             }
 
-            return new SortedDictionary<int, BiblePublicationSection>(sectionsByNumber);
+            return new SortedDictionary<string, BiblePublicationSection>(sectionsByCode, SectionCodeHelper.SectionCodeComparer);
         }
         catch (Exception ex)
         {
@@ -94,32 +99,36 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
         }
     }
 
-    public async Task<BiblePublicationSection?> GetSectionAsync(string languageCode, string publicationCode, int sectionCode, CancellationToken cancellationToken = default)
+    public async Task<BiblePublicationSection?> GetSectionAsync(string languageCode, string publicationCode, string sectionCode, CancellationToken cancellationToken = default)
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(sectionCode))
+            {
+                return null;
+            }
+
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Use SectionCode directly since BookNum is the same as SectionCode
-            var sectionCodeString = sectionCode.ToString();
             return await dbContext.BiblePublicationSections
                 .AsNoTracking()
                 .Where(x => x.BiblePublication.PublicationCode == publicationCode
                             && x.BiblePublication.Language != null
                             && x.BiblePublication.Language.LanguageCode == languageCode
-                            && x.SectionCode == sectionCodeString)
+                            && x.SectionCode == sectionCode)
                 .FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error getting BiblePublicationSection. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}",
+            logger.Error(ex,
+                "Error getting BiblePublicationSection. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}",
                 languageCode, publicationCode, sectionCode);
             throw;
         }
     }
 
-    public async Task<SortedDictionary<int, BiblePublicationSection>> GetSectionsByPublicationWithoutLanguageAsync(string publicationCode, CancellationToken cancellationToken = default)
+    public async Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsByPublicationWithoutLanguageAsync(string publicationCode, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -138,48 +147,26 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
                 .SelectMany(x => x.Sections)
                 .ToListAsync(cancellationToken);
 
-            // Filter sections that have numeric SectionCode and order by it
-            // For music sections like "iam-1", "iam-2", we need to handle both numeric and non-numeric codes
-            var sectionsByNumber = new Dictionary<int, BiblePublicationSection>();
-            foreach (var section in sections)
+            // Keep section codes as strings end-to-end.
+            var sectionsByCode = new Dictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase);
+            foreach (var section in sections.OrderBy(s => s.SectionCode, StringComparer.OrdinalIgnoreCase))
             {
-                // Try to parse SectionCode as int (for numeric codes)
-                if (int.TryParse(section.SectionCode, out var sectionCode))
+                var normalized = SectionCodeHelper.Normalize(section.SectionCode);
+                if (string.IsNullOrEmpty(normalized))
                 {
-                    if (!sectionsByNumber.ContainsKey(sectionCode))
-                    {
-                        sectionsByNumber[sectionCode] = section;
-                    }
+                    continue;
                 }
-                else
+
+                if (!sectionsByCode.TryAdd(normalized, section))
                 {
-                    // For non-numeric codes like "iam-1", extract the number part
-                    // e.g., "iam-1" -> 1, "iam-2" -> 2
-                    var parts = section.SectionCode.Split('-');
-                    if (parts.Length > 1 && int.TryParse(parts[parts.Length - 1], out var extractedNumber))
-                    {
-                        if (!sectionsByNumber.ContainsKey(extractedNumber))
-                        {
-                            sectionsByNumber[extractedNumber] = section;
-                        }
-                    }
-                    else
-                    {
-                        // If we can't extract a number, use 0 as a fallback (will be sorted last)
-                        if (!sectionsByNumber.ContainsKey(0))
-                        {
-                            sectionsByNumber[0] = section;
-                        }
-                    }
+                    logger.Warning(
+                        "GetSectionsByPublicationWithoutLanguageAsync: Duplicate section code {SectionCode} found for publication={PublicationCode}. Keeping first occurrence.",
+                        normalized,
+                        publicationCode);
                 }
             }
 
-            // Sort by the extracted number
-            var sortedSections = sectionsByNumber
-                .OrderBy(kvp => kvp.Key)
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-            return new SortedDictionary<int, BiblePublicationSection>(sortedSections);
+            return new SortedDictionary<string, BiblePublicationSection>(sectionsByCode, SectionCodeHelper.SectionCodeComparer);
         }
         catch (Exception ex)
         {

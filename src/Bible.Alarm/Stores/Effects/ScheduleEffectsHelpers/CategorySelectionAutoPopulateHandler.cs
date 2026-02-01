@@ -238,7 +238,6 @@ public sealed class CategorySelectionAutoPopulateHandler
                 publicationCode, publicationWithoutLanguage);
 
             // Step 4: Get first section and track for the publication
-            int sectionIndex = 0;
             string? sectionCode = null;
             int trackNumber = 0;
             string sectionName = string.Empty;
@@ -267,7 +266,6 @@ public sealed class CategorySelectionAutoPopulateHandler
                     // Sectioned publication - get first section and track
                     var firstSectionKvp = sections.First();
                     var firstSection = firstSectionKvp.Value;
-                    sectionIndex = firstSectionKvp.Key;
                     sectionCode = firstSection.SectionCode;
                     sectionName = firstSection.Name;
 
@@ -341,7 +339,6 @@ public sealed class CategorySelectionAutoPopulateHandler
                 // Use the publication code and name from the result (may differ for dramas)
                 publicationCode = resultPublicationCode;
                 sectionCode = string.IsNullOrWhiteSpace(resultSectionCode) ? null : resultSectionCode;
-                sectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
                 trackNumber = resultTrackNumber;
                 sectionName = resultSectionName;
                 publicationName = resultPublicationName;
@@ -389,9 +386,7 @@ public sealed class CategorySelectionAutoPopulateHandler
             
             updatedSchedule.BiblePublicationCode = publicationCode;
             updatedSchedule.BiblePublicationName = publicationName;
-            updatedSchedule.BiblePublicationSectionCode = !string.IsNullOrWhiteSpace(sectionCode)
-                ? sectionCode
-                : (sectionIndex > 0 ? sectionIndex.ToString() : null);
+            updatedSchedule.BiblePublicationSectionCode = Bible.Alarm.Shared.Helpers.SectionCodeHelper.Normalize(sectionCode);
             updatedSchedule.BiblePublicationSectionName = sectionName;
             updatedSchedule.BiblePublicationTrackNumber = trackNumber;
             updatedSchedule.BiblePublicationTrackTitle = trackTitle;

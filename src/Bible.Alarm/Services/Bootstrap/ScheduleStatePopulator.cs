@@ -118,8 +118,7 @@ internal sealed class ScheduleStatePopulator
 
         var languageCode = bible.LanguageCode ?? string.Empty;
         var publicationCode = bible.PublicationCode;
-        var sectionCode = bible.SectionCode;
-        var sectionIndex = Bible.Alarm.Shared.Helpers.SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
+        var sectionCode = Bible.Alarm.Shared.Helpers.SectionCodeHelper.Normalize(bible.SectionCode);
 
         // Publication name + category for publications that can't be loaded via language-bound lookups (e.g., no-language publications like "iam")
         if (string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName) ||
@@ -152,28 +151,18 @@ internal sealed class ScheduleStatePopulator
         }
 
         // Section name for sectioned publications (including no-language ones like "iam-1")
-        if (sectionIndex > 0 && string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
+        if (!string.IsNullOrWhiteSpace(sectionCode) && string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
         {
             try
             {
                 var sections = await ms.GetBiblePublicationSections(languageCode, publicationCode);
                 if (sections != null && sections.Count > 0)
                 {
-                    // Prefer exact SectionCode match; fall back to numeric key.
-                    var match = sections.Values.FirstOrDefault(s =>
-                        s != null &&
-                        !string.IsNullOrWhiteSpace(s.SectionCode) &&
-                        string.Equals(s.SectionCode, sectionCode, StringComparison.OrdinalIgnoreCase));
-
-                    if (match != null && !string.IsNullOrWhiteSpace(match.Name))
+                    if (sections.TryGetValue(sectionCode, out var sectionByCode) &&
+                        sectionByCode != null &&
+                        !string.IsNullOrWhiteSpace(sectionByCode.Name))
                     {
-                        scheduleStateItem.BiblePublicationSectionName = match.Name;
-                    }
-                    else if (sections.TryGetValue(sectionIndex, out var sectionByIndex) &&
-                             sectionByIndex != null &&
-                             !string.IsNullOrWhiteSpace(sectionByIndex.Name))
-                    {
-                        scheduleStateItem.BiblePublicationSectionName = sectionByIndex.Name;
+                        scheduleStateItem.BiblePublicationSectionName = sectionByCode.Name;
                     }
                 }
             }
@@ -184,11 +173,11 @@ internal sealed class ScheduleStatePopulator
         }
 
         // Track title for sectioned publications (needed for Music/iam home subtitle)
-        if (sectionIndex > 0 && bible.TrackNumber > 0 && string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
+        if (!string.IsNullOrWhiteSpace(sectionCode) && bible.TrackNumber > 0 && string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
         {
             try
             {
-                var tracks = await ms.GetBiblePublicationTracks(languageCode, publicationCode, sectionIndex);
+                var tracks = await ms.GetBiblePublicationTracks(languageCode, publicationCode, sectionCode);
                 if (tracks != null && tracks.TryGetValue(bible.TrackNumber, out var track) && track != null)
                 {
                     if (!string.IsNullOrWhiteSpace(track.Title))

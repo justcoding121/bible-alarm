@@ -159,13 +159,8 @@ internal sealed class MusicNamePopulator
             // If we have a section code, use it to populate the section name
             if (!string.IsNullOrWhiteSpace(music.SectionCode))
             {
-                // Convert SectionCode to int for lookup
-                var sectionCode = await SectionCodeConverter.ConvertToIntAsync(
-                    music.SectionCode,
-                    music.LanguageCode ?? string.Empty, // For melodies, LanguageCode is null
-                    music.PublicationCode);
-
-                if (sectionCode <= 0)
+                var sectionCode = Bible.Alarm.Shared.Helpers.SectionCodeHelper.Normalize(music.SectionCode);
+                if (string.IsNullOrWhiteSpace(sectionCode))
                 {
                     return;
                 }

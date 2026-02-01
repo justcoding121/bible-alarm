@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 
 namespace Bible.Alarm.Shared.Helpers;
 
@@ -18,16 +19,30 @@ public static class LookUpPathBuilder
     /// <returns>The lookup path query string</returns>
     public static string BuildBiblePublicationTrackLookUpPath(string languageCode, string publicationCode, string? sectionCode, int trackNumber)
     {
+        // Some publications are effectively “no-language” in our DB model (LanguageId == null), but the API still
+        // expects a langwritten param. Default to English when no language is supplied.
+        var lc = string.IsNullOrWhiteSpace(languageCode) ? "E" : languageCode.Trim();
+
         // For non-sectioned publications (videos), omit booknum parameter and use MP4
         if (string.IsNullOrWhiteSpace(sectionCode))
         {
             // Videos use MP4, not MP3. Match harvester format: no txtCMSLang for videos
-            return $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={languageCode}&track={trackNumber}";
+            return $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={lc}&track={trackNumber}";
         }
+
+        // Melody disc-style codes (e.g., "iam-9") are NOT Bible book numbers.
+        // JW API expects the disc code as the publication code, without booknum:
+        //   ?output=json&pub=iam-9&fileformat=MP3&langwritten=E&track=17
+        if (sectionCode.Contains('-') &&
+            sectionCode.StartsWith(publicationCode + "-", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"?output=json&pub={sectionCode}&fileformat=MP3&langwritten={lc}&track={trackNumber}";
+        }
+
         // For sectioned Bible publications, use booknum (not sectionnum)
         // Match harvester format: ?output=json&pub={publicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}
         // Note: We include track parameter for individual track lookup, harvester doesn't use it when fetching all tracks
-        return $"?output=json&pub={publicationCode}&booknum={sectionCode}&fileformat=MP3&langwritten={languageCode}&track={trackNumber}";
+        return $"?output=json&pub={publicationCode}&booknum={sectionCode}&fileformat=MP3&langwritten={lc}&track={trackNumber}";
     }
 
     /// <summary>

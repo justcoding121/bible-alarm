@@ -271,7 +271,7 @@ public sealed class BiblePublicationDisplayTextProvider
 
         try
         {
-            SortedDictionary<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sections;
+            SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sections;
             
             if (string.IsNullOrWhiteSpace(languageCode))
             {
@@ -314,19 +314,19 @@ public sealed class BiblePublicationDisplayTextProvider
         var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
         var publicationCode = currentSchedule.BiblePublicationCode;
         var sectionCode = currentSchedule.BiblePublicationSectionCode;
-        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
+        var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
 
         try
         {
             // Avoid duplicate queries when languageCode is empty.
             var tracks = string.IsNullOrWhiteSpace(languageCode)
-                ? await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionIndex)
-                : await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionIndex);
+                ? await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, normalizedSectionCode)
+                : await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, normalizedSectionCode);
             
             // If no tracks found with language, try without language
             if (tracks.Count == 0 && !string.IsNullOrWhiteSpace(languageCode))
             {
-                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionIndex);
+                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, normalizedSectionCode);
             }
 
             return tracks.Count > 1;

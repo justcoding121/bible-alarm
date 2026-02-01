@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Shared;
@@ -111,7 +112,7 @@ internal static class CollectionViewScrollPositionHelper
             }
             else if (item is BiblePublicationSectionListViewItemModel sectionItem &&
                      itemsList[i] is BiblePublicationSectionListViewItemModel listSectionItem &&
-                     sectionItem.Number == listSectionItem.Number)
+                     string.Equals(sectionItem.SectionCode, listSectionItem.SectionCode, StringComparison.OrdinalIgnoreCase))
             {
                 return i;
             }

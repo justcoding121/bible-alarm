@@ -94,11 +94,11 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     return;
                 }
                 
-                // Validate section number - section 0 is invalid (sections should start from 1)
-                if (x.Number <= 0)
+                // Validate section code
+                if (string.IsNullOrWhiteSpace(x.Section.SectionCode))
                 {
-                    logger.Warning("BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Invalid section number {SectionCode} for publication={PublicationCode}",
-                        x.Number, currentSchedule.BiblePublicationCode);
+                    logger.Warning("BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Invalid section code for publication={PublicationCode}",
+                        currentSchedule.BiblePublicationCode);
                     return;
                 }
                 
@@ -469,7 +469,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
     private async Task Initialize(string languageCode, string publicationCode, Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null) => await PopulateSections(languageCode, publicationCode, progress);
 
-    private readonly Dictionary<int, BiblePublicationSectionListViewItemModel> sectionVMsMapping = [];
+    private readonly Dictionary<string, BiblePublicationSectionListViewItemModel> sectionVMsMapping = new(StringComparer.OrdinalIgnoreCase);
 
     private async Task PopulateSections(string languageCode, string publicationCode, Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {

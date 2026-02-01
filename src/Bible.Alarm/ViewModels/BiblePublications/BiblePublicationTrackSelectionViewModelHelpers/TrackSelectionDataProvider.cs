@@ -16,7 +16,7 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
     public async Task PopulateTracks(
         string languageCode,
         string publicationCode,
-        int sectionCode,
+        string? sectionCode,
         BiblePublicationSchedule? current,
         ObservableCollection<BiblePublicationTrackListViewItemModel> tracks,
         Action<BiblePublicationTrackListViewItemModel?> setSelectedTrack)
@@ -26,9 +26,9 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
 
         IEnumerable<BiblePublicationTrack> tracksFromDb;
 
-        // If sectionCode is 0, this is a non-sectioned publication (drama/video)
+        // If sectionCode is null/empty, this is a non-sectioned publication (drama/video)
         // Load tracks directly from the publication
-        if (sectionCode <= 0 && biblePublicationService != null)
+        if (string.IsNullOrWhiteSpace(sectionCode) && biblePublicationService != null)
         {
             Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loading non-sectioned tracks for publication={PublicationCode}", publicationCode);
             var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);

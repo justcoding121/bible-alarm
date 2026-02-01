@@ -18,33 +18,6 @@ public static class SectionCodeHelper
     public static IComparer<string?> SectionCodeComparer { get; } = new NaturalSectionCodeComparer();
 
     /// <summary>
-    /// Extracts a numeric section index from a section code when possible.
-    /// Returns 0 when section code is null/empty or not parseable.
-    /// </summary>
-    public static int GetSectionIndexOrZero(string? sectionCode)
-    {
-        if (string.IsNullOrWhiteSpace(sectionCode))
-        {
-            return 0;
-        }
-
-        // Direct numeric section codes (e.g., "1")
-        if (int.TryParse(sectionCode, out var numeric))
-        {
-            return numeric;
-        }
-
-        // Suffix pattern (e.g., "iam-1")
-        var parts = sectionCode.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length > 1 && int.TryParse(parts[^1], out var extracted))
-        {
-            return extracted;
-        }
-
-        return 0;
-    }
-
-    /// <summary>
     /// Normalizes section code for persistence: trims and converts whitespace-only to null.
     /// </summary>
     public static string? Normalize(string? sectionCode)

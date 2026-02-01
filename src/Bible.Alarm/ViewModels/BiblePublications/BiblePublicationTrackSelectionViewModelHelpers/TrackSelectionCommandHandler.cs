@@ -37,10 +37,9 @@ public sealed class TrackSelectionCommandHandler(
         }
 
         var sectionCode = currentSchedule.BiblePublicationSectionCode;
-        var sectionIndex = SectionCodeHelper.GetSectionIndexOrZero(sectionCode);
 
-        logger.Debug("TrackSelectionCommandHandler: Setting track {TrackNumber} ({TrackTitle}) for section {SectionCode} (index={SectionIndex})",
-            track.Number, track.Title, sectionCode ?? "(none)", sectionIndex);
+        logger.Debug("TrackSelectionCommandHandler: Setting track {TrackNumber} ({TrackTitle}) for section {SectionCode}",
+            track.Number, track.Title, sectionCode ?? "(none)");
 
         // Map entity to DTO before dispatching
         var trackSelectedItem = new BiblePublicationStateItem

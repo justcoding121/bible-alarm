@@ -13,18 +13,20 @@ namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 public interface IBiblePublicationTrackService : IDisposable
 {
     /// <summary>
-    /// Gets all BiblePublicationTracks for a given section (by language code, publication code, and section number), with Source included.
+    /// Gets all BiblePublicationTracks for a given section (by language code, publication code, and section code), with Source included.
+    /// Pass null/empty sectionCode for non-sectioned publications.
     /// </summary>
-    Task<SortedDictionary<int, BiblePublicationTrack>> GetTracksBySectionAsync(string languageCode, string publicationCode, int sectionCode, CancellationToken cancellationToken = default);
+    Task<SortedDictionary<int, BiblePublicationTrack>> GetTracksBySectionAsync(string languageCode, string publicationCode, string? sectionCode, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a BiblePublicationTrack by language code, publication code, section number, and track number, with Source included.
+    /// Gets a BiblePublicationTrack by language code, publication code, section code, and track number, with Source included.
+    /// Pass null/empty sectionCode for non-sectioned publications.
     /// </summary>
-    Task<BiblePublicationTrack?> GetTrackAsync(string languageCode, string publicationCode, int sectionCode, int trackNumber, CancellationToken cancellationToken = default);
+    Task<BiblePublicationTrack?> GetTrackAsync(string languageCode, string publicationCode, string? sectionCode, int trackNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates the URL for a Bible track's audio source.
     /// </summary>
-    Task UpdateTrackUrlAsync(string languageCode, string publicationCode, int sectionCode, int trackNumber, string url, CancellationToken cancellationToken = default);
+    Task UpdateTrackUrlAsync(string languageCode, string publicationCode, string? sectionCode, int trackNumber, string url, CancellationToken cancellationToken = default);
 }
 

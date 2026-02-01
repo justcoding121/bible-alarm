@@ -229,19 +229,11 @@ internal sealed class BiblePublicationNamePopulator
         try
         {
             var biblePublication = schedule.BiblePublicationSchedule;
-            var sectionCode = await SectionCodeConverter.ConvertToIntAsync(
-                biblePublication.SectionCode,
-                biblePublication.LanguageCode,
-                biblePublication.PublicationCode);
-            
-            if (sectionCode <= 0 ||
-                string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
+            var sectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
+            if (string.IsNullOrWhiteSpace(sectionCode) || string.IsNullOrWhiteSpace(biblePublication.PublicationCode))
             {
                 return;
             }
-
-            // Prefer schedule DB SectionCode exact match when resolving via media service.
-            var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
 
             // Language-bound section service.
             if (!string.IsNullOrWhiteSpace(biblePublication.LanguageCode) && biblePublicationSectionService != null)
@@ -268,23 +260,11 @@ internal sealed class BiblePublicationNamePopulator
                 var sections = await mediaService.GetBiblePublicationSections(languageCode, biblePublication.PublicationCode);
                 if (sections != null && sections.Count > 0)
                 {
-                    var match = sections.Values.FirstOrDefault(s =>
-                        s != null &&
-                        !string.IsNullOrWhiteSpace(s.SectionCode) &&
-                        normalizedSectionCode != null &&
-                        string.Equals(s.SectionCode, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
-
-                    if (match != null && !string.IsNullOrWhiteSpace(match.Name))
+                    if (sections.TryGetValue(sectionCode, out var sectionByCode) &&
+                        sectionByCode != null &&
+                        !string.IsNullOrWhiteSpace(sectionByCode.Name))
                     {
-                        scheduleStateItem.BiblePublicationSectionName = match.Name;
-                        return;
-                    }
-
-                    if (sections.TryGetValue(sectionCode, out var sectionByIndex) &&
-                        sectionByIndex != null &&
-                        !string.IsNullOrWhiteSpace(sectionByIndex.Name))
-                    {
-                        scheduleStateItem.BiblePublicationSectionName = sectionByIndex.Name;
+                        scheduleStateItem.BiblePublicationSectionName = sectionByCode.Name;
                     }
                 }
             }
@@ -346,9 +326,9 @@ internal sealed class BiblePublicationNamePopulator
         int trackNumber,
         int scheduleId)
     {
-        var sectionCode = await SectionCodeConverter.ConvertToIntAsync(sectionCodeString, languageCode, publicationCode);
-        
-        if (sectionCode <= 0 || mediaService == null)
+        var sectionCode = SectionCodeHelper.Normalize(sectionCodeString);
+
+        if (string.IsNullOrWhiteSpace(sectionCode) || mediaService == null)
         {
             return;
         }

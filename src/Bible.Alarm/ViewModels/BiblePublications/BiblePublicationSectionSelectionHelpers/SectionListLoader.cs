@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
@@ -17,7 +18,7 @@ internal sealed class SectionListLoader
         this.mediaService = mediaService;
     }
 
-    internal async Task<(List<BiblePublicationSectionListViewItemModel> Items, Dictionary<int, BiblePublicationSectionListViewItemModel> Mapping)> LoadAsync(
+    internal async Task<(List<BiblePublicationSectionListViewItemModel> Items, Dictionary<string, BiblePublicationSectionListViewItemModel> Mapping)> LoadAsync(
         string languageCode,
         string publicationCode,
         string? selectedSectionCode,
@@ -74,19 +75,20 @@ internal sealed class SectionListLoader
 
             progress?.UpdateProgress(1.0);
             progress?.SetIsVisible(false);
-            return (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<int, BiblePublicationSectionListViewItemModel>());
+            return (new List<BiblePublicationSectionListViewItemModel>(), new Dictionary<string, BiblePublicationSectionListViewItemModel>(StringComparer.OrdinalIgnoreCase));
         }
 
         var vms = new List<BiblePublicationSectionListViewItemModel>();
-        var map = new Dictionary<int, BiblePublicationSectionListViewItemModel>();
+        var map = new Dictionary<string, BiblePublicationSectionListViewItemModel>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var section in sectionsFromDb.Values)
         {
             var sectionVm = new BiblePublicationSectionListViewItemModel(section);
             vms.Add(sectionVm);
-            map[sectionVm.Number] = sectionVm;
+            map[section.SectionCode] = sectionVm;
 
-            if (!string.IsNullOrEmpty(selectedSectionCode) && section.SectionCode == selectedSectionCode)
+            if (!string.IsNullOrEmpty(selectedSectionCode) &&
+                string.Equals(section.SectionCode, selectedSectionCode, StringComparison.OrdinalIgnoreCase))
             {
                 sectionVm.IsSelected = true;
             }
