@@ -13,12 +13,6 @@ namespace Bible.Alarm.Shared.Helpers;
 public static class PublicationSortHelper
 {
     /// <summary>
-    /// Priority codes for Bible publications (lower index = higher priority).
-    /// nwt (2013 NWT) = 0, bi12 (1984 NWT) = 1
-    /// </summary>
-    private static readonly string[] PriorityPublicationCodes = ["nwt", "bi12"];
-
-    /// <summary>
     /// Gets the sort priority for a publication code.
     /// nwt (2013 NWT) = 0, bi12 (1984 NWT) = 1, others = 2
     /// </summary>
@@ -26,18 +20,7 @@ public static class PublicationSortHelper
     /// <returns>Priority value (lower = higher priority)</returns>
     public static int GetPublicationSortPriority(string code)
     {
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            return PriorityPublicationCodes.Length; // Empty/null codes come last
-        }
-
-        var lowerCode = code.ToLowerInvariant();
-        for (int i = 0; i < PriorityPublicationCodes.Length; i++)
-        {
-            if (lowerCode == PriorityPublicationCodes[i])
-                return i;
-        }
-        return PriorityPublicationCodes.Length; // Others come after priority publications
+        return PublicationCodeHelper.GetPublicationSortPriority(code);
     }
 
     /// <summary>
@@ -57,7 +40,7 @@ public static class PublicationSortHelper
             return Enumerable.Empty<T>();
 
         return publications
-            .OrderBy(p => GetPublicationSortPriority(getCode(p)))
+            .OrderBy(p => getCode(p), PublicationCodeHelper.PublicationCodeComparer)
             .ThenBy(p => getName != null ? getName(p) : getCode(p))
             .ToList();
     }
@@ -77,7 +60,7 @@ public static class PublicationSortHelper
             return new List<KeyValuePair<string, T>>();
 
         return publications
-            .OrderBy(kvp => GetPublicationSortPriority(kvp.Key))
+            .OrderBy(kvp => kvp.Key, PublicationCodeHelper.PublicationCodeComparer)
             .ThenBy(kvp => getName != null ? getName(kvp.Value) : kvp.Key)
             .ToList();
     }
@@ -88,6 +71,6 @@ public static class PublicationSortHelper
     /// <returns>Array of priority publication codes</returns>
     public static string[] GetPriorityPublicationCodes()
     {
-        return (string[])PriorityPublicationCodes.Clone();
+        return PublicationCodeHelper.GetPriorityPublicationCodes();
     }
 }

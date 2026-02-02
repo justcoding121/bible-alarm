@@ -8,6 +8,7 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
+using System.Net;
 using File = TagLib.File;
 using IPicture = TagLib.IPicture;
 
@@ -50,6 +51,17 @@ public sealed class DisplayMetadataService(
 
     private async Task SetBibleMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri)
     {
+        // Melody disc-style publications (e.g. "iam") are stored as sectioned BiblePublications,
+        // but their tracks are conceptually "melody music".
+        // When these are used as the MAIN schedule content (Music category), their TrackMetadata.PlayType is still Bible
+        // (because schedule progress/navigation uses BiblePublicationSchedule fields).
+        // Ensure the alarm modal / now-playing metadata is still populated correctly from the melody catalog.
+        if (await TrySetDiscStyleMelodyMetadataAsync(trackMetadata, meta))
+        {
+            await TryExtractArtworkFromFileAsync(meta, uri, "Melody disc file");
+            return;
+        }
+
         // Try to get section info first (for sectioned publications)
         var sectionCode = SectionCodeHelper.Normalize(trackMetadata.SectionCode);
         var section = !string.IsNullOrWhiteSpace(sectionCode)
@@ -159,7 +171,7 @@ public sealed class DisplayMetadataService(
 
     private async Task SetMelodyMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta)
     {
-        // Melody music (Kingdom Melodies) - prefix title with "Kingdom Melodies "
+        // Melody music (e.g. "iam")
         // IMPORTANT: Sectioned melody publications (e.g., "iam") have duplicate track numbers across discs.
         // TrackMetadata.DownloadCode holds the disc code (e.g. "iam-2"), so resolve title from that disc.
         SortedDictionary<int, MusicTrack> tracks;
@@ -172,11 +184,128 @@ public sealed class DisplayMetadataService(
         {
             tracks = await mediaService.GetMelodyMusicTracks(trackMetadata.PublicationCode);
         }
-        if (tracks.TryGetValue(trackMetadata.TrackNumber, out var melodyTrack))
+
+        var trackNumber = trackMetadata.OriginalTrackNumber ?? trackMetadata.TrackNumber;
+        if (tracks.TryGetValue(trackNumber, out var melodyTrack))
         {
-            meta.Title = $"Kingdom Melodies {melodyTrack.Title}";
+            meta.Title = NormalizeTitle(melodyTrack.Title);
         }
-        // Description left empty for kingdom melodies
+
+        // Prefer a stable publication name for subtitle.
+        try
+        {
+            var releases = await mediaService.GetMelodyMusicReleases();
+            if (releases.TryGetValue(trackMetadata.PublicationCode, out var release) &&
+                !string.IsNullOrWhiteSpace(release?.Name))
+            {
+                meta.Artist = $"{release.Name} (jw.org)";
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Failed to resolve melody release name for {PublicationCode}", trackMetadata.PublicationCode);
+        }
+
+        // For disc-style melody music, show the disc/section name as the album/description line.
+        if (PublicationTypeHelper.HasSectionStructure(trackMetadata.PublicationCode) &&
+            !string.IsNullOrWhiteSpace(trackMetadata.DownloadCode))
+        {
+            try
+            {
+                var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(trackMetadata.PublicationCode);
+                if (sections.TryGetValue(trackMetadata.DownloadCode, out var section) &&
+                    !string.IsNullOrWhiteSpace(section?.Name))
+                {
+                    meta.Album = section.Name;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Debug(ex, "Failed to resolve melody disc name for {PublicationCode}/{DiscCode}",
+                    trackMetadata.PublicationCode, trackMetadata.DownloadCode);
+            }
+        }
+    }
+
+    private async Task<bool> TrySetDiscStyleMelodyMetadataAsync(TrackMetadata trackMetadata, MetaData meta)
+    {
+        // We rely on DownloadCode being set by PlaylistBiblePublicationTrackBuilder.TryApplyDiscMusicLookUpPath.
+        if (string.IsNullOrWhiteSpace(trackMetadata.DownloadCode))
+        {
+            return false;
+        }
+
+        // Additional guard: disc code should look like "{pubCode}-{digits}".
+        if (!trackMetadata.DownloadCode.StartsWith(trackMetadata.PublicationCode + "-", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var suffix = trackMetadata.DownloadCode.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault();
+        if (string.IsNullOrWhiteSpace(suffix) || !suffix.All(char.IsDigit))
+        {
+            return false;
+        }
+
+        try
+        {
+            var tracks = await mediaService.GetMelodyMusicTracksBySection(trackMetadata.PublicationCode, trackMetadata.DownloadCode);
+            var trackNumber = trackMetadata.OriginalTrackNumber ?? trackMetadata.TrackNumber;
+            if (tracks.TryGetValue(trackNumber, out var melodyTrack))
+            {
+                meta.Title = NormalizeTitle(melodyTrack.Title);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Failed to resolve melody disc track title for {PublicationCode}/{DiscCode}/{TrackNumber}",
+                trackMetadata.PublicationCode, trackMetadata.DownloadCode, trackMetadata.TrackNumber);
+        }
+
+        try
+        {
+            var releases = await mediaService.GetMelodyMusicReleases();
+            if (releases.TryGetValue(trackMetadata.PublicationCode, out var release) &&
+                !string.IsNullOrWhiteSpace(release?.Name))
+            {
+                meta.Artist = $"{release.Name} (jw.org)";
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Failed to resolve melody release name for {PublicationCode}", trackMetadata.PublicationCode);
+        }
+
+        try
+        {
+            var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(trackMetadata.PublicationCode);
+            if (sections.TryGetValue(trackMetadata.DownloadCode, out var section) &&
+                !string.IsNullOrWhiteSpace(section?.Name))
+            {
+                meta.Album = section.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Failed to resolve melody disc name for {PublicationCode}/{DiscCode}",
+                trackMetadata.PublicationCode, trackMetadata.DownloadCode);
+        }
+
+        // Ensure we at least have a title.
+        meta.Title ??= $"Track {trackMetadata.TrackNumber}";
+        meta.Artist ??= "jw.org";
+
+        return true;
+    }
+
+    private static string? NormalizeTitle(string? rawTitle)
+    {
+        if (string.IsNullOrWhiteSpace(rawTitle))
+        {
+            return null;
+        }
+
+        return WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ').Trim();
     }
 
     private async Task SetVocalMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta)

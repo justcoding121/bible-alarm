@@ -3,6 +3,7 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -61,6 +62,10 @@ public sealed class MusicCascadeHandler
             var sectionCode = currentSchedule.MusicSectionCode;
             var trackNumber = currentSchedule.MusicTrackNumber;
 
+            var publicationHasSections =
+                !string.IsNullOrWhiteSpace(publicationCode) &&
+                PublicationTypeHelper.HasSectionStructure(publicationCode);
+
             // Cascade 1: MusicType selected but language not (for VocalMusic) → populate language, publication, section, track
             if (musicType == MusicType.VocalMusic && string.IsNullOrWhiteSpace(languageCode))
             {
@@ -82,26 +87,99 @@ public sealed class MusicCascadeHandler
                 return; // Language cascade handles everything below
             }
 
-            // Cascade 3: Publication selected but section/track not → populate section, track
-            // Only if section is not set (if section is set, go to cascade 4)
-            if (!string.IsNullOrWhiteSpace(publicationCode) && 
-                string.IsNullOrWhiteSpace(sectionCode))
+            // Cascade 3/4: Publication/Section/Track cascade
+            //
+            // IMPORTANT:
+            // Many music publications (vocal/instrumental) are FLAT (no sections). For those, SectionCode is expected to be null,
+            // and we must NOT treat "missing section" as an incomplete selection once a TrackNumber is already chosen.
+            if (!string.IsNullOrWhiteSpace(publicationCode))
             {
-                await HandlePublicationCascadeAsync(currentSchedule, dispatcher);
-                return; // Publication cascade handles section and track
-            }
+                var trackMissing = !trackNumber.HasValue || trackNumber.Value <= 0;
 
-            // Cascade 4: Section selected but track not → populate track
-            if (!string.IsNullOrWhiteSpace(sectionCode) &&
-                (!trackNumber.HasValue || trackNumber.Value <= 0))
-            {
-                await HandleSectionCascadeAsync(currentSchedule, dispatcher);
+                // Sectioned publications (e.g. "iam") need a section first.
+                if (publicationHasSections)
+                {
+                    if (string.IsNullOrWhiteSpace(sectionCode))
+                    {
+                        await HandlePublicationCascadeAsync(currentSchedule, dispatcher);
+                        return;
+                    }
+
+                    if (trackMissing)
+                    {
+                        await HandleSectionCascadeAsync(currentSchedule, dispatcher);
+                        return;
+                    }
+                }
+                else
+                {
+                    // Flat publications: only cascade when track is missing.
+                    if (trackMissing)
+                    {
+                        await HandleFlatPublicationCascadeAsync(currentSchedule, dispatcher);
+                        return;
+                    }
+                }
             }
         }
         catch (Exception ex)
         {
             logger.Error(ex, "MusicCascadeHandler: Error during cascade");
         }
+    }
+
+    private async Task HandleFlatPublicationCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
+    {
+        var musicType = currentSchedule.MusicType!.Value;
+        var languageCode = currentSchedule.MusicLanguageCode ?? string.Empty;
+        var publicationCode = currentSchedule.MusicPublicationCode!;
+
+        logger.Information("MusicCascadeHandler: Flat publication cascade - publication={PublicationCode}, language={LanguageCode}, musicType={MusicType}",
+            publicationCode, languageCode, musicType);
+
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+        // Determine whether this publication is stored without a language FK (e.g. melody/music catalog).
+        var publication = await db.BiblePublications
+            .AsNoTracking()
+            .Where(bp => bp.PublicationCode == publicationCode &&
+                         bp.Category != null &&
+                         bp.Category.CategoryName == "Music")
+            .FirstOrDefaultAsync();
+
+        if (publication == null)
+        {
+            logger.Warning("MusicCascadeHandler: Publication not found in database: {PublicationCode}", publicationCode);
+            return;
+        }
+
+        var publicationWithoutLanguage = publication.LanguageId == null;
+
+        // For flat publications, GetFirstSectionAndTrackAsync will return (null, "", firstTrackNumber, firstTrackTitle)
+        // and we intentionally keep MusicSectionCode null.
+        var (_, _, trackNum, trackTitle) =
+            await MusicCascadeSelectionHelper.GetFirstSectionAndTrackAsync(
+                mediaService,
+                languageCode,
+                publicationCode,
+                publicationWithoutLanguage);
+
+        if (trackNum <= 0)
+        {
+            logger.Warning("MusicCascadeHandler: No valid track found for publication={PublicationCode}", publicationCode);
+            return;
+        }
+
+        UpdateSchedule(
+            currentSchedule,
+            publicationCode,
+            currentSchedule.MusicPublicationName,
+            sectionCode: null,
+            sectionName: string.Empty,
+            trackNumber: trackNum,
+            trackTitle: trackTitle,
+            dispatcher: dispatcher);
     }
 
     private async Task HandleMusicTypeCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)

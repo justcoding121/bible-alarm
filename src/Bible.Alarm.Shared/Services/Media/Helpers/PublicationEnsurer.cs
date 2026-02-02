@@ -192,19 +192,8 @@ internal sealed class PublicationEnsurer
                 return false;
             }
 
-            // Priority: nwt first, then bi12, then others
-            var priorityCodes = new[] { "nwt", "bi12" };
             var sortedPublications = availablePublications
-                .OrderBy(pub =>
-                {
-                    var lower = pub.ToLowerInvariant();
-                    for (int i = 0; i < priorityCodes.Length; i++)
-                    {
-                        if (lower == priorityCodes[i])
-                            return i;
-                    }
-                    return priorityCodes.Length;
-                })
+                .OrderBy(pub => pub, PublicationCodeHelper.PublicationCodeComparer)
                 .ToList();
 
             // Try each publication until one succeeds

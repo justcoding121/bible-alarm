@@ -48,7 +48,7 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
         }
 
         var scheduleStateItem = applicationState.Value.Schedules?.FirstOrDefault(s => s.Id == scheduleId);
-        return scheduleStateItem?.BiblePublicationName ?? string.Empty;
+        return DisplayTextHelper.NormalizeSingleLine(scheduleStateItem?.BiblePublicationName);
     }
 
     public string GetBiblePublicationSectionName(int scheduleId)
@@ -68,7 +68,7 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode ?? string.Empty);
         if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
         {
-            return scheduleStateItem.BiblePublicationSectionName;
+            return DisplayTextHelper.NormalizeSingleLine(scheduleStateItem.BiblePublicationSectionName);
         }
 
         return string.Empty;
@@ -93,7 +93,7 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
             return string.Empty;
         }
 
-        var sectionName = scheduleStateItem.BiblePublicationSectionName;
+        var sectionName = DisplayTextHelper.NormalizeSingleLine(scheduleStateItem.BiblePublicationSectionName);
         if (string.IsNullOrWhiteSpace(sectionName))
         {
             return string.Empty;
@@ -115,7 +115,7 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
         }
 
         return trackNumber.HasValue
-            ? $"{sectionName} {trackNumber.Value}"
+            ? DisplayTextHelper.NormalizeSingleLine($"{sectionName} {trackNumber.Value}")
             : sectionName;
     }
 
@@ -135,7 +135,7 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
         // Use track title if available (contains full name like "Chapter 1")
         if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
         {
-            return scheduleStateItem.BiblePublicationTrackTitle;
+            return DisplayTextHelper.NormalizeSingleLine(scheduleStateItem.BiblePublicationTrackTitle);
         }
 
         // Fallback: If track title is not available, show track number for sectioned publications
@@ -155,10 +155,10 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
                 if (string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase) &&
                     !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
                 {
-                    return $"{scheduleStateItem.BiblePublicationName} {scheduleStateItem.BiblePublicationTrackNumber.Value}";
+                    return DisplayTextHelper.NormalizeSingleLine($"{scheduleStateItem.BiblePublicationName} {scheduleStateItem.BiblePublicationTrackNumber.Value}");
                 }
 
-                return scheduleStateItem.BiblePublicationTrackNumber.Value.ToString();
+                return DisplayTextHelper.NormalizeSingleLine(scheduleStateItem.BiblePublicationTrackNumber.Value.ToString());
             }
         }
 

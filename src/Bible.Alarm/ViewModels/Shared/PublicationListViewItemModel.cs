@@ -2,6 +2,7 @@
 using System.Net;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Helpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bible.Alarm.ViewModels.Shared;
@@ -49,5 +50,20 @@ public sealed class PublicationListViewItemModel(Publication publication) : Obse
     public string? PublicationLanguageCode =>
         publication is BiblePublication biblePublication ? biblePublication.Language?.LanguageCode : null;
 
-    public int CompareTo(object obj) => string.Compare(Name, (obj as PublicationListViewItemModel)?.Name, StringComparison.Ordinal);
+    public int CompareTo(object? obj)
+    {
+        if (obj is not PublicationListViewItemModel other)
+        {
+            return 1;
+        }
+
+        // Prefer sorting by publication code priority (e.g. nwt first), then by name.
+        var codeCompare = PublicationCodeHelper.PublicationCodeComparer.Compare(Code, other.Code);
+        if (codeCompare != 0)
+        {
+            return codeCompare;
+        }
+
+        return string.Compare(Name, other.Name, StringComparison.OrdinalIgnoreCase);
+    }
 }

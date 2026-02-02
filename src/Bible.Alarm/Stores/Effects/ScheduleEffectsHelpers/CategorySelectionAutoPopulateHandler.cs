@@ -136,7 +136,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                 
                 // Sort by priority: nwt first, then bi12, then others, then by ID as tiebreaker
                 publicationLanguages = publicationLanguages
-                    .OrderBy(pl => PublicationSortHelper.GetPublicationSortPriority(pl.PublicationCode))
+                    .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.PublicationCodeComparer)
                     .ThenBy(pl => pl.Id)
                     .ToList();
 

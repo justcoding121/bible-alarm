@@ -553,6 +553,10 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             IsLastTrack = false
         };
 
+        // Disc-style melody publications (e.g. "iam" with section codes like "iam-1") are stored as sectioned Bible content,
+        // but metadata/title lookup should treat the section code as the download/disc code.
+        TryApplyDiscStyleDownloadCode(metadata);
+
         var url = await urlRefreshService.RefreshUrlAsync(metadata);
         if (string.IsNullOrEmpty(url))
         {
@@ -614,6 +618,10 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             IsLastTrack = false
         };
 
+        // Disc-style melody publications (e.g. "iam" with section codes like "iam-1") are stored as sectioned Bible content,
+        // but metadata/title lookup should treat the section code as the download/disc code.
+        TryApplyDiscStyleDownloadCode(metadata);
+
         var url = await urlRefreshService.RefreshUrlAsync(metadata);
         if (string.IsNullOrEmpty(url))
         {
@@ -621,6 +629,43 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
 
         return new PlayItem(metadata, url);
+    }
+
+    private static void TryApplyDiscStyleDownloadCode(TrackMetadata metadata)
+    {
+        // Example: publicationCode="iam", sectionCode="iam-1"
+        var sectionCode = SectionCodeHelper.Normalize(metadata.SectionCode);
+        if (string.IsNullOrWhiteSpace(sectionCode))
+        {
+            return;
+        }
+
+        if (!sectionCode.Contains('-'))
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(metadata.PublicationCode) ||
+            !sectionCode.StartsWith(metadata.PublicationCode + "-", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Validate suffix is a non-zero digit sequence.
+        var parts = sectionCode.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length < 2)
+        {
+            return;
+        }
+
+        var suffix = parts[^1];
+        if (string.IsNullOrEmpty(suffix) || !suffix.All(char.IsDigit) || suffix.All(c => c == '0'))
+        {
+            return;
+        }
+
+        metadata.DownloadCode = sectionCode;
+        metadata.OriginalTrackNumber = metadata.TrackNumber;
     }
 
     public void Dispose()

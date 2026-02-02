@@ -261,7 +261,7 @@ public sealed class BiblePublicationSelectionDataProvider
                 // This ensures only one publication is selected at a time
             }
 
-            // Sort publications: nwt first, then bi12, then others by name
+            // Sort publications by publication-code priority for display (nwt first), then by name.
             vms = PublicationSortHelper.SortByPriority(vms, p => p.Code, p => p.Name).ToList();
             
             // Log sorted order for debugging
@@ -269,29 +269,8 @@ public sealed class BiblePublicationSelectionDataProvider
                 vms.Count,
                 string.Join(", ", vms.Take(3).Select(p => $"{p.Code}(priority={PublicationSortHelper.GetPublicationSortPriority(p.Code)})")));
 
-            // Determine default publication: prefer nwt, then bi12, then first available
-            // Use case-insensitive lookup since publication codes might have different casing
-            PublicationListViewItemModel? preferredDefault = null;
-            foreach (var priorityCode in PublicationSortHelper.GetPriorityPublicationCodes())
-            {
-                // Try case-sensitive first (most common)
-                if (mapping.TryGetValue(priorityCode, out var priorityPub))
-                {
-                    preferredDefault = priorityPub;
-                    break;
-                }
-                
-                // Fall back to case-insensitive lookup
-                var matchingPub = mapping.FirstOrDefault(kvp => 
-                    string.Equals(kvp.Key, priorityCode, StringComparison.OrdinalIgnoreCase));
-                if (matchingPub.Value != null)
-                {
-                    preferredDefault = matchingPub.Value;
-                    break;
-                }
-            }
-            // Fall back to first publication if no priority publications found
-            preferredDefault ??= vms.FirstOrDefault();
+            // Determine default publication: after sorting, the first item is the preferred default (nwt first).
+            var preferredDefault = vms.FirstOrDefault();
 
             return (vms, mapping, preferredDefault);
         });

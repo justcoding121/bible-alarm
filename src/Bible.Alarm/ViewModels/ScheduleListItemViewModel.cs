@@ -212,7 +212,7 @@ public sealed class ScheduleListItemViewModel(
 
     public int ScheduleId => Schedule?.Id ?? 0;
 
-    public string Name => Schedule?.Name ?? string.Empty;
+    public string Name => DisplayTextHelper.NormalizeSingleLine(Schedule?.Name);
 
     public string SubTitle
     {

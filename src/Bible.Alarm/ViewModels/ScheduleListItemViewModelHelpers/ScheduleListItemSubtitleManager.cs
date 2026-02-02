@@ -110,11 +110,11 @@ public sealed class ScheduleListItemSubtitleManager(
     {
         if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
         {
-            setLanguage(scheduleStateItem.BiblePublicationLanguageName);
+            setLanguage(DisplayTextHelper.NormalizeSingleLine(scheduleStateItem.BiblePublicationLanguageName));
         }
         else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageCode))
         {
-            setLanguage(scheduleStateItem.BiblePublicationLanguageCode);
+            setLanguage(DisplayTextHelper.NormalizeSingleLine(scheduleStateItem.BiblePublicationLanguageCode));
         }
         else
         {
@@ -126,24 +126,26 @@ public sealed class ScheduleListItemSubtitleManager(
     private static string BuildSubtitleFromState(ScheduleStateItem scheduleStateItem)
     {
         var parts = new List<string>();
+        static void AddPart(List<string> parts, string? value)
+        {
+            var normalized = DisplayTextHelper.NormalizeSingleLine(value);
+            if (!string.IsNullOrWhiteSpace(normalized))
+            {
+                parts.Add(normalized);
+            }
+        }
 
         // Add Category
-        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationCategoryName))
-        {
-            parts.Add(scheduleStateItem.BiblePublicationCategoryName);
-        }
+        AddPart(parts, scheduleStateItem.BiblePublicationCategoryName);
 
         // Add Publication Name
-        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
-        {
-            parts.Add(scheduleStateItem.BiblePublicationName);
-        }
+        AddPart(parts, scheduleStateItem.BiblePublicationName);
 
         // Add Subsection (if exists) - only for sectioned publications
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode);
-        if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationSectionName))
+        if (hasSectionStructure)
         {
-            parts.Add(scheduleStateItem.BiblePublicationSectionName);
+            AddPart(parts, scheduleStateItem.BiblePublicationSectionName);
         }
 
         // Add Track Name
@@ -158,7 +160,7 @@ public sealed class ScheduleListItemSubtitleManager(
 
             if (isMusicCategory && !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
             {
-                parts.Add(scheduleStateItem.BiblePublicationTrackTitle);
+                AddPart(parts, scheduleStateItem.BiblePublicationTrackTitle);
             }
             else
             {
@@ -167,7 +169,7 @@ public sealed class ScheduleListItemSubtitleManager(
                     : null;
                 if (trackNumber != null)
                 {
-                    parts.Add(trackNumber);
+                    AddPart(parts, trackNumber);
                 }
             }
         }
@@ -176,18 +178,18 @@ public sealed class ScheduleListItemSubtitleManager(
             // For non-sectioned publications (dramas/videos), show track title
             if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
             {
-                parts.Add(scheduleStateItem.BiblePublicationTrackTitle);
+                AddPart(parts, scheduleStateItem.BiblePublicationTrackTitle);
             }
         }
 
         // Add Language (at the end)
         if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
         {
-            parts.Add(scheduleStateItem.BiblePublicationLanguageName);
+            AddPart(parts, scheduleStateItem.BiblePublicationLanguageName);
         }
         else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageCode))
         {
-            parts.Add(scheduleStateItem.BiblePublicationLanguageCode);
+            AddPart(parts, scheduleStateItem.BiblePublicationLanguageCode);
         }
 
         return string.Join(" • ", parts);
