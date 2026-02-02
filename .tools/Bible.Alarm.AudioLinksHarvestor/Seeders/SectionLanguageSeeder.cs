@@ -63,7 +63,6 @@ internal sealed class SectionLanguageSeeder
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.Sections)
-                    .ThenInclude(s => s.UrlParams)
                 .FirstOrDefaultAsync(bp => bp.PublicationCode == publicationCodeForDb && bp.Language != null && bp.Language.LanguageCode == "E");
 
             // Try to find section in English publication for reference (but don't require it)
@@ -76,12 +75,9 @@ internal sealed class SectionLanguageSeeder
                 
                 if (section == null)
                 {
-                    // Try to find by UrlParam booknum or section code as fallback
+                    // Try to find by SectionCode as fallback (case-insensitive)
                     section = englishPublication.Sections.FirstOrDefault(s => 
-                        s.UrlParams.Any(up => up.Key.Equals("booknum", StringComparison.OrdinalIgnoreCase) && 
-                                             up.Value == normalizedSectionCode) ||
-                        s.UrlParams.Any(up => up.Key.Equals("pub", StringComparison.OrdinalIgnoreCase) && 
-                                             up.Value.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase)));
+                        s.SectionCode.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
                 }
 
                 if (section == null)

@@ -36,10 +36,15 @@ When reasoning about lookups, the index supports multiple shapes:
 
 ### Track URL params (where they live)
 
-The index stores per-track URL construction data in `UrlParams`, keyed to a specific track row:
+**Only tracks store UrlParams** - complete params needed to fetch that specific track:
 - `UrlParams.BiblePublicationTrackId` → `BiblePublicationTracks.Id`
+- Each track's `UrlParams` contains all parameters needed to construct the full download URL (e.g., `pub`, `booknum`, `fileformat`, `langwritten`, `track`, `alllangs`)
 
-The app should treat those harvested URL params as **authoritative** and use them verbatim during playback/download.
+**Sections and Publications do NOT store UrlParams**:
+- Section URLs are built in code using harvest-type logic (derive from track params or use harvest-type rules)
+- Publication URLs are built in code using harvest-type logic (see `FlatPublicationFetcher.cs`, `SectionFetcher.cs`)
+
+The app should treat track `UrlParams` as **authoritative** and use them verbatim during playback/download via `UrlConstructionService`.
 
 ### `iam` specifics (disc-style)
 

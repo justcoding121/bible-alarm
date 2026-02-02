@@ -79,11 +79,8 @@ public class UrlConstructionService : IUrlConstructionService
         var track = await dbContext.BiblePublicationTracks
             .AsNoTracking() // Read-only, improves performance
             .Include(t => t.Publication)
-                .ThenInclude(p => p!.UrlParams)
-            .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
             .Include(t => t.Section)
-                .ThenInclude(s => s!.UrlParams)
             .Include(t => t.UrlParams)
             .FirstOrDefaultAsync(t => t.Id == trackId);
 
@@ -142,29 +139,6 @@ public class UrlConstructionService : IUrlConstructionService
             if (param.IsQueryParam)
             {
                 queryParams[param.Key] = param.Value;
-            }
-        }
-
-        // Add parameters from BiblePublication
-        foreach (var param in publication.UrlParams)
-        {
-            allParams[param.Key] = param.Value;
-            if (param.IsQueryParam)
-            {
-                queryParams[param.Key] = param.Value;
-            }
-        }
-
-        // Add parameters from BiblePublicationSection if track has a section
-        if (track.Section != null)
-        {
-            foreach (var param in track.Section.UrlParams)
-            {
-                allParams[param.Key] = param.Value;
-                if (param.IsQueryParam)
-                {
-                    queryParams[param.Key] = param.Value;
-                }
             }
         }
 
@@ -249,10 +223,7 @@ public class UrlConstructionService : IUrlConstructionService
             .AsNoTracking() // Read-only, improves performance
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
-            .Include(t => t.Publication)
-                .ThenInclude(p => p!.UrlParams)
             .Include(t => t.Section)
-                .ThenInclude(s => s!.UrlParams)
             .Include(t => t.UrlParams)
             .Where(t => t.Publication != null
                 && t.Publication.PublicationCode == publicationCode
@@ -351,10 +322,7 @@ public class UrlConstructionService : IUrlConstructionService
             .AsNoTracking()
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
-            .Include(t => t.Publication)
-                .ThenInclude(p => p!.UrlParams)
             .Include(t => t.Section)
-                .ThenInclude(s => s!.UrlParams)
             .Include(t => t.UrlParams)
             .Where(t => t.Publication != null
                 && t.Publication.PublicationCode == publicationCode

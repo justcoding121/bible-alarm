@@ -154,7 +154,6 @@ internal sealed class EnglishSectionFetcher
         {
             Name = sectionName ?? sectionCode,
             SectionCode = sectionCode.ToLowerInvariant(),
-            UrlParams = new List<UrlParam>(),
             Tracks = new List<BiblePublicationTrack>()
         };
 
@@ -171,47 +170,6 @@ internal sealed class EnglishSectionFetcher
                 filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode, baseUrl);
             section.Tracks.AddRange(tracks);
         }
-
-        // Add URL params based on type
-        if (isBible)
-        {
-            section.UrlParams.Add(new UrlParam
-            {
-                Key = "pub",
-                Value = normalizedPublicationCode,
-                IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
-            });
-            section.UrlParams.Add(new UrlParam
-            {
-                Key = "booknum",
-                Value = sectionCode,
-                IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
-            });
-        }
-        else
-        {
-            section.UrlParams.Add(new UrlParam
-            {
-                Key = "pub",
-                Value = sectionCode,
-                IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
-            });
-        }
-
-        section.UrlParams.Add(new UrlParam
-        {
-            Key = "fileformat",
-            Value = "mp3",
-            IsQueryParam = true,
-            BaseUrl = baseUrl,
-            BaseUrlId = baseUrl.Id
-        });
 
         return section;
     }

@@ -43,19 +43,8 @@ public class MediaDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Ensure all UrlParam relationships are optional (foreign keys are nullable)
-        modelBuilder.Entity<UrlParam>()
-            .HasOne(up => up.BiblePublication)
-            .WithMany(bp => bp.UrlParams)
-            .HasForeignKey(up => up.BiblePublicationId)
-            .IsRequired(false);
-
-        modelBuilder.Entity<UrlParam>()
-            .HasOne(up => up.BiblePublicationSection)
-            .WithMany(bs => bs.UrlParams)
-            .HasForeignKey(up => up.BiblePublicationSectionId)
-            .IsRequired(false);
-
+        // UrlParams are only stored for tracks (complete params needed to fetch that track)
+        // Sections and publications build URLs in code using harvest-type logic
         modelBuilder.Entity<UrlParam>()
             .HasOne(up => up.BiblePublicationTrack)
             .WithMany(bt => bt.UrlParams)

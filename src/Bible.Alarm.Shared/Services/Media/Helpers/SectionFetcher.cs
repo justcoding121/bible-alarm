@@ -142,49 +142,8 @@ internal sealed class SectionFetcher
                 {
                     Name = sectionName ?? sectionCode,
                     SectionCode = sectionCode.ToLowerInvariant(), // Use section code from API
-                    UrlParams = new List<UrlParam>(),
                     Tracks = tracks
                 };
-
-                if (isBible)
-                {
-                    section.UrlParams.Add(new UrlParam
-                    {
-                        Key = "pub",
-                        Value = normalizedPublicationCode,
-                        IsQueryParam = true,
-                        BaseUrl = baseUrl,
-                        BaseUrlId = baseUrl.Id
-                    });
-                    section.UrlParams.Add(new UrlParam
-                    {
-                        Key = "booknum",
-                        Value = sectionCode,
-                        IsQueryParam = true,
-                        BaseUrl = baseUrl,
-                        BaseUrlId = baseUrl.Id
-                    });
-                }
-                else
-                {
-                    section.UrlParams.Add(new UrlParam
-                    {
-                        Key = "pub",
-                        Value = sectionCode,
-                        IsQueryParam = true,
-                        BaseUrl = baseUrl,
-                        BaseUrlId = baseUrl.Id
-                    });
-                }
-
-                section.UrlParams.Add(new UrlParam
-                {
-                    Key = "fileformat",
-                    Value = "mp3",
-                    IsQueryParam = true,
-                    BaseUrl = baseUrl,
-                    BaseUrlId = baseUrl.Id
-                });
 
                 sections.Add(section);
             }

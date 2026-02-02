@@ -141,7 +141,6 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
                 .AsNoTracking()
                 .Include(x => x.Category)
                 .Include(x => x.Sections)
-                    .ThenInclude(s => s.UrlParams)
                 .Where(x => x.LanguageId == null
                     && x.PublicationCode == publicationCode)
                 .SelectMany(x => x.Sections)

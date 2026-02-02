@@ -145,8 +145,7 @@ internal sealed class MelodyMusicSeeder
                     SectionCode = discCode.ToLowerInvariant(),
                     BiblePublication = biblePublication,
                     BiblePublicationId = 0, // Will be set after publication is saved
-                    Tracks = new List<SharedBiblePublicationTrack>(),
-                    UrlParams = new List<SharedUrlParam>()
+                    Tracks = new List<SharedBiblePublicationTrack>()
                 };
 
                 // Create tracks for this section

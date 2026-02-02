@@ -207,37 +207,6 @@ internal class DbSeeder : IDataPersister
         string? languageCode,
         bool isVideo = false)
     {
-        // Create UrlParam entries for BiblePublication
-        var urlParams = new List<UrlParam>
-        {
-            new UrlParam
-            {
-                BiblePublicationId = 0, // Will be set after publication is saved
-                Key = "pub",
-                Value = publication.Code,
-                IsQueryParam = true
-            },
-            new UrlParam
-            {
-                BiblePublicationId = 0, // Will be set after publication is saved
-                Key = "fileformat",
-                Value = isVideo ? "mp4" : "mp3",
-                IsQueryParam = true
-            }
-        };
-
-        // Add langwritten parameter only if language is provided (vocals have language, melodies don't)
-        if (!string.IsNullOrEmpty(languageCode))
-        {
-            urlParams.Add(new UrlParam
-            {
-                BiblePublicationId = 0, // Will be set after publication is saved
-                Key = "langwritten",
-                Value = languageCode,
-                IsQueryParam = true
-            });
-        }
-
         // Normalize code to lowercase for consistency
         var normalizedCode = publication.Code.ToLowerInvariant();
         
@@ -247,7 +216,6 @@ internal class DbSeeder : IDataPersister
             PublicationCode = normalizedCode,
             Language = newLanguage, // Optional - can be null
             CategoryId = categoryId,
-            UrlParams = urlParams, // Optional - can be empty
             IsVideo = isVideo
         };
 

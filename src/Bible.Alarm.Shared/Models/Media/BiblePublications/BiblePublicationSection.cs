@@ -34,12 +34,6 @@ public sealed class BiblePublicationSection : IComparable
     [Required]
     public BiblePublication BiblePublication { get; set; } = null!;
 
-    /// <summary>
-    /// Navigation property to UrlParams (one-to-many, optional).
-    /// Contains URL parameters as key-value pairs.
-    /// </summary>
-    public List<UrlParam> UrlParams { get; set; } = [];
-
     [Required]
     public List<BiblePublicationTrack> Tracks { get; set; } = [];
 

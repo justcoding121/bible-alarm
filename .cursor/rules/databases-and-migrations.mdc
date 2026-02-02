@@ -41,6 +41,12 @@ DbContext:
 - `BaseUrls` (+ `UrlParams`)
   - URL construction metadata used to build JW API URLs
 
+- `UrlParams`
+  - **Only tracks store UrlParams** - complete params needed to fetch that specific track
+  - `UrlParams.BiblePublicationTrackId` → `BiblePublicationTracks.Id`
+  - Each track's `UrlParams` contains all parameters needed to construct the full download URL (e.g., `pub`, `booknum`, `fileformat`, `langwritten`, `track`, `alllangs`)
+  - **Sections and Publications do NOT store UrlParams** - URLs are built in code using harvest-type logic (see `FlatPublicationFetcher.cs`, `SectionFetcher.cs`)
+
 - `BiblePublications`
   - `CategoryId` required
   - `LanguageId` optional:

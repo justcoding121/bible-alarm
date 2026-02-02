@@ -127,8 +127,6 @@ internal sealed class LanguageContentPublicationSectionsFetcher
                 .Include(bp => bp.Sections)
                     .ThenInclude(s => s.Tracks)
                         .ThenInclude(t => t.UrlParams)
-                .Include(bp => bp.Sections)
-                    .ThenInclude(s => s.UrlParams)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(
                     bp => bp.PublicationCode == publicationCodeForDb &&

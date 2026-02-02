@@ -41,12 +41,6 @@ public sealed class BiblePublication : TranslatedPublication
     public new Media.Language? Language { get; set; }
 
     /// <summary>
-    /// Navigation property to UrlParams (one-to-many, optional).
-    /// Contains URL parameters as key-value pairs.
-    /// </summary>
-    public List<UrlParam> UrlParams { get; set; } = [];
-
-    /// <summary>
     /// Sections for traditional Bible publications (Section → Track structure).
     /// Empty for Drama/Video publications.
     /// </summary>

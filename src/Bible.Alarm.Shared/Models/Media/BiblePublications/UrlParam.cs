@@ -16,32 +16,9 @@ public sealed class UrlParam
     public int Id { get; set; }
 
     /// <summary>
-    /// Optional foreign key to BiblePublication.
-    /// Only one of BiblePublicationId, BiblePublicationSectionId, or BiblePublicationTrackId should be set.
-    /// </summary>
-    [ForeignKey(nameof(BiblePublication))]
-    public int? BiblePublicationId { get; set; }
-
-    /// <summary>
-    /// Optional navigation property to BiblePublication.
-    /// </summary>
-    public BiblePublication? BiblePublication { get; set; }
-
-    /// <summary>
-    /// Optional foreign key to BiblePublicationSection.
-    /// Only one of BiblePublicationId, BiblePublicationSectionId, or BiblePublicationTrackId should be set.
-    /// </summary>
-    [ForeignKey(nameof(BiblePublicationSection))]
-    public int? BiblePublicationSectionId { get; set; }
-
-    /// <summary>
-    /// Optional navigation property to BiblePublicationSection.
-    /// </summary>
-    public BiblePublicationSection? BiblePublicationSection { get; set; }
-
-    /// <summary>
-    /// Optional foreign key to BiblePublicationTrack.
-    /// Only one of BiblePublicationId, BiblePublicationSectionId, or BiblePublicationTrackId should be set.
+    /// Foreign key to BiblePublicationTrack.
+    /// UrlParams are only stored for tracks (complete params needed to fetch that track).
+    /// Sections and Publications do not store UrlParams - URLs are built in code using harvest-type logic.
     /// </summary>
     [ForeignKey(nameof(BiblePublicationTrack))]
     public int? BiblePublicationTrackId { get; set; }

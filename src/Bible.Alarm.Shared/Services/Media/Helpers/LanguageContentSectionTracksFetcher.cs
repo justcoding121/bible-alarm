@@ -78,20 +78,18 @@ internal sealed class LanguageContentSectionTracksFetcher
 
             // Find the section - reload from database to ensure we have the correct IDs
             var section = await db.BiblePublicationSections
-                .Include(s => s.UrlParams)
                 .FirstOrDefaultAsync(
                     s => s.BiblePublicationId == publication.Id && s.SectionCode == normalizedSectionCode,
                     cancellationToken);
 
             if (section == null)
             {
-                // Try to find by UrlParam as fallback - need to check sections that belong to this publication
+                // Try to find by SectionCode as fallback - need to check sections that belong to this publication
                 var allSections = await db.BiblePublicationSections
-                    .Include(s => s.UrlParams)
                     .Where(s => s.BiblePublicationId == publication.Id)
                     .ToListAsync(cancellationToken);
 
-                // Find section by SectionCode (UrlParams["booknum"] is only for URL construction)
+                // Find section by SectionCode
                 section = allSections.FirstOrDefault(s =>
                     s.SectionCode.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
             }
