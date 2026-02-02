@@ -275,6 +275,10 @@ public sealed class MusicCascadeHandler
                         logger.Warning("MusicCascadeHandler: Failed to harvest publication={PublicationCode}", publicationCode);
                         return;
                     }
+                    
+                    // Invalidate cache after downloading to ensure UI display/selectability checks use fresh data.
+                    // This mirrors BiblePublicationCascadeHandler behavior and prevents stale placeholder names.
+                    mediaService.InvalidateBiblePublicationsCache(languageCode, "Music");
 
                     // Re-query to get the actual publication
                     publication = await db.BiblePublications

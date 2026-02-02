@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -27,6 +28,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     private readonly BiblePublicationSelectionStateHandler stateHandler;
     private readonly BiblePublicationSelectionDataProvider dataProvider;
     private readonly BiblePublicationSelectionPropertyManager propertyManager;
+    private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
 
     public ICommand BackCommand { get; set; }
     public ICommand SectionSelectionCommand { get; set; }
@@ -53,6 +55,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
         commandHandler = new BiblePublicationSelectionCommandHandler(mediaService, state, dispatcher, navigationService, mapper, biblePublicationService, languageContentService);
         propertyManager = new BiblePublicationSelectionPropertyManager(state, dataProvider, stateHandler);
+        SetupPropertyManagerForwarding();
 
         // Initialize current from state if available (map DTO to entity)
         // Use CurrentSchedule as the source of truth
@@ -200,5 +203,44 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
         // Clean up property manager
         propertyManager.Cleanup();
+
+        if (propertyManagerPropertyChangedHandler != null)
+        {
+            propertyManager.PropertyChanged -= propertyManagerPropertyChangedHandler;
+            propertyManagerPropertyChangedHandler = null;
+        }
+    }
+
+    private void SetupPropertyManagerForwarding()
+    {
+        // The view binds to THIS ViewModel (not the property manager).
+        // Forward property-manager changes so bindings update (busy overlay + modal progress indicator).
+        propertyManagerPropertyChangedHandler = (_, e) =>
+        {
+            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.IsBusy))
+            {
+                OnPropertyChanged(nameof(IsBusy));
+                return;
+            }
+
+            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.ShowProgress))
+            {
+                OnPropertyChanged(nameof(ShowProgress));
+                return;
+            }
+
+            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.ProgressPercent))
+            {
+                OnPropertyChanged(nameof(ProgressPercent));
+                return;
+            }
+
+            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.ProgressText))
+            {
+                OnPropertyChanged(nameof(ProgressText));
+            }
+        };
+
+        propertyManager.PropertyChanged += propertyManagerPropertyChangedHandler;
     }
 }

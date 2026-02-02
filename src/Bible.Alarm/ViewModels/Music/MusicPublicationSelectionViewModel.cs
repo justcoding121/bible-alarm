@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -32,6 +33,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     private readonly MusicPublicationSelectionDataProvider dataProvider;
     private readonly MusicPublicationSelectionCommandHandler commandHandler;
     private readonly MusicPublicationSelectionPropertyManager propertyManager;
+    private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
 
     public MusicPublicationSelectionViewModel(
         ILogger logger,
@@ -58,6 +60,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         dataProvider = new MusicPublicationSelectionDataProvider(mediaService, biblePublicationService, languageContentService, scopeFactory);
         commandHandler = new MusicPublicationSelectionCommandHandler(navigationService, state, dispatcher, mediaService);
         propertyManager = new MusicPublicationSelectionPropertyManager();
+        SetupPropertyManagerForwarding();
 
         state.StateChanged += OnMusicInitialized;
         state.StateChanged += OnMusicChanged;
@@ -467,5 +470,44 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         state.StateChanged -= OnMusicInitialized;
         state.StateChanged -= OnMusicChanged;
         propertyManager.RemoveLanguageSearchHandler();
+
+        if (propertyManagerPropertyChangedHandler != null)
+        {
+            propertyManager.PropertyChanged -= propertyManagerPropertyChangedHandler;
+            propertyManagerPropertyChangedHandler = null;
+        }
+    }
+
+    private void SetupPropertyManagerForwarding()
+    {
+        // The view binds to THIS ViewModel (not the property manager).
+        // Forward property-manager changes so bindings update (busy overlay + modal progress indicator).
+        propertyManagerPropertyChangedHandler = (_, e) =>
+        {
+            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.IsBusy))
+            {
+                OnPropertyChanged(nameof(IsBusy));
+                return;
+            }
+
+            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.ShowProgress))
+            {
+                OnPropertyChanged(nameof(ShowProgress));
+                return;
+            }
+
+            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.ProgressPercent))
+            {
+                OnPropertyChanged(nameof(ProgressPercent));
+                return;
+            }
+
+            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.ProgressText))
+            {
+                OnPropertyChanged(nameof(ProgressText));
+            }
+        };
+
+        propertyManager.PropertyChanged += propertyManagerPropertyChangedHandler;
     }
 }

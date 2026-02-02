@@ -110,12 +110,23 @@ public sealed class MusicDisplayTextProvider
         }
 
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageName))
+        if (currentSchedule == null)
         {
             return string.Empty;
         }
 
-        return currentSchedule.MusicLanguageName;
+        // Prefer display name (populated during bootstrap/effects), otherwise fall back to the language code.
+        if (!string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageName))
+        {
+            return currentSchedule.MusicLanguageName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode))
+        {
+            return currentSchedule.MusicLanguageCode!;
+        }
+
+        return string.Empty;
     }
 
     public string GetSongPublicationDisplayText()
@@ -145,7 +156,12 @@ public sealed class MusicDisplayTextProvider
             return cachedSongPublicationName;
         }
 
-        // Return empty if not loaded yet
+        // Fall back to code (matches Bible container behavior).
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode))
+        {
+            return currentSchedule.MusicPublicationCode!;
+        }
+
         return string.Empty;
     }
 
@@ -183,7 +199,8 @@ public sealed class MusicDisplayTextProvider
             return cachedSongPublicationName;
         }
 
-        return string.Empty;
+        // Fall back to code (matches Bible container behavior).
+        return currentSchedule.MusicPublicationCode!;
     }
 
     public string GetTrackDisplayText()
@@ -218,8 +235,8 @@ public sealed class MusicDisplayTextProvider
             return cachedTrackName;
         }
 
-        // Return empty if not loaded yet (will be loaded asynchronously)
-        return string.Empty;
+        // Fall back to track number (matches Bible container behavior of showing *something*).
+        return currentSchedule.MusicTrackNumber.Value.ToString();
     }
 
     public async Task<string> GetTrackDisplayTextAsync()
@@ -254,7 +271,7 @@ public sealed class MusicDisplayTextProvider
             return cachedTrackName;
         }
 
-        return string.Empty;
+        return currentSchedule.MusicTrackNumber.Value.ToString();
     }
 
     public bool GetIsRepeatEnabled()
@@ -329,6 +346,12 @@ public sealed class MusicDisplayTextProvider
             return currentSchedule.MusicSectionName;
         }
 
+        // Fall back to section code (matches Bible container behavior).
+        if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode))
+        {
+            return currentSchedule.MusicSectionCode!;
+        }
+
         return string.Empty;
     }
 
@@ -359,87 +382,40 @@ public sealed class MusicDisplayTextProvider
     /// Checks if there are multiple publications available for the current music type and language.
     /// Returns true if there are 2 or more publications, false if only 1 or 0.
     /// </summary>
-    public async Task<bool> GetIsSongPublicationSelectableAsync()
+    public Task<bool> GetIsSongPublicationSelectableAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
         {
-            return false;
+            return Task.FromResult(false);
         }
 
-        var musicType = currentSchedule.MusicType.Value;
-        
-        try
-        {
-            if (musicType == MusicType.Music)
-            {
-                // For Instrumental Music, only count downloaded publications without language (LanguageId == null)
-                var allPublications = await mediaService.GetBiblePublications(string.Empty, "Music", downloadAll: false);
-                var instrumentalPublications = allPublications.Values
-                    .Where(p => p.LanguageId == null && p.Id > 0) // Only downloaded publications (Id > 0)
-                    .ToList();
-                return instrumentalPublications.Count > 1;
-            }
-            else
-            {
-                // For Vocal Music, only count downloaded publications for the selected language
-                var languageCode = currentSchedule.MusicLanguageCode ?? string.Empty;
-                var publications = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false);
-                // Only count downloaded publications (Id > 0), not placeholders (Id == 0)
-                var downloadedCount = publications.Values.Count(p => p.Id > 0);
-                return downloadedCount > 1;
-            }
-        }
-        catch
-        {
-            return false; // On error, default to not selectable
-        }
+        // Use discovery-based expected modal count from state (set on initial load + cascades).
+        var expectedCount = currentSchedule.MusicPublicationModalItemCount;
+        return Task.FromResult(expectedCount.HasValue && expectedCount.Value > 1);
     }
 
     /// <summary>
     /// Checks if there are multiple sections available for the current music publication.
     /// Returns true if there are 2 or more sections, false if only 1 or 0.
     /// </summary>
-    public async Task<bool> GetIsMusicSectionSelectableAsync()
+    public Task<bool> GetIsMusicSectionSelectableAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode))
         {
-            return false;
+            return Task.FromResult(false);
         }
 
         // If publication doesn't have sections, it's not selectable
         if (!GetIsMusicSectionVisible())
         {
-            return false;
+            return Task.FromResult(false);
         }
 
-        var musicType = currentSchedule.MusicType ?? MusicType.Music;
-        var languageCode = musicType == MusicType.VocalMusic 
-            ? (currentSchedule.MusicLanguageCode ?? string.Empty)
-            : string.Empty;
-        var publicationCode = currentSchedule.MusicPublicationCode;
-
-        try
-        {
-            // Check if publication has LanguageId == null by trying both methods
-            SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sections;
-            
-            // First try with language
-            sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
-            
-            // If no sections found with language, try without language
-            if (sections.Count == 0)
-            {
-                sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
-            }
-
-            return sections.Count > 1;
-        }
-        catch
-        {
-            return false; // On error, default to not selectable
-        }
+        // Use discovery-based expected modal count from state (set on initial load + cascades).
+        var expectedCount = currentSchedule.MusicSectionModalItemCount;
+        return Task.FromResult(expectedCount.HasValue && expectedCount.Value > 1);
     }
 
     /// <summary>

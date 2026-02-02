@@ -259,7 +259,9 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 currentSchedule.MusicLanguageCode ?? string.Empty,
                 currentSchedule.MusicPublicationCode ?? string.Empty,
                 currentSchedule.MusicSectionCode ?? string.Empty,
-                currentSchedule.MusicTrackNumber?.ToString() ?? string.Empty);
+                currentSchedule.MusicTrackNumber?.ToString() ?? string.Empty,
+                currentSchedule.MusicPublicationModalItemCount?.ToString() ?? string.Empty,
+                currentSchedule.MusicSectionModalItemCount?.ToString() ?? string.Empty);
 
             if (string.Equals(signature, lastSelectabilitySignature, StringComparison.Ordinal))
             {

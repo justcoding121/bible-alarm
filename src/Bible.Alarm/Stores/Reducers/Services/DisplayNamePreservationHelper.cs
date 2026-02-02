@@ -59,6 +59,17 @@ public static class DisplayNamePreservationHelper
             actionSchedule.BiblePublicationName = existingScheduleItem.BiblePublicationName;
         }
 
+        // Preserve discovery-based "expected modal item counts" so unrelated updates don't wipe them.
+        if (!actionSchedule.BiblePublicationModalItemCount.HasValue && existingScheduleItem.BiblePublicationModalItemCount.HasValue)
+        {
+            actionSchedule.BiblePublicationModalItemCount = existingScheduleItem.BiblePublicationModalItemCount;
+        }
+
+        if (!actionSchedule.BiblePublicationSectionModalItemCount.HasValue && existingScheduleItem.BiblePublicationSectionModalItemCount.HasValue)
+        {
+            actionSchedule.BiblePublicationSectionModalItemCount = existingScheduleItem.BiblePublicationSectionModalItemCount;
+        }
+
         // Check if publication type changed (sectioned <-> non-sectioned)
         var actionHasSectionStructure = !string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCode) &&
             PublicationTypeHelper.HasSectionStructure(actionSchedule.BiblePublicationCode);
@@ -118,6 +129,17 @@ public static class DisplayNamePreservationHelper
         if (string.IsNullOrWhiteSpace(actionSchedule.MusicTrackName) && !string.IsNullOrWhiteSpace(existingScheduleItem.MusicTrackName))
         {
             actionSchedule.MusicTrackName = existingScheduleItem.MusicTrackName;
+        }
+
+        // Preserve discovery-based "expected modal item counts" so unrelated updates don't wipe them.
+        if (!actionSchedule.MusicPublicationModalItemCount.HasValue && existingScheduleItem.MusicPublicationModalItemCount.HasValue)
+        {
+            actionSchedule.MusicPublicationModalItemCount = existingScheduleItem.MusicPublicationModalItemCount;
+        }
+
+        if (!actionSchedule.MusicSectionModalItemCount.HasValue && existingScheduleItem.MusicSectionModalItemCount.HasValue)
+        {
+            actionSchedule.MusicSectionModalItemCount = existingScheduleItem.MusicSectionModalItemCount;
         }
     }
 }

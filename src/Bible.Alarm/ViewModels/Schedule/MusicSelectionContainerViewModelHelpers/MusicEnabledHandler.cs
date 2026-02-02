@@ -199,7 +199,10 @@ public class MusicEnabledHandler
                             clonedSchedule.MusicTrackName = WebUtility.HtmlDecode(chosenTrack.Title).Replace('\u00A0', ' ');
 
                             // Update state with music properties (MusicEnabled should already be true from first dispatch)
-                            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, false, false, shouldSave: false));
+                            // Mark as music-updated so:
+                            // - music cascade can validate/normalize (it should be a no-op when track is already set)
+                            // - modal expected-counts are refreshed so section-row arrow can show immediately (e.g., "iam")
+                            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
                         }
                     }
                     catch (Exception ex)

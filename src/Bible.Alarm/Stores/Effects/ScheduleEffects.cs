@@ -8,6 +8,7 @@ using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Music;
@@ -71,6 +72,26 @@ public class ScheduleEffects(
     private ScheduleCreateHandler createHandler => _createHandler ??= new ScheduleCreateHandler(mapper, this.alarmScheduleService, this.alarmService, scheduleDisplayNameService);
     private ScheduleDeleteHandler deleteHandler => _deleteHandler ??= new ScheduleDeleteHandler(mapper, this.alarmScheduleService, this.alarmService, this.mediaCacheService, scheduleDisplayNameService);
     private ScheduleSuccessHandler successHandler => _successHandler ??= new ScheduleSuccessHandler();
+
+    [EffectMethod]
+    public async Task HandleViewSchedule(ViewScheduleAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
+            var currentSchedule = currentState.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return;
+            }
+
+            await TryDispatchModalCountsUpdateAsync(currentSchedule, dispatcher, reason: "ViewScheduleAction");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error in HandleViewSchedule (modal counts)");
+        }
+    }
 
     /// <summary>
     /// Effect: Transform DB entity to DTO and dispatch success action.
@@ -197,6 +218,44 @@ public class ScheduleEffects(
         }
     }
 
+    [EffectMethod]
+    public async Task HandleUpdateScheduleFromViewModelPopulateModalCounts(UpdateScheduleFromViewModelAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            // Only compute/refresh discovery-based modal counts during live edits (never during saves).
+            if (action.ShouldSave)
+            {
+                return;
+            }
+
+            // Only run when Bible/Music selection changed (call sites should set these flags accurately).
+            if (!action.BiblePublicationUpdated && !action.MusicUpdated)
+            {
+                return;
+            }
+
+            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
+            var currentSchedule = currentState.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return;
+            }
+
+            // Ensure we update the currently edited schedule only.
+            if (currentSchedule.Id != action.Schedule.Id)
+            {
+                return;
+            }
+
+            await TryDispatchModalCountsUpdateAsync(currentSchedule, dispatcher, reason: "UpdateScheduleFromViewModelAction");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error populating modal counts from UpdateScheduleFromViewModelAction");
+        }
+    }
+
     /// <summary>
     /// Effect: Handle DeleteScheduleAction - Delete from DB, dispatch success/failure.
     /// Following Fluxor best practices: Effects handle DB operations.
@@ -259,9 +318,21 @@ public class ScheduleEffects(
     [EffectMethod]
     public async Task HandleBiblePublicationTrackSelected(Bible.Alarm.Stores.Actions.BiblePublications.TrackSelectedAction action, IDispatcher dispatcher)
     {
-        // Reducer updates CurrentSchedule synchronously. No additional display-name enrichment here:
-        // titles should come from harvested track titles + standard hydration paths.
-        await Task.CompletedTask;
+        try
+        {
+            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
+            var currentSchedule = currentState.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return;
+            }
+
+            await TryDispatchModalCountsUpdateAsync(currentSchedule, dispatcher, reason: "Bible TrackSelectedAction");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error in HandleBiblePublicationTrackSelected (modal counts)");
+        }
     }
 
     /// <summary>
@@ -273,6 +344,277 @@ public class ScheduleEffects(
     public async Task HandleMusicTrackSelected(Bible.Alarm.Stores.Actions.Music.TrackSelectedAction action, IDispatcher dispatcher)
     {
         await trackSyncHandler.HandleTrackSelected(action, dispatcher);
+    }
+
+    [EffectMethod]
+    public async Task HandleMusicSectionSelected(MusicSectionSelectedAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
+            var currentSchedule = currentState.Value.CurrentSchedule;
+            if (currentSchedule == null)
+            {
+                return;
+            }
+
+            await TryDispatchModalCountsUpdateAsync(currentSchedule, dispatcher, reason: "MusicSectionSelectedAction");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error in HandleMusicSectionSelected (modal counts)");
+        }
+    }
+
+    private async Task TryDispatchModalCountsUpdateAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher, string reason)
+    {
+        try
+        {
+            var updatedSchedule = await TryPopulateModalCountsAsync(currentSchedule);
+            if (updatedSchedule == null)
+            {
+                return;
+            }
+
+            if (AreModalCountsEquivalent(currentSchedule, updatedSchedule))
+            {
+                return;
+            }
+
+            Log.Debug("ScheduleEffects: Updating modal counts. Reason={Reason}, ScheduleId={ScheduleId}, BiblePubCount={BiblePubCount}, BibleSectionCount={BibleSectionCount}, MusicPubCount={MusicPubCount}, MusicSectionCount={MusicSectionCount}",
+                reason,
+                currentSchedule.Id,
+                updatedSchedule.BiblePublicationModalItemCount,
+                updatedSchedule.BiblePublicationSectionModalItemCount,
+                updatedSchedule.MusicPublicationModalItemCount,
+                updatedSchedule.MusicSectionModalItemCount);
+
+            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: false, biblePublicationUpdated: false, shouldSave: false));
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error updating modal counts. Reason={Reason}, ScheduleId={ScheduleId}",
+                reason, currentSchedule.Id);
+        }
+    }
+
+    private static bool AreModalCountsEquivalent(ScheduleStateItem a, ScheduleStateItem b)
+    {
+        return a.BiblePublicationModalItemCount == b.BiblePublicationModalItemCount &&
+               a.BiblePublicationSectionModalItemCount == b.BiblePublicationSectionModalItemCount &&
+               a.MusicPublicationModalItemCount == b.MusicPublicationModalItemCount &&
+               a.MusicSectionModalItemCount == b.MusicSectionModalItemCount;
+    }
+
+    private static bool HasMusicType(ScheduleStateItem schedule) => schedule.MusicType.HasValue;
+
+    private async Task<ScheduleStateItem?> TryPopulateModalCountsAsync(ScheduleStateItem currentSchedule)
+    {
+        try
+        {
+            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
+            if (scopeFactory == null)
+            {
+                Log.Warning("ScheduleEffects: Cannot populate modal counts - IServiceScopeFactory not available. ScheduleId={ScheduleId}", currentSchedule.Id);
+                return null;
+            }
+
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var updated = currentSchedule.DeepClone();
+
+            updated.BiblePublicationModalItemCount = await GetBiblePublicationModalItemCountAsync(db, updated);
+            updated.BiblePublicationSectionModalItemCount = await GetBiblePublicationSectionModalItemCountAsync(db, updated);
+
+            if (updated.MusicEnabled && HasMusicType(updated))
+            {
+                updated.MusicPublicationModalItemCount = await GetMusicPublicationModalItemCountAsync(db, updated);
+                updated.MusicSectionModalItemCount = await GetMusicSectionModalItemCountAsync(db, updated);
+            }
+            else
+            {
+                // Keep existing values if any; don't force nulls while Music is disabled/uninitialized.
+                updated.MusicPublicationModalItemCount ??= currentSchedule.MusicPublicationModalItemCount;
+                updated.MusicSectionModalItemCount ??= currentSchedule.MusicSectionModalItemCount;
+            }
+
+            return updated;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ScheduleEffects: Error populating modal counts. ScheduleId={ScheduleId}", currentSchedule.Id);
+            return null;
+        }
+    }
+
+    private static async Task<int?> GetBiblePublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
+    {
+        var categoryName = schedule.BiblePublicationCategoryName;
+        if (string.IsNullOrWhiteSpace(categoryName))
+        {
+            return null;
+        }
+
+        var languageCode = schedule.BiblePublicationLanguageCode;
+        var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
+
+        var query = db.PublicationLanguages
+            .AsNoTracking()
+            .Where(pl => pl.Category != null && pl.Category.CategoryName == categoryName);
+
+        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
+        {
+            // Bible container publication modal shows both:
+            // - publications in the selected language
+            // - publications without a language FK (LanguageId == null)
+            query = query.Where(pl =>
+                (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||
+                pl.LanguageId == null);
+        }
+        else
+        {
+            // If language isn't set yet, only count no-language publications for this category.
+            query = query.Where(pl => pl.LanguageId == null);
+        }
+
+        var publicationCodes = await query
+            .Select(pl => pl.PublicationCode)
+            .ToListAsync();
+
+        if (publicationCodes.Count == 0)
+        {
+            return 0;
+        }
+
+        // Deduplicate in-memory (including drama canonicalization).
+        var unique = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var code in publicationCodes)
+        {
+            var lower = code.ToLowerInvariant();
+            if (PublicationTypeHelper.IsDrama(lower))
+            {
+                unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? "Dramas" : "DramaticBibleReadings");
+            }
+            else
+            {
+                unique.Add(code);
+            }
+        }
+
+        return unique.Count;
+    }
+
+    private static async Task<int?> GetBiblePublicationSectionModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
+    {
+        var publicationCode = schedule.BiblePublicationCode;
+        if (string.IsNullOrWhiteSpace(publicationCode) || !PublicationTypeHelper.HasSectionStructure(publicationCode))
+        {
+            return 0;
+        }
+
+        var languageCode = schedule.BiblePublicationLanguageCode;
+        var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
+
+        var query = db.SectionLanguages
+            .AsNoTracking()
+            .Where(sl => sl.PublicationCode == publicationCode);
+
+        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
+        {
+            // Section modal shows both:
+            // - sections in the selected language
+            // - sections without a language FK (LanguageId == null)
+            query = query.Where(sl =>
+                (sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode) ||
+                sl.LanguageId == null);
+        }
+        else
+        {
+            query = query.Where(sl => sl.LanguageId == null);
+        }
+
+        return await query
+            .Select(sl => sl.SectionCode)
+            .Distinct()
+            .CountAsync();
+    }
+
+    private static async Task<int?> GetMusicPublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
+    {
+        if (!schedule.MusicType.HasValue)
+        {
+            return null;
+        }
+
+        var musicType = schedule.MusicType.Value;
+        var query = db.PublicationLanguages
+            .AsNoTracking()
+            .Where(pl => pl.Category != null && pl.Category.CategoryName == "Music");
+
+        if (musicType == MusicType.Music)
+        {
+            // Instrumental music is no-language (LanguageId == null).
+            query = query.Where(pl => pl.LanguageId == null);
+        }
+        else
+        {
+            var languageCode = schedule.MusicLanguageCode;
+            if (string.IsNullOrWhiteSpace(languageCode))
+            {
+                return 0;
+            }
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+            query = query.Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode);
+        }
+
+        return await query
+            .Select(pl => pl.PublicationCode)
+            .Distinct()
+            .CountAsync();
+    }
+
+    private static async Task<int?> GetMusicSectionModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
+    {
+        if (!schedule.MusicType.HasValue)
+        {
+            return null;
+        }
+
+        var publicationCode = schedule.MusicPublicationCode;
+        if (string.IsNullOrWhiteSpace(publicationCode) || !PublicationTypeHelper.HasSectionStructure(publicationCode))
+        {
+            return 0;
+        }
+
+        var musicType = schedule.MusicType.Value;
+        var query = db.SectionLanguages
+            .AsNoTracking()
+            .Where(sl => sl.PublicationCode == publicationCode);
+
+        if (musicType == MusicType.Music)
+        {
+            // Instrumental music is treated as "no-language" in the app, but the discovery table may contain:
+            // - LanguageId == null rows (seeded from publications without language)
+            // - LanguageId == "E" (or other) rows (from discovery parsing / seeders)
+            // For the section-row arrow, we only care how many unique section codes exist in discovery.
+            // So count ALL distinct section codes for the publication, regardless of LanguageId.
+        }
+        else
+        {
+            var languageCode = schedule.MusicLanguageCode;
+            if (string.IsNullOrWhiteSpace(languageCode))
+            {
+                return 0;
+            }
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+            query = query.Where(sl => sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode);
+        }
+
+        return await query
+            .Select(sl => sl.SectionCode)
+            .Distinct()
+            .CountAsync();
     }
 
     /// <summary>
@@ -451,7 +793,7 @@ public class ScheduleEffects(
             var sectionInfo = await dbContext.BiblePublicationTracks
                 .AsNoTracking()
                 .Include(t => t.Section)
-                    .ThenInclude(s => s.BiblePublication)
+                    .ThenInclude(s => s!.BiblePublication)
                         .ThenInclude(p => p.Category)
                 .Where(t => t.BiblePublicationSectionId != null
                     && t.Number == scheduleStateItem.MusicTrackNumber.Value

@@ -144,6 +144,12 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
                     Serilog.Log.Warning("Failed to download first vocal music publication {PublicationCode} for language {LanguageCode}",
                         firstPublicationCode, language.Code);
                 }
+                else
+                {
+                    // Ensure subsequent GetBiblePublications() sees fresh (non-placeholder) data.
+                    // Otherwise the cache can keep returning stale placeholder names after a successful harvest.
+                    mediaService.InvalidateBiblePublicationsCache(language.Code, "Music");
+                }
             }
             catch (Exception ex)
             {

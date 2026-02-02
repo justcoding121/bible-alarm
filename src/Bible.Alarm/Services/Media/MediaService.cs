@@ -64,7 +64,7 @@ public sealed class MediaService(
         if (downloadAll || progress != null)
         {
             await mediaIndexService.Verify();
-            return await MediaServiceBiblePublicationList.GetBiblePublicationsAsync(
+            var result = await MediaServiceBiblePublicationList.GetBiblePublicationsAsync(
                 BiblePublicationService,
                 languageContentService,
                 scopeFactory,
@@ -73,6 +73,14 @@ public sealed class MediaService(
                 categoryName,
                 downloadAll,
                 progress);
+            
+            // Invalidate cache after downloading to ensure selectability checks use fresh data
+            if (downloadAll)
+            {
+                InvalidateBiblePublicationsCache(languageCode, categoryName);
+            }
+            
+            return result;
         }
 
         var normalizedLanguage = languageCode ?? string.Empty;
@@ -119,6 +127,18 @@ public sealed class MediaService(
             categoryName,
             downloadAll: false,
             progress: null);
+    }
+
+    /// <summary>
+    /// Invalidates the BiblePublications cache for a specific language and category.
+    /// Call this after downloading publications to ensure fresh data is used for selectability checks.
+    /// </summary>
+    public void InvalidateBiblePublicationsCache(string languageCode, string? categoryName = null)
+    {
+        var normalizedLanguage = languageCode ?? string.Empty;
+        var normalizedCategory = string.IsNullOrWhiteSpace(categoryName) ? null : categoryName.Trim();
+        var key = new BiblePublicationsCacheKey(normalizedLanguage, normalizedCategory);
+        biblePublicationsCache.TryRemove(key, out _);
     }
 
     private async Task<bool> IsPublicationWithoutLanguageAsync(string publicationCode)

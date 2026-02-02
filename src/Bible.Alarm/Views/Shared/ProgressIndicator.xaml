@@ -4,14 +4,15 @@
     x:Class="Bible.Alarm.Views.Shared.ProgressIndicator"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core">
+    xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
+    ZIndex="1000">
     <Border
         IsVisible="{Binding ShowProgress}"
         BackgroundColor="{DynamicResource CardBackgroundColor}"
         StrokeThickness="0"
         Padding="{DynamicResource PaddingThickness24_20}"
         MinimumWidthRequest="{DynamicResource ContentWidthLarge}"
-        ZIndex="1000">
+        >
         <Border.StrokeShape>
             <RoundRectangle CornerRadius="16" />
         </Border.StrokeShape>

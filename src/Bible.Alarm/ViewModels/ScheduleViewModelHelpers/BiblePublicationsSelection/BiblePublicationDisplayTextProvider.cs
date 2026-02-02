@@ -292,90 +292,41 @@ public sealed class BiblePublicationDisplayTextProvider
     /// Checks if there are multiple publications available for the current language and category.
     /// Returns true if there are 2 or more publications, false if only 1 or 0.
     /// </summary>
-    public async Task<bool> GetIsPublicationSelectableAsync()
+    public Task<bool> GetIsPublicationSelectableAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null)
         {
-            return false;
+            return Task.FromResult(false);
         }
 
-        var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
-        var categoryName = currentSchedule.BiblePublicationCategoryName;
-        
-        if (string.IsNullOrWhiteSpace(categoryName))
-        {
-            return false; // No category selected, can't determine
-        }
-
-        // Avoid DB calls while category cascade is still populating language.
-        if (string.IsNullOrWhiteSpace(languageCode))
-        {
-            return false;
-        }
-
-        try
-        {
-            var publications = await mediaService.GetBiblePublications(languageCode, categoryName, downloadAll: false);
-            // Only count downloaded publications (Id > 0), not placeholders (Id == 0)
-            var downloadedCount = publications.Values.Count(p => p.Id > 0);
-            return downloadedCount > 1;
-        }
-        catch
-        {
-            return false; // On error, default to not selectable
-        }
+        // Use discovery-based expected modal count from state (set on initial load + cascades).
+        // This avoids per-row DB queries just to decide whether to show a right-arrow.
+        var expectedCount = currentSchedule.BiblePublicationModalItemCount;
+        return Task.FromResult(expectedCount.HasValue && expectedCount.Value > 1);
     }
 
     /// <summary>
     /// Checks if there are multiple sections available for the current publication.
     /// Returns true if there are 2 or more sections, false if only 1 or 0.
     /// </summary>
-    public async Task<bool> GetIsSectionSelectableAsync()
+    public Task<bool> GetIsSectionSelectableAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
         {
-            return false;
+            return Task.FromResult(false);
         }
 
         // If publication doesn't have sections, it's not selectable
         if (!GetIsSectionVisible())
         {
-            return false;
+            return Task.FromResult(false);
         }
 
-        var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
-        var publicationCode = currentSchedule.BiblePublicationCode;
-
-        try
-        {
-            SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection> sections;
-            
-            if (string.IsNullOrWhiteSpace(languageCode))
-            {
-                // Publication likely has no language FK (instrumental) OR cascade hasn't populated language yet.
-                // Avoid a useless "with language" query.
-                sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
-            }
-            else
-            {
-                // First try with language
-                sections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode);
-            
-                // If no sections found with language, try without language
-                if (sections.Count == 0)
-                {
-                    sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
-                }
-            }
-
-            return sections.Count > 1;
-        }
-        catch
-        {
-            return false; // On error, default to not selectable
-        }
+        // Use discovery-based expected modal count from state (set on initial load + cascades).
+        var expectedCount = currentSchedule.BiblePublicationSectionModalItemCount;
+        return Task.FromResult(expectedCount.HasValue && expectedCount.Value > 1);
     }
 
     /// <summary>

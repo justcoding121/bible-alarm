@@ -136,6 +136,34 @@ public sealed class ScheduleStateItem : IComparable
     public string? MusicTrackName { get; set; }
 
     /// <summary>
+    /// Count of items expected inside the Bible Publication selection modal (discovered + downloaded).
+    /// Used for showing/hiding the right-arrow on the publication row without extra DB queries.
+    /// Not persisted to database.
+    /// </summary>
+    public int? BiblePublicationModalItemCount { get; set; }
+
+    /// <summary>
+    /// Count of items expected inside the Bible Section selection modal (discovered + downloaded).
+    /// Used for showing/hiding the right-arrow on the section row without extra DB queries.
+    /// Not persisted to database.
+    /// </summary>
+    public int? BiblePublicationSectionModalItemCount { get; set; }
+
+    /// <summary>
+    /// Count of items expected inside the Music Publication selection modal (discovered + downloaded).
+    /// Used for showing/hiding the right-arrow on the song publication row without extra DB queries.
+    /// Not persisted to database.
+    /// </summary>
+    public int? MusicPublicationModalItemCount { get; set; }
+
+    /// <summary>
+    /// Count of items expected inside the Music Section selection modal (discovered + downloaded).
+    /// Used for showing/hiding the right-arrow on the music section row without extra DB queries.
+    /// Not persisted to database.
+    /// </summary>
+    public int? MusicSectionModalItemCount { get; set; }
+
+    /// <summary>
     /// Compare by schedule ID for ObservableHashSet ordering.
     /// </summary>
     public int CompareTo(object? obj)

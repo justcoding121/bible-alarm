@@ -127,7 +127,7 @@ public partial class BusyOverlay : ContentView
 
             // Set opacity and InputTransparent directly on both the ContentView itself and the overlay grid
             // This bypasses any binding delays and ensures the overlay behaves correctly as soon as IsVisible is set
-            overlay.Dispatcher.Dispatch(() =>
+            void Apply()
             {
                 // Set InputTransparent on the ContentView itself (this is critical - parent must allow input through)
                 overlay.InputTransparent = inputTransparent;
@@ -150,7 +150,25 @@ public partial class BusyOverlay : ContentView
                     overlay.StopSpinnerImmediately();
                     overlay.CancelHardTimeout();
                 }
-            });
+            }
+
+            try
+            {
+                // WinUI can throw if the dispatcher is not ready/disposed. Be defensive to avoid crashes.
+                overlay.Dispatcher.Dispatch(Apply);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "BusyOverlay.OnIsVisibleChanged: Failed to dispatch UI update, falling back to MainThread");
+                try
+                {
+                    MainThread.BeginInvokeOnMainThread(Apply);
+                }
+                catch (Exception ex2)
+                {
+                    logger.Warning(ex2, "BusyOverlay.OnIsVisibleChanged: Failed to apply UI update on MainThread");
+                }
+            }
         }
     }
 

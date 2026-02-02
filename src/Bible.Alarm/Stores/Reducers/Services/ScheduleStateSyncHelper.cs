@@ -62,6 +62,10 @@ public static class ScheduleStateSyncHelper
                current.BiblePublicationCode == action.BiblePublicationCode &&
                string.Equals(currentSectionCode, actionSectionCode, StringComparison.OrdinalIgnoreCase) &&
                current.BiblePublicationTrackNumber == action.BiblePublicationTrackNumber &&
+               current.BiblePublicationModalItemCount == action.BiblePublicationModalItemCount &&
+               current.BiblePublicationSectionModalItemCount == action.BiblePublicationSectionModalItemCount &&
+               current.MusicPublicationModalItemCount == action.MusicPublicationModalItemCount &&
+               current.MusicSectionModalItemCount == action.MusicSectionModalItemCount &&
                current.Name == action.Name &&
                current.IsEnabled == action.IsEnabled &&
                current.Hour == action.Hour &&

@@ -394,7 +394,9 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
                 currentSchedule.BiblePublicationCategoryName ?? string.Empty,
                 currentSchedule.BiblePublicationLanguageCode ?? string.Empty,
                 currentSchedule.BiblePublicationCode ?? string.Empty,
-                currentSchedule.BiblePublicationSectionCode ?? string.Empty);
+                currentSchedule.BiblePublicationSectionCode ?? string.Empty,
+                currentSchedule.BiblePublicationModalItemCount?.ToString() ?? string.Empty,
+                currentSchedule.BiblePublicationSectionModalItemCount?.ToString() ?? string.Empty);
 
             if (string.Equals(signature, lastSelectabilitySignature, StringComparison.Ordinal))
             {

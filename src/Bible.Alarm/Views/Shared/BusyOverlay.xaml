@@ -8,6 +8,7 @@
              xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
              xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
              BackgroundColor="Transparent"
+             ZIndex="999"
              HorizontalOptions="Fill"
              VerticalOptions="Fill">
     <ContentView.Resources>

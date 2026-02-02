@@ -34,33 +34,6 @@ internal sealed class MusicInstrumentalSectionListLoader
             // No DB probing needed: query the without-language path directly.
             var sectionsFromDb = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
 
-            // If no sections found, sections might be being fetched (though music should be pre-harvested)
-            // Add retry logic similar to Bible container for consistency
-            if (sectionsFromDb == null || sectionsFromDb.Count == 0)
-            {
-                logger.Information("[MusicSectionSelection] LoadAsync: No sections found initially for publication={PublicationCode}. Sections may be being fetched, will retry...",
-                    publicationCode);
-
-                // Retry up to 5 times with increasing delays to allow fetch to complete
-                // Total wait time: 2s + 3s + 4s + 5s + 6s = 20 seconds
-                for (int retry = 0; retry < 5; retry++)
-                {
-                    // Wait before retrying (2s, 3s, 4s, 5s, 6s)
-                    progress?.UpdateProgress(0.2 + (retry / 5.0) * 0.3); // 0.2 to 0.5
-                    await Task.Delay(1000 * (retry + 2));
-
-                    // Re-query to see if sections are now available
-                    sectionsFromDb = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
-
-                    if (sectionsFromDb != null && sectionsFromDb.Count > 0)
-                    {
-                        logger.Information("[MusicSectionSelection] LoadAsync: Found {Count} sections on retry {Retry} for publication={PublicationCode}",
-                            sectionsFromDb.Count, retry + 1, publicationCode);
-                        break;
-                    }
-                }
-            }
-
             progress?.UpdateProgress(0.7);
 
             if (sectionsFromDb == null || sectionsFromDb.Count == 0)
