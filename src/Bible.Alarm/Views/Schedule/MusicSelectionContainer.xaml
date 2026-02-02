@@ -10,6 +10,7 @@
              x:DataType="vm:MusicSelectionContainerViewModel">
     <Border Margin="0"
             Padding="0"
+            FlowDirection="LeftToRight"
             StrokeThickness="0"
             BackgroundColor="{DynamicResource CardBackgroundColor}"
             HorizontalOptions="Fill">
@@ -24,7 +25,6 @@
         </Border.Shadow>
         <Border.Resources>
             <converters:RepeatColorConverter x:Key="repeatColorConverter" />
-            <converters:FlowDirectionToArrowConverter x:Key="flowDirectionToArrowConverter" />
             <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
             <converters:SelectableTextColorConverter x:Key="selectableTextColorConverter" />
         </Border.Resources>
@@ -249,8 +249,7 @@
                                      HighlightBackground="{StaticResource PrimaryLightColor}"
                                      RippleAnimationDuration="200"
                                      ShouldIgnoreTouches="{Binding IsSongPublicationSelectable, Converter={StaticResource negateBooleanConverter}}"
-                                     IsVisible="{Binding IsSongPublicationVisible}"
-                                     FlowDirection="{Binding ContentFlowDirection}">
+                                     IsVisible="{Binding IsSongPublicationVisible}">
                     <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectSongPublicationCommand}"
                                               NumberOfTapsRequired="1" />
@@ -292,7 +291,7 @@
                             HorizontalOptions="Center"
                             HorizontalTextAlignment="Center"
                             InputTransparent="True"
-                            Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
+                            Text="{x:Static fn:GlyphNames.Right}"
                             TextColor="{DynamicResource TextSecondaryColor}"
                             VerticalOptions="Center"
                             VerticalTextAlignment="Center" />
@@ -314,8 +313,7 @@
                                      HighlightBackground="{StaticResource PrimaryLightColor}"
                                      RippleAnimationDuration="200"
                                      ShouldIgnoreTouches="{Binding IsMusicSectionSelectable, Converter={StaticResource negateBooleanConverter}}"
-                                     IsVisible="{Binding IsMusicSectionVisible}"
-                                     FlowDirection="{Binding ContentFlowDirection}">
+                                     IsVisible="{Binding IsMusicSectionVisible}">
                     <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectMusicSectionCommand}"
                                               NumberOfTapsRequired="1" />
@@ -357,7 +355,7 @@
                             HorizontalOptions="Center"
                             HorizontalTextAlignment="Center"
                             InputTransparent="True"
-                            Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
+                            Text="{x:Static fn:GlyphNames.Right}"
                             TextColor="{DynamicResource TextSecondaryColor}"
                             VerticalOptions="Center"
                             VerticalTextAlignment="Center" />
@@ -377,8 +375,7 @@
                                      RippleBackground="{StaticResource PrimaryColor}"
                                      HighlightBackground="{StaticResource PrimaryLightColor}"
                                      RippleAnimationDuration="200"
-                                     ShouldIgnoreTouches="{Binding IsMusicTrackSelectable, Converter={StaticResource negateBooleanConverter}}"
-                                     FlowDirection="{Binding ContentFlowDirection}">
+                                     ShouldIgnoreTouches="{Binding IsMusicTrackSelectable, Converter={StaticResource negateBooleanConverter}}">
                     <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
                                               NumberOfTapsRequired="1" />
@@ -455,7 +452,7 @@
                                 HorizontalOptions="Center"
                                 HorizontalTextAlignment="Center"
                                 InputTransparent="True"
-                                Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
+                                Text="{x:Static fn:GlyphNames.Right}"
                                 TextColor="{DynamicResource TextSecondaryColor}"
                                 VerticalOptions="Center"
                                 VerticalTextAlignment="Center" />

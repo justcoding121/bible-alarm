@@ -25,7 +25,7 @@
     <ContentPage.Content>
         <Grid x:Name="MainContentGrid" 
               BackgroundColor="{DynamicResource BackgroundColor}"
-              FlowDirection="{Binding ContentFlowDirection}">
+              FlowDirection="LeftToRight">
             <!-- MAIN LIST -->
             <Grid x:Name="MainContentList"
                 Margin="0"

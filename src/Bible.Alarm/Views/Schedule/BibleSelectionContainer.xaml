@@ -8,12 +8,12 @@
              xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
              x:DataType="vm:BiblePublicationSelectionContainerViewModel">
     <ContentView.Resources>
-        <converters:FlowDirectionToArrowConverter x:Key="flowDirectionToArrowConverter" />
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <converters:SelectableTextColorConverter x:Key="selectableTextColorConverter" />
     </ContentView.Resources>
     <Border Margin="0"
             Padding="0"
+            FlowDirection="LeftToRight"
             StrokeThickness="2"
             Stroke="{DynamicResource TextPrimaryColor}"
             BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -183,8 +183,7 @@
                                  RippleBackground="{StaticResource PrimaryColor}"
                                  HighlightBackground="{StaticResource PrimaryLightColor}"
                                  RippleAnimationDuration="200"
-                                 ShouldIgnoreTouches="{Binding IsPublicationSelectable, Converter={StaticResource negateBooleanConverter}}"
-                                 FlowDirection="{Binding ContentFlowDirection}">
+                                 ShouldIgnoreTouches="{Binding IsPublicationSelectable, Converter={StaticResource negateBooleanConverter}}">
                 <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectBibleCommand}"
                                           NumberOfTapsRequired="1" />
@@ -227,7 +226,7 @@
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
-                        Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
+                        Text="{x:Static fn:GlyphNames.Right}"
                         TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
@@ -249,8 +248,7 @@
                                  HighlightBackground="{StaticResource PrimaryLightColor}"
                                  RippleAnimationDuration="200"
                                  ShouldIgnoreTouches="{Binding IsSectionSelectable, Converter={StaticResource negateBooleanConverter}}"
-                                 IsVisible="{Binding IsSectionVisible}"
-                                 FlowDirection="{Binding ContentFlowDirection}">
+                                 IsVisible="{Binding IsSectionVisible}">
                 <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectSectionCommand}"
                                           NumberOfTapsRequired="1" />
@@ -293,7 +291,7 @@
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
-                        Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
+                        Text="{x:Static fn:GlyphNames.Right}"
                         TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
@@ -313,8 +311,7 @@
                                  RippleBackground="{StaticResource PrimaryColor}"
                                  HighlightBackground="{StaticResource PrimaryLightColor}"
                                  RippleAnimationDuration="200"
-                                 ShouldIgnoreTouches="{Binding IsTrackSelectable, Converter={StaticResource negateBooleanConverter}}"
-                                 FlowDirection="{Binding ContentFlowDirection}">
+                                 ShouldIgnoreTouches="{Binding IsTrackSelectable, Converter={StaticResource negateBooleanConverter}}">
                 <core:SfEffectsView.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
                                           NumberOfTapsRequired="1" />
@@ -357,7 +354,7 @@
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
-                        Text="{Binding ContentFlowDirection, Converter={StaticResource flowDirectionToArrowConverter}}"
+                        Text="{x:Static fn:GlyphNames.Right}"
                         TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center" />
