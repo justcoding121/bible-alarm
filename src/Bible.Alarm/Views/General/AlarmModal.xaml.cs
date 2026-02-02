@@ -23,7 +23,30 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 
         // Use Loaded event which fires after the page is in the visual tree
         Loaded += OnPageLoaded;
+        SizeChanged += OnSizeChanged;
         
+    }
+
+    private void OnSizeChanged(object? sender, EventArgs e)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        // Ignore early size events
+        if (Width <= 0 || Height <= 0)
+        {
+            return;
+        }
+
+        ViewModel?.SetIsLandscape(Width > Height);
+    }
+
+    private void OnAlarmModalTapped(object? sender, TappedEventArgs e)
+    {
+        // In landscape, tapping anywhere should bring back the overlay controls.
+        ViewModel?.NotifyLandscapeInteraction();
     }
 
     private async void OnPageLoaded(object? sender, EventArgs e)
@@ -59,6 +82,13 @@ public partial class AlarmModal : BaseContentPage, IDisposable
             var tapGesture = new TapGestureRecognizer();
             tapGesture.Tapped += OnSliderTapped;
             ProgressSlider.GestureRecognizers.Add(tapGesture);
+        }
+
+        if (LandscapeProgressSlider != null)
+        {
+            var tapGesture = new TapGestureRecognizer();
+            tapGesture.Tapped += OnSliderTapped;
+            LandscapeProgressSlider.GestureRecognizers.Add(tapGesture);
         }
     }
 #endif
@@ -353,6 +383,16 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         if (!isDisposed)
         {
             isDisposed = true;
+
+            try
+            {
+                Loaded -= OnPageLoaded;
+                SizeChanged -= OnSizeChanged;
+            }
+            catch
+            {
+                // ignore
+            }
 
             // Clean up timer first to prevent callbacks from accessing disposed objects
             try

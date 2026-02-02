@@ -16,6 +16,8 @@ namespace Bible.Alarm.ViewModels.Shared;
 
 public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>
 {
+    private const int LandscapeControlsAutoHideMs = 3000;
+
     private readonly ILogger logger;
     private readonly IPlaybackService playbackService;
     private readonly IState<PlaybackState> playbackState;
@@ -26,6 +28,9 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     private bool isDisposed;
     private TimeSpan currentDuration = TimeSpan.Zero;
     private bool isStopping;
+    private bool isLandscape;
+    private bool areLandscapeOverlayControlsVisible = true;
+    private CancellationTokenSource? landscapeAutoHideCts;
 
     // Helper classes
     private readonly AlarmViewModelCommandInitializer commandInitializer;
@@ -132,6 +137,132 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
         AlarmViewModelAutoDisposeMonitor.Start(playbackState, () => isDisposed, Dispose);
     }
 
+    public bool IsLandscape => isLandscape;
+
+    /// <summary>
+    /// In landscape, playback controls auto-hide after a short delay and reappear on tap.
+    /// This property controls the overlay controls visibility (progress/time + transport buttons).
+    /// </summary>
+    public bool AreLandscapeOverlayControlsVisible => areLandscapeOverlayControlsVisible;
+
+    public bool ShowPortraitLayout => !IsLandscape;
+    public bool ShowLandscapeLayout => IsLandscape;
+
+    public bool ShowLandscapeOverlayControls =>
+        IsLandscape &&
+        AreLandscapeOverlayControlsVisible &&
+        !IsStopping &&
+        !IsPreparing &&
+        !HasError;
+
+    public void SetIsLandscape(bool value)
+    {
+        if (isLandscape == value)
+        {
+            return;
+        }
+
+        isLandscape = value;
+        OnPropertyChanged(nameof(IsLandscape));
+        OnPropertyChanged(nameof(ShowPortraitLayout));
+        OnPropertyChanged(nameof(ShowLandscapeLayout));
+        OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
+
+        // Entering landscape: show controls briefly then auto-hide.
+        // Leaving landscape: keep controls visible.
+        if (isLandscape)
+        {
+            SetLandscapeOverlayControlsVisible(true);
+            ScheduleLandscapeAutoHide();
+        }
+        else
+        {
+            CancelLandscapeAutoHide();
+            SetLandscapeOverlayControlsVisible(true);
+        }
+    }
+
+    public void NotifyLandscapeInteraction()
+    {
+        if (!IsLandscape || IsStopping)
+        {
+            return;
+        }
+
+        SetLandscapeOverlayControlsVisible(true);
+        ScheduleLandscapeAutoHide();
+    }
+
+    private void SetLandscapeOverlayControlsVisible(bool visible)
+    {
+        if (areLandscapeOverlayControlsVisible == visible)
+        {
+            return;
+        }
+
+        areLandscapeOverlayControlsVisible = visible;
+        OnPropertyChanged(nameof(AreLandscapeOverlayControlsVisible));
+        OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
+    }
+
+    private void CancelLandscapeAutoHide()
+    {
+        try
+        {
+            landscapeAutoHideCts?.Cancel();
+            landscapeAutoHideCts?.Dispose();
+        }
+        catch
+        {
+            // ignore
+        }
+        finally
+        {
+            landscapeAutoHideCts = null;
+        }
+    }
+
+    private void ScheduleLandscapeAutoHide()
+    {
+        CancelLandscapeAutoHide();
+
+        if (!IsLandscape)
+        {
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        landscapeAutoHideCts = cts;
+        var token = cts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(LandscapeControlsAutoHideMs, token);
+            }
+            catch
+            {
+                return;
+            }
+
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (!IsLandscape || IsStopping || IsPreparing || HasError)
+                {
+                    return;
+                }
+
+                SetLandscapeOverlayControlsVisible(false);
+            });
+        }, token);
+    }
+
     /// <summary>
     /// Called when the user dismisses/stops playback.
     /// This is purely UI state so controls/progress disappear immediately while stop completes.
@@ -144,6 +275,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
             {
                 OnPropertyChanged(nameof(ShowPreparingProgress));
                 OnPropertyChanged(nameof(ShowPlaybackControls));
+                OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
                 OnPropertyChanged(nameof(AreControlsEnabled));
                 OnPropertyChanged(nameof(IsStopButtonEnabled));
             }
@@ -281,6 +413,8 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     /// </summary>
     public void OnSliderTapped(double targetValue)
     {
+        // Treat as an interaction so controls remain visible briefly in landscape.
+        NotifyLandscapeInteraction();
         sliderHandler.OnSliderTapped(targetValue);
     }
 
@@ -289,6 +423,12 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     /// </summary>
     public void OnSliderDragStarted()
     {
+        if (IsLandscape)
+        {
+            // Keep controls visible while dragging; don't auto-hide mid-drag.
+            CancelLandscapeAutoHide();
+            SetLandscapeOverlayControlsVisible(true);
+        }
         sliderHandler.OnSliderDragStarted();
     }
 
@@ -298,6 +438,10 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     public void OnSliderDragCompleted(double finalValue)
     {
         sliderHandler.OnSliderDragCompleted(finalValue);
+        if (IsLandscape && !IsStopping)
+        {
+            ScheduleLandscapeAutoHide();
+        }
     }
 
     private bool nextEnabled;
@@ -346,6 +490,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
                 OnPropertyChanged(nameof(AreControlsEnabled));
                 OnPropertyChanged(nameof(ShowPreparingProgress));
                 OnPropertyChanged(nameof(ShowMainPlayerContent));
+                OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
             }
         }
     }
@@ -520,6 +665,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     {
         if (!isDisposed)
         {
+            CancelLandscapeAutoHide();
             playbackState.StateChanged -= OnPlaybackStateChanged;
             messageHandler.UnregisterHandlers(this, this);
 
