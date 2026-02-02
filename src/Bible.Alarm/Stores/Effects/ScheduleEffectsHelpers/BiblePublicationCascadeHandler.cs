@@ -190,43 +190,55 @@ public sealed class BiblePublicationCascadeHandler
             .OrderBy(pl => pl.PublicationCode, PublicationCodeHelper.PublicationCodeComparer)
             .ThenBy(pl => pl.Id)
             .ToList();
-        
-        // Avoid N+1: batch-load which publications are present with LanguageId for this language.
-        var candidateCodes = publicationLanguages
-            .Select(pl => pl.PublicationCode)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
 
-        var codesWithLanguageId = await db.BiblePublications
-            .AsNoTracking()
-            .Where(bp => candidateCodes.Contains(bp.PublicationCode) &&
-                         bp.LanguageId != null &&
-                         bp.Language != null &&
-                         bp.Language.LanguageCode == normalizedLanguageCode)
-            .Select(bp => bp.PublicationCode)
-            .Distinct()
-            .ToListAsync();
-
-        var codesWithLanguageIdSet = codesWithLanguageId.ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        // Find first publication that exists in BiblePublications with the selected language
+        // Cascade must fetch MINIMUM data:
+        // - harvest ONLY the first viable publication (first section + tracks for first section)
+        // - never ensure ALL publications or ALL sections here
         foreach (var pl in publicationLanguages)
         {
-            var canQueryWithLanguage = codesWithLanguageIdSet.Contains(pl.PublicationCode);
+            // For dramas, use case-sensitive publication codes in DB ("Dramas"/"DramaticBibleReadings").
+            // For others, preserve exact case from discovery (usually lower-case codes).
+            var lowerCode = pl.PublicationCode.ToLowerInvariant();
+            var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
+            var publicationCodeForDb = isDrama
+                ? (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings")
+                : pl.PublicationCode;
 
-            if (canQueryWithLanguage)
+            var isHarvested = await languageContentService.EnsurePublicationExistsAsync(pl.PublicationCode, languageCode);
+            if (!isHarvested)
             {
-                publicationCode = pl.PublicationCode;
-                publicationWithoutLanguage = false;
-                logger.Debug("BiblePublicationCascadeHandler: Selected publication={PublicationCode} (can be queried with language={LanguageCode})",
-                    publicationCode, languageCode);
-                break;
+                logger.Debug(
+                    "BiblePublicationCascadeHandler: Failed to harvest publication={PublicationCode} for language={LanguageCode}, trying next",
+                    pl.PublicationCode,
+                    languageCode);
+                continue;
             }
-            else
+
+            var canQueryWithLanguage = await db.BiblePublications
+                .AsNoTracking()
+                .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb &&
+                                bp.LanguageId != null &&
+                                bp.Language != null &&
+                                bp.Language.LanguageCode == normalizedLanguageCode);
+
+            if (!canQueryWithLanguage)
             {
-                logger.Debug("BiblePublicationCascadeHandler: Skipping publication={PublicationCode} (cannot be queried with language={LanguageCode}, may not have LanguageId)",
-                    pl.PublicationCode, languageCode);
+                logger.Debug(
+                    "BiblePublicationCascadeHandler: Publication={PublicationCode} harvested but cannot be queried with language={LanguageCode} (may not have LanguageId), trying next",
+                    pl.PublicationCode,
+                    languageCode);
+                continue;
             }
+
+            publicationCode = publicationCodeForDb;
+            publicationWithoutLanguage = false;
+            logger.Debug(
+                "BiblePublicationCascadeHandler: Selected publication={PublicationCode} (harvested and queryable for language={LanguageCode})",
+                publicationCode,
+                languageCode);
+            break;
         }
         
         if (string.IsNullOrEmpty(publicationCode))
@@ -257,16 +269,7 @@ public sealed class BiblePublicationCascadeHandler
                 languageCode, categoryName ?? "all");
             return;
         }
-
-        // Harvest if needed (only for publications with LanguageId)
-        if (!publicationWithoutLanguage)
-        {
-            if (!await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode))
-            {
-                logger.Warning("BiblePublicationCascadeHandler: Failed to harvest publication={PublicationCode}", publicationCode);
-                return;
-            }
-        }
+        // Publication with LanguageId was harvested above (or already existed).
 
         // Get section and track
         string? sectionCode = null;

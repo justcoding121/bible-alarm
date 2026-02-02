@@ -1,0 +1,33 @@
+---
+description: Resume-from-progress behavior (AlwaysPlayFromStart) in playback
+globs: src/Bible.Alarm/Services/Media/**/*.cs
+alwaysApply: false
+---
+
+# Resume from saved progress (schedule “main content” track)
+
+- **Where progress is saved**:
+  - `ProgressTracker` runs every 1s while `PlayStatus.Playing`.
+  - For **non-music schedule content** (`TrackMetadata.IsBibleContent == true`, i.e. `PlayType == Bible`) it updates `TrackMetadata.FinishedDuration` from `IAudioPlayer.CurrentPosition` and calls `IPlaylistService.MarkTrackAsPlayed(...)` to persist into the Schedule DB.
+  - For **music injection** (`IsBibleContent == false`, `PlayType == Music`) it does not “resume”; it marks music as finished on the first progress update.
+
+- **When resume is allowed**:
+  - `IPlaylistService.ShouldResumeFromLastPositionAsync(scheduleId)` returns `!AlarmSchedule.AlwaysPlayFromStart`.
+  - `TrackPlaybackHandler` only seeks when:
+    - `startFromBeginning == false`
+    - `PlayType == Bible` (this is “schedule main content”, not “Bible category”)
+    - `FinishedDuration != TimeSpan.Zero`
+    - schedule allows resume (`AlwaysPlayFromStart == false`)
+  - Only the **first** main-content `PlayItem` gets a non-zero `FinishedDuration` seeded into its metadata when building the playlist (from `BiblePublicationSchedule.FinishedDuration`), so “resume” applies to that first main-content track (not the injected music track).
+
+- **How seek is applied**:
+  - non-iOS: seek **before** `PlayAsync`
+  - iOS: seek **after** `PlayAsync` using retry logic (`SeekWithRetryAsync`) because seekable ranges may not be ready immediately
+
+- **Navigation overrides**:
+  - manual **Previous**: always `startFromBeginning=true`
+  - manual **Next**: `startFromBeginning=true` only when that track index was already manually visited this session
+  - auto-advance uses `startFromBeginning=false`, but `MarkTrackAsFinished(...)` advances the schedule to the next Bible track and resets progress so resume won’t re-seek into a finished track
+
+- **Do not break**:
+  - UI-only progress resets (e.g., slider jumping to 0 on next/prev) must not alter `startFromBeginning` decisions or the persisted `FinishedDuration` pipeline.

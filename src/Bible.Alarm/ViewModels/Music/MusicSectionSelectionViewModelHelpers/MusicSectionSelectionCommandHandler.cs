@@ -38,12 +38,7 @@ internal sealed class MusicSectionSelectionCommandHandler
 
     public async Task HandleSectionSelectedAsync(
         BiblePublicationSectionListViewItemModel selectedSection,
-        Action<bool> setIsBusy,
-        Action<bool> setShowProgress,
-        Action<double> setProgressPercent,
-        Action<string> setProgressText,
-        Func<bool> isDisposed,
-        Func<bool> isSelectingSection)
+        Func<bool> isDisposed)
     {
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
@@ -59,12 +54,6 @@ internal sealed class MusicSectionSelectionCommandHandler
                 !currentSchedule.MusicType.HasValue ||
                 string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (isDisposed()) return;
-                    setIsBusy(false);
-                    setShowProgress(false);
-                });
                 return;
             }
 
@@ -90,12 +79,6 @@ internal sealed class MusicSectionSelectionCommandHandler
             }
             else
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (isDisposed()) return;
-                    setIsBusy(false);
-                    setShowProgress(false);
-                });
                 return;
             }
 

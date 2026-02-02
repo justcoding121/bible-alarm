@@ -16,17 +16,20 @@ public class AlarmViewModelCommandInitializer
     private readonly IPlaybackService playbackService;
     private readonly Func<Task> handleReviewRequestAsync;
     private readonly Action beginStoppingUi;
+    private readonly Action resetProgressUi;
 
     public AlarmViewModelCommandInitializer(
         ILogger logger,
         IPlaybackService playbackService,
         Func<Task> handleReviewRequestAsync,
-        Action beginStoppingUi)
+        Action beginStoppingUi,
+        Action resetProgressUi)
     {
         this.logger = logger;
         this.playbackService = playbackService;
         this.handleReviewRequestAsync = handleReviewRequestAsync;
         this.beginStoppingUi = beginStoppingUi;
+        this.resetProgressUi = resetProgressUi;
     }
 
     public ICommand CreateDismissCommand()
@@ -82,6 +85,7 @@ public class AlarmViewModelCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
+            resetProgressUi();
             await playbackService.PlayPreviousAsync();
         });
     }
@@ -90,6 +94,7 @@ public class AlarmViewModelCommandInitializer
     {
         return new AsyncRelayCommand(async () =>
         {
+            resetProgressUi();
             await playbackService.PlayNextAsync();
         });
     }

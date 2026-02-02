@@ -8,11 +8,42 @@ alwaysApply: false
 
 - **Modal-level overlays** (BusyOverlay / ProgressIndicator) are reserved for:
   - **modal open / initial load** (e.g., scroll-to-selected while data loads)
+  - **publication modal open**: fetch/download all publications for the current (language + category)
+  - **section modal open**: ensure all sections exist for the current (language + publication)
   - **language selection ad-hoc fetch** (bigger operation; keep modal blocked)
 - **Item-click fetches** (publication/section row taps that may harvest/download) must:
   - **NOT** show a modal overlay
   - show **only row-end spinner + “NN%” text** on the tapped row
   - show **no progress bar**
+
+## Modal-open rules (downloadAll / ensureAll)
+
+- **Opening “Select Publication” modal** triggers:
+  - **downloadAll publications** for the current **language + category**
+  - for each publication:
+    - if **sectioned**, ensure **only the first section** (with its tracks) exists
+    - if **not sectioned**, ensure **all tracks** in the publication exist
+  - show **modal BusyOverlay + ProgressIndicator** while reading/fetching
+- **Opening “Select Section” modal** triggers:
+  - **ensure all sections** exist for the current **language + publication**
+  - show **modal BusyOverlay + ProgressIndicator** while reading/fetching
+
+### Music container parity
+
+- The Music container follows the same UX rules as the Bible container for:
+  - cascade (minimum data on language change)
+  - per-row progress on taps (no modal overlay)
+  - modal-open “downloadAll / ensureAll” overlays
+- The key difference is: the Music container only deals with **Music-category** publications and can filter between:
+  - **language-bound** (vocal) publications
+  - **no-language** (instrumental) publications
+
+## BusyOverlay hard-timeout
+
+- `BusyOverlay` has a default **10s hard timeout**.
+- For selection modals that can legitimately take longer (publication/section/language/track modals), set:
+  - `HardTimeoutMs="0"`
+  - so the overlay stays visible until the operation finishes (no premature auto-hide).
 
 ## How it’s implemented (current pattern)
 

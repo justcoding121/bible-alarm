@@ -270,6 +270,24 @@ internal static class MediaServiceBiblePublicationList
                     categoryName,
                     cancellationToken,
                     progress);
+
+                // IMPORTANT:
+                // Step 3 created placeholders using PublicationCode as the display name.
+                // After EnsureAllPublicationsForLanguageAsync runs, those publications may now exist in BiblePublications with localized names.
+                // Refresh downloaded publications and overwrite placeholders so UI can display localized names immediately.
+                var refreshedDownloadedPublications =
+                    await biblePublicationService.GetByLanguageCodeAsync(languageCode, categoryName, cancellationToken);
+
+                foreach (var refreshed in refreshedDownloadedPublications.Values)
+                {
+                    result[refreshed.PublicationCode] = refreshed;
+                }
+
+                Log.Information(
+                    "GetBiblePublications: Refreshed {Count} downloaded publications after ensuring all publications for language={LanguageCode}, category={CategoryName}",
+                    refreshedDownloadedPublications.Count,
+                    languageCode,
+                    categoryName ?? "all");
             }
             catch (Exception ex)
             {

@@ -54,7 +54,7 @@
                     FontSize="{DynamicResource HeaderFontSize}"
                     FontAttributes="Bold"
                     MinimumHeightRequest="56"
-                    Text="Select Song Section"
+                    Text="Select Publication"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     VerticalOptions="Fill"
                     VerticalTextAlignment="Center" />
@@ -251,6 +251,7 @@
             <sharedViews:BusyOverlay x:Name="BusyOverlay"
                                      Grid.Row="0"
                                      Grid.RowSpan="3"
+                                     HardTimeoutMs="0"
                                      IsVisible="{Binding IsBusy}" />
         </Grid>
     </ContentPage.Content>

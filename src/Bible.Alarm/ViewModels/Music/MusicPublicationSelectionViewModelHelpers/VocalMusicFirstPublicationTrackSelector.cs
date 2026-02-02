@@ -161,11 +161,35 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
             return (null, 0, string.Empty, string.Empty);
         }
 
-        // Find first publication with LanguageId (vocal music)
+        static bool IsHarvestedPublication(Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication publication)
+        {
+            if (publication.LanguageId == null)
+            {
+                return false;
+            }
+
+            if (publication.Id <= 0)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(publication.Name))
+            {
+                return false;
+            }
+
+            return !publication.Name.Equals(publication.PublicationCode, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Prefer the publication we just ensured exists, and ignore placeholders.
         var firstSongPublication = songPublications.Values
-            .Where(p => p.LanguageId != null)
-            .OrderBy(p => p.Id)
-            .FirstOrDefault();
+            .FirstOrDefault(p =>
+                IsHarvestedPublication(p) &&
+                p.PublicationCode.Equals(firstPublicationCode, StringComparison.OrdinalIgnoreCase))
+            ?? songPublications.Values
+                .Where(IsHarvestedPublication)
+                .OrderBy(p => p.Id)
+                .FirstOrDefault();
 
         if (firstSongPublication == null)
         {
@@ -178,7 +202,10 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         // Use GetBiblePublicationTracks for vocal music (same API as Bible publication)
         // For vocal music, we need to get tracks from the first section (or flat publication)
         progress?.UpdateProgress(0.8);
-        var sections = await mediaService.GetBiblePublicationSections(language.Code, publicationCode, progress);
+        // IMPORTANT: during "language change" cascade we should NOT ensure all sections.
+        // Ensuring all sections is reserved for when the user explicitly opens the Sections modal.
+        // We only need the already-downloaded first section (if sectioned).
+        var sections = await mediaService.GetBiblePublicationSections(language.Code, publicationCode, progress: null);
 
         SortedDictionary<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack>? tracks;
         if (sections != null && sections.Count > 0)

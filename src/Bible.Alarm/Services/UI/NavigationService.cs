@@ -190,14 +190,26 @@ public sealed class NavigationService(
 
     public async Task PopModalAsync()
     {
-        var navigation = GetNavigation();
-        await stackManager.PopModalAsync(navigation);
+        await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
+        {
+            var navigation = GetNavigation();
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await stackManager.PopModalAsync(navigation);
+            });
+        });
     }
 
     public async Task PopAsync()
     {
-        var navigation = GetNavigation();
-        await stackManager.PopAsync(navigation);
+        await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
+        {
+            var navigation = GetNavigation();
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await stackManager.PopAsync(navigation);
+            });
+        });
     }
 
     /// <summary>

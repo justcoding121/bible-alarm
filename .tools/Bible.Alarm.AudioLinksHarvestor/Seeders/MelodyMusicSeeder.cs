@@ -173,6 +173,14 @@ internal sealed class MelodyMusicSeeder
                         },
                         new SharedUrlParam
                         {
+                            Key = "langwritten",
+                            Value = "E",
+                            IsQueryParam = true,
+                            BaseUrl = baseUrl,
+                            BaseUrlId = baseUrl.Id
+                        },
+                        new SharedUrlParam
+                        {
                             Key = "track",
                             Value = (musicTrack.OriginalTrackNumber ?? musicTrack.Number).ToString(),
                             IsQueryParam = true,

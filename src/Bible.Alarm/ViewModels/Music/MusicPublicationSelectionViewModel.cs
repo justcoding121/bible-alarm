@@ -295,6 +295,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     /// </summary>
     public async Task RefreshFromState()
     {
+        await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
+
         // Wait for state to be updated (in case language was just changed)
         // This handles the race condition where the modal opens before state is fully updated
         // Use CurrentSchedule as primary source, but fall back to CurrentMusic if CurrentSchedule isn't updated yet
@@ -303,169 +305,139 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         string? newLanguageCode = null;
         MusicType? musicType = null;
 
-        for (int i = 0; i < maxWaitAttempts; i++)
+        try
         {
-            var stateValue = state.Value;
-
-            // Use CurrentSchedule as the source of truth
-            if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
+            for (int i = 0; i < maxWaitAttempts; i++)
             {
-                musicType = stateValue.CurrentSchedule.MusicType.Value;
-                newLanguageCode = stateValue.CurrentSchedule.MusicLanguageCode;
-                // For Vocals, we need language code; for Melodies, it can be null
-                if (musicType == MusicType.VocalMusic && !string.IsNullOrEmpty(newLanguageCode))
+                var stateValue = state.Value;
+
+                // Use CurrentSchedule as the source of truth
+                if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
                 {
-                    break;
+                    musicType = stateValue.CurrentSchedule.MusicType.Value;
+                    newLanguageCode = stateValue.CurrentSchedule.MusicLanguageCode;
+                    // For Vocals, we need language code; for Melodies, it can be null
+                    if (musicType == MusicType.VocalMusic && !string.IsNullOrEmpty(newLanguageCode))
+                    {
+                        break;
+                    }
+                    else if (musicType == MusicType.Music)
+                    {
+                        // For Melodies, language code can be null, so we can proceed
+                        break;
+                    }
                 }
-                else if (musicType == MusicType.Music)
+
+                // Wait a bit and retry if language code is not set yet (for Vocals)
+                await Task.Delay(delayMs);
+            }
+
+            var finalStateValue = state.Value;
+            if (finalStateValue.CurrentSchedule == null || !musicType.HasValue)
+            {
+                return;
+            }
+
+            // For Vocals, language code is required
+            if (musicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(newLanguageCode))
+            {
+                return;
+            }
+
+            var current = stateManager.GetCurrentFromState(state, mapper);
+            if (current != null)
+            {
+                stateManager.EnsureCurrentIsSet(state, mapper);
+            }
+
+            // For vocal music, ensure languages are populated
+            if (musicType.Value == MusicType.VocalMusic)
+            {
+                if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
                 {
-                    // For Melodies, language code can be null, so we can proceed
-                    break;
+                    await PopulateLanguages();
+                }
+
+                // Ensure search handler is set up (in case it wasn't set up during initialization)
+                // This is important when RefreshFromState is called before OnMusicInitialized
+                propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await PopulateLanguages(searchTerm));
+            }
+
+            // For Vocals, if no language is selected but languages are available, select based on current schedule
+            string? languageCodeToUse = null;
+            if (finalStateValue.CurrentSchedule?.MusicType == MusicType.VocalMusic &&
+                propertyManager.CurrentLanguage == null &&
+                propertyManager.Languages != null &&
+                propertyManager.Languages.Count > 0)
+            {
+                // Try to select the language from current schedule state
+                var scheduleLanguageCode = finalStateValue.CurrentSchedule.MusicLanguageCode ?? newLanguageCode;
+                LanguageListViewItemModel? languageToSelect = null;
+
+                if (!string.IsNullOrEmpty(scheduleLanguageCode))
+                {
+                    languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == scheduleLanguageCode);
+                }
+
+                // If no language from schedule, default to English
+                if (languageToSelect == null)
+                {
+                    languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == "E")
+                        ?? propertyManager.Languages.FirstOrDefault();
+                }
+
+                if (languageToSelect != null)
+                {
+                    propertyManager.CurrentLanguage = languageToSelect;
+                    languageToSelect.IsSelected = true;
+                    languageCodeToUse = languageToSelect.Code;
                 }
             }
-
-            // Wait a bit and retry if language code is not set yet (for Vocals)
-            await Task.Delay(delayMs);
-        }
-
-        var finalStateValue = state.Value;
-        if (finalStateValue.CurrentSchedule == null || !musicType.HasValue)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
-            return;
-        }
-
-        // For Vocals, language code is required
-        if (musicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(newLanguageCode))
-        {
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
-            return;
-        }
-
-        var current = stateManager.GetCurrentFromState(state, mapper);
-        if (current != null)
-        {
-            stateManager.EnsureCurrentIsSet(state, mapper);
-        }
-
-        // Check if language code changed (need to repopulate song sections)
-        var languageChanged = stateManager.LastLanguageCode != newLanguageCode;
-
-        // For vocal music, ensure languages are populated
-        if (musicType.Value == MusicType.VocalMusic)
-        {
-            if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
+            else if (propertyManager.CurrentLanguage != null)
             {
-                await PopulateLanguages();
+                languageCodeToUse = propertyManager.CurrentLanguage.Code;
+            }
+            else if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
+            {
+                languageCodeToUse = current.LanguageCode;
+            }
+            else if (!string.IsNullOrEmpty(newLanguageCode))
+            {
+                languageCodeToUse = newLanguageCode;
             }
 
-            // Ensure search handler is set up (in case it wasn't set up during initialization)
-            // This is important when RefreshFromState is called before OnMusicInitialized
-            propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await PopulateLanguages(searchTerm));
-        }
-
-        // For Vocals, if no language is selected but languages are available, select based on current schedule
-        string? languageCodeToUse = null;
-        if (finalStateValue.CurrentSchedule?.MusicType == MusicType.VocalMusic &&
-            propertyManager.CurrentLanguage == null &&
-            propertyManager.Languages != null &&
-            propertyManager.Languages.Count > 0)
-        {
-            // Try to select the language from current schedule state
-            var scheduleLanguageCode = finalStateValue.CurrentSchedule.MusicLanguageCode ?? newLanguageCode;
-            LanguageListViewItemModel? languageToSelect = null;
-
-            if (!string.IsNullOrEmpty(scheduleLanguageCode))
-            {
-                languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == scheduleLanguageCode);
-            }
-
-            // If no language from schedule, default to English
-            if (languageToSelect == null)
-            {
-                languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == "E")
-                    ?? propertyManager.Languages.FirstOrDefault();
-            }
-
-            if (languageToSelect != null)
-            {
-                propertyManager.CurrentLanguage = languageToSelect;
-                languageToSelect.IsSelected = true;
-                languageCodeToUse = languageToSelect.Code;
-            }
-        }
-        else if (propertyManager.CurrentLanguage != null)
-        {
-            languageCodeToUse = propertyManager.CurrentLanguage.Code;
-        }
-        else if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
-        {
-            languageCodeToUse = current.LanguageCode;
-        }
-        else if (!string.IsNullOrEmpty(newLanguageCode))
-        {
-            languageCodeToUse = newLanguageCode;
-        }
-
-        // Create progress tracker for modal open (only when fetching)
-        bool needsFetch = false;
-        if (musicType.Value == MusicType.Music)
-        {
-            needsFetch = propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0;
-        }
-        else if (!string.IsNullOrEmpty(languageCodeToUse))
-        {
-            needsFetch = propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0 || languageChanged;
-        }
-        
-        IFetchProgress? progressTracker = null;
-        if (needsFetch)
-        {
-            progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
+            // Opening the publications modal is the ONLY time we download ALL publications for a language.
+            // Always use downloadAll=true here so placeholders can be hydrated into localized names.
+            var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
                 progress => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressPercent = progress),
                 text => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressText = text),
                 isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = isVisible));
-        }
 
-        // For instrumental music, populate publications directly (no language needed)
-        if (musicType.Value == MusicType.Music)
-        {
-            if (propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0)
+            // For instrumental music, populate publications directly (no language needed)
+            if (musicType.Value == MusicType.Music)
             {
                 await PopulateSongPublications(null, downloadAll: true, progressTracker); // null language code for instrumental music
             }
+            // For vocal music, always fetch ALL publications when the modal opens (downloadAll=true).
+            else if (!string.IsNullOrEmpty(languageCodeToUse))
+            {
+                await PopulateSongPublications(languageCodeToUse, downloadAll: true, progressTracker);
+            }
             else
             {
-                // Publications already populated, just set selected
                 SetSelectedSongPublication();
             }
-        }
-        // For vocal music, always repopulate song sections if:
-        // 1. We have a language code
-        // 2. Song sections aren't already populated
-        // 3. Language code changed (cascade effect)
-        else if (!string.IsNullOrEmpty(languageCodeToUse) &&
-            (propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0 || languageChanged))
-        {
-            // When RefreshFromState is called (publication modal opens), download all publications
-            // When language changes (cascade), don't download all yet (only first publication in cascade)
-            bool isModalOpening = propertyManager.SongPublications == null || propertyManager.SongPublications.Count == 0;
-            await PopulateSongPublications(languageCodeToUse, downloadAll: isModalOpening, progressTracker);
-        }
-        else if (!string.IsNullOrEmpty(languageCodeToUse))
-        {
-            // Song sections already populated, just set selected
+
             SetSelectedSongPublication();
         }
-
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        finally
         {
-            propertyManager.IsBusy = false;
-            if (progressTracker != null)
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
+                propertyManager.IsBusy = false;
                 propertyManager.ShowProgress = false;
-            }
-        });
+            });
+        }
     }
 
     private async Task PopulateSongPublications(string? languageCode, bool downloadAll = false, IFetchProgress? progress = null)

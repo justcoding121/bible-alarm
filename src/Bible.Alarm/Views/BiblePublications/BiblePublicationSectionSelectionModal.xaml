@@ -251,6 +251,7 @@
             <shared:BusyOverlay x:Name="BusyOverlay"
                                 Grid.Row="0"
                                 Grid.RowSpan="3"
+                                HardTimeoutMs="0"
                                 IsVisible="{Binding IsBusy}" />
         </Grid>
     </ContentPage.Content>

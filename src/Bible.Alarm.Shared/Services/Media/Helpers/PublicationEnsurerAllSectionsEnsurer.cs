@@ -116,49 +116,6 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
 
             if (result)
             {
-                progress?.UpdateProgress(0.5);
-                progress?.UpdateProgressText("Loading tracks...");
-
-                // Re-query publication to get all sections (including newly fetched ones)
-                publication = await db.BiblePublications
-                    .Include(bp => bp.Sections)
-                        .ThenInclude(s => s.Tracks)
-                    .FirstOrDefaultAsync(
-                        bp => bp.PublicationCode == publicationCodeForDb &&
-                              bp.Language != null &&
-                              bp.Language.LanguageCode == normalizedLanguageCode,
-                        cancellationToken);
-
-                if (publication != null && publication.Sections != null)
-                {
-                    // Check and harvest tracks for each section that doesn't have tracks
-                    var sectionsNeedingTracks = publication.Sections
-                        .Where(s => s.Tracks == null || s.Tracks.Count == 0)
-                        .ToList();
-
-                    if (sectionsNeedingTracks.Count > 0)
-                    {
-                        logger.Information("Found {Count} sections without tracks for publication {PublicationCode} in language {LanguageCode}, fetching tracks...",
-                            sectionsNeedingTracks.Count, publicationCode, languageCode);
-
-                        for (int i = 0; i < sectionsNeedingTracks.Count; i++)
-                        {
-                            var section = sectionsNeedingTracks[i];
-                            var progressPercent = 0.5 + ((double)i / sectionsNeedingTracks.Count) * 0.5;
-                            progress?.UpdateProgress(progressPercent);
-                            progress?.UpdateProgressText($"Loading tracks for section {i + 1}/{sectionsNeedingTracks.Count}...");
-
-                            // Check again if tracks exist (they might have been fetched by another process)
-                            await db.Entry(section).Collection(s => s.Tracks).LoadAsync(cancellationToken);
-                            if (section.Tracks == null || section.Tracks.Count == 0)
-                            {
-                                await languageContentService.FetchSectionTracksAsync(
-                                    publicationCode, section.SectionCode, languageCode, cancellationToken);
-                            }
-                        }
-                    }
-                }
-
                 progress?.UpdateProgress(1.0);
                 progress?.UpdateProgressText("Complete");
             }

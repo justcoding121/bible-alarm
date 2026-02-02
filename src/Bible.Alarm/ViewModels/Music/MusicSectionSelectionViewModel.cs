@@ -85,12 +85,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
             {
                 await commandHandler.HandleSectionSelectedAsync(
                     x,
-                    b => IsBusy = b,
-                    b => ShowProgress = b,
-                    p => ProgressPercent = p,
-                    t => ProgressText = t,
-                    () => isDisposed,
-                    () => isSelectingSection);
+                    () => isDisposed);
             }
             finally
             {

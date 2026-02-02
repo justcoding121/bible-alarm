@@ -78,7 +78,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             logger,
             playbackService,
             reviewHandler.HandleReviewRequestAsync,
-            BeginStoppingUi);
+            BeginStoppingUi,
+            ResetProgressUi);
         stateUpdater = new AlarmViewModalStateUpdater(
             logger,
             (t) => Title = t,
@@ -283,6 +284,28 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
         // Important: if we're already on the UI thread, apply immediately so the spinner can render
         // before StopAsync potentially stops playback (and closes the modal).
+        if (MainThread.IsMainThread)
+        {
+            Apply();
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(Apply);
+    }
+
+    public void ResetProgressUi()
+    {
+        if (IsUserInteracting)
+        {
+            return;
+        }
+
+        void Apply()
+        {
+            CurrentTime = "00:00";
+            SetProgressDirectly(0.0);
+        }
+
         if (MainThread.IsMainThread)
         {
             Apply();
