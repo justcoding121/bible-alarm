@@ -1,9 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Stores;
 using CommunityToolkit.Mvvm.Messaging;
-using Fluxor;
 using Serilog;
 
 namespace Bible.Alarm.Services.UI;
@@ -12,13 +10,9 @@ public sealed class MessageHandlingService(
     ILogger logger,
     IServiceProvider serviceProvider,
     INavigationService navigationService,
-    IState<PlaybackState> playbackState) : IRecipient<ShowToastMessage>, IRecipient<InitializedMessage>, IMessageHandlingService
+    IPlaybackModalService playbackModalService) : IRecipient<ShowToastMessage>, IRecipient<InitializedMessage>, IMessageHandlingService
 {
     private bool isDisposed;
-    private readonly IState<PlaybackState> playbackState = playbackState;
-
-    // IState is injected but we access .Value safely with try-catch
-    // This prevents deadlock if Fluxor store isn't initialized when App constructor runs
 
     public void RegisterMessageHandlers()
     {
@@ -52,39 +46,12 @@ public sealed class MessageHandlingService(
         {
             try
             {
-                // Check if playback is active before navigating
-                // Use try-catch in case Fluxor store isn't initialized yet (prevents deadlock)
-                bool isPlaybackActive = false;
-                try
-                {
-                    isPlaybackActive = this.playbackState.Value.IsPreparingOrPlaying;
-                }
-                catch (Exception ex)
-                {
-                    logger.Warning(ex, "Failed to access PlaybackState (Fluxor may not be initialized yet), checking MediaSession as fallback");
-                    // On Android, check MediaSession directly as fallback when PlaybackState isn't ready yet
-                    // This is critical for cold starts from Android Auto where playback is active
-                    isPlaybackActive = CheckMediaSessionPlaybackState();
-                }
-
                 // Navigate to the initialized home page (this creates a new Home instance)
                 await navigationService.NavigateToHomeAsync();
 
-                // Immediately hide Home page if playback is active to prevent visual flash before modal appears
-                // This must happen synchronously right after navigation to prevent the page from being visible
-                if (isPlaybackActive)
-                {
-                    logger.Information("Playback is active - hiding Home page immediately to prevent flash before AlarmModal");
-                    navigationService.SetHomePageVisibility(isPlaybackActive: true);
-                }
-
-                // After Home is navigated (and hidden if playback active), open the alarm modal.
-                // AlarmModalService defers opening while Bootstrap is on top, so we "catch up" here.
-                if (isPlaybackActive)
-                {
-                    logger.Information("Home is navigated and playback is already started; opening AlarmModal.");
-                    await navigationService.OpenAlarmModalAsync();
-                }
+                // Window-creation entrypoint: show PlaybackModal only if playback is already active
+                // (Playing/Paused/Loading). Do NOT show for Failed/Stopped/Ended.
+                await playbackModalService.ShowPlaybackModalIfNeededOnWindowCreationAsync();
 
                 _ = Task.Run(async () =>
                 {
@@ -93,7 +60,7 @@ public sealed class MessageHandlingService(
                         logger.Information("Starting service initialization...");
 
                         // Modal visibility is now handled reactively via PlaybackState subscription
-                        // No need to manually send ShowAlarmModalMessage here
+                        // No need to manually send ShowPlaybackModalMessage here
 
                         await Task.Delay(100);
 
@@ -112,41 +79,6 @@ public sealed class MessageHandlingService(
                 logger.Error(e, "An error happened while showing HomePage after initialization.");
             }
         });
-    }
-
-    /// <summary>
-    /// Checks MediaSession directly to determine if playback is active.
-    /// Used as a fallback when PlaybackState Fluxor store isn't initialized yet (e.g., cold start from Android Auto).
-    /// </summary>
-    private bool CheckMediaSessionPlaybackState()
-    {
-#if ANDROID
-        try
-        {
-            var mediaSession = Platforms.Android.Services.Media.MediaSessionHelper.Create();
-            var playbackState = mediaSession?.Controller?.PlaybackState;
-            
-            if (playbackState != null)
-            {
-                // Check if playback state indicates active playback (Playing, Buffering, or Paused)
-                // Paused is included because it means playback was active and can be resumed
-                var isActive = playbackState.State is 
-                    Android.Support.V4.Media.Session.PlaybackStateCompat.StatePlaying or
-                    Android.Support.V4.Media.Session.PlaybackStateCompat.StateBuffering or
-                    Android.Support.V4.Media.Session.PlaybackStateCompat.StatePaused;
-                
-                logger.Information("MediaSession playback state check: State={State}, IsActive={IsActive}", 
-                    playbackState.State, isActive);
-                
-                return isActive;
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Failed to check MediaSession playback state, assuming playback is not active");
-        }
-#endif
-        return false;
     }
 
     public void Dispose()

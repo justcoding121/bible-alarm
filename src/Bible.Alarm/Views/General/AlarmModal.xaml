@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.General.AlarmModal"
+    x:Class="Bible.Alarm.Views.General.PlaybackModal"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -12,7 +12,7 @@
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
-    x:DataType="shared:AlarmViewModel">
+    x:DataType="shared:PlaybackViewModel">
     <ContentPage.Resources>
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <converters:IsNullConverter x:Key="isNullConverter" />
@@ -63,7 +63,7 @@
             </Grid.Triggers>
             <Grid.GestureRecognizers>
                 <!-- Landscape: tap anywhere to show controls -->
-                <TapGestureRecognizer Tapped="OnAlarmModalTapped" />
+                <TapGestureRecognizer Tapped="OnPlaybackModalTapped" />
             </Grid.GestureRecognizers>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
@@ -210,7 +210,7 @@
                     
                     <!-- Main Music Player Content -->
                     <Grid Grid.Row="2"
-                        AutomationId="AlarmModal"
+                        AutomationId="PlaybackModal"
                         IsVisible="{Binding ShowMainPlayerContent}"
                         RowSpacing="16"
                         HorizontalOptions="Fill"
@@ -595,15 +595,15 @@
                             </Button>
 
                             <!-- Busy indicator while stopping -->
-                            <core:SfBusyIndicator
-                                IsVisible="{Binding IsStopping}"
+                            <ActivityIndicator
                                 IsRunning="{Binding IsStopping}"
-                                AnimationType="DoubleCircle"
-                                HorizontalOptions="Center"
+                                IsVisible="{Binding IsStopping}"
+                                Color="White"
+                                WidthRequest="{DynamicResource IconStandardFontSize}"
+                                HeightRequest="{DynamicResource IconStandardFontSize}"
                                 VerticalOptions="Center"
-                                HeightRequest="{DynamicResource IconStandardContainerSize}"
-                                WidthRequest="{DynamicResource IconStandardContainerSize}"
-                                IndicatorColor="White" />
+                                HorizontalOptions="Center"
+                                Opacity="0.95" />
                         </Grid>
                     </Border>
                     
@@ -924,15 +924,15 @@
                                 Text="{x:Static fn:GlyphNames.Stop}"
                                 TextColor="White" />
 
-                            <core:SfBusyIndicator
-                                IsVisible="{Binding IsStopping}"
+                            <ActivityIndicator
                                 IsRunning="{Binding IsStopping}"
-                                AnimationType="DoubleCircle"
-                                HorizontalOptions="Center"
+                                IsVisible="{Binding IsStopping}"
+                                Color="White"
+                                WidthRequest="{DynamicResource IconStandardFontSize}"
+                                HeightRequest="{DynamicResource IconStandardFontSize}"
                                 VerticalOptions="Center"
-                                HeightRequest="{DynamicResource IconStandardContainerSize}"
-                                WidthRequest="{DynamicResource IconStandardContainerSize}"
-                                IndicatorColor="White" />
+                                HorizontalOptions="Center"
+                                Opacity="0.95" />
                         </Grid>
                     </Border>
 

@@ -8,7 +8,7 @@ using Serilog;
 
 namespace Bible.Alarm.Services.UI;
 
-public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmModalService alarmModalService, INavigationService navigationService) : IWindowSetupService, IDisposable
+public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlaybackModalService playbackModalService, INavigationService navigationService) : IWindowSetupService, IDisposable
 {
     private static NavigationPage? mainNavPage;
     private static readonly ILogger logger = Log.ForContext<WindowSetupService>();
@@ -58,7 +58,7 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
             }
         });
 
-        alarmModalService.SubscribeToPlaybackStateChanges();
+        playbackModalService.SubscribeToPlaybackStateChanges();
 
         return window;
     }
@@ -135,7 +135,7 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IAlarmM
 
     public void TearDown()
     {
-        alarmModalService.UnsubscribeToPlaybackStateChanges();
+        playbackModalService.UnsubscribeToPlaybackStateChanges();
         navigationService.PopAllModalsAndPages();
 
         mainNavPage = null;

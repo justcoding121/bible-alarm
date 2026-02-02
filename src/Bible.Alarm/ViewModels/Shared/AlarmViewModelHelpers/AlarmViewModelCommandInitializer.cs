@@ -36,8 +36,13 @@ public class AlarmViewModelCommandInitializer
             logger.Information("DismissCommand executed - stopping playback and cancelling downloads");
             try
             {
-                // Immediately hide controls/progress while stopping.
+                // Immediately switch Stop icon -> spinner and disable controls.
                 beginStoppingUi();
+
+                // Allow at least one UI frame for the spinner to render before stopping playback.
+                // Without this, fast stops can close the modal before the ActivityIndicator is visible.
+                await Task.Delay(50);
+
                 await playbackService.StopAsync();
                 await handleReviewRequestAsync();
                 logger.Information("DismissCommand completed successfully");

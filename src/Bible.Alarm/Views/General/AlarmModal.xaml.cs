@@ -7,15 +7,15 @@ using Serilog;
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class AlarmModal : BaseContentPage, IDisposable
+public partial class PlaybackModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private bool hasHandledFirstLoad;
-    private readonly AlarmViewModel viewModel;
+    private readonly PlaybackViewModel viewModel;
 
-    public AlarmViewModel? ViewModel => BindingContext as AlarmViewModel;
+    public PlaybackViewModel? ViewModel => BindingContext as PlaybackViewModel;
 
-    public AlarmModal(AlarmViewModel viewModel)
+    public PlaybackModal(PlaybackViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;
@@ -43,7 +43,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         ViewModel?.SetIsLandscape(Width > Height);
     }
 
-    private void OnAlarmModalTapped(object? sender, TappedEventArgs e)
+    private void OnPlaybackModalTapped(object? sender, TappedEventArgs e)
     {
         // In landscape, tapping anywhere should bring back the overlay controls.
         ViewModel?.NotifyLandscapeInteraction();
@@ -70,8 +70,13 @@ public partial class AlarmModal : BaseContentPage, IDisposable
         SetupIOSTapToSeek();
 #endif
 
-        // Hide Home page overlay after Alarm Modal is fully rendered and visible
-        viewModel?.HideHomePageOverlay();
+        // Reveal Home behind the modal only when desired.
+        // During cold/warm-start foregrounding into an already-playing session we keep Home hidden (opacity=0)
+        // so the PlaybackModal appears directly on top without flashing the Home UI.
+        if (ViewModel?.RevealHomeBehindModalOnLoad == true)
+        {
+            viewModel?.HideHomePageOverlay();
+        }
     }
 
 #if IOS
@@ -119,7 +124,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 
         try
         {
-            // Immediately hide playback controls/progress while stop completes.
+            // Immediately switch Stop icon -> spinner and disable controls.
             ViewModel?.BeginStoppingUi();
 
             // Try command first
@@ -135,6 +140,8 @@ public partial class AlarmModal : BaseContentPage, IDisposable
                 var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
                 if (playbackService != null)
                 {
+                    // Allow the spinner to render before stopping playback.
+                    await Task.Delay(50);
                     await playbackService.StopAsync();
                 }
                 else

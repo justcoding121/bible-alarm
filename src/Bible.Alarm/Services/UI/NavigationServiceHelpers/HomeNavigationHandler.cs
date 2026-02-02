@@ -99,10 +99,10 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         }
 
         // NOTE: Do NOT change opacity when navigating back to an existing Home page.
-        // The Home page's opacity is managed by AlarmModalService based on playback state.
+        // The Home page's opacity is managed by PlaybackModalService based on playback state.
         // Changing it here causes bugs:
         // - If playback is active: opacity = 0 makes Home blank when user returns from Schedule page
-        // - The AlarmModalService will show/hide Home appropriately when playback starts/stops
+        // - The PlaybackModalService will show/hide Home appropriately when playback starts/stops
         Logger.Information("Navigated back to existing home page (opacity unchanged)");
     }
 

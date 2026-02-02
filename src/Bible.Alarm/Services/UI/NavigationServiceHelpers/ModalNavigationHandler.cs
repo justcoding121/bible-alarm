@@ -94,36 +94,43 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         await navigation.PushModalAsync(modal, animated: false);
     }
 
-    public async Task OpenAlarmModalAsync(INavigation navigation)
+    public Task OpenPlaybackModalAsync(INavigation navigation) =>
+        OpenPlaybackModalAsync(navigation, revealHomeBehindModalOnLoad: true);
+
+    public async Task OpenPlaybackModalAsync(INavigation navigation, bool revealHomeBehindModalOnLoad)
     {
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
-                if (IsAlarmModalAlreadyShown(navigation))
+                if (IsPlaybackModalAlreadyShown(navigation))
                 {
                     return;
                 }
 
-                var modal = serviceProvider.GetRequiredService<AlarmModal>();
-                ConfigureAlarmModal(modal);
+                var modal = serviceProvider.GetRequiredService<PlaybackModal>();
+                if (modal.ViewModel != null)
+                {
+                    modal.ViewModel.RevealHomeBehindModalOnLoad = revealHomeBehindModalOnLoad;
+                }
+                ConfigurePlaybackModal(modal);
                 await navigation.PushModalAsync(modal, animated: false);
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error opening AlarmModal");
+                logger.Error(ex, "Error opening PlaybackModal");
             }
         });
     }
 
-    private static bool IsAlarmModalAlreadyShown(INavigation navigation)
+    private static bool IsPlaybackModalAlreadyShown(INavigation navigation)
     {
         var existingModal = navigation.ModalStack.LastOrDefault();
-        return existingModal?.GetType() == typeof(AlarmModal) ||
-               (existingModal is NavigationPage navPage && navPage.CurrentPage is AlarmModal);
+        return existingModal?.GetType() == typeof(PlaybackModal) ||
+               (existingModal is NavigationPage navPage && navPage.CurrentPage is PlaybackModal);
     }
 
-    private static void ConfigureAlarmModal(AlarmModal modal)
+    private static void ConfigurePlaybackModal(PlaybackModal modal)
     {
         NavigationPage.SetHasNavigationBar(modal, false);
     }

@@ -171,10 +171,15 @@ public sealed class NavigationService(
         await modalHandler.OpenCategoryModalAsync(navigation, bindingContext);
     }
 
-    public async Task OpenAlarmModalAsync()
+    public async Task OpenPlaybackModalAsync()
+    {
+        await OpenPlaybackModalAsync(revealHomeBehindModalOnLoad: true);
+    }
+
+    public async Task OpenPlaybackModalAsync(bool revealHomeBehindModalOnLoad)
     {
         var navigation = GetNavigation();
-        await modalHandler.OpenAlarmModalAsync(navigation);
+        await modalHandler.OpenPlaybackModalAsync(navigation, revealHomeBehindModalOnLoad);
     }
 
     public async Task OpenBatteryOptimizationModalAsync(object bindingContext)

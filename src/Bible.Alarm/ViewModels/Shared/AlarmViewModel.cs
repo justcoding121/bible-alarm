@@ -14,7 +14,7 @@ using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.ViewModels.Shared;
 
-public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>
+public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>
 {
     private const int LandscapeControlsAutoHideMs = 3000;
 
@@ -56,7 +56,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     public ICommand SeekCommand { get; set; }
     public ICommand RetryCommand { get; set; }
 
-    public AlarmViewModel(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, INavigationService navigationService, IGeneralSettingsService generalSettingsService)
+    public PlaybackViewModel(ILogger logger, IPlaybackService playbackService, IServiceScopeFactory scopeFactory, IState<PlaybackState> playbackState, IDispatcher dispatcher, INavigationService navigationService, IGeneralSettingsService generalSettingsService)
     {
         this.logger = logger;
         this.playbackService = playbackService;
@@ -151,7 +151,6 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     public bool ShowLandscapeOverlayControls =>
         IsLandscape &&
         AreLandscapeOverlayControlsVisible &&
-        !IsStopping &&
         !IsPreparing &&
         !HasError;
 
@@ -265,11 +264,12 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
 
     /// <summary>
     /// Called when the user dismisses/stops playback.
-    /// This is purely UI state so controls/progress disappear immediately while stop completes.
+    /// This is purely UI state so controls are disabled immediately while stop completes.
+    /// Playback controls/progress remain visible (disabled); only the stop button swaps to a busy indicator.
     /// </summary>
     public void BeginStoppingUi()
     {
-        MainThread.BeginInvokeOnMainThread(() =>
+        void Apply()
         {
             if (SetProperty(ref isStopping, true, nameof(IsStopping)))
             {
@@ -279,7 +279,17 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
                 OnPropertyChanged(nameof(AreControlsEnabled));
                 OnPropertyChanged(nameof(IsStopButtonEnabled));
             }
-        });
+        }
+
+        // Important: if we're already on the UI thread, apply immediately so the spinner can render
+        // before StopAsync potentially stops playback (and closes the modal).
+        if (MainThread.IsMainThread)
+        {
+            Apply();
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(Apply);
     }
 
     public bool IsStopping => isStopping;
@@ -498,7 +508,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     /// <summary>
     /// Show preparing progress when preparing tracks.
     /// </summary>
-    public bool ShowPreparingProgress => IsPreparing && !HasError && !IsStopping;
+    public bool ShowPreparingProgress => IsPreparing && !HasError;
 
     /// <summary>
     /// Show main music player content when not preparing and there's no error.
@@ -509,7 +519,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     /// <summary>
     /// Controls row visibility (progress + transport buttons).
     /// </summary>
-    public bool ShowPlaybackControls => !IsStopping;
+    public bool ShowPlaybackControls => true;
 
     /// <summary>
     /// Controls are enabled when initial state has been received, not preparing tracks, there's no error, and not busy (dismissing)
@@ -656,10 +666,16 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
 
 
     /// <summary>
-    /// Shows the Home page (sets opacity to 1.0). Called when the Alarm Modal is fully rendered and visible.
+    /// Shows the Home page (sets opacity to 1.0). Called when the Playback Modal is fully rendered and visible.
     /// This ensures the Home page is visible behind the modal, preventing visual issues when the modal is dismissed.
     /// </summary>
     public void HideHomePageOverlay() => navigationService.SetHomePageVisibility(isPlaybackActive: false);
+
+    /// <summary>
+    /// When true, PlaybackModal will reveal Home (opacity=1) behind the modal after it renders.
+    /// When false (e.g., cold/warm start foregrounding into active playback), Home stays hidden behind the modal.
+    /// </summary>
+    public bool RevealHomeBehindModalOnLoad { get; set; } = true;
 
     public void Dispose()
     {

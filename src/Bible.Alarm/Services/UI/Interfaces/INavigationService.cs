@@ -23,7 +23,11 @@ public interface INavigationService : IDisposable
     Task OpenNumberOfTracksModalAsync(object bindingContext);
     Task OpenLanguageModalAsync(object bindingContext);
     Task OpenCategoryModalAsync(object bindingContext);
-    Task OpenAlarmModalAsync();
+    Task OpenPlaybackModalAsync();
+    /// <summary>
+    /// Opens PlaybackModal with control over whether Home should be revealed (opacity=1) behind it once rendered.
+    /// </summary>
+    Task OpenPlaybackModalAsync(bool revealHomeBehindModalOnLoad);
     Task OpenBatteryOptimizationModalAsync(object bindingContext);
     Task PopModalAsync();
     Task PopAsync();
@@ -41,7 +45,7 @@ public interface INavigationService : IDisposable
 
     /// <summary>
     /// Sets Home page visibility based on playback state.
-    /// If playback is active, hides Home to prevent visual flash before alarm modal appears.
+    /// If playback is active, hides Home to prevent visual flash before playback modal appears.
     /// </summary>
     void SetHomePageVisibility(bool isPlaybackActive);
 }

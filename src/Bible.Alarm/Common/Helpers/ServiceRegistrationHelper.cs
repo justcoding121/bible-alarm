@@ -163,7 +163,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IExceptionHandlingService, ExceptionHandlingService>();
         services.AddSingleton<IWindowSetupService, WindowSetupService>();
         services.AddSingleton<IAppLifecycleService, AppLifecycleService>();
-        services.AddSingleton<IAlarmModalService, AlarmModalService>();
+        services.AddSingleton<IPlaybackModalService, PlaybackModalService>();
         services.AddSingleton<IMessageHandlingService, MessageHandlingService>();
         services.AddSingleton<IScheduleSelectionService, ScheduleSelectionService>();
         services.AddSingleton<INetworkStatusService, NetworkStatusService>();
@@ -311,7 +311,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BiblePublicationSectionSelectionViewModel>();
         services.AddTransient<ViewModels.BiblePublications.BiblePublicationTrackSelectionViewModel>();
         services.AddTransient<ViewModels.Music.MusicSectionSelectionViewModel>();
-        services.AddTransient<AlarmViewModel>();
+        services.AddTransient<PlaybackViewModel>();
         services.AddTransient<BiblePublicationSelectionContainerViewModel>();
         services.AddTransient<MusicSelectionContainerViewModel>();
         services.AddTransient<NumberOfTrackContainerViewModel>();
@@ -345,7 +345,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BiblePublicationLanguageModal>();
         services.AddTransient<MusicLanguageModal>();
         services.AddTransient<CategorySelectionModal>();
-        services.AddTransient<AlarmModal>();
+        services.AddTransient<PlaybackModal>();
         services.AddTransient<BiblePublicationSelectionModal>();
         services.AddTransient<BiblePublicationSectionSelectionModal>();
         services.AddTransient<Views.Music.MusicTrackSelectionModal>();
