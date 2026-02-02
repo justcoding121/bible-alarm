@@ -39,9 +39,6 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     private bool hasSignaledReady;
     private bool isReadyActionQueued;
 
-    // Track if we've already reset progress for the current cascade change to prevent loops
-    private bool progressResetForCurrentCascade;
-
     // Track the last processed state to prevent processing the same state multiple times
     private int? lastProcessedScheduleId;
     private string? lastProcessedLanguageCode;
@@ -249,13 +246,9 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             var changeInfo = propertyChangeDetector.DetectPropertyChanges(currentSchedule);
             if (changeInfo.HasChanges)
             {
-                // Reset the flag when a new cascade change is detected (before updating last values)
-                if (changeInfo.CascadeChangeOccurred)
-                {
-                    progressResetForCurrentCascade = false;
-                }
-
-                ResetProgressIfNeeded(currentSchedule, changeInfo);
+                // IMPORTANT:
+                // Do NOT reset BiblePublicationFinishedDuration here.
+                // Progress reset is applied only on Save, after comparing against the initially-opened track.
 
                 // Set scroll flag if section or track changed (user made a selection)
                 var shouldScroll = changeInfo.NotifySection || changeInfo.NotifyTrack;
@@ -347,26 +340,8 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
         }
     }
 
-    private void ResetProgressIfNeeded(ScheduleStateItem? currentSchedule, BiblePublicationPropertyChangeDetector.PropertyChangeInfo changeInfo)
-    {
-        if (changeInfo.CascadeChangeOccurred && currentSchedule != null)
-        {
-            var currentProgress = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero;
-            // Only reset if progress is non-zero AND we haven't already reset for this cascade change
-            if (currentProgress != TimeSpan.Zero && !progressResetForCurrentCascade)
-            {
-                progressResetForCurrentCascade = true;
-                // Run DeepClone and mapping on background thread to avoid blocking UI
-                _ = Task.Run(() =>
-                {
-                    var clonedSchedule = currentSchedule.DeepClone();
-                    var scheduleStateItem = mapper.Map<ScheduleStateItem>(clonedSchedule);
-                    scheduleStateItem.BiblePublicationFinishedDuration = TimeSpan.Zero;
-                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, true, shouldSave: false));
-                });
-            }
-        }
-    }
+    // NOTE: Progress is intentionally NOT reset in this container.
+    // It is reset only on Save, based on comparing the saved track to the originally-opened track.
 
 
     public ICommand SelectCategoryCommand { get; private set; } = null!;

@@ -349,29 +349,45 @@
                                     Opacity="0.4"
                                     Radius="8" />
                         </Border.Shadow>
-                        <Button
-                            Padding="0"
-                            BackgroundColor="Transparent"
-                            BorderWidth="0"
-                            BorderColor="Transparent"
-                            Command="{Binding DismissCommand}"
-                            Clicked="OnStopButtonClicked"
-                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="{DynamicResource IconStandardFontSize}"
+                        <Grid
                             HorizontalOptions="Fill"
-                            IsEnabled="{Binding IsStopButtonEnabled}"
-                            Text="{x:Static fn:GlyphNames.Stop}"
-                            TextColor="White"
                             VerticalOptions="Fill">
-                            <Button.Triggers>
-                                <Trigger TargetType="Button" Property="IsEnabled" Value="False">
-                                    <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
-                                </Trigger>
-                                <Trigger TargetType="Button" Property="IsEnabled" Value="True">
-                                    <Setter Property="TextColor" Value="White" />
-                                </Trigger>
-                            </Button.Triggers>
-                        </Button>
+                            <Button
+                                Padding="0"
+                                BackgroundColor="Transparent"
+                                BorderWidth="0"
+                                BorderColor="Transparent"
+                                Command="{Binding DismissCommand}"
+                                Clicked="OnStopButtonClicked"
+                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                FontSize="{DynamicResource IconStandardFontSize}"
+                                HorizontalOptions="Fill"
+                                VerticalOptions="Fill"
+                                IsEnabled="{Binding IsStopButtonEnabled}"
+                                IsVisible="{Binding IsStopping, Converter={StaticResource negateBooleanConverter}}"
+                                Text="{x:Static fn:GlyphNames.Stop}"
+                                TextColor="White">
+                                <Button.Triggers>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                        <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                    </Trigger>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                        <Setter Property="TextColor" Value="White" />
+                                    </Trigger>
+                                </Button.Triggers>
+                            </Button>
+
+                            <!-- Busy indicator while stopping -->
+                            <core:SfBusyIndicator
+                                IsVisible="{Binding IsStopping}"
+                                IsRunning="{Binding IsStopping}"
+                                AnimationType="DoubleCircle"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                HeightRequest="{DynamicResource IconStandardContainerSize}"
+                                WidthRequest="{DynamicResource IconStandardContainerSize}"
+                                IndicatorColor="White" />
+                        </Grid>
                     </Border>
                     
                     <!-- Progress Bar Row - Respects AreControlsEnabled -->
@@ -379,6 +395,7 @@
                         Grid.Row="1"
                         ColumnSpacing="12"
                         VerticalOptions="Center"
+                        IsVisible="{Binding ShowPlaybackControls}"
                         IsEnabled="{Binding AreControlsEnabled}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -424,6 +441,7 @@
                         Grid.Row="2"
                         ColumnSpacing="16"
                         HorizontalOptions="Center"
+                        IsVisible="{Binding ShowPlaybackControls}"
                         IsEnabled="{Binding AreControlsEnabled}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />

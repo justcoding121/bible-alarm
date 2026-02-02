@@ -7,6 +7,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Schedule;
+using Bible.Alarm.Shared.Helpers;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
@@ -266,8 +267,35 @@ public sealed class ScheduleCommandExecutor
 
     private bool DetectBiblePublicationChanges()
     {
-        // This would need to track changes - simplified for now
-        return false;
+        var currentSchedule = state.Value.CurrentSchedule;
+        if (currentSchedule == null)
+        {
+            return false;
+        }
+
+        // New schedules have no persisted progress to reset.
+        if (currentSchedule.Id <= 0)
+        {
+            return false;
+        }
+
+        // Compare against the last-saved (persisted) schedule in the Schedules list.
+        // The schedule list is only updated on save, so this acts as the "track when opened" baseline
+        // for normal edit sessions.
+        var persisted = state.Value.Schedules?.FirstOrDefault(s => s.Id == currentSchedule.Id);
+        if (persisted == null)
+        {
+            return false;
+        }
+
+        static string? Norm(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+
+        var sameLanguage = string.Equals(Norm(persisted.BiblePublicationLanguageCode), Norm(currentSchedule.BiblePublicationLanguageCode), StringComparison.OrdinalIgnoreCase);
+        var samePublication = string.Equals(Norm(persisted.BiblePublicationCode), Norm(currentSchedule.BiblePublicationCode), StringComparison.OrdinalIgnoreCase);
+        var sameSection = string.Equals(SectionCodeHelper.Normalize(persisted.BiblePublicationSectionCode), SectionCodeHelper.Normalize(currentSchedule.BiblePublicationSectionCode), StringComparison.OrdinalIgnoreCase);
+        var sameTrack = (persisted.BiblePublicationTrackNumber ?? 0) == (currentSchedule.BiblePublicationTrackNumber ?? 0);
+
+        return !(sameLanguage && samePublication && sameSection && sameTrack);
     }
 
     private AlarmSchedule GetModel()

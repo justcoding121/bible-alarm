@@ -185,6 +185,12 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         var model = scheduleSaveService.PrepareModelForSave(currentSchedule, isNewSchedule, musicUpdated);
         var scheduleStateItem = scheduleSaveService.PrepareScheduleStateItem(model, currentSchedule, musicUpdated);
 
+        // IMPORTANT: Reset progress only on Save, and only if the saved track identity changed.
+        if (biblePublicationUpdated)
+        {
+            scheduleStateItem.BiblePublicationFinishedDuration = TimeSpan.Zero;
+        }
+
         logger.Information("ExecuteSaveAsync: After PrepareScheduleStateItem - scheduleStateItem.NumberOfTracksToPlay={NumberOfTracksToPlay}, scheduleStateItem.AlwaysPlayFromStart={AlwaysPlayFromStart}",
             scheduleStateItem.NumberOfTracksToPlay, scheduleStateItem.AlwaysPlayFromStart);
 

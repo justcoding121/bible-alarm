@@ -15,15 +15,18 @@ public class AlarmViewModelCommandInitializer
     private readonly ILogger logger;
     private readonly IPlaybackService playbackService;
     private readonly Func<Task> handleReviewRequestAsync;
+    private readonly Action beginStoppingUi;
 
     public AlarmViewModelCommandInitializer(
         ILogger logger,
         IPlaybackService playbackService,
-        Func<Task> handleReviewRequestAsync)
+        Func<Task> handleReviewRequestAsync,
+        Action beginStoppingUi)
     {
         this.logger = logger;
         this.playbackService = playbackService;
         this.handleReviewRequestAsync = handleReviewRequestAsync;
+        this.beginStoppingUi = beginStoppingUi;
     }
 
     public ICommand CreateDismissCommand()
@@ -33,6 +36,8 @@ public class AlarmViewModelCommandInitializer
             logger.Information("DismissCommand executed - stopping playback and cancelling downloads");
             try
             {
+                // Immediately hide controls/progress while stopping.
+                beginStoppingUi();
                 await playbackService.StopAsync();
                 await handleReviewRequestAsync();
                 logger.Information("DismissCommand completed successfully");

@@ -304,7 +304,7 @@ public static class ApplicationReducer
         updatedSchedule.BiblePublicationSectionName = null;
         updatedSchedule.BiblePublicationTrackNumber = null;
         updatedSchedule.BiblePublicationTrackTitle = null;
-        updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
+        // Do NOT reset progress here. Progress reset is applied only on Save.
 
         return StateFactory.CreateUpdatedState(state, updatedSchedule);
     }
@@ -392,8 +392,7 @@ public static class ApplicationReducer
                 ? biblePub.SectionCode
                 : null;
             updatedCurrentSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
-            // Reset progress to 0.0 when track is changed (by cascade or direct selection)
-            updatedCurrentSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
+            // Do NOT reset progress here. Progress reset is applied only on Save.
             
             // Update other display names - use action values if provided, otherwise keep existing
             updatedCurrentSchedule.BiblePublicationName = !string.IsNullOrEmpty(biblePub.PublicationName) 

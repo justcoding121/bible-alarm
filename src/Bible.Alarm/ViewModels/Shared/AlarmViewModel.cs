@@ -25,6 +25,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
 
     private bool isDisposed;
     private TimeSpan currentDuration = TimeSpan.Zero;
+    private bool isStopping;
 
     // Helper classes
     private readonly AlarmViewModelCommandInitializer commandInitializer;
@@ -68,7 +69,11 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
 
         // Initialize helper classes
         reviewHandler = new AlarmViewModelReviewHandler(logger, generalSettingsService);
-        commandInitializer = new AlarmViewModelCommandInitializer(logger, playbackService, reviewHandler.HandleReviewRequestAsync);
+        commandInitializer = new AlarmViewModelCommandInitializer(
+            logger,
+            playbackService,
+            reviewHandler.HandleReviewRequestAsync,
+            BeginStoppingUi);
         stateUpdater = new AlarmViewModalStateUpdater(
             logger,
             (t) => Title = t,
@@ -126,6 +131,26 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
         UpdateFromState();
         AlarmViewModelAutoDisposeMonitor.Start(playbackState, () => isDisposed, Dispose);
     }
+
+    /// <summary>
+    /// Called when the user dismisses/stops playback.
+    /// This is purely UI state so controls/progress disappear immediately while stop completes.
+    /// </summary>
+    public void BeginStoppingUi()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (SetProperty(ref isStopping, true, nameof(IsStopping)))
+            {
+                OnPropertyChanged(nameof(ShowPreparingProgress));
+                OnPropertyChanged(nameof(ShowPlaybackControls));
+                OnPropertyChanged(nameof(AreControlsEnabled));
+                OnPropertyChanged(nameof(IsStopButtonEnabled));
+            }
+        });
+    }
+
+    public bool IsStopping => isStopping;
 
     private async Task ShowDismissProgress()
     {
@@ -328,7 +353,7 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     /// <summary>
     /// Show preparing progress when preparing tracks.
     /// </summary>
-    public bool ShowPreparingProgress => IsPreparing && !HasError;
+    public bool ShowPreparingProgress => IsPreparing && !HasError && !IsStopping;
 
     /// <summary>
     /// Show main music player content when not preparing and there's no error.
@@ -337,19 +362,25 @@ public sealed class AlarmViewModel : ObservableObject, IDisposable, IRecipient<P
     public bool ShowMainPlayerContent => !IsPreparing && !HasError;
 
     /// <summary>
+    /// Controls row visibility (progress + transport buttons).
+    /// </summary>
+    public bool ShowPlaybackControls => !IsStopping;
+
+    /// <summary>
     /// Controls are enabled when initial state has been received, not preparing tracks, there's no error, and not busy (dismissing)
     /// </summary>
     public bool AreControlsEnabled =>
         stateUpdater.HasReceivedInitialState &&
         !IsPreparing &&
         !HasError &&
+        !IsStopping &&
         !IsBusy &&
         playbackState.Value.Status != PlayStatus.Loading;
 
     /// <summary>
     /// Stop button is always enabled so users can cancel downloads at any time
     /// </summary>
-    public bool IsStopButtonEnabled => true;
+    public bool IsStopButtonEnabled => !IsStopping;
 
     public string ProgressText
     {

@@ -89,6 +89,9 @@ public partial class AlarmModal : BaseContentPage, IDisposable
 
         try
         {
+            // Immediately hide playback controls/progress while stop completes.
+            ViewModel?.BeginStoppingUi();
+
             // Try command first
             if (ViewModel?.DismissCommand != null && ViewModel.DismissCommand.CanExecute(null))
             {
@@ -116,6 +119,7 @@ public partial class AlarmModal : BaseContentPage, IDisposable
             // If command execution fails, try direct stop
             try
             {
+                ViewModel?.BeginStoppingUi();
                 var playbackService = ServiceProviderManager.GetService<IPlaybackService>();
                 if (playbackService != null)
                 {

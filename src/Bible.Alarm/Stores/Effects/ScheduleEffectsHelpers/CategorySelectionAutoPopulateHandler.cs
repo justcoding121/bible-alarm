@@ -390,7 +390,7 @@ public sealed class CategorySelectionAutoPopulateHandler
             updatedSchedule.BiblePublicationSectionName = sectionName;
             updatedSchedule.BiblePublicationTrackNumber = trackNumber;
             updatedSchedule.BiblePublicationTrackTitle = trackTitle;
-            updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
+            // Do NOT reset progress here. Progress reset is applied only on Save.
 
             // Dispatch action to update the schedule
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));

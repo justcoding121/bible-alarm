@@ -514,7 +514,7 @@ public sealed class BiblePublicationCascadeHandler
         {
             updatedSchedule.BiblePublicationTrackTitle = trackTitle;
         }
-        updatedSchedule.BiblePublicationFinishedDuration = TimeSpan.Zero;
+        // Do NOT reset progress here. Progress reset is applied only on Save.
         
         // ALWAYS preserve category - category can ONLY be changed via CategorySelectionAction
         // DeepClone() preserves the category, but explicitly ensure it's not null/empty
