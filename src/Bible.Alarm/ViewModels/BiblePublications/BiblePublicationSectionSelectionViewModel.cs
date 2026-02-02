@@ -102,21 +102,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     return;
                 }
                 
-                // Track start time to ensure minimum display duration
-                var startTime = DateTime.UtcNow;
-                const int minimumDisplayMs = 800; // Minimum time to show progress indicator
-
-                // Show progress immediately on UI thread before any async work
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    IsBusy = true;
-                    ShowProgress = true;
-                    ProgressPercent = 0.0;
-                    ProgressText = "Loading...";
-                });
-                
-                // Give UI thread enough time to render the progress indicator
-                await Task.Delay(300);
+                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                 
                 // Language code can be null/empty for publications without language (e.g., "iam")
                 // GetBiblePublicationTracks handles this case
@@ -126,9 +112,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 var currentSectionCode = currentSchedule.BiblePublicationSectionCode;
                 _ = string.Equals(currentSectionCode, x.Section.SectionCode, StringComparison.OrdinalIgnoreCase);
 
-                // Update progress
-                ProgressPercent = 0.3;
-                ProgressText = "Checking tracks...";
+                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.3);
 
                 var biblePublicationItem = await trackSelectionResolver.BuildSelectionAsync(
                     x,
@@ -137,50 +121,23 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
                 if (biblePublicationItem == null)
                 {
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        IsBusy = false;
-                        ShowProgress = false;
-                    });
                     return;
                 }
 
-                // Update progress
-                ProgressPercent = 0.9;
-                ProgressText = "Completing...";
+                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.9);
 
                 // Dispatch TrackSelectedAction to update CurrentBiblePublicationSchedule
                 // Effect will automatically sync to CurrentSchedule
                 dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
-                
-                // Ensure minimum display time has elapsed
-                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-                if (elapsed < minimumDisplayMs)
-                {
-                    var remaining = minimumDisplayMs - (int)elapsed;
-                    await Task.Delay(remaining);
-                }
-                else
-                {
-                    await Task.Delay(200); // Brief delay to show completion
-                }
-                
-                ProgressPercent = 1.0;
-                ProgressText = "100%";
-                await Task.Delay(100);
+                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 1.0);
                 
                 // Navigate back to schedule page
-                // Keep IsBusy = true until modal closes - don't hide busy overlay here
                 await navigationService.PopModalAsync();
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Error selecting section");
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    IsBusy = false;
-                    ShowProgress = false;
-                });
+                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
             }
             finally
             {

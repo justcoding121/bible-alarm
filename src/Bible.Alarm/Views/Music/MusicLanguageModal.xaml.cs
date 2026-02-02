@@ -11,6 +11,7 @@ namespace Bible.Alarm.Views.Music;
 public partial class MusicLanguageModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
+    private bool isSelectingLanguage;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public IListViewModel? ViewModel => BindingContext as IListViewModel;
@@ -25,9 +26,17 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
     {
         try { cancellationTokenSource.Cancel(); } catch { }
 
+        if (isSelectingLanguage)
+        {
+            return;
+        }
+
         if (sender is View view && view.BindingContext is LanguageListViewItemModel languageItem)
         {
+            isSelectingLanguage = true;
+
             languageItem.IsNavigating = true;
+            languageItem.DownloadProgress = 0.0;
             await Task.Delay(50);
 
             try
@@ -44,6 +53,7 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
             finally
             {
                 languageItem.IsNavigating = false;
+                isSelectingLanguage = false;
             }
         }
     }

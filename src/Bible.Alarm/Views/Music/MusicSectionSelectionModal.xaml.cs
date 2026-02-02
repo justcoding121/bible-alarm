@@ -10,6 +10,7 @@ namespace Bible.Alarm.Views.Music;
 public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
+    private bool isSelectingSection;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public MusicSectionSelectionViewModel? ViewModel => BindingContext as MusicSectionSelectionViewModel;
@@ -99,9 +100,17 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
+        if (isSelectingSection)
+        {
+            return;
+        }
+
         if (sender is View view && view.BindingContext is BiblePublicationSectionListViewItemModel sectionItem)
         {
-            // Set IsNavigating immediately to show progress indicator
+            isSelectingSection = true;
+
+            // Reset progress and show row indicator immediately
+            sectionItem.DownloadProgress = 0.0;
             sectionItem.IsNavigating = true;
             
             // Wait 50ms to ensure UI thread renders the update before doing backend work
@@ -121,6 +130,7 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
             {
                 // Reset IsNavigating after operation completes
                 sectionItem.IsNavigating = false;
+                isSelectingSection = false;
             }
         }
     }

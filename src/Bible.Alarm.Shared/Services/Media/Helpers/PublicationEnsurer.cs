@@ -314,17 +314,21 @@ internal sealed class PublicationEnsurer
                 publicationCodeForDb = normalizedPublicationCode;
             }
 
-            // Get first section code from SectionLanguages
-            // Use case-sensitive code for dramas when querying database
-            var firstSectionCode = await db.SectionLanguages
+            // Get first section code from SectionLanguages.
+            // IMPORTANT: SectionCodeHelper.SectionCodeComparer is a custom comparer and cannot be translated to SQL.
+            // Fetch candidate section codes from DB and apply the comparer in-memory.
+            // Use case-sensitive code for dramas when querying database.
+            var sectionCodes = await db.SectionLanguages
                 .AsNoTracking()
-                .Include(sl => sl.Language)
                 .Where(sl => sl.PublicationCode == publicationCodeForDb &&
-                           sl.Language != null &&
-                           sl.Language.LanguageCode == normalizedLanguageCode)
-                .OrderBy(sl => sl.SectionCode, SectionCodeHelper.SectionCodeComparer)
+                             sl.Language != null &&
+                             sl.Language.LanguageCode == normalizedLanguageCode)
                 .Select(sl => sl.SectionCode)
-                .FirstOrDefaultAsync(cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            var firstSectionCode = sectionCodes
+                .OrderBy(code => code, SectionCodeHelper.SectionCodeComparer)
+                .FirstOrDefault();
 
             if (string.IsNullOrEmpty(firstSectionCode))
             {

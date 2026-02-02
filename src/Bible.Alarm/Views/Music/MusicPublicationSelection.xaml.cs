@@ -9,6 +9,7 @@ namespace Bible.Alarm.Views.Music;
 public partial class MusicPublicationSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
+    private bool isSelectingPublication;
     private readonly MusicPublicationSelectionViewModel viewModel;
 
     public MusicPublicationSelectionViewModel? ViewModel => BindingContext as MusicPublicationSelectionViewModel;
@@ -46,9 +47,17 @@ public partial class MusicPublicationSelection : BaseContentPage, IDisposable
 
     private async void OnSongPublicationItemTapped(object? sender, TappedEventArgs e)
     {
+        if (isSelectingPublication)
+        {
+            return;
+        }
+
         if (sender is View view && view.BindingContext is PublicationListViewItemModel publicationItem)
         {
-            // Set IsNavigating immediately to show progress indicator
+            isSelectingPublication = true;
+
+            // Reset progress and show row indicator immediately
+            publicationItem.DownloadProgress = 0.0;
             publicationItem.IsNavigating = true;
             
             // Wait 50ms to ensure UI thread renders the update before doing backend work
@@ -68,6 +77,7 @@ public partial class MusicPublicationSelection : BaseContentPage, IDisposable
             {
                 // Reset IsNavigating after operation completes
                 publicationItem.IsNavigating = false;
+                isSelectingPublication = false;
             }
         }
     }

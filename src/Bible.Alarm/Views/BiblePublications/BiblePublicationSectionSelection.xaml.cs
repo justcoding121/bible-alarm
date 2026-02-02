@@ -10,6 +10,7 @@ namespace Bible.Alarm.Views.Bible;
 public partial class BiblePublicationSectionSelection : BaseContentPage, IDisposable
 {
     private bool isDisposed;
+    private bool isSelectingSection;
     private readonly BiblePublicationSectionSelectionViewModel viewModel;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
@@ -82,9 +83,17 @@ public partial class BiblePublicationSectionSelection : BaseContentPage, IDispos
 
     private async void OnSectionItemTapped(object? sender, TappedEventArgs e)
     {
+        if (isSelectingSection)
+        {
+            return;
+        }
+
         if (sender is View view && view.BindingContext is BiblePublicationSectionListViewItemModel sectionItem)
         {
-            // Set IsNavigating immediately to show progress indicator
+            isSelectingSection = true;
+
+            // Reset progress and show row indicator immediately
+            sectionItem.DownloadProgress = 0.0;
             sectionItem.IsNavigating = true;
             
             // Wait 50ms to ensure UI thread renders the update before doing backend work
@@ -104,6 +113,7 @@ public partial class BiblePublicationSectionSelection : BaseContentPage, IDispos
             {
                 // Reset IsNavigating after operation completes
                 sectionItem.IsNavigating = false;
+                isSelectingSection = false;
             }
         }
     }

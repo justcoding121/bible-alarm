@@ -147,6 +147,16 @@ Important nuance (cascade relies on this):
   - **Sectioned**: only the **first section + its tracks** (fast bootstrap for defaults), using `SectionLanguages` to find the “first section”
 - Selecting a different section later can trigger additional track fetches (tracks are not guaranteed to exist just because sections exist).
 
+### EF Core note: ordering “first section”
+
+The app uses a **natural section-code comparer** (`SectionCodeHelper.SectionCodeComparer`) for UI-friendly ordering (numeric section codes sort numerically).
+
+EF Core **cannot translate** `OrderBy(..., comparer)` into SQL, so code that needs the “first section” must:
+- query candidate `SectionLanguages.SectionCode` values from SQLite first (e.g., `ToListAsync`)
+- then apply `SectionCodeHelper.SectionCodeComparer` **in-memory**
+
+See: `PublicationEnsurer.FetchFirstSectionWithTracksAsync(...)`.
+
 For the full “selection cascade ↔ tables ↔ ad-hoc fetch” story, see:
 - `schedule-cascade-deep-dive.mdc`
 

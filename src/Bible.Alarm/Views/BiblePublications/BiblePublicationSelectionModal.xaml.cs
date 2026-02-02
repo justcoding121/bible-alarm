@@ -10,6 +10,7 @@ namespace Bible.Alarm.Views.Bible;
 public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
+    private bool isSelectingPublication;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public BiblePublicationSelectionViewModel? ViewModel => BindingContext as BiblePublicationSelectionViewModel;
@@ -49,9 +50,17 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
+        if (isSelectingPublication)
+        {
+            return;
+        }
+
         if (sender is View view && view.BindingContext is PublicationListViewItemModel publicationItem)
         {
-            // Set IsNavigating immediately to show progress indicator
+            isSelectingPublication = true;
+
+            // Reset progress and show row indicator immediately
+            publicationItem.DownloadProgress = 0.0;
             publicationItem.IsNavigating = true;
             
             // Wait 50ms to ensure UI thread renders the update before doing backend work
@@ -71,6 +80,7 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
             {
                 // Reset IsNavigating after operation completes
                 publicationItem.IsNavigating = false;
+                isSelectingPublication = false;
             }
         }
     }

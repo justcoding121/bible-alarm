@@ -11,6 +11,7 @@ namespace Bible.Alarm.Views.Bible;
 public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
+    private bool isSelectingLanguage;
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public IListViewModel? ViewModel => BindingContext as IListViewModel;
@@ -50,9 +51,17 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
+        if (isSelectingLanguage)
+        {
+            return;
+        }
+
         if (sender is View view && view.BindingContext is LanguageListViewItemModel languageItem)
         {
+            isSelectingLanguage = true;
+
             // Set IsNavigating immediately to show progress indicator
+            languageItem.DownloadProgress = 0.0;
             languageItem.IsNavigating = true;
             
             // Wait 50ms to ensure UI thread renders the update before doing backend work
@@ -75,6 +84,7 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
             {
                 // Reset IsNavigating after operation completes
                 languageItem.IsNavigating = false;
+                isSelectingLanguage = false;
             }
         }
     }

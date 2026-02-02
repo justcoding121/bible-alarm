@@ -162,6 +162,10 @@ Fetch strategy by `HarvestType`:
 - **Flat** or **MediatorSectioned**
   - fetches publication tracks directly (`FetchPublicationTracksAsync`)
 
+Implementation note:
+- “first section” selection uses `SectionCodeHelper.SectionCodeComparer` (natural sort).
+- EF Core can’t translate `OrderBy(..., comparer)`, so the app must load section codes and sort in-memory when picking the first section.
+
 Critical subtlety:
 - for sectioned publications, “sections exist” does **not** guarantee “tracks exist”
   - `BiblePublicationSelectionSectionTrackResolver` will call `FetchSectionTracksAsync(...)` if tracks are missing for the chosen section

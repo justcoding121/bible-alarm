@@ -78,18 +78,9 @@ public sealed class BiblePublicationSelectionCommandHandler
                 return;
             }
 
-            // Show progress immediately on UI thread BEFORE any async work
-            // This ensures the UI updates first, then the API calls are made
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                setIsBusy(true);
-                setShowProgress(true);
-                setProgressPercent(0.0);
-                setProgressText("Loading...");
-            });
-            
-            // Give UI thread enough time to render the progress indicator
-            await Task.Delay(300);
+            // For item-click fetches, we show per-row progress (spinner + percent) instead of modal overlays.
+            // The caller sets IsNavigating; we just drive the row progress percent.
+            await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
 
             // No DB probing: the tapped publication row already knows whether it has LanguageId or not.
             // If it's a publication without language FK, force empty language for queries.
@@ -143,11 +134,11 @@ public sealed class BiblePublicationSelectionCommandHandler
                 var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
                 var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
                 
-                // Create progress tracker with async UI updates to ensure they complete
+                // Create progress tracker for per-row percent updates (no modal progress card / busy overlay).
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                    progress => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressPercent(progress)),
-                    text => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressText(text)),
-                    isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => setShowProgress(isVisible)));
+                    progress => _ = MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = progress),
+                    _ => { },
+                    _ => { });
                 
                 var (sectionCode, trackNumber, sectionName, trackTitle) =
                     await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressTracker);
@@ -206,15 +197,10 @@ public sealed class BiblePublicationSelectionCommandHandler
                 }
                 
                 progressTracker.UpdateProgress(1.0);
-                await Task.Delay(200); // Brief delay to show completion
             }
             finally
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    setIsBusy(false);
-                    setShowProgress(false);
-                });
+                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 1.0);
             }
             
             await navigationService.PopModalAsync();
@@ -264,6 +250,8 @@ public sealed class BiblePublicationSelectionCommandHandler
                 setShowProgress(true);
                 setProgressPercent(0.0);
                 setProgressText("Loading...");
+
+                x.DownloadProgress = 0.0;
             });
             
             // Give UI thread enough time to render the progress indicator
@@ -278,7 +266,11 @@ public sealed class BiblePublicationSelectionCommandHandler
                 
                 // Create progress tracker with async UI updates (fire-and-forget tasks to avoid blocking)
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                    progress => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressPercent(progress)),
+                    progress => _ = MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        setProgressPercent(progress);
+                        x.DownloadProgress = progress;
+                    }),
                     text => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressText(text)),
                     isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => setShowProgress(isVisible)));
                 
@@ -384,6 +376,8 @@ public sealed class BiblePublicationSelectionCommandHandler
                 {
                     setIsBusy(false);
                     setShowProgress(false);
+
+                    x.DownloadProgress = 1.0;
                 });
             }
             

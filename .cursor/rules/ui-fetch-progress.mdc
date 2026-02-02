@@ -1,0 +1,35 @@
+---
+description: "UI busy/progress patterns for ad-hoc fetch (overlay vs per-row percent)"
+globs: "{src/Bible.Alarm/Views/**,src/Bible.Alarm/ViewModels/**}"
+alwaysApply: false
+---
+
+## Goal (UX invariant)
+
+- **Modal-level overlays** (BusyOverlay / ProgressIndicator) are reserved for:
+  - **modal open / initial load** (e.g., scroll-to-selected while data loads)
+  - **language selection ad-hoc fetch** (bigger operation; keep modal blocked)
+- **Item-click fetches** (publication/section row taps that may harvest/download) must:
+  - **NOT** show a modal overlay
+  - show **only row-end spinner + “NN%” text** on the tapped row
+  - show **no progress bar**
+
+## How it’s implemented (current pattern)
+
+- **Row state** lives on the row view models:
+  - `PublicationListViewItemModel`: `IsNavigating` + `DownloadProgress` / `DownloadProgressText`
+  - `BiblePublicationSectionListViewItemModel`: `IsNavigating` + `DownloadProgress` / `DownloadProgressText`
+  - `LanguageListViewItemModel`: `IsNavigating` + `DownloadProgress` / `DownloadProgressText`
+- **Tap handlers** (`*.xaml.cs`) set:
+  - `IsNavigating = true` immediately (spinner appears)
+  - `DownloadProgress = 0.0` initially, then command logic updates it via `FetchProgressTracker`
+  - `IsNavigating = false` when complete
+
+## Where item-click progress is driven
+
+- Bible publication row tap: `BiblePublicationSelectionCommandHandler.CreateSectionSelectionCommand(...)`
+- Music publication row tap: `MusicPublicationSelectionCommandHandler.HandleTrackSelectionAsync(...)`
+- Bible section row tap: `BiblePublicationSectionSelectionViewModel.TrackSelectionCommand`
+- Instrumental music section row tap: `MusicSectionSelectionCommandHandler.HandleSectionSelectedAsync(...)`
+- Bible language row tap: `BiblePublicationSelectionCommandHandler.CreateSelectLanguageCommand(...)`
+- Music language row tap: `MusicPublicationSelectionCommandHandler.HandleLanguageSelectionAsync(...)`

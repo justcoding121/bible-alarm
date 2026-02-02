@@ -35,21 +35,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
             return;
         }
 
-        // Track start time to ensure minimum display duration
-        var startTime = DateTime.UtcNow;
-        const int minimumDisplayMs = 800; // Minimum time to show progress indicator
-
-        // Show progress immediately on UI thread BEFORE any async work
-        // This ensures the UI updates first, then the API calls are made
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            setShowProgress(true);
-            setProgressPercent(0.0);
-            setProgressText("Loading...");
-        });
-        
-        // Give UI thread enough time to render the progress indicator
-        await Task.Delay(300);
+        // For item-click fetches, we show per-row progress (spinner + percent) instead of modal overlays.
+        await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
 
         // No DB probing: the tapped row already knows if it has LanguageId or not.
         // Publications without language FK (LanguageId == null) are melody/instrumental.
@@ -71,11 +58,11 @@ public sealed class MusicPublicationSelectionCommandHandler(
         
         try
         {
-            // Create progress tracker with async UI updates (fire-and-forget tasks to avoid blocking)
+            // Create progress tracker for per-row percent updates (no modal progress card / busy overlay).
             var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                progress => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressPercent(progress)),
-                text => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressText(text)),
-                isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => setShowProgress(isVisible)));
+                progress => _ = MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = progress),
+                _ => { },
+                _ => { });
             
             // Get track based on music type
             int trackNumber;
@@ -218,26 +205,10 @@ public sealed class MusicPublicationSelectionCommandHandler(
             }
             
             progressTracker.UpdateProgress(1.0);
-            
-            // Ensure minimum display time has elapsed
-            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            if (elapsed < minimumDisplayMs)
-            {
-                var remaining = minimumDisplayMs - (int)elapsed;
-                progressTracker.UpdateProgressText("Completing...");
-                await Task.Delay(remaining);
-            }
-            else
-            {
-                await Task.Delay(200); // Brief delay to show completion
-            }
         }
         finally
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                setShowProgress(false);
-            });
+            await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 1.0);
         }
         
         await navigationService.PopModalAsync();
@@ -258,6 +229,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
         {
             return;
         }
+
+        await MainThread.InvokeOnMainThreadAsync(() => language.DownloadProgress = 0.0);
 
         // Track start time to ensure minimum display duration
         var startTime = DateTime.UtcNow;
@@ -281,7 +254,11 @@ public sealed class MusicPublicationSelectionCommandHandler(
             
             // Create progress tracker with async UI updates (fire-and-forget tasks to avoid blocking)
             var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                progress => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressPercent(progress)),
+                progress => _ = MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    setProgressPercent(progress);
+                    language.DownloadProgress = progress;
+                }),
                 text => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressText(text)),
                 isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => setShowProgress(isVisible)));
             
@@ -342,6 +319,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             {
                 setIsBusy(false);
                 setShowProgress(false);
+                language.DownloadProgress = 1.0;
             });
         }
         

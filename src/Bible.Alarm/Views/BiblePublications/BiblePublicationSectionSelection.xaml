@@ -106,23 +106,29 @@
                                                 TextColor="{DynamicResource TextPrimaryColor}"
                                                 VerticalOptions="Center"
                                                 VerticalTextAlignment="Center" />
-                                            <!-- Progress indicator - shows when IsNavigating is true -->
-                                            <Grid Grid.Column="1"
-                                                  Margin="12,0,0,0"
-                                                  VerticalOptions="Center"
-                                                  HorizontalOptions="End"
-                                                  HeightRequest="{DynamicResource IconStandardFontSize}"
-                                                  WidthRequest="{DynamicResource IconStandardFontSize}">
+                                            <!-- Row progress (no modal overlay for item-click fetch) -->
+                                            <HorizontalStackLayout
+                                                Grid.Column="1"
+                                                Margin="12,0,0,0"
+                                                Spacing="{DynamicResource SpacingSmall}"
+                                                VerticalOptions="Center"
+                                                HorizontalOptions="End">
+                                                <Label
+                                                    FontSize="{DynamicResource SmallMediumFontSize}"
+                                                    Text="{Binding DownloadProgressText}"
+                                                    TextColor="{DynamicResource TextPrimaryColor}"
+                                                    VerticalOptions="Center"
+                                                    IsVisible="{Binding IsNavigating}" />
                                                 <ActivityIndicator
-                                                        IsRunning="{Binding IsNavigating}"
-                                                        IsVisible="{Binding IsNavigating}"
-                                                        Color="{DynamicResource TextPrimaryColor}"
-                                                        WidthRequest="{DynamicResource IconStandardFontSize}"
-                                                        HeightRequest="{DynamicResource IconStandardFontSize}"
-                                                        VerticalOptions="Center"
-                                                        HorizontalOptions="Center"
-                                                        Opacity="0.95" />
-                                            </Grid>
+                                                    IsRunning="{Binding IsNavigating}"
+                                                    IsVisible="{Binding IsNavigating}"
+                                                    Color="{DynamicResource TextPrimaryColor}"
+                                                    WidthRequest="{DynamicResource IconStandardFontSize}"
+                                                    HeightRequest="{DynamicResource IconStandardFontSize}"
+                                                    VerticalOptions="Center"
+                                                    HorizontalOptions="End"
+                                                    Opacity="0.95" />
+                                            </HorizontalStackLayout>
                                         </Grid>
                                     </Border>
                                 </core:SfEffectsView>

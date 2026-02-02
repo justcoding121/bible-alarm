@@ -140,27 +140,19 @@ public sealed class CategorySelectionAutoPopulateHandler
                     .ThenBy(pl => pl.Id)
                     .ToList();
 
-                // Avoid N+1: batch-load which publications are present with LanguageId for this language.
-                var candidateCodes = publicationLanguages
-                    .Select(pl => pl.PublicationCode)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-                var codesWithLanguageId = await db.BiblePublications
-                    .AsNoTracking()
-                    .Where(bp => candidateCodes.Contains(bp.PublicationCode) &&
-                                 bp.LanguageId != null &&
-                                 bp.Language != null &&
-                                 bp.Language.LanguageCode == normalizedLanguageCode)
-                    .Select(bp => bp.PublicationCode)
-                    .Distinct()
-                    .ToListAsync();
-
-                var codesWithLanguageIdSet = codesWithLanguageId.ToHashSet(StringComparer.OrdinalIgnoreCase);
-                
                 // Try each publication: check if already harvested, harvest if needed, then verify it can be queried
                 foreach (var pl in publicationLanguages)
                 {
+                    // For dramas, use case-sensitive publication codes in DB ("Dramas"/"DramaticBibleReadings").
+                    // For others (e.g. gnj), preserve exact case.
+                    var lowerCode = pl.PublicationCode.ToLowerInvariant();
+                    var isDrama = PublicationTypeHelper.IsDrama(lowerCode);
+                    var publicationCodeForDb = isDrama
+                        ? (lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                            ? "Dramas"
+                            : "DramaticBibleReadings")
+                        : pl.PublicationCode;
+
                     // Check if publication with first section and tracks is already harvested
                     var isAlreadyHarvested = await CheckIfPublicationWithFirstSectionHarvestedAsync(
                         db, pl.PublicationCode, normalizedLanguageCode);
@@ -184,12 +176,18 @@ public sealed class CategorySelectionAutoPopulateHandler
                             pl.PublicationCode, selectedLanguage.LanguageCode);
                     }
                     
-                    // Verify the publication can be queried with the language (has LanguageId)
-                    var canQueryWithLanguage = codesWithLanguageIdSet.Contains(pl.PublicationCode);
+                    // Verify the publication can be queried with the language (has LanguageId).
+                    // IMPORTANT: Re-check the DB after a harvest; a precomputed snapshot will be stale.
+                    var canQueryWithLanguage = await db.BiblePublications
+                        .AsNoTracking()
+                        .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb &&
+                                        bp.LanguageId != null &&
+                                        bp.Language != null &&
+                                        bp.Language.LanguageCode == normalizedLanguageCode);
                     
                     if (canQueryWithLanguage)
                     {
-                        publicationCode = pl.PublicationCode;
+                        publicationCode = publicationCodeForDb;
                         publicationWithoutLanguage = false;
                         logger.Debug("CategorySelectionAutoPopulateHandler: Selected publication={PublicationCode} (harvested and can be queried with language={LanguageCode})",
                             publicationCode, selectedLanguage.LanguageCode);
@@ -442,14 +440,19 @@ public sealed class CategorySelectionAutoPopulateHandler
             }
 
             // Get first section code from SectionLanguages
-            var firstSectionCode = await db.SectionLanguages
+            // IMPORTANT: SectionCodeHelper.SectionCodeComparer can't be translated to SQL.
+            // Load section codes first, then apply natural sort in-memory.
+            var sectionCodes = await db.SectionLanguages
                 .AsNoTracking()
                 .Where(sl => sl.PublicationCode == publicationCodeForDb &&
                              sl.Language != null &&
                              sl.Language.LanguageCode == normalizedLanguageCode)
-                .OrderBy(sl => sl.SectionCode, SectionCodeHelper.SectionCodeComparer)
                 .Select(sl => sl.SectionCode)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
+
+            var firstSectionCode = sectionCodes
+                .OrderBy(sc => sc, SectionCodeHelper.SectionCodeComparer)
+                .FirstOrDefault();
 
             if (string.IsNullOrEmpty(firstSectionCode))
             {

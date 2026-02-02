@@ -11,6 +11,7 @@ public sealed class PublicationListViewItemModel(Publication publication) : Obse
 {
     private bool isSelected;
     private bool isNavigating;
+    private double downloadProgress;
 
     public bool IsSelected
     {
@@ -22,6 +23,37 @@ public sealed class PublicationListViewItemModel(Publication publication) : Obse
     {
         get => isNavigating;
         set => SetProperty(ref isNavigating, value);
+    }
+
+    /// <summary>
+    /// Download progress for this publication selection operation (0.0 to 1.0).
+    /// Used to show per-row progress percent alongside the spinner.
+    /// </summary>
+    public double DownloadProgress
+    {
+        get => downloadProgress;
+        set
+        {
+            var clamped = value;
+            if (clamped < 0.0) clamped = 0.0;
+            if (clamped > 1.0) clamped = 1.0;
+
+            if (SetProperty(ref downloadProgress, clamped))
+            {
+                OnPropertyChanged(nameof(DownloadProgressText));
+            }
+        }
+    }
+
+    public string DownloadProgressText
+    {
+        get
+        {
+            var percent = (int)Math.Round(downloadProgress * 100.0, MidpointRounding.AwayFromZero);
+            if (percent < 0) percent = 0;
+            if (percent > 100) percent = 100;
+            return $"{percent}%";
+        }
     }
 
     /// <summary>

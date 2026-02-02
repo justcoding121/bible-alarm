@@ -45,22 +45,11 @@ internal sealed class MusicSectionSelectionCommandHandler
         Func<bool> isDisposed,
         Func<bool> isSelectingSection)
     {
-        // Track start time to ensure minimum display duration
-        var startTime = DateTime.UtcNow;
-        const int minimumDisplayMs = 800; // Minimum time to show progress indicator
-
-        // Show progress immediately on UI thread before any async work
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             if (isDisposed()) return;
-            setIsBusy(true);
-            setShowProgress(true);
-            setProgressPercent(0.0);
-            setProgressText("Loading...");
+            selectedSection.DownloadProgress = 0.0;
         });
-
-        // Give UI thread enough time to render the progress indicator
-        await Task.Delay(300);
 
         try
         {
@@ -83,9 +72,11 @@ internal sealed class MusicSectionSelectionCommandHandler
             var publicationCode = currentSchedule.MusicPublicationCode;
             var languageCode = currentSchedule.MusicLanguageCode; // May be null for instrumental music
 
-            // Update progress
-            setProgressPercent(0.3);
-            setProgressText("Checking tracks...");
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (isDisposed()) return;
+                selectedSection.DownloadProgress = 0.3;
+            });
 
             // Get tracks for the selected section
             SortedDictionary<int, MusicTrack> tracks;
@@ -110,18 +101,14 @@ internal sealed class MusicSectionSelectionCommandHandler
 
             if (tracks == null || tracks.Count == 0)
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (isDisposed()) return;
-                    setIsBusy(false);
-                    setShowProgress(false);
-                });
                 return;
             }
 
-            // Update progress
-            setProgressPercent(0.7);
-            setProgressText("Completing...");
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (isDisposed()) return;
+                selectedSection.DownloadProgress = 0.7;
+            });
 
             // Use the first track from the selected section
             var firstTrack = tracks.Values.First();
@@ -143,24 +130,12 @@ internal sealed class MusicSectionSelectionCommandHandler
 
             // Dispatch MusicSectionSelectedAction to update CurrentSchedule
             dispatcher.Dispatch(new MusicSectionSelectedAction(musicStateItem));
-
-            // Ensure minimum display time has elapsed
-            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            if (elapsed < minimumDisplayMs)
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                var remaining = minimumDisplayMs - (int)elapsed;
-                await Task.Delay(remaining);
-            }
-            else
-            {
-                await Task.Delay(200); // Brief delay to show completion
-            }
+                if (isDisposed()) return;
+                selectedSection.DownloadProgress = 1.0;
+            });
 
-            setProgressPercent(1.0);
-            setProgressText("100%");
-            await Task.Delay(100);
-
-            // Keep IsBusy=true until modal closes - don't hide busy overlay here
             await navigationService.PopModalAsync();
         }
         catch (Exception ex)
@@ -169,12 +144,7 @@ internal sealed class MusicSectionSelectionCommandHandler
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (isDisposed()) return;
-                // Only reset IsBusy if we’re not in the middle of selection/navigation
-                if (!isSelectingSection())
-                {
-                    setIsBusy(false);
-                }
-                setShowProgress(false);
+                selectedSection.DownloadProgress = 0.0;
             });
         }
     }

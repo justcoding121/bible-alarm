@@ -110,6 +110,9 @@ What happens:
 - Cascades Language → Publication → Section → Track
 - May call `ILanguageContentService.EnsurePublicationExistsAsync` to harvest a missing language/publication
 - Updates state without saving to DB until the Save command (or until a specific interaction chooses `shouldSave:true`).
+- **Progress UX**:
+  - language selection ad-hoc fetch may show a modal overlay/progress UI
+  - publication/section row taps show **only a row-end spinner + “NN%”** (no modal overlay, no progress bar)
 
 Expected result:
 - The UI always ends up with a consistent (language, publication, section, track) selection.
