@@ -16,12 +16,27 @@ public static class LookUpPathBuilder
     /// <param name="publicationCode">The publication/publication code (e.g., "nwt")</param>
     /// <param name="sectionCode">The section code (e.g., "1" for Bible books). Null/empty means non-sectioned (videos).</param>
     /// <param name="trackNumber">The track number</param>
+    /// <param name="isNoLanguagePublication">True if the publication has no language (e.g., instrumental music). Defaults to false.</param>
     /// <returns>The lookup path query string</returns>
-    public static string BuildBiblePublicationTrackLookUpPath(string languageCode, string publicationCode, string? sectionCode, int trackNumber)
+    public static string BuildBiblePublicationTrackLookUpPath(
+        string languageCode,
+        string publicationCode,
+        string? sectionCode,
+        int trackNumber,
+        bool isNoLanguagePublication = false)
     {
-        // Some publications are effectively “no-language” in our DB model (LanguageId == null), but the API still
-        // expects a langwritten param. Default to English when no language is supplied.
-        var lc = string.IsNullOrWhiteSpace(languageCode) ? "E" : languageCode.Trim();
+        // Melody disc-style codes (e.g., "iam-9") are NOT Bible book numbers.
+        // JW API expects the disc code as the publication code, without booknum:
+        //   ?output=json&pub=iam-9&fileformat=MP3&langwritten=E&track=17
+        // If section code follows the pattern "publicationCode-*", it's a disc-style section
+        // which implies a no-language publication
+        var isDiscStyleSection = !string.IsNullOrWhiteSpace(sectionCode) &&
+            sectionCode.Contains('-') &&
+            sectionCode.StartsWith(publicationCode + "-", StringComparison.OrdinalIgnoreCase);
+
+        // No-language publications (including disc-style sections) always use "E"
+        var effectiveIsNoLanguage = isNoLanguagePublication || isDiscStyleSection;
+        var lc = effectiveIsNoLanguage || string.IsNullOrWhiteSpace(languageCode) ? "E" : languageCode.Trim();
 
         // For non-sectioned publications (videos), omit booknum parameter and use MP4
         if (string.IsNullOrWhiteSpace(sectionCode))
@@ -30,11 +45,8 @@ public static class LookUpPathBuilder
             return $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={lc}&track={trackNumber}";
         }
 
-        // Melody disc-style codes (e.g., "iam-9") are NOT Bible book numbers.
-        // JW API expects the disc code as the publication code, without booknum:
-        //   ?output=json&pub=iam-9&fileformat=MP3&langwritten=E&track=17
-        if (sectionCode.Contains('-') &&
-            sectionCode.StartsWith(publicationCode + "-", StringComparison.OrdinalIgnoreCase))
+        // For disc-style sections, use the section code as the pub parameter
+        if (isDiscStyleSection)
         {
             return $"?output=json&pub={sectionCode}&fileformat=MP3&langwritten={lc}&track={trackNumber}";
         }
@@ -53,16 +65,31 @@ public static class LookUpPathBuilder
     /// <param name="trackNumber">The track number</param>
     /// <param name="downloadCode">Optional download code (e.g., "iam-1", "iam-2" for melody music discs). If provided, this is used instead of publicationCode.</param>
     /// <param name="originalTrackNumber">Optional original track number from API (within the disc). For melody music with discs, this should be the track number within that specific disc, not the sequential number across all discs.</param>
+    /// <param name="isNoLanguagePublication">True if the publication has no language (e.g., instrumental music). Defaults to false. When true, langwritten=E is always used.</param>
     /// <returns>The lookup path query string</returns>
-    public static string BuildMusicTrackLookUpPath(string publicationCode, string? languageCode, int trackNumber, string? downloadCode = null, int? originalTrackNumber = null)
+    public static string BuildMusicTrackLookUpPath(
+        string publicationCode,
+        string? languageCode,
+        int trackNumber,
+        string? downloadCode = null,
+        int? originalTrackNumber = null,
+        bool isNoLanguagePublication = false)
     {
         // Use downloadCode if provided (for melody music with discs), otherwise use publicationCode
         var pubCode = !string.IsNullOrEmpty(downloadCode) ? downloadCode : publicationCode;
         // Use originalTrackNumber if provided (for melody music with discs), otherwise use trackNumber
         var trackNum = originalTrackNumber ?? trackNumber;
-        // Match harvester format: ?output=json&pub={publicationDownloadCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}
-        // Note: We include track parameter for individual track lookup, harvester doesn't use it when fetching all tracks
-        var langParam = string.IsNullOrEmpty(languageCode) ? "&langwritten=E" : $"&langwritten={languageCode}";
+
+        // If downloadCode is provided and follows disc pattern (e.g., "iam-1"), it's a no-language publication
+        var isDiscStyleDownload = !string.IsNullOrEmpty(downloadCode) &&
+            downloadCode.Contains('-') &&
+            downloadCode.StartsWith(publicationCode + "-", StringComparison.OrdinalIgnoreCase);
+
+        // No-language publications always use "E"
+        var effectiveIsNoLanguage = isNoLanguagePublication || isDiscStyleDownload;
+        var effectiveLanguageCode = effectiveIsNoLanguage ? "E" : languageCode;
+
+        var langParam = string.IsNullOrEmpty(effectiveLanguageCode) ? "&langwritten=E" : $"&langwritten={effectiveLanguageCode}";
         return $"?output=json&pub={pubCode}&fileformat=MP3{langParam}&track={trackNum}";
     }
 

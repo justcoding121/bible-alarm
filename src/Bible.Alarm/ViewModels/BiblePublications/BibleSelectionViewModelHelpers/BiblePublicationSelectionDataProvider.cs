@@ -58,8 +58,8 @@ public sealed class BiblePublicationSelectionDataProvider
             var languagesData = await mediaService.GetBiblePublicationLanguages(currentCategoryName);
             var trimmedSearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
-            Log.Debug("PopulateLanguagesAsync: Loaded {LanguageCount} languages from GetBiblePublicationLanguages",
-                languagesData.Count);
+            Log.Debug("PopulateLanguagesAsync: Loaded {LanguageCount} languages from GetBiblePublicationLanguages, currentLanguageCode={CurrentLanguageCode}",
+                languagesData.Count, currentLanguageCode ?? "(null)");
 
             var languageVMs = new List<LanguageListViewItemModel>();
 
@@ -71,9 +71,12 @@ public sealed class BiblePublicationSelectionDataProvider
                 var languageVm = new LanguageListViewItemModel(language);
                 languageVMs.Add(languageVm);
 
-                if (!string.IsNullOrEmpty(currentLanguageCode) && languageVm.Code == currentLanguageCode)
+                if (!string.IsNullOrEmpty(currentLanguageCode) && 
+                    string.Equals(languageVm.Code, currentLanguageCode, StringComparison.OrdinalIgnoreCase))
                 {
                     languageVm.IsSelected = true;
+                    Log.Debug("PopulateLanguagesAsync: Marked language {LanguageCode} ({LanguageName}) as selected",
+                        languageVm.Code, languageVm.Name);
                 }
             }
 

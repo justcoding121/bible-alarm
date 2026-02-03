@@ -1,0 +1,58 @@
+---
+description: Modal progress tracking patterns - when to use FetchProgressTracker vs WeakReferenceMessenger
+alwaysApply: true
+---
+
+# Modal Progress Tracking
+
+## Two Progress Scenarios
+
+1. **Modal Open Progress**: Overlay with spinner + progress bar shown before list items load
+2. **List Item Tap Progress**: Progress circle shown on the tapped list item itself
+
+## Progress by Modal (Schedule Page Order)
+
+| UI Row | Modal | Modal Open Progress | List Item Tap Progress |
+|--------|-------|---------------------|------------------------|
+| Category | CategoryModal | N/A (cache) | WeakReferenceMessenger |
+| Language | BibleLanguageModal | N/A (cache) | `x.DownloadProgress` |
+| Publication | BiblePublicationModal | FetchProgressTracker | N/A (opens section) |
+| Section | BibleSectionModal | FetchProgressTracker | `x.DownloadProgress` |
+| Track | BibleTrackModal | N/A (local DB) | N/A |
+| Music Language | MusicLanguageModal | N/A (cache) | `language.DownloadProgress` |
+| Music Publication | MusicPublicationModal | FetchProgressTracker | N/A (opens section) |
+| Music Section | MusicSectionModal | FetchProgressTracker | `section.DownloadProgress` |
+| Music Track | MusicTrackModal | N/A (local DB) | N/A |
+
+## When to Use Each Approach
+
+### FetchProgressTracker (Direct Callbacks)
+Use when ViewModel directly calls the service method:
+```csharp
+var progressTracker = new FetchProgressTracker(
+    progress => ProgressPercent = progress,
+    text => ProgressText = text,
+    isVisible => ShowProgress = isVisible,
+    cancellationToken);
+await service.FetchAsync(progressTracker);
+```
+
+### WeakReferenceMessenger (Pub/Sub)
+Use when fetch is triggered by a Fluxor effect (can't pass callbacks through actions):
+```csharp
+// In Effect:
+WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
+    new CategoryFetchProgress { CategoryId = id, Progress = 0.5 }));
+
+// In ViewModel:
+public void Receive(CategoryFetchProgressMessage msg) {
+    category.DownloadProgress = msg.Value.Progress;
+}
+```
+
+## Progress Display Rules
+
+- Modal open: Use `ProgressIndicator` overlay with `ShowProgress`, `ProgressPercent`, `ProgressText`
+- List item tap: Use `DownloadProgress` property on list item model (binds to progress circle)
+- Always show numeric percentage (0% to 100%), never text like "Loading..."
+- Track modals don't need progress (data already in local DB)

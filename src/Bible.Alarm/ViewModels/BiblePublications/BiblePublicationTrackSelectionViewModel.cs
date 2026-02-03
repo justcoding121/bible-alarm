@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -31,6 +32,7 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
     private readonly TrackSelectionDataProvider dataProvider;
     private readonly TrackSelectionCommandHandler commandHandler;
     private readonly TrackSelectionPropertyManager propertyManager;
+    private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
 
     private readonly SemaphoreSlim @lock = new(1);
 
@@ -57,6 +59,7 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
         dataProvider = new TrackSelectionDataProvider(mediaService, biblePublicationService);
         commandHandler = new TrackSelectionCommandHandler(logger, state, dispatcher, navigationService);
         propertyManager = new TrackSelectionPropertyManager();
+        SetupPropertyManagerForwarding();
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
@@ -81,6 +84,21 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
 
         state.StateChanged += OnBiblePublicationInitialized;
         state.StateChanged += OnBiblePublicationChanged;
+    }
+
+    private void SetupPropertyManagerForwarding()
+    {
+        // The view binds to THIS ViewModel (not the property manager).
+        // Forward property-manager changes so bindings update (especially IsBusy for busy overlay).
+        propertyManagerPropertyChangedHandler = (_, e) =>
+        {
+            if (e.PropertyName == nameof(TrackSelectionPropertyManager.IsBusy))
+            {
+                OnPropertyChanged(nameof(IsBusy));
+            }
+        };
+
+        propertyManager.PropertyChanged += propertyManagerPropertyChangedHandler;
     }
 
     private void OnBiblePublicationChanged(object? sender, EventArgs e)
@@ -213,6 +231,13 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
     {
         state.StateChanged -= OnBiblePublicationInitialized;
         state.StateChanged -= OnBiblePublicationChanged;
+
+        if (propertyManagerPropertyChangedHandler != null)
+        {
+            propertyManager.PropertyChanged -= propertyManagerPropertyChangedHandler;
+            propertyManagerPropertyChangedHandler = null;
+        }
+
         @lock.Dispose();
         GC.SuppressFinalize(this);
     }

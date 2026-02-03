@@ -1,4 +1,6 @@
 #nullable enable
+using System.Net.Http;
+using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
@@ -8,6 +10,7 @@ using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
+using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
@@ -81,6 +84,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(songPublication.Code);
                     if (sections == null || sections.Count == 0)
                     {
+                        await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
                         return;
                     }
 
@@ -106,6 +110,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     var sectionTracks = await mediaService.GetBiblePublicationTracks(string.Empty, songPublication.Code, selectedSectionCode);
                     if (sectionTracks == null || sectionTracks.Count == 0)
                     {
+                        await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
                         return;
                     }
 
@@ -133,6 +138,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     var tracks = await mediaService.GetMelodyMusicTracks(songPublication.Code);
                     if (tracks == null || tracks.Count == 0)
                     {
+                        await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
                         return;
                     }
 
@@ -161,6 +167,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 var result = await dataProvider.GetTrackForSongPublicationAsync(songPublication, languageCode, currentSchedule, progressTracker);
                 if (result.TrackNumber == 0)
                 {
+                    await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
                     return;
                 }
                 trackNumber = result.TrackNumber;
@@ -206,9 +213,21 @@ public sealed class MusicPublicationSelectionCommandHandler(
             
             progressTracker.UpdateProgress(1.0);
         }
-        finally
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
         {
-            await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 1.0);
+            Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during publication selection for {PublicationCode}", songPublication.Code);
+            await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
+            var toastService = ServiceProviderManager.GetService<IToastService>();
+            await toastService.ShowMessage("Unable to load. Please check your connection.");
+            return;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "MusicPublicationSelectionCommandHandler: Error during publication selection for {PublicationCode}", songPublication.Code);
+            await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
+            var toastService = ServiceProviderManager.GetService<IToastService>();
+            await toastService.ShowMessage("An error occurred. Please try again.");
+            return;
         }
         
         await navigationService.PopModalAsync();
@@ -230,42 +249,39 @@ public sealed class MusicPublicationSelectionCommandHandler(
             return;
         }
 
+        // Show progress on the list item itself (not as overlay)
         await MainThread.InvokeOnMainThreadAsync(() => language.DownloadProgress = 0.0);
-
-        // Track start time to ensure minimum display duration
-        var startTime = DateTime.UtcNow;
-        // Minimum time to show progress indicator
-        const int minimumDisplayMs = 800;
-
-        // Show progress immediately on UI thread before any async work
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            setIsBusy(true);
-            setShowProgress(true);
-            setProgressPercent(0.0);
-            setProgressText("Loading...");
-        });
-        
-        // Give UI thread enough time to render the progress indicator
-        await Task.Delay(300);
 
         try
         {
             var currentSchedule = state.Value.CurrentSchedule;
             
-            // Create progress tracker with async UI updates (fire-and-forget tasks to avoid blocking)
+            // Create progress tracker - updates only the list item progress
             var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
                 progress => _ = MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    setProgressPercent(progress);
                     language.DownloadProgress = progress;
                 }),
-                text => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressText(text)),
-                isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => setShowProgress(isVisible)));
+                text => { }, // No text updates for list item progress
+                isVisible => { }); // No visibility updates for list item progress
             
-            var (publicationCode, trackNumber, trackName, publicationName) = await dataProvider.GetFirstSongPublicationAndTrackForLanguageAsync(language, currentSchedule, progressTracker);
+            (string? publicationCode, int trackNumber, string trackName, string publicationName) result;
+            try
+            {
+                result = await dataProvider.GetFirstSongPublicationAndTrackForLanguageAsync(language, currentSchedule, progressTracker);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+            {
+                Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during language selection for {LanguageCode}", language.Code);
+                await MainThread.InvokeOnMainThreadAsync(() => language.DownloadProgress = 0.0);
+                var toastService = ServiceProviderManager.GetService<IToastService>();
+                await toastService.ShowMessage("Unable to load. Please check your connection.");
+                return;
+            }
+            var (publicationCode, trackNumber, trackName, publicationName) = result;
             if (publicationCode == null || trackNumber <= 0)
             {
+                await MainThread.InvokeOnMainThreadAsync(() => language.DownloadProgress = 0.0);
                 return;
             }
 
@@ -300,27 +316,11 @@ public sealed class MusicPublicationSelectionCommandHandler(
             }
             
             progressTracker.UpdateProgress(1.0);
-            
-            // Ensure minimum display time has elapsed
-            var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            if (elapsed < minimumDisplayMs)
-            {
-                var remaining = minimumDisplayMs - (int)elapsed;
-                progressTracker.UpdateProgressText("Completing...");
-                await Task.Delay(remaining);
-            }
-            else
-            {
-                // Brief delay to show completion
-                await Task.Delay(200);
-            }
         }
         finally
         {
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                setIsBusy(false);
-                setShowProgress(false);
                 language.DownloadProgress = 1.0;
             });
         }

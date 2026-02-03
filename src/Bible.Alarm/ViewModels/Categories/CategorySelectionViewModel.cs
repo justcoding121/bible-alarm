@@ -6,16 +6,18 @@ using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
+using Bible.Alarm.Stores.Messages;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Categories;
 
-public sealed class CategorySelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed class CategorySelectionViewModel : ObservableObject, IListViewModel, IDisposable, IRecipient<CategoryFetchProgressMessage>
 {
     private readonly ICategoryService categoryService;
     private readonly INavigationService navigationService;
@@ -24,8 +26,9 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
     private bool isBusy = true;
     private bool showProgress = false;
     private double progressPercent = 0.0;
-    private string progressText = string.Empty;
+    private string progressText = "0%";
     private CategoryListViewItemModel? selectedCategory;
+    private CategoryListViewItemModel? currentFetchingCategory;
 
     public CategorySelectionViewModel(
         ICategoryService categoryService,
@@ -38,7 +41,25 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         this.dispatcher = dispatcher;
         this.state = state;
         CloseModalCommand = new AsyncRelayCommand(async () => await navigationService.PopModalAsync());
+        
+        // Subscribe to progress messages from the effect handler
+        WeakReferenceMessenger.Default.Register(this);
+        
         _ = LoadCategoriesAsync();
+    }
+
+    public void Receive(CategoryFetchProgressMessage message)
+    {
+        var progress = message.Value;
+        
+        // Only update if we're tracking a category with matching ID
+        if (currentFetchingCategory != null && currentFetchingCategory.Id == progress.CategoryId)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                currentFetchingCategory.DownloadProgress = progress.Progress;
+            });
+        }
     }
 
     public ICommand SelectCategoryCommand => new AsyncRelayCommand<CategoryListViewItemModel>(async (category) =>
@@ -52,32 +73,24 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         var currentSchedule = state.Value.CurrentSchedule;
         var previousLanguageCode = currentSchedule?.BiblePublicationLanguageCode;
 
-        // Track start time to ensure minimum display duration
-        var startTime = DateTime.UtcNow;
-        const int minimumDisplayMs = 800; // Minimum time to show progress indicator
+        // Track the category being fetched so we can update its progress from messages
+        currentFetchingCategory = category;
 
-        // Show progress immediately on UI thread before any async work
+        // Show progress on the list item itself (not as overlay)
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            IsBusy = true;
-            ShowProgress = true;
-            ProgressPercent = 0.0;
-            ProgressText = "Loading...";
+            category.IsNavigating = true;
+            category.DownloadProgress = 0.0;
         });
-        
-        // Give UI thread enough time to render the progress indicator
-        await Task.Delay(300);
 
         try
         {
-            // Dispatch action to update state, including previous language code
+            // Dispatch action to update state - the effect handler will send progress messages
             dispatcher.Dispatch(new CategorySelectionAction(category.Id, category.Name, previousLanguageCode));
             
             // Wait for state to be updated (cascade effect)
-            ProgressPercent = 0.3;
-            ProgressText = "30%";
-            
-            const int maxWaitAttempts = 60; // Increased for longer fetches
+            // Progress is now updated via WeakReferenceMessenger from the effect handler
+            const int maxWaitAttempts = 60;
             const int delayMs = 200;
             for (int i = 0; i < maxWaitAttempts; i++)
             {
@@ -90,55 +103,20 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
                     currentState.BiblePublicationTrackNumber.Value > 0)
                 {
                     // Cascade complete
-                    ProgressPercent = 1.0;
-                    ProgressText = "100%";
-                    
-                    // Ensure minimum display time has elapsed
-                    var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-                    if (elapsed < minimumDisplayMs)
-                    {
-                        var remaining = minimumDisplayMs - (int)elapsed;
-                        await Task.Delay(remaining);
-                    }
-                    else
-                    {
-                        await Task.Delay(200); // Brief delay to show completion
-                    }
                     break;
                 }
                 
-                // Update progress gradually
-                double progress;
-                if (i < 30)
-                {
-                    progress = 0.3 + (i / 30.0) * 0.5; // 0.3 to 0.8
-                }
-                else
-                {
-                    progress = 0.8 + ((i - 30) / 30.0) * 0.2; // 0.8 to 1.0
-                }
-                
-                var percent = (int)Math.Round(progress * 100);
-                ProgressPercent = progress;
-                ProgressText = $"{percent}%";
-                
                 await Task.Delay(delayMs);
-            }
-            
-            // Ensure minimum display time has elapsed even if we didn't break early
-            var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            if (totalElapsed < minimumDisplayMs)
-            {
-                var remaining = minimumDisplayMs - (int)totalElapsed;
-                ProgressPercent = 1.0;
-                ProgressText = "100%";
-                await Task.Delay(remaining);
             }
         }
         finally
         {
-            IsBusy = false;
-            ShowProgress = false;
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                category.IsNavigating = false;
+                category.DownloadProgress = 1.0;
+            });
+            currentFetchingCategory = null;
         }
         
         // Close modal after fetch completes
@@ -153,11 +131,22 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
             var categories = await categoryService.GetAllCategoriesAsync();
             var categoryVMs = categories.Select(c => new CategoryListViewItemModel(c)).ToList();
             
+            // Get current category from state to mark as selected
+            var currentCategoryName = state.Value.CurrentSchedule?.BiblePublicationCategoryName;
+            
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Categories.Clear();
                 foreach (var categoryVM in categoryVMs)
                 {
+                    // Mark the current category as selected for scroll-to-selected
+                    if (!string.IsNullOrEmpty(currentCategoryName) && 
+                        string.Equals(categoryVM.Name, currentCategoryName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        categoryVM.IsSelected = true;
+                        SelectedCategory = categoryVM;
+                        Serilog.Log.Debug("LoadCategoriesAsync: Marked category {CategoryName} as selected", categoryVM.Name);
+                    }
                     Categories.Add(categoryVM);
                 }
             });
@@ -210,6 +199,6 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
 
     public void Dispose()
     {
-        // No resources to dispose
+        WeakReferenceMessenger.Default.Unregister<CategoryFetchProgressMessage>(this);
     }
 }

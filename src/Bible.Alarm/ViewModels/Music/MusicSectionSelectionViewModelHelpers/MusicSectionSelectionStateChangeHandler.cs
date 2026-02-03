@@ -122,12 +122,12 @@ public class MusicSectionSelectionStateChangeHandler
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
                     initialize(newPublicationCode);
-                    await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+                    // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 }
                 catch (Exception ex)
                 {
                     logger.Error(ex, "[MusicSectionSelection] StateChangeHandler: HandleStateChanged - Error during repopulation");
-                    await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+                    // Note: Do NOT set IsBusy = false here - the modal controls this
                 }
             });
         }

@@ -122,28 +122,8 @@ internal sealed class LanguageContentPublicationSectionsFetcher
                 return false;
             }
 
-            // Delete existing publication for this language (including sections and tracks)
-            // Use case-sensitive code for dramas
-            var existingPublication = await db.BiblePublications
-                .Include(bp => bp.Language)
-                .Include(bp => bp.Sections)
-                    .ThenInclude(s => s.Tracks)
-                        .ThenInclude(t => t.UrlParams)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(
-                    bp => bp.PublicationCode == publicationCodeForDb &&
-                          bp.Language != null &&
-                          bp.Language.LanguageCode == normalizedLanguageCode,
-                    cancellationToken);
-
-            if (existingPublication != null)
-            {
-                logger.Information("Deleting existing publication {PublicationCode} for language {LanguageCode}",
-                    publicationCode, languageCode);
-                db.BiblePublications.Remove(existingPublication);
-                await db.SaveChangesAsync(cancellationToken);
-            }
-
+            // DO NOT delete existing publication - SectionFetcher handles incremental section fetching
+            // This preserves partial downloads and allows proper resume on retry
             return await sectionFetcher.FetchPublicationSectionsAsync(
                 db, publicationCodeForDb, normalizedLanguageCode, publicationCodeForDb,
                 englishPublication, sectionCodes, cancellationToken);

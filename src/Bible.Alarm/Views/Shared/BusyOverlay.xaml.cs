@@ -1,4 +1,5 @@
 #nullable enable
+using System.Windows.Input;
 using Serilog;
 
 namespace Bible.Alarm.Views.Shared;
@@ -27,6 +28,44 @@ public partial class BusyOverlay : ContentView
     {
         get => (int)GetValue(HardTimeoutMsProperty);
         set => SetValue(HardTimeoutMsProperty, value);
+    }
+
+    /// <summary>
+    /// Whether to show the cancel button at the bottom of the overlay.
+    /// </summary>
+    public static readonly BindableProperty ShowCancelButtonProperty = BindableProperty.Create(
+        nameof(ShowCancelButton),
+        typeof(bool),
+        typeof(BusyOverlay),
+        false,
+        BindingMode.OneWay);
+
+    /// <summary>
+    /// Whether to show the cancel button at the bottom of the overlay.
+    /// </summary>
+    public bool ShowCancelButton
+    {
+        get => (bool)GetValue(ShowCancelButtonProperty);
+        set => SetValue(ShowCancelButtonProperty, value);
+    }
+
+    /// <summary>
+    /// Command to execute when the cancel button is tapped.
+    /// </summary>
+    public static readonly BindableProperty CancelCommandProperty = BindableProperty.Create(
+        nameof(CancelCommand),
+        typeof(ICommand),
+        typeof(BusyOverlay),
+        null,
+        BindingMode.OneWay);
+
+    /// <summary>
+    /// Command to execute when the cancel button is tapped.
+    /// </summary>
+    public ICommand? CancelCommand
+    {
+        get => (ICommand?)GetValue(CancelCommandProperty);
+        set => SetValue(CancelCommandProperty, value);
     }
 
     private CancellationTokenSource? timeoutCancellation;

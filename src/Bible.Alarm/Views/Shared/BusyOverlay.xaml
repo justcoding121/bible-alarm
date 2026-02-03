@@ -7,6 +7,7 @@
              xmlns:local="clr-namespace:Bible.Alarm.Views.Shared"
              xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
              xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
+             xmlns:fn="clr-namespace:Bible.Alarm.Views"
              BackgroundColor="Transparent"
              ZIndex="999"
              HorizontalOptions="Fill"
@@ -21,17 +22,45 @@
           ZIndex="999"
           HorizontalOptions="Fill"
           VerticalOptions="Fill">
-        <core:SfBusyIndicator
-            x:Name="busyIndicator"
-            IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsVisible}"
-            IsVisible="True"
-            Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
-            AnimationType="DoubleCircle"
+        <VerticalStackLayout
             HorizontalOptions="Center"
             VerticalOptions="Center"
-            HeightRequest="{DynamicResource IconLargeContainerSize}"
-            WidthRequest="{DynamicResource IconLargeContainerSize}"
-            IndicatorColor="{StaticResource PrimaryColor}" />
+            Spacing="16">
+            <core:SfBusyIndicator
+                x:Name="busyIndicator"
+                IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsVisible}"
+                IsVisible="True"
+                Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
+                AnimationType="DoubleCircle"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                HeightRequest="{DynamicResource IconLargeContainerSize}"
+                WidthRequest="{DynamicResource IconLargeContainerSize}"
+                IndicatorColor="{StaticResource PrimaryColor}" />
+            <!-- Cancel Button (shown when ShowCancelButton is true) -->
+            <Border x:Name="cancelButtonBorder"
+                BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                HeightRequest="{DynamicResource IconStandardContainerSize}"
+                WidthRequest="{DynamicResource IconStandardContainerSize}"
+                StrokeThickness="0"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                IsVisible="{Binding Source={x:Reference busyOverlay}, Path=ShowCancelButton}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="100" />
+                </Border.StrokeShape>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding Source={x:Reference busyOverlay}, Path=CancelCommand}" />
+                </Border.GestureRecognizers>
+                <Label
+                    Text="{x:Static fn:GlyphNames.Xmark}"
+                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                    FontSize="{DynamicResource IconStandardFontSize}"
+                    TextColor="{DynamicResource TextSecondaryColor}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+            </Border>
+        </VerticalStackLayout>
     </Grid>
 </ContentView>
 

@@ -79,17 +79,16 @@ public sealed class MusicTrackStateManager
         {
             try
             {
-                await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
+                // Note: Do NOT set setBusy(true) here - the modal controls the busy state via ModalScrollHelper
                 if (current != null && !string.IsNullOrEmpty(current.PublicationCode))
                     await initializeTracks();
-                await Task.Delay(100);
                 await MainThread.InvokeOnMainThreadAsync(setSelectedTrack);
-                await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
+                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
             }
             catch (Exception ex)
             {
-                await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
                 Log.Error(ex, "Error initializing MusicTrackStateManager");
+                // Note: Do NOT set IsBusy = false here - the modal controls this
             }
         });
     }
@@ -141,9 +140,8 @@ public sealed class MusicTrackStateManager
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
                 await initializeTracks(newLanguageCode ?? string.Empty, newPublicationCode);
-                await Task.Delay(100);
                 await MainThread.InvokeOnMainThreadAsync(setSelectedTrack);
-                await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
+                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
             });
         }
         else

@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Runtime.Versioning;
 using Android.App;
 using Android.Content;
 using Android.OS;
@@ -231,15 +232,27 @@ public static class MainActivityFragmentStateHelper
 
         // On Android 12+ (API 31+), SCHEDULE_EXACT_ALARM requires user permission grant.
         // Check if we can schedule exact alarms; if not, fall back to inexact alarms.
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.S && !alarmManager.CanScheduleExactAlarms())
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.S)
         {
-            // Use inexact alarm - will still trigger within a few seconds
-            logger.Information("Using inexact alarm for restart (exact alarm permission not granted)");
-            alarmManager.Set(AlarmType.Rtc, triggerTime, pendingIntent);
+            // CanScheduleExactAlarms() is only available on API 31+
+            // We've already checked Build.VERSION.SdkInt >= BuildVersionCodes.S, so this is safe
+#pragma warning disable CA1416 // Validate platform compatibility
+            if (!alarmManager.CanScheduleExactAlarms())
+#pragma warning restore CA1416
+            {
+                // Use inexact alarm - will still trigger within a few seconds
+                logger.Information("Using inexact alarm for restart (exact alarm permission not granted)");
+                alarmManager.Set(AlarmType.Rtc, triggerTime, pendingIntent);
+            }
+            else
+            {
+                // Use exact alarm for more reliable restart timing
+                alarmManager.SetExact(AlarmType.Rtc, triggerTime, pendingIntent);
+            }
         }
         else
         {
-            // Use exact alarm for more reliable restart timing
+            // On Android < 31, use exact alarm (no permission required)
             alarmManager.SetExact(AlarmType.Rtc, triggerTime, pendingIntent);
         }
 

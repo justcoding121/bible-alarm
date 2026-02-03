@@ -83,26 +83,42 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
             logger.Information("Found {Count} missing publications for language {LanguageCode} in category {CategoryName}, fetching...",
                 missingPublications.Count, languageCode, categoryName ?? "all");
 
-            // Fetch each missing publication with progress updates
+            // Use progress token if available, otherwise use provided token
+            var effectiveToken = progress?.CancellationToken ?? cancellationToken;
+
+            // Initial progress
+            progress?.UpdateProgress(0.0);
+
+            // Fetch each missing publication with progress updates AFTER each save
             var successCount = 0;
             var totalCount = missingPublications.Count;
             for (int i = 0; i < totalCount; i++)
             {
+                // Check for cancellation before each publication
+                effectiveToken.ThrowIfCancellationRequested();
+
                 var publicationCode = missingPublications[i];
-                var progressPercent = (double)i / totalCount;
 
-                progress?.UpdateProgressText($"Loading {publicationCode}... ({i + 1}/{totalCount})");
-                progress?.UpdateProgress(progressPercent);
-
-                var success = await ensurePublicationExists(publicationCode, languageCode, cancellationToken, progress);
-                if (success)
+                try
                 {
-                    successCount++;
+                    var success = await ensurePublicationExists(publicationCode, languageCode, effectiveToken, progress);
+                    if (success)
+                    {
+                        successCount++;
+                    }
                 }
-            }
+                catch (OperationCanceledException)
+                {
+                    // Re-throw cancellation - data saved so far is preserved
+                    logger.Information("Publication fetch cancelled at {CompletedCount}/{TotalCount} for language {LanguageCode}",
+                        successCount, totalCount, languageCode);
+                    throw;
+                }
 
-            progress?.UpdateProgress(1.0);
-            progress?.UpdateProgressText("Complete");
+                // Update progress AFTER successful fetch/save
+                var progressPercent = (double)(i + 1) / totalCount;
+                progress?.UpdateProgress(progressPercent);
+            }
 
             logger.Information("Successfully fetched {SuccessCount} out of {TotalCount} publications for language {LanguageCode}",
                 successCount, missingPublications.Count, languageCode);

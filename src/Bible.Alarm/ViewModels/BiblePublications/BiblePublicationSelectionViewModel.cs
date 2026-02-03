@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -12,6 +13,7 @@ using Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -30,12 +32,15 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     private readonly BiblePublicationSelectionPropertyManager propertyManager;
     private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
 
-    // DeferClearBusy removed - ModalScrollHelper now controls IsBusy for all modals
+    // Cancellation support for fetch operations
+    private CancellationTokenSource? fetchCts;
 
     public ICommand BackCommand { get; set; }
     public ICommand SectionSelectionCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
+    public ICommand CancelFetchCommand { get; }
+    public ICommand RetryFetchCommand { get; }
 
     public BiblePublicationSelectionViewModel(
         IMediaService mediaService,
@@ -114,9 +119,28 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             text => propertyManager.ProgressText = text,
             busy => propertyManager.IsBusy = busy);
 
+        // Cancel and retry fetch commands
+        CancelFetchCommand = new RelayCommand(CancelFetch);
+        RetryFetchCommand = new AsyncRelayCommand(RetryFetchAsync);
+
         // Always trigger initialization, even if CurrentBiblePublicationSchedule is null
         // This ensures languages are populated for the language modal use case
         OnBiblePublicationInitialized(null, EventArgs.Empty);
+    }
+
+    private void CancelFetch()
+    {
+        fetchCts?.Cancel();
+        propertyManager.CanCancelFetch = false;
+        propertyManager.ShowProgress = false;
+        propertyManager.HasFetchError = false;
+        propertyManager.IsBusy = false;
+    }
+
+    private async Task RetryFetchAsync()
+    {
+        propertyManager.HasFetchError = false;
+        await RefreshFromState();
     }
 
     private async void OnBiblePublicationInitialized(object? o, EventArgs eventArgs)
@@ -133,18 +157,73 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     }
 
     /// <summary>
+    /// Refreshes only the languages list for the language selection modal.
+    /// This is a simpler refresh that only populates languages, not publications.
+    /// </summary>
+    public async Task RefreshLanguagesAsync()
+    {
+        try
+        {
+            // Populate languages for the language modal
+            await dataProvider.PopulateLanguagesAsync(null, propertyManager.Languages);
+            
+            // Update CurrentLanguage after population so scroll-to-selected works
+            propertyManager.UpdateCurrentLanguageFromLanguages();
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "BiblePublicationSelectionViewModel: Error refreshing languages");
+        }
+    }
+
+    /// <summary>
     /// Refreshes the ViewModel from the latest state when the modal appears.
-    /// This ensures languages are populated and current is initialized from CurrentSchedule.
+    /// This ensures publications are populated and current is initialized from CurrentSchedule.
     /// NOTE: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper.
+    /// On fetch error, sets HasFetchError = true instead of closing the modal.
     /// </summary>
     public async Task RefreshFromState()
     {
-        // Populate languages. ModalScrollHelper sets IsBusy = false after list is rendered.
-        await stateHandler.HandleBiblePublicationInitializedAsync(
-            busy => propertyManager.IsBusy = busy,
-            propertyManager.Languages,
-            state.Value.CurrentSchedule?.BiblePublicationLanguageCode,
-            () => propertyManager.UpdateCurrentLanguageFromLanguages());
+        // Cancel any previous fetch and create new cancellation token
+        fetchCts?.Cancel();
+        fetchCts = new CancellationTokenSource();
+        propertyManager.CanCancelFetch = true;
+        propertyManager.HasFetchError = false;
+
+        // Create progress tracker with cancellation support
+        var progressTracker = new FetchProgressTracker(
+            progress => propertyManager.ProgressPercent = progress,
+            text => propertyManager.ProgressText = text,
+            isVisible => propertyManager.ShowProgress = isVisible,
+            fetchCts.Token);
+
+        try
+        {
+            // Populate publications. ModalScrollHelper sets IsBusy = false after list is rendered.
+            await stateHandler.RefreshFromStateAsync(
+                busy => propertyManager.IsBusy = busy,
+                propertyManager.Publications,
+                progressTracker);
+            
+            // Set the selected publication after population so scroll-to-selected works
+            propertyManager.SetSelectedPublication();
+        }
+        catch (OperationCanceledException)
+        {
+            // Fetch was cancelled - data saved so far is preserved
+            Serilog.Log.Debug("BiblePublicationSelectionViewModel: Fetch cancelled by user");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+        {
+            // Network error - show error state instead of closing modal
+            Serilog.Log.Warning(ex, "BiblePublicationSelectionViewModel: Fetch failed with network error");
+            propertyManager.ShowProgress = false;
+            propertyManager.HasFetchError = true;
+        }
+        finally
+        {
+            propertyManager.CanCancelFetch = false;
+        }
     }
 
     private async void OnBiblePublicationChanged(object? sender, EventArgs e)
@@ -167,6 +246,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     public bool ShowProgress { get => propertyManager.ShowProgress; set => propertyManager.ShowProgress = value; }
     public double ProgressPercent { get => propertyManager.ProgressPercent; set => propertyManager.ProgressPercent = value; }
     public string ProgressText { get => propertyManager.ProgressText; set => propertyManager.ProgressText = value; }
+    public bool CanCancelFetch { get => propertyManager.CanCancelFetch; set => propertyManager.CanCancelFetch = value; }
+    public bool HasFetchError { get => propertyManager.HasFetchError; set => propertyManager.HasFetchError = value; }
 
     /// <summary>
     /// Gets the FlowDirection for content based on the selected language direction.
@@ -188,6 +269,11 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     {
         state.StateChanged -= OnBiblePublicationInitialized;
         state.StateChanged -= OnBiblePublicationChanged;
+
+        // Cancel any ongoing fetch
+        fetchCts?.Cancel();
+        fetchCts?.Dispose();
+        fetchCts = null;
 
         // Clean up property manager
         propertyManager.Cleanup();
@@ -226,6 +312,18 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.ProgressText))
             {
                 OnPropertyChanged(nameof(ProgressText));
+                return;
+            }
+
+            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.CanCancelFetch))
+            {
+                OnPropertyChanged(nameof(CanCancelFetch));
+                return;
+            }
+
+            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.HasFetchError))
+            {
+                OnPropertyChanged(nameof(HasFetchError));
             }
         };
 

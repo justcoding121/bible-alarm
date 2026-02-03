@@ -220,6 +220,12 @@ public class UrlConstructionService : IUrlConstructionService
             return new List<string>();
         }
 
+        // Check if this publication exists without a language (e.g., instrumental music)
+        // This is more generic than hard-coding specific publication codes
+        var isNoLanguagePublication = await dbContext.BiblePublications
+            .AsNoTracking()
+            .AnyAsync(p => p.PublicationCode == publicationCode && p.LanguageId == null);
+
         var query = dbContext.BiblePublicationTracks
             .AsNoTracking() // Read-only, improves performance
             .Include(t => t.Publication)
@@ -228,9 +234,18 @@ public class UrlConstructionService : IUrlConstructionService
             .Include(t => t.UrlParams)
             .Where(t => t.Publication != null
                 && t.Publication.PublicationCode == publicationCode
-                && t.Publication.Language != null
-                && t.Publication.Language.LanguageCode == languageCode
                 && t.Number == trackNumber);
+
+        // Filter by language: no-language publications don't have a language, others require matching language
+        if (isNoLanguagePublication)
+        {
+            query = query.Where(t => t.Publication!.Language == null);
+        }
+        else
+        {
+            query = query.Where(t => t.Publication!.Language != null
+                && t.Publication.Language.LanguageCode == languageCode);
+        }
 
         // Filter by section if provided
         if (!string.IsNullOrEmpty(sectionCode))
@@ -319,6 +334,15 @@ public class UrlConstructionService : IUrlConstructionService
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
+        // Check if this publication exists without a language (e.g., instrumental music)
+        // This is more generic than hard-coding specific publication codes
+        var isNoLanguagePublication = await dbContext.BiblePublications
+            .AsNoTracking()
+            .AnyAsync(p => p.PublicationCode == publicationCode && p.LanguageId == null);
+
+        // For no-language publications, ignore the passed language code
+        var effectiveLanguageCode = isNoLanguagePublication ? null : languageCode;
+
         var query = dbContext.BiblePublicationTracks
             .AsNoTracking()
             .Include(t => t.Publication)
@@ -330,9 +354,9 @@ public class UrlConstructionService : IUrlConstructionService
                 && t.Number == trackNumber);
 
         // Filter by language if provided
-        if (!string.IsNullOrEmpty(languageCode))
+        if (!string.IsNullOrEmpty(effectiveLanguageCode))
         {
-            query = query.Where(t => t.Publication!.Language != null && t.Publication.Language.LanguageCode == languageCode);
+            query = query.Where(t => t.Publication!.Language != null && t.Publication.Language.LanguageCode == effectiveLanguageCode);
         }
         else
         {

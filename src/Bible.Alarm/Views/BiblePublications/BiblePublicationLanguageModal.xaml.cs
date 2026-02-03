@@ -34,7 +34,9 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         Appearing -= OnAppearing;
 
         var bibleViewModel = ViewModel as BiblePublicationSelectionViewModel;
-        if (bibleViewModel != null)
+        
+        // Only clear search term if it's not already empty - avoids triggering unnecessary re-population
+        if (bibleViewModel != null && !string.IsNullOrEmpty(bibleViewModel.LanguageSearchTerm))
         {
             try { bibleViewModel.LanguageSearchTerm = string.Empty; } catch { }
         }
@@ -43,9 +45,21 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
             ViewModel,
             BusyOverlay,
             LanguageCollectionView,
-            getSelectedItem: () => bibleViewModel?.Languages?.FirstOrDefault(l => l.IsSelected),
+            getSelectedItem: () =>
+            {
+                var languages = bibleViewModel?.Languages;
+                if (languages == null || languages.Count == 0)
+                {
+                    Serilog.Log.Debug("BiblePublicationLanguageModal: getSelectedItem - Languages is null or empty");
+                    return null;
+                }
+                var selected = languages.FirstOrDefault(l => l.IsSelected);
+                Serilog.Log.Debug("BiblePublicationLanguageModal: getSelectedItem - Languages.Count={Count}, SelectedItem={SelectedCode}",
+                    languages.Count, selected?.Code ?? "(null)");
+                return selected;
+            },
             refreshAction: bibleViewModel != null
-                ? async () => await bibleViewModel.RefreshFromState()
+                ? async () => await bibleViewModel.RefreshLanguagesAsync()
                 : null,
             onFetchFailed: async (errorMessage) =>
             {

@@ -474,7 +474,12 @@ public sealed class BiblePublicationSelectionStateHandler
 
     private async Task InitializeAsync(string languageCode, ObservableCollection<LanguageListViewItemModel>? languages, ObservableCollection<PublicationListViewItemModel>? publications)
     {
-        await dataProvider.PopulateLanguagesAsync(null, languages);
+        // Only populate languages if not already populated (avoids duplicate population during modal open)
+        if (languages == null || languages.Count == 0)
+        {
+            await dataProvider.PopulateLanguagesAsync(null, languages);
+        }
+        
         await dataProvider.PopulatePublicationsAsync(languageCode, publications, false, downloadAll: false, categoryName: null);
     }
 }

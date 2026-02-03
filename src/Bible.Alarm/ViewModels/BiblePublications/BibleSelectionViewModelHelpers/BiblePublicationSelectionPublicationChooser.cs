@@ -63,7 +63,6 @@ internal sealed class BiblePublicationSelectionPublicationChooser
                 try
                 {
                     progress?.UpdateProgress(0.3);
-                    progress?.UpdateProgressText($"Checking {pubCode}...");
 
                     // Check if publication with first section and tracks is already harvested
                     var isAlreadyHarvested = await sectionTrackResolver.CheckIfPublicationWithFirstSectionHarvestedAsync(
@@ -73,7 +72,6 @@ internal sealed class BiblePublicationSelectionPublicationChooser
                     if (!isAlreadyHarvested)
                     {
                         // Harvest the publication (EnsurePublicationExistsAsync checks if it exists first)
-                        progress?.UpdateProgressText($"Loading {pubCode}...");
                         await languageContentService.EnsurePublicationExistsAsync(pubCode, language.Code, default, progress);
                     }
                     else
@@ -82,7 +80,6 @@ internal sealed class BiblePublicationSelectionPublicationChooser
                             pubCode,
                             language.Code);
                         progress?.UpdateProgress(0.5);
-                        progress?.UpdateProgressText($"Found {pubCode}");
                         await Task.Delay(100);
                     }
                 }

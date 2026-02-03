@@ -564,24 +564,19 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     {
         get
         {
-            if (totalTracks <= 0)
-            {
-                return "Preparing..";
-            }
-
             if (loadedTracks < totalTracks)
             {
                 // Still downloading/preparing - show percentage
                 if (totalBytesDownloaded > 0 && totalBytesExpected.HasValue && totalBytesExpected.Value > 0)
                 {
                     var percentage = (totalBytesDownloaded * 100.0) / totalBytesExpected.Value;
-                    return $"{percentage:F1}%";
+                    return $"{percentage:F0}%";
                 }
-                return "Preparing..";
+                return "0%";
             }
 
             // All tracks prepared
-            return "Ready";
+            return "100%";
         }
     }
 

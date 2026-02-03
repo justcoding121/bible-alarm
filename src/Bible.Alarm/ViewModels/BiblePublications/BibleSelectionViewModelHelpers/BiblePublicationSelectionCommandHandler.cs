@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
+using System.Net.Http;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common;
@@ -239,25 +240,11 @@ public sealed class BiblePublicationSelectionCommandHandler
                 return;
             }
 
-            // Track start time to ensure minimum display duration
-            var startTime = DateTime.UtcNow;
-            // Minimum time to show progress indicator
-            const int minimumDisplayMs = 800;
-
-            // Show progress immediately on UI thread before any async work
+            // Show progress on the list item itself (not as overlay)
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                setIsBusy(true);
-                setShowProgress(true);
-                setProgressPercent(0.0);
-                setProgressText("Loading...");
-
                 x.DownloadProgress = 0.0;
             });
-            
-            // Give UI thread enough time to render the progress indicator
-            // This ensures the user sees the progress before any work starts
-            await Task.Delay(300);
             
             try
             {
@@ -265,46 +252,38 @@ public sealed class BiblePublicationSelectionCommandHandler
                 var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
                 var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
                 
-                // Create progress tracker with async UI updates (fire-and-forget tasks to avoid blocking)
+                // Create progress tracker - updates only the list item progress
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
                     progress => _ = MainThread.InvokeOnMainThreadAsync(() =>
                     {
-                        setProgressPercent(progress);
                         x.DownloadProgress = progress;
                     }),
-                    text => _ = MainThread.InvokeOnMainThreadAsync(() => setProgressText(text)),
-                    isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => setShowProgress(isVisible)));
+                    text => { }, // No text updates for list item progress
+                    isVisible => { }); // No visibility updates for list item progress
                 
-                // Update progress to show we're starting - ensure UI has time to render
-                await MainThread.InvokeOnMainThreadAsync(() =>
+                (string? publicationCode, string? sectionCode, int trackNumber, string sectionName, string publicationName, string trackTitle) result;
+                try
                 {
-                    setProgressPercent(0.1);
-                    setProgressText("Checking content...");
-                });
-                await Task.Delay(100); // Give UI time to render the initial progress
-                
-                var (publicationCode, sectionCode, trackNumber, sectionName, publicationName, trackTitle) =
-                    await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x, progressTracker);
-                
-                // Ensure minimum display time has elapsed
-                var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
-                if (elapsed < minimumDisplayMs)
-                {
-                    var remaining = minimumDisplayMs - (int)elapsed;
-                    progressTracker.UpdateProgress(0.9);
-                    progressTracker.UpdateProgressText("Completing...");
-                    await Task.Delay(remaining);
+                    result = await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x, progressTracker);
                 }
+                catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+                {
+                    Log.Warning(ex, "BibleSelectionCommandHandler: Network error during language selection for {LanguageCode}", x.Code);
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        x.DownloadProgress = 0.0;
+                    });
+                    var toastService = ServiceProviderManager.GetService<IToastService>();
+                    await toastService.ShowMessage("Unable to load. Please check your connection.");
+                    return;
+                }
+                var (publicationCode, sectionCode, trackNumber, sectionName, publicationName, trackTitle) = result;
 
                 // Check for both null and empty string - GetPublicationSectionAndTrackForLanguageAsync returns empty string on failure
                 if (string.IsNullOrEmpty(publicationCode))
                 {
                     Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - No publications found for language {LanguageCode}", x.Code);
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        setIsBusy(false);
-                        setShowProgress(false);
-                    });
+                    await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                     return;
                 }
 
@@ -313,11 +292,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                 {
                     Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid track ({TrackNumber}) for language {LanguageCode}", 
                         trackNumber, x.Code);
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        setIsBusy(false);
-                        setShowProgress(false);
-                    });
+                    await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                     return;
                 }
 
@@ -325,11 +300,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                 if (currentSchedule == null)
                 {
                     Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - CurrentSchedule is null");
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        setIsBusy(false);
-                        setShowProgress(false);
-                    });
+                    await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                     return;
                 }
 
@@ -376,9 +347,6 @@ public sealed class BiblePublicationSelectionCommandHandler
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    setIsBusy(false);
-                    setShowProgress(false);
-
                     x.DownloadProgress = 1.0;
                 });
             }

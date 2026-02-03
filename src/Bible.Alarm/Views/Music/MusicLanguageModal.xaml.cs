@@ -81,9 +81,21 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
             ViewModel,
             BusyOverlay,
             LanguageCollectionView,
-            getSelectedItem: () => musicPublicationViewModel?.Languages?.FirstOrDefault(l => l.IsSelected),
+            getSelectedItem: () =>
+            {
+                var languages = musicPublicationViewModel?.Languages;
+                if (languages == null || languages.Count == 0)
+                {
+                    Serilog.Log.Debug("MusicLanguageModal: getSelectedItem - Languages is null or empty");
+                    return null;
+                }
+                var selected = languages.FirstOrDefault(l => l.IsSelected);
+                Serilog.Log.Debug("MusicLanguageModal: getSelectedItem - Languages.Count={Count}, SelectedItem={SelectedCode}",
+                    languages.Count, selected?.Code ?? "(null)");
+                return selected;
+            },
             refreshAction: musicPublicationViewModel != null
-                ? async () => await musicPublicationViewModel.RefreshFromState()
+                ? async () => await musicPublicationViewModel.RefreshLanguagesAsync()
                 : null,
             onFetchFailed: async (errorMessage) =>
             {

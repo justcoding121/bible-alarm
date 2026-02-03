@@ -99,25 +99,6 @@ public static class PublicationTypeHelper
     }
 
     /// <summary>
-    /// Gets a user-friendly display name for the content type.
-    /// </summary>
-    public static string GetContentTypeDisplayName(string? publicationCode)
-    {
-        if (string.IsNullOrEmpty(publicationCode))
-        {
-            return "Bible Reading";
-        }
-
-        return publicationCode.ToLowerInvariant() switch
-        {
-            "dramas" => "Audio Bible Dramas",
-            "dramaticbiblereadings" => "Dramatic Bible Readings",
-            "gnj" => "Good News According to Jesus",
-            _ => "Bible Reading"
-        };
-    }
-
-    /// <summary>
     /// Determines the harvest type for a given publication code.
     /// </summary>
     public static HarvestType GetHarvestType(string? publicationCode)

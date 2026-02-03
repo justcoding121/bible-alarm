@@ -40,7 +40,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private bool isInitializing;
     private bool showProgress = false;
     private double progressPercent = 0.0;
-    private string progressText = string.Empty;
+    private string progressText = "0%";
     private MusicSectionSelectionStateChangeHandler? stateChangeHandler;
 
     public ICommand BackCommand { get; set; }

@@ -12,6 +12,7 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
 
@@ -56,10 +57,13 @@ public sealed class MusicPublicationSelectionDataProvider(
                 var languageVm = new LanguageListViewItemModel(language);
                 languageVMs.Add(languageVm);
 
-                if (current != null && languageVm.Code == current.LanguageCode)
+                if (current != null && 
+                    string.Equals(languageVm.Code, current.LanguageCode, StringComparison.OrdinalIgnoreCase))
                 {
                     languageVm.IsSelected = true;
                     selectedLanguage = languageVm;
+                    Log.Debug("PopulateLanguages: Marked language {LanguageCode} ({LanguageName}) as selected",
+                        languageVm.Code, languageVm.Name);
                 }
             }
 

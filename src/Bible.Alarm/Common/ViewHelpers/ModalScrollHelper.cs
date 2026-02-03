@@ -51,6 +51,7 @@ public static class ModalScrollHelper
     /// ViewModel defaults IsBusy = true (XAML binding shows overlay immediately).
     /// We set IsBusy = false only after: data is loaded AND CollectionView has rendered items.
     /// If fetch fails, calls onFetchFailed callback to close modal and show toast.
+    /// NOTE: There is no hard timeout - the modal stays open until fetch completes or fails.
     /// </summary>
     /// <param name="viewModel">The ViewModel with IsBusy property</param>
     /// <param name="busyOverlay">The busy overlay element (unused, kept for API compatibility)</param>
@@ -70,7 +71,6 @@ public static class ModalScrollHelper
         CancellationToken cancellationToken = default)
     {
         if (viewModel == null) return ModalAppearingResult.Success;
-
         try
         {
             // Ensure spinner is showing
@@ -91,7 +91,9 @@ public static class ModalScrollHelper
             {
                 try
                 {
+                    Log.Debug("ModalScrollHelper: Starting refreshAction");
                     await refreshAction();
+                    Log.Debug("ModalScrollHelper: refreshAction completed");
                 }
                 catch (Exception ex) when (IsFetchFailure(ex))
                 {
@@ -111,6 +113,7 @@ public static class ModalScrollHelper
             // Wait for CollectionView to have items in its ItemsSource
             if (collectionView != null)
             {
+                Log.Debug("ModalScrollHelper: Waiting for items in source");
                 var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken);
                 if (!hasItems)
                 {
@@ -125,27 +128,38 @@ public static class ModalScrollHelper
                     }
                     return ModalAppearingResult.FetchFailed;
                 }
+                Log.Debug("ModalScrollHelper: Items found in source");
             }
 
-            // Scroll to selected item
+            // Wait for CollectionView to actually render items BEFORE scrolling
+            if (collectionView != null)
+            {
+                Log.Debug("ModalScrollHelper: Waiting for items to render");
+                await WaitForItemsRenderedAsync(collectionView, cancellationToken);
+                Log.Debug("ModalScrollHelper: Items rendered");
+            }
+
+            // Scroll to selected item AFTER items are rendered
             var selectedItem = getSelectedItem?.Invoke();
             if (selectedItem != null && collectionView != null)
             {
+                Log.Debug("ModalScrollHelper: Scrolling to selected item: {ItemType}", selectedItem.GetType().Name);
                 await CollectionViewHelper.ScrollToWhenReadyAsync(
                     collectionView,
                     selectedItem,
                     animated: false,
                     cancellationToken: cancellationToken);
                 await Task.Delay(PostScrollDelayMs, cancellationToken);
+                Log.Debug("ModalScrollHelper: Scroll completed");
             }
-
-            // Wait for CollectionView to actually render items (event-driven)
-            if (collectionView != null)
+            else
             {
-                await WaitForItemsRenderedAsync(collectionView, cancellationToken);
+                Log.Debug("ModalScrollHelper: No selected item to scroll to (selectedItem={HasItem}, collectionView={HasCV})",
+                    selectedItem != null, collectionView != null);
             }
 
             // Now reveal: show list first, then hide spinner
+            Log.Debug("ModalScrollHelper: Revealing list and hiding spinner");
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
@@ -186,6 +200,7 @@ public static class ModalScrollHelper
     /// <summary>
     /// Overload for ViewModels that don't implement IListViewModel.
     /// Uses a custom IsBusy getter function.
+    /// NOTE: There is no hard timeout - the modal stays open until fetch completes or fails.
     /// </summary>
     public static async Task<ModalAppearingResult> HandleModalAppearingAsync(
         Func<bool> isBusyGetter,
@@ -209,7 +224,9 @@ public static class ModalScrollHelper
             {
                 try
                 {
+                    Log.Debug("ModalScrollHelper (alt): Starting refreshAction");
                     await refreshAction();
+                    Log.Debug("ModalScrollHelper (alt): refreshAction completed");
                 }
                 catch (Exception ex) when (IsFetchFailure(ex))
                 {
@@ -224,11 +241,14 @@ public static class ModalScrollHelper
             }
 
             // Wait for IsBusy to become false (data loaded)
+            Log.Debug("ModalScrollHelper (alt): Waiting for IsBusy=false");
             await CollectionViewHelper.WaitForNotBusyAsync(isBusyGetter, cancellationToken: cancellationToken);
+            Log.Debug("ModalScrollHelper (alt): IsBusy is now false");
 
             // Wait for items in source
             if (collectionView != null)
             {
+                Log.Debug("ModalScrollHelper (alt): Waiting for items in source");
                 var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken);
                 if (!hasItems)
                 {
@@ -240,27 +260,38 @@ public static class ModalScrollHelper
                     }
                     return ModalAppearingResult.FetchFailed;
                 }
+                Log.Debug("ModalScrollHelper (alt): Items found in source");
             }
 
-            // Scroll to selected item
+            // Wait for items to render BEFORE scrolling
+            if (collectionView != null)
+            {
+                Log.Debug("ModalScrollHelper (alt): Waiting for items to render");
+                await WaitForItemsRenderedAsync(collectionView, cancellationToken);
+                Log.Debug("ModalScrollHelper (alt): Items rendered");
+            }
+
+            // Scroll to selected item AFTER items are rendered
             var selectedItem = getSelectedItem?.Invoke();
             if (selectedItem != null && collectionView != null)
             {
+                Log.Debug("ModalScrollHelper (alt): Scrolling to selected item: {ItemType}", selectedItem.GetType().Name);
                 await CollectionViewHelper.ScrollToWhenReadyAsync(
                     collectionView,
                     selectedItem,
                     animated: false,
                     cancellationToken: cancellationToken);
                 await Task.Delay(PostScrollDelayMs, cancellationToken);
+                Log.Debug("ModalScrollHelper (alt): Scroll completed");
             }
-
-            // Wait for items to render
-            if (collectionView != null)
+            else
             {
-                await WaitForItemsRenderedAsync(collectionView, cancellationToken);
+                Log.Debug("ModalScrollHelper (alt): No selected item to scroll to (selectedItem={HasItem}, collectionView={HasCV})",
+                    selectedItem != null, collectionView != null);
             }
 
             // Reveal
+            Log.Debug("ModalScrollHelper (alt): Revealing list and hiding spinner");
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)

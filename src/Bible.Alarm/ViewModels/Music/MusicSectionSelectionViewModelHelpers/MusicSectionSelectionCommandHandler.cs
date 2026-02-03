@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Net.Http;
+using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
@@ -80,11 +82,21 @@ internal sealed class MusicSectionSelectionCommandHandler
             }
             else
             {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (isDisposed()) return;
+                    selectedSection.DownloadProgress = 0.0;
+                });
                 return;
             }
 
             if (tracks == null || tracks.Count == 0)
             {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (isDisposed()) return;
+                    selectedSection.DownloadProgress = 0.0;
+                });
                 return;
             }
 
@@ -122,6 +134,17 @@ internal sealed class MusicSectionSelectionCommandHandler
 
             await navigationService.PopModalAsync();
         }
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+        {
+            logger.Warning(ex, "[MusicSectionSelection] TrackSelectionCommand - Network error selecting section");
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (isDisposed()) return;
+                selectedSection.DownloadProgress = 0.0;
+            });
+            var toastService = ServiceProviderManager.GetService<IToastService>();
+            await toastService.ShowMessage("Unable to load. Please check your connection.");
+        }
         catch (Exception ex)
         {
             logger.Error(ex, "[MusicSectionSelection] TrackSelectionCommand - Error selecting section");
@@ -130,6 +153,8 @@ internal sealed class MusicSectionSelectionCommandHandler
                 if (isDisposed()) return;
                 selectedSection.DownloadProgress = 0.0;
             });
+            var toastService = ServiceProviderManager.GetService<IToastService>();
+            await toastService.ShowMessage("An error occurred. Please try again.");
         }
     }
 }

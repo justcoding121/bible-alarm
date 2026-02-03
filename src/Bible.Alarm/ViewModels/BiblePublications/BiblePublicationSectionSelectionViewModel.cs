@@ -37,7 +37,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     private string? lastPublicationCode;
     private bool showProgress = false;
     private double progressPercent = 0.0;
-    private string progressText = string.Empty;
+    private string progressText = "0%";
     private bool isDisposed = false;
     private bool isSelectingSection;
 
@@ -135,10 +135,19 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 // Navigate back to schedule page
                 await navigationService.PopModalAsync();
             }
+            catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+            {
+                logger.Warning(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Network error selecting section");
+                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
+                var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
+                await toastService.ShowMessage("Unable to load. Please check your connection.");
+            }
             catch (Exception ex)
             {
                 logger.Error(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Error selecting section");
                 await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
+                var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
+                await toastService.ShowMessage("An error occurred. Please try again.");
             }
             finally
             {

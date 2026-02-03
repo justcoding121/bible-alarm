@@ -5,57 +5,193 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
-    ZIndex="1000">
-    <Border
-        IsVisible="{Binding ShowProgress}"
-        BackgroundColor="{DynamicResource CardBackgroundColor}"
-        StrokeThickness="0"
-        Padding="{DynamicResource PaddingThickness24_20}"
-        MinimumWidthRequest="{DynamicResource ContentWidthLarge}"
-        >
-        <Border.StrokeShape>
-            <RoundRectangle CornerRadius="16" />
-        </Border.StrokeShape>
-        <Grid
+    xmlns:fn="clr-namespace:Bible.Alarm.Views"
+    xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
+    ZIndex="1000"
+    InputTransparent="True">
+    <ContentView.Resources>
+        <converters:MultiBoolOrConverter x:Key="multiBoolOrConverter" />
+    </ContentView.Resources>
+    <!-- Outer Grid only visible when ShowProgress OR HasFetchError is true -->
+    <Grid>
+        <Grid.IsVisible>
+            <MultiBinding Converter="{StaticResource multiBoolOrConverter}">
+                <Binding Path="ShowProgress" FallbackValue="False" />
+                <Binding Path="HasFetchError" FallbackValue="False" />
+            </MultiBinding>
+        </Grid.IsVisible>
+        <!-- Semi-transparent background overlay -->
+        <BoxView BackgroundColor="{DynamicResource BackgroundColor}"
+                 Opacity="0.9"
+                 InputTransparent="False" />
+        <!-- Normal Progress State -->
+        <Border
+            IsVisible="{Binding ShowProgress, FallbackValue=False}"
             HorizontalOptions="Center"
             VerticalOptions="Center"
-            RowSpacing="12"
-            WidthRequest="{DynamicResource ContentWidthMedium}">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Label Grid.Row="0"
-                FontSize="{DynamicResource LargeFontSize}"
-                FontAttributes="Bold"
-                HorizontalOptions="Fill"
-                HorizontalTextAlignment="Center"
-                Text="{Binding ProgressText}"
-                TextColor="{DynamicResource TextPrimaryColor}"
-                MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
-            <ProgressBar Grid.Row="1"
-                Margin="{DynamicResource MarginThickness10_5}"
-                WidthRequest="{DynamicResource ContentWidthSmall}"
-                HorizontalOptions="Center"
-                Progress="{Binding ProgressPercent}"
-                ProgressColor="{StaticResource PrimaryColor}" />
-            <!-- Busy Indicator below progress bar -->
-            <Grid Grid.Row="2"
+            InputTransparent="False"
+            BackgroundColor="{DynamicResource CardBackgroundColor}"
+            StrokeThickness="0"
+            Padding="{DynamicResource PaddingThickness24_20}"
+            MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="16" />
+            </Border.StrokeShape>
+            <Grid
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
-                HeightRequest="{DynamicResource IconStandardContainerSize}"
-                WidthRequest="{DynamicResource IconStandardContainerSize}"
-                Margin="0,8,0,0">
-                <core:SfBusyIndicator
-                    IsRunning="{Binding ShowProgress}"
-                    AnimationType="DoubleCircle"
+                RowSpacing="12"
+                WidthRequest="{DynamicResource ContentWidthMedium}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Label Grid.Row="0"
+                    FontSize="{DynamicResource LargeFontSize}"
+                    FontAttributes="Bold"
                     HorizontalOptions="Fill"
-                    VerticalOptions="Fill"
+                    HorizontalTextAlignment="Center"
+                    Text="{Binding ProgressText}"
+                    TextColor="{DynamicResource TextPrimaryColor}"
+                    MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
+                <ProgressBar Grid.Row="1"
+                    Margin="{DynamicResource MarginThickness10_5}"
+                    WidthRequest="{DynamicResource ContentWidthSmall}"
+                    HorizontalOptions="Center"
+                    Progress="{Binding ProgressPercent}"
+                    ProgressColor="{StaticResource PrimaryColor}" />
+                <!-- Busy Indicator below progress bar -->
+                <Grid Grid.Row="2"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
                     HeightRequest="{DynamicResource IconStandardContainerSize}"
                     WidthRequest="{DynamicResource IconStandardContainerSize}"
-                    IndicatorColor="{StaticResource PrimaryColor}" />
+                    Margin="0,8,0,0">
+                    <core:SfBusyIndicator
+                        IsRunning="{Binding ShowProgress}"
+                        AnimationType="DoubleCircle"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill"
+                        HeightRequest="{DynamicResource IconStandardContainerSize}"
+                        WidthRequest="{DynamicResource IconStandardContainerSize}"
+                        IndicatorColor="{StaticResource PrimaryColor}" />
+                </Grid>
+                <!-- Cancel Button (always shown during progress) -->
+                <Border Grid.Row="3"
+                    BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                    HeightRequest="{DynamicResource IconStandardContainerSize}"
+                    WidthRequest="{DynamicResource IconStandardContainerSize}"
+                    StrokeThickness="0"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Margin="0,12,0,0"
+                    IsVisible="{Binding CanCancelFetch, FallbackValue=False}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="100" />
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding CancelFetchCommand}" />
+                    </Border.GestureRecognizers>
+                    <Label
+                        Text="{x:Static fn:GlyphNames.Xmark}"
+                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                        FontSize="{DynamicResource IconStandardFontSize}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center" />
+                </Border>
             </Grid>
-        </Grid>
-    </Border>
+        </Border>
+
+        <!-- Error State with Retry Button -->
+        <Border
+            IsVisible="{Binding HasFetchError, FallbackValue=False}"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            InputTransparent="False"
+            BackgroundColor="{DynamicResource CardBackgroundColor}"
+            StrokeThickness="1"
+            Stroke="#4A2A2A"
+            Padding="{DynamicResource PaddingThickness24_20}"
+            MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="16" />
+            </Border.StrokeShape>
+            <Grid
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                RowSpacing="16"
+                WidthRequest="{DynamicResource ContentWidthMedium}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <!-- Error message -->
+                <Label Grid.Row="0"
+                    FontSize="{DynamicResource MediumFontSize}"
+                    HorizontalOptions="Center"
+                    HorizontalTextAlignment="Center"
+                    TextColor="#FF6B6B"
+                    Text="Unable to load data. Please check your connection."
+                    LineBreakMode="WordWrap" />
+                <!-- Retry and Cancel buttons -->
+                <HorizontalStackLayout Grid.Row="1"
+                    HorizontalOptions="Center"
+                    Spacing="24">
+                    <!-- Cancel Button -->
+                    <Border
+                        BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                        HeightRequest="{DynamicResource IconLargeContainerSize}"
+                        WidthRequest="{DynamicResource IconLargeContainerSize}"
+                        StrokeThickness="0"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="100" />
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding CancelFetchCommand}" />
+                        </Border.GestureRecognizers>
+                        <Label
+                            Text="{x:Static fn:GlyphNames.Xmark}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="{DynamicResource IconLargeFontSize}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center" />
+                    </Border>
+                    <!-- Retry Button -->
+                    <Border
+                        BackgroundColor="{StaticResource PrimaryColor}"
+                        HeightRequest="{DynamicResource IconLargeContainerSize}"
+                        WidthRequest="{DynamicResource IconLargeContainerSize}"
+                        StrokeThickness="0"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="100" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="#6A5ACD"
+                                    Offset="0,4"
+                                    Opacity="0.4"
+                                    Radius="12" />
+                        </Border.Shadow>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding RetryFetchCommand}" />
+                        </Border.GestureRecognizers>
+                        <Label
+                            Text="{x:Static fn:GlyphNames.Retry}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="{DynamicResource IconLargeFontSize}"
+                            TextColor="White"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center" />
+                    </Border>
+                </HorizontalStackLayout>
+            </Grid>
+        </Border>
+    </Grid>
 </ContentView>

@@ -1,10 +1,12 @@
 #nullable enable
+using System.Threading;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 
 namespace Bible.Alarm.Common.Helpers;
 
 /// <summary>
 /// Tracks fetch progress and updates UI properties.
+/// Supports cancellation via CancellationToken.
 /// </summary>
 public sealed class FetchProgressTracker : IFetchProgress
 {
@@ -12,14 +14,21 @@ public sealed class FetchProgressTracker : IFetchProgress
     private readonly Action<string> updateProgressText;
     private readonly Action<bool> setIsVisible;
 
+    /// <summary>
+    /// Gets the cancellation token for this fetch operation.
+    /// </summary>
+    public CancellationToken CancellationToken { get; }
+
     public FetchProgressTracker(
         Action<double> updateProgress,
         Action<string> updateProgressText,
-        Action<bool> setIsVisible)
+        Action<bool> setIsVisible,
+        CancellationToken cancellationToken = default)
     {
         this.updateProgress = updateProgress;
         this.updateProgressText = updateProgressText;
         this.setIsVisible = setIsVisible;
+        this.CancellationToken = cancellationToken;
     }
 
     public void UpdateProgress(double progress)

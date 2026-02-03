@@ -433,6 +433,29 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         }
     }
 
+    public async Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var exists = await dbContext.BiblePublications
+                .AsNoTracking()
+                .AnyAsync(p => p.PublicationCode == publicationCode && p.LanguageId == null, cancellationToken);
+
+            logger.Debug("IsNoLanguagePublicationAsync: Publication {PublicationCode} has no language: {IsNoLanguage}",
+                publicationCode, exists);
+
+            return exists;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error checking if publication has no language. PublicationCode={PublicationCode}", publicationCode);
+            throw;
+        }
+    }
+
     public void Dispose()
     {
         if (isDisposed)

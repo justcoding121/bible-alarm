@@ -77,12 +77,16 @@ public class PlaylistBiblePublicationTrackBuilder
 
         trackMetadata.DownloadCode = normalizedSectionCode;
         trackMetadata.OriginalTrackNumber = trackNumber;
+        // Disc-style sections (e.g., "iam-1") are always no-language publications
+        // The API response will have files under "E", so set LanguageCode to "E" for response parsing
+        trackMetadata.LanguageCode = "E";
         trackMetadata.LookUpPath = LookUpPathBuilder.BuildMusicTrackLookUpPath(
             publicationCode,
             languageCode,
             trackNumber,
             downloadCode: normalizedSectionCode,
-            originalTrackNumber: trackNumber);
+            originalTrackNumber: trackNumber,
+            isNoLanguagePublication: true);
 
         return true;
     }
@@ -239,11 +243,17 @@ public class PlaylistBiblePublicationTrackBuilder
 
         var sectionCode = biblePublicationSchedule.SectionCode;
 
+        // Check if this is a no-language publication (e.g., instrumental music)
+        // For no-language publications, we use "E" for both URL construction and API response parsing
+        var isNoLanguagePublication = biblePublicationService != null &&
+            await biblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
+        var effectiveLanguageCode = isNoLanguagePublication ? "E" : biblePublicationSchedule.LanguageCode;
+
         // Compute URL on-demand using TrackMetadata
         var trackMetadata = new TrackMetadata
         {
             IsBibleContent = true,
-            LanguageCode = biblePublicationSchedule.LanguageCode,
+            LanguageCode = effectiveLanguageCode,
             PublicationCode = biblePublicationSchedule.PublicationCode,
             SectionCode = sectionCode,
             TrackNumber = trackDetail.Number
@@ -253,7 +263,7 @@ public class PlaylistBiblePublicationTrackBuilder
         var lookUpPathApplied = TryApplyDiscMusicLookUpPath(
             trackMetadata,
             biblePublicationSchedule.PublicationCode,
-            biblePublicationSchedule.LanguageCode,
+            effectiveLanguageCode,
             sectionCode,
             trackDetail.Number);
 
@@ -262,7 +272,7 @@ public class PlaylistBiblePublicationTrackBuilder
         {
             var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
                 biblePublicationSchedule.PublicationCode,
-                biblePublicationSchedule.LanguageCode,
+                effectiveLanguageCode,
                 sectionCode,
                 trackDetail.Number);
             if (!string.IsNullOrEmpty(lookUpPath))
@@ -347,12 +357,17 @@ public class PlaylistBiblePublicationTrackBuilder
         bool markedSeekTrack,
         bool isIndefinite)
     {
+        // Check if this is a no-language publication (e.g., instrumental music)
+        var isNoLanguagePublication = biblePublicationService != null &&
+            await biblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
+        var effectiveLanguageCode = isNoLanguagePublication ? "E" : biblePublicationSchedule.LanguageCode;
+
         var trackMetadata = new TrackMetadata
         {
             ScheduleId = scheduleId,
             IsBibleContent = true,
             PublicationCode = biblePublicationSchedule.PublicationCode,
-            LanguageCode = biblePublicationSchedule.LanguageCode,
+            LanguageCode = effectiveLanguageCode,
             SectionCode = sectionCode,
             TrackNumber = trackNumber,
             // In finite mode, mark the last track so playback stops/dismisses after the session.
@@ -363,7 +378,7 @@ public class PlaylistBiblePublicationTrackBuilder
         var lookUpPathApplied = TryApplyDiscMusicLookUpPath(
             trackMetadata,
             biblePublicationSchedule.PublicationCode,
-            biblePublicationSchedule.LanguageCode,
+            effectiveLanguageCode,
             sectionCode,
             trackNumber);
 
@@ -372,7 +387,7 @@ public class PlaylistBiblePublicationTrackBuilder
         {
             var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
                 biblePublicationSchedule.PublicationCode,
-                biblePublicationSchedule.LanguageCode,
+                effectiveLanguageCode,
                 sectionCode,
                 trackNumber);
             if (!string.IsNullOrEmpty(lookUpPath))
@@ -433,10 +448,16 @@ public class PlaylistBiblePublicationTrackBuilder
 
         // Compute URL on-demand using TrackMetadata
         var nextSectionCode = next.Key?.SectionCode;
+
+        // Check if this is a no-language publication (e.g., instrumental music)
+        var isNoLanguagePublication = biblePublicationService != null &&
+            await biblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
+        var effectiveLanguageCode = isNoLanguagePublication ? "E" : biblePublicationSchedule.LanguageCode;
+
         var trackMetadata = new TrackMetadata
         {
             IsBibleContent = true,
-            LanguageCode = biblePublicationSchedule.LanguageCode,
+            LanguageCode = effectiveLanguageCode,
             PublicationCode = biblePublicationSchedule.PublicationCode,
             SectionCode = nextSectionCode,
             TrackNumber = next.Value.Number
@@ -445,7 +466,7 @@ public class PlaylistBiblePublicationTrackBuilder
         var lookUpPathApplied = TryApplyDiscMusicLookUpPath(
             trackMetadata,
             biblePublicationSchedule.PublicationCode,
-            biblePublicationSchedule.LanguageCode,
+            effectiveLanguageCode,
             nextSectionCode,
             next.Value.Number);
 
@@ -454,7 +475,7 @@ public class PlaylistBiblePublicationTrackBuilder
         {
             var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
                 biblePublicationSchedule.PublicationCode,
-                biblePublicationSchedule.LanguageCode,
+                effectiveLanguageCode,
                 nextSectionCode,
                 next.Value.Number);
             if (!string.IsNullOrEmpty(lookUpPath))

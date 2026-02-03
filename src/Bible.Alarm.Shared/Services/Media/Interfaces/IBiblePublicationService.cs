@@ -44,5 +44,11 @@ public interface IBiblePublicationService : IDisposable
     /// Used for cascade downloading when a language is selected.
     /// </summary>
     Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a publication exists with no language (LanguageId == null).
+    /// Used for instrumental music and other language-independent content.
+    /// </summary>
+    Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default);
 }
 

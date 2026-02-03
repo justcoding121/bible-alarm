@@ -8,9 +8,11 @@ using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Messages;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Shared;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,20 +51,35 @@ public sealed class CategorySelectionAutoPopulateHandler
 
     public async Task HandleAsync(CategorySelectionAction action, IDispatcher dispatcher)
     {
+        void ReportProgress(double progress, bool isComplete = false)
+        {
+            WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
+                new CategoryFetchProgress
+                {
+                    CategoryId = action.CategoryId,
+                    Progress = progress,
+                    IsComplete = isComplete
+                }));
+        }
+
         try
         {
             logger.Information("CategorySelectionAutoPopulateHandler: Starting auto-population for category={CategoryName}",
                 action.CategoryName);
 
+            ReportProgress(0.05);
+
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
                 logger.Warning("CategorySelectionAutoPopulateHandler: CurrentSchedule is null, skipping auto-population");
+                ReportProgress(1.0, isComplete: true);
                 return;
             }
 
             // Step 1: Try to preserve current language if it has publications in the new category, otherwise fallback to English
             // Get all languages for this category from PublicationLanguage table
+            ReportProgress(0.1);
             var languages = await biblePublicationService.GetDistinctLanguagesAsync(action.CategoryName);
             
             Language? selectedLanguage = null;
@@ -106,6 +123,7 @@ public sealed class CategorySelectionAutoPopulateHandler
             }
 
             // Step 2: Find first publication - try publications with LanguageId for selected language, then publications without LanguageId
+            ReportProgress(0.15);
             string? publicationCode = null;
             bool publicationWithoutLanguage = false;
             
@@ -160,8 +178,10 @@ public sealed class CategorySelectionAutoPopulateHandler
                     if (!isAlreadyHarvested)
                     {
                         // Try to harvest the publication (EnsurePublicationExistsAsync checks if it exists first)
+                        ReportProgress(0.3); // Harvesting starts
                         var isHarvested = await languageContentService.EnsurePublicationExistsAsync(
                             pl.PublicationCode, selectedLanguage.LanguageCode);
+                        ReportProgress(0.7); // Harvesting complete
                         
                         if (!isHarvested)
                         {
@@ -229,6 +249,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                 var languageCodeForWarning = selectedLanguage?.LanguageCode ?? "N/A";
                 logger.Warning("CategorySelectionAutoPopulateHandler: No publication found or harvested for language={LanguageCode}, category={CategoryName}",
                     languageCodeForWarning, action.CategoryName);
+                ReportProgress(1.0, isComplete: true);
                 return;
             }
 
@@ -322,15 +343,16 @@ public sealed class CategorySelectionAutoPopulateHandler
                 }
 
                 var languageModel = new LanguageListViewItemModel(selectedLanguage);
-                // Note: Progress is not passed here because the effect handler runs asynchronously
-                // Progress is shown in the ViewModel while waiting for state changes
+                ReportProgress(0.75);
                 var (resultPublicationCode, resultSectionCode, resultTrackNumber, resultSectionName, resultPublicationName, resultTrackTitle) =
                     await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(languageModel);
+                ReportProgress(0.9);
 
                 if (string.IsNullOrEmpty(resultPublicationCode) || resultTrackNumber <= 0)
                 {
                     logger.Warning("CategorySelectionAutoPopulateHandler: No valid track found for publication={PublicationCode}, language={LanguageCode}",
                         publicationCode, selectedLanguage.LanguageCode);
+                    ReportProgress(1.0, isComplete: true);
                     return;
                 }
 
@@ -347,8 +369,11 @@ public sealed class CategorySelectionAutoPopulateHandler
             {
                 logger.Warning("CategorySelectionAutoPopulateHandler: No valid track found for publication={PublicationCode}",
                     publicationCode);
+                ReportProgress(1.0, isComplete: true);
                 return;
             }
+
+            ReportProgress(0.95);
 
             var languageCodeForLog = publicationWithoutLanguage ? "N/A" : (selectedLanguage?.LanguageCode ?? "N/A");
             logger.Information("CategorySelectionAutoPopulateHandler: Auto-populated - Language={LanguageCode}, Publication={PublicationCode}, Section={SectionCode}, Track={TrackNumber}, WithoutLanguage={WithoutLanguage}",
@@ -392,11 +417,13 @@ public sealed class CategorySelectionAutoPopulateHandler
 
             // Dispatch action to update the schedule
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
+            ReportProgress(1.0, isComplete: true);
         }
         catch (Exception ex)
         {
             logger.Error(ex, "CategorySelectionAutoPopulateHandler: Error during auto-population for category={CategoryName}",
                 action.CategoryName);
+            ReportProgress(1.0, isComplete: true);
         }
     }
 

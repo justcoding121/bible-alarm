@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections;
 using System.Runtime.InteropServices;
+using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Shared;
 using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
@@ -137,7 +138,31 @@ internal static class CollectionViewScrollExecutor
                                 }
 #endif
 
-                                collectionView.ScrollTo(item, position: position, animate: animated);
+                                // Try to find the item's index for more reliable scrolling
+                                // This handles cases where the item reference doesn't match due to collection repopulation
+                                var scrollSuccessful = false;
+                                var scrollItemsSource = collectionView.ItemsSource;
+                                if (scrollItemsSource != null)
+                                {
+                                    var itemsList = scrollItemsSource as IList ?? scrollItemsSource.Cast<object>().ToList();
+                                    if (itemsList != null && itemsList.Count > 0)
+                                    {
+                                        int itemIndex = FindItemIndexByValue(itemsList, item);
+                                        if (itemIndex >= 0)
+                                        {
+                                            Log.Logger.Debug("ScrollExecutor: Using index-based scroll to index {Index} for item type {Type}", 
+                                                itemIndex, item.GetType().Name);
+                                            collectionView.ScrollTo(itemIndex, position: position, animate: animated);
+                                            scrollSuccessful = true;
+                                        }
+                                    }
+                                }
+                                
+                                if (!scrollSuccessful)
+                                {
+                                    // Fallback to item-based scrolling
+                                    collectionView.ScrollTo(item, position: position, animate: animated);
+                                }
 
                                 // Delay after scrolling to let the layout settle
                                 await Task.Delay(150, cancellationToken);
@@ -297,5 +322,49 @@ internal static class CollectionViewScrollExecutor
         {
             Log.Logger.Warning(ex, "Unexpected exception while scrolling CollectionView");
         }
+    }
+
+    /// <summary>
+    /// Finds the index of an item in the collection using value-based comparison.
+    /// This handles cases where the item reference doesn't match due to collection repopulation.
+    /// </summary>
+    private static int FindItemIndexByValue(IList itemsList, object item)
+    {
+        for (int i = 0; i < itemsList.Count; i++)
+        {
+            // First try reference equality (fastest)
+            if (ReferenceEquals(itemsList[i], item))
+            {
+                return i;
+            }
+
+            // For virtual scrolling scenarios, also try value equality for known model types
+            if (item is LanguageListViewItemModel langItem &&
+                itemsList[i] is LanguageListViewItemModel listLangItem &&
+                langItem.Code == listLangItem.Code)
+            {
+                return i;
+            }
+            else if (item is PublicationListViewItemModel pubItem &&
+                     itemsList[i] is PublicationListViewItemModel listPubItem &&
+                     pubItem.Code == listPubItem.Code)
+            {
+                return i;
+            }
+            else if (item is BiblePublicationSectionListViewItemModel sectionItem &&
+                     itemsList[i] is BiblePublicationSectionListViewItemModel listSectionItem &&
+                     string.Equals(sectionItem.SectionCode, listSectionItem.SectionCode, StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+            else if (item is BiblePublicationTrackListViewItemModel trackItem &&
+                     itemsList[i] is BiblePublicationTrackListViewItemModel listTrackItem &&
+                     trackItem.Number == listTrackItem.Number)
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 }

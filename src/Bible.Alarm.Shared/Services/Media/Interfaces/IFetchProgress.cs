@@ -1,9 +1,11 @@
 #nullable enable
 
+using System.Threading;
+
 namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 
 /// <summary>
-/// Interface for tracking fetch progress with percentage updates.
+/// Interface for tracking fetch progress with percentage updates and cancellation support.
 /// </summary>
 public interface IFetchProgress
 {
@@ -13,7 +15,7 @@ public interface IFetchProgress
     void UpdateProgress(double progress);
 
     /// <summary>
-    /// Updates the progress text (e.g., "Loading...", "45.2%").
+    /// Updates the progress text (e.g., "45%").
     /// </summary>
     void UpdateProgressText(string text);
 
@@ -21,4 +23,10 @@ public interface IFetchProgress
     /// Sets whether the progress indicator should be visible.
     /// </summary>
     void SetIsVisible(bool isVisible);
+
+    /// <summary>
+    /// Gets the cancellation token for this fetch operation.
+    /// Operations should check this token and throw OperationCanceledException when cancelled.
+    /// </summary>
+    CancellationToken CancellationToken { get; }
 }

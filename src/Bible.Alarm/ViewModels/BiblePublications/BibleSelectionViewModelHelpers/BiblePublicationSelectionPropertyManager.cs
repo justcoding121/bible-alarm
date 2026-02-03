@@ -24,7 +24,9 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
     private string languageSearchTerm = string.Empty;
     private bool showProgress = false;
     private double progressPercent = 0.0;
-    private string progressText = "Loading...";
+    private string progressText = "0%";
+    private bool canCancelFetch = false;
+    private bool hasFetchError = false;
 
     private PropertyChangedEventHandler? propertyChangedHandler;
 
@@ -91,6 +93,18 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
     {
         get => progressText;
         set => SetProperty(ref progressText, value);
+    }
+
+    public bool CanCancelFetch
+    {
+        get => canCancelFetch;
+        set => SetProperty(ref canCancelFetch, value);
+    }
+
+    public bool HasFetchError
+    {
+        get => hasFetchError;
+        set => SetProperty(ref hasFetchError, value);
     }
 
     public string PublicationCode

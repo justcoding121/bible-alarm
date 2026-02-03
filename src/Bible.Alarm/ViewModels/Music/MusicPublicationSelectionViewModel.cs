@@ -6,6 +6,7 @@ using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
+using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Interfaces;
@@ -34,6 +35,9 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     private readonly MusicPublicationSelectionCommandHandler commandHandler;
     private readonly MusicPublicationSelectionPropertyManager propertyManager;
     private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
+
+    // Cancellation support for fetch operations
+    private CancellationTokenSource? fetchCts;
 
     public MusicPublicationSelectionViewModel(
         ILogger logger,
@@ -144,6 +148,9 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
                     busy => propertyManager.IsBusy = busy);
             }
         });
+
+        CancelFetchCommand = new RelayCommand(CancelFetch);
+        RetryFetchCommand = new AsyncRelayCommand(RetryFetchAsync);
     }
 
     private void OnMusicChanged(object? sender, EventArgs e)
@@ -177,6 +184,23 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     public ICommand OpenModalCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
+    public ICommand CancelFetchCommand { get; }
+    public ICommand RetryFetchCommand { get; }
+
+    private void CancelFetch()
+    {
+        fetchCts?.Cancel();
+        propertyManager.CanCancelFetch = false;
+        propertyManager.ShowProgress = false;
+        propertyManager.HasFetchError = false;
+        propertyManager.IsBusy = false;
+    }
+
+    private async Task RetryFetchAsync()
+    {
+        propertyManager.HasFetchError = false;
+        await RefreshFromState();
+    }
 
     public FlowDirection ContentFlowDirection
     {
@@ -246,6 +270,18 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         set => propertyManager.ProgressText = value;
     }
 
+    public bool CanCancelFetch
+    {
+        get => propertyManager.CanCancelFetch;
+        set => propertyManager.CanCancelFetch = value;
+    }
+
+    public bool HasFetchError
+    {
+        get => propertyManager.HasFetchError;
+        set => propertyManager.HasFetchError = value;
+    }
+
     private async Task Initialize()
     {
         var current = stateManager.Current;
@@ -276,7 +312,12 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             current.LanguageCode = languageCode;
         }
 
-        await PopulateLanguages();
+        // Only populate languages if not already populated (avoids duplicate population during modal open)
+        if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
+        {
+            await PopulateLanguages();
+        }
+        
         // When initializing, don't download all publications yet (only first publication in cascade)
         await PopulateSongPublications(languageCode, downloadAll: false);
 
@@ -290,6 +331,39 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             propertyManager.Languages,
             lang => propertyManager.CurrentLanguage = lang,
             searchTerm);
+    }
+
+    /// <summary>
+    /// Refreshes only the languages list for the language selection modal.
+    /// This is a simpler refresh that only populates languages, not publications.
+    /// </summary>
+    public async Task RefreshLanguagesAsync()
+    {
+        try
+        {
+            // Get current language code from state (more reliable than stateManager.Current)
+            var currentSchedule = state.Value.CurrentSchedule;
+            var currentLanguageCode = currentSchedule?.MusicLanguageCode;
+            
+            // Create a temporary AlarmMusic to pass the language code to PopulateLanguages
+            var tempCurrent = currentLanguageCode != null 
+                ? new AlarmMusic { LanguageCode = currentLanguageCode }
+                : stateManager.Current;
+            
+            Serilog.Log.Debug("MusicPublicationSelectionViewModel.RefreshLanguagesAsync: currentLanguageCode={LanguageCode}", 
+                currentLanguageCode ?? "(null)");
+            
+            // Populate languages for the language modal
+            await dataProvider.PopulateLanguages(
+                tempCurrent,
+                propertyManager.Languages,
+                lang => propertyManager.CurrentLanguage = lang,
+                null);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "MusicPublicationSelectionViewModel: Error refreshing languages");
+        }
     }
 
     /// <summary>
@@ -472,6 +546,11 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         state.StateChanged -= OnMusicChanged;
         propertyManager.RemoveLanguageSearchHandler();
 
+        // Cancel any ongoing fetch
+        fetchCts?.Cancel();
+        fetchCts?.Dispose();
+        fetchCts = null;
+
         if (propertyManagerPropertyChangedHandler != null)
         {
             propertyManager.PropertyChanged -= propertyManagerPropertyChangedHandler;
@@ -506,6 +585,18 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.ProgressText))
             {
                 OnPropertyChanged(nameof(ProgressText));
+                return;
+            }
+
+            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.CanCancelFetch))
+            {
+                OnPropertyChanged(nameof(CanCancelFetch));
+                return;
+            }
+
+            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.HasFetchError))
+            {
+                OnPropertyChanged(nameof(HasFetchError));
             }
         };
 

@@ -96,10 +96,9 @@ public sealed class TrackSelectionStateManager
         initComplete = true;
         Task.Run(async () =>
         {
-            await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
+            // Note: Do NOT set setBusy(true) here - the modal controls the busy state via ModalScrollHelper
             await initialize(newLanguageCode, newPublicationCode, newSectionCode);
-            await Task.Delay(100);
-            await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
+            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
         });
     }
 
@@ -178,8 +177,7 @@ public sealed class TrackSelectionStateManager
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
                 await initialize(newLanguageCode, newPublicationCode, newSectionCode);
-                await Task.Delay(100);
-                await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
+                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
             });
         }
         else

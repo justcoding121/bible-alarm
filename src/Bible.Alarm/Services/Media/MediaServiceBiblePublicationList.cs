@@ -258,7 +258,6 @@ internal static class MediaServiceBiblePublicationList
         {
             // Show progress if callback provided
             progress?.SetIsVisible(true);
-            progress?.UpdateProgressText("Loading publications...");
             progress?.UpdateProgress(0.0);
 
             try

@@ -49,9 +49,9 @@ public sealed class MusicPublicationSelectionStateManager
         Action<bool> setBusy,
         Func<Task> initialize)
     {
+        // Note: Do NOT set IsBusy = false on early returns - the modal controls this via ModalScrollHelper
         if (initComplete)
         {
-            MainThread.BeginInvokeOnMainThread(() => setBusy(false));
             return;
         }
 
@@ -60,7 +60,6 @@ public sealed class MusicPublicationSelectionStateManager
         // Use CurrentSchedule as the source of truth, not CurrentMusic
         if (stateValue.CurrentSchedule == null)
         {
-            MainThread.BeginInvokeOnMainThread(() => setBusy(false));
             return;
         }
 
@@ -73,7 +72,6 @@ public sealed class MusicPublicationSelectionStateManager
         // For Melodies, LanguageCode can be null
         if (!newMusicType.HasValue)
         {
-            MainThread.BeginInvokeOnMainThread(() => setBusy(false));
             return;
         }
 
@@ -105,11 +103,11 @@ public sealed class MusicPublicationSelectionStateManager
         initComplete = true;
         Task.Run(async () =>
         {
-            await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
+            // Note: Do NOT set setBusy(true) here - the modal controls the busy state via ModalScrollHelper
+            // Setting it here would interfere with the modal's scroll-then-hide-overlay flow
             await initialize();
-
-            await Task.Delay(100);
-            await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
+            // Note: Do NOT set setBusy(false) here - the modal controls this via ModalScrollHelper
+            // The modal will set IsBusy = false after scrolling to the selected item completes
         });
     }
 
@@ -175,11 +173,18 @@ public sealed class MusicPublicationSelectionStateManager
         {
             Task.Run(async () =>
             {
-                await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                // For instrumental music, pass null; for vocal music, pass language code
-                await populateSongPublications(newMusicType.Value == MusicType.Music ? null : newLanguageCode);
-                await Task.Delay(100);
-                await MainThread.InvokeOnMainThreadAsync(() => setBusy(false));
+                try
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
+                    // For instrumental music, pass null; for vocal music, pass language code
+                    await populateSongPublications(newMusicType.Value == MusicType.Music ? null : newLanguageCode);
+                    // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Warning(ex, "Error in HandleMusicChanged during publication population");
+                    // Note: Do NOT set IsBusy = false here - the modal controls this
+                }
             });
         }
         else

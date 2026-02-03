@@ -215,12 +215,16 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         // Use the biblePublicationTrackBuilder which correctly handles both sectioned and non-sectioned publications
         var trackInfo = await biblePublicationTrackBuilder.GetInitialTrackInfo(biblePublicationSchedule);
         
+        // Check if this is a no-language publication (e.g., instrumental music)
+        var isNoLanguagePublication = await BiblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
+        var effectiveLanguageCode = isNoLanguagePublication ? "E" : biblePublicationSchedule.LanguageCode;
+        
         var trackMetadata = new TrackMetadata
         {
             ScheduleId = scheduleId,
             IsBibleContent = true,
             PublicationCode = biblePublicationSchedule.PublicationCode,
-            LanguageCode = biblePublicationSchedule.LanguageCode,
+            LanguageCode = effectiveLanguageCode,
             SectionCode = trackInfo.SectionCode,
             TrackNumber = trackInfo.Track.Number,
             IsLastTrack = false

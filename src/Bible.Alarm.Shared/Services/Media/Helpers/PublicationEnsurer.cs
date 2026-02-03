@@ -124,26 +124,22 @@ internal sealed class PublicationEnsurer
                 {
                     // Publication has sections - fetch only the first section with tracks (for language selection)
                     // This avoids fetching all sections when user just selects a language
-                    progress?.UpdateProgressText($"Loading {publicationCode}...");
                     progress?.UpdateProgress(0.0);
                     var result = await FetchFirstSectionWithTracksAsync(publicationCode, languageCode, cancellationToken);
                     if (result)
                     {
                         progress?.UpdateProgress(1.0);
-                        progress?.UpdateProgressText("Complete");
                     }
                     return result;
                 }
                 else
                 {
                     // Publication has flat tracks - fetch tracks
-                    progress?.UpdateProgressText($"Loading {publicationCode}...");
                     progress?.UpdateProgress(0.0);
                     var result = await languageContentService.FetchPublicationTracksAsync(publicationCode, languageCode, cancellationToken);
                     if (result)
                     {
                         progress?.UpdateProgress(1.0);
-                        progress?.UpdateProgressText("Complete");
                     }
                     return result;
                 }

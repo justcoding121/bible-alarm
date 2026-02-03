@@ -183,7 +183,6 @@ public sealed class BiblePublicationSelectionItemSelector
                     try
                     {
                         progress?.UpdateProgress(0.3);
-                        progress?.UpdateProgressText($"Loading {pl.PublicationCode}...");
 
                         var ensured = await languageContentService.EnsurePublicationExistsAsync(
                             pl.PublicationCode,

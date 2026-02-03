@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Input;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -24,6 +25,7 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
     private readonly MusicTrackSelectionHandler selectionHandler;
     private readonly MusicTrackListManager listManager;
     private readonly MusicTrackPropertyManager propertyManager;
+    private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
 
     public MusicTrackSelectionViewModel(
         ILogger logger,
@@ -43,6 +45,7 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
         selectionHandler = new MusicTrackSelectionHandler(dispatcher, state, navigationService);
         listManager = new MusicTrackListManager(logger, mediaService);
         propertyManager = new MusicTrackPropertyManager();
+        SetupPropertyManagerForwarding();
 
         stateManager.InitializeCurrent(state);
 
@@ -68,6 +71,21 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
         var currentState = state.Value;
         if (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue)
             OnMusicInitialized(null, EventArgs.Empty);
+    }
+
+    private void SetupPropertyManagerForwarding()
+    {
+        // The view binds to THIS ViewModel (not the property manager).
+        // Forward property-manager changes so bindings update (especially IsBusy for busy overlay).
+        propertyManagerPropertyChangedHandler = (_, e) =>
+        {
+            if (e.PropertyName == nameof(MusicTrackPropertyManager.IsBusy))
+            {
+                OnPropertyChanged(nameof(IsBusy));
+            }
+        };
+
+        propertyManager.PropertyChanged += propertyManagerPropertyChangedHandler;
     }
 
     private void OnMusicChanged(object? sender, EventArgs e)
@@ -194,5 +212,11 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
     {
         state.StateChanged -= OnMusicInitialized;
         state.StateChanged -= OnMusicChanged;
+
+        if (propertyManagerPropertyChangedHandler != null)
+        {
+            propertyManager.PropertyChanged -= propertyManagerPropertyChangedHandler;
+            propertyManagerPropertyChangedHandler = null;
+        }
     }
 }
