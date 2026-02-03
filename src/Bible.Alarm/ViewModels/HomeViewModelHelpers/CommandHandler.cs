@@ -59,7 +59,7 @@ public class CommandHandler
             
             // Reset IsAddBusy after navigation completes
             setIsAddBusy?.Invoke(false);
-        }, canExecute);
+        }, canExecute ?? (() => true));
     }
 
     public ICommand CreateViewScheduleCommand(Action? showProgressBar = null, Func<Task>? hideProgressBar = null)

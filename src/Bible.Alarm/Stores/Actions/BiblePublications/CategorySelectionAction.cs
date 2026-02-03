@@ -1,3 +1,5 @@
+#nullable enable
+
 namespace Bible.Alarm.Stores.Actions.BiblePublications;
 
 public class CategorySelectionAction(int categoryId, string categoryName, string? previousLanguageCode = null)

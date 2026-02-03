@@ -244,6 +244,11 @@ public sealed class BiblePublicationSelectionDataProvider
             var vms = new List<PublicationListViewItemModel>();
             var mapping = new Dictionary<string, PublicationListViewItemModel>();
 
+            if (publicationsData == null)
+            {
+                return (vms, mapping, null);
+            }
+
             foreach (var publication in publicationsData.Values)
             {
                 // Skip duplicates - if code already exists, use the existing one

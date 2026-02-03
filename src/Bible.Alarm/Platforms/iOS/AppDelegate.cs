@@ -2,6 +2,7 @@
 
 using BackgroundTasks;
 using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.iOS.Helpers;
 using Bible.Alarm.Platforms.iOS.Services.Platform;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -87,10 +88,15 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
     private void SetupBackgroundTasks()
     {
-        // Note: Background fetch is now handled by BGAppRefreshTask in iOS 13+
-        if (!UIDevice.CurrentDevice.CheckSystemVersion(13, 0))
+        try
         {
-            UIApplication.SharedApplication.SetMinimumBackgroundFetchInterval(60 * 60);
+            // iOS 16+ (minimum supported) uses BGTaskScheduler for periodic work.
+            // This runs the scheduler, which also performs media cache cleanup.
+            iOSBackgroundTaskScheduler.RegisterAndSchedule();
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to set up iOS background tasks (BGTaskScheduler)");
         }
     }
 

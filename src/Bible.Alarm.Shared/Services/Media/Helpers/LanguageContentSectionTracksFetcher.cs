@@ -108,6 +108,7 @@ internal sealed class LanguageContentSectionTracksFetcher
                 .AnyAsync(
                     sl => sl.PublicationCode == publicationCodeForDb &&
                           sl.SectionCode == normalizedSectionCode &&
+                          sl.Language != null &&
                           sl.Language.LanguageCode == normalizedLanguageCode,
                     cancellationToken);
 

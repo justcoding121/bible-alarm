@@ -107,6 +107,7 @@ internal sealed class LanguageContentPublicationSectionsFetcher
             var sectionCodes = await db.SectionLanguages
                 .Include(sl => sl.Language)
                 .Where(sl => sl.PublicationCode == publicationCodeForDb &&
+                           sl.Language != null &&
                            sl.Language.LanguageCode == normalizedLanguageCode)
                 .Select(sl => sl.SectionCode)
                 .Distinct()

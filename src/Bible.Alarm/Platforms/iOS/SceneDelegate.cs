@@ -1,6 +1,7 @@
 #nullable enable
 
 using Foundation;
+using Bible.Alarm.Platforms.iOS.Helpers;
 using Serilog;
 using UIKit;
 
@@ -87,6 +88,9 @@ public class SceneDelegate : MauiUISceneDelegate
         try
         {
             logger.Debug("[SceneDelegate] Scene did enter background");
+            // Ensure the scheduler refresh BG task is (re)scheduled while we still have foreground execution time.
+            // iOS decides the actual run time; this keeps the request active.
+            iOSBackgroundTaskScheduler.ScheduleSchedulerRefresh();
             base.DidEnterBackground(scene);
         }
         catch (Exception ex)

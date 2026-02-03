@@ -107,7 +107,7 @@ internal sealed class TestModeSeeder
         // Get all publication codes from PublicationLanguages (these are the ones available for non-English)
         var publicationCodes = await db.PublicationLanguages
             .Include(pl => pl.Language)
-                .Where(pl => pl.Language.LanguageCode != "E") // Exclude English
+                .Where(pl => pl.Language != null && pl.Language.LanguageCode != "E") // Exclude English
             .Select(pl => pl.PublicationCode)
             .Distinct()
             .ToListAsync();
@@ -167,6 +167,7 @@ internal sealed class TestModeSeeder
                 var isAvailable = await db.PublicationLanguages
                     .Include(pl => pl.Language)
                     .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode &&
+                                   pl.Language != null &&
                                    pl.Language.LanguageCode == normalizedTestLanguageCode);
 
                 if (!isAvailable)
@@ -198,6 +199,7 @@ internal sealed class TestModeSeeder
                     var hasSections = await db.SectionLanguages
                         .Include(sl => sl.Language)
                         .AnyAsync(sl => sl.PublicationCode == normalizedPublicationCode &&
+                                      sl.Language != null &&
                                       sl.Language.LanguageCode == "E");
 
                     bool success;
@@ -222,6 +224,7 @@ internal sealed class TestModeSeeder
                             var sectionCodes = await db.SectionLanguages
                                 .Include(sl => sl.Language)
                                 .Where(sl => sl.PublicationCode == normalizedPublicationCode &&
+                                           sl.Language != null &&
                                            sl.Language.LanguageCode == "E")
                                 .Select(sl => sl.SectionCode)
                                 .Distinct()

@@ -309,7 +309,6 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
             densityScale, accessibilityScale, deviceSizeMultiplier, platform, deviceSizeCategory);
     }
 
-    /// <summary>
     private void SetStandardFontSizes(double densityScale, double accessibilityScale, DevicePlatform platform, double deviceSizeMultiplier)
     {
         // Get platform-specific defaults based on industry standards

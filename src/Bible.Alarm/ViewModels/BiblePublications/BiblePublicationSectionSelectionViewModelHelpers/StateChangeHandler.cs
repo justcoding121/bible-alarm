@@ -108,7 +108,7 @@ public class StateChangeHandler
                 try
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(true));
-                    initialize(newLanguageCode, newPublicationCode);
+                    initialize(newLanguageCode, newPublicationCode ?? string.Empty);
                     await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 }
                 catch (Exception ex)

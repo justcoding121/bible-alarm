@@ -113,7 +113,7 @@ internal sealed class MusicPublicationFetchCoordinator
                     publicationsData = reQueriedData;
                     allHarvested = true;
                     Serilog.Log.Information("PopulateSongPublications: All {Count} publications harvested on attempt {Attempt} for language={LanguageCode}",
-                        publicationsData.Count, attempt, languageCode);
+                        publicationsData?.Count ?? 0, attempt, languageCode);
                 }
                 else
                 {
