@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using Bible.Alarm.ViewModels.Interfaces;
 using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
@@ -17,8 +18,9 @@ public static class ModalScrollHelper
     /// <summary>
     /// Standard delay after waiting for data to load, before scrolling.
     /// This allows the CollectionView to render its items.
+    /// Android needs more time for rendering, especially with many items.
     /// </summary>
-    private const int PostLoadDelayMs = 150;
+    private static int PostLoadDelayMs => DeviceInfo.Platform == DevicePlatform.Android ? 400 : 150;
 
     /// <summary>
     /// Delay after scroll to ensure it completes before revealing.
@@ -26,12 +28,14 @@ public static class ModalScrollHelper
     private const int PostScrollDelayMs = 50;
 
     /// <summary>
-    /// Handles the standard modal appearing workflow:
-    /// 1. Hides CollectionView (prevents visible scroll jump)
-    /// 2. Optionally refreshes data from state
-    /// 3. Waits for IsBusy to become false
-    /// 4. Scrolls to selected item (retrieved AFTER data refresh)
-    /// 5. Hides spinner AND reveals CollectionView together (seamless transition)
+    /// Handles the standard modal appearing workflow.
+    /// ViewModel defaults IsBusy = true (XAML binding shows overlay immediately).
+    /// We set IsBusy = false only after: data is loaded, set to list, and list is rendered (Android).
+    /// 1. Hide CollectionView (prevents visible scroll jump)
+    /// 2. Refresh data
+    /// 3. Delay for list to receive data, scroll to selected item
+    /// 4. Wait for CollectionView items to be rendered (Android)
+    /// 5. Set IsBusy = false and reveal CollectionView
     /// </summary>
     /// <param name="viewModel">The ViewModel with IsBusy property</param>
     /// <param name="busyOverlay">The busy overlay element to hide</param>
@@ -51,36 +55,16 @@ public static class ModalScrollHelper
         {
             if (viewModel == null) return;
 
-            // Yield immediately to let spinner start animating
-            await Task.Yield();
-
-            // 1. Hide CollectionView to prevent visible scroll jump
-            //    Keep spinner visible during this phase
+            // ViewModel defaults IsBusy = true; binding shows overlay immediately.
             HideCollectionView(collectionView);
-
-            // Another yield before starting data load
             await Task.Yield();
 
-            // 2. Refresh data if needed
             if (refreshAction != null)
-            {
                 await refreshAction();
-            }
 
-            // 3. Wait for IsBusy to become false
-            await CollectionViewHelper.WaitForNotBusyAsync(
-                () => viewModel.IsBusy,
-                cancellationToken: cancellationToken);
-
-            // 4. Keep spinner visible while we scroll (override binding)
-            //    Use InvokeOnMainThreadAsync to ensure this runs synchronously
-            //    before continuing, preventing the flash of empty list
-            await KeepBusyOverlayVisibleAsync(busyOverlay);
-
-            // 5. Delay for CollectionView to render (still hidden)
+            // Delay for list to receive data, then scroll
             await Task.Delay(PostLoadDelayMs, cancellationToken);
 
-            // 6. Get selected item NOW (after data is loaded) and scroll
             var selectedItem = getSelectedItem?.Invoke();
             if (selectedItem != null && collectionView != null)
             {
@@ -89,36 +73,72 @@ public static class ModalScrollHelper
                     selectedItem,
                     animated: false,
                     cancellationToken: cancellationToken);
-
-                // Small delay to ensure scroll completes
                 await Task.Delay(PostScrollDelayMs, cancellationToken);
             }
 
-            // 7. Hide spinner AND reveal CollectionView together (seamless transition)
+            // Wait for CollectionView items to be rendered (Android) before hiding overlay
+            await WaitForCollectionViewItemsRenderedAsync(collectionView, cancellationToken);
+
+            // Set IsBusy = false only after data is in list and rendered
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                if (busyOverlay != null)
+                try
                 {
-                    busyOverlay.IsVisible = false;
-                    busyOverlay.InputTransparent = true;
+                    dynamic dynamicViewModel = viewModel;
+                    dynamicViewModel.IsBusy = false;
                 }
-                // Only set Opacity on non-Windows (we didn't hide it there)
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "ModalScrollHelper: Failed to set IsBusy to false");
+                }
                 if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
-                {
                     collectionView.Opacity = 1;
-                }
             });
         }
         catch (OperationCanceledException)
         {
             // User tapped an item - reveal immediately so their selection is visible
-            ForceHideBusyOverlay(busyOverlay);
+            // Set IsBusy = false first, then hide overlay as fallback
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                try
+                {
+                    dynamic dynamicViewModel = viewModel;
+                    var currentIsBusy = (bool)dynamicViewModel.IsBusy;
+                    if (currentIsBusy)
+                    {
+                        dynamicViewModel.IsBusy = false;
+                    }
+                }
+                catch
+                {
+                    // Can't set IsBusy - fall back to direct hide
+                    ForceHideBusyOverlay(busyOverlay);
+                }
+            });
             RevealCollectionView(collectionView);
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "Error in ModalScrollHelper.HandleModalAppearingAsync");
-            ForceHideBusyOverlay(busyOverlay);
+            // Set IsBusy = false first, then hide overlay as fallback
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                try
+                {
+                    dynamic dynamicViewModel = viewModel;
+                    var currentIsBusy = (bool)dynamicViewModel.IsBusy;
+                    if (currentIsBusy)
+                    {
+                        dynamicViewModel.IsBusy = false;
+                    }
+                }
+                catch
+                {
+                    // Can't set IsBusy - fall back to direct hide
+                    ForceHideBusyOverlay(busyOverlay);
+                }
+            });
             RevealCollectionView(collectionView);
         }
     }
@@ -137,6 +157,10 @@ public static class ModalScrollHelper
     {
         try
         {
+            // 0. For the Func<bool> overload, we can't set IsBusy directly
+            //    We rely on the refreshAction to set IsBusy properly
+            //    Don't set IsVisible directly - let the binding handle it
+
             // Yield immediately to let spinner start animating
             await Task.Yield();
 
@@ -158,11 +182,12 @@ public static class ModalScrollHelper
                 isBusyGetter,
                 cancellationToken: cancellationToken);
 
-            // 4. Keep spinner visible while we scroll (override binding)
-            //    Use InvokeOnMainThreadAsync to ensure this runs synchronously
-            await KeepBusyOverlayVisibleAsync(busyOverlay);
+            // 4. For Func<bool> overload, we can't directly manage IsBusy
+            //    So we rely on the refreshAction to manage it properly
+            //    Don't set IsVisible directly - let the binding handle it based on IsBusy
 
             // 5. Delay for CollectionView to render (still hidden)
+            //    Android needs more time, especially with many items
             await Task.Delay(PostLoadDelayMs, cancellationToken);
 
             // 6. Get selected item NOW (after data is loaded) and scroll
@@ -179,7 +204,11 @@ public static class ModalScrollHelper
                 await Task.Delay(PostScrollDelayMs, cancellationToken);
             }
 
-            // 7. Hide spinner AND reveal CollectionView together (seamless transition)
+            // 7. Wait for CollectionView items to be rendered (especially important on Android)
+            //    This ensures items are actually visible before hiding the overlay
+            await WaitForCollectionViewItemsRenderedAsync(collectionView, cancellationToken);
+
+            // 8. Hide spinner AND reveal CollectionView together (seamless transition)
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (busyOverlay != null)
@@ -209,19 +238,64 @@ public static class ModalScrollHelper
     }
 
     /// <summary>
-    /// Keeps the busy overlay visible by explicitly setting IsVisible = true.
-    /// This overrides any binding that might have hidden it when IsBusy became false.
-    /// Uses async to ensure the UI update completes before continuing.
+    /// Waits for CollectionView items to be rendered before hiding the overlay.
+    /// This is especially important on Android where rendering can be delayed.
+    /// Checks that the CollectionView has items and that they're actually rendered.
     /// </summary>
-    private static async Task KeepBusyOverlayVisibleAsync(View? busyOverlay)
+    private static async Task WaitForCollectionViewItemsRenderedAsync(MauiCollectionView? collectionView, CancellationToken cancellationToken)
     {
-        if (busyOverlay == null) return;
+        if (collectionView == null) return;
 
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        // On Android, wait a bit longer to ensure items are rendered
+        // This prevents the flash of empty list after the busy overlay closes
+        if (DeviceInfo.Platform == DevicePlatform.Android)
         {
-            busyOverlay.IsVisible = true;
-            busyOverlay.InputTransparent = false;
-        });
+            const int maxAttempts = 5;
+            const int delayMs = 100;
+
+            for (int i = 0; i < maxAttempts; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var hasItems = await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (collectionView.ItemsSource == null)
+                        return false;
+
+                    // Check if ItemsSource has items
+                    if (collectionView.ItemsSource is System.Collections.ICollection collection)
+                    {
+                        return collection.Count > 0;
+                    }
+
+                    if (collectionView.ItemsSource is System.Collections.IEnumerable enumerable)
+                    {
+                        return enumerable.Cast<object>().Any();
+                    }
+
+                    return false;
+                });
+
+                if (hasItems)
+                {
+                    // Items exist, give Android a bit more time to render them
+                    await Task.Delay(delayMs, cancellationToken);
+                    return;
+                }
+
+                // Wait before checking again
+                await Task.Delay(delayMs, cancellationToken);
+            }
+
+            // If we get here, items might not be ready, but we've waited long enough
+            // Log a warning but continue to avoid indefinite waiting
+            Log.Debug("WaitForCollectionViewItemsRenderedAsync: CollectionView items may not be fully rendered after {MaxAttempts} attempts", maxAttempts);
+        }
+        else
+        {
+            // On other platforms, a shorter delay is usually sufficient
+            await Task.Delay(50, cancellationToken);
+        }
     }
 
     /// <summary>
@@ -264,6 +338,8 @@ public static class ModalScrollHelper
 
     /// <summary>
     /// Forces the busy overlay to hide immediately.
+    /// Only use this in error cases where we can't set IsBusy.
+    /// In normal flow, set IsBusy = false and let the binding handle it.
     /// </summary>
     public static void ForceHideBusyOverlay(View? busyOverlay)
     {
@@ -271,17 +347,29 @@ public static class ModalScrollHelper
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            busyOverlay.IsVisible = false;
-            busyOverlay.InputTransparent = true;
+            // Only set IsVisible directly as a last resort - this bypasses the binding
+            // which can cause issues, but is necessary in error cases
+            try
+            {
+                busyOverlay.IsVisible = false;
+                busyOverlay.InputTransparent = true;
+            }
+            catch
+            {
+                // If setting fails, ignore - overlay might already be disposed
+            }
         });
     }
 
     /// <summary>
     /// Standard disposal for modal pages with cancellation token.
+    /// Also ensures IsBusy is set to false on the view model (when not null) to prevent infinite loops.
     /// </summary>
+    /// <param name="viewModel">Any object with IsBusy property (e.g. IListViewModel); cleared via dynamic.</param>
     public static void DisposeModal(
         CancellationTokenSource? cancellationTokenSource,
-        Action? clearBindingContext = null)
+        Action? clearBindingContext = null,
+        object? viewModel = null)
     {
         try
         {
@@ -291,6 +379,27 @@ public static class ModalScrollHelper
         catch (Exception ex)
         {
             Log.Warning(ex, "Error during modal cancellation token disposal");
+        }
+
+        if (viewModel != null)
+        {
+            try
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    try
+                    {
+                        dynamic dynamicViewModel = viewModel;
+                        if ((bool)dynamicViewModel.IsBusy)
+                            dynamicViewModel.IsBusy = false;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "ModalScrollHelper.DisposeModal: Failed to set IsBusy to false");
+                    }
+                });
+            }
+            catch { /* ignore */ }
         }
 
         clearBindingContext?.Invoke();

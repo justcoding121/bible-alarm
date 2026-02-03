@@ -85,7 +85,7 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
     {
         if (!isDisposed)
         {
-            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
             isDisposed = true;
         }
     }

@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Music;
@@ -62,66 +63,24 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        try
-        {
-            await Task.Yield();
+        var musicPublicationViewModel = ViewModel as MusicPublicationSelectionViewModel;
 
-            var musicPublicationViewModel = ViewModel as MusicPublicationSelectionViewModel;
-
-            if (DeviceInfo.Platform != DevicePlatform.WinUI)
-            {
-                LanguageCollectionView.Opacity = 0;
-            }
-
-            await Task.Yield();
-
-            if (musicPublicationViewModel != null)
-            {
-                await musicPublicationViewModel.RefreshFromState();
-            }
-
-            await CollectionViewHelper.WaitForNotBusyAsync(
-                () => ViewModel?.IsBusy ?? false,
-                cancellationToken: cancellationTokenSource.Token);
-
-            await Task.Delay(150, cancellationTokenSource.Token);
-
-            var selectedItem = musicPublicationViewModel?.Languages?.FirstOrDefault(l => l.IsSelected);
-            if (selectedItem != null)
-            {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(
-                    LanguageCollectionView,
-                    selectedItem,
-                    animated: false,
-                    cancellationToken: cancellationTokenSource.Token);
-
-                await Task.Delay(50, cancellationTokenSource.Token);
-            }
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                BusyOverlay.IsVisible = false;
-                if (DeviceInfo.Platform != DevicePlatform.WinUI)
-                {
-                    LanguageCollectionView.Opacity = 1;
-                }
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            BusyOverlay.IsVisible = false;
-            if (DeviceInfo.Platform != DevicePlatform.WinUI)
-            {
-                LanguageCollectionView.Opacity = 1;
-            }
-        }
+        await ModalScrollHelper.HandleModalAppearingAsync(
+            ViewModel,
+            BusyOverlay,
+            LanguageCollectionView,
+            getSelectedItem: () => musicPublicationViewModel?.Languages?.FirstOrDefault(l => l.IsSelected),
+            refreshAction: musicPublicationViewModel != null
+                ? async () => await musicPublicationViewModel.RefreshFromState()
+                : null,
+            cancellationToken: cancellationTokenSource.Token);
     }
 
     public void Dispose()
     {
         if (!isDisposed)
         {
-            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
             isDisposed = true;
         }
     }

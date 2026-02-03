@@ -30,6 +30,7 @@ public partial class BusyOverlay : ContentView
     }
 
     private CancellationTokenSource? timeoutCancellation;
+    private bool isProcessingVisibilityChange;
 
     public static new readonly BindableProperty IsVisibleProperty = BindableProperty.Create(
         nameof(IsVisible),
@@ -119,9 +120,28 @@ public partial class BusyOverlay : ContentView
         // Note: We now use Opacity instead of IsVisible for instant show/hide
         if (bindable is BusyOverlay overlay && oldValue != newValue)
         {
+            var oldBoolValue = oldValue is bool oldBool ? oldBool : false;
             var newBoolValue = (bool)newValue;
+            
+            // Double-check: if the boolean values are actually the same, skip processing
+            if (oldBoolValue == newBoolValue)
+            {
+                return;
+            }
+
+            // Guard against rapid toggling - if we're already processing a change, skip
+            // This prevents infinite loops when binding and explicit sets conflict
+            if (overlay.isProcessingVisibilityChange)
+            {
+                logger.Debug("BusyOverlay.OnIsVisibleChanged: Skipping - already processing visibility change");
+                return;
+            }
+
+            overlay.isProcessingVisibilityChange = true;
+            
             var opacity = newBoolValue ? 1.0 : 0.0;
-            var inputTransparent = !newBoolValue; // When visible, don't allow input through (false), when hidden, allow input through (true)
+            // When visible, don't allow input through (false), when hidden, allow input through (true)
+            var inputTransparent = !newBoolValue;
             logger.Debug("BusyOverlay.OnIsVisibleChanged: Property changed from {OldValue} to {NewValue} (via binding, opacity will be {Opacity}, inputTransparent will be {InputTransparent})",
                 oldValue, newBoolValue, opacity, inputTransparent);
 
@@ -155,18 +175,42 @@ public partial class BusyOverlay : ContentView
             try
             {
                 // WinUI can throw if the dispatcher is not ready/disposed. Be defensive to avoid crashes.
-                overlay.Dispatcher.Dispatch(Apply);
+                overlay.Dispatcher.Dispatch(() =>
+                {
+                    try
+                    {
+                        Apply();
+                    }
+                    finally
+                    {
+                        // Always reset the flag, even if Apply() throws
+                        overlay.isProcessingVisibilityChange = false;
+                    }
+                });
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "BusyOverlay.OnIsVisibleChanged: Failed to dispatch UI update, falling back to MainThread");
                 try
                 {
-                    MainThread.BeginInvokeOnMainThread(Apply);
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        try
+                        {
+                            Apply();
+                        }
+                        finally
+                        {
+                            // Always reset the flag, even if Apply() throws
+                            overlay.isProcessingVisibilityChange = false;
+                        }
+                    });
                 }
                 catch (Exception ex2)
                 {
                     logger.Warning(ex2, "BusyOverlay.OnIsVisibleChanged: Failed to apply UI update on MainThread");
+                    // Reset flag even on failure
+                    overlay.isProcessingVisibilityChange = false;
                 }
             }
         }

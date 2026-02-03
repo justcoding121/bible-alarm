@@ -105,8 +105,11 @@ public class MainActivity : MauiAppCompatActivity
 
     protected override void OnResume()
     {
-        base.OnResume();
-        backgroundTaskHelper?.UpdateResumeTime();
+        MainActivityLifecycleHelper.OnResume(this, () =>
+        {
+            base.OnResume();
+            backgroundTaskHelper?.UpdateResumeTime();
+        });
     }
 
     protected override void OnPause()

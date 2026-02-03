@@ -29,12 +29,6 @@ public partial class Schedule : BaseContentPage, IDisposable
         Log.Information("[PERF] Schedule page: InitializeComponent took {ElapsedMs}ms", initComponentElapsed);
 #endif
 
-        // Set busy overlay to visible by default
-        if (scheduleBusyOverlay != null)
-        {
-            scheduleBusyOverlay.IsVisible = true;
-        }
-
         BindingContext = viewModel;
         this.viewModel = viewModel;
 
@@ -88,39 +82,8 @@ public partial class Schedule : BaseContentPage, IDisposable
 
     private void SyncOverlayWithState()
     {
-        this.Dispatcher.Dispatch(() =>
-        {
-            if (scheduleBusyOverlay == null)
-            {
-                return;
-            }
-
-            // If ViewModel is not initialized yet, keep overlay visible (default state)
-            // It will be synced when ViewModel is ready
-            if (viewModel == null)
-            {
-                scheduleBusyOverlay.IsVisible = true;
-                return;
-            }
-
-            var shouldBeVisible = viewModel.IsSchedulePageOverlayVisible;
-
-            // Only sync if ViewModel says it should be visible, or if overlay is currently visible and ViewModel says hide
-            // This prevents hiding the overlay prematurely during initial sync
-            if (shouldBeVisible)
-            {
-                // ViewModel says show - always show
-                if (!scheduleBusyOverlay.IsVisible)
-                {
-                    scheduleBusyOverlay.IsVisible = true;
-                }
-            }
-            else if (scheduleBusyOverlay.IsVisible && isContentLoaded)
-            {
-                // ViewModel says hide AND content is loaded - safe to hide
-                scheduleBusyOverlay.IsVisible = false;
-            }
-        });
+        // Binding handles overlay visibility automatically
+        // This method is kept for compatibility but no longer manipulates IsVisible directly
     }
 
     private async Task LoadScheduleContentAsync()
@@ -181,26 +144,8 @@ public partial class Schedule : BaseContentPage, IDisposable
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ScheduleViewModel.IsSchedulePageOverlayVisible))
-        {
-            // State is the source of truth - sync overlay with ViewModel
-            // But only hide if content is loaded (prevents hiding before content renders)
-            this.Dispatcher.Dispatch(() =>
-            {
-                if (scheduleBusyOverlay != null && viewModel != null)
-                {
-                    var newValue = viewModel.IsSchedulePageOverlayVisible;
-
-                    // Don't hide overlay until content is loaded
-                    if (!newValue && !isContentLoaded)
-                    {
-                        return;
-                    }
-
-                    scheduleBusyOverlay.IsVisible = newValue;
-                }
-            });
-        }
+        // Binding handles IsSchedulePageOverlayVisible automatically
+        // No need to manually sync overlay visibility
 
         // Check if we should hide overlay when container ViewModels are assigned (after content is loaded)
         // Only trigger for container VM assignments to avoid resetting timeout on every property change
@@ -237,12 +182,7 @@ public partial class Schedule : BaseContentPage, IDisposable
         // Reinitialize containers (critical on physical devices where page may be cached)
         viewModel?.OnPageReappearing();
 
-        // Force overlay visible immediately
-        if (scheduleBusyOverlay != null)
-        {
-            scheduleBusyOverlay.IsVisible = true;
-        }
-
+        // Binding will handle overlay visibility automatically
         SyncOverlayWithState();
         OnPageAppearing();
     }

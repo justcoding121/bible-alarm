@@ -24,7 +24,7 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
         Appearing -= OnAppearing;
 
         await ModalScrollHelper.HandleModalAppearingAsync(
-            () => ViewModel?.IsBusy ?? false,
+            ViewModel,
             BusyOverlay,
             trackCollectionView,
             getSelectedItem: () => ViewModel?.SelectedTrack,
@@ -38,7 +38,7 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
     {
         if (!isDisposed)
         {
-            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
             isDisposed = true;
         }
     }

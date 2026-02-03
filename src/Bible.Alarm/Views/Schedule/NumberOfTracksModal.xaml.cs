@@ -109,35 +109,35 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
                 await Task.Delay(50, cancellationTokenSource.Token);
             }
 
-            // Hide overlay and reveal list together
+            // Hide overlay and reveal list together (binding: set IsBusy = false)
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                BusyOverlay.IsVisible = false;
-                // Only set Opacity on non-Windows (we didn't hide it there)
+                if (ViewModel != null)
+                    ViewModel.IsBusy = false;
                 if (DeviceInfo.Platform != DevicePlatform.WinUI)
-                {
                     TracksCollectionView.Opacity = 1;
-                }
             });
         }
         catch (OperationCanceledException)
         {
-            // User tapped an item - reveal immediately
-            BusyOverlay.IsVisible = false;
-            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                TracksCollectionView.Opacity = 1;
-            }
+                if (ViewModel != null)
+                    ViewModel.IsBusy = false;
+                if (DeviceInfo.Platform != DevicePlatform.WinUI)
+                    TracksCollectionView.Opacity = 1;
+            });
         }
         catch (Exception ex)
         {
-            // OnAppearing errors are non-critical (UI initialization)
             Serilog.Log.Warning(ex, "Error in NumberOfTracksModal.OnAppearing");
-            BusyOverlay.IsVisible = false;
-            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                TracksCollectionView.Opacity = 1;
-            }
+                if (ViewModel != null)
+                    ViewModel.IsBusy = false;
+                if (DeviceInfo.Platform != DevicePlatform.WinUI)
+                    TracksCollectionView.Opacity = 1;
+            });
         }
     }
 
@@ -145,7 +145,7 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
     {
         if (!isDisposed)
         {
-            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
             isDisposed = true;
         }
     }

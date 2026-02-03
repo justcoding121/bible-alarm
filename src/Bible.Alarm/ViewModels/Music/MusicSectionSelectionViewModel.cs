@@ -11,6 +11,7 @@ using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -21,7 +22,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposable
+public sealed class MusicSectionSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -382,6 +383,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IDisposab
             SelectedSection.IsSelected = true;
         }
     }
+
+    public object? SelectedItem => SelectedSection;
 
     public BiblePublicationSectionListViewItemModel? SelectedSection { get; set; }
 

@@ -22,6 +22,13 @@ public static class ApplicationOverlayReducer
     [ReducerMethod]
     public static ApplicationState OnSetSchedulePageOverlay(ApplicationState state, SetSchedulePageOverlayAction action)
     {
+        // Prevent redundant state changes - if the value hasn't changed, return the same state object
+        // This prevents infinite loops where state changes trigger more state changes
+        if (state.IsSchedulePageOverlayVisible == action.IsVisible)
+        {
+            return state;
+        }
+
         // When showing overlay, reset container readiness to ensure fresh state
         // When hiding overlay, preserve container readiness (it may have been set to ready)
         var containerReadiness = action.IsVisible
@@ -47,8 +54,10 @@ public static class ApplicationOverlayReducer
             schedules: state.Schedules,
             currentSchedule: null,
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
-            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible, // Keep current overlay state during navigation
-            containerReadiness: Models.ContainerReadiness.NotReady); // Reset container readiness
+            // Keep current overlay state during navigation
+            isSchedulePageOverlayVisible: state.IsSchedulePageOverlayVisible,
+            // Reset container readiness
+            containerReadiness: Models.ContainerReadiness.NotReady);
     }
 }
 

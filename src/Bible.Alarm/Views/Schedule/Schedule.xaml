@@ -23,11 +23,10 @@
             
             <!-- Overlay with busy indicator - shown immediately, overlays content -->
             <!-- Uses absolute positioning to ensure stable centering regardless of content -->
-            <!-- Binding removed to prevent conflicts - controlled entirely from code-behind -->
             <shared:BusyOverlay x:Name="scheduleBusyOverlay"
                                 AbsoluteLayout.LayoutBounds="0,0,1,1"
                                 AbsoluteLayout.LayoutFlags="All"
-                                IsVisible="True" />
+                                IsVisible="{Binding IsSchedulePageOverlayVisible, Mode=OneWay}" />
         </AbsoluteLayout>
     </ContentPage.Content>
 </views:BaseContentPage>

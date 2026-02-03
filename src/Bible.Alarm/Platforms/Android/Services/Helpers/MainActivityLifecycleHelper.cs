@@ -33,6 +33,25 @@ public static class MainActivityLifecycleHelper
     }
 
     /// <summary>
+    /// Handles OnResume lifecycle event with fragment restoration error handling.
+    /// </summary>
+    public static void OnResume(Activity activity, Action baseOnResume)
+    {
+        try
+        {
+            baseOnResume();
+        }
+        catch (IllegalArgumentException ex) when (MainActivityFragmentStateHelper.IsFragmentRestorationError(ex))
+        {
+            MainActivityFragmentStateHelper.HandleFragmentRestorationError(activity, ex);
+        }
+        catch (Java.Lang.RuntimeException runtimeEx) when (MainActivityFragmentStateHelper.IsFragmentRestorationError(runtimeEx))
+        {
+            MainActivityFragmentStateHelper.HandleFragmentRestorationError(activity, runtimeEx);
+        }
+    }
+
+    /// <summary>
     /// Handles OnSaveInstanceState with safe state saving.
     /// </summary>
     public static void OnSaveInstanceState(Activity activity, Bundle outState, Action<Bundle> baseOnSaveInstanceState)

@@ -102,6 +102,12 @@ public sealed class SchedulePropertyManager : ObservableObject
         get => isSchedulePageOverlayVisible;
         set
         {
+            // Prevent setting the same value repeatedly to avoid infinite loops
+            if (isSchedulePageOverlayVisible == value)
+            {
+                return;
+            }
+
             if (SetProperty(ref isSchedulePageOverlayVisible, value))
             {
                 logger.Debug("IsSchedulePageOverlayVisible: Property changed to {Value}", value);

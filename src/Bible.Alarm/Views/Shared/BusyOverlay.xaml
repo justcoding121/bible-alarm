@@ -16,7 +16,7 @@
     </ContentView.Resources>
     <Grid x:Name="overlayGrid"
           IsVisible="True"
-          Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}}"
+          Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
           BackgroundColor="{DynamicResource BackgroundColor}"
           ZIndex="999"
           HorizontalOptions="Fill"
@@ -25,7 +25,7 @@
             x:Name="busyIndicator"
             IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsVisible}"
             IsVisible="True"
-            Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}}"
+            Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
             AnimationType="DoubleCircle"
             HorizontalOptions="Center"
             VerticalOptions="Center"

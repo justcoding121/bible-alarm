@@ -51,25 +51,24 @@ public partial class MusicTypeSelectionModal : BaseContentPage, IDisposable
                     cancellationToken: cancellationTokenSource.Token);
             }
 
-            // Hide overlay and reveal list together
+            // Hide overlay and reveal list together (binding: set IsBusy = false)
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                BusyOverlay.IsVisible = false;
-                // Only set Opacity on non-Windows (we didn't hide it there)
+                if (ViewModel != null)
+                    ViewModel.IsBusy = false;
                 if (DeviceInfo.Platform != DevicePlatform.WinUI)
-                {
                     musicTypesCollectionView.Opacity = 1;
-                }
             });
         }
         catch (OperationCanceledException)
         {
-            // User tapped item - reveal immediately
-            BusyOverlay.IsVisible = false;
-            if (DeviceInfo.Platform != DevicePlatform.WinUI)
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                musicTypesCollectionView.Opacity = 1;
-            }
+                if (ViewModel != null)
+                    ViewModel.IsBusy = false;
+                if (DeviceInfo.Platform != DevicePlatform.WinUI)
+                    musicTypesCollectionView.Opacity = 1;
+            });
         }
     }
 
@@ -77,7 +76,7 @@ public partial class MusicTypeSelectionModal : BaseContentPage, IDisposable
     {
         if (!isDisposed)
         {
-            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
             isDisposed = true;
         }
     }

@@ -25,8 +25,11 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
     {
         Appearing -= OnAppearing;
 
+        if (ViewModel != null)
+            ViewModel.DeferClearBusy = true;
+
         await ModalScrollHelper.HandleModalAppearingAsync(
-            () => ViewModel?.IsBusy ?? false,
+            ViewModel,
             BusyOverlay,
             publicationsCollectionView,
             getSelectedItem: () => ViewModel?.SelectedPublication,
@@ -40,7 +43,9 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
     {
         if (!isDisposed)
         {
-            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
+            if (ViewModel != null)
+                ViewModel.DeferClearBusy = false;
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
             isDisposed = true;
         }
     }

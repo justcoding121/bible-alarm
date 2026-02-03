@@ -24,7 +24,7 @@ public partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
         Appearing -= OnAppearing;
 
         await ModalScrollHelper.HandleModalAppearingAsync(
-            () => ViewModel?.IsBusy ?? false,
+            ViewModel,
             BusyOverlay,
             trackCollectionView,
             getSelectedItem: () => ViewModel?.SelectedTrack,
@@ -36,7 +36,7 @@ public partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
     {
         if (!isDisposed)
         {
-            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
             isDisposed = true;
         }
     }

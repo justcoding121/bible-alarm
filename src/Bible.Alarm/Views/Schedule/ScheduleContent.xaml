@@ -25,19 +25,20 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
-        <FlexLayout Grid.Row="0"
+        <Grid Grid.Row="0"
               x:Name="ButtonContainer"
               Margin="0,0,0,4"
-              Wrap="Wrap"
-              JustifyContent="Center"
-              AlignItems="Stretch"
-              AlignContent="Start"
-              HorizontalOptions="Fill">
+              ColumnSpacing="6"
+              HorizontalOptions="FillAndExpand"
+              VerticalOptions="Start">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
             <!-- Cancel button - SfEffectsView for WinUI only -->
-            <Grid Margin="0,0,3,0"
-                  FlexLayout.Basis="48%"
-                  FlexLayout.Grow="1"
-                  HorizontalOptions="Fill"
+            <Grid Grid.Column="0"
+                  Margin="0,0,3,0"
+                  HorizontalOptions="FillAndExpand"
                   VerticalOptions="Start"
                   HeightRequest="{DynamicResource IconStandardContainerSize}">
                 <core:SfEffectsView Margin="0"
@@ -92,10 +93,9 @@
                         HorizontalOptions="Center"
                         Opacity="0.95" />
             </Grid>
-            <Grid Margin="0,0,3,0"
-                  FlexLayout.Basis="48%"
-                  FlexLayout.Grow="1"
-                  HorizontalOptions="Fill"
+            <Grid Grid.Column="0"
+                  Margin="0,0,3,0"
+                  HorizontalOptions="FillAndExpand"
                   HeightRequest="{DynamicResource IconStandardContainerSize}"
                   IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
                 <Border x:Name="CancelButtonNoEffects"
@@ -136,10 +136,9 @@
                         Opacity="0.95" />
             </Grid>
             <!-- Save button - SfEffectsView for WinUI only -->
-            <Grid Margin="3,0,0,0"
-                  FlexLayout.Basis="48%"
-                  FlexLayout.Grow="1"
-                  HorizontalOptions="Fill"
+            <Grid Grid.Column="1"
+                  Margin="3,0,0,0"
+                  HorizontalOptions="FillAndExpand"
                   VerticalOptions="Start"
                   HeightRequest="{DynamicResource IconStandardContainerSize}">
                 <core:SfEffectsView Margin="0"
@@ -194,10 +193,9 @@
                         HorizontalOptions="Center"
                         Opacity="0.95" />
             </Grid>
-            <Grid Margin="3,0,0,0"
-                  FlexLayout.Basis="48%"
-                  FlexLayout.Grow="1"
-                  HorizontalOptions="Fill"
+            <Grid Grid.Column="1"
+                  Margin="3,0,0,0"
+                  HorizontalOptions="FillAndExpand"
                   HeightRequest="{DynamicResource IconStandardContainerSize}"
                   IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
                 <Border x:Name="SaveButtonNoEffects"
@@ -237,7 +235,7 @@
                         HorizontalOptions="Center"
                         Opacity="0.95" />
             </Grid>
-        </FlexLayout>
+        </Grid>
         <ScrollView x:Name="ScheduleScrollView"
                     Grid.Row="1"
                     Margin="0,0,0,0">

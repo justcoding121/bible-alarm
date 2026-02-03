@@ -30,6 +30,12 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     private readonly BiblePublicationSelectionPropertyManager propertyManager;
     private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
 
+    /// <summary>
+    /// When true, the modal will set IsBusy = false after the list is populated and rendered (Android).
+    /// Set by the language modal so the helper clears busy only once, after render.
+    /// </summary>
+    public bool DeferClearBusy { get; set; }
+
     public ICommand BackCommand { get; set; }
     public ICommand SectionSelectionCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
@@ -123,7 +129,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             busy => propertyManager.IsBusy = busy,
             propertyManager.Languages,
             state.Value.CurrentSchedule?.BiblePublicationLanguageCode,
-            () => propertyManager.UpdateCurrentLanguageFromLanguages());
+            () => propertyManager.UpdateCurrentLanguageFromLanguages(),
+            clearBusyWhenDone: !DeferClearBusy);
 
         // Set up property changed handler for language search
         propertyManager.SetupPropertyChangedHandler(searchTerm =>
@@ -136,12 +143,13 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     /// </summary>
     public async Task RefreshFromState()
     {
-        // Always ensure languages are populated and IsBusy is set to false
+        // Populate languages. When DeferClearBusy is true (language modal), helper sets IsBusy = false after list is rendered.
         await stateHandler.HandleBiblePublicationInitializedAsync(
             busy => propertyManager.IsBusy = busy,
             propertyManager.Languages,
             state.Value.CurrentSchedule?.BiblePublicationLanguageCode,
-            () => propertyManager.UpdateCurrentLanguageFromLanguages());
+            () => propertyManager.UpdateCurrentLanguageFromLanguages(),
+            clearBusyWhenDone: !DeferClearBusy);
 
         // Only populate publications if we have a current language (for full Bible selection, not language modal)
         if (!string.IsNullOrEmpty(state.Value.CurrentSchedule?.BiblePublicationLanguageCode))
@@ -155,7 +163,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             await stateHandler.RefreshFromStateAsync(
                 busy => propertyManager.IsBusy = busy,
                 propertyManager.Publications,
-                progressTracker);
+                progressTracker,
+                clearBusyWhenDone: !DeferClearBusy);
         }
     }
 

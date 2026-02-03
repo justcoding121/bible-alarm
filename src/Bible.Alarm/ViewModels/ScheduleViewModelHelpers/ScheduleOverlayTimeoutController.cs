@@ -14,7 +14,8 @@ internal sealed class ScheduleOverlayTimeoutController : IDisposable
     /// Hard timeout in milliseconds for the busy overlay.
     /// After this time, the overlay will be hidden regardless of container readiness.
     /// </summary>
-    private const int OverlayHardTimeoutMs = 10000; // 10 seconds
+    // 10 seconds
+    private const int OverlayHardTimeoutMs = 10000;
 
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
@@ -23,6 +24,7 @@ internal sealed class ScheduleOverlayTimeoutController : IDisposable
     private CancellationTokenSource? overlayTimeoutCancellation;
     private bool isContentLoaded;
     private bool isSaving;
+    private bool? lastOverlayVisibility;
 
     public ScheduleOverlayTimeoutController(ILogger logger, IState<ApplicationState> state, IDispatcher dispatcher)
     {
@@ -64,20 +66,48 @@ internal sealed class ScheduleOverlayTimeoutController : IDisposable
 
     public void HandleStateChanged(ApplicationState stateValue)
     {
+        var currentOverlayVisibility = stateValue.IsSchedulePageOverlayVisible;
+        
+        // Only process if overlay visibility actually changed or if we need to hide it based on conditions
+        // This prevents infinite loops from redundant state changes
+        var overlayVisibilityChanged = lastOverlayVisibility != currentOverlayVisibility;
+        var wasVisible = lastOverlayVisibility == true;
+        lastOverlayVisibility = currentOverlayVisibility;
+        
+        // Only process overlay-related logic if visibility changed or if we need to check conditions
+        // Skip processing if visibility hasn't changed and we're not in a state that requires action
+        if (!overlayVisibilityChanged && !currentOverlayVisibility)
+        {
+            // Overlay is hidden and hasn't changed - nothing to do
+            return;
+        }
+        
         // Handle overlay visibility based on container readiness and content load state
-        if (stateValue.IsSchedulePageOverlayVisible && !isSaving)
+        if (currentOverlayVisibility && !isSaving)
         {
             if (stateValue.ContainerReadiness.AllReady && isContentLoaded)
             {
                 // Both containers ready and content loaded - hide overlay
+                // Only dispatch if overlay is currently visible to prevent redundant state changes
                 CancelOverlayTimeout();
-                dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                // Double-check current state to ensure it's still visible before dispatching
+                // This prevents race conditions where state might have changed between checks
+                var latestState = state.Value;
+                if (latestState.IsSchedulePageOverlayVisible)
+                {
+                    dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
+                }
             }
             else if (isContentLoaded && !stateValue.ContainerReadiness.AllReady && overlayTimeoutCancellation == null)
             {
                 // Content loaded but containers not ready - start timeout ONLY if not already running
                 StartOverlayTimeout();
             }
+        }
+        else if (!currentOverlayVisibility && wasVisible)
+        {
+            // Overlay just became hidden - cancel any running timeout
+            CancelOverlayTimeout();
         }
     }
 

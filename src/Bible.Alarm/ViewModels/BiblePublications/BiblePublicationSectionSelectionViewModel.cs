@@ -13,6 +13,7 @@ using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.BiblePublications.BiblePublicationSectionSelectionHelpers;
 using Bible.Alarm.ViewModels.BiblePublications.BiblePublicationSectionSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -21,7 +22,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject, IDisposable
+public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private BiblePublicationSchedule? current;
 
@@ -382,6 +383,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             SelectedSection.IsSelected = true;
         }
     }
+
+    public object? SelectedItem => SelectedSection;
 
     public BiblePublicationSectionListViewItemModel? SelectedSection { get; set; }
 

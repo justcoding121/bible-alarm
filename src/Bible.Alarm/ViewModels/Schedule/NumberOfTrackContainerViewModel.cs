@@ -37,6 +37,13 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
     private ObservableCollection<NumberOfTracksListViewItemModel> numberOfTracksList = new();
     private NumberOfTracksListViewItemModel? currentNumberOfTracks;
+    private bool isBusy = true;
+
+    public bool IsBusy
+    {
+        get => isBusy;
+        set => SetProperty(ref isBusy, value);
+    }
 
     public NumberOfTrackContainerViewModel(
         ILogger logger,
@@ -541,7 +548,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         var numberOfTracks = preservedSelection ?? numberOfTracksFromSchedule;
 
         // Determine maximum number of tracks to show
-        const int maxTracksCap = 21; // Must match AlarmSchedule.NumberOfTracksToPlay validation range and modal max
+        // Must match AlarmSchedule.NumberOfTracksToPlay validation range and modal max
+        const int maxTracksCap = 21;
         int maxTracks = maxTracksCap;
         
         // For dramas, get the actual number of episodes (cap to 21).

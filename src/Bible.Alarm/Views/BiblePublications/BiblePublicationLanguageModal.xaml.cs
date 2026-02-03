@@ -28,9 +28,10 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
 
         var bibleViewModel = ViewModel as BiblePublicationSelectionViewModel;
 
-        // Clear search term to show all languages when modal opens
+        // Defer clearing IsBusy so the helper sets it false only after list is populated and rendered (Android).
         if (bibleViewModel != null)
         {
+            bibleViewModel.DeferClearBusy = true;
             try { bibleViewModel.LanguageSearchTerm = string.Empty; } catch { }
         }
 
@@ -93,7 +94,9 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
     {
         if (!isDisposed)
         {
-            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null);
+            if (ViewModel is BiblePublicationSelectionViewModel bibleViewModel)
+                bibleViewModel.DeferClearBusy = false;
+            ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
             isDisposed = true;
         }
     }

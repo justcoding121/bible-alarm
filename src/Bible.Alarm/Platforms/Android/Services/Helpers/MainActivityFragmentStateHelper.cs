@@ -137,9 +137,46 @@ public static class MainActivityFragmentStateHelper
     }
 
     /// <summary>
+    /// Checks if a RuntimeException is a fragment restoration error (may wrap IllegalArgumentException).
+    /// </summary>
+    public static bool IsFragmentRestorationError(Java.Lang.RuntimeException ex)
+    {
+        if (ex.Message?.Contains("No view found for id") == true &&
+            ex.Message?.Contains("legacy") == true)
+        {
+            return true;
+        }
+
+        if (ex.InnerException is IllegalArgumentException innerEx)
+        {
+            return IsFragmentRestorationError(innerEx);
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Handles fragment restoration errors by restarting the activity.
     /// </summary>
     public static void HandleFragmentRestorationError(Activity activity, IllegalArgumentException ex)
+    {
+        HandleFragmentRestorationErrorInternal(activity, ex);
+    }
+
+    /// <summary>
+    /// Handles fragment restoration errors by restarting the activity (for RuntimeException).
+    /// </summary>
+    public static void HandleFragmentRestorationError(Activity activity, Java.Lang.RuntimeException ex)
+    {
+        var actualException = ex.InnerException as IllegalArgumentException ?? 
+                             new IllegalArgumentException(ex.Message ?? "Fragment restoration error");
+        HandleFragmentRestorationErrorInternal(activity, actualException);
+    }
+
+    /// <summary>
+    /// Internal method to handle fragment restoration errors by restarting the activity.
+    /// </summary>
+    private static void HandleFragmentRestorationErrorInternal(Activity activity, IllegalArgumentException ex)
     {
         logger.Warning(ex, "Fragment restoration failed due to stale state - restarting activity for clean state");
 

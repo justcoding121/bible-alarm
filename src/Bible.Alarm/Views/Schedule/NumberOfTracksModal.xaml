@@ -244,12 +244,11 @@
                        VerticalOptions="Center" />
             </Border>
 
-            <!-- BUSY OVERLAY – visibility controlled from code-behind -->
             <sharedViews:BusyOverlay x:Name="BusyOverlay"
                                      Grid.Row="0"
                                      Grid.RowSpan="3"
                                      HardTimeoutMs="0"
-                                     IsVisible="True" />
+                                     IsVisible="{Binding IsBusy}" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>

@@ -9,6 +9,7 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.BiblePublications.BiblePublicationTrackSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -17,7 +18,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, IDisposable
+public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -151,6 +152,8 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
     public ICommand SetTrackCommand { get; set; }
+
+    public object? SelectedItem => propertyManager.SelectedTrack;
 
     public BiblePublicationTrackListViewItemModel? SelectedTrack
     {

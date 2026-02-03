@@ -15,6 +15,7 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Stores.Selectors;
+using Bible.Alarm.ViewModels.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -22,7 +23,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
+public sealed class MusicTypeSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private AlarmMusic? current;
 
@@ -227,6 +228,8 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IDisposable
         get => selectedMusicType;
         set => SetProperty(ref selectedMusicType, value);
     }
+
+    public object? SelectedItem => SelectedMusicType;
 
     private void EnsureCurrentIsSet()
     {

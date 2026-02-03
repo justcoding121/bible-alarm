@@ -6,6 +6,7 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -14,7 +15,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicTrackSelectionViewModel : ObservableObject, IDisposable
+public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
@@ -158,6 +159,8 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IDisposable
                 : FlowDirection.LeftToRight;
         }
     }
+
+    public object? SelectedItem => propertyManager.SelectedTrack;
 
     public bool IsBusy
     {
