@@ -116,12 +116,12 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
         var finalStateValue = state.Value;
         if (finalStateValue.CurrentSchedule == null || !musicType.HasValue || string.IsNullOrEmpty(publicationCode))
         {
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
             return;
         }
         if (musicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(languageCode))
         {
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
             return;
         }
 
@@ -131,8 +131,7 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
             async (lang, pub) => await Initialize(lang, pub),
             () => SetSelectedTrack());
 
-        await Task.Delay(200);
-        await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+        // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
     }
 
     private void OnMusicInitialized(object? o, EventArgs eventArgs)

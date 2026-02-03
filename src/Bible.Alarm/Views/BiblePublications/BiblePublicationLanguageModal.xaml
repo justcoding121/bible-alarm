@@ -108,7 +108,7 @@
                     CancelButtonColor="{DynamicResource TextPrimaryColor}" />
             </Border>
             
-            <!-- Enhanced Collection View -->
+            <!-- Enhanced Collection View - hidden on Android until helper reveals after list is rendered (avoids empty-list flash) -->
             <CollectionView
                 x:Name="LanguageCollectionView"
                 Grid.Row="2"
@@ -118,6 +118,7 @@
                 HorizontalOptions="Fill"
                 IsVisible="True"
                 ItemsSource="{Binding Languages}"
+                Opacity="{OnPlatform Android=0, iOS=0, Default=1}"
                 MinimumHeightRequest="300"
                 MinimumWidthRequest="250"
                 SelectionMode="None">

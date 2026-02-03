@@ -30,11 +30,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     private readonly BiblePublicationSelectionPropertyManager propertyManager;
     private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
 
-    /// <summary>
-    /// When true, the modal will set IsBusy = false after the list is populated and rendered (Android).
-    /// Set by the language modal so the helper clears busy only once, after render.
-    /// </summary>
-    public bool DeferClearBusy { get; set; }
+    // DeferClearBusy removed - ModalScrollHelper now controls IsBusy for all modals
 
     public ICommand BackCommand { get; set; }
     public ICommand SectionSelectionCommand { get; set; }
@@ -129,8 +125,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             busy => propertyManager.IsBusy = busy,
             propertyManager.Languages,
             state.Value.CurrentSchedule?.BiblePublicationLanguageCode,
-            () => propertyManager.UpdateCurrentLanguageFromLanguages(),
-            clearBusyWhenDone: !DeferClearBusy);
+            () => propertyManager.UpdateCurrentLanguageFromLanguages());
 
         // Set up property changed handler for language search
         propertyManager.SetupPropertyChangedHandler(searchTerm =>
@@ -139,33 +134,17 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
     /// <summary>
     /// Refreshes the ViewModel from the latest state when the modal appears.
-    /// This ensures languages and publications are populated and current is initialized from CurrentSchedule.
+    /// This ensures languages are populated and current is initialized from CurrentSchedule.
+    /// NOTE: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper.
     /// </summary>
     public async Task RefreshFromState()
     {
-        // Populate languages. When DeferClearBusy is true (language modal), helper sets IsBusy = false after list is rendered.
+        // Populate languages. ModalScrollHelper sets IsBusy = false after list is rendered.
         await stateHandler.HandleBiblePublicationInitializedAsync(
             busy => propertyManager.IsBusy = busy,
             propertyManager.Languages,
             state.Value.CurrentSchedule?.BiblePublicationLanguageCode,
-            () => propertyManager.UpdateCurrentLanguageFromLanguages(),
-            clearBusyWhenDone: !DeferClearBusy);
-
-        // Only populate publications if we have a current language (for full Bible selection, not language modal)
-        if (!string.IsNullOrEmpty(state.Value.CurrentSchedule?.BiblePublicationLanguageCode))
-        {
-            // Create progress tracker for modal open
-            var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                progress => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressPercent = progress),
-                text => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressText = text),
-                isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = isVisible));
-            
-            await stateHandler.RefreshFromStateAsync(
-                busy => propertyManager.IsBusy = busy,
-                propertyManager.Publications,
-                progressTracker,
-                clearBusyWhenDone: !DeferClearBusy);
-        }
+            () => propertyManager.UpdateCurrentLanguageFromLanguages());
     }
 
     private async void OnBiblePublicationChanged(object? sender, EventArgs e)

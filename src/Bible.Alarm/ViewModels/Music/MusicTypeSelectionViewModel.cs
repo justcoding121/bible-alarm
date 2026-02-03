@@ -127,13 +127,7 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IListViewMod
                 SetSelectedMusicType();
             });
 
-            // CollectionView needs a moment to render before hiding the busy indicator
-            // Add a small delay to prevent blank page flash (following track/track selection pattern)
-            // Give CollectionView time to render
-            await Task.Delay(100);
-
-            // Set IsBusy to false after collection is assigned and rendered
-            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
         });
     }
 
@@ -162,6 +156,7 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IListViewMod
     /// <summary>
     /// Refreshes the ViewModel from the latest state when the modal appears.
     /// This ensures we always use CurrentSchedule as the source of truth.
+    /// NOTE: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper.
     /// </summary>
     public void RefreshFromState()
     {
@@ -170,7 +165,7 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IListViewMod
         // Use CurrentSchedule as the source of truth
         if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
         {
-            IsBusy = false;
+            // Note: Do NOT set IsBusy = false here - the modal controls this
             return;
         }
 
@@ -188,9 +183,7 @@ public sealed class MusicTypeSelectionViewModel : ObservableObject, IListViewMod
 
         // Update selected music type immediately
         SetSelectedMusicType();
-
-        // MusicTypes is a static list (no DB loading), so set IsBusy = false immediately
-        IsBusy = false;
+        // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
     }
 
     // Start as true to show busy indicator immediately

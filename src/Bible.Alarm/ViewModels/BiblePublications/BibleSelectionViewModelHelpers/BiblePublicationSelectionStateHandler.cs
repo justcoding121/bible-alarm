@@ -53,7 +53,12 @@ public sealed class BiblePublicationSelectionStateHandler
         lastCategoryName = initialCategoryName;
     }
 
-    public async Task HandleBiblePublicationInitializedAsync(Action<bool> setIsBusy, ObservableCollection<LanguageListViewItemModel>? languages, string? languageCode, Action? updateCurrentLanguage = null, bool clearBusyWhenDone = true)
+    /// <summary>
+    /// Initializes Bible publication data. 
+    /// NOTE: This method should NOT set IsBusy = false. The modal code-behind (via ModalScrollHelper)
+    /// is responsible for clearing IsBusy after the list is rendered.
+    /// </summary>
+    public async Task HandleBiblePublicationInitializedAsync(Action<bool> setIsBusy, ObservableCollection<LanguageListViewItemModel>? languages, string? languageCode, Action? updateCurrentLanguage = null)
     {
         var stateValue = state.Value;
 
@@ -71,11 +76,10 @@ public sealed class BiblePublicationSelectionStateHandler
             // Check if category changed (need to repopulate languages since they're filtered by category)
             var categoryChanged = newCategoryName != lastCategoryName;
 
-            // If already initialized and languages are populated AND category hasn't changed, ensure IsBusy is false and skip
+            // If already initialized and languages are populated AND category hasn't changed, skip
+            // Note: Do NOT set IsBusy = false here - the modal controls this
             if (initComplete && languages != null && languages.Count > 0 && !categoryChanged)
             {
-                if (clearBusyWhenDone)
-                    await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                 return;
             }
 
@@ -142,10 +146,9 @@ public sealed class BiblePublicationSelectionStateHandler
                 // For language modal use case, just populate languages without publications
                 // Pass the languages collection so it gets populated and displayed
                 // Ensure languages collection is not null - it should be initialized by property manager
+                // Note: Do NOT set IsBusy = false here - the modal controls this
                 if (languages == null)
                 {
-                    if (clearBusyWhenDone)
-                        await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
                     return;
                 }
 
@@ -155,16 +158,8 @@ public sealed class BiblePublicationSelectionStateHandler
             // Update CurrentLanguage after languages are populated
             updateCurrentLanguage?.Invoke();
 
-            // CollectionView needs a moment to render before hiding the busy indicator (only if we showed it)
-            if (needsLanguagePopulation)
-            {
-                await Task.Delay(100);
-            }
-
-            // When clearBusyWhenDone is true (non-modal or Windows), set IsBusy false here.
-            // When false (language modal on Android), the modal helper sets IsBusy false after list is populated and rendered.
-            if (clearBusyWhenDone)
-                await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
+            // The modal will set IsBusy = false after verifying the list is rendered
 
             // Set initComplete to true only after languages are successfully populated
             initComplete = true;
@@ -202,8 +197,7 @@ public sealed class BiblePublicationSelectionStateHandler
         catch (Exception ex)
         {
             Serilog.Log.Warning(ex, "Error in HandleBiblePublicationInitializedAsync");
-            if (clearBusyWhenDone)
-                await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+            // Note: Do NOT set IsBusy = false here - the modal controls this
         }
     }
 
@@ -299,14 +293,13 @@ public sealed class BiblePublicationSelectionStateHandler
                     // Pass languageChanged flag to PopulatePublications so it can select default publication
                     // When language changes, don't download all publications yet (only first publication in cascade)
                     // Pass the category name explicitly to ensure correct filtering
-                await dataProvider.PopulatePublicationsAsync(newLanguageCode, publications, languageChanged || categoryChanged, downloadAll: false, newCategoryName);
-                    await Task.Delay(100);
-                    await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+                    await dataProvider.PopulatePublicationsAsync(newLanguageCode, publications, languageChanged || categoryChanged, downloadAll: false, newCategoryName);
+                    // Note: Do NOT set IsBusy = false here - the modal controls this
                 }
                 catch (Exception ex)
                 {
                     Serilog.Log.Warning(ex, "Error in HandleBiblePublicationChangedAsync during publication population");
-                    await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+                    // Note: Do NOT set IsBusy = false here - the modal controls this
                 }
             });
         }
@@ -317,7 +310,12 @@ public sealed class BiblePublicationSelectionStateHandler
         }
     }
 
-    public async Task RefreshFromStateAsync(Action<bool> setIsBusy, ObservableCollection<PublicationListViewItemModel>? publications, IFetchProgress? progress = null, bool clearBusyWhenDone = true)
+    /// <summary>
+    /// Refreshes publication data from state.
+    /// NOTE: This method should NOT set IsBusy = false. The modal code-behind (via ModalScrollHelper)
+    /// is responsible for clearing IsBusy after the list is rendered.
+    /// </summary>
+    public async Task RefreshFromStateAsync(Action<bool> setIsBusy, ObservableCollection<PublicationListViewItemModel>? publications, IFetchProgress? progress = null)
     {
         // Wait for state to be updated (in case language was just changed)
         // This handles the race condition where the modal opens before state is fully updated
@@ -468,9 +466,7 @@ public sealed class BiblePublicationSelectionStateHandler
                 // Pass the category name explicitly to ensure correct filtering
                 await dataProvider.PopulatePublicationsAsync(current.LanguageCode, publications, languageChanged || categoryChanged, downloadAll: true, newCategoryName, progress);
             }
-            await Task.Delay(100);
-            if (clearBusyWhenDone)
-                await MainThread.InvokeOnMainThreadAsync(() => setIsBusy(false));
+            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
         }
     }
 

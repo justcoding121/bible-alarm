@@ -295,17 +295,11 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                     }
                 });
 
-                // Give CollectionView time to render before hiding busy indicator
-                // This matches the pattern used in BiblePublicationTrackSelectionViewModel
-                await Task.Delay(100);
-
-                // Set IsBusy to false after collection is assigned and rendered - the busy overlay will hide instantly
-                // BUT don't reset IsBusy if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
+                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     if (!isDisposed && !isSelectingSection)
                     {
-                        IsBusy = false;
                         ShowProgress = false;
                     }
                 });
@@ -314,11 +308,11 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             {
                 // Log error but don't throw - allow modal to continue functioning
                 logger.Error(ex, "[MusicSectionSelection] RefreshFromState - Error during repopulation");
+                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     if (!isDisposed && !isSelectingSection)
                     {
-                        IsBusy = false;
                         ShowProgress = false;
                     }
                 });
@@ -326,13 +320,11 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         }
         else
         {
-            // No repopulation needed - ensure IsBusy is false (in case it was left true from previous session)
-            // BUT don't reset IsBusy if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
+            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
             await MainThread.InvokeOnMainThreadAsync(() => 
             {
                 if (!isDisposed && !isSelectingSection)
                 {
-                    IsBusy = false;
                     ShowProgress = false;
                 }
                 if (!isDisposed)

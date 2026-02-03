@@ -1,7 +1,9 @@
 #nullable enable
 using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.BiblePublications;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -10,12 +12,17 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
+    private readonly INavigationService navigationService;
+    private readonly IToastService toastService;
 
     public BiblePublicationTrackSelectionViewModel? ViewModel => BindingContext as BiblePublicationTrackSelectionViewModel;
 
     public BiblePublicationTrackSelectionModal()
     {
         InitializeComponent();
+        var services = Application.Current!.Handler!.MauiContext!.Services;
+        navigationService = services.GetRequiredService<INavigationService>();
+        toastService = services.GetRequiredService<IToastService>();
         Appearing += OnAppearing;
     }
 
@@ -23,7 +30,7 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
     {
         Appearing -= OnAppearing;
 
-        await ModalScrollHelper.HandleModalAppearingAsync(
+        var result = await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
             BusyOverlay,
             trackCollectionView,
@@ -31,7 +38,17 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
             refreshAction: ViewModel != null
                 ? async () => await ViewModel.RefreshFromState()
                 : null,
+            onFetchFailed: async (errorMessage) =>
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(errorMessage);
+            },
             cancellationToken: cancellationTokenSource.Token);
+
+        if (result == ModalAppearingResult.FetchFailed)
+        {
+            return;
+        }
     }
 
     public void Dispose()
@@ -65,6 +82,11 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
                         await asyncCommand.ExecuteAsync(trackItem);
                     }
                 }
+            }
+            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
             }
             finally
             {

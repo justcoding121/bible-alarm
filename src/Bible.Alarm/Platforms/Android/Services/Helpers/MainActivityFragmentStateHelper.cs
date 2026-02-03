@@ -17,7 +17,9 @@ public static class MainActivityFragmentStateHelper
     private static readonly ILogger logger = Log.ForContext(typeof(MainActivityFragmentStateHelper));
 
     /// <summary>
-    /// Gets a safe savedInstanceState by removing fragment state that could cause crashes.
+    /// Gets a safe savedInstanceState by completely ignoring any saved state on fresh launch.
+    /// MAUI apps should always start with a clean slate to avoid NavigationRootManager crashes
+    /// caused by stale fragment state that references views that don't exist yet.
     /// </summary>
     public static Bundle? GetSafeSavedInstanceState(Bundle? savedInstanceState)
     {
@@ -26,105 +28,38 @@ public static class MainActivityFragmentStateHelper
             return null;
         }
 
-        try
-        {
-            if (HasFragmentState(savedInstanceState))
-            {
-                logger.Information("Detected fragment state in savedInstanceState - ignoring to prevent NavigationRootManager crash");
-                return null;
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error checking fragment state - ignoring savedInstanceState to be safe");
-            return null;
-        }
-
-        return savedInstanceState;
+        // ALWAYS return null for MAUI apps to prevent fragment restoration crashes.
+        // The NavigationRootManager_ElementBasedFragment crash occurs when Android's
+        // FragmentManager tries to restore a fragment to a view ID ("legacy") that
+        // doesn't exist because MAUI hasn't set up the view hierarchy yet.
+        //
+        // This is the ROOT CAUSE fix: by returning null, we tell Android not to
+        // restore any state, which prevents the fragment manager from attempting
+        // to restore fragments to non-existent views.
+        logger.Information("Ignoring savedInstanceState to prevent NavigationRootManager fragment restoration crash");
+        return null;
     }
 
     /// <summary>
-    /// Checks if the savedInstanceState contains fragment state keys.
+    /// Clears all state from the outState bundle to prevent fragment restoration crashes.
+    /// MAUI apps should not rely on Android's instance state restoration.
     /// </summary>
-    private static bool HasFragmentState(Bundle savedInstanceState)
-    {
-        var keySet = savedInstanceState.KeySet();
-        if (keySet == null)
-        {
-            return false;
-        }
-
-        foreach (var key in keySet)
-        {
-            if (IsFragmentStateKey(key))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Checks if a key is a fragment state key.
-    /// </summary>
-    private static bool IsFragmentStateKey(string? key)
-    {
-        if (key == null)
-        {
-            return false;
-        }
-
-        return key.Contains("fragment") || key.Contains("Fragment") ||
-               key.Contains("androidx.lifecycle") || key.Contains("android:support");
-    }
-
-    /// <summary>
-    /// Removes fragment state keys from the outState bundle to prevent crashes.
-    /// </summary>
-    public static void RemoveFragmentStateKeys(Bundle? outState)
+    public static void ClearAllState(Bundle? outState)
     {
         if (outState == null)
         {
             return;
         }
 
-        var keysToRemove = GetFragmentStateKeys(outState);
-        if (keysToRemove.Count == 0)
+        try
         {
-            return;
+            outState.Clear();
+            logger.Debug("Cleared all saved instance state to prevent fragment restoration crashes");
         }
-
-        foreach (var key in keysToRemove)
+        catch (Exception ex)
         {
-            outState.Remove(key);
+            logger.Warning(ex, "Failed to clear saved instance state");
         }
-
-        logger.Information("Prevented saving {Count} fragment state keys to avoid NavigationRootManager crash", keysToRemove.Count);
-    }
-
-    /// <summary>
-    /// Gets a list of fragment state keys from the bundle.
-    /// </summary>
-    private static List<string> GetFragmentStateKeys(Bundle outState)
-    {
-        var keysToRemove = new List<string>();
-        var keySet = outState.KeySet();
-
-        if (keySet == null)
-        {
-            return keysToRemove;
-        }
-
-        foreach (var key in keySet)
-        {
-            if (IsFragmentStateKey(key))
-            {
-                keysToRemove.Add(key);
-            }
-        }
-
-        return keysToRemove;
     }
 
     /// <summary>

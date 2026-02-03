@@ -15,13 +15,16 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private readonly INavigationService navigationService;
+    private readonly IToastService toastService;
 
     public IListViewModel? ViewModel => BindingContext as IListViewModel;
 
     public CategorySelectionModal()
     {
         InitializeComponent();
-        navigationService = Application.Current!.Handler!.MauiContext!.Services.GetRequiredService<INavigationService>();
+        var services = Application.Current!.Handler!.MauiContext!.Services;
+        navigationService = services.GetRequiredService<INavigationService>();
+        toastService = services.GetRequiredService<IToastService>();
         Appearing += OnAppearing;
     }
 
@@ -31,13 +34,23 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
 
         var categoryViewModel = ViewModel as CategorySelectionViewModel;
 
-        await ModalScrollHelper.HandleModalAppearingAsync(
+        var result = await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
             BusyOverlay,
             CategoryCollectionView,
             getSelectedItem: () => categoryViewModel?.Categories?.FirstOrDefault(c => c.IsSelected),
             refreshAction: null,
+            onFetchFailed: async (errorMessage) =>
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(errorMessage);
+            },
             cancellationToken: cancellationTokenSource.Token);
+
+        if (result == ModalAppearingResult.FetchFailed)
+        {
+            return;
+        }
     }
 
     private async void OnCategoryItemTapped(object? sender, TappedEventArgs e)
@@ -72,6 +85,11 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
                         }
                     }
                 }
+            }
+            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
             }
             finally
             {

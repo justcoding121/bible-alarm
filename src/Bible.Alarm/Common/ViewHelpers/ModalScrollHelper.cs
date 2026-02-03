@@ -1,5 +1,6 @@
 #nullable enable
 using System.Linq;
+using System.Net.Http;
 using Bible.Alarm.ViewModels.Interfaces;
 using Serilog;
 using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
@@ -7,64 +8,126 @@ using MauiCollectionView = Microsoft.Maui.Controls.CollectionView;
 namespace Bible.Alarm.Common.ViewHelpers;
 
 /// <summary>
+/// Result of a modal appearing operation.
+/// </summary>
+public enum ModalAppearingResult
+{
+    /// <summary>Modal loaded successfully with items.</summary>
+    Success,
+    /// <summary>Fetch failed due to network or other error.</summary>
+    FetchFailed,
+    /// <summary>User cancelled the operation (e.g., tapped an item).</summary>
+    Cancelled
+}
+
+/// <summary>
 /// Helper class for common modal scroll-to-selected behavior.
-/// Reduces duplicate code across modal pages by providing a standard pattern for:
-/// - Waiting for data to load
-/// - Hiding busy overlay
-/// - Scrolling to selected item (hidden until positioned to avoid visual jump)
+/// Provides a standard pattern for:
+/// - Loading data with spinner visible
+/// - Waiting for CollectionView to render items (event-driven, not delay-based)
+/// - Scrolling to selected item
+/// - Hiding spinner only after items are visually rendered
+/// - Handling fetch failures gracefully
 /// </summary>
 public static class ModalScrollHelper
 {
     /// <summary>
-    /// Standard delay after waiting for data to load, before scrolling.
-    /// This allows the CollectionView to render its items.
-    /// Android needs more time for rendering, especially with many items.
-    /// </summary>
-    private static int PostLoadDelayMs => DeviceInfo.Platform == DevicePlatform.Android ? 400 : 150;
-
-    /// <summary>
-    /// Delay after scroll to ensure it completes before revealing.
+    /// Small delay after scroll to ensure it completes.
     /// </summary>
     private const int PostScrollDelayMs = 50;
 
     /// <summary>
+    /// Maximum time to wait for items to render before giving up.
+    /// </summary>
+    private const int MaxRenderWaitMs = 10000;
+
+    /// <summary>
+    /// Default error message for fetch failures.
+    /// </summary>
+    public const string DefaultFetchErrorMessage = "Unable to load data. Please check your internet connection.";
+
+    /// <summary>
     /// Handles the standard modal appearing workflow.
     /// ViewModel defaults IsBusy = true (XAML binding shows overlay immediately).
-    /// We set IsBusy = false only after: data is loaded, set to list, and list is rendered (Android).
-    /// 1. Hide CollectionView (prevents visible scroll jump)
-    /// 2. Refresh data
-    /// 3. Delay for list to receive data, scroll to selected item
-    /// 4. Wait for CollectionView items to be rendered (Android)
-    /// 5. Set IsBusy = false and reveal CollectionView
+    /// We set IsBusy = false only after: data is loaded AND CollectionView has rendered items.
+    /// If fetch fails, calls onFetchFailed callback to close modal and show toast.
     /// </summary>
     /// <param name="viewModel">The ViewModel with IsBusy property</param>
-    /// <param name="busyOverlay">The busy overlay element to hide</param>
-    /// <param name="collectionView">The CollectionView to scroll</param>
+    /// <param name="busyOverlay">The busy overlay element (unused, kept for API compatibility)</param>
+    /// <param name="collectionView">The CollectionView to monitor and scroll</param>
     /// <param name="getSelectedItem">Function to get the selected item (called AFTER refresh to get fresh reference)</param>
-    /// <param name="refreshAction">Optional async action to refresh data before scrolling</param>
+    /// <param name="refreshAction">Optional async action to refresh/load data</param>
+    /// <param name="onFetchFailed">Callback when fetch fails - should close modal and show toast</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    public static async Task HandleModalAppearingAsync(
+    /// <returns>Result indicating success, failure, or cancellation</returns>
+    public static async Task<ModalAppearingResult> HandleModalAppearingAsync(
         IListViewModel? viewModel,
         View? busyOverlay,
         MauiCollectionView? collectionView,
         Func<object?>? getSelectedItem,
         Func<Task>? refreshAction = null,
+        Func<string, Task>? onFetchFailed = null,
         CancellationToken cancellationToken = default)
     {
+        if (viewModel == null) return ModalAppearingResult.Success;
+
         try
         {
-            if (viewModel == null) return;
+            // Ensure spinner is showing
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                viewModel.IsBusy = true;
+            });
 
-            // ViewModel defaults IsBusy = true; binding shows overlay immediately.
-            HideCollectionView(collectionView);
-            await Task.Yield();
+            // Hide CollectionView during loading/scrolling (prevents visual jump)
+            // Skip on Windows - causes issues when handler isn't ready
+            if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => collectionView.Opacity = 0);
+            }
 
+            // Load data - this is where network failures can occur
             if (refreshAction != null)
-                await refreshAction();
+            {
+                try
+                {
+                    await refreshAction();
+                }
+                catch (Exception ex) when (IsFetchFailure(ex))
+                {
+                    Log.Warning(ex, "Fetch failed during modal appearing");
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        viewModel.IsBusy = false;
+                    });
+                    if (onFetchFailed != null)
+                    {
+                        await onFetchFailed(GetFetchErrorMessage(ex));
+                    }
+                    return ModalAppearingResult.FetchFailed;
+                }
+            }
 
-            // Delay for list to receive data, then scroll
-            await Task.Delay(PostLoadDelayMs, cancellationToken);
+            // Wait for CollectionView to have items in its ItemsSource
+            if (collectionView != null)
+            {
+                var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken);
+                if (!hasItems)
+                {
+                    Log.Warning("No items loaded into CollectionView after refresh");
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        viewModel.IsBusy = false;
+                    });
+                    if (onFetchFailed != null)
+                    {
+                        await onFetchFailed(DefaultFetchErrorMessage);
+                    }
+                    return ModalAppearingResult.FetchFailed;
+                }
+            }
 
+            // Scroll to selected item
             var selectedItem = getSelectedItem?.Invoke();
             if (selectedItem != null && collectionView != null)
             {
@@ -76,116 +139,110 @@ public static class ModalScrollHelper
                 await Task.Delay(PostScrollDelayMs, cancellationToken);
             }
 
-            // Wait for CollectionView items to be rendered (Android) before hiding overlay
-            await WaitForCollectionViewItemsRenderedAsync(collectionView, cancellationToken);
+            // Wait for CollectionView to actually render items (event-driven)
+            if (collectionView != null)
+            {
+                await WaitForItemsRenderedAsync(collectionView, cancellationToken);
+            }
 
-            // Set IsBusy = false only after data is in list and rendered
+            // Now reveal: show list first, then hide spinner
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                try
-                {
-                    dynamic dynamicViewModel = viewModel;
-                    dynamicViewModel.IsBusy = false;
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "ModalScrollHelper: Failed to set IsBusy to false");
-                }
                 if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
                     collectionView.Opacity = 1;
+
+                viewModel.IsBusy = false;
             });
+
+            return ModalAppearingResult.Success;
         }
         catch (OperationCanceledException)
         {
+            // User cancelled (e.g., tapped an item) - reveal immediately
+            await CleanupOnCancelOrError(viewModel, busyOverlay, collectionView);
+            return ModalAppearingResult.Cancelled;
+        }
+        catch (Exception ex) when (IsFetchFailure(ex))
+        {
+            Log.Warning(ex, "Fetch failed during modal appearing");
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                try
-                {
-                    if (viewModel != null)
-                    {
-                        dynamic dynamicViewModel = viewModel;
-                        if ((bool)dynamicViewModel.IsBusy)
-                            dynamicViewModel.IsBusy = false;
-                    }
-                }
-                catch
-                {
-                    ForceHideBusyOverlay(busyOverlay);
-                }
+                viewModel.IsBusy = false;
             });
-            RevealCollectionView(collectionView);
+            if (onFetchFailed != null)
+            {
+                await onFetchFailed(GetFetchErrorMessage(ex));
+            }
+            return ModalAppearingResult.FetchFailed;
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "Error in ModalScrollHelper.HandleModalAppearingAsync");
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                try
-                {
-                    if (viewModel != null)
-                    {
-                        dynamic dynamicViewModel = viewModel;
-                        if ((bool)dynamicViewModel.IsBusy)
-                            dynamicViewModel.IsBusy = false;
-                    }
-                }
-                catch
-                {
-                    ForceHideBusyOverlay(busyOverlay);
-                }
-            });
-            RevealCollectionView(collectionView);
+            await CleanupOnCancelOrError(viewModel, busyOverlay, collectionView);
+            return ModalAppearingResult.Success; // Don't close modal for non-fetch errors
         }
     }
 
     /// <summary>
-    /// Same as HandleModalAppearingAsync but for ViewModels that don't implement IListViewModel.
+    /// Overload for ViewModels that don't implement IListViewModel.
     /// Uses a custom IsBusy getter function.
     /// </summary>
-    public static async Task HandleModalAppearingAsync(
+    public static async Task<ModalAppearingResult> HandleModalAppearingAsync(
         Func<bool> isBusyGetter,
         View? busyOverlay,
         MauiCollectionView? collectionView,
         Func<object?>? getSelectedItem,
         Func<Task>? refreshAction = null,
+        Func<string, Task>? onFetchFailed = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            // 0. For the Func<bool> overload, we can't set IsBusy directly
-            //    We rely on the refreshAction to set IsBusy properly
-            //    Don't set IsVisible directly - let the binding handle it
-
-            // Yield immediately to let spinner start animating
-            await Task.Yield();
-
-            // 1. Hide CollectionView to prevent visible scroll jump
-            //    Keep spinner visible during this phase
-            HideCollectionView(collectionView);
-
-            // Another yield before starting data load
-            await Task.Yield();
-
-            // 2. Refresh data if needed
-            if (refreshAction != null)
+            // Hide CollectionView during loading/scrolling
+            if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
             {
-                await refreshAction();
+                await MainThread.InvokeOnMainThreadAsync(() => collectionView.Opacity = 0);
             }
 
-            // 3. Wait for IsBusy to become false
-            await CollectionViewHelper.WaitForNotBusyAsync(
-                isBusyGetter,
-                cancellationToken: cancellationToken);
+            // Load data - this is where network failures can occur
+            if (refreshAction != null)
+            {
+                try
+                {
+                    await refreshAction();
+                }
+                catch (Exception ex) when (IsFetchFailure(ex))
+                {
+                    Log.Warning(ex, "Fetch failed during modal appearing");
+                    ForceHideBusyOverlay(busyOverlay);
+                    if (onFetchFailed != null)
+                    {
+                        await onFetchFailed(GetFetchErrorMessage(ex));
+                    }
+                    return ModalAppearingResult.FetchFailed;
+                }
+            }
 
-            // 4. For Func<bool> overload, we can't directly manage IsBusy
-            //    So we rely on the refreshAction to manage it properly
-            //    Don't set IsVisible directly - let the binding handle it based on IsBusy
+            // Wait for IsBusy to become false (data loaded)
+            await CollectionViewHelper.WaitForNotBusyAsync(isBusyGetter, cancellationToken: cancellationToken);
 
-            // 5. Delay for CollectionView to render (still hidden)
-            //    Android needs more time, especially with many items
-            await Task.Delay(PostLoadDelayMs, cancellationToken);
+            // Wait for items in source
+            if (collectionView != null)
+            {
+                var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken);
+                if (!hasItems)
+                {
+                    Log.Warning("No items loaded into CollectionView after refresh");
+                    ForceHideBusyOverlay(busyOverlay);
+                    if (onFetchFailed != null)
+                    {
+                        await onFetchFailed(DefaultFetchErrorMessage);
+                    }
+                    return ModalAppearingResult.FetchFailed;
+                }
+            }
 
-            // 6. Get selected item NOW (after data is loaded) and scroll
+            // Scroll to selected item
             var selectedItem = getSelectedItem?.Invoke();
             if (selectedItem != null && collectionView != null)
             {
@@ -194,147 +251,238 @@ public static class ModalScrollHelper
                     selectedItem,
                     animated: false,
                     cancellationToken: cancellationToken);
-
-                // Small delay to ensure scroll completes
                 await Task.Delay(PostScrollDelayMs, cancellationToken);
             }
 
-            // 7. Wait for CollectionView items to be rendered (especially important on Android)
-            //    This ensures items are actually visible before hiding the overlay
-            await WaitForCollectionViewItemsRenderedAsync(collectionView, cancellationToken);
+            // Wait for items to render
+            if (collectionView != null)
+            {
+                await WaitForItemsRenderedAsync(collectionView, cancellationToken);
+            }
 
-            // 8. Hide spinner AND reveal CollectionView together (seamless transition)
+            // Reveal
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
+                if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
+                    collectionView.Opacity = 1;
+
                 if (busyOverlay != null)
                 {
                     busyOverlay.IsVisible = false;
                     busyOverlay.InputTransparent = true;
                 }
-                // Only set Opacity on non-Windows (we didn't hide it there)
-                if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
-                {
-                    collectionView.Opacity = 1;
-                }
             });
+
+            return ModalAppearingResult.Success;
         }
         catch (OperationCanceledException)
         {
-            // User tapped an item - reveal immediately so their selection is visible
             ForceHideBusyOverlay(busyOverlay);
             RevealCollectionView(collectionView);
+            return ModalAppearingResult.Cancelled;
+        }
+        catch (Exception ex) when (IsFetchFailure(ex))
+        {
+            Log.Warning(ex, "Fetch failed during modal appearing");
+            ForceHideBusyOverlay(busyOverlay);
+            if (onFetchFailed != null)
+            {
+                await onFetchFailed(GetFetchErrorMessage(ex));
+            }
+            return ModalAppearingResult.FetchFailed;
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "Error in ModalScrollHelper.HandleModalAppearingAsync");
             ForceHideBusyOverlay(busyOverlay);
             RevealCollectionView(collectionView);
+            return ModalAppearingResult.Success; // Don't close modal for non-fetch errors
         }
     }
 
     /// <summary>
-    /// Waits for CollectionView items to be rendered before hiding the overlay.
-    /// This is especially important on Android where rendering can be delayed.
-    /// Checks that the CollectionView has items and that they're actually rendered.
+    /// Determines if an exception represents a fetch/network failure.
     /// </summary>
-    private static async Task WaitForCollectionViewItemsRenderedAsync(MauiCollectionView? collectionView, CancellationToken cancellationToken)
+    public static bool IsFetchFailure(Exception ex)
     {
-        if (collectionView == null) return;
+        return ex is HttpRequestException
+            || ex is TaskCanceledException { InnerException: TimeoutException }
+            || ex is TimeoutException
+            || ex is System.Net.WebException
+            || ex is System.Net.Sockets.SocketException
+            || (ex.InnerException != null && IsFetchFailure(ex.InnerException));
+    }
 
-        // On Android, wait a bit longer to ensure items are rendered
-        // This prevents the flash of empty list after the busy overlay closes
-        if (DeviceInfo.Platform == DevicePlatform.Android)
+    /// <summary>
+    /// Gets a user-friendly error message for a fetch failure.
+    /// </summary>
+    public static string GetFetchErrorMessage(Exception ex)
+    {
+        if (ex is HttpRequestException httpEx)
         {
-            const int maxAttempts = 5;
-            const int delayMs = 100;
-
-            for (int i = 0; i < maxAttempts; i++)
+            if (httpEx.StatusCode.HasValue)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var hasItems = await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (collectionView.ItemsSource == null)
-                        return false;
-
-                    // Check if ItemsSource has items
-                    if (collectionView.ItemsSource is System.Collections.ICollection collection)
-                    {
-                        return collection.Count > 0;
-                    }
-
-                    if (collectionView.ItemsSource is System.Collections.IEnumerable enumerable)
-                    {
-                        return enumerable.Cast<object>().Any();
-                    }
-
-                    return false;
-                });
-
-                if (hasItems)
-                {
-                    // Items exist, give Android a bit more time to render them
-                    await Task.Delay(delayMs, cancellationToken);
-                    return;
-                }
-
-                // Wait before checking again
-                await Task.Delay(delayMs, cancellationToken);
+                return $"Server error ({(int)httpEx.StatusCode}). Please try again later.";
             }
-
-            // If we get here, items might not be ready, but we've waited long enough
-            // Log a warning but continue to avoid indefinite waiting
-            Log.Debug("WaitForCollectionViewItemsRenderedAsync: CollectionView items may not be fully rendered after {MaxAttempts} attempts", maxAttempts);
         }
-        else
+
+        if (ex is TaskCanceledException || ex is TimeoutException)
         {
-            // On other platforms, a shorter delay is usually sufficient
+            return "Request timed out. Please check your internet connection.";
+        }
+
+        return DefaultFetchErrorMessage;
+    }
+
+    /// <summary>
+    /// Waits for the CollectionView's ItemsSource to contain items.
+    /// Returns true if items were found, false if timeout occurred.
+    /// </summary>
+    private static async Task<bool> WaitForItemsInSourceAsync(MauiCollectionView collectionView, CancellationToken cancellationToken)
+    {
+        var startTime = Environment.TickCount;
+
+        while (Environment.TickCount - startTime < MaxRenderWaitMs)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var hasItems = await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (collectionView.ItemsSource == null)
+                    return false;
+
+                if (collectionView.ItemsSource is System.Collections.ICollection collection)
+                    return collection.Count > 0;
+
+                if (collectionView.ItemsSource is System.Collections.IEnumerable enumerable)
+                    return enumerable.Cast<object>().Any();
+
+                return false;
+            });
+
+            if (hasItems)
+                return true;
+
             await Task.Delay(50, cancellationToken);
         }
+
+        Log.Debug("WaitForItemsInSourceAsync: Timeout waiting for items in ItemsSource");
+        return false;
     }
 
     /// <summary>
-    /// Hides the CollectionView by setting opacity to 0.
-    /// This allows layout and scrolling to happen invisibly.
-    /// Note: Skipped on Windows to avoid access violation when CollectionView handler isn't ready.
+    /// Waits for CollectionView to actually render items.
+    /// Uses SizeChanged event and verifies the view has positive dimensions.
     /// </summary>
-    private static void HideCollectionView(MauiCollectionView? collectionView)
+    private static async Task WaitForItemsRenderedAsync(MauiCollectionView collectionView, CancellationToken cancellationToken)
     {
-        if (collectionView == null) return;
+        var tcs = new TaskCompletionSource<bool>();
+        var startTime = Environment.TickCount;
 
-        // Skip hiding on Windows - causes access violation crash when CollectionView handler isn't ready
-        if (DeviceInfo.Platform == DevicePlatform.WinUI)
-            return;
+        // Register cancellation
+        using var registration = cancellationToken.Register(() => tcs.TrySetCanceled());
 
-        MainThread.BeginInvokeOnMainThread(() =>
+        EventHandler? sizeChangedHandler = null;
+
+        sizeChangedHandler = (sender, args) =>
         {
-            collectionView.Opacity = 0;
+            // Check if items are actually ready
+            var isReady = collectionView.Height > 0 && 
+                          collectionView.Handler != null &&
+                          collectionView.ItemsSource is System.Collections.ICollection col && 
+                          col.Count > 0;
+
+            if (isReady)
+            {
+                collectionView.SizeChanged -= sizeChangedHandler;
+                tcs.TrySetResult(true);
+            }
+        };
+
+        // Subscribe to SizeChanged
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            collectionView.SizeChanged += sizeChangedHandler;
+        });
+
+        // Immediate check in case layout already happened
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            sizeChangedHandler(collectionView, EventArgs.Empty);
+        });
+
+        // If not yet complete, poll periodically as fallback
+        var pollTask = Task.Run(async () =>
+        {
+            while (!tcs.Task.IsCompleted && Environment.TickCount - startTime < MaxRenderWaitMs)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Delay(100, cancellationToken);
+
+                var isReady = await MainThread.InvokeOnMainThreadAsync(() =>
+                    collectionView.Height > 0 && 
+                    collectionView.Handler != null &&
+                    collectionView.ItemsSource is System.Collections.ICollection col && 
+                    col.Count > 0);
+
+                if (isReady)
+                {
+                    tcs.TrySetResult(true);
+                    break;
+                }
+            }
+        }, cancellationToken);
+
+        // Set up a timeout
+        var timeoutTask = Task.Delay(MaxRenderWaitMs, cancellationToken);
+        await Task.WhenAny(tcs.Task, timeoutTask, pollTask);
+
+        // Cleanup handler
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            collectionView.SizeChanged -= sizeChangedHandler;
+        });
+
+        if (!tcs.Task.IsCompleted)
+        {
+            Log.Debug("WaitForItemsRenderedAsync: Timeout waiting for items to render");
+            // Don't throw - just continue. Better to show potentially empty list than hang forever.
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    /// <summary>
+    /// Cleanup helper for cancellation or error scenarios.
+    /// </summary>
+    private static async Task CleanupOnCancelOrError(IListViewModel? viewModel, View? busyOverlay, MauiCollectionView? collectionView)
+    {
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            // Reveal list
+            if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
+                collectionView.Opacity = 1;
+
+            // Hide spinner
+            if (viewModel != null && viewModel.IsBusy)
+                viewModel.IsBusy = false;
         });
     }
 
     /// <summary>
     /// Reveals the CollectionView by setting opacity to 1.
-    /// Called after scrolling is complete so the list appears in the correct position.
-    /// Note: Skipped on Windows since we don't hide it there.
     /// </summary>
     private static void RevealCollectionView(MauiCollectionView? collectionView)
     {
-        if (collectionView == null) return;
-
-        // Skip revealing on Windows - we didn't hide it there
-        if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        if (collectionView == null || DeviceInfo.Platform == DevicePlatform.WinUI)
             return;
 
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            collectionView.Opacity = 1;
-        });
+        MainThread.BeginInvokeOnMainThread(() => collectionView.Opacity = 1);
     }
 
     /// <summary>
     /// Forces the busy overlay to hide immediately.
-    /// Only use this in error cases where we can't set IsBusy.
-    /// In normal flow, set IsBusy = false and let the binding handle it.
+    /// Only use in error cases.
     /// </summary>
     public static void ForceHideBusyOverlay(View? busyOverlay)
     {
@@ -342,25 +490,19 @@ public static class ModalScrollHelper
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            // Only set IsVisible directly as a last resort - this bypasses the binding
-            // which can cause issues, but is necessary in error cases
             try
             {
                 busyOverlay.IsVisible = false;
                 busyOverlay.InputTransparent = true;
             }
-            catch
-            {
-                // If setting fails, ignore - overlay might already be disposed
-            }
+            catch { }
         });
     }
 
     /// <summary>
     /// Standard disposal for modal pages with cancellation token.
-    /// Also ensures IsBusy is set to false on the view model (when not null) to prevent infinite loops.
+    /// Also ensures IsBusy is set to false on the view model to prevent stuck spinner.
     /// </summary>
-    /// <param name="viewModel">Any object with IsBusy property (e.g. IListViewModel); cleared via dynamic.</param>
     public static void DisposeModal(
         CancellationTokenSource? cancellationTokenSource,
         Action? clearBindingContext = null,
@@ -376,25 +518,13 @@ public static class ModalScrollHelper
             Log.Warning(ex, "Error during modal cancellation token disposal");
         }
 
-        if (viewModel != null)
+        if (viewModel is IListViewModel listViewModel)
         {
-            try
+            MainThread.BeginInvokeOnMainThread(() =>
             {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    try
-                    {
-                        dynamic dynamicViewModel = viewModel;
-                        if ((bool)dynamicViewModel.IsBusy)
-                            dynamicViewModel.IsBusy = false;
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning(ex, "ModalScrollHelper.DisposeModal: Failed to set IsBusy to false");
-                    }
-                });
-            }
-            catch { /* ignore */ }
+                if (listViewModel.IsBusy)
+                    listViewModel.IsBusy = false;
+            });
         }
 
         clearBindingContext?.Invoke();

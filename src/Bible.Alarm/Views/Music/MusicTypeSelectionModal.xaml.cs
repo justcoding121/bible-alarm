@@ -1,7 +1,9 @@
 #nullable enable
 using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.Music;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Views.Music;
 
@@ -10,12 +12,17 @@ public partial class MusicTypeSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
     private readonly CancellationTokenSource cancellationTokenSource = new();
+    private readonly INavigationService navigationService;
+    private readonly IToastService toastService;
 
     public MusicTypeSelectionViewModel? ViewModel => BindingContext as MusicTypeSelectionViewModel;
 
     public MusicTypeSelectionModal()
     {
         InitializeComponent();
+        var services = Application.Current!.Handler!.MauiContext!.Services;
+        navigationService = services.GetRequiredService<INavigationService>();
+        toastService = services.GetRequiredService<IToastService>();
         Appearing += OnAppearing;
     }
 
@@ -23,52 +30,26 @@ public partial class MusicTypeSelectionModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        // MusicTypeSelectionModal has a static list of 2 items (Melodies, Vocals)
-        // No DB loading needed, so use simplified flow without IsBusy polling
-        try
+        var result = await ModalScrollHelper.HandleModalAppearingAsync(
+            ViewModel,
+            BusyOverlay,
+            musicTypesCollectionView,
+            getSelectedItem: () => ViewModel?.SelectedMusicType,
+            refreshAction: () =>
+            {
+                ViewModel?.RefreshFromState();
+                return Task.CompletedTask;
+            },
+            onFetchFailed: async (errorMessage) =>
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(errorMessage);
+            },
+            cancellationToken: cancellationTokenSource.Token);
+
+        if (result == ModalAppearingResult.FetchFailed)
         {
-            // Hide CollectionView while we set up
-            // Skip on Windows to avoid access violation crash
-            if (DeviceInfo.Platform != DevicePlatform.WinUI)
-            {
-                musicTypesCollectionView.Opacity = 0;
-            }
-
-            // Refresh state synchronously
-            ViewModel?.RefreshFromState();
-
-            // Small delay for UI to settle
-            await Task.Delay(100, cancellationTokenSource.Token);
-
-            // Scroll to selected item if any
-            var selectedItem = ViewModel?.SelectedMusicType;
-            if (selectedItem != null)
-            {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(
-                    musicTypesCollectionView,
-                    selectedItem,
-                    animated: false,
-                    cancellationToken: cancellationTokenSource.Token);
-            }
-
-            // Hide overlay and reveal list together (binding: set IsBusy = false)
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (ViewModel != null)
-                    ViewModel.IsBusy = false;
-                if (DeviceInfo.Platform != DevicePlatform.WinUI)
-                    musicTypesCollectionView.Opacity = 1;
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (ViewModel != null)
-                    ViewModel.IsBusy = false;
-                if (DeviceInfo.Platform != DevicePlatform.WinUI)
-                    musicTypesCollectionView.Opacity = 1;
-            });
+            return;
         }
     }
 
@@ -103,6 +84,11 @@ public partial class MusicTypeSelectionModal : BaseContentPage, IDisposable
                         await asyncCommand.ExecuteAsync(musicTypeItem);
                     }
                 }
+            }
+            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
             }
             finally
             {

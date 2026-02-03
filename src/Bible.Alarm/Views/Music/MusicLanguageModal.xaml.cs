@@ -1,10 +1,12 @@
 #nullable enable
 using System.Linq;
 using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Music;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Views.Music;
 
@@ -14,12 +16,17 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
     private bool isDisposed;
     private bool isSelectingLanguage;
     private readonly CancellationTokenSource cancellationTokenSource = new();
+    private readonly INavigationService navigationService;
+    private readonly IToastService toastService;
 
     public IListViewModel? ViewModel => BindingContext as IListViewModel;
 
     public MusicLanguageModal()
     {
         InitializeComponent();
+        var services = Application.Current!.Handler!.MauiContext!.Services;
+        navigationService = services.GetRequiredService<INavigationService>();
+        toastService = services.GetRequiredService<IToastService>();
         Appearing += OnAppearing;
     }
 
@@ -51,6 +58,11 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
                     }
                 }
             }
+            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+            }
             finally
             {
                 languageItem.IsNavigating = false;
@@ -65,7 +77,7 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
 
         var musicPublicationViewModel = ViewModel as MusicPublicationSelectionViewModel;
 
-        await ModalScrollHelper.HandleModalAppearingAsync(
+        var result = await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
             BusyOverlay,
             LanguageCollectionView,
@@ -73,7 +85,17 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
             refreshAction: musicPublicationViewModel != null
                 ? async () => await musicPublicationViewModel.RefreshFromState()
                 : null,
+            onFetchFailed: async (errorMessage) =>
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(errorMessage);
+            },
             cancellationToken: cancellationTokenSource.Token);
+
+        if (result == ModalAppearingResult.FetchFailed)
+        {
+            return;
+        }
     }
 
     public void Dispose()

@@ -436,9 +436,9 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         }
         finally
         {
+            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                propertyManager.IsBusy = false;
                 propertyManager.ShowProgress = false;
             });
         }

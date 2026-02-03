@@ -310,17 +310,11 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     }
                 });
 
-                // Give CollectionView time to render before hiding busy indicator
-                // This matches the pattern used in BiblePublicationTrackSelectionViewModel
-                await Task.Delay(100);
-
-                // Set IsBusy to false after collection is assigned and rendered
-                // Don't reset IsBusy if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
+                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     if (!isDisposed && !isSelectingSection)
                     {
-                        IsBusy = false;
                         ShowProgress = false;
                     }
                 });
@@ -329,11 +323,11 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             {
                 // Log error but don't throw - allow modal to continue functioning
                 logger.Error(ex, "BiblePublicationSectionSelectionViewModel: RefreshFromState - Error during repopulation");
+                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     if (!isDisposed && !isSelectingSection)
                     {
-                        IsBusy = false;
                         ShowProgress = false;
                     }
                 });

@@ -67,12 +67,15 @@ public static class MainActivityLifecycleHelper
     }
 
     /// <summary>
-    /// Saves instance state safely by removing fragment state keys.
+    /// Saves instance state safely by clearing all state to prevent fragment restoration crashes.
     /// </summary>
     private static void SaveInstanceStateSafely(Bundle outState, Action<Bundle> baseOnSaveInstanceState)
     {
+        // Call base first to allow normal save, then clear everything.
+        // This prevents fragment state from being saved, which could cause
+        // NavigationRootManager crashes when the app is restored.
         baseOnSaveInstanceState(outState);
-        MainActivityFragmentStateHelper.RemoveFragmentStateKeys(outState);
+        MainActivityFragmentStateHelper.ClearAllState(outState);
     }
 
     /// <summary>

@@ -68,7 +68,6 @@ public sealed class BiblePublicationCommandInitializer
         return new AsyncRelayCommand(async () =>
         {
             logger.Information("BibleSelectionContainerViewModel: SelectLanguageCommand - Opening language modal");
-            // Create a temporary BibleSelectionViewModel instance for the language modal
             var bibleSelectionViewModel = serviceProvider.GetRequiredService<BiblePublicationSelectionViewModel>();
             logger.Debug("BibleSelectionContainerViewModel: SelectLanguageCommand - Created BibleSelectionViewModel, opening modal");
             await navigationService.OpenLanguageModalAsync(bibleSelectionViewModel);

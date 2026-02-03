@@ -1,8 +1,10 @@
 #nullable enable
 using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -12,12 +14,17 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
     private bool isDisposed;
     private bool isSelectingPublication;
     private readonly CancellationTokenSource cancellationTokenSource = new();
+    private readonly INavigationService navigationService;
+    private readonly IToastService toastService;
 
     public BiblePublicationSelectionViewModel? ViewModel => BindingContext as BiblePublicationSelectionViewModel;
 
     public BiblePublicationSelectionModal()
     {
         InitializeComponent();
+        var services = Application.Current!.Handler!.MauiContext!.Services;
+        navigationService = services.GetRequiredService<INavigationService>();
+        toastService = services.GetRequiredService<IToastService>();
         Appearing += OnAppearing;
     }
 
@@ -25,10 +32,7 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
     {
         Appearing -= OnAppearing;
 
-        if (ViewModel != null)
-            ViewModel.DeferClearBusy = true;
-
-        await ModalScrollHelper.HandleModalAppearingAsync(
+        var result = await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
             BusyOverlay,
             publicationsCollectionView,
@@ -36,15 +40,23 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
             refreshAction: ViewModel != null
                 ? async () => await ViewModel.RefreshFromState()
                 : null,
+            onFetchFailed: async (errorMessage) =>
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(errorMessage);
+            },
             cancellationToken: cancellationTokenSource.Token);
+
+        if (result == ModalAppearingResult.FetchFailed)
+        {
+            return;
+        }
     }
 
     public void Dispose()
     {
         if (!isDisposed)
         {
-            if (ViewModel != null)
-                ViewModel.DeferClearBusy = false;
             ModalScrollHelper.DisposeModal(cancellationTokenSource, () => BindingContext = null, ViewModel);
             isDisposed = true;
         }
@@ -80,6 +92,11 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
                         await asyncCommand.ExecuteAsync(publicationItem);
                     }
                 }
+            }
+            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
             }
             finally
             {

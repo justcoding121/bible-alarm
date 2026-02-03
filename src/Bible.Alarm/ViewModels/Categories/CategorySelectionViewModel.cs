@@ -147,7 +147,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
 
     private async Task LoadCategoriesAsync()
     {
-        IsBusy = true;
+        // Note: IsBusy defaults to true. Do NOT set it to false here - the modal controls this via ModalScrollHelper
         try
         {
             var categories = await categoryService.GetAllCategoriesAsync();
@@ -162,10 +162,11 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
                 }
             });
         }
-        finally
+        catch (Exception ex)
         {
-            IsBusy = false;
+            Serilog.Log.Warning(ex, "Error loading categories");
         }
+        // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
     }
 
     public ObservableCollection<CategoryListViewItemModel> Categories { get; } = [];

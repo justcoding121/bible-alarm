@@ -1,8 +1,10 @@
 #nullable enable
 using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Music;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Views.Music;
 
@@ -12,12 +14,17 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
     private bool isDisposed;
     private bool isSelectingSection;
     private readonly CancellationTokenSource cancellationTokenSource = new();
+    private readonly INavigationService navigationService;
+    private readonly IToastService toastService;
 
     public MusicSectionSelectionViewModel? ViewModel => BindingContext as MusicSectionSelectionViewModel;
 
     public MusicSectionSelectionModal()
     {
         InitializeComponent();
+        var services = Application.Current!.Handler!.MauiContext!.Services;
+        navigationService = services.GetRequiredService<INavigationService>();
+        toastService = services.GetRequiredService<IToastService>();
         Appearing += OnAppearing;
     }
 
@@ -25,13 +32,23 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        await ModalScrollHelper.HandleModalAppearingAsync(
+        var result = await ModalScrollHelper.HandleModalAppearingAsync(
             ViewModel,
             BusyOverlay,
             sectionCollectionView,
             getSelectedItem: () => ViewModel?.SelectedSection,
             refreshAction: ViewModel != null ? async () => await ViewModel.RefreshFromState() : null,
+            onFetchFailed: async (errorMessage) =>
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(errorMessage);
+            },
             cancellationToken: cancellationTokenSource.Token);
+
+        if (result == ModalAppearingResult.FetchFailed)
+        {
+            return;
+        }
     }
 
     public void Dispose()
@@ -73,6 +90,11 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
                         await asyncCommand.ExecuteAsync(sectionItem);
                     }
                 }
+            }
+            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+            {
+                await navigationService.PopModalAsync();
+                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
             }
             finally
             {
