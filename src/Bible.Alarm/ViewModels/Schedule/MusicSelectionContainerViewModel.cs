@@ -36,7 +36,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private int scheduleId;
     private bool isNewSchedule;
     private bool isProcessingStateChange;
-    private bool? initialMusicEnabledOnPageLoad; // Track MusicEnabled state when schedule page was first opened
+    // Track MusicEnabled state when schedule page was first opened
+    private bool? initialMusicEnabledOnPageLoad;
 
     // State holder for mutable state (allows use in lambdas without ref parameters)
     private readonly MusicStateHolder stateHolder = new();
@@ -69,7 +70,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
-                return true; // Default to visible
+                // Default to visible
+                return true;
             }
 
             var categoryName = currentSchedule.BiblePublicationCategoryName;

@@ -124,7 +124,8 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             }
             else
             {
-                publicationCodeForDb = publicationCode; // Preserve exact case (e.g., "gnj")
+                // Preserve exact case (e.g., "gnj")
+                publicationCodeForDb = publicationCode;
             }
 
             var key = new PublicationCacheKey(normalizedLanguageCode, publicationCodeForDb);

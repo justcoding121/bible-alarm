@@ -101,9 +101,10 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         var deviceIdiom = DeviceInfo.Idiom;
         
         // Determine device size category for fallback (use screen width if available, otherwise use idiom)
+        // Default to phone if we can't determine
         var deviceSizeCategory = deviceIdiom == DeviceIdiom.Desktop
             ? FontServiceSizingHelpers.DeviceSizeCategory.Desktop
-            : FontServiceSizingHelpers.DeviceSizeCategory.Phone; // Default to phone if we can't determine
+            : FontServiceSizingHelpers.DeviceSizeCategory.Phone;
         double deviceSizeMultiplier = FontServiceSizingHelpers.GetDeviceSizeMultiplier(deviceSizeCategory, platform);
 
         if (platform == DevicePlatform.WinUI || deviceIdiom == DeviceIdiom.Desktop)
@@ -320,7 +321,8 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         else if (platform == DevicePlatform.WinUI)
             defaults = PlatformFontDefaults.Windows;
         else
-            defaults = PlatformFontDefaults.Android; // Default to Android for unknown platforms
+            // Default to Android for unknown platforms
+            defaults = PlatformFontDefaults.Android;
 
         // Apply device size multiplier to base sizes (tablets/desktop get larger fonts)
         double BaseStandardSize = defaults.StandardSize * deviceSizeMultiplier;

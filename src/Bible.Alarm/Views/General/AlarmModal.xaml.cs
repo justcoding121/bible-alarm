@@ -176,7 +176,8 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 #endif
     private System.Timers.Timer? seekDebounceTimer;
     private double? pendingSeekValue;
-    private const int SeekDebounceDelayMs = 200; // Wait 200ms after last value change before seeking
+    // Wait 200ms after last value change before seeking
+    private const int SeekDebounceDelayMs = 200;
 
     private void OnSliderValueChanged(object? sender, ValueChangedEventArgs e)
     {

@@ -174,7 +174,8 @@ internal static class MediaServiceBiblePublicationList
             foreach (var kvp in publicationInfoByCode)
             {
                 var plInfo = kvp.Value;
-                var codeForDb = kvp.Key; // Already normalized to case-sensitive format
+                // Already normalized to case-sensitive format
+                var codeForDb = kvp.Key;
 
                 if (plInfo.Category == null)
                 {

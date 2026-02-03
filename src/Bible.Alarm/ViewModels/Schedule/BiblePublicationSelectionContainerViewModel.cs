@@ -151,7 +151,8 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
         // Check state again inside the queued action to prevent duplicates from queued actions
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            isReadyActionQueued = false; // Reset flag when action executes
+            // Reset flag when action executes
+            isReadyActionQueued = false;
 
             // Final check before dispatching - if state already shows we're ready, another action already handled it
             if (state.Value.ContainerReadiness.BiblePublicationSelection)
@@ -318,8 +319,10 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     {
         if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
         {
-            hasSignaledReady = false; // Reset for new schedule
-            isReadyActionQueued = false; // Reset queued flag as well
+            // Reset for new schedule
+            hasSignaledReady = false;
+            // Reset queued flag as well
+            isReadyActionQueued = false;
             InitializeFromState();
             // Reset last processed state to ensure new schedule is processed
             lastProcessedScheduleId = null;

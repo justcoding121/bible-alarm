@@ -256,7 +256,8 @@ public static class ScheduleCrudReducer
                     // Create new schedule item with updated properties (immutable update)
                     var oldMusicEnabled = scheduleItem.MusicEnabled;
                     var sourceSchedule = action.Schedule.DeepClone();
-                    updatedScheduleItem = sourceSchedule; // Use the cloned schedule directly
+                    // Use the cloned schedule directly
+                    updatedScheduleItem = sourceSchedule;
 
                     Log.Debug("ApplicationReducer: Existing item - BiblePublicationLanguageName: '{BiblePublicationLanguageName}', BiblePublicationSectionName: '{BiblePublicationSectionName}', BiblePublicationTrackTitle: '{BiblePublicationTrackTitle}', PublicationCode: {PublicationCode}, MusicEnabled: {MusicEnabled}",
                         scheduleItem.BiblePublicationLanguageName ?? "null", 

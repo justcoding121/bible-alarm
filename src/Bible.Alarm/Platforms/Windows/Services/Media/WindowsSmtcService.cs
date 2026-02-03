@@ -76,7 +76,8 @@ public sealed class WindowsSmtcService : IDisposable
                     systemMediaControls.IsRewindEnabled = true;
 
                     logger.Information("SMTC service initialized successfully (attempt {Attempt}) - Next/Previous/Play/Pause/Seek button handlers active", attempt);
-                    return; // Success - exit retry loop
+                    // Success - exit retry loop
+                    return;
                 }
                 catch (Exception ex)
                 {
@@ -86,7 +87,8 @@ public sealed class WindowsSmtcService : IDisposable
                         await Task.Delay(500);
                         continue;
                     }
-                    throw; // Re-throw on final attempt
+                    // Re-throw on final attempt
+                    throw;
                 }
             }
         }

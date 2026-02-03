@@ -73,7 +73,8 @@ internal sealed class ContainerReadySignaler
         // Check state again inside the queued action to prevent duplicates from queued actions
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            isReadyActionQueued = false; // Reset flag when action executes
+            // Reset flag when action executes
+            isReadyActionQueued = false;
 
             // Final check before dispatching - if state already shows we're ready, another action already handled it
             if (isReady(state.Value))

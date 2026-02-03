@@ -38,7 +38,8 @@ public static class PublicationCodeHelper
         var normalized = Normalize(publicationCode);
         if (normalized == null)
         {
-            return PriorityPublicationCodes.Length; // null/empty codes come last
+            // null/empty codes come last
+            return PriorityPublicationCodes.Length;
         }
 
         var lower = normalized.ToLowerInvariant();
@@ -50,7 +51,8 @@ public static class PublicationCodeHelper
             }
         }
 
-        return PriorityPublicationCodes.Length; // Others come after priority publications
+        // Others come after priority publications
+        return PriorityPublicationCodes.Length;
     }
 
     /// <summary>
@@ -72,11 +74,13 @@ public static class PublicationCodeHelper
             }
             if (a == null)
             {
-                return 1; // null last
+                // null last
+                return 1;
             }
             if (b == null)
             {
-                return -1; // null last
+                // null last
+                return -1;
             }
 
             var aPriority = GetPublicationSortPriority(a);

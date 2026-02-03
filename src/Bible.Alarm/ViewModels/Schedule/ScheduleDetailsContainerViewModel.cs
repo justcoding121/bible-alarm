@@ -103,7 +103,8 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         // Check state again inside the queued action to prevent duplicates from queued actions
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            isReadyActionQueued = false; // Reset flag when action executes
+            // Reset flag when action executes
+            isReadyActionQueued = false;
 
             // Final check before dispatching - if state already shows we're ready, another action already handled it
             if (state.Value.ContainerReadiness.ScheduleDetails)
@@ -153,7 +154,8 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
             {
                 hasSignaledReady = false;
-                isReadyActionQueued = false; // Reset queued flag as well
+                // Reset queued flag as well
+                isReadyActionQueued = false;
                 InitializeFromState();
                 return;
             }

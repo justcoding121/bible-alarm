@@ -52,7 +52,8 @@ internal sealed class MusicDisplayNamePopulator
             else
             {
                 scheduleStateItem.MusicLanguageName = music.LanguageCode;
-                scheduleStateItem.MusicLanguageDirection = "ltr"; // Default to LTR if language not found
+                // Default to LTR if language not found
+                scheduleStateItem.MusicLanguageDirection = "ltr";
             }
         }
 

@@ -87,7 +87,8 @@ public sealed class BiblePublicationCommandInitializer
             var isSelectable = await displayTextProvider.GetIsPublicationSelectableAsync();
             if (!isSelectable)
             {
-                return; // Only one option available, don't open modal
+                // Only one option available, don't open modal
+                return;
             }
 
             // Get Bible reading from CurrentSchedule (already loaded from AlarmDB on page load)

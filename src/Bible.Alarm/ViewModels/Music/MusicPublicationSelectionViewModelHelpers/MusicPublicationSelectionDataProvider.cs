@@ -66,7 +66,8 @@ public sealed class MusicPublicationSelectionDataProvider(
             // Add items in small batches with frequent yields for smooth spinner animation
             const int batchSize = 15;
             await MainThread.InvokeOnMainThreadAsync(() => languages.Clear());
-            await Task.Yield(); // Let spinner animate after clear
+            // Let spinner animate after clear
+            await Task.Yield();
 
             for (int i = 0; i < languageVMs.Count; i += batchSize)
             {

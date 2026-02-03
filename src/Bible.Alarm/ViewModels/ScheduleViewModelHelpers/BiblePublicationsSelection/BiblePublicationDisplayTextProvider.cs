@@ -38,7 +38,8 @@ public sealed class BiblePublicationDisplayTextProvider
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
         {
-            return true; // Default to visible for traditional Bible reading
+            // Default to visible for traditional Bible reading
+            return true;
         }
 
         return PublicationTypeHelper.HasSectionStructure(currentSchedule.BiblePublicationCode);
@@ -223,13 +224,15 @@ public sealed class BiblePublicationDisplayTextProvider
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null)
         {
-            return true; // Default to visible
+            // Default to visible
+            return true;
         }
 
         var categoryName = currentSchedule.BiblePublicationCategoryName;
         if (string.IsNullOrWhiteSpace(categoryName))
         {
-            return true; // No category selected, show language row
+            // No category selected, show language row
+            return true;
         }
 
         // Avoid DB calls in a UI getter.
@@ -259,7 +262,8 @@ public sealed class BiblePublicationDisplayTextProvider
         var categoryName = currentSchedule.BiblePublicationCategoryName;
         if (string.IsNullOrWhiteSpace(categoryName))
         {
-            return false; // No category selected, can't determine
+            // No category selected, can't determine
+            return false;
         }
 
         // If the row itself is hidden (e.g., selected publication has no language), it isn't selectable.
@@ -284,7 +288,8 @@ public sealed class BiblePublicationDisplayTextProvider
         }
         catch
         {
-            return false; // On error, default to not selectable
+            // On error, default to not selectable
+            return false;
         }
     }
 
@@ -363,7 +368,8 @@ public sealed class BiblePublicationDisplayTextProvider
         }
         catch
         {
-            return false; // On error, default to not selectable
+            // On error, default to not selectable
+            return false;
         }
     }
 }

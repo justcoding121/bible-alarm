@@ -374,7 +374,8 @@ public sealed class MusicDisplayTextProvider
         }
         catch
         {
-            return false; // On error, default to not selectable
+            // On error, default to not selectable
+            return false;
         }
     }
 
@@ -452,7 +453,8 @@ public sealed class MusicDisplayTextProvider
         }
         catch
         {
-            return false; // On error, default to not selectable
+            // On error, default to not selectable
+            return false;
         }
     }
 }

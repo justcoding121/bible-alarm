@@ -282,7 +282,8 @@ internal static class MediaCacheCleanup
             catch (Exception ex)
             {
                 logger.Error(ex, "Failed to get playlist for schedule {ScheduleId} - API call failed. Not deleting any cache files to preserve existing cache.", scheduleId);
-                return; // Don't delete any cache if API fails
+                // Don't delete any cache if API fails
+                return;
             }
 
             // For indefinite playback schedules, keep a small lookaround window (prev + next)

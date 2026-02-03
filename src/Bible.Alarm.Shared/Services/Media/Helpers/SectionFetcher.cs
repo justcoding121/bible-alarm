@@ -118,7 +118,8 @@ internal sealed class SectionFetcher
                         {
                             logger.Warning("API returned video/drama publication name '{ExtractedName}' for Bible publication {PublicationCode} in language {LanguageCode}. This is likely an API error. Skipping this name and using fallback.",
                                 extractedName, normalizedPublicationCode, normalizedLanguageCode);
-                            extractedName = null; // Don't use the wrong name
+                            // Don't use the wrong name
+                            extractedName = null;
                         }
                     }
                     

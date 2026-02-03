@@ -57,7 +57,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
         else
         {
             scheduleStateItem.BiblePublicationLanguageName = languageCode;
-            scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
+            // Default to LTR
+            scheduleStateItem.BiblePublicationLanguageDirection = "ltr";
             Log.Logger.Debug("Language not found for LanguageCode '{LanguageCode}', using code as BiblePublicationLanguageName for schedule {ScheduleId}",
                 languageCode, schedule.Id);
         }

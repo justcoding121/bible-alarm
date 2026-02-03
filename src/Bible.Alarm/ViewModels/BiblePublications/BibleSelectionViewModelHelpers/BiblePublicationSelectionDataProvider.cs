@@ -80,7 +80,8 @@ public sealed class BiblePublicationSelectionDataProvider
             // Add items in small batches with frequent yields for smooth spinner animation
             const int batchSize = 15;
             await MainThread.InvokeOnMainThreadAsync(() => languages.Clear());
-            await Task.Yield(); // Let spinner animate after clear
+            // Let spinner animate after clear
+            await Task.Yield();
 
             for (int i = 0; i < languageVMs.Count; i += batchSize)
             {
@@ -139,9 +140,12 @@ public sealed class BiblePublicationSelectionDataProvider
             // For non-English languages, publications need to be fetched, so we retry with increasing delays
             if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
             {
-                const int maxRetries = 10; // Up to 10 retries
-                var retryDelay = 1000; // Start with 1 second
-                var maxWaitTime = TimeSpan.FromSeconds(60); // Total max wait time of 60 seconds
+                // Up to 10 retries
+                const int maxRetries = 10;
+                // Start with 1 second
+                var retryDelay = 1000;
+                // Total max wait time of 60 seconds
+                var maxWaitTime = TimeSpan.FromSeconds(60);
                 var startTime = DateTime.UtcNow;
                 var allHarvested = false;
                 var attempt = 0;
@@ -358,7 +362,8 @@ public sealed class BiblePublicationSelectionDataProvider
 
             var firstSectionKvp = sections.First();
             var firstSection = firstSectionKvp.Value;
-            var firstSectionIndex = firstSectionKvp.Key; // Use the dictionary key (parsed from SectionCode)
+            // Use the dictionary key (parsed from SectionCode)
+            var firstSectionIndex = firstSectionKvp.Key;
             Log.Debug("DispatchDefaultPublicationAsync: First section index={SectionIndex}, name={SectionName}",
                 firstSectionIndex, firstSection.Name);
 

@@ -30,8 +30,10 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.MusicSectionCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.SectionCode : null))
             .ForMember(dest => dest.MusicTrackNumber, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.TrackNumber : null))
             .ForMember(dest => dest.MusicRepeat, opt => opt.MapFrom(src => src.Music != null ? (bool?)src.Music.Repeat : null))
-            .ForMember(dest => dest.BiblePublicationLanguageName, opt => opt.Ignore()) // Set manually during bootstrap
-            .ForMember(dest => dest.BiblePublicationSectionName, opt => opt.Ignore()); // Set manually during bootstrap
+            // Set manually during bootstrap
+            .ForMember(dest => dest.BiblePublicationLanguageName, opt => opt.Ignore())
+            // Set manually during bootstrap
+            .ForMember(dest => dest.BiblePublicationSectionName, opt => opt.Ignore());
 
         // Map ScheduleStateItem back to AlarmSchedule (for when we need the entity)
         // Note: This creates a new AlarmSchedule but won't have EF tracking
@@ -57,25 +59,32 @@ public class ScheduleMappingProfile : Profile
                 Repeat = src.MusicRepeat ?? false,
                 AlarmScheduleId = src.Id
             } : null))
-            .ForMember(dest => dest.AlarmNotifications, opt => opt.Ignore()) // Not stored in state
-            .ForMember(dest => dest.CronExpression, opt => opt.Ignore()) // Computed property
-            .ForMember(dest => dest.MeridianHour, opt => opt.Ignore()) // Computed property
-            .ForMember(dest => dest.Meridian, opt => opt.Ignore()) // Computed property
-            .ForMember(dest => dest.TimeText, opt => opt.Ignore()); // Computed property
+            // Not stored in state
+            .ForMember(dest => dest.AlarmNotifications, opt => opt.Ignore())
+            // Computed property
+            .ForMember(dest => dest.CronExpression, opt => opt.Ignore())
+            // Computed property
+            .ForMember(dest => dest.MeridianHour, opt => opt.Ignore())
+            // Computed property
+            .ForMember(dest => dest.Meridian, opt => opt.Ignore())
+            // Computed property
+            .ForMember(dest => dest.TimeText, opt => opt.Ignore());
 
         // Map AlarmMusic to MusicStateItem
         CreateMap<AlarmMusic, MusicStateItem>();
 
         // Map MusicStateItem back to AlarmMusic
         CreateMap<MusicStateItem, AlarmMusic>()
-            .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore()); // Not stored in state
+            // Not stored in state
+            .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore());
 
         // Map BiblePublicationSchedule to BiblePublicationStateItem
         CreateMap<BiblePublicationSchedule, BiblePublicationStateItem>();
 
         // Map BiblePublicationStateItem back to BiblePublicationSchedule
         CreateMap<BiblePublicationStateItem, BiblePublicationSchedule>()
-            .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore()); // Not stored in state
+            // Not stored in state
+            .ForMember(dest => dest.AlarmSchedule, opt => opt.Ignore());
     }
 
 }

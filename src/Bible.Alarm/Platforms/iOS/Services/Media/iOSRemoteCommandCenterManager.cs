@@ -61,12 +61,14 @@ public sealed class iOSRemoteCommandCenterManager : IDisposable
 
             // Seek forward (skip forward)
             commandCenter.SkipForwardCommand.Enabled = true;
-            commandCenter.SkipForwardCommand.PreferredIntervals = new double[] { 15.0 }; // 15 seconds
+            // 15 seconds
+            commandCenter.SkipForwardCommand.PreferredIntervals = new double[] { 15.0 };
             commandCenter.SkipForwardCommand.AddTarget((evt) => HandleSkipForwardCommand(evt));
 
             // Seek backward (skip backward)
             commandCenter.SkipBackwardCommand.Enabled = true;
-            commandCenter.SkipBackwardCommand.PreferredIntervals = new double[] { 15.0 }; // 15 seconds
+            // 15 seconds
+            commandCenter.SkipBackwardCommand.PreferredIntervals = new double[] { 15.0 };
             commandCenter.SkipBackwardCommand.AddTarget((evt) => HandleSkipBackwardCommand(evt));
 
             // Seek to position (for scrubbing)

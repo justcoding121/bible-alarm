@@ -70,21 +70,24 @@ public sealed class MusicCascadeHandler
             if (musicType == MusicType.VocalMusic && string.IsNullOrWhiteSpace(languageCode))
             {
                 await HandleMusicTypeCascadeAsync(currentSchedule, dispatcher);
-                return; // MusicType cascade handles everything below
+                // MusicType cascade handles everything below
+                return;
             }
 
             // Cascade 1b: MusicType is Music (Instrumental) but publication not → populate publication, section, track
             if (musicType == MusicType.Music && string.IsNullOrWhiteSpace(publicationCode))
             {
                 await HandleLanguageCascadeAsync(currentSchedule, dispatcher);
-                return; // Language cascade handles everything below (including Instrumental Music)
+                // Language cascade handles everything below (including Instrumental Music)
+                return;
             }
 
             // Cascade 2: Language selected but publication not → populate publication, section, track
             if (!string.IsNullOrWhiteSpace(languageCode) && string.IsNullOrWhiteSpace(publicationCode))
             {
                 await HandleLanguageCascadeAsync(currentSchedule, dispatcher);
-                return; // Language cascade handles everything below
+                // Language cascade handles everything below
+                return;
             }
 
             // Cascade 3/4: Publication/Section/Track cascade

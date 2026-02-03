@@ -59,7 +59,8 @@ internal sealed class MusicSectionSelectionCommandHandler
 
             var musicType = currentSchedule.MusicType.Value;
             var publicationCode = currentSchedule.MusicPublicationCode;
-            var languageCode = currentSchedule.MusicLanguageCode; // May be null for instrumental music
+            // May be null for instrumental music
+            var languageCode = currentSchedule.MusicLanguageCode;
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {

@@ -286,7 +286,8 @@ public class ScheduleEffects(
         catch (Exception ex)
         {
             Log.Error(ex, "ScheduleEffects: HandleDeleteSchedule - Exception occurred! ScheduleId: {ScheduleId}", action?.ScheduleId ?? -1);
-            throw; // Re-throw to ensure Fluxor sees the error
+            // Re-throw to ensure Fluxor sees the error
+            throw;
         }
     }
 

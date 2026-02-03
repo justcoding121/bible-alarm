@@ -63,12 +63,14 @@ internal sealed class PublicationLanguageSeeder
 
         // First, always seed E for all English publications
         await SeedEnglishForAllPublications(db);
-        await db.SaveChangesAsync(); // Save E entries first to avoid duplicates
+        // Save E entries first to avoid duplicates
+        await db.SaveChangesAsync();
 
         // Seed publications without language (LanguageId == null) - data-driven, not hard-coded
         // These are publications like "iam" (instrumental music) that don't have a language
         await SeedPublicationsWithoutLanguage(db);
-        await db.SaveChangesAsync(); // Save entries without language
+        // Save entries without language
+        await db.SaveChangesAsync();
 
         // Seed publication languages
         if (dataStore.PublicationLanguages.Count == 0)

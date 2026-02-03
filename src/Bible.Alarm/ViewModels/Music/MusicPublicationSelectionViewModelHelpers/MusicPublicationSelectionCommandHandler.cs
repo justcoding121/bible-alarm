@@ -234,7 +234,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
 
         // Track start time to ensure minimum display duration
         var startTime = DateTime.UtcNow;
-        const int minimumDisplayMs = 800; // Minimum time to show progress indicator
+        // Minimum time to show progress indicator
+        const int minimumDisplayMs = 800;
 
         // Show progress immediately on UI thread before any async work
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -310,7 +311,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
             }
             else
             {
-                await Task.Delay(200); // Brief delay to show completion
+                // Brief delay to show completion
+                await Task.Delay(200);
             }
         }
         finally

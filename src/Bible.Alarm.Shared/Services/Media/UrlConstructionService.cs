@@ -94,7 +94,8 @@ public class UrlConstructionService : IUrlConstructionService
 
         if (baseUrls == null || baseUrls.Count == 0)
         {
-            return new List<string>(); // Or throw exception if this should never happen
+            // Or throw exception if this should never happen
+            return new List<string>();
         }
 
         var urls = new List<string>();

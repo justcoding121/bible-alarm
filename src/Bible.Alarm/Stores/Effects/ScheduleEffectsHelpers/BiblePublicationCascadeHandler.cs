@@ -63,14 +63,16 @@ public sealed class BiblePublicationCascadeHandler
             if (!string.IsNullOrWhiteSpace(languageCode) && string.IsNullOrWhiteSpace(publicationCode))
             {
                 await HandleLanguageCascadeAsync(currentSchedule, dispatcher);
-                return; // Language cascade handles everything below
+                // Language cascade handles everything below
+                return;
             }
 
             if (!string.IsNullOrWhiteSpace(publicationCode) && 
                 string.IsNullOrWhiteSpace(sectionCode))
             {
                 await HandlePublicationCascadeAsync(currentSchedule, dispatcher);
-                return; // Publication cascade handles section and track
+                // Publication cascade handles section and track
+                return;
             }
 
             if (!string.IsNullOrWhiteSpace(sectionCode) &&

@@ -136,7 +136,8 @@ public sealed class ScheduleCommandExecutor
                     currentSchedule,
                     musicUpdated,
                     biblePublicationUpdated,
-                    true); // modelInitialized
+                    // modelInitialized
+                    true);
 
                 if (saved)
                 {

@@ -65,7 +65,8 @@ internal sealed class PublicationEnsurer
             }
             else
             {
-                publicationCodeForDb = publicationCode; // Preserve exact case (e.g., "gnj")
+                // Preserve exact case (e.g., "gnj")
+                publicationCodeForDb = publicationCode;
             }
 
             // Check if publication already exists for this language
@@ -220,7 +221,8 @@ internal sealed class PublicationEnsurer
                 {
                     logger.Debug("Publication {PublicationCode} already exists for language {LanguageCode}",
                         publicationCode, languageCode);
-                    continue; // Try next publication
+                    // Try next publication
+                    continue;
                 }
 
                 // Get PublicationLanguage to determine harvest type

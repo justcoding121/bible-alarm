@@ -44,7 +44,8 @@ public sealed partial class WindowsNotificationService(IServiceProvider serviceP
             var maxDate = DateTimeOffset.Now.AddDays(daysToSchedule);
             var currentDate = DateTimeOffset.Now;
             var scheduledCount = 0;
-            const int maxOccurrences = 1000; // Safety limit to prevent infinite loops
+            // Safety limit to prevent infinite loops
+            const int maxOccurrences = 1000;
 
             for (int i = 0; i < maxOccurrences; i++)
             {

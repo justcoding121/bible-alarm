@@ -97,22 +97,19 @@ public static class ModalScrollHelper
         }
         catch (OperationCanceledException)
         {
-            // User tapped an item - reveal immediately so their selection is visible
-            // Set IsBusy = false first, then hide overlay as fallback
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 try
                 {
-                    dynamic dynamicViewModel = viewModel;
-                    var currentIsBusy = (bool)dynamicViewModel.IsBusy;
-                    if (currentIsBusy)
+                    if (viewModel != null)
                     {
-                        dynamicViewModel.IsBusy = false;
+                        dynamic dynamicViewModel = viewModel;
+                        if ((bool)dynamicViewModel.IsBusy)
+                            dynamicViewModel.IsBusy = false;
                     }
                 }
                 catch
                 {
-                    // Can't set IsBusy - fall back to direct hide
                     ForceHideBusyOverlay(busyOverlay);
                 }
             });
@@ -121,21 +118,19 @@ public static class ModalScrollHelper
         catch (Exception ex)
         {
             Log.Warning(ex, "Error in ModalScrollHelper.HandleModalAppearingAsync");
-            // Set IsBusy = false first, then hide overlay as fallback
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 try
                 {
-                    dynamic dynamicViewModel = viewModel;
-                    var currentIsBusy = (bool)dynamicViewModel.IsBusy;
-                    if (currentIsBusy)
+                    if (viewModel != null)
                     {
-                        dynamicViewModel.IsBusy = false;
+                        dynamic dynamicViewModel = viewModel;
+                        if ((bool)dynamicViewModel.IsBusy)
+                            dynamicViewModel.IsBusy = false;
                     }
                 }
                 catch
                 {
-                    // Can't set IsBusy - fall back to direct hide
                     ForceHideBusyOverlay(busyOverlay);
                 }
             });

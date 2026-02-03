@@ -419,7 +419,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             // For instrumental music, populate publications directly (no language needed)
             if (musicType.Value == MusicType.Music)
             {
-                await PopulateSongPublications(null, downloadAll: true, progressTracker); // null language code for instrumental music
+                // null language code for instrumental music
+                await PopulateSongPublications(null, downloadAll: true, progressTracker);
             }
             // For vocal music, always fetch ALL publications when the modal opens (downloadAll=true).
             else if (!string.IsNullOrEmpty(languageCodeToUse))

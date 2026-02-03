@@ -9,7 +9,8 @@ namespace Bible.Alarm.ViewModels.Shared.AlarmViewModelHelpers;
 public sealed class PositionManager()
 {
     private DateTime lastProgressUpdate = DateTime.MinValue;
-    private const int ProgressUpdateThrottleMs = 100; // Throttle to max 10 updates per second
+    // Throttle to max 10 updates per second
+    private const int ProgressUpdateThrottleMs = 100;
 
     /// <summary>
     /// Updates position from a playback position changed message.
@@ -121,7 +122,8 @@ public sealed class PositionManager()
         }
 
         var actualProgress = newProgress;
-        return Math.Abs(actualProgress - currentProgress) < 0.01; // Small threshold for ignoring
+        // Small threshold for ignoring
+        return Math.Abs(actualProgress - currentProgress) < 0.01;
     }
 
     /// <summary>

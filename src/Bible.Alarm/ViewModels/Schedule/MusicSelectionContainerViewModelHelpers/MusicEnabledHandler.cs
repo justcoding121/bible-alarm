@@ -60,7 +60,8 @@ public class MusicEnabledHandler
         // Prevent dispatching if this update is coming from state (not user interaction)
         if (isUpdatingFromState)
         {
-            setPendingMusicEnabled(false); // Clear pending when updating from state
+            // Clear pending when updating from state
+            setPendingMusicEnabled(false);
             onPropertyChanged();
             return false;
         }

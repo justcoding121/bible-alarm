@@ -249,7 +249,8 @@ public static class ApplicationReducer
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: overlayVisible,
             containerReadiness: Models.ContainerReadiness.NotReady,
-            pendingScheduleLoad: null); // Clear pending load now that schedule is loaded
+            // Clear pending load now that schedule is loaded
+            pendingScheduleLoad: null);
     }
 
     [ReducerMethod]

@@ -150,7 +150,8 @@ public sealed class DefaultScheduleService(
                 // Use concurrency helper to prevent concurrent access to artwork directory operations
                 await ConcurrencyHelper.ExecuteAsync(ArtworkHelper.ArtworkLock, async () =>
                 {
-                    Directory.CreateDirectory(artworkDir); // Ensure directory exists
+                    // Ensure directory exists
+                    Directory.CreateDirectory(artworkDir);
                     // Clean up old default schedule artwork files to prevent accumulation
                     CleanupOldDefaultScheduleArtworkFiles(artworkDir);
                     await File.WriteAllBytesAsync(artworkPath, metadata.ArtworkBytes);

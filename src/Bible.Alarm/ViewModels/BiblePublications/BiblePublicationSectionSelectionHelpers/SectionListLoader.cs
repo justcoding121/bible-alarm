@@ -45,7 +45,8 @@ internal sealed class SectionListLoader
             for (int retry = 0; retry < 5; retry++)
             {
                 // Wait before retrying (2s, 3s, 4s, 5s, 6s)
-                progress?.UpdateProgress(0.2 + (retry / 5.0) * 0.3); // 0.2 to 0.5
+                // 0.2 to 0.5
+                progress?.UpdateProgress(0.2 + (retry / 5.0) * 0.3);
                 await Task.Delay(1000 * (retry + 2));
 
                 // Re-query to see if sections are now available

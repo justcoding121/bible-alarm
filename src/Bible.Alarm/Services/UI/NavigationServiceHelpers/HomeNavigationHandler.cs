@@ -153,7 +153,8 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         // Capture the pages to pop BEFORE starting - this prevents race conditions
         // where a new page is pushed while we're popping and we accidentally pop the new page too
         var pagesToPop = new List<Page>();
-        for (int i = navigation.NavigationStack.Count - 1; i >= 1; i--) // Skip index 0 (root)
+        // Skip index 0 (root)
+        for (int i = navigation.NavigationStack.Count - 1; i >= 1; i--)
         {
             pagesToPop.Add(navigation.NavigationStack[i]);
         }

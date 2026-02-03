@@ -164,7 +164,8 @@ internal sealed class SectionLanguageSeeder
                 if (category == null)
                 {
                     logger.Warning("Category '{CategoryName}' not found in database for publication {PublicationCode}", categoryName, publicationCode);
-                    return; // Can't create SectionLanguage without PublicationLanguage
+                    // Can't create SectionLanguage without PublicationLanguage
+                    return;
                 }
                 
                 publicationLanguage = new PublicationLanguage
@@ -176,7 +177,8 @@ internal sealed class SectionLanguageSeeder
                     CategoryId = category.Id
                 };
                 db.PublicationLanguages.Add(publicationLanguage);
-                await db.SaveChangesAsync(); // Save to get the ID
+                // Save to get the ID
+                await db.SaveChangesAsync();
             }
         }
         

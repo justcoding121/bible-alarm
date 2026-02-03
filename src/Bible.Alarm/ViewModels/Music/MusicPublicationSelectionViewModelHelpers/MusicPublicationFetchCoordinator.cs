@@ -73,9 +73,12 @@ internal sealed class MusicPublicationFetchCoordinator
 
     private async Task<Dictionary<string, BiblePublication>?> RetryFetchUntilHarvestedAsync(string languageCode, IFetchProgress? progress)
     {
-        const int maxRetries = 10; // Up to 10 retries
-        var retryDelay = 1000; // Start with 1 second
-        var maxWaitTime = TimeSpan.FromSeconds(60); // Total max wait time of 60 seconds
+        // Up to 10 retries
+        const int maxRetries = 10;
+        // Start with 1 second
+        var retryDelay = 1000;
+        // Total max wait time of 60 seconds
+        var maxWaitTime = TimeSpan.FromSeconds(60);
         var startTime = DateTime.UtcNow;
         var allHarvested = false;
         var attempt = 0;

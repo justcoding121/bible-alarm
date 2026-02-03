@@ -53,7 +53,8 @@ internal sealed class LanguageContentPublicationSectionsFetcher
             }
             else
             {
-                publicationCodeForDb = publicationCode; // Preserve exact case (e.g., "gnj")
+                // Preserve exact case (e.g., "gnj")
+                publicationCodeForDb = publicationCode;
             }
 
             // Get PublicationLanguage to determine harvest type

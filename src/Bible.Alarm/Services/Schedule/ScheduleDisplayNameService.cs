@@ -395,13 +395,15 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 else
                 {
                     scheduleStateItem.MusicLanguageName = music.LanguageCode;
-                    scheduleStateItem.MusicLanguageDirection = "ltr"; // Default to LTR if language not found
+                    // Default to LTR if language not found
+                    scheduleStateItem.MusicLanguageDirection = "ltr";
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating MusicLanguageName");
-                scheduleStateItem.MusicLanguageDirection = "ltr"; // Default to LTR on error
+                // Default to LTR on error
+                scheduleStateItem.MusicLanguageDirection = "ltr";
             }
         }
 

@@ -351,11 +351,13 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                     var title = titleElement.GetString();
                     if (!string.IsNullOrEmpty(title) && title.Contains("audio descriptions", StringComparison.OrdinalIgnoreCase))
                     {
-                        continue; // Skip this item, don't increment track number
+                        // Skip this item, don't increment track number
+                        continue;
                     }
                 }
 
-                currentTrackNumber++; // Increment track number for valid items
+                // Increment track number for valid items
+                currentTrackNumber++;
 
                 // Try to get natural key for more precise matching
                 string? itemNaturalKey = null;

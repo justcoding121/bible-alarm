@@ -23,7 +23,8 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
     // Widest is ~400px, add padding for comfort = 450px base
     private const double BaseWidth = 450;
     private const double BaseHeight = 850;
-    private const double AspectRatio = BaseHeight / BaseWidth; // ~1.9:1 aspect ratio (phone-like)
+    // ~1.9:1 aspect ratio (phone-like)
+    private const double AspectRatio = BaseHeight / BaseWidth;
 
     public Window CreateWindow(IActivationState? activationState)
     {
