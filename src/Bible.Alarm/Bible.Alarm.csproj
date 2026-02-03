@@ -90,23 +90,26 @@
 		<!-- IL2026/IL2072/IL2111: Suppress only when trimming is NOT enabled -->
 		<NoWarn>$(NoWarn);IL2037</NoWarn>
 		<NoWarn Condition="'$(PublishTrimmed)' != 'true'">$(NoWarn);IL2026;IL2072;IL2111</NoWarn>
+		<!-- Suppress NU1608 warnings: We've explicitly added newer versions to resolve conflicts -->
+		<!-- These warnings occur when transitive dependencies expect older versions but we use newer ones -->
+		<NoWarn>$(NoWarn);NU1608</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.2" />
 		<!-- Note: Microsoft.EntityFrameworkCore.Design is NOT needed here - it's in .tools/Bible.Alarm.DbMigration -->
 		<!-- Design tools are only needed for creating migrations, which is done via the DbMigration project -->
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.20" />
-		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.20" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.30" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.30" />
 		<PackageReference Include="Plugin.StoreReview" Version="6.2.0" />
 		<PackageReference Include="AutoMapper" Version="16.0.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="Fluxor" Version="6.9.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
 		<PackageReference Include="Polly" Version="8.6.5" />
 		<PackageReference Include="Quartz" Version="3.15.1" />
 		<PackageReference Include="Serilog" Version="4.3.0" />
-		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
 		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
 		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
 		<PackageReference Include="Syncfusion.Maui.Core" Version="32.1.21" />
@@ -116,13 +119,36 @@
 
 	<!-- Android Auto Car App Library -->
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">
-		<PackageReference Include="Xamarin.AndroidX.Car.App.App" Version="1.7.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Car.App.App" Version="1.7.0.2" />
 		<!-- AndroidX.Media for MediaBrowserServiceCompat (old Android Auto support) -->
-		<PackageReference Include="Xamarin.AndroidX.Media" Version="1.7.1" />
+		<PackageReference Include="Xamarin.AndroidX.Media" Version="1.7.1.1" />
 		<!-- AndroidX.Core for IconCompat support (required for CarIcon creation) -->
-		<!-- Version must be >= 1.17.0 to satisfy Xamarin.AndroidX.Media dependency -->
-		<PackageReference Include="Xamarin.AndroidX.Core" Version="1.17.0" />
+		<!-- Version must be >= 1.17.0.1 to satisfy Xamarin.AndroidX.Media dependency -->
+		<PackageReference Include="Xamarin.AndroidX.Core" Version="1.17.0.1" />
+		<!-- Resolve version conflicts: Explicitly reference newer versions to satisfy dependencies -->
+		<!-- Car.App.App requires 2.10.0.1, but MAUI requires 2.9.2.1 -->
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core" Version="2.10.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData" Version="2.10.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core.Ktx" Version="2.10.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime" Version="2.10.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime.Ktx" Version="2.10.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime.Ktx.Android" Version="2.10.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Process" Version="2.10.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModel" Version="2.10.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModel.Ktx" Version="2.10.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Common" Version="2.10.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Activity" Version="1.12.2.1" />
+		<PackageReference Include="Xamarin.AndroidX.Activity.Ktx" Version="1.12.2.1" />
+		<PackageReference Include="Xamarin.AndroidX.SavedState" Version="1.4.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.SavedState.SavedState.Ktx" Version="1.4.0.1" />
 
+	</ItemGroup>
+
+	<!-- Exclude JVM Compose runtime annotation to avoid duplicate class conflict -->
+	<!-- The Android version is sufficient and including JVM causes duplicate Immutable class -->
+	<!-- Add explicit PackageReference with ExcludeAssets to override transitive inclusion -->
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">
+		<PackageReference Include="Xamarin.AndroidX.Compose.Runtime.Annotation.Jvm" Version="1.10.0.1" ExcludeAssets="all" />
 	</ItemGroup>
 
 	<ItemGroup>

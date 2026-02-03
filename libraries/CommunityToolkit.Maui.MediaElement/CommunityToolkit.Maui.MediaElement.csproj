@@ -57,27 +57,52 @@
     <PackageTags>dotnet,maui,toolkit,kit,communitytoolkit,dotnetcommunitytoolkit,mediaelement,mediaplayer,audio,video</PackageTags>
     <Configurations>Debug;Release</Configurations>
     <NoWarn>$(NoWarn);CS1591;CA1422</NoWarn>
+    <!-- Suppress NU1608 warnings: We've explicitly added newer versions to resolve conflicts -->
+    <!-- These warnings occur when transitive dependencies expect older versions but we use newer ones -->
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
   </PropertyGroup>
 
   <!-- Removed analyzer references - not needed for local build -->
 
   <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
-    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer" Version="1.8.0" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.Common" Version="1.8.0" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.UI" Version="1.8.0" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Rtsp" Version="1.8.0" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Hls" Version="1.8.0" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Dash" Version="1.8.0" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.Session" Version="1.8.0" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer" Version="1.9.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.Common" Version="1.9.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.UI" Version="1.9.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Rtsp" Version="1.9.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Hls" Version="1.9.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Dash" Version="1.9.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.Session" Version="1.9.0.1" />
+    <!-- Resolve version conflicts: Explicitly reference newer versions to satisfy dependencies -->
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core.Ktx" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime.Ktx" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime.Ktx.Android" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Process" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModel" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModel.Ktx" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModelSavedState" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModelSavedState.Android" Version="2.10.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.SavedState" Version="1.4.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.SavedState.SavedState.Ktx" Version="1.4.0.1" />
 
     <!--include the textureview.xml needed for creating textureview in android-->
     <Folder Include="Platforms\Android\Resources\layout\" />
     <AndroidResource Include="Platforms\Android\Resources\layout\textureview.xml" />
   </ItemGroup>
+
+  <!-- Exclude JVM Compose runtime annotation to avoid duplicate class conflict -->
+  <!-- The Android version is sufficient and including JVM causes duplicate Immutable class -->
+  <!-- Add explicit PackageReference with ExcludeAssets to override transitive inclusion -->
+  <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+    <PackageReference Include="Xamarin.AndroidX.Compose.Runtime.Annotation.Jvm" Version="1.10.0.1" ExcludeAssets="all" />
+  </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.1" />
-    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.20" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.30" />
     <PackageReference Include="Serilog" Version="4.3.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" Condition=" '$(Configuration)'=='Release' " PrivateAssets="All" />
   </ItemGroup>

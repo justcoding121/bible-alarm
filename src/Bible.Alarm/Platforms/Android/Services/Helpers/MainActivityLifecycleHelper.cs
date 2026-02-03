@@ -19,6 +19,8 @@ public static class MainActivityLifecycleHelper
 
     /// <summary>
     /// Handles OnStart lifecycle event with fragment restoration error handling.
+    /// When a fragment restoration error occurs, we must kill the process immediately
+    /// because the lifecycle will continue to OnResume/OnPostResume which will also fail.
     /// </summary>
     public static void OnStart(Activity activity, Action baseOnStart)
     {
@@ -28,7 +30,13 @@ public static class MainActivityLifecycleHelper
         }
         catch (IllegalArgumentException ex) when (MainActivityFragmentStateHelper.IsFragmentRestorationError(ex))
         {
-            MainActivityFragmentStateHelper.HandleFragmentRestorationError(activity, ex);
+            // Must kill process immediately - posting a handler won't work because
+            // the lifecycle continues to OnResume/OnPostResume which also fail
+            MainActivityFragmentStateHelper.HandleFragmentRestorationErrorWithProcessKill(activity, ex);
+        }
+        catch (Java.Lang.RuntimeException runtimeEx) when (MainActivityFragmentStateHelper.IsFragmentRestorationError(runtimeEx))
+        {
+            MainActivityFragmentStateHelper.HandleFragmentRestorationErrorWithProcessKill(activity, runtimeEx);
         }
     }
 
@@ -43,11 +51,31 @@ public static class MainActivityLifecycleHelper
         }
         catch (IllegalArgumentException ex) when (MainActivityFragmentStateHelper.IsFragmentRestorationError(ex))
         {
-            MainActivityFragmentStateHelper.HandleFragmentRestorationError(activity, ex);
+            MainActivityFragmentStateHelper.HandleFragmentRestorationErrorWithProcessKill(activity, ex);
         }
         catch (Java.Lang.RuntimeException runtimeEx) when (MainActivityFragmentStateHelper.IsFragmentRestorationError(runtimeEx))
         {
-            MainActivityFragmentStateHelper.HandleFragmentRestorationError(activity, runtimeEx);
+            MainActivityFragmentStateHelper.HandleFragmentRestorationErrorWithProcessKill(activity, runtimeEx);
+        }
+    }
+
+    /// <summary>
+    /// Handles OnPostResume lifecycle event with fragment restoration error handling.
+    /// This is called by Android AFTER OnResume and is where fragment dispatch happens.
+    /// </summary>
+    public static void OnPostResume(Activity activity, Action baseOnPostResume)
+    {
+        try
+        {
+            baseOnPostResume();
+        }
+        catch (IllegalArgumentException ex) when (MainActivityFragmentStateHelper.IsFragmentRestorationError(ex))
+        {
+            MainActivityFragmentStateHelper.HandleFragmentRestorationErrorWithProcessKill(activity, ex);
+        }
+        catch (Java.Lang.RuntimeException runtimeEx) when (MainActivityFragmentStateHelper.IsFragmentRestorationError(runtimeEx))
+        {
+            MainActivityFragmentStateHelper.HandleFragmentRestorationErrorWithProcessKill(activity, runtimeEx);
         }
     }
 

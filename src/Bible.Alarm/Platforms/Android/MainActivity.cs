@@ -59,6 +59,17 @@ public class MainActivity : MauiAppCompatActivity
         Logger.Debug("MainActivity: Calling base.OnCreate()");
         base.OnCreate(safeSavedInstanceState);
         Logger.Debug("MainActivity: base.OnCreate() completed");
+
+        // Validate that MAUI's fragment view containers are properly set up.
+        // On some Android versions (especially Android 16+), fragments may reference
+        // views that don't exist yet, causing crashes in OnStart().
+        if (!MainActivityFragmentStateHelper.ValidateFragmentViewContainers(this))
+        {
+            Logger.Warning("MainActivity: Fragment view containers are invalid - triggering recovery");
+            MainActivityFragmentStateHelper.HandleFragmentRestorationErrorWithProcessKill(
+                this,
+                new Java.Lang.IllegalArgumentException("Fragment view container validation failed"));
+        }
     }
 
     private static void InitializeMauiApp()
@@ -110,6 +121,11 @@ public class MainActivity : MauiAppCompatActivity
             base.OnResume();
             backgroundTaskHelper?.UpdateResumeTime();
         });
+    }
+
+    protected override void OnPostResume()
+    {
+        MainActivityLifecycleHelper.OnPostResume(this, () => base.OnPostResume());
     }
 
     protected override void OnPause()

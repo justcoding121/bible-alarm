@@ -63,6 +63,62 @@ public static class MainActivityFragmentStateHelper
     }
 
     /// <summary>
+    /// Checks if MAUI's navigation fragments have valid view containers.
+    /// Call this after base.OnCreate() to detect potential issues before OnStart() runs.
+    /// Returns true if fragments appear healthy, false if there may be issues.
+    /// </summary>
+    public static bool ValidateFragmentViewContainers(Activity activity)
+    {
+        try
+        {
+            if (activity is not AndroidX.Fragment.App.FragmentActivity fragmentActivity)
+            {
+                return true;
+            }
+
+            var fragmentManager = fragmentActivity.SupportFragmentManager;
+            var fragments = fragmentManager.Fragments;
+
+            if (fragments == null || fragments.Count == 0)
+            {
+                return true;
+            }
+
+            foreach (var fragment in fragments)
+            {
+                if (fragment == null)
+                {
+                    continue;
+                }
+
+                var containerId = fragment.Id;
+                if (containerId == 0 || containerId == global::Android.Views.View.NoId)
+                {
+                    continue;
+                }
+
+                // Check if the container view exists
+                var containerView = activity.FindViewById(containerId);
+                if (containerView == null)
+                {
+                    logger.Warning(
+                        "Fragment {FragmentType} references view ID 0x{ViewId:X} which doesn't exist",
+                        fragment.GetType().Name,
+                        containerId);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error validating fragment view containers");
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Checks if an IllegalArgumentException is a fragment restoration error.
     /// </summary>
     public static bool IsFragmentRestorationError(IllegalArgumentException ex)
@@ -91,87 +147,102 @@ public static class MainActivityFragmentStateHelper
     }
 
     /// <summary>
-    /// Handles fragment restoration errors by restarting the activity.
+    /// Handles fragment restoration errors by killing the process and scheduling a restart.
+    /// This is necessary because after a fragment error in OnStart, the lifecycle continues
+    /// to OnResume and OnPostResume which will also fail, causing cascading crashes.
+    /// The only reliable solution is to kill the process and start fresh.
     /// </summary>
-    public static void HandleFragmentRestorationError(Activity activity, IllegalArgumentException ex)
+    public static void HandleFragmentRestorationErrorWithProcessKill(Activity activity, IllegalArgumentException ex)
     {
-        HandleFragmentRestorationErrorInternal(activity, ex);
+        HandleFragmentRestorationErrorWithProcessKillInternal(activity, ex);
     }
 
     /// <summary>
-    /// Handles fragment restoration errors by restarting the activity (for RuntimeException).
+    /// Handles fragment restoration errors by killing the process (for RuntimeException).
     /// </summary>
-    public static void HandleFragmentRestorationError(Activity activity, Java.Lang.RuntimeException ex)
+    public static void HandleFragmentRestorationErrorWithProcessKill(Activity activity, Java.Lang.RuntimeException ex)
     {
         var actualException = ex.InnerException as IllegalArgumentException ?? 
                              new IllegalArgumentException(ex.Message ?? "Fragment restoration error");
-        HandleFragmentRestorationErrorInternal(activity, actualException);
+        HandleFragmentRestorationErrorWithProcessKillInternal(activity, actualException);
     }
 
     /// <summary>
-    /// Internal method to handle fragment restoration errors by restarting the activity.
+    /// Internal method to handle fragment restoration errors by scheduling a restart
+    /// via AlarmManager and then killing the process immediately.
     /// </summary>
-    private static void HandleFragmentRestorationErrorInternal(Activity activity, IllegalArgumentException ex)
+    private static void HandleFragmentRestorationErrorWithProcessKillInternal(Activity activity, IllegalArgumentException ex)
     {
-        logger.Warning(ex, "Fragment restoration failed due to stale state - restarting activity for clean state");
+        logger.Warning(ex, "Fragment restoration failed - scheduling restart and killing process");
 
-        // Create a completely fresh intent to avoid any stale state
-        // Use Handler to post the restart to ensure it happens after the current lifecycle method completes
-        // This prevents the black screen by ensuring proper activity transition
         try
         {
-            var handler = new Handler(Looper.MainLooper ?? throw new InvalidOperationException("MainLooper cannot be null"));
-            handler.Post(() =>
-            {
-                try
-                {
-                    // Create a fresh intent for the main launcher activity
-                    var intent = new Intent(activity, activity.GetType());
-                    intent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.NewTask | ActivityFlags.ClearTask);
-
-                    // Remove any potential fragment state extras
-                    intent.RemoveExtra("android:support:fragments");
-                    intent.RemoveExtra("androidx.lifecycle");
-
-                    // Start the new activity
-                    activity.StartActivity(intent);
-
-                    // Use FinishAffinity to properly close this activity and any related activities
-                    // This ensures a clean transition without black screen
-                    activity.FinishAffinity();
-
-                    logger.Information("Activity restarted to recover from fragment restoration error");
-                }
-                catch (Exception restartEx)
-                {
-                    logger.Error(restartEx, "Failed to restart activity in handler - app may need to be manually restarted");
-                    // Fallback: try to finish this activity to allow system to recover
-                    try
-                    {
-                        activity.Finish();
-                    }
-                    catch
-                    {
-                        // Ignore errors during fallback
-                    }
-                }
-            });
+            ScheduleAppRestart(activity);
         }
-        catch (Exception handlerEx)
+        catch (Exception scheduleEx)
         {
-            logger.Error(handlerEx, "Failed to post restart handler - attempting immediate restart");
-            // Fallback: try immediate restart
-            try
-            {
-                var intent = new Intent(activity, activity.GetType());
-                intent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.NewTask | ActivityFlags.ClearTask);
-                activity.StartActivity(intent);
-                activity.Finish();
-            }
-            catch (Exception fallbackEx)
-            {
-                logger.Error(fallbackEx, "All restart attempts failed - app may need to be manually restarted");
-            }
+            logger.Error(scheduleEx, "Failed to schedule restart - process will be killed anyway");
         }
+
+        // Kill the process immediately to prevent cascading lifecycle errors
+        // The AlarmManager will restart the app with a clean slate
+        logger.Information("Killing process to recover from fragment restoration error");
+        Java.Lang.JavaSystem.Exit(0);
+    }
+
+    /// <summary>
+    /// Schedules an app restart using AlarmManager.
+    /// Uses exact alarms if permission is granted, otherwise falls back to inexact alarms.
+    /// </summary>
+    private static void ScheduleAppRestart(Activity activity)
+    {
+        var packageManager = activity.PackageManager;
+        var intent = packageManager?.GetLaunchIntentForPackage(activity.PackageName ?? string.Empty);
+
+        if (intent == null)
+        {
+            logger.Warning("Could not get launch intent for restart");
+            return;
+        }
+
+        intent.AddFlags(ActivityFlags.ClearTop | ActivityFlags.NewTask | ActivityFlags.ClearTask);
+
+        var pendingIntent = PendingIntent.GetActivity(
+            activity,
+            0,
+            intent,
+            PendingIntentFlags.OneShot | PendingIntentFlags.Immutable);
+
+        if (pendingIntent == null)
+        {
+            logger.Warning("Could not create pending intent for restart");
+            return;
+        }
+
+        var alarmManager = activity.GetSystemService(Context.AlarmService) as AlarmManager;
+        if (alarmManager == null)
+        {
+            logger.Warning("Could not get AlarmManager for restart");
+            return;
+        }
+
+        // Schedule restart 500ms from now
+        var triggerTime = Java.Lang.JavaSystem.CurrentTimeMillis() + 500;
+
+        // On Android 12+ (API 31+), SCHEDULE_EXACT_ALARM requires user permission grant.
+        // Check if we can schedule exact alarms; if not, fall back to inexact alarms.
+        if (Build.VERSION.SdkInt >= BuildVersionCodes.S && !alarmManager.CanScheduleExactAlarms())
+        {
+            // Use inexact alarm - will still trigger within a few seconds
+            logger.Information("Using inexact alarm for restart (exact alarm permission not granted)");
+            alarmManager.Set(AlarmType.Rtc, triggerTime, pendingIntent);
+        }
+        else
+        {
+            // Use exact alarm for more reliable restart timing
+            alarmManager.SetExact(AlarmType.Rtc, triggerTime, pendingIntent);
+        }
+
+        logger.Information("Restart scheduled via AlarmManager");
     }
 }
