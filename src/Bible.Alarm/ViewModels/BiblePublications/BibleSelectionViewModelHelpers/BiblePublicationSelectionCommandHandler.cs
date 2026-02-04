@@ -84,10 +84,11 @@ public sealed class BiblePublicationSelectionCommandHandler
             await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
 
             // No DB probing: the tapped publication row already knows whether it has LanguageId or not.
-            // If it's a publication without language FK, force empty language for queries.
+            // If it's a publication without language FK, use "E" (English default) for cascade consistency.
+            // This ensures the schedule's language is consistent with what the publication modal will show.
             // Otherwise, prefer the currently-selected language in the UI, then fall back to schedule language.
             var languageCode = x.IsPublicationWithoutLanguage
-                ? string.Empty
+                ? "E"
                 : (currentSchedule.BiblePublicationLanguageCode ??
                    getCurrentLanguage()?.Code ??
                    x.PublicationLanguageCode ??

@@ -22,64 +22,80 @@
           ZIndex="999"
           HorizontalOptions="Fill"
           VerticalOptions="Fill">
-        <VerticalStackLayout
+        <!-- Card container for all overlay content -->
+        <Border
             HorizontalOptions="Center"
             VerticalOptions="Center"
-            Spacing="16">
-            <core:SfBusyIndicator
-                x:Name="busyIndicator"
-                IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsVisible}"
-                IsVisible="True"
-                Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
-                AnimationType="DoubleCircle"
+            BackgroundColor="{DynamicResource CardBackgroundColor}"
+            StrokeThickness="0"
+            Padding="24,20"
+            MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="16" />
+            </Border.StrokeShape>
+            <Border.Shadow>
+                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                        Offset="0,4"
+                        Opacity="0.15"
+                        Radius="12" />
+            </Border.Shadow>
+            <VerticalStackLayout
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
-                HeightRequest="{DynamicResource IconLargeContainerSize}"
-                WidthRequest="{DynamicResource IconLargeContainerSize}"
-                IndicatorColor="{StaticResource PrimaryColor}" />
-            <!-- Progress Section (shown when ShowProgress is true) -->
-            <VerticalStackLayout
-                IsVisible="{Binding Source={x:Reference busyOverlay}, Path=ShowProgress}"
-                HorizontalOptions="Center"
-                Spacing="8">
-                <!-- Progress Text -->
+                Spacing="16">
+                <!-- Row 1: Progress Text (shown when ShowProgress is true) -->
                 <Label
+                    IsVisible="{Binding Source={x:Reference busyOverlay}, Path=ShowProgress}"
                     Text="{Binding Source={x:Reference busyOverlay}, Path=ProgressText}"
-                    FontSize="{DynamicResource SmallMediumFontSize}"
+                    FontSize="{DynamicResource LargeFontSize}"
+                    FontAttributes="Bold"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     HorizontalOptions="Center"
                     HorizontalTextAlignment="Center" />
-                <!-- Progress Bar -->
+                <!-- Row 2: Progress Bar (shown when ShowProgress is true) -->
                 <ProgressBar
+                    IsVisible="{Binding Source={x:Reference busyOverlay}, Path=ShowProgress}"
                     WidthRequest="{DynamicResource ContentWidthSmall}"
                     HorizontalOptions="Center"
                     Progress="{Binding Source={x:Reference busyOverlay}, Path=ProgressPercent}"
                     ProgressColor="{StaticResource PrimaryColor}" />
-            </VerticalStackLayout>
-            <!-- Cancel Button (shown when ShowCancelButton is true) -->
-            <Border x:Name="cancelButtonBorder"
-                BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                HeightRequest="{DynamicResource IconStandardContainerSize}"
-                WidthRequest="{DynamicResource IconStandardContainerSize}"
-                StrokeThickness="0"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                IsVisible="{Binding Source={x:Reference busyOverlay}, Path=ShowCancelButton}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="100" />
-                </Border.StrokeShape>
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding Source={x:Reference busyOverlay}, Path=CancelCommand}" />
-                </Border.GestureRecognizers>
-                <Label
-                    Text="{x:Static fn:GlyphNames.Xmark}"
-                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                    FontSize="{DynamicResource IconStandardFontSize}"
-                    TextColor="{DynamicResource TextSecondaryColor}"
+                <!-- Row 3: Busy Indicator -->
+                <core:SfBusyIndicator
+                    x:Name="busyIndicator"
+                    IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsVisible}"
+                    IsVisible="True"
+                    Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
+                    AnimationType="DoubleCircle"
                     HorizontalOptions="Center"
-                    VerticalOptions="Center" />
-            </Border>
-        </VerticalStackLayout>
+                    VerticalOptions="Center"
+                    HeightRequest="{DynamicResource IconLargeContainerSize}"
+                    WidthRequest="{DynamicResource IconLargeContainerSize}"
+                    IndicatorColor="{StaticResource PrimaryColor}" />
+                <!-- Row 4: Cancel Button (visible when ShowCancelButton is true) -->
+                <Border x:Name="cancelButtonBorder"
+                    IsVisible="{Binding Source={x:Reference busyOverlay}, Path=ShowCancelButton}"
+                    BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                    HeightRequest="{DynamicResource IconStandardContainerSize}"
+                    WidthRequest="{DynamicResource IconStandardContainerSize}"
+                    StrokeThickness="0"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="100" />
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding Source={x:Reference busyOverlay}, Path=CancelCommand}" />
+                    </Border.GestureRecognizers>
+                    <Label
+                        Text="{x:Static fn:GlyphNames.Xmark}"
+                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                        FontSize="{DynamicResource IconStandardFontSize}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center" />
+                </Border>
+            </VerticalStackLayout>
+        </Border>
     </Grid>
 </ContentView>
 

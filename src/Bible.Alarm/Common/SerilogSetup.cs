@@ -2,6 +2,9 @@ using System.Runtime.InteropServices;
 using Bible.Alarm.Common.Interfaces.Platform;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
+#if ANDROID
+using Bible.Alarm.Platforms.Android.Logging;
+#endif
 
 namespace Bible.Alarm.Common;
 
@@ -65,37 +68,27 @@ public class SerilogSetup
         loggerConfig.WriteTo.Async(a => a.Debug(
             outputTemplate: AppConstants.Logging.ConsoleOutputTemplate));
 
-        // Configure file logging (DEBUG mode) using Async wrapper
+#if !ANDROID
+        // Configure file logging (DEBUG mode, non-Android only). Android uses logcat / Debug sink only.
         var logDirectory = GetLogDirectory();
         if (!string.IsNullOrEmpty(logDirectory))
         {
             try
             {
-                // Ensure log directory exists
                 Directory.CreateDirectory(logDirectory);
-
-                // Delete today's log file on each app start in DEBUG mode (clean slate for debugging)
                 DeleteTodaysLogFile(logDirectory);
-
                 var logFilePath = Path.Combine(logDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
-
-                // Write to file with rolling (daily rotation, keep last 7 days) using Async wrapper
-                // All levels (Debug and above) will be written
-                // flushToDiskInterval: 1 second provides good balance between performance and log visibility
-                // The Async wrapper queues log events to a background thread, preventing UI blocking
                 loggerConfig.WriteTo.Async(a => a.File(
                     path: logFilePath,
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: 7,
                     outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
-                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug, // All levels in DEBUG mode
-                    shared: true, // Allow multiple processes to write to the same log file
-                    flushToDiskInterval: TimeSpan.FromSeconds(1))); // Buffer for 1 second for better performance
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug,
+                    shared: true,
+                    flushToDiskInterval: TimeSpan.FromSeconds(1)));
             }
             catch (Exception ex)
             {
-                // File logging failed, but Debug sink is already configured as fallback
-                // Log the error using Debug sink (which will be created when loggerConfig.CreateLogger() is called)
                 try
                 {
                     var fallbackLogger = loggerConfig.CreateLogger();
@@ -103,47 +96,43 @@ public class SerilogSetup
                 }
                 catch
                 {
-                    // If even fallback logger creation fails, silently continue
-                    // This should never happen, but prevents cascading failures
                 }
             }
         }
+#endif
 #else
-        // RELEASE mode: File logging only, Error level and above only
-        loggerConfig.MinimumLevel.Error(); // Only Error and Fatal in RELEASE mode
+        // RELEASE mode: Error and above only
+        loggerConfig.MinimumLevel.Error();
 
-        // Configure file logging (RELEASE mode only) using Async wrapper
+#if ANDROID
+        // Android release: logcat only (no file sink). Use: adb logcat -s BibleAlarm
+        loggerConfig.WriteTo.Sink(
+            new AndroidLogcatSink(),
+            Serilog.Events.LogEventLevel.Error);
+#else
+        // Non-Android release: file logging only
         var logDirectory = GetLogDirectory();
         if (!string.IsNullOrEmpty(logDirectory))
         {
             try
             {
-                // Ensure log directory exists
                 Directory.CreateDirectory(logDirectory);
-                
                 var logFilePath = Path.Combine(logDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
-                
-                // Write to file with rolling (daily rotation, keep last 7 days) using Async wrapper
-                // Only Error and Fatal levels will be written
-                // flushToDiskInterval: 2 seconds buffers writes for better performance
-                // The Async wrapper queues log events to a background thread, preventing any blocking
                 loggerConfig.WriteTo.Async(a => a.File(
                     path: logFilePath,
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: 7,
                     outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
-                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error, // Only Error and Fatal in RELEASE mode
-                    shared: true, // Allow multiple processes to write to the same log file
-                    flushToDiskInterval: TimeSpan.FromSeconds(2))); // Buffer for 2 seconds for better performance
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error,
+                    shared: true,
+                    flushToDiskInterval: TimeSpan.FromSeconds(2)));
             }
             catch (Exception ex)
             {
-                // File logging failed - in release mode, if file logging fails, we don't want any logging output
-                // Don't add any sinks, so the logger will be created with no output (silent failure)
-                // The enrichment properties are already set, so we just continue without adding sinks
-                _ = ex; // Suppress unused variable warning
+                _ = ex;
             }
         }
+#endif
 #endif
 
         // Add custom tags if provided

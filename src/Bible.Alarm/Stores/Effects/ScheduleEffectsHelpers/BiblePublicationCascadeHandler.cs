@@ -425,7 +425,8 @@ public sealed class BiblePublicationCascadeHandler
             trackTitle,
             publicationModalItemCount,
             sectionModalCount,
-            dispatcher);
+            dispatcher,
+            publicationWithoutLanguage);
     }
 
     private async Task HandlePublicationCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
@@ -525,7 +526,8 @@ public sealed class BiblePublicationCascadeHandler
         string trackTitle,
         int? publicationModalItemCount,
         int? sectionModalItemCount,
-        IDispatcher dispatcher)
+        IDispatcher dispatcher,
+        bool publicationWithoutLanguage = false)
     {
         // Check if values have actually changed to prevent cascade cycles
         var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
@@ -608,9 +610,20 @@ public sealed class BiblePublicationCascadeHandler
                 currentSchedule.BiblePublicationCategoryName);
         }
         
-        // ALWAYS preserve language - language can only be changed via CategorySelectionAction or explicit user language selection
-        // DeepClone() preserves the language, but explicitly ensure it's not lost
-        if (string.IsNullOrWhiteSpace(updatedSchedule.BiblePublicationLanguageCode) && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode))
+        // Handle language based on whether a no-language publication was selected:
+        // - If a no-language publication was selected, reset language to "E" (English default)
+        //   This ensures cascade consistency: the language row shows "English" and publications modal
+        //   will show English publications + non-languaged publications.
+        // - Otherwise, preserve language (language can only be changed via CategorySelectionAction or explicit user selection)
+        if (publicationWithoutLanguage)
+        {
+            updatedSchedule.BiblePublicationLanguageCode = "E";
+            updatedSchedule.BiblePublicationLanguageName = null;
+            updatedSchedule.BiblePublicationLanguageDirection = "ltr";
+            logger.Debug("BiblePublicationCascadeHandler: Setting language to English default for no-language publication={PublicationCode}",
+                publicationCode);
+        }
+        else if (string.IsNullOrWhiteSpace(updatedSchedule.BiblePublicationLanguageCode) && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode))
         {
             updatedSchedule.BiblePublicationLanguageCode = currentSchedule.BiblePublicationLanguageCode;
             updatedSchedule.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;

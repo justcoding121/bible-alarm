@@ -405,14 +405,16 @@ public sealed class CategorySelectionAutoPopulateHandler
             updatedSchedule.BiblePublicationCategoryId = action.CategoryId;
             updatedSchedule.BiblePublicationCategoryName = action.CategoryName;
             
-            // For publications without language (LanguageId == null), clear language fields.
+            // For publications without language (LanguageId == null), set language to English default.
+            // This ensures cascade consistency: the language row shows "English" and publications modal
+            // will show English publications + non-languaged publications.
             // For publications with language, set language fields from selectedLanguage.
             if (publicationWithoutLanguage)
             {
-                updatedSchedule.BiblePublicationLanguageCode = null;
+                updatedSchedule.BiblePublicationLanguageCode = "E";
                 updatedSchedule.BiblePublicationLanguageName = null;
-                updatedSchedule.BiblePublicationLanguageDirection = null;
-                logger.Debug("CategorySelectionAutoPopulateHandler: Clearing language fields for publication without LanguageId={PublicationCode}",
+                updatedSchedule.BiblePublicationLanguageDirection = "ltr";
+                logger.Debug("CategorySelectionAutoPopulateHandler: Setting language to English default for publication without LanguageId={PublicationCode}",
                     publicationCode);
             }
             else if (selectedLanguage != null)

@@ -356,21 +356,31 @@ public static class ApplicationReducer
             // This prevents ViewModels from reading stale values when they dispatch updates
             updatedCurrentSchedule.BiblePublicationScheduleId = biblePub.Id > 0 ? biblePub.Id : updatedCurrentSchedule.BiblePublicationScheduleId;
             
-            // Language code can ONLY be changed by:
+            // Language code can be changed by:
             // 1. Category change (will default language to E)
-            // 2. By user explicitly changing the language
+            // 2. User explicitly changing the language
+            // 3. Selecting a no-language publication (resets to E for consistency)
             // 
-            // IMPORTANT: When user selects a publication with no language (null), the current language stays the same.
-            // The publication's language code (null) will be used in queries, but the schedule's language code doesn't change.
-            var languageChanged = !string.IsNullOrEmpty(biblePub.LanguageCode) && 
+            // When a no-language publication is selected, reset language to "E" (English default).
+            // This ensures the schedule's language is consistent with what the publication modal will show.
+            var isNoLanguagePublication = string.IsNullOrEmpty(biblePub.LanguageCode);
+            var languageChanged = !isNoLanguagePublication && 
                                   !string.IsNullOrEmpty(updatedCurrentSchedule.BiblePublicationLanguageCode) &&
                                   biblePub.LanguageCode != updatedCurrentSchedule.BiblePublicationLanguageCode;
             
-            // Only update language if it actually changed (not when selecting publication without language)
-            if (languageChanged)
+            if (isNoLanguagePublication)
+            {
+                // No-language publication selected - reset language to English default.
+                // This ensures cascade consistency: the language row shows "E" and publications modal
+                // will show English publications + non-languaged publications.
+                updatedCurrentSchedule.BiblePublicationLanguageCode = "E";
+                updatedCurrentSchedule.BiblePublicationLanguageName = null;
+                updatedCurrentSchedule.BiblePublicationLanguageDirection = "ltr";
+            }
+            else if (languageChanged)
             {
                 // Language changed - update language code and display names
-                // This only happens when: category change or user explicitly changed the language
+                // This happens when: category change or user explicitly changed the language
                 updatedCurrentSchedule.BiblePublicationLanguageCode = biblePub.LanguageCode;
                 updatedCurrentSchedule.BiblePublicationLanguageName = !string.IsNullOrEmpty(biblePub.LanguageName) 
                     ? biblePub.LanguageName 
@@ -379,12 +389,7 @@ public static class ApplicationReducer
                     ? biblePub.LanguageDirection 
                     : updatedCurrentSchedule.BiblePublicationLanguageDirection;
             }
-            else
-            {
-                // Language did not change - ALWAYS preserve language (code, name, direction)
-                // Language can only be changed via CategorySelectionAction or explicit user language selection
-                // Even when selecting a publication without language, the current language stays the same
-            }
+            // else: Language did not change - preserve language (code, name, direction)
             
             updatedCurrentSchedule.BiblePublicationCode = !string.IsNullOrEmpty(biblePub.PublicationCode) 
                 ? biblePub.PublicationCode 

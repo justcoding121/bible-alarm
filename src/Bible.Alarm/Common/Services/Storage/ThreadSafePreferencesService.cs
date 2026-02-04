@@ -185,20 +185,17 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         preferencesLock.Wait();
         try
         {
-            // Retry logic for Preferences.Set() which can throw IOException if file is locked on Windows
             const int maxRetries = 5;
             for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
                 try
                 {
-                    // Use dynamic to call the appropriate Preferences.Set overload
-                    // Value is guaranteed to be non-null since all public Set methods take non-nullable parameters
-                    Preferences.Set(key, (dynamic)value!, sharedName);
+                    SetPreferencesByType(key, value, sharedName);
                     return;
                 }
                 catch (IOException ioEx) when (attempt < maxRetries)
                 {
-                    var delayMs = 100 * (int)Math.Pow(2, attempt - 1); // 100ms, 200ms, 400ms, 800ms, 1600ms
+                    var delayMs = 100 * (int)Math.Pow(2, attempt - 1);
                     logger.Warning(ioEx, "Error writing to Preferences (likely file locked), retrying (attempt {Attempt}/{MaxRetries}) after {DelayMs}ms for key: {Key}",
                         attempt, maxRetries, delayMs, key);
                     Thread.Sleep(delayMs);
@@ -213,6 +210,36 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         finally
         {
             preferencesLock.Release();
+        }
+    }
+
+    private static void SetPreferencesByType<T>(string key, T value, string? sharedName)
+    {
+        switch (value)
+        {
+            case string s:
+                Preferences.Set(key, s, sharedName);
+                break;
+            case int i:
+                Preferences.Set(key, i, sharedName);
+                break;
+            case bool b:
+                Preferences.Set(key, b, sharedName);
+                break;
+            case double d:
+                Preferences.Set(key, d, sharedName);
+                break;
+            case float f:
+                Preferences.Set(key, f, sharedName);
+                break;
+            case long l:
+                Preferences.Set(key, l, sharedName);
+                break;
+            case DateTime dt:
+                Preferences.Set(key, dt, sharedName);
+                break;
+            default:
+                throw new NotSupportedException($"Preferences.Set does not support type {typeof(T).Name}");
         }
     }
 
@@ -421,20 +448,17 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
     {
         await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {
-            // Retry logic for Preferences.Set() which can throw IOException if file is locked on Windows
             const int maxRetries = 5;
             for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
                 try
                 {
-                    // Use dynamic to call the appropriate Preferences.Set overload
-                    // Value is guaranteed to be non-null since all public Set methods take non-nullable parameters
-                    Preferences.Set(key, (dynamic)value!, sharedName);
+                    SetPreferencesByType(key, value!, sharedName);
                     return;
                 }
                 catch (IOException ioEx) when (attempt < maxRetries)
                 {
-                    var delayMs = 100 * (int)Math.Pow(2, attempt - 1); // 100ms, 200ms, 400ms, 800ms, 1600ms
+                    var delayMs = 100 * (int)Math.Pow(2, attempt - 1);
                     logger.Warning(ioEx, "Error writing to Preferences (likely file locked), retrying (attempt {Attempt}/{MaxRetries}) after {DelayMs}ms for key: {Key}",
                         attempt, maxRetries, delayMs, key);
                     await Task.Delay(delayMs, cancellationToken);

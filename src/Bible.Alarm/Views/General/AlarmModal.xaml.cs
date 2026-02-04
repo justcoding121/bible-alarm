@@ -237,9 +237,16 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         seekDebounceTimer = new System.Timers.Timer(SeekDebounceDelayMs);
         seekDebounceTimer.Elapsed += (s, args) =>
         {
-            seekDebounceTimer.Stop();
-            seekDebounceTimer.Dispose();
-            seekDebounceTimer = null;
+            // Capture the timer that fired - it may differ from seekDebounceTimer if a new timer was created
+            var timer = s as System.Timers.Timer;
+            timer?.Stop();
+            timer?.Dispose();
+            
+            // Only clear the field reference if it still points to this timer
+            if (ReferenceEquals(seekDebounceTimer, timer))
+            {
+                seekDebounceTimer = null;
+            }
 
             // User has stopped interacting - perform seek
             // Check if disposed before accessing Dispatcher or ViewModel

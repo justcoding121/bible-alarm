@@ -105,12 +105,20 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
             logger.Information("Found {Count} missing sections for publication {PublicationCode} in language {LanguageCode}, fetching...",
                 missingSectionCodes.Count, publicationCode, languageCode);
 
-            // Fetch sections - SectionFetcher handles incremental fetching (only missing sections)
-            // Existing sections are preserved, allowing proper resume on retry
-            // Progress is divided equally among sections (reported after each section is saved to DB)
-            var result = await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken, progress);
-
-            return result;
+            // Show progress UI (and cancel button) as soon as we know we're fetching
+            progress?.SetIsVisible(true);
+            try
+            {
+                // Fetch sections - SectionFetcher handles incremental fetching (only missing sections)
+                // Existing sections are preserved, allowing proper resume on retry
+                // Progress is divided equally among sections (reported after each section is saved to DB)
+                var result = await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken, progress);
+                return result;
+            }
+            finally
+            {
+                progress?.SetIsVisible(false);
+            }
         }
         catch (Exception ex)
         {
