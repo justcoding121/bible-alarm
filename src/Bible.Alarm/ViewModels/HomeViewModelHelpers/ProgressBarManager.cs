@@ -63,52 +63,40 @@ public class ProgressBarManager : IDisposable
         // Prevent showing progress bar again
         shouldShowProgressBar = false;
 
-        // If already hidden, don't re-animate (would cause a flash)
+        // If already hidden, don't do anything
         if (progressBarOpacity == 0)
         {
             return;
         }
 
-        const int fadeSteps = 10;
-        const int fadeDurationMs = 200;
-        const double stepDelay = fadeDurationMs / (double)fadeSteps;
-
-        // Fade from current opacity to 0 (not from 1.0)
-        var startOpacity = progressBarOpacity;
-        for (int i = fadeSteps; i >= 0; i--)
-        {
-            ProgressBarOpacity = startOpacity * i / fadeSteps;
-            await Task.Delay((int)stepDelay);
-        }
-
+        // Hide immediately instead of using an animation loop
+        // The Task.Delay-based animation loop can get blocked when the main thread
+        // is busy with heavy UI work (assembly loading, schedule rendering, etc.),
+        // causing the progress bar to appear "stuck" for several seconds.
+        // Immediate hide is more reliable and provides a snappier UX.
         ProgressBarOpacity = 0.0;
+
+        // Yield to allow UI to process the opacity change
+        await Task.Yield();
     }
 
     /// <summary>
-    /// Hides the progress bar with fade animation without affecting the shouldShowProgressBar flag.
+    /// Hides the progress bar immediately without affecting the shouldShowProgressBar flag.
     /// Used for hiding progress after next/prev track operations complete.
     /// </summary>
     public async Task HideTemporarilyAsync()
     {
-        // If already hidden, don't re-animate (would cause a flash)
+        // If already hidden, don't do anything
         if (progressBarOpacity == 0)
         {
             return;
         }
 
-        const int fadeSteps = 10;
-        const int fadeDurationMs = 200;
-        const double stepDelay = fadeDurationMs / (double)fadeSteps;
-
-        // Fade from current opacity to 0 (not from 1.0)
-        var startOpacity = progressBarOpacity;
-        for (int i = fadeSteps; i >= 0; i--)
-        {
-            ProgressBarOpacity = startOpacity * i / fadeSteps;
-            await Task.Delay((int)stepDelay);
-        }
-
+        // Hide immediately for a snappier UX
         ProgressBarOpacity = 0.0;
+
+        // Yield to allow UI to process the opacity change
+        await Task.Yield();
     }
 
     public void Reset()

@@ -141,8 +141,22 @@ public sealed class BiblePublicationSelectionCommandHandler
                     _ => { },
                     _ => { });
                 
-                var (sectionCode, trackNumber, sectionName, trackTitle) =
-                    await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressTracker);
+                (string? sectionCode, int trackNumber, string sectionName, string trackTitle) result;
+                try
+                {
+                    result = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressTracker);
+                }
+                catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+                {
+                    // List item click failure: show toast and close modal (retain state)
+                    Log.Warning(ex, "CreateSectionSelectionCommand: Network error for publication={PublicationCode}", x.Code);
+                    await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
+                    var toastService = ServiceProviderManager.GetService<IToastService>();
+                    await toastService.ShowMessage("Unable to load. Please check your connection.");
+                    await navigationService.PopModalAsync();
+                    return;
+                }
+                var (sectionCode, trackNumber, sectionName, trackTitle) = result;
 
             Log.Debug("CreateSectionSelectionCommand: Result sectionCode={SectionCode}, trackNumber={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
                 sectionCode, trackNumber, sectionName, trackTitle);
@@ -268,6 +282,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                 }
                 catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
                 {
+                    // List item click failure: show toast and close modal (retain state)
                     Log.Warning(ex, "BibleSelectionCommandHandler: Network error during language selection for {LanguageCode}", x.Code);
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
@@ -275,6 +290,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                     });
                     var toastService = ServiceProviderManager.GetService<IToastService>();
                     await toastService.ShowMessage("Unable to load. Please check your connection.");
+                    await navigationService.PopModalAsync();
                     return;
                 }
                 var (publicationCode, sectionCode, trackNumber, sectionName, publicationName, trackTitle) = result;

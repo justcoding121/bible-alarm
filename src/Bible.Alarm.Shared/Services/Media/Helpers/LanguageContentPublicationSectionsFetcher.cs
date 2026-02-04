@@ -31,7 +31,8 @@ internal sealed class LanguageContentPublicationSectionsFetcher
     public async Task<bool> FetchPublicationSectionsAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null)
     {
         try
         {
@@ -124,9 +125,10 @@ internal sealed class LanguageContentPublicationSectionsFetcher
 
             // DO NOT delete existing publication - SectionFetcher handles incremental section fetching
             // This preserves partial downloads and allows proper resume on retry
+            // Progress is reported per-section (divided equally among sections)
             return await sectionFetcher.FetchPublicationSectionsAsync(
                 db, publicationCodeForDb, normalizedLanguageCode, publicationCodeForDb,
-                englishPublication, sectionCodes, cancellationToken);
+                englishPublication, sectionCodes, cancellationToken, progress);
         }
         catch (Exception ex)
         {

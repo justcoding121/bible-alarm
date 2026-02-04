@@ -120,29 +120,33 @@ internal sealed class PublicationEnsurer
                 PublicationTypeHelper.GetHarvestType(lowerCode);
 
             // Fetch based on harvest type
-                if (harvestType == Models.Enums.HarvestType.Sectioned)
+            // Progress milestones:
+            // - Sectioned: 50% after publication+section saved, 100% after tracks saved
+            // - Non-sectioned: 50% after publication saved, 100% after tracks saved
+            if (harvestType == Models.Enums.HarvestType.Sectioned)
+            {
+                // Publication has sections - fetch only the first section with tracks (for language selection)
+                // This avoids fetching all sections when user just selects a language
+                progress?.UpdateProgress(0.0);
+                var result = await FetchFirstSectionWithTracksAsync(publicationCode, languageCode, cancellationToken, progress);
+                if (result)
                 {
-                    // Publication has sections - fetch only the first section with tracks (for language selection)
-                    // This avoids fetching all sections when user just selects a language
-                    progress?.UpdateProgress(0.0);
-                    var result = await FetchFirstSectionWithTracksAsync(publicationCode, languageCode, cancellationToken);
-                    if (result)
-                    {
-                        progress?.UpdateProgress(1.0);
-                    }
-                    return result;
+                    progress?.UpdateProgress(1.0);
                 }
-                else
+                return result;
+            }
+            else
+            {
+                // Publication has flat tracks - fetch tracks
+                // 50% milestone for publication structure, 100% when tracks saved
+                progress?.UpdateProgress(0.0);
+                var result = await languageContentService.FetchPublicationTracksAsync(publicationCode, languageCode, cancellationToken);
+                if (result)
                 {
-                    // Publication has flat tracks - fetch tracks
-                    progress?.UpdateProgress(0.0);
-                    var result = await languageContentService.FetchPublicationTracksAsync(publicationCode, languageCode, cancellationToken);
-                    if (result)
-                    {
-                        progress?.UpdateProgress(1.0);
-                    }
-                    return result;
+                    progress?.UpdateProgress(1.0);
                 }
+                return result;
+            }
         }
         catch (Exception ex)
         {
@@ -284,11 +288,13 @@ internal sealed class PublicationEnsurer
     /// <summary>
     /// Fetches the first section of a publication with its tracks.
     /// Creates the publication if it doesn't exist.
+    /// Progress milestones: 50% after publication+section saved, 100% after tracks saved.
     /// </summary>
     private async Task<bool> FetchFirstSectionWithTracksAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IFetchProgress? progress = null)
     {
         try
         {
@@ -360,10 +366,14 @@ internal sealed class PublicationEnsurer
                     {
                         logger.Debug("First section {SectionCode} already has tracks for publication {PublicationCode}",
                             firstSectionCode, publicationCode);
+                        // All data already saved - report 100%
+                        progress?.UpdateProgress(1.0);
                         return true;
                     }
 
-                    // Section exists but no tracks - fetch tracks
+                    // Section exists but no tracks - 50% milestone (publication+section saved)
+                    progress?.UpdateProgress(0.5);
+                    // Fetch tracks - will be 100% when complete
                     return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
                 }
                 else
@@ -373,6 +383,8 @@ internal sealed class PublicationEnsurer
                     var sectionsFetched = await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken);
                     if (sectionsFetched)
                     {
+                        // 50% milestone - sections saved to DB
+                        progress?.UpdateProgress(0.5);
                         // Now fetch tracks for first section
                         return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
                     }
@@ -388,6 +400,8 @@ internal sealed class PublicationEnsurer
 
                 if (firstSectionFetched)
                 {
+                    // 50% milestone - publication+section saved to DB
+                    progress?.UpdateProgress(0.5);
                     // Now fetch tracks for first section
                     return await languageContentService.FetchSectionTracksAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
                 }

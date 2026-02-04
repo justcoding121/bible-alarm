@@ -67,7 +67,7 @@ public sealed class CategorySelectionAutoPopulateHandler
             logger.Information("CategorySelectionAutoPopulateHandler: Starting auto-population for category={CategoryName}",
                 action.CategoryName);
 
-            ReportProgress(0.05);
+            ReportProgress(0.0);
 
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
@@ -79,7 +79,7 @@ public sealed class CategorySelectionAutoPopulateHandler
 
             // Step 1: Try to preserve current language if it has publications in the new category, otherwise fallback to English
             // Get all languages for this category from PublicationLanguage table
-            ReportProgress(0.1);
+            ReportProgress(0.05);
             var languages = await biblePublicationService.GetDistinctLanguagesAsync(action.CategoryName);
             
             Language? selectedLanguage = null;
@@ -123,7 +123,7 @@ public sealed class CategorySelectionAutoPopulateHandler
             }
 
             // Step 2: Find first publication - try publications with LanguageId for selected language, then publications without LanguageId
-            ReportProgress(0.15);
+            ReportProgress(0.10);
             string? publicationCode = null;
             bool publicationWithoutLanguage = false;
             
@@ -178,10 +178,24 @@ public sealed class CategorySelectionAutoPopulateHandler
                     if (!isAlreadyHarvested)
                     {
                         // Try to harvest the publication (EnsurePublicationExistsAsync checks if it exists first)
-                        ReportProgress(0.3); // Harvesting starts
+                        // Progress mapping: internal 0-1 maps to 0.10-0.90 in overall flow
+                        // - Internal 0.5 (pub+section saved) -> 0.50 overall
+                        // - Internal 1.0 (tracks saved) -> 0.90 overall
+                        ReportProgress(0.10);
+                        
+                        // Create a progress tracker that maps internal progress to overall progress
+                        var harvestProgressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
+                            internalProgress =>
+                            {
+                                // Map 0-1 to 0.10-0.90
+                                var mappedProgress = 0.10 + (internalProgress * 0.80);
+                                ReportProgress(mappedProgress);
+                            },
+                            _ => { },
+                            _ => { });
+                        
                         var isHarvested = await languageContentService.EnsurePublicationExistsAsync(
-                            pl.PublicationCode, selectedLanguage.LanguageCode);
-                        ReportProgress(0.7); // Harvesting complete
+                            pl.PublicationCode, selectedLanguage.LanguageCode, default, harvestProgressTracker);
                         
                         if (!isHarvested)
                         {
@@ -192,6 +206,8 @@ public sealed class CategorySelectionAutoPopulateHandler
                     }
                     else
                     {
+                        // Publication already harvested - report 90% (all data saved)
+                        ReportProgress(0.90);
                         logger.Debug("CategorySelectionAutoPopulateHandler: Publication={PublicationCode} for language={LanguageCode} already harvested with first section and tracks",
                             pl.PublicationCode, selectedLanguage.LanguageCode);
                     }
@@ -343,10 +359,12 @@ public sealed class CategorySelectionAutoPopulateHandler
                 }
 
                 var languageModel = new LanguageListViewItemModel(selectedLanguage);
-                ReportProgress(0.75);
+                // Publication+section+tracks already saved during harvest (0.90)
+                // GetPublicationSectionAndTrackForLanguageAsync reads from DB and resolves names
                 var (resultPublicationCode, resultSectionCode, resultTrackNumber, resultSectionName, resultPublicationName, resultTrackTitle) =
                     await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(languageModel);
-                ReportProgress(0.9);
+                // Data read from DB, ready to update state
+                ReportProgress(0.95);
 
                 if (string.IsNullOrEmpty(resultPublicationCode) || resultTrackNumber <= 0)
                 {
@@ -373,7 +391,8 @@ public sealed class CategorySelectionAutoPopulateHandler
                 return;
             }
 
-            ReportProgress(0.95);
+            // Tracks fetched (100%)
+            ReportProgress(0.98);
 
             var languageCodeForLog = publicationWithoutLanguage ? "N/A" : (selectedLanguage?.LanguageCode ?? "N/A");
             logger.Information("CategorySelectionAutoPopulateHandler: Auto-populated - Language={LanguageCode}, Publication={PublicationCode}, Section={SectionCode}, Track={TrackNumber}, WithoutLanguage={WithoutLanguage}",

@@ -28,15 +28,18 @@ public interface ILanguageContentService
     /// <summary>
     /// Fetches all sections for a publication that has sections (e.g., Bible, Drama).
     /// Deletes any existing sections before inserting new.
+    /// Progress is reported as each section is saved to DB (divided equally among sections).
     /// </summary>
     /// <param name="publicationCode">The publication code (e.g., "nwt", "Dramas")</param>
     /// <param name="languageCode">The language code (e.g., "MY", "A")</param>
     /// <param name="cancellationToken">Cancellation token</param>
+    /// <param name="progress">Optional progress tracker for reporting per-section progress</param>
     /// <returns>True if successful, false otherwise</returns>
     Task<bool> FetchPublicationSectionsAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        IFetchProgress? progress = null);
 
     /// <summary>
     /// Fetches all tracks for a specific section of a publication.

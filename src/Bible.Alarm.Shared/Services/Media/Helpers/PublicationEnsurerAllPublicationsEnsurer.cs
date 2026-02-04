@@ -86,10 +86,12 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
             // Use progress token if available, otherwise use provided token
             var effectiveToken = progress?.CancellationToken ?? cancellationToken;
 
-            // Initial progress
+            // Show progress bar and set initial progress
+            progress?.SetIsVisible(true);
             progress?.UpdateProgress(0.0);
 
             // Fetch each missing publication with progress updates AFTER each save
+            // Progress is divided equally: e.g., 10 publications = 10%, 20%, ...100%
             var successCount = 0;
             var totalCount = missingPublications.Count;
             for (int i = 0; i < totalCount; i++)
@@ -101,7 +103,8 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
 
                 try
                 {
-                    var success = await ensurePublicationExists(publicationCode, languageCode, effectiveToken, progress);
+                    // Don't pass progress to inner call - we update progress at this level after each publication
+                    var success = await ensurePublicationExists(publicationCode, languageCode, effectiveToken, null);
                     if (success)
                     {
                         successCount++;
@@ -115,7 +118,7 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
                     throw;
                 }
 
-                // Update progress AFTER successful fetch/save
+                // Update progress AFTER successful fetch/save - divided equally among publications
                 var progressPercent = (double)(i + 1) / totalCount;
                 progress?.UpdateProgress(progressPercent);
             }
@@ -123,10 +126,21 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
             logger.Information("Successfully fetched {SuccessCount} out of {TotalCount} publications for language {LanguageCode}",
                 successCount, missingPublications.Count, languageCode);
 
+            // Hide progress bar after completion
+            progress?.SetIsVisible(false);
+
             return successCount > 0;
+        }
+        catch (OperationCanceledException)
+        {
+            // Hide progress bar on cancellation
+            progress?.SetIsVisible(false);
+            throw;
         }
         catch (Exception ex)
         {
+            // Hide progress bar on error
+            progress?.SetIsVisible(false);
             logger.Error(ex, "Error ensuring all publications for language {LanguageCode}",
                 languageCode);
             return false;

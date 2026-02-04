@@ -74,9 +74,10 @@ public sealed class LanguageContentService : ILanguageContentService
     public async Task<bool> FetchPublicationSectionsAsync(
         string publicationCode,
         string languageCode,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IFetchProgress? progress = null)
     {
-        return await publicationSectionsFetcher.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken);
+        return await publicationSectionsFetcher.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken, progress);
     }
 
     public async Task<bool> FetchSectionTracksAsync(

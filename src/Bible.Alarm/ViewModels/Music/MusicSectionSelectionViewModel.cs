@@ -42,6 +42,9 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private double progressPercent = 0.0;
     private string progressText = "0%";
     private MusicSectionSelectionStateChangeHandler? stateChangeHandler;
+    
+    // Semaphore to serialize RefreshFromState calls - ensures second call waits for first to complete
+    private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
@@ -183,7 +186,32 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     /// <summary>
     /// Refreshes the sections list from the current state. Can be called when modal appears to ensure latest state is used.
     /// </summary>
+    /// <summary>
+    /// Refreshes the sections list from the current state. Can be called when modal appears to ensure latest state is used.
+    /// Uses a semaphore to ensure concurrent calls wait for any in-progress refresh to complete.
+    /// </summary>
     public async Task RefreshFromState()
+    {
+        // Don't refresh if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
+        if (isSelectingSection)
+        {
+            return;
+        }
+
+        // Serialize RefreshFromState calls - if a refresh is in progress, wait for it to complete
+        // This fixes the race condition where fire-and-forget initialization races with ModalScrollHelper's refresh call
+        await refreshSemaphore.WaitAsync();
+        try
+        {
+            await RefreshFromStateInternal();
+        }
+        finally
+        {
+            refreshSemaphore.Release();
+        }
+    }
+
+    private async Task RefreshFromStateInternal()
     {
         // Prevent re-entrant calls during initialization or section selection
         if (isInitializing && initComplete)
@@ -344,6 +372,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         
         isDisposed = true;
         state.StateChanged -= OnMusicSectionChanged;
+        refreshSemaphore.Dispose();
     }
 
     private void SetSelectedSection()

@@ -31,11 +31,17 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         this.scopeFactory = scopeFactory;
     }
 
+    /// <summary>
+    /// Gets the first song publication and track for a language.
+    /// Progress milestones: 50% after publication+section saved, 100% after tracks saved.
+    /// </summary>
     public async Task<(string? PublicationCode, int TrackNumber, string TrackName, string PublicationName)> GetFirstSongPublicationAndTrackForLanguageAsync(
         LanguageListViewItemModel language,
         ScheduleStateItem? currentSchedule,
         IFetchProgress? progress = null)
     {
+        progress?.UpdateProgress(0.0);
+        
         // Step 1: Get the first publication code by ID order from PublicationLanguages for Music category
         // This is the publication that should be downloaded when language is selected
         // Filter out publications without LanguageId (instrumental/melody music) - data-driven, not hard-coded
@@ -122,11 +128,9 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         Serilog.Log.Debug("GetFirstSongPublicationAndTrackForLanguageAsync: First publication by ID order={PublicationCode} for language={LanguageCode}",
             firstPublicationCode, language.Code);
 
-        progress?.UpdateProgress(0.3);
-
         // Step 2: Download the first publication with its first section (if sectioned) and tracks
         // This happens when language is selected (cascade)
-        // EnsurePublicationExistsAsync will download the publication, its first section (by ID order from SectionLanguages), and tracks
+        // EnsurePublicationExistsAsync reports: 50% (pub+section saved), 100% (tracks saved)
         if (languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
         {
             Serilog.Log.Information("Downloading first vocal music publication {PublicationCode} (by ID order) for language {LanguageCode} (cascade)",
@@ -134,8 +138,8 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
             try
             {
-                progress?.UpdateProgress(0.5);
                 // EnsurePublicationExistsAsync downloads the publication with its first section (by ID order) and tracks
+                // It reports progress: 0.5 (pub+section saved), 1.0 (tracks saved)
                 var fetchSuccess = await languageContentService.EnsurePublicationExistsAsync(
                     firstPublicationCode, language.Code, default, progress);
 
@@ -159,8 +163,8 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         }
 
         // Step 3: Get the downloaded publication using GetBiblePublications (same API as Bible publication)
-        progress?.UpdateProgress(0.7);
-        var songPublications = await mediaService.GetBiblePublications(language.Code, "Music", downloadAll: false, progress);
+        // Data is already saved, just reading from DB - no progress updates needed
+        var songPublications = await mediaService.GetBiblePublications(language.Code, "Music", downloadAll: false, null);
 
         if (songPublications == null || songPublications.Count == 0)
         {
@@ -207,10 +211,10 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
         // Use GetBiblePublicationTracks for vocal music (same API as Bible publication)
         // For vocal music, we need to get tracks from the first section (or flat publication)
-        progress?.UpdateProgress(0.8);
         // IMPORTANT: during "language change" cascade we should NOT ensure all sections.
         // Ensuring all sections is reserved for when the user explicitly opens the Sections modal.
         // We only need the already-downloaded first section (if sectioned).
+        // Data is already saved, just reading from DB - no progress updates needed
         var sections = await mediaService.GetBiblePublicationSections(language.Code, publicationCode, progress: null);
 
         SortedDictionary<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack>? tracks;

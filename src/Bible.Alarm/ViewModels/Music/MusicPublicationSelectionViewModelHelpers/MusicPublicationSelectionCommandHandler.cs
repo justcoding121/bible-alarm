@@ -215,18 +215,22 @@ public sealed class MusicPublicationSelectionCommandHandler(
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
         {
+            // List item click failure: show toast and close modal (retain state)
             Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during publication selection for {PublicationCode}", songPublication.Code);
             await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
             var toastService = ServiceProviderManager.GetService<IToastService>();
             await toastService.ShowMessage("Unable to load. Please check your connection.");
+            await navigationService.PopModalAsync();
             return;
         }
         catch (Exception ex)
         {
+            // List item click failure: show toast and close modal (retain state)
             Log.Error(ex, "MusicPublicationSelectionCommandHandler: Error during publication selection for {PublicationCode}", songPublication.Code);
             await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
             var toastService = ServiceProviderManager.GetService<IToastService>();
             await toastService.ShowMessage("An error occurred. Please try again.");
+            await navigationService.PopModalAsync();
             return;
         }
         
@@ -272,10 +276,12 @@ public sealed class MusicPublicationSelectionCommandHandler(
             }
             catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
             {
+                // List item click failure: show toast and close modal (retain state)
                 Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during language selection for {LanguageCode}", language.Code);
                 await MainThread.InvokeOnMainThreadAsync(() => language.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<IToastService>();
                 await toastService.ShowMessage("Unable to load. Please check your connection.");
+                await navigationService.PopModalAsync();
                 return;
             }
             var (publicationCode, trackNumber, trackName, publicationName) = result;

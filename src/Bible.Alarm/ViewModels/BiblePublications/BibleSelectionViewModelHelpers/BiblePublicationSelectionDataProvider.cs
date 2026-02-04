@@ -163,13 +163,14 @@ public sealed class BiblePublicationSelectionDataProvider
                     try
                     {
                         // Fetch publications (this triggers harvesting if needed)
-                        publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll);
+                        // Pass progress to show download percentage during harvesting
+                        publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
                         
                         // Wait a bit for background harvesting to start
                         await Task.Delay(500);
                         
-                        // Re-query to check if publications are now harvested
-                        var reQueriedData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, progress);
+                        // Re-query to check if publications are now harvested (no progress needed for re-query)
+                        var reQueriedData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
                         
                         // Check if ALL publications are harvested (not placeholders)
                         // A publication is harvested if it has a name that's different from its code and has an ID > 0

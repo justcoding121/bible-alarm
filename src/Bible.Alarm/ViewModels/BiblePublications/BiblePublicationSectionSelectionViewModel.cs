@@ -40,6 +40,9 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     private string progressText = "0%";
     private bool isDisposed = false;
     private bool isSelectingSection;
+    
+    // Semaphore to serialize RefreshFromState calls - ensures second call waits for first to complete
+    private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
 
     // Helper class
     private readonly StateChangeHandler stateChangeHandler;
@@ -205,8 +208,30 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
     /// <summary>
     /// Refreshes the sections list from the current state. Can be called when modal appears to ensure latest state is used.
+    /// Uses a semaphore to ensure concurrent calls wait for any in-progress refresh to complete.
     /// </summary>
     public async Task RefreshFromState()
+    {
+        // Don't refresh if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
+        if (isSelectingSection)
+        {
+            return;
+        }
+
+        // Serialize RefreshFromState calls - if a refresh is in progress, wait for it to complete
+        // This fixes the race condition where fire-and-forget initialization races with ModalScrollHelper's refresh call
+        await refreshSemaphore.WaitAsync();
+        try
+        {
+            await RefreshFromStateInternal();
+        }
+        finally
+        {
+            refreshSemaphore.Release();
+        }
+    }
+
+    private async Task RefreshFromStateInternal()
     {
         // Don't refresh if we're currently selecting a section (to avoid conflicts with TrackSelectionCommand)
         if (isSelectingSection)
@@ -331,7 +356,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             catch (Exception ex)
             {
                 // Log error but don't throw - allow modal to continue functioning
-                logger.Error(ex, "BiblePublicationSectionSelectionViewModel: RefreshFromState - Error during repopulation");
+                logger.Error(ex, "BiblePublicationSectionSelectionViewModel: RefreshFromStateInternal - Error during repopulation");
                 // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -365,6 +390,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         
         isDisposed = true;
         state.StateChanged -= OnBiblePublicationChanged;
+        refreshSemaphore.Dispose();
     }
 
     private void SetSelectedSection()

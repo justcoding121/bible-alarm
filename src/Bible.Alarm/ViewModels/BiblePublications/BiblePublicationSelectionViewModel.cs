@@ -34,6 +34,9 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
     // Cancellation support for fetch operations
     private CancellationTokenSource? fetchCts;
+    
+    // Semaphore to serialize RefreshFromState calls - ensures concurrent calls wait for each other
+    private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
 
     public ICommand BackCommand { get; set; }
     public ICommand SectionSelectionCommand { get; set; }
@@ -181,8 +184,23 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     /// This ensures publications are populated and current is initialized from CurrentSchedule.
     /// NOTE: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper.
     /// On fetch error, sets HasFetchError = true instead of closing the modal.
+    /// Uses a semaphore to serialize concurrent calls.
     /// </summary>
     public async Task RefreshFromState()
+    {
+        // Serialize RefreshFromState calls - if one is in progress, wait for it to complete
+        await refreshSemaphore.WaitAsync();
+        try
+        {
+            await RefreshFromStateInternal();
+        }
+        finally
+        {
+            refreshSemaphore.Release();
+        }
+    }
+
+    private async Task RefreshFromStateInternal()
     {
         // Cancel any previous fetch and create new cancellation token
         fetchCts?.Cancel();
@@ -274,6 +292,9 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         fetchCts?.Cancel();
         fetchCts?.Dispose();
         fetchCts = null;
+        
+        // Dispose semaphore
+        refreshSemaphore.Dispose();
 
         // Clean up property manager
         propertyManager.Cleanup();

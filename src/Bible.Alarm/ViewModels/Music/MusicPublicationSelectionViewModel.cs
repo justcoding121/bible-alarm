@@ -38,6 +38,9 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
     // Cancellation support for fetch operations
     private CancellationTokenSource? fetchCts;
+    
+    // Semaphore to serialize RefreshFromState/Initialize calls - ensures concurrent calls wait for each other
+    private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
 
     public MusicPublicationSelectionViewModel(
         ILogger logger,
@@ -282,7 +285,25 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         set => propertyManager.HasFetchError = value;
     }
 
+    /// <summary>
+    /// Initialize is called via Task.Run from HandleMusicInitialized.
+    /// Uses semaphore to serialize with RefreshFromState calls.
+    /// </summary>
     private async Task Initialize()
+    {
+        // Serialize with RefreshFromState calls
+        await refreshSemaphore.WaitAsync();
+        try
+        {
+            await InitializeInternal();
+        }
+        finally
+        {
+            refreshSemaphore.Release();
+        }
+    }
+
+    private async Task InitializeInternal()
     {
         var current = stateManager.Current;
         if (current == null)
@@ -370,7 +391,26 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     /// Refreshes the ViewModel from the latest state when the modal appears.
     /// This ensures languages are populated and current is initialized from CurrentSchedule.
     /// </summary>
+    /// <summary>
+    /// Refreshes the ViewModel from the latest state when the modal appears.
+    /// Uses a semaphore to ensure concurrent calls (from fire-and-forget Initialize and ModalScrollHelper) wait for each other.
+    /// </summary>
     public async Task RefreshFromState()
+    {
+        // Serialize RefreshFromState/Initialize calls - if one is in progress, wait for it to complete
+        // This fixes the race condition where fire-and-forget Initialize races with ModalScrollHelper's refresh call
+        await refreshSemaphore.WaitAsync();
+        try
+        {
+            await RefreshFromStateInternal();
+        }
+        finally
+        {
+            refreshSemaphore.Release();
+        }
+    }
+
+    private async Task RefreshFromStateInternal()
     {
         await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
 
@@ -550,6 +590,9 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         fetchCts?.Cancel();
         fetchCts?.Dispose();
         fetchCts = null;
+        
+        // Dispose semaphore
+        refreshSemaphore.Dispose();
 
         if (propertyManagerPropertyChangedHandler != null)
         {

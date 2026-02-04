@@ -144,6 +144,16 @@ public class HomeStateChangeHandler
             {
                 logger.Debug("OnStateChanged: Initial load - setting {Count} schedules via property setter", newSchedules.Count);
 
+                // Hide progress bar and set IsBusy to false BEFORE setting schedules
+                // This ensures the SchedulesChanged event handler's call to UpdateVisibility
+                // will correctly hide the bar (since IsBusy will be false at that point)
+                // and prevents the progress bar from appearing "stuck" during heavy UI work
+                if (getIsBusy())
+                {
+                    await fadeOutProgressBarAsync();
+                    setIsBusy(false);
+                }
+
                 var schedulesCollection = BuildScheduleCollection(newSchedules, schedulesToRemove);
                 setSchedules(schedulesCollection);
                 logger.Debug("OnStateChanged: Initial load complete. Collection now has {Count} items", getSchedules()?.Count ?? 0);
@@ -184,11 +194,10 @@ public class HomeStateChangeHandler
                 }
             }
 
-            // Only set IsBusy to false if we actually have schedules now
+            // Hide progress bar for non-initial-load cases (e.g., schedule updates)
+            // Initial load is handled above with the fade before setSchedules
             if (hasSchedulesNow && getIsBusy())
             {
-                // Fade out first, then set IsBusy to false
-                // This ensures smooth animation before UpdateVisibility snaps opacity to 0
                 await fadeOutProgressBarAsync();
                 setIsBusy(false);
             }
