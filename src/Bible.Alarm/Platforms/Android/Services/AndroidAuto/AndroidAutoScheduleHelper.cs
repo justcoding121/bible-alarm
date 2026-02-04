@@ -49,20 +49,36 @@ public static class AndroidAutoScheduleHelper
 
     /// <summary>
     /// Builds the display title for a schedule state item.
-    /// Title is the Publication Name.
+    /// Bible category: section name (e.g. "Hebrews 13"). Other categories: track name.
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
-        if (scheduleItem.BiblePublicationScheduleId.HasValue)
+        if (!scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            // Title is the Publication Name
-            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
-            {
-                return scheduleItem.BiblePublicationName;
-            }
+            return !string.IsNullOrWhiteSpace(scheduleItem.Name)
+                ? scheduleItem.Name
+                : "Unnamed schedule";
         }
 
-        // Fallback: return schedule name if no Bible reading schedule
+        var categoryName = scheduleItem.BiblePublicationCategoryName
+            ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
+        var isBibleCategory = string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase);
+
+        if (isBibleCategory && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
+        {
+            return scheduleItem.BiblePublicationSectionName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
+        {
+            return scheduleItem.BiblePublicationTrackTitle;
+        }
+
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
+        {
+            return scheduleItem.BiblePublicationName;
+        }
+
         return !string.IsNullOrWhiteSpace(scheduleItem.Name)
             ? scheduleItem.Name
             : "Unnamed schedule";
@@ -70,13 +86,12 @@ public static class AndroidAutoScheduleHelper
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: • Schedule Name (if not empty) • Section Name (if exists) • Track title • Language (if languaged pub) 🎵 (if music enabled)
+    /// Format: Schedule Name (if not empty) • Publication Name • Section Name (if applicable) • Language Name • 🎵 (if music enabled)
     /// </summary>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
         if (!scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            // Fallback: show status and time if no Bible reading schedule
             var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
             var timeText = scheduleItem.TimeText;
             return $"• {statusText} • {timeText}";
@@ -84,71 +99,27 @@ public static class AndroidAutoScheduleHelper
 
         var subtitleParts = new List<string>();
 
-        // Add Schedule Name (if not empty)
         if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
         {
             subtitleParts.Add(scheduleItem.Name);
         }
 
-        // Add Section/Track info
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
+        {
+            subtitleParts.Add(scheduleItem.BiblePublicationName);
+        }
+
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
-
-        if (hasSectionStructure)
+        if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
         {
-            // For sectioned publications:
-            // - Music category: use track title (e.g., "Melody Number(s) 195, 224")
-            // - Other categories (Bible, etc.): use track number (e.g., "9")
-            // Combine section + track into single part: "Genesis 1"
-            var categoryName = scheduleItem.BiblePublicationCategoryName
-                ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
-            var isMusicCategory = string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
-
-            var sectionName = scheduleItem.BiblePublicationSectionName;
-            string? trackPart = null;
-
-            if (isMusicCategory && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
-            {
-                trackPart = scheduleItem.BiblePublicationTrackTitle;
-            }
-            else
-            {
-                trackPart = scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0
-                    ? scheduleItem.BiblePublicationTrackNumber.Value.ToString()
-                    : null;
-            }
-
-            // Combine section + track into one part (e.g., "Genesis 1")
-            if (!string.IsNullOrWhiteSpace(sectionName) && !string.IsNullOrWhiteSpace(trackPart))
-            {
-                subtitleParts.Add($"{sectionName} {trackPart}");
-            }
-            else if (!string.IsNullOrWhiteSpace(sectionName))
-            {
-                subtitleParts.Add(sectionName);
-            }
-            else if (!string.IsNullOrWhiteSpace(trackPart))
-            {
-                subtitleParts.Add(trackPart);
-            }
-        }
-        else
-        {
-            // Non-sectioned publications (dramas/videos): show track title
-            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
-            {
-                subtitleParts.Add(scheduleItem.BiblePublicationTrackTitle);
-            }
+            subtitleParts.Add(scheduleItem.BiblePublicationSectionName);
         }
 
-        // Add Language only if BiblePublicationLanguageName is set.
-        // Publications without language (like "iam" instrumental music) don't have a language name in the media index.
-        // Don't fall back to BiblePublicationLanguageCode as it might be stale from cascade logic.
         if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName))
         {
             subtitleParts.Add(scheduleItem.BiblePublicationLanguageName);
         }
 
-        // Add music note emoji if music is enabled (at the end)
         if (scheduleItem.MusicEnabled)
         {
             subtitleParts.Add("🎵");
@@ -159,7 +130,6 @@ public static class AndroidAutoScheduleHelper
             return string.Join(" • ", subtitleParts);
         }
 
-        // Fallback: show status and time
         var fallbackStatusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
         var fallbackTimeText = scheduleItem.TimeText;
         return $"• {fallbackStatusText} • {fallbackTimeText}";

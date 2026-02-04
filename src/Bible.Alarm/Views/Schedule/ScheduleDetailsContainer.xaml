@@ -28,33 +28,19 @@
               HorizontalOptions="Center"
               VerticalOptions="Center"
               Padding="0">
-            <OnPlatform x:TypeArguments="View">
-                <OnPlatform.Platforms>
-                    <On Platform="iOS">
-                        <TimePicker AutomationId="AlarmTimePicker"
-                                    BackgroundColor="Transparent"
-                                    TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter={StaticResource PrimaryColor}}"
-                                    FontSize="{DynamicResource AlarmTimeFontSize}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    Margin="0"
-                                    Time="{Binding Time, Mode=TwoWay}"
-                                    ios:TimePicker.UpdateMode="WhenFinished" />
-                    </On>
-                    <On Platform="Default">
-                        <TimePicker AutomationId="AlarmTimePicker"
-                                    BackgroundColor="Transparent"
-                                    FontSize="{DynamicResource AlarmTimeFontSize}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    Margin="0"
-                                    TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter={StaticResource PrimaryColor}}"
-                                    Time="{Binding Time, Mode=TwoWay}">
-                            <TimePicker.Format>hh:mm tt</TimePicker.Format>
-                        </TimePicker>
-                    </On>
-                </OnPlatform.Platforms>
-            </OnPlatform>
+            <!-- Single TimePicker with platform-specific properties applied via attached properties -->
+            <!-- ios:TimePicker.UpdateMode is ignored on other platforms -->
+            <TimePicker AutomationId="AlarmTimePicker"
+                        BackgroundColor="Transparent"
+                        TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter={StaticResource PrimaryColor}}"
+                        FontSize="{DynamicResource AlarmTimeFontSize}"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        Margin="0"
+                        Time="{Binding Time, Mode=TwoWay}"
+                        ios:TimePicker.UpdateMode="WhenFinished">
+                <TimePicker.Format>hh:mm tt</TimePicker.Format>
+            </TimePicker>
         </Grid>
         <FlexLayout Grid.Row="1"
               Margin="0"
@@ -80,62 +66,23 @@
                         <Binding Path="IsEnabled" />
                     </MultiBinding>
                 </Border.BackgroundColor>
-                <OnPlatform x:TypeArguments="View">
-                    <OnPlatform.Platforms>
-                        <On Platform="iOS">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Sunday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="S">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="Android">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Sunday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="S">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="WinUI">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Sunday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="S">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                    </OnPlatform.Platforms>
-                </OnPlatform>
+                <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
+                <Button Padding="0"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
+                        Command="{Binding ToggleDayCommand}"
+                        CommandParameter="{StaticResource Sunday}"
+                        FontAttributes="Bold"
+                        FontSize="{DynamicResource LargeFontSize}"
+                        Text="S">
+                    <Button.TextColor>
+                        <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
+                            <Binding Path="DaysOfWeek" />
+                            <Binding Path="IsEnabled" />
+                        </MultiBinding>
+                    </Button.TextColor>
+                </Button>
             </Border>
             <Border Margin="1"
                     Padding="{DynamicResource PaddingSmall}"
@@ -153,62 +100,23 @@
                         <Binding Path="IsEnabled" />
                     </MultiBinding>
                 </Border.BackgroundColor>
-                <OnPlatform x:TypeArguments="View">
-                    <OnPlatform.Platforms>
-                        <On Platform="iOS">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Monday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="M">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="Android">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Monday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="M">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="WinUI">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Monday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="M">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                    </OnPlatform.Platforms>
-                </OnPlatform>
+                <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
+                <Button Padding="0"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
+                        Command="{Binding ToggleDayCommand}"
+                        CommandParameter="{StaticResource Monday}"
+                        FontAttributes="Bold"
+                        FontSize="{DynamicResource LargeFontSize}"
+                        Text="M">
+                    <Button.TextColor>
+                        <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
+                            <Binding Path="DaysOfWeek" />
+                            <Binding Path="IsEnabled" />
+                        </MultiBinding>
+                    </Button.TextColor>
+                </Button>
             </Border>
             <Border Margin="1"
                     Padding="{DynamicResource PaddingSmall}"
@@ -226,62 +134,23 @@
                         <Binding Path="IsEnabled" />
                     </MultiBinding>
                 </Border.BackgroundColor>
-                <OnPlatform x:TypeArguments="View">
-                    <OnPlatform.Platforms>
-                        <On Platform="iOS">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Tuesday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="T">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="Android">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Tuesday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="T">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="WinUI">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Tuesday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="T">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                    </OnPlatform.Platforms>
-                </OnPlatform>
+                <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
+                <Button Padding="0"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
+                        Command="{Binding ToggleDayCommand}"
+                        CommandParameter="{StaticResource Tuesday}"
+                        FontAttributes="Bold"
+                        FontSize="{DynamicResource LargeFontSize}"
+                        Text="T">
+                    <Button.TextColor>
+                        <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
+                            <Binding Path="DaysOfWeek" />
+                            <Binding Path="IsEnabled" />
+                        </MultiBinding>
+                    </Button.TextColor>
+                </Button>
             </Border>
             <Border Margin="1"
                     Padding="{DynamicResource PaddingSmall}"
@@ -299,62 +168,23 @@
                         <Binding Path="IsEnabled" />
                     </MultiBinding>
                 </Border.BackgroundColor>
-                <OnPlatform x:TypeArguments="View">
-                    <OnPlatform.Platforms>
-                        <On Platform="iOS">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Wednesday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="W">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="Android">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Wednesday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="W">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="WinUI">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Wednesday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="W">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                    </OnPlatform.Platforms>
-                </OnPlatform>
+                <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
+                <Button Padding="0"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
+                        Command="{Binding ToggleDayCommand}"
+                        CommandParameter="{StaticResource Wednesday}"
+                        FontAttributes="Bold"
+                        FontSize="{DynamicResource LargeFontSize}"
+                        Text="W">
+                    <Button.TextColor>
+                        <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
+                            <Binding Path="DaysOfWeek" />
+                            <Binding Path="IsEnabled" />
+                        </MultiBinding>
+                    </Button.TextColor>
+                </Button>
             </Border>
             <Border Margin="1"
                     Padding="{DynamicResource PaddingSmall}"
@@ -372,62 +202,23 @@
                         <Binding Path="IsEnabled" />
                     </MultiBinding>
                 </Border.BackgroundColor>
-                <OnPlatform x:TypeArguments="View">
-                    <OnPlatform.Platforms>
-                        <On Platform="iOS">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Thursday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="T">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="Android">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Thursday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="T">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="WinUI">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Thursday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="T">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                    </OnPlatform.Platforms>
-                </OnPlatform>
+                <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
+                <Button Padding="0"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
+                        Command="{Binding ToggleDayCommand}"
+                        CommandParameter="{StaticResource Thursday}"
+                        FontAttributes="Bold"
+                        FontSize="{DynamicResource LargeFontSize}"
+                        Text="T">
+                    <Button.TextColor>
+                        <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
+                            <Binding Path="DaysOfWeek" />
+                            <Binding Path="IsEnabled" />
+                        </MultiBinding>
+                    </Button.TextColor>
+                </Button>
             </Border>
             <Border Margin="1"
                     Padding="{DynamicResource PaddingSmall}"
@@ -445,62 +236,23 @@
                         <Binding Path="IsEnabled" />
                     </MultiBinding>
                 </Border.BackgroundColor>
-                <OnPlatform x:TypeArguments="View">
-                    <OnPlatform.Platforms>
-                        <On Platform="iOS">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Friday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="F">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="Android">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Friday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="F">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="WinUI">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Friday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="F">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                    </OnPlatform.Platforms>
-                </OnPlatform>
+                <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
+                <Button Padding="0"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
+                        Command="{Binding ToggleDayCommand}"
+                        CommandParameter="{StaticResource Friday}"
+                        FontAttributes="Bold"
+                        FontSize="{DynamicResource LargeFontSize}"
+                        Text="F">
+                    <Button.TextColor>
+                        <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
+                            <Binding Path="DaysOfWeek" />
+                            <Binding Path="IsEnabled" />
+                        </MultiBinding>
+                    </Button.TextColor>
+                </Button>
             </Border>
             <Border Margin="1"
                     Padding="{DynamicResource PaddingSmall}"
@@ -518,62 +270,23 @@
                         <Binding Path="IsEnabled" />
                     </MultiBinding>
                 </Border.BackgroundColor>
-                <OnPlatform x:TypeArguments="View">
-                    <OnPlatform.Platforms>
-                        <On Platform="iOS">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Saturday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="S">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="Android">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Saturday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="S">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                        <On Platform="WinUI">
-                            <Button Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding ToggleDayCommand}"
-                                    CommandParameter="{StaticResource Saturday}"
-                                    FontAttributes="Bold"
-                                    FontSize="{DynamicResource LargeFontSize}"
-                                    Text="S">
-                                        <Button.TextColor>
-                                            <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">
-                                                <Binding Path="DaysOfWeek" />
-                                                <Binding Path="IsEnabled" />
-                                            </MultiBinding>
-                                        </Button.TextColor>
-                                    </Button>
-                        </On>
-                    </OnPlatform.Platforms>
-                </OnPlatform>
+                <!-- Single Button for all platforms - BorderWidth/BorderColor are harmless on iOS -->
+                <Button Padding="0"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        BorderColor="Transparent"
+                        Command="{Binding ToggleDayCommand}"
+                        CommandParameter="{StaticResource Saturday}"
+                        FontAttributes="Bold"
+                        FontSize="{DynamicResource LargeFontSize}"
+                        Text="S">
+                    <Button.TextColor>
+                        <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">
+                            <Binding Path="DaysOfWeek" />
+                            <Binding Path="IsEnabled" />
+                        </MultiBinding>
+                    </Button.TextColor>
+                </Button>
             </Border>
         </FlexLayout>
         <Grid Grid.Row="2"

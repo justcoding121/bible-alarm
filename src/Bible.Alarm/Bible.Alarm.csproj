@@ -93,6 +93,9 @@
 		<!-- Suppress NU1608 warnings: We've explicitly added newer versions to resolve conflicts -->
 		<!-- These warnings occur when transitive dependencies expect older versions but we use newer ones -->
 		<NoWarn>$(NoWarn);NU1608</NoWarn>
+		<!-- Suppress XC0022: compiled-binding suggestion when x:DataType is not specified -->
+		<!-- Shared controls (e.g. ProgressIndicator) get BindingContext from various parent ViewModels -->
+		<NoWarn>$(NoWarn);XC0022</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>

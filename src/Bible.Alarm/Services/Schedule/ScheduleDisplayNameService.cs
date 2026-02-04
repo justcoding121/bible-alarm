@@ -119,14 +119,13 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
 
                         publicationWithoutLanguage = publication != null;
 
-                        // For no-language publications, clear the language name that was set earlier.
-                        // The schedule might have a stale LanguageCode from cascade logic, but the publication
-                        // itself doesn't have a language (LanguageId == null).
+                        // No-language publications (e.g. "iam") store LanguageCode "E" as the effective code for playback.
+                        // Keep the already-resolved language display name (e.g. "English") so the UI shows "English"
+                        // instead of "E" in the bible publication container.
                         if (publicationWithoutLanguage)
                         {
-                            scheduleStateItem.BiblePublicationLanguageName = null;
-                            scheduleStateItem.BiblePublicationLanguageDirection = null;
-                            logger.Debug("Cleared BiblePublicationLanguageName for no-language publication {PublicationCode}", publicationCode);
+                            logger.Debug("No-language publication {PublicationCode}; keeping BiblePublicationLanguageName for display (LanguageCode: {LanguageCode})",
+                                publicationCode, scheduleLanguageCode ?? "null");
                         }
                     }
                     catch (Exception ex)

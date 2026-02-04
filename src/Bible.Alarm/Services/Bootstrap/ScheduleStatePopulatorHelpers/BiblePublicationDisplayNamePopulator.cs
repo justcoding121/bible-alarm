@@ -42,14 +42,19 @@ internal sealed class BiblePublicationDisplayNamePopulator
             return;
         }
 
-        // Check if this is a no-language publication (like "iam" instrumental music).
-        // Publications without language have LanguageId == null in the database and are stored in NoLanguagePublications.
-        // For these publications, we should NOT set the language name even if LanguageCode is present in the schedule.
+        // No-language publications (e.g. "iam") store LanguageCode "E" as the effective code for playback.
+        // Set the display name for that code (e.g. "English") so the UI shows "English" instead of "E".
         if (!string.IsNullOrWhiteSpace(biblePublication.PublicationCode) &&
             lookupData.NoLanguagePublications.ContainsKey(biblePublication.PublicationCode))
         {
-            Log.Logger.Debug("Skipping language name for no-language publication {PublicationCode} in schedule {ScheduleId}",
-                biblePublication.PublicationCode, schedule.Id);
+            var effectiveCode = biblePublication.LanguageCode;
+            if (!string.IsNullOrWhiteSpace(effectiveCode) && languagesDict.TryGetValue(effectiveCode, out var effectiveLanguage))
+            {
+                scheduleStateItem.BiblePublicationLanguageName = effectiveLanguage.Name;
+                scheduleStateItem.BiblePublicationLanguageDirection = effectiveLanguage.Direction;
+                Log.Logger.Debug("Set BiblePublicationLanguageName '{BiblePublicationLanguageName}' for no-language publication {PublicationCode} in schedule {ScheduleId} (effective LanguageCode: {LanguageCode})",
+                    effectiveLanguage.Name, biblePublication.PublicationCode, schedule.Id, effectiveCode);
+            }
             return;
         }
 

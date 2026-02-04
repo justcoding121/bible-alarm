@@ -1,6 +1,9 @@
+#nullable enable
+
 #if WINDOWS
 using Microsoft.UI.Xaml.Controls;
 #endif
+using Syncfusion.Maui.Buttons;
 
 namespace Bible.Alarm.Views.Shared;
 
@@ -11,12 +14,51 @@ public partial class PlatformSwitch : ContentView
         BindableProperty.Create(nameof(IsToggled), typeof(bool), typeof(PlatformSwitch), false, BindingMode.TwoWay,
             propertyChanged: OnIsToggledChanged);
 
+    // Platform-specific switch controls (only one will be non-null at runtime)
+#pragma warning disable CS0649 // Field is never assigned to (platform-specific, assigned only on Windows)
+    private Switch? winUISwitch;
+#pragma warning restore CS0649
+#pragma warning disable CS0649 // Field is never assigned to (platform-specific, assigned only on Android/iOS)
+    private SfSwitch? sfSwitch;
+#pragma warning restore CS0649
+
     public PlatformSwitch()
     {
         InitializeComponent();
+
         // Set default values for inherited properties
         Scale = 1.0;
         HorizontalOptions = LayoutOptions.End;
+
+        // Create platform-specific switch in code to avoid OnPlatform<View> issues
+        InitializePlatformSwitch();
+    }
+
+    private void InitializePlatformSwitch()
+    {
+#if WINDOWS
+        winUISwitch = new Switch
+        {
+            MinimumWidthRequest = 0,
+            MaximumWidthRequest = 60,
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Start
+        };
+        Content = winUISwitch;
+#else
+        sfSwitch = new SfSwitch
+        {
+            VerticalOptions = LayoutOptions.Center,
+            Scale = Scale,
+            HorizontalOptions = HorizontalOptions,
+            SwitchSettings = new SwitchSettings
+            {
+                ThumbBackground = Color.FromArgb("#483D8B"),
+                TrackBackground = Color.FromArgb("#9E9E9E")
+            }
+        };
+        Content = sfSwitch;
+#endif
     }
 
     public bool IsToggled
@@ -32,20 +74,15 @@ public partial class PlatformSwitch : ContentView
             var isToggled = (bool)newValue;
 
             // Update WinUI Switch
-            if (platformSwitch.WinUISwitch != null)
+            if (platformSwitch.winUISwitch != null)
             {
-                platformSwitch.WinUISwitch.IsToggled = isToggled;
+                platformSwitch.winUISwitch.IsToggled = isToggled;
             }
 
-            // Update Android SfSwitch
-            if (platformSwitch.AndroidSwitch != null)
+            // Update SfSwitch (Android/iOS)
+            if (platformSwitch.sfSwitch != null)
             {
-                platformSwitch.AndroidSwitch.IsOn = isToggled;
-            }
-            // Update iOS SfSwitch
-            if (platformSwitch.iOSSwitch != null)
-            {
-                platformSwitch.iOSSwitch.IsOn = isToggled;
+                platformSwitch.sfSwitch.IsOn = isToggled;
             }
         }
     }
@@ -56,10 +93,10 @@ public partial class PlatformSwitch : ContentView
         base.OnHandlerChanged();
 
         // Set up event handlers after the view is loaded
-        if (WinUISwitch != null)
+        if (winUISwitch != null)
         {
-            WinUISwitch.Toggled += (_, e) => IsToggled = e.Value;
-            
+            winUISwitch.Toggled += (_, e) => IsToggled = e.Value;
+
 #if WINDOWS
             // For WinUI, ensure the native ToggleSwitch MinWidth is set to 0
             // This must be done after the handler is connected to access the native view
@@ -69,51 +106,32 @@ public partial class PlatformSwitch : ContentView
             }
 #endif
         }
-        if (AndroidSwitch != null)
+
+        if (sfSwitch != null)
         {
-            AndroidSwitch.StateChanged += (_, _) => IsToggled = AndroidSwitch.IsOn ?? false;
-        }
-        if (iOSSwitch != null)
-        {
-            iOSSwitch.StateChanged += (_, _) => IsToggled = iOSSwitch.IsOn ?? false;
+            sfSwitch.StateChanged += (_, _) => IsToggled = sfSwitch.IsOn ?? false;
         }
     }
 
-    protected override void OnPropertyChanged(string propertyName = null)
+    protected override void OnPropertyChanged(string? propertyName = null)
     {
         base.OnPropertyChanged(propertyName);
 
         // Sync Scale property to child controls (for Android and iOS SfSwitch)
         if (propertyName == nameof(Scale))
         {
-            if (AndroidSwitch != null)
+            if (sfSwitch != null)
             {
-                AndroidSwitch.Scale = Scale;
-            }
-            if (iOSSwitch != null)
-            {
-                iOSSwitch.Scale = Scale;
+                sfSwitch.Scale = Scale;
             }
         }
 
         // Sync HorizontalOptions property to child controls
         if (propertyName == nameof(HorizontalOptions))
         {
-            // For WinUI, we use HorizontalOptions="Start" on the Switch itself
-            // and let the ContentView handle the End alignment
-#if !WINDOWS
-            if (WinUISwitch != null)
+            if (sfSwitch != null)
             {
-                WinUISwitch.HorizontalOptions = HorizontalOptions;
-            }
-#endif
-            if (AndroidSwitch != null)
-            {
-                AndroidSwitch.HorizontalOptions = HorizontalOptions;
-            }
-            if (iOSSwitch != null)
-            {
-                iOSSwitch.HorizontalOptions = HorizontalOptions;
+                sfSwitch.HorizontalOptions = HorizontalOptions;
             }
         }
     }

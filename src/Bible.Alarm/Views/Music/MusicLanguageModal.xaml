@@ -122,14 +122,8 @@
                 MinimumWidthRequest="250"
                 SelectionMode="None">
                 <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical">
-                        <LinearItemsLayout.ItemSpacing>
-                            <OnPlatform x:TypeArguments="x:Double">
-                                <On Platform="WinUI" Value="4" />
-                                <On Platform="Default" Value="8" />
-                            </OnPlatform>
-                        </LinearItemsLayout.ItemSpacing>
-                    </LinearItemsLayout>
+                    <!-- Use inline OnPlatform syntax for better release mode compatibility -->
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="{OnPlatform WinUI=4, Default=8}" />
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="shared:LanguageListViewItemModel">

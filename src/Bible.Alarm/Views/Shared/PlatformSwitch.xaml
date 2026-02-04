@@ -1,50 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <ContentView x:Class="Bible.Alarm.Views.Shared.PlatformSwitch"
-             x:DataType="local:PlatformSwitch"
+             x:Name="PlatformSwitchView"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:local="clr-namespace:Bible.Alarm.Views.Shared"
-             xmlns:buttons="clr-namespace:Syncfusion.Maui.Buttons;assembly=Syncfusion.Maui.Buttons">
-    <!-- Use native Switch with Border for WinUI, SfSwitch without Border for Android/iOS -->
-    <OnPlatform x:TypeArguments="View">
-        <OnPlatform.Platforms>
-            <On Platform="WinUI">
-                <Switch
-                    x:Name="WinUISwitch"
-                    MinimumWidthRequest="0"
-                    MaximumWidthRequest="60"
-                    VerticalOptions="Center"
-                    HorizontalOptions="Start" />
-            </On>
-            <On Platform="Android">
-                <buttons:SfSwitch
-                    x:Name="AndroidSwitch"
-                    VerticalOptions="Center"
-                    Scale="{Binding Scale, Source={RelativeSource AncestorType={x:Type ContentView}}}"
-                    HorizontalOptions="{Binding HorizontalOptions, Source={RelativeSource AncestorType={x:Type ContentView}}}">
-                    <buttons:SfSwitch.SwitchSettings>
-                        <buttons:SwitchSettings 
-                            ThumbBackground="#483D8B"
-                            TrackBackground="#9E9E9E" />
-                    </buttons:SfSwitch.SwitchSettings>
-                </buttons:SfSwitch>
-            </On>
-            <On Platform="iOS">
-                <buttons:SfSwitch
-                    x:Name="iOSSwitch"
-                    VerticalOptions="Center"
-                    Scale="{Binding Scale, Source={RelativeSource AncestorType={x:Type ContentView}}}"
-                    HorizontalOptions="{Binding HorizontalOptions, Source={RelativeSource AncestorType={x:Type ContentView}}}">
-                    <buttons:SfSwitch.SwitchSettings>
-                        <buttons:SwitchSettings 
-                            ThumbBackground="#483D8B"
-                            TrackBackground="#9E9E9E" />
-                    </buttons:SfSwitch.SwitchSettings>
-                </buttons:SfSwitch>
-            </On>
-        </OnPlatform.Platforms>
-    </OnPlatform>
+             xmlns:local="clr-namespace:Bible.Alarm.Views.Shared">
+    <!-- Switch control is created in code-behind to avoid OnPlatform<View> which causes -->
+    <!-- HandlerNotFoundException in release builds due to trimming/AOT -->
+    <!-- The Content property is set in InitializePlatformSwitch() -->
 </ContentView>
-
 
