@@ -65,6 +65,11 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         IScheduleContainerService scheduleContainerService,
         ScheduleStateChangeHandler scheduleStateChangeHandler)
     {
+#if DEBUG
+        var constructorStartTime = DateTime.UtcNow;
+        Log.Logger.Information("[PERF] ScheduleViewModel: Constructor started at {StartTime}", constructorStartTime);
+#endif
+
         // Initialize readonly fields
         this.logger = logger;
         this.mapper = mapper;
@@ -175,6 +180,11 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
 
         // Initialize containers asynchronously after page is visible
         _ = InitializeContainerViewModelsAsync();
+
+#if DEBUG
+        var constructorElapsed = (DateTime.UtcNow - constructorStartTime).TotalMilliseconds;
+        logger.Information("[PERF] ScheduleViewModel: Constructor completed in {ElapsedMs}ms", constructorElapsed);
+#endif
     }
 
     private bool isInitializingContainers;

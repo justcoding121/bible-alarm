@@ -67,12 +67,28 @@ public class HomeNavigationHelper
             return;
         }
 
+#if DEBUG
+        var startTime = DateTime.UtcNow;
+        logger.Information("[PERF] ShowOverlayAndNavigateAsync: Start at {StartTime}, ScheduleId={ScheduleId}",
+            startTime, scheduleListItem.Schedule.Id);
+#endif
+
         // Show overlay IMMEDIATELY for instant feedback (like Add button)
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
+
+#if DEBUG
+        logger.Information("[PERF] ShowOverlayAndNavigateAsync: Overlay dispatched, now calling NavigateToScheduleAsync");
+#endif
 
         // Navigate with the schedule ID - state will be set inside the lock to prevent race conditions
         // (If we set state here and wait for lock, Home.OnAppearing could clear it)
         await navigationService.NavigateToScheduleAsync(scheduleListItem.Schedule.Id, scheduleListItem.IsEnabled);
+
+#if DEBUG
+        var endTime = DateTime.UtcNow;
+        logger.Information("[PERF] ShowOverlayAndNavigateAsync: Complete in {ElapsedMs}ms",
+            (endTime - startTime).TotalMilliseconds);
+#endif
     }
 }
 

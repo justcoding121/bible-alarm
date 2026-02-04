@@ -49,52 +49,16 @@ public static class AndroidAutoScheduleHelper
 
     /// <summary>
     /// Builds the display title for a schedule state item.
-    /// Format for sectioned Bible: "Section Name - Track Number" (e.g., "Genesis - 1")
-    /// Format for drama/video: Track Title (e.g., "Adam and Eve in the Garden of Eden")
+    /// Title is the Publication Name.
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
         if (scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
-
-            if (hasSectionStructure)
+            // Title is the Publication Name
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
             {
-                // Traditional Bible: "Section Name - Track Number" (e.g., "Genesis - 1")
-                var sectionName = !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName)
-                    ? scheduleItem.BiblePublicationSectionName
-                    : null;
-
-                var trackNumber = scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0
-                    ? scheduleItem.BiblePublicationTrackNumber.Value.ToString()
-                    : null;
-
-                string? title = null;
-                if (sectionName != null && trackNumber != null)
-                {
-                    title = $"{sectionName} {trackNumber}";
-                }
-                else if (sectionName != null)
-                {
-                    title = sectionName;
-                }
-                else if (trackNumber != null)
-                {
-                    title = trackNumber;
-                }
-
-                if (title != null)
-                {
-                    return title;
-                }
-            }
-            else
-            {
-                // Drama/Video: Show track title
-                if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
-                {
-                    return scheduleItem.BiblePublicationTrackTitle;
-                }
+                return scheduleItem.BiblePublicationName;
             }
         }
 
@@ -106,8 +70,7 @@ public static class AndroidAutoScheduleHelper
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: * Publication Name * Section Name * Track Name * Language (+ 🎵 if music enabled)
-    /// For Bible category, section name and track number are combined (e.g. "* Exodus 9") instead of separate section/track parts.
+    /// Format: • Schedule Name (if not empty) • Section Name (if exists) • Track title • Language (if languaged pub) 🎵 (if music enabled)
     /// </summary>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
@@ -116,94 +79,90 @@ public static class AndroidAutoScheduleHelper
             // Fallback: show status and time if no Bible reading schedule
             var statusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
             var timeText = scheduleItem.TimeText;
-            return $"* {statusText} * {timeText}";
+            return $"• {statusText} • {timeText}";
         }
 
         var subtitleParts = new List<string>();
 
-        // Add Publication Name
-        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
+        // Add Schedule Name (if not empty)
+        if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
         {
-            subtitleParts.Add($"* {scheduleItem.BiblePublicationName}");
+            subtitleParts.Add(scheduleItem.Name);
         }
-
-        var isBibleCategory =
-            string.Equals(scheduleItem.BiblePublicationCategoryName, "Bible", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty), "Bible", StringComparison.OrdinalIgnoreCase);
 
         // Add Section/Track info
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
 
-        if (isBibleCategory && hasSectionStructure)
+        if (hasSectionStructure)
         {
-            // Bible category: combine section name + track number (e.g. "Exodus 9")
-            var sectionName = scheduleItem.BiblePublicationSectionName;
-            var trackNumber = scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0
-                ? scheduleItem.BiblePublicationTrackNumber.Value.ToString()
-                : null;
+            // For sectioned publications:
+            // - Music category: use track title (e.g., "Melody Number(s) 195, 224")
+            // - Other categories (Bible, etc.): use track number (e.g., "9")
+            // Combine section + track into single part: "Genesis 1"
+            var categoryName = scheduleItem.BiblePublicationCategoryName
+                ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
+            var isMusicCategory = string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
 
-            if (!string.IsNullOrWhiteSpace(sectionName) && trackNumber != null)
+            var sectionName = scheduleItem.BiblePublicationSectionName;
+            string? trackPart = null;
+
+            if (isMusicCategory && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
             {
-                subtitleParts.Add($"* {sectionName} {trackNumber}");
+                trackPart = scheduleItem.BiblePublicationTrackTitle;
+            }
+            else
+            {
+                trackPart = scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0
+                    ? scheduleItem.BiblePublicationTrackNumber.Value.ToString()
+                    : null;
+            }
+
+            // Combine section + track into one part (e.g., "Genesis 1")
+            if (!string.IsNullOrWhiteSpace(sectionName) && !string.IsNullOrWhiteSpace(trackPart))
+            {
+                subtitleParts.Add($"{sectionName} {trackPart}");
             }
             else if (!string.IsNullOrWhiteSpace(sectionName))
             {
-                subtitleParts.Add($"* {sectionName}");
+                subtitleParts.Add(sectionName);
             }
-            else if (trackNumber != null)
+            else if (!string.IsNullOrWhiteSpace(trackPart))
             {
-                subtitleParts.Add($"* {trackNumber}");
+                subtitleParts.Add(trackPart);
             }
         }
         else
         {
-            // Non-Bible categories:
-            // - If sectioned, show section name + track title (fallback to track number).
-            // - If non-sectioned, show track title.
-            if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
-            {
-                subtitleParts.Add($"* {scheduleItem.BiblePublicationSectionName}");
-            }
-
+            // Non-sectioned publications (dramas/videos): show track title
             if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
             {
-                subtitleParts.Add($"* {scheduleItem.BiblePublicationTrackTitle}");
-            }
-            else if (hasSectionStructure)
-            {
-                var trackNumber = scheduleItem.BiblePublicationTrackNumber.HasValue && scheduleItem.BiblePublicationTrackNumber.Value > 0
-                    ? scheduleItem.BiblePublicationTrackNumber.Value.ToString()
-                    : null;
-                if (trackNumber != null)
-                {
-                    subtitleParts.Add($"* {trackNumber}");
-                }
+                subtitleParts.Add(scheduleItem.BiblePublicationTrackTitle);
             }
         }
 
-        // Add Language (at the end)
-        var languageName = !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName)
-            ? scheduleItem.BiblePublicationLanguageName
-            : scheduleItem.BiblePublicationLanguageCode ?? string.Empty;
-
-        if (!string.IsNullOrWhiteSpace(languageName))
+        // Add Language only if BiblePublicationLanguageName is set.
+        // Publications without language (like "iam" instrumental music) don't have a language name in the media index.
+        // Don't fall back to BiblePublicationLanguageCode as it might be stale from cascade logic.
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName))
         {
-            // Add music note emoji (🎵) to the right of language text if music is enabled
-            var languageText = scheduleItem.MusicEnabled
-                ? $"{languageName} 🎵"
-                : languageName;
-            subtitleParts.Add($"* {languageText}");
+            subtitleParts.Add(scheduleItem.BiblePublicationLanguageName);
+        }
+
+        // Add music note emoji if music is enabled (at the end)
+        if (scheduleItem.MusicEnabled)
+        {
+            subtitleParts.Add("🎵");
         }
 
         if (subtitleParts.Count > 0)
         {
-            return string.Join(" ", subtitleParts);
+            return string.Join(" • ", subtitleParts);
         }
 
         // Fallback: show status and time
         var fallbackStatusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";
         var fallbackTimeText = scheduleItem.TimeText;
-        return $"* {fallbackStatusText} * {fallbackTimeText}";
+        return $"• {fallbackStatusText} • {fallbackTimeText}";
     }
 }
 

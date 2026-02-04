@@ -89,9 +89,20 @@ public sealed class NavigationService(
 
     public async Task NavigateToScheduleAsync(int scheduleId, bool isEnabled)
     {
+#if DEBUG
+        var overallStartTime = DateTime.UtcNow;
+        logger.Information("[PERF] NavigateToScheduleAsync: Start at {StartTime}", overallStartTime);
+#endif
+
         // Use lock to prevent race conditions with concurrent navigation
         await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
         {
+#if DEBUG
+            var lockAcquiredTime = DateTime.UtcNow;
+            logger.Information("[PERF] NavigateToScheduleAsync: Lock acquired in {ElapsedMs}ms",
+                (lockAcquiredTime - overallStartTime).TotalMilliseconds);
+#endif
+
             // Set navigation context BEFORE creating page - ScheduleStateManager will read this
             // This is simpler than Fluxor state which can be cleared by ResetScheduleStateAction
             ScheduleNavigationContext.ScheduleIdToLoad = scheduleId;
@@ -100,14 +111,38 @@ public sealed class NavigationService(
             // Reset container readiness
             dispatcher.Dispatch(new ResetContainerReadinessAction());
 
+#if DEBUG
+            var beforeResolveTime = DateTime.UtcNow;
+            logger.Information("[PERF] NavigateToScheduleAsync: Before page resolve at {Time}", beforeResolveTime);
+#endif
+
             var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
+
+#if DEBUG
+            var afterResolveTime = DateTime.UtcNow;
+            logger.Information("[PERF] NavigateToScheduleAsync: Page resolved in {ElapsedMs}ms",
+                (afterResolveTime - beforeResolveTime).TotalMilliseconds);
+#endif
+
             var navigation = GetNavigation();
 
             // Set navigation bar setting
             NavigationPage.SetHasNavigationBar(page, false);
 
+#if DEBUG
+            var beforePushTime = DateTime.UtcNow;
+            logger.Information("[PERF] NavigateToScheduleAsync: Before push at {Time}", beforePushTime);
+#endif
+
             // Push the page without animation for instant navigation
             await navigation.PushAsync(page, animated: false);
+
+#if DEBUG
+            var afterPushTime = DateTime.UtcNow;
+            logger.Information("[PERF] NavigateToScheduleAsync: Push completed in {ElapsedMs}ms, total: {TotalMs}ms",
+                (afterPushTime - beforePushTime).TotalMilliseconds,
+                (afterPushTime - overallStartTime).TotalMilliseconds);
+#endif
         });
     }
 

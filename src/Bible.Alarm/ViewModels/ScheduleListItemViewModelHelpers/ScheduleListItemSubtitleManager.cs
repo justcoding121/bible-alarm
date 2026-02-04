@@ -108,13 +108,12 @@ public sealed class ScheduleListItemSubtitleManager(
 
     private static void UpdateLanguageFromState(ScheduleStateItem scheduleStateItem, Action<string> setLanguage, Action<string> onPropertyChanged)
     {
+        // Only show language if BiblePublicationLanguageName is set.
+        // Publications without language (like "iam" instrumental music) don't have a language name in the media index.
+        // Don't fall back to BiblePublicationLanguageCode as it might be stale from cascade logic.
         if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
         {
             setLanguage(DisplayTextHelper.NormalizeSingleLine(scheduleStateItem.BiblePublicationLanguageName));
-        }
-        else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageCode))
-        {
-            setLanguage(DisplayTextHelper.NormalizeSingleLine(scheduleStateItem.BiblePublicationLanguageCode));
         }
         else
         {
@@ -182,14 +181,12 @@ public sealed class ScheduleListItemSubtitleManager(
             }
         }
 
-        // Add Language (at the end)
+        // Add Language only if BiblePublicationLanguageName is set.
+        // Publications without language (like "iam" instrumental music) don't have a language name in the media index.
+        // Don't fall back to BiblePublicationLanguageCode as it might be stale from cascade logic.
         if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageName))
         {
             AddPart(parts, scheduleStateItem.BiblePublicationLanguageName);
-        }
-        else if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationLanguageCode))
-        {
-            AddPart(parts, scheduleStateItem.BiblePublicationLanguageCode);
         }
 
         return string.Join(" • ", parts);

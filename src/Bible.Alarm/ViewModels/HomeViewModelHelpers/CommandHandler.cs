@@ -5,6 +5,7 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using CommunityToolkit.Mvvm.Input;
+using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
@@ -73,6 +74,12 @@ public class CommandHandler
                 return;
             }
 
+#if DEBUG
+            var commandStartTime = DateTime.UtcNow;
+            Log.Information("[PERF] ViewScheduleCommand: Tap received at {StartTime}, ScheduleId={ScheduleId}",
+                commandStartTime, x.Schedule?.Id);
+#endif
+
             // Set IsNavigating immediately to show progress indicator on the item
             x.IsNavigating = true;
             
@@ -81,6 +88,10 @@ public class CommandHandler
             
             // Wait 50ms to ensure UI thread renders the update before doing backend work
             await Task.Delay(50);
+
+#if DEBUG
+            Log.Information("[PERF] ViewScheduleCommand: After 50ms delay, checking if should skip");
+#endif
 
             if (shouldSkipNavigation(x))
             {
@@ -93,7 +104,17 @@ public class CommandHandler
                 return;
             }
 
+#if DEBUG
+            Log.Information("[PERF] ViewScheduleCommand: About to call showOverlayAndNavigateAsync");
+#endif
+
             await showOverlayAndNavigateAsync(x);
+
+#if DEBUG
+            var commandEndTime = DateTime.UtcNow;
+            Log.Information("[PERF] ViewScheduleCommand: Navigation completed, total time: {ElapsedMs}ms",
+                (commandEndTime - commandStartTime).TotalMilliseconds);
+#endif
             
             // Reset IsNavigating and hide progress bar after navigation completes
             x.IsNavigating = false;

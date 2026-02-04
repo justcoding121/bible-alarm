@@ -87,12 +87,15 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
 #if DEBUG
                     var verifyMediaStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
-                    // Run all bootstrap tasks in parallel
+                    // Run all bootstrap tasks in parallel, including HTTP assembly warmup
+                    // Assembly warmup preloads HTTP/download assemblies to prevent UI freezes
+                    // when DefaultCarScreenEffect downloads track metadata after bootstrap
                     var task1 = databaseBootstrapService.InitializeAsync();
                     var task2 = fluxorBootstrapService.InitializeAsync();
                     var task3 = resourceBootstrapService.CopyResourcesAsync();
+                    var task4 = AssemblyWarmupHelper.WarmupHttpAssembliesAsync();
 
-                    await Task.WhenAll(task1, task2, task3);
+                    await Task.WhenAll(task1, task2, task3, task4);
 #if DEBUG
                     var verifyMediaElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - verifyMediaStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                     Log.Logger.Information("[BOOTSTRAP] Media index verification/copy completed in {ElapsedMs:F2}ms", verifyMediaElapsed);

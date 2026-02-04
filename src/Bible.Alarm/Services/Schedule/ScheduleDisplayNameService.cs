@@ -118,6 +118,16 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                             .FirstOrDefaultAsync();
 
                         publicationWithoutLanguage = publication != null;
+
+                        // For no-language publications, clear the language name that was set earlier.
+                        // The schedule might have a stale LanguageCode from cascade logic, but the publication
+                        // itself doesn't have a language (LanguageId == null).
+                        if (publicationWithoutLanguage)
+                        {
+                            scheduleStateItem.BiblePublicationLanguageName = null;
+                            scheduleStateItem.BiblePublicationLanguageDirection = null;
+                            logger.Debug("Cleared BiblePublicationLanguageName for no-language publication {PublicationCode}", publicationCode);
+                        }
                     }
                     catch (Exception ex)
                     {

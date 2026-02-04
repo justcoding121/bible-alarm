@@ -170,8 +170,24 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
             // Dispatch SetCarPlayScreenAction to fetch and set default schedule metadata for car displays
             // Android: Updates MediaSession for Android Auto
             // iOS: Updates MPNowPlayingInfoCenter for CarPlay and Lock Screen
-            dispatcher.Dispatch(new SetCarPlayScreenAction());
-            Log.Logger.Debug("SetCarPlayScreenAction dispatched after bootstrap completion");
+            // 
+            // IMPORTANT: Defer this dispatch to allow the UI to render and become responsive first.
+            // The DefaultCarScreenEffect triggered by this action downloads a track and extracts metadata,
+            // which causes many assemblies to load. On Android debug (FastDev), assembly loading is very slow
+            // and can block the main thread for 20+ seconds if triggered immediately after bootstrap.
+            // By deferring with Task.Run + delay, we allow:
+            // 1. The main thread to process pending UI work and render
+            // 2. User taps to be processed (app becomes responsive)
+            // 3. Then the metadata fetching happens in the background
+            _ = Task.Run(async () =>
+            {
+                // Wait for UI to render and become responsive
+                // This delay allows the main thread to process queued input events
+                await Task.Delay(2000);
+                
+                Log.Logger.Debug("SetCarPlayScreenAction dispatched (deferred) after UI render");
+                dispatcher.Dispatch(new SetCarPlayScreenAction());
+            });
 #endif
         }
         catch (Exception ex)

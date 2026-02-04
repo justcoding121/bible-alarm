@@ -24,7 +24,7 @@ internal sealed class BiblePublicationDisplayNamePopulator
         }
 
         var biblePublication = schedule.BiblePublicationSchedule;
-        SetLanguageName(schedule, scheduleStateItem, biblePublication, languagesDict);
+        SetLanguageName(schedule, scheduleStateItem, biblePublication, languagesDict, lookupData);
         SetPublicationName(schedule, scheduleStateItem, biblePublication, lookupData);
         SetSectionName(schedule, scheduleStateItem, biblePublication, lookupData);
         SetTrackTitle(schedule, scheduleStateItem, biblePublication, lookupData);
@@ -34,10 +34,22 @@ internal sealed class BiblePublicationDisplayNamePopulator
         AlarmSchedule schedule,
         ScheduleStateItem scheduleStateItem,
         BiblePublicationSchedule biblePublication,
-        Dictionary<string, Language>? languagesDict)
+        Dictionary<string, Language>? languagesDict,
+        LookupDataLoader.LookupData lookupData)
     {
         if (languagesDict == null)
         {
+            return;
+        }
+
+        // Check if this is a no-language publication (like "iam" instrumental music).
+        // Publications without language have LanguageId == null in the database and are stored in NoLanguagePublications.
+        // For these publications, we should NOT set the language name even if LanguageCode is present in the schedule.
+        if (!string.IsNullOrWhiteSpace(biblePublication.PublicationCode) &&
+            lookupData.NoLanguagePublications.ContainsKey(biblePublication.PublicationCode))
+        {
+            Log.Logger.Debug("Skipping language name for no-language publication {PublicationCode} in schedule {ScheduleId}",
+                biblePublication.PublicationCode, schedule.Id);
             return;
         }
 

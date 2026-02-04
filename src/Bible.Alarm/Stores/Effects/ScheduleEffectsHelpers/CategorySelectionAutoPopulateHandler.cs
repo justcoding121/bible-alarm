@@ -405,25 +405,21 @@ public sealed class CategorySelectionAutoPopulateHandler
             updatedSchedule.BiblePublicationCategoryId = action.CategoryId;
             updatedSchedule.BiblePublicationCategoryName = action.CategoryName;
             
-            // Always set language to "E" (English) when category changes, even if publication doesn't have LanguageId
-            // The publication list will show both publications for "E" and publications with null LanguageId
-            if (selectedLanguage != null)
+            // For publications without language (LanguageId == null), clear language fields.
+            // For publications with language, set language fields from selectedLanguage.
+            if (publicationWithoutLanguage)
+            {
+                updatedSchedule.BiblePublicationLanguageCode = null;
+                updatedSchedule.BiblePublicationLanguageName = null;
+                updatedSchedule.BiblePublicationLanguageDirection = null;
+                logger.Debug("CategorySelectionAutoPopulateHandler: Clearing language fields for publication without LanguageId={PublicationCode}",
+                    publicationCode);
+            }
+            else if (selectedLanguage != null)
             {
                 updatedSchedule.BiblePublicationLanguageCode = selectedLanguage.LanguageCode;
                 updatedSchedule.BiblePublicationLanguageName = selectedLanguage.Name;
                 updatedSchedule.BiblePublicationLanguageDirection = selectedLanguage.Direction ?? "ltr";
-            }
-            else
-            {
-                // Fallback: if no language found, clear language fields only if publication doesn't have LanguageId
-                if (publicationWithoutLanguage)
-                {
-                    updatedSchedule.BiblePublicationLanguageCode = null;
-                    updatedSchedule.BiblePublicationLanguageName = null;
-                    updatedSchedule.BiblePublicationLanguageDirection = null;
-                    logger.Debug("CategorySelectionAutoPopulateHandler: Clearing language fields for publication without LanguageId={PublicationCode} (no languages available)",
-                        publicationCode);
-                }
             }
             
             updatedSchedule.BiblePublicationCode = publicationCode;
