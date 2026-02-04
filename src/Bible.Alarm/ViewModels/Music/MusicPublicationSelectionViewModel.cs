@@ -197,6 +197,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         propertyManager.ShowProgress = false;
         propertyManager.HasFetchError = false;
         propertyManager.IsBusy = false;
+        // Allow screen to turn off when user cancels
+        DeviceDisplay.Current.KeepScreenOn = false;
     }
 
     private async Task RetryFetchAsync()
@@ -412,7 +414,12 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
     private async Task RefreshFromStateInternal()
     {
-        await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = true);
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            propertyManager.IsBusy = true;
+            // Keep screen on during download to prevent Android from restricting network access
+            DeviceDisplay.Current.KeepScreenOn = true;
+        });
 
         // Wait for state to be updated (in case language was just changed)
         // This handles the race condition where the modal opens before state is fully updated
@@ -554,6 +561,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 propertyManager.ShowProgress = false;
+                // Allow screen to turn off after download completes or fails
+                DeviceDisplay.Current.KeepScreenOn = false;
             });
         }
     }

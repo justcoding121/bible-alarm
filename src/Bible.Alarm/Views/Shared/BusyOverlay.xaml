@@ -37,6 +37,25 @@
                 HeightRequest="{DynamicResource IconLargeContainerSize}"
                 WidthRequest="{DynamicResource IconLargeContainerSize}"
                 IndicatorColor="{StaticResource PrimaryColor}" />
+            <!-- Progress Section (shown when ShowProgress is true) -->
+            <VerticalStackLayout
+                IsVisible="{Binding Source={x:Reference busyOverlay}, Path=ShowProgress}"
+                HorizontalOptions="Center"
+                Spacing="8">
+                <!-- Progress Text -->
+                <Label
+                    Text="{Binding Source={x:Reference busyOverlay}, Path=ProgressText}"
+                    FontSize="{DynamicResource SmallMediumFontSize}"
+                    TextColor="{DynamicResource TextPrimaryColor}"
+                    HorizontalOptions="Center"
+                    HorizontalTextAlignment="Center" />
+                <!-- Progress Bar -->
+                <ProgressBar
+                    WidthRequest="{DynamicResource ContentWidthSmall}"
+                    HorizontalOptions="Center"
+                    Progress="{Binding Source={x:Reference busyOverlay}, Path=ProgressPercent}"
+                    ProgressColor="{StaticResource PrimaryColor}" />
+            </VerticalStackLayout>
             <!-- Cancel Button (shown when ShowCancelButton is true) -->
             <Border x:Name="cancelButtonBorder"
                 BackgroundColor="{DynamicResource ControlBackgroundColor}"

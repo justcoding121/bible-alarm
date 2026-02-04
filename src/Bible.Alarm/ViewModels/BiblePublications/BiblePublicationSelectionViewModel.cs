@@ -138,6 +138,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         propertyManager.ShowProgress = false;
         propertyManager.HasFetchError = false;
         propertyManager.IsBusy = false;
+        // Allow screen to turn off when user cancels
+        DeviceDisplay.Current.KeepScreenOn = false;
     }
 
     private async Task RetryFetchAsync()
@@ -207,6 +209,9 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         fetchCts = new CancellationTokenSource();
         propertyManager.CanCancelFetch = true;
         propertyManager.HasFetchError = false;
+        
+        // Keep screen on during download to prevent Android from restricting network access
+        DeviceDisplay.Current.KeepScreenOn = true;
 
         // Create progress tracker with cancellation support
         var progressTracker = new FetchProgressTracker(
@@ -241,6 +246,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         finally
         {
             propertyManager.CanCancelFetch = false;
+            // Allow screen to turn off after download completes or fails
+            DeviceDisplay.Current.KeepScreenOn = false;
         }
     }
 

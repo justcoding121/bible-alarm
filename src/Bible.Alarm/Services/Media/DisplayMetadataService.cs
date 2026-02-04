@@ -419,6 +419,15 @@ public sealed class DisplayMetadataService(
             try
             {
                 var filePath = ConvertUriToFilePath(uri);
+                
+                // Verify file exists before attempting to read metadata
+                // This provides better diagnostics than relying on TagLib's FileNotFoundException
+                if (!System.IO.File.Exists(filePath))
+                {
+                    logger.Debug("File does not exist for metadata extraction: {FilePath} (from URI: {Uri})", filePath, uri);
+                    return CreateFallbackMetadata();
+                }
+
                 using var file = File.Create(filePath);
                 var tag = file.Tag;
 
@@ -429,7 +438,7 @@ public sealed class DisplayMetadataService(
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, $"Failed to extract metadata from {uri}");
+                logger.Warning(ex, "Failed to extract metadata from {Uri}", uri);
                 return CreateFallbackMetadata();
             }
         });
@@ -438,9 +447,35 @@ public sealed class DisplayMetadataService(
     private static string ConvertUriToFilePath(string uri)
     {
         // Convert file:// URI to local path, or use URI as-is if already a file path
-        return uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase)
-            ? new Uri(uri).LocalPath
-            : uri;
+        if (!uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+        {
+            return uri;
+        }
+
+        // Use Uri class to properly decode the file path
+        // This handles URL-encoded characters and platform-specific path separators
+        try
+        {
+            var fileUri = new Uri(uri);
+            return fileUri.LocalPath;
+        }
+        catch
+        {
+            // If URI parsing fails, try to extract path manually
+            // Remove "file://" prefix (or "file:///" on Unix)
+            var path = uri.Substring(7);
+            if (path.StartsWith("//"))
+            {
+                // UNC path or extra slashes
+                path = path.TrimStart('/');
+            }
+            else if (!path.StartsWith("/") && OperatingSystem.IsWindows())
+            {
+                // Windows path without leading slash
+                return path;
+            }
+            return "/" + path.TrimStart('/');
+        }
     }
 
     private static MetaData ExtractBasicMetadata(TagLib.Tag tag)

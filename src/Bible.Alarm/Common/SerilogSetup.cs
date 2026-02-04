@@ -56,14 +56,16 @@ public class SerilogSetup
         loggerConfig.MinimumLevel.Debug(); // All levels in DEBUG mode
         loggerConfig.Enrich.WithProperty("Environment", AppConstants.Logging.DebugEnvironment);
 
-        // Configure debug sink for Visual Studio Output window
+        // Configure debug sink for Visual Studio Output window using Async wrapper
+        // The Async wrapper ensures logging calls don't block the calling thread,
+        // which is critical for UI responsiveness during debugging
         // Serilog's Debug sink writes to the Visual Studio Output window
         // Works on Windows, Android, and iOS when debugging in Visual Studio
         // Make sure to select "Debug" in the Output window's "Show output from:" dropdown
-        loggerConfig.WriteTo.Debug(
-            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);
+        loggerConfig.WriteTo.Async(a => a.Debug(
+            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate));
 
-        // Configure file logging (DEBUG mode)
+        // Configure file logging (DEBUG mode) using Async wrapper
         var logDirectory = GetLogDirectory();
         if (!string.IsNullOrEmpty(logDirectory))
         {
@@ -77,17 +79,18 @@ public class SerilogSetup
 
                 var logFilePath = Path.Combine(logDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
 
-                // Write to file with rolling (daily rotation, keep last 7 days)
+                // Write to file with rolling (daily rotation, keep last 7 days) using Async wrapper
                 // All levels (Debug and above) will be written
-                // flushToDiskInterval: TimeSpan.Zero forces immediate flushing (no buffering)
-                loggerConfig.WriteTo.File(
+                // flushToDiskInterval: 1 second provides good balance between performance and log visibility
+                // The Async wrapper queues log events to a background thread, preventing UI blocking
+                loggerConfig.WriteTo.Async(a => a.File(
                     path: logFilePath,
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: 7,
                     outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
                     restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug, // All levels in DEBUG mode
                     shared: true, // Allow multiple processes to write to the same log file
-                    flushToDiskInterval: TimeSpan.Zero); // Force immediate flush to disk (no buffering)
+                    flushToDiskInterval: TimeSpan.FromSeconds(1))); // Buffer for 1 second for better performance
             }
             catch (Exception ex)
             {
@@ -109,7 +112,7 @@ public class SerilogSetup
         // RELEASE mode: File logging only, Error level and above only
         loggerConfig.MinimumLevel.Error(); // Only Error and Fatal in RELEASE mode
 
-        // Configure file logging (RELEASE mode only)
+        // Configure file logging (RELEASE mode only) using Async wrapper
         var logDirectory = GetLogDirectory();
         if (!string.IsNullOrEmpty(logDirectory))
         {
@@ -120,17 +123,18 @@ public class SerilogSetup
                 
                 var logFilePath = Path.Combine(logDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
                 
-                // Write to file with rolling (daily rotation, keep last 7 days)
+                // Write to file with rolling (daily rotation, keep last 7 days) using Async wrapper
                 // Only Error and Fatal levels will be written
                 // flushToDiskInterval: 2 seconds buffers writes for better performance
-                loggerConfig.WriteTo.File(
+                // The Async wrapper queues log events to a background thread, preventing any blocking
+                loggerConfig.WriteTo.Async(a => a.File(
                     path: logFilePath,
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: 7,
                     outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
                     restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error, // Only Error and Fatal in RELEASE mode
                     shared: true, // Allow multiple processes to write to the same log file
-                    flushToDiskInterval: TimeSpan.FromSeconds(2)); // Buffer for 2 seconds for better performance
+                    flushToDiskInterval: TimeSpan.FromSeconds(2))); // Buffer for 2 seconds for better performance
             }
             catch (Exception ex)
             {

@@ -30,6 +30,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
+    private readonly INavigationService navigationService;
     private readonly IMapper mapper;
     private bool initComplete;
     private BiblePublicationSchedule? lastCurrent;
@@ -40,6 +41,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     private string progressText = "0%";
     private bool isDisposed = false;
     private bool isSelectingSection;
+    private CancellationTokenSource? fetchCts;
     
     // Semaphore to serialize RefreshFromState calls - ensures second call waits for first to complete
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
@@ -52,6 +54,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
     public ICommand TrackSelectionCommand { get; set; }
+    public ICommand CancelFetchCommand { get; }
 
     public BiblePublicationSectionSelectionViewModel(ILogger logger, IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
     {
@@ -59,6 +62,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         this.mediaService = mediaService;
         this.state = state;
         this.dispatcher = dispatcher;
+        this.navigationService = navigationService;
         this.mapper = mapper;
         sectionListLoader = new SectionListLoader(logger, mediaService);
         trackSelectionResolver = new TrackSelectionResolver(logger, mediaService);
@@ -74,6 +78,17 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
+            await navigationService.PopModalAsync();
+        });
+
+        CancelFetchCommand = new AsyncRelayCommand(async () =>
+        {
+            logger.Information("BiblePublicationSectionSelectionViewModel: CancelFetchCommand - User cancelled fetch");
+            fetchCts?.Cancel();
+            ShowProgress = false;
+            IsBusy = false;
+            // Allow screen to turn off when user cancels
+            DeviceDisplay.Current.KeepScreenOn = false;
             await navigationService.PopModalAsync();
         });
 
@@ -294,6 +309,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     if (!isDisposed && !isSelectingSection)
                     {
                         IsBusy = true;
+                        // Keep screen on during download to prevent Android from restricting network access
+                        DeviceDisplay.Current.KeepScreenOn = true;
                     }
                 });
                 
@@ -301,6 +318,11 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 {
                     return;
                 }
+                
+                // Cancel any previous fetch operation
+                fetchCts?.Cancel();
+                fetchCts?.Dispose();
+                fetchCts = new CancellationTokenSource();
                 
                 // Create progress tracker for modal open with async UI updates (fire-and-forget tasks to avoid blocking)
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
@@ -324,7 +346,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                         {
                             ShowProgress = isVisible;
                         }
-                    }));
+                    }),
+                    fetchCts.Token);
                 
                 // Use the latest state values, not cached ones
                 await Initialize(newLanguageCode, newPublicationCode, progressTracker);
@@ -350,6 +373,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     if (!isDisposed && !isSelectingSection)
                     {
                         ShowProgress = false;
+                        // Allow screen to turn off after download completes
+                        DeviceDisplay.Current.KeepScreenOn = false;
                     }
                 });
             }
@@ -357,6 +382,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             {
                 // Log error but don't throw - allow modal to continue functioning
                 logger.Error(ex, "BiblePublicationSectionSelectionViewModel: RefreshFromStateInternal - Error during repopulation");
+                // Allow screen to turn off after error
+                MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
                 // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -390,6 +417,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         
         isDisposed = true;
         state.StateChanged -= OnBiblePublicationChanged;
+        fetchCts?.Cancel();
+        fetchCts?.Dispose();
         refreshSemaphore.Dispose();
     }
 

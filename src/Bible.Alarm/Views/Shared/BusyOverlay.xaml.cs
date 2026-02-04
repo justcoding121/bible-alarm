@@ -68,6 +68,63 @@ public partial class BusyOverlay : ContentView
         set => SetValue(CancelCommandProperty, value);
     }
 
+    /// <summary>
+    /// Whether to show the progress bar section (progress text + progress bar).
+    /// </summary>
+    public static readonly BindableProperty ShowProgressProperty = BindableProperty.Create(
+        nameof(ShowProgress),
+        typeof(bool),
+        typeof(BusyOverlay),
+        false,
+        BindingMode.OneWay);
+
+    /// <summary>
+    /// Whether to show the progress bar section.
+    /// </summary>
+    public bool ShowProgress
+    {
+        get => (bool)GetValue(ShowProgressProperty);
+        set => SetValue(ShowProgressProperty, value);
+    }
+
+    /// <summary>
+    /// The progress value (0.0 to 1.0).
+    /// </summary>
+    public static readonly BindableProperty ProgressPercentProperty = BindableProperty.Create(
+        nameof(ProgressPercent),
+        typeof(double),
+        typeof(BusyOverlay),
+        0.0,
+        BindingMode.OneWay);
+
+    /// <summary>
+    /// The progress value (0.0 to 1.0).
+    /// </summary>
+    public double ProgressPercent
+    {
+        get => (double)GetValue(ProgressPercentProperty);
+        set => SetValue(ProgressPercentProperty, value);
+    }
+
+    /// <summary>
+    /// The progress text (e.g., "50%").
+    /// </summary>
+    public static readonly BindableProperty ProgressTextProperty = BindableProperty.Create(
+        nameof(ProgressText),
+        typeof(string),
+        typeof(BusyOverlay),
+        string.Empty,
+        BindingMode.OneWay);
+
+    /// <summary>
+    /// The progress text (e.g., "50%").
+    /// </summary>
+    public string ProgressText
+    {
+        get => (string)GetValue(ProgressTextProperty);
+        set => SetValue(ProgressTextProperty, value);
+    }
+
     private CancellationTokenSource? timeoutCancellation;
     private bool isProcessingVisibilityChange;
 

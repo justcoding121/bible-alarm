@@ -28,6 +28,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private readonly IMediaService mediaService;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
+    private readonly INavigationService navigationService;
     private readonly IMapper mapper;
     private readonly MusicInstrumentalSectionListLoader sectionListLoader;
     private readonly MusicSectionSelectionCommandHandler commandHandler;
@@ -42,6 +43,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private double progressPercent = 0.0;
     private string progressText = "0%";
     private MusicSectionSelectionStateChangeHandler? stateChangeHandler;
+    private CancellationTokenSource? fetchCts;
     
     // Semaphore to serialize RefreshFromState calls - ensures second call waits for first to complete
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
@@ -49,6 +51,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
     public ICommand TrackSelectionCommand { get; set; }
+    public ICommand CancelFetchCommand { get; }
 
     public MusicSectionSelectionViewModel(
         ILogger logger,
@@ -62,6 +65,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         this.mediaService = mediaService;
         this.state = state;
         this.dispatcher = dispatcher;
+        this.navigationService = navigationService;
         this.mapper = mapper;
         sectionListLoader = new MusicInstrumentalSectionListLoader(logger, mediaService);
         commandHandler = new MusicSectionSelectionCommandHandler(logger, mediaService, state, dispatcher, navigationService);
@@ -73,6 +77,17 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
 
         CloseModalCommand = new AsyncRelayCommand(async () =>
         {
+            await navigationService.PopModalAsync();
+        });
+
+        CancelFetchCommand = new AsyncRelayCommand(async () =>
+        {
+            logger.Information("MusicSectionSelectionViewModel: CancelFetchCommand - User cancelled fetch");
+            fetchCts?.Cancel();
+            ShowProgress = false;
+            IsBusy = false;
+            // Allow screen to turn off when user cancels
+            DeviceDisplay.Current.KeepScreenOn = false;
             await navigationService.PopModalAsync();
         });
 
@@ -156,6 +171,11 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
 
     private async Task Initialize(string publicationCode)
     {
+        // Cancel any previous fetch operation
+        fetchCts?.Cancel();
+        fetchCts?.Dispose();
+        fetchCts = new CancellationTokenSource();
+        
         // Create progress tracker for state change handler (when publication/music type changes)
         var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
             progress => _ = MainThread.InvokeOnMainThreadAsync(() => 
@@ -178,7 +198,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                 {
                     ShowProgress = isVisible;
                 }
-            }));
+            }),
+            fetchCts.Token);
         
         await PopulateSections(publicationCode, progressTracker);
     }
@@ -273,6 +294,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                     if (!isDisposed && !isSelectingSection)
                     {
                         IsBusy = true;
+                        // Keep screen on during download to prevent Android from restricting network access
+                        DeviceDisplay.Current.KeepScreenOn = true;
                     }
                 });
                 
@@ -280,6 +303,11 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                 {
                     return;
                 }
+                
+                // Cancel any previous fetch operation
+                fetchCts?.Cancel();
+                fetchCts?.Dispose();
+                fetchCts = new CancellationTokenSource();
                 
                 // Create progress tracker for modal open with async UI updates (fire-and-forget tasks to avoid blocking)
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
@@ -303,7 +331,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                         {
                             ShowProgress = isVisible;
                         }
-                    }));
+                    }),
+                    fetchCts.Token);
                 
                 // Use the latest state values, not cached ones
                 await PopulateSections(publicationCode, progressTracker);
@@ -329,6 +358,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                     if (!isDisposed && !isSelectingSection)
                     {
                         ShowProgress = false;
+                        // Allow screen to turn off after download completes
+                        DeviceDisplay.Current.KeepScreenOn = false;
                     }
                 });
             }
@@ -336,6 +367,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             {
                 // Log error but don't throw - allow modal to continue functioning
                 logger.Error(ex, "[MusicSectionSelection] RefreshFromState - Error during repopulation");
+                // Allow screen to turn off after error
+                MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
                 // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -372,6 +405,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         
         isDisposed = true;
         state.StateChanged -= OnMusicSectionChanged;
+        fetchCts?.Cancel();
+        fetchCts?.Dispose();
         refreshSemaphore.Dispose();
     }
 
