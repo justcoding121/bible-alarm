@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -73,8 +74,9 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
 
     /// <summary>
     /// Gets the next Bible track.
-    /// For non-sectioned publications (sectionCode == 0), navigates through tracks directly.
-    /// For sectioned publications, navigates through tracks within sections.
+    /// For non-sectioned publications, navigates through tracks with wrap at end.
+    /// For sectioned publications, circular queue at publication level: next from last track of last section
+    /// wraps to first track of first section (not within a section).
     /// </summary>
     public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextBiblePublicationTrack(
         string languageCode,
@@ -88,15 +90,7 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             return await GetNextNonSectionedTrack(languageCode, publicationCode, track);
         }
 
-        // Sectioned publication logic
-        //
-        // IMPORTANT:
-        // Some sectioned publications are stored in the media index WITHOUT a language FK (LanguageId == null),
-        // e.g. melody music "iam" with section codes like "iam-1".
-        //
-        // In that case, calling GetBiblePublicationSection(languageCode, pub, sectionIndex) will fail because
-        // the section isn't language-bound. Always resolve "current section" from the sections dictionary
-        // returned by GetBiblePublicationSections(...) (which is already no-language aware).
+        // Sectioned publication: circle within the whole publication (all sections), not within a section.
         var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
         if (string.IsNullOrEmpty(normalizedSectionCode))
         {
@@ -117,6 +111,7 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, nextTrack.Value);
         }
 
+        // No next track in this section: go to next section (wraps to first section at end of publication).
         var nextSection = await GetNextBiblePublicationSection(languageCode, publicationCode, normalizedSectionCode);
         if (nextSection.Value == null)
         {
@@ -129,14 +124,14 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             throw new InvalidOperationException($"No tracks in next section: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={nextSection.Key}");
         }
 
-        // Start at the first track of the next section (index 0)
         return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(nextSection.Value, tracks.ElementAt(0).Value);
     }
 
     /// <summary>
     /// Gets the previous Bible track.
-    /// For non-sectioned publications (sectionCode == 0), navigates through tracks directly.
-    /// For sectioned publications, navigates through tracks within sections.
+    /// For non-sectioned publications, navigates through tracks with wrap at start.
+    /// For sectioned publications, circular queue at publication level: previous from first track of first section
+    /// wraps to last track of last section (not within a section).
     /// </summary>
     public async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousBiblePublicationTrack(
         string languageCode,
@@ -150,8 +145,7 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             return await GetPreviousNonSectionedTrack(languageCode, publicationCode, track);
         }
 
-        // Sectioned publication logic
-        // See GetNextBiblePublicationTrack for why we resolve sections via GetSectionsCachedAsync.
+        // Sectioned publication: circle within the whole publication (all sections), not within a section.
         var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
         if (string.IsNullOrEmpty(normalizedSectionCode))
         {
@@ -165,13 +159,14 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
         }
 
         var tracks = await GetTracksCachedAsync(languageCode, publicationCode, normalizedSectionCode);
-        var previousTrack = tracks.Reverse().SkipWhile(kvp => kvp.Key >= track).FirstOrDefault();
+        var previousTrack = tracks.OrderBy(kvp => kvp.Key).Reverse().SkipWhile(kvp => kvp.Key >= track).FirstOrDefault();
 
         if (!previousTrack.Equals(default(KeyValuePair<int, BiblePublicationTrack>)))
         {
             return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, previousTrack.Value);
         }
 
+        // No previous track in this section: go to previous section (wraps to last section at start of publication).
         var previousSection = await GetPreviousBiblePublicationSection(languageCode, publicationCode, normalizedSectionCode);
         if (previousSection.Value == null)
         {
@@ -184,7 +179,7 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             throw new InvalidOperationException($"No tracks in previous section: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={previousSection.Key}");
         }
 
-        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(previousSection.Value, tracks.ElementAt(tracks.Count - 1).Value);
+        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(previousSection.Value, tracks.OrderBy(kvp => kvp.Key).Last().Value);
     }
 
     /// <summary>
@@ -248,7 +243,8 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
     }
 
     /// <summary>
-    /// Gets the previous Bible section.
+    /// Gets the previous Bible section in publication order.
+    /// Circular: previous of first section is the last section.
     /// </summary>
     public async Task<KeyValuePair<string, BiblePublicationSection>> GetPreviousBiblePublicationSection(
         string languageCode,
@@ -267,15 +263,17 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             throw new InvalidOperationException($"Invalid section code: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        var keys = sections.Keys.ToList();
-        var currentIndex = keys.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+        // Order section keys by natural comparer so index 0 = first section (e.g. Genesis), last index = last section (e.g. Revelation).
+        var orderedKeys = sections.Keys.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
+        var currentIndex = orderedKeys.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
         if (currentIndex < 0)
         {
             throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
         }
 
-        var prevIndex = (currentIndex - 1 + keys.Count) % keys.Count;
-        var prevKey = keys[prevIndex];
+        // Circular wrap at publication level: previous of first section = last section.
+        var prevIndex = (currentIndex - 1 + orderedKeys.Count) % orderedKeys.Count;
+        var prevKey = orderedKeys[prevIndex];
         if (!sections.TryGetValue(prevKey, out var prevSection))
         {
             throw new InvalidOperationException($"Bible section with key {prevKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
@@ -285,7 +283,8 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
     }
 
     /// <summary>
-    /// Gets the next Bible section.
+    /// Gets the next Bible section in publication order.
+    /// Circular: next of last section is the first section.
     /// </summary>
     public async Task<KeyValuePair<string, BiblePublicationSection>> GetNextBiblePublicationSection(
         string languageCode,
@@ -304,15 +303,17 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             throw new InvalidOperationException($"Invalid section code: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        var keys = sections.Keys.ToList();
-        var currentIndex = keys.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+        // Order section keys by natural comparer so index 0 = first section, last index = last section.
+        var orderedKeys = sections.Keys.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
+        var currentIndex = orderedKeys.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
         if (currentIndex < 0)
         {
             throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
         }
 
-        var nextIndex = (currentIndex + 1) % keys.Count;
-        var nextKey = keys[nextIndex];
+        // Circular wrap at publication level: next of last section = first section.
+        var nextIndex = (currentIndex + 1) % orderedKeys.Count;
+        var nextKey = orderedKeys[nextIndex];
         if (!sections.TryGetValue(nextKey, out var nextSection))
         {
             throw new InvalidOperationException($"Bible section with key {nextKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");

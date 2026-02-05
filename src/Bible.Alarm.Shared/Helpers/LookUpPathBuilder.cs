@@ -14,7 +14,7 @@ public static class LookUpPathBuilder
     /// </summary>
     /// <param name="languageCode">The language code (e.g., "E" for English)</param>
     /// <param name="publicationCode">The publication/publication code (e.g., "nwt")</param>
-    /// <param name="sectionCode">The section code (e.g., "1" for Bible books). Null/empty means non-sectioned (videos).</param>
+    /// <param name="sectionCode">The section code (e.g., "1" for Bible books). Null/empty means non-sectioned (flat music uses MP3, videos use MP4).</param>
     /// <param name="trackNumber">The track number</param>
     /// <param name="isNoLanguagePublication">True if the publication has no language (e.g., instrumental music). Defaults to false.</param>
     /// <returns>The lookup path query string</returns>
@@ -38,9 +38,14 @@ public static class LookUpPathBuilder
         var effectiveIsNoLanguage = isNoLanguagePublication || isDiscStyleSection;
         var lc = effectiveIsNoLanguage || string.IsNullOrWhiteSpace(languageCode) ? "E" : languageCode.Trim();
 
-        // For non-sectioned publications (videos), omit booknum parameter and use MP4
+        // For non-sectioned publications: flat music (e.g. osg) uses MP3; videos use MP4
         if (string.IsNullOrWhiteSpace(sectionCode))
         {
+            // Vocal music (osg, sjjc, etc.) is flat and MP3. Harvester uses fileformat=MP3 for these.
+            if (JwSourceHelper.VocalMusicPublicationCodes.Contains(publicationCode))
+            {
+                return $"?output=json&pub={publicationCode}&fileformat=MP3&langwritten={lc}&track={trackNumber}";
+            }
             // Videos use MP4, not MP3. Match harvester format: no txtCMSLang for videos
             return $"?output=json&pub={publicationCode}&fileformat=MP4&langwritten={lc}&track={trackNumber}";
         }

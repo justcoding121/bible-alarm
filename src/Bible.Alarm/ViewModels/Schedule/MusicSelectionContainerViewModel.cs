@@ -105,7 +105,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         musicEnabledHandler = new MusicEnabledHandler(logger, dispatcher, serviceProvider, state);
         stateTracker = new MusicStateTracker();
         stateInitializer = new MusicStateInitializer(state, dispatcher, displayTextProvider, propertyNotifier);
-        stateChangeHandler = new MusicStateChangeHandler(state, dispatcher, mapper, stateTracker, propertyNotifier, displayTextProvider);
+        stateChangeHandler = new MusicStateChangeHandler(logger, state, dispatcher, mapper, serviceProvider, stateTracker, propertyNotifier, displayTextProvider);
 
         state.StateChanged += OnStateChanged;
 

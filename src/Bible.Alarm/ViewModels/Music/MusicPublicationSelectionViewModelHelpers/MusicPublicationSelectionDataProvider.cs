@@ -142,8 +142,8 @@ public sealed class MusicPublicationSelectionDataProvider(
                 }
             }
 
-            // Sort publications: nwt first, then bi12, then others by name (same as Bible publication)
-            songPublicationVMs = PublicationSortHelper.SortByPriority(songPublicationVMs, p => p.Code, p => p.Name).ToList();
+            // Sort publications by category: Music = osg first, then others by name
+            songPublicationVMs = PublicationSortHelper.SortByPriorityForCategory(songPublicationVMs, p => p.Code, p => p.Name, "Music").ToList();
         }
 
         // Update mapping

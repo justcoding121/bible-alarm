@@ -349,8 +349,14 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
     private async Task PopulateLanguages(string? searchTerm = null)
     {
+        // Use same effective current as RefreshLanguagesAsync so selection is correct for melody (E) and vocal.
+        var currentSchedule = state.Value.CurrentSchedule;
+        var currentLanguageCode = currentSchedule?.MusicLanguageCode;
+        var effectiveLanguageCode = !string.IsNullOrEmpty(currentLanguageCode) ? currentLanguageCode : "E";
+        var effectiveCurrent = new AlarmMusic { LanguageCode = effectiveLanguageCode };
+
         await dataProvider.PopulateLanguages(
-            stateManager.Current,
+            effectiveCurrent,
             propertyManager.Languages,
             lang => propertyManager.CurrentLanguage = lang,
             searchTerm);
@@ -367,21 +373,27 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             // Get current language code from state (more reliable than stateManager.Current)
             var currentSchedule = state.Value.CurrentSchedule;
             var currentLanguageCode = currentSchedule?.MusicLanguageCode;
-            
-            // Create a temporary AlarmMusic to pass the language code to PopulateLanguages
-            var tempCurrent = currentLanguageCode != null 
-                ? new AlarmMusic { LanguageCode = currentLanguageCode }
-                : stateManager.Current;
-            
-            Serilog.Log.Debug("MusicPublicationSelectionViewModel.RefreshLanguagesAsync: currentLanguageCode={LanguageCode}", 
-                currentLanguageCode ?? "(null)");
-            
+
+            // For melody (MusicLanguageCode null), use effective language "E" so the language modal
+            // marks English as selected and scroll-to-selected works (same UX as Bible language modal).
+            var effectiveLanguageCode = !string.IsNullOrEmpty(currentLanguageCode)
+                ? currentLanguageCode
+                : "E";
+
+            var tempCurrent = new AlarmMusic { LanguageCode = effectiveLanguageCode };
+
+            Serilog.Log.Debug("MusicPublicationSelectionViewModel.RefreshLanguagesAsync: currentLanguageCode={LanguageCode}, effectiveLanguageCode={Effective}",
+                currentLanguageCode ?? "(null)", effectiveLanguageCode);
+
             // Populate languages for the language modal
             await dataProvider.PopulateLanguages(
                 tempCurrent,
                 propertyManager.Languages,
                 lang => propertyManager.CurrentLanguage = lang,
                 null);
+
+            // Attach search handler so typing in the Language modal filters the list (same as Bible language modal).
+            propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await PopulateLanguages(searchTerm));
         }
         catch (Exception ex)
         {

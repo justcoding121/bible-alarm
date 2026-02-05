@@ -102,16 +102,26 @@ public class MusicEnabledHandler
 
             if (shouldResetToDefault)
             {
-                // This is the first enable after opening a schedule with music disabled
-                // Reset to default music (same as new schedule)
-                // This is the ONLY place we query DB when enabling music on existing schedule
+                // Only set default music (iam) when state has no publication code. Otherwise retain current selection (e.g. osg).
                 Task.Run(async () =>
                 {
                     try
                     {
+                        var schedule = state.Value.CurrentSchedule;
+                        if (schedule == null)
+                        {
+                            return;
+                        }
+                        if (!string.IsNullOrEmpty(schedule.MusicPublicationCode))
+                        {
+                            // Schedule already has a music publication (e.g. osg) – retain it, do not reset to iam
+                            return;
+                        }
+
                         var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
 
-                        // Get all melody music publications from database and use the first one
+                        // Prefer "iam" (Kingdom Melodies) as default, else first available (same as sample schedule)
+                        const string PreferredMelodyPublicationCode = "iam";
                         var melodyReleases = await melodyMusicService.GetAllAsync();
                         if (melodyReleases == null || melodyReleases.Count == 0)
                         {
@@ -119,14 +129,23 @@ public class MusicEnabledHandler
                             return;
                         }
 
-                        var firstMelody = melodyReleases.FirstOrDefault();
-                        if (firstMelody.Value == null)
+                        string defaultPublicationCode;
+                        string defaultPublicationName;
+                        if (melodyReleases.TryGetValue(PreferredMelodyPublicationCode, out var preferred) && preferred != null)
                         {
-                            return;
+                            defaultPublicationCode = PreferredMelodyPublicationCode;
+                            defaultPublicationName = preferred.Name;
                         }
-
-                        var defaultPublicationCode = firstMelody.Key;
-                        var defaultPublicationName = firstMelody.Value.Name;
+                        else
+                        {
+                            var firstMelody = melodyReleases.FirstOrDefault();
+                            if (firstMelody.Value == null)
+                            {
+                                return;
+                            }
+                            defaultPublicationCode = firstMelody.Key;
+                            defaultPublicationName = firstMelody.Value.Name;
+                        }
 
                         // Get default music from DB (same as sample schedule)
                         var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);

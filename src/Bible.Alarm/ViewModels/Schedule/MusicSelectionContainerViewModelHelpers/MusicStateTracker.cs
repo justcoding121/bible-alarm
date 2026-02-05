@@ -21,6 +21,7 @@ public sealed class MusicStateTracker
     private string? lastMusicLanguageDirection;
     private string? lastMusicPublicationName;
     private string? lastMusicSectionName;
+    private int? defaultMusicTriggeredForScheduleId;
 
     public int? LastScheduleMusicTrackNumber => lastScheduleMusicTrackNumber;
     public string? LastMusicSectionCode => lastScheduleMusicSectionCode;
@@ -180,5 +181,22 @@ public sealed class MusicStateTracker
     public void UpdateMusicLanguageDirection(string? value)
     {
         lastMusicLanguageDirection = value;
+    }
+
+    /// <summary>
+    /// Returns true if we have not yet triggered default music (iam) for this schedule when publication code was null.
+    /// Used when user toggles open music container and state has no music publication code.
+    /// </summary>
+    public bool ShouldTriggerDefaultMusicForNullPublication(int scheduleId)
+    {
+        return defaultMusicTriggeredForScheduleId != scheduleId;
+    }
+
+    /// <summary>
+    /// Record that we triggered default music for this schedule so we don't trigger again.
+    /// </summary>
+    public void RecordDefaultMusicTriggered(int scheduleId)
+    {
+        defaultMusicTriggeredForScheduleId = scheduleId;
     }
 }

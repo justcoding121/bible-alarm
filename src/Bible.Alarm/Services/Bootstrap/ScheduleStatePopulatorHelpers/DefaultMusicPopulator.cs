@@ -47,7 +47,8 @@ internal sealed class DefaultMusicPopulator
                 return;
             }
 
-            // Get all melody music publications from database and use the first one
+            // Get all melody music publications; prefer "iam" (Kingdom Melodies) as default, else first available
+            const string PreferredMelodyPublicationCode = "iam";
             var melodyReleases = await melodyMusicService.GetAllAsync();
             if (melodyReleases == null || melodyReleases.Count == 0)
             {
@@ -56,14 +57,23 @@ internal sealed class DefaultMusicPopulator
                 return;
             }
 
-            var firstMelody = melodyReleases.FirstOrDefault();
-            if (firstMelody.Value == null)
+            string defaultPublicationCode;
+            string defaultPublicationName;
+            if (melodyReleases.TryGetValue(PreferredMelodyPublicationCode, out var preferred) && preferred != null)
             {
-                return;
+                defaultPublicationCode = PreferredMelodyPublicationCode;
+                defaultPublicationName = preferred.Name;
             }
-
-            var defaultPublicationCode = firstMelody.Key;
-            var defaultPublicationName = firstMelody.Value.Name;
+            else
+            {
+                var firstMelody = melodyReleases.FirstOrDefault();
+                if (firstMelody.Value == null)
+                {
+                    return;
+                }
+                defaultPublicationCode = firstMelody.Key;
+                defaultPublicationName = firstMelody.Value.Name;
+            }
 
             // Load tracks for the default melody music
             var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);

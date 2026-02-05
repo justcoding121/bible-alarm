@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 
 namespace Bible.Alarm.Shared.Models.Media;
@@ -48,8 +47,7 @@ public class TrackMetadata
 
     /// <summary>
     /// The lookup path (query string) for refreshing the URL from the API.
-    /// If set, this value is used. Otherwise, it's computed from parameters.
-    /// For dramas, uses Mediator API format. For Bible/Videos/Music, uses GETPUBMEDIALINKS format.
+    /// Must be set from the media index (UrlConstructionService) before use. We only play harvested tracks.
     /// </summary>
     private string? _lookUpPath;
 
@@ -57,25 +55,12 @@ public class TrackMetadata
     {
         get
         {
-            // If LookUpPath was set explicitly (from UrlConstructionService), use it
-            if (!string.IsNullOrEmpty(_lookUpPath))
+            if (string.IsNullOrEmpty(_lookUpPath))
             {
-                return _lookUpPath;
+                throw new InvalidOperationException(
+                    "TrackMetadata.LookUpPath was not set. Lookup path must be loaded from the media index (IUrlConstructionService.ConstructTrackLookUpPathAsync) before playback.");
             }
-
-            // Fallback to computed LookUpPath for backward compatibility
-            if (PlayType == PlayType.Bible)
-            {
-                // Check if this is a drama (uses Mediator API)
-                if (PublicationTypeHelper.IsDrama(PublicationCode))
-                {
-                    return LookUpPathBuilder.BuildDramaTrackLookUpPath(PublicationCode, LanguageCode, TrackNumber, NaturalKey);
-                }
-                // Traditional Bible publication (uses GETPUBMEDIALINKS)
-                return LookUpPathBuilder.BuildBiblePublicationTrackLookUpPath(LanguageCode, PublicationCode, SectionCode, TrackNumber);
-            }
-            // Music (uses GETPUBMEDIALINKS)
-            return LookUpPathBuilder.BuildMusicTrackLookUpPath(PublicationCode, LanguageCode, TrackNumber, DownloadCode, OriginalTrackNumber);
+            return _lookUpPath;
         }
         set => _lookUpPath = value;
     }

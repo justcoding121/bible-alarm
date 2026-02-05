@@ -11,7 +11,7 @@ namespace Bible.Alarm.Services.Media.Playlist;
 
 /// <summary>
 /// Handles building Bible tracks for playlists.
-/// Separated from PlaylistService for better modularity.
+/// Lookup path is always loaded from the media index (we only play harvested tracks).
 /// </summary>
 public class PlaylistBiblePublicationTrackBuilder
 {
@@ -19,77 +19,23 @@ public class PlaylistBiblePublicationTrackBuilder
     private readonly IMediaService mediaService;
     private readonly IBiblePublicationService? biblePublicationService;
     private readonly IMediaUrlRefreshService urlRefreshService;
-    private readonly IUrlConstructionService? urlConstructionService;
+    private readonly IUrlConstructionService urlConstructionService;
 
     public PlaylistBiblePublicationTrackBuilder(
-        ILogger logger, 
-        IMediaService mediaService, 
-        IMediaUrlRefreshService urlRefreshService, 
-        IBiblePublicationService? biblePublicationService = null,
-        IUrlConstructionService? urlConstructionService = null)
+        ILogger logger,
+        IMediaService mediaService,
+        IMediaUrlRefreshService urlRefreshService,
+        IUrlConstructionService urlConstructionService,
+        IBiblePublicationService? biblePublicationService = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
         this.urlRefreshService = urlRefreshService;
-        this.biblePublicationService = biblePublicationService;
         this.urlConstructionService = urlConstructionService;
+        this.biblePublicationService = biblePublicationService;
     }
 
     public record TrackInfo(string? SectionCode, BiblePublicationTrack Track, string Url);
-
-    private static bool TryApplyDiscMusicLookUpPath(
-        TrackMetadata trackMetadata,
-        string publicationCode,
-        string languageCode,
-        string? sectionCode,
-        int trackNumber)
-    {
-        var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
-        if (string.IsNullOrWhiteSpace(normalizedSectionCode))
-        {
-            return false;
-        }
-
-        // Melody disc-style codes (e.g., "iam-1") need MUSIC-style lookup:
-        // pub=iam-1&track=1 (NOT booknum=iam-1).
-        if (!normalizedSectionCode.Contains('-'))
-        {
-            return false;
-        }
-
-        if (!normalizedSectionCode.StartsWith(publicationCode + "-", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        // Avoid numeric parsing: only validate that the suffix is a non-zero digit sequence.
-        var parts = normalizedSectionCode.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length < 2)
-        {
-            return false;
-        }
-
-        var suffix = parts[^1];
-        if (string.IsNullOrEmpty(suffix) || !suffix.All(char.IsDigit) || suffix.All(c => c == '0'))
-        {
-            return false;
-        }
-
-        trackMetadata.DownloadCode = normalizedSectionCode;
-        trackMetadata.OriginalTrackNumber = trackNumber;
-        // Disc-style sections (e.g., "iam-1") are always no-language publications
-        // The API response will have files under "E", so set LanguageCode to "E" for response parsing
-        trackMetadata.LanguageCode = "E";
-        trackMetadata.LookUpPath = LookUpPathBuilder.BuildMusicTrackLookUpPath(
-            publicationCode,
-            languageCode,
-            trackNumber,
-            downloadCode: normalizedSectionCode,
-            originalTrackNumber: trackNumber,
-            isNoLanguagePublication: true);
-
-        return true;
-    }
 
     public async Task<List<PlayItem>> BuildBiblePublicationTracks(
         int scheduleId,
@@ -260,27 +206,21 @@ public class PlaylistBiblePublicationTrackBuilder
             TrackNumber = trackDetail.Number
         };
 
-        // Special-case: "iam-1" style sections use MUSIC-style lookup (pub=iam-1), not booknum=iam-1.
-        var lookUpPathApplied = TryApplyDiscMusicLookUpPath(
-            trackMetadata,
+        // Lookup path from media index only (we only play harvested tracks)
+        var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
             biblePublicationSchedule.PublicationCode,
             effectiveLanguageCode,
             sectionCode,
             trackDetail.Number);
-
-        // Otherwise use UrlConstructionService to get the lookup path from database
-        if (!lookUpPathApplied && urlConstructionService != null)
+        if (string.IsNullOrEmpty(lookUpPath))
         {
-            var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
-                biblePublicationSchedule.PublicationCode,
-                effectiveLanguageCode,
-                sectionCode,
-                trackDetail.Number);
-            if (!string.IsNullOrEmpty(lookUpPath))
-            {
-                trackMetadata.LookUpPath = lookUpPath;
-            }
+            throw new InvalidOperationException(
+                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={sectionCode ?? "(none)"}, track={trackDetail.Number}. Only harvested tracks can be played.");
         }
+        trackMetadata.LookUpPath = lookUpPath;
+
+        // So alarm modal shows full track title for disc-style melody (e.g. iam): DisplayMetadataService needs DownloadCode/OriginalTrackNumber.
+        ApplyDiscStyleDisplayMetadata(trackMetadata, sectionCode, trackDetail.Number);
 
         var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
         if (string.IsNullOrEmpty(url))
@@ -289,6 +229,36 @@ public class PlaylistBiblePublicationTrackBuilder
         }
 
         return new TrackInfo(sectionCode, trackDetail, url);
+    }
+
+    /// <summary>
+    /// Sets DownloadCode and OriginalTrackNumber when section is disc-style (e.g. iam-9).
+    /// DisplayMetadataService uses these to resolve melody track title in the alarm modal.
+    /// </summary>
+    private static void ApplyDiscStyleDisplayMetadata(TrackMetadata trackMetadata, string? sectionCode, int trackNumber)
+    {
+        var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
+        if (string.IsNullOrWhiteSpace(normalizedSectionCode) || !normalizedSectionCode.Contains('-'))
+        {
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(trackMetadata.PublicationCode) ||
+            !normalizedSectionCode.StartsWith(trackMetadata.PublicationCode + "-", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        var parts = normalizedSectionCode.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length < 2)
+        {
+            return;
+        }
+        var suffix = parts[^1];
+        if (string.IsNullOrEmpty(suffix) || !suffix.All(char.IsDigit) || suffix.All(c => c == '0'))
+        {
+            return;
+        }
+        trackMetadata.DownloadCode = normalizedSectionCode;
+        trackMetadata.OriginalTrackNumber = trackNumber;
     }
 
     private async Task<TrackInfo> GetInitialTrackInfoForNonSectionedPublication(BiblePublicationSchedule biblePublicationSchedule)
@@ -326,19 +296,18 @@ public class PlaylistBiblePublicationTrackBuilder
             TrackNumber = track.Number
         };
 
-        // Use UrlConstructionService to get the lookup path from database
-        if (urlConstructionService != null)
+        // Lookup path from media index only (we only play harvested tracks)
+        var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
+            biblePublicationSchedule.PublicationCode,
+            biblePublicationSchedule.LanguageCode,
+            null, // No section for non-sectioned publications
+            track.Number);
+        if (string.IsNullOrEmpty(lookUpPath))
         {
-            var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
-                biblePublicationSchedule.PublicationCode,
-                biblePublicationSchedule.LanguageCode,
-                null, // No section for non-sectioned publications
-                track.Number);
-            if (!string.IsNullOrEmpty(lookUpPath))
-            {
-                trackMetadata.LookUpPath = lookUpPath;
-            }
+            throw new InvalidOperationException(
+                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={biblePublicationSchedule.LanguageCode}, track={track.Number}. Only harvested tracks can be played.");
         }
+        trackMetadata.LookUpPath = lookUpPath;
 
         var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
         if (string.IsNullOrEmpty(url))
@@ -377,26 +346,21 @@ public class PlaylistBiblePublicationTrackBuilder
             IsLastTrack = !isIndefinite && remainingTracks == 1
         };
 
-        var lookUpPathApplied = TryApplyDiscMusicLookUpPath(
-            trackMetadata,
+        // Lookup path from media index only (we only play harvested tracks)
+        var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
             biblePublicationSchedule.PublicationCode,
             effectiveLanguageCode,
             sectionCode,
             trackNumber);
-
-        // Otherwise use UrlConstructionService to get the lookup path from database
-        if (!lookUpPathApplied && urlConstructionService != null)
+        if (string.IsNullOrEmpty(lookUpPath))
         {
-            var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
-                biblePublicationSchedule.PublicationCode,
-                effectiveLanguageCode,
-                sectionCode,
-                trackNumber);
-            if (!string.IsNullOrEmpty(lookUpPath))
-            {
-                trackMetadata.LookUpPath = lookUpPath;
-            }
+            throw new InvalidOperationException(
+                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={sectionCode ?? "(none)"}, track={trackNumber}. Only harvested tracks can be played.");
         }
+        trackMetadata.LookUpPath = lookUpPath;
+
+        // So alarm modal shows full track title for disc-style melody (e.g. iam): DisplayMetadataService needs DownloadCode/OriginalTrackNumber.
+        ApplyDiscStyleDisplayMetadata(trackMetadata, sectionCode, trackNumber);
 
         var shouldSet = ShouldSetFinishedDuration(markedSeekTrack, schedule, biblePublicationSchedule, trackMetadata, sectionCode);
         logger.Debug("[PlaylistBuild] ShouldSetFinishedDuration: {ShouldSet}, markedSeekTrack: {MarkedSeekTrack}, AlwaysPlayFromStart: {AlwaysPlayFromStart}, ScheduleFinishedDuration: {ScheduleFinishedDuration}, SectionMatch: {SectionMatch}",
@@ -466,26 +430,18 @@ public class PlaylistBiblePublicationTrackBuilder
             TrackNumber = next.Value.Number
         };
 
-        var lookUpPathApplied = TryApplyDiscMusicLookUpPath(
-            trackMetadata,
+        // Lookup path from media index only (we only play harvested tracks)
+        var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
             biblePublicationSchedule.PublicationCode,
             effectiveLanguageCode,
             nextSectionCode,
             next.Value.Number);
-
-        // Otherwise use UrlConstructionService to get the lookup path from database
-        if (!lookUpPathApplied && urlConstructionService != null)
+        if (string.IsNullOrEmpty(lookUpPath))
         {
-            var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
-                biblePublicationSchedule.PublicationCode,
-                effectiveLanguageCode,
-                nextSectionCode,
-                next.Value.Number);
-            if (!string.IsNullOrEmpty(lookUpPath))
-            {
-                trackMetadata.LookUpPath = lookUpPath;
-            }
+            throw new InvalidOperationException(
+                $"Track not found in media index: pub={biblePublicationSchedule.PublicationCode}, lang={effectiveLanguageCode}, section={nextSectionCode ?? "(none)"}, track={next.Value.Number}. Only harvested tracks can be played.");
         }
+        trackMetadata.LookUpPath = lookUpPath;
 
         var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
         if (string.IsNullOrEmpty(url))

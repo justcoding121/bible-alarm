@@ -391,7 +391,8 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         // Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal
         var isMelodyMusic = string.IsNullOrEmpty(music.LanguageCode);
 
-        // Music language name and direction (for vocals only - when LanguageCode is not null)
+        // Music language name and direction.
+        // For vocal: use selected language. For melody (no-language): show "English" like Bible container for no-language pubs.
         if (!isMelodyMusic && !string.IsNullOrWhiteSpace(music.LanguageCode))
         {
             try
@@ -405,14 +406,36 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 else
                 {
                     scheduleStateItem.MusicLanguageName = music.LanguageCode;
-                    // Default to LTR if language not found
                     scheduleStateItem.MusicLanguageDirection = "ltr";
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating MusicLanguageName");
-                // Default to LTR on error
+                scheduleStateItem.MusicLanguageDirection = "ltr";
+            }
+        }
+        else if (isMelodyMusic)
+        {
+            // Melody (no-language): set display to "English" so row shows "English"; publication modal uses "E" and shows English + no-language pubs (same pattern as Bible).
+            try
+            {
+                var languagesDict = await mediaService.GetVocalMusicLanguages();
+                if (languagesDict.TryGetValue("E", out var englishLanguage))
+                {
+                    scheduleStateItem.MusicLanguageName = englishLanguage.Name;
+                    scheduleStateItem.MusicLanguageDirection = englishLanguage.Direction ?? "ltr";
+                }
+                else
+                {
+                    scheduleStateItem.MusicLanguageName = "English";
+                    scheduleStateItem.MusicLanguageDirection = "ltr";
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Error populating MusicLanguageName for melody");
+                scheduleStateItem.MusicLanguageName = "English";
                 scheduleStateItem.MusicLanguageDirection = "ltr";
             }
         }

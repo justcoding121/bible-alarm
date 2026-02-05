@@ -454,6 +454,10 @@ public class ScheduleEffects(
         return !string.IsNullOrWhiteSpace(schedule.MusicPublicationCode);
     }
 
+    /// <summary>
+    /// Publication modal count for Bible row. Uses category from schedule (Bible/Dramas/etc.).
+    /// Music row uses the same query shape with category fixed to "Music" (see GetMusicPublicationModalItemCountAsync in ScheduleEffects and MusicCascadeHandler).
+    /// </summary>
     private static async Task<int?> GetBiblePublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
     {
         var categoryName = schedule.BiblePublicationCategoryName;
@@ -546,6 +550,10 @@ public class ScheduleEffects(
             .CountAsync();
     }
 
+    /// <summary>
+    /// Publication modal count for Music row. Category is always "Music" (harmony with Bible row which uses category from schedule).
+    /// When MusicLanguageCode is null (melody), effective language "E" so modal shows E + no-language publications.
+    /// </summary>
     private static async Task<int?> GetMusicPublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
     {
         // When MusicLanguageCode is null (no explicit language selected), default to "E" (English)

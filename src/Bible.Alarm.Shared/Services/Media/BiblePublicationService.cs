@@ -201,6 +201,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             var query = dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Category)
+                .Include(x => x.Language)
                 .Where(x => x.Language != null && x.Language.LanguageCode == languageCode);
 
             // Filter by category if provided

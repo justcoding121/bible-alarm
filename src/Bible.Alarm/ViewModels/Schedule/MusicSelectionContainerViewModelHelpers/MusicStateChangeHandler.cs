@@ -1,10 +1,16 @@
 #nullable enable
+using System.Net;
 using AutoMapper;
+using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 using Fluxor;
+using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
@@ -15,24 +21,32 @@ namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelper
 /// </summary>
 public sealed class MusicStateChangeHandler
 {
+    private const string PreferredMelodyPublicationCode = "iam";
+
+    private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
+    private readonly IServiceProvider serviceProvider;
     private readonly MusicStateTracker stateTracker;
     private readonly MusicPropertyNotifier propertyNotifier;
     private readonly MusicDisplayTextProvider displayTextProvider;
 
     public MusicStateChangeHandler(
+        ILogger logger,
         IState<ApplicationState> state,
         IDispatcher dispatcher,
         IMapper mapper,
+        IServiceProvider serviceProvider,
         MusicStateTracker stateTracker,
         MusicPropertyNotifier propertyNotifier,
         MusicDisplayTextProvider displayTextProvider)
     {
+        this.logger = logger;
         this.state = state;
         this.dispatcher = dispatcher;
         this.mapper = mapper;
+        this.serviceProvider = serviceProvider;
         this.stateTracker = stateTracker;
         this.propertyNotifier = propertyNotifier;
         this.displayTextProvider = displayTextProvider;
@@ -90,6 +104,16 @@ public sealed class MusicStateChangeHandler
             HandleMusicLanguageDirectionChange(currentSchedule);
         }
 
+        // When user toggles open the music container and state has no music publication code, default to iam (same as sample schedule)
+        if (currentSchedule != null &&
+            currentSchedule.MusicEnabled &&
+            string.IsNullOrEmpty(currentSchedule.MusicPublicationCode) &&
+            currentSchedule.Id == scheduleId &&
+            stateTracker.ShouldTriggerDefaultMusicForNullPublication(scheduleId))
+        {
+            _ = LoadAndDispatchDefaultMusicWhenPublicationCodeNullAsync(scheduleId, onPropertyChanged);
+        }
+
         // Check if CurrentSchedule music changed (CurrentSchedule is the single source of truth)
         // Music is valid if we have a publication code (MusicType is now inferred from LanguageCode)
         if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
@@ -106,6 +130,86 @@ public sealed class MusicStateChangeHandler
                 musicStateItem,
                 stateHolder,
                 onPropertyChanged);
+        }
+    }
+
+    private async Task LoadAndDispatchDefaultMusicWhenPublicationCodeNullAsync(int scheduleId, Action<string> onPropertyChanged)
+    {
+        try
+        {
+            var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
+            var melodyReleases = await melodyMusicService.GetAllAsync();
+            if (melodyReleases == null || melodyReleases.Count == 0)
+            {
+                return;
+            }
+
+            string defaultPublicationCode;
+            string defaultPublicationName;
+            if (melodyReleases.TryGetValue(PreferredMelodyPublicationCode, out var preferred) && preferred != null)
+            {
+                defaultPublicationCode = PreferredMelodyPublicationCode;
+                defaultPublicationName = preferred.Name;
+            }
+            else
+            {
+                var first = melodyReleases.FirstOrDefault();
+                if (first.Value == null)
+                {
+                    return;
+                }
+                defaultPublicationCode = first.Key;
+                defaultPublicationName = first.Value.Name;
+            }
+
+            var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
+            if (melodyMusic == null || melodyMusic.Tracks == null || melodyMusic.Tracks.Count == 0)
+            {
+                return;
+            }
+
+            BiblePublicationSection? chosenSection = null;
+            BiblePublicationTrack? chosenTrack = null;
+            var sectionsWithTracks = melodyMusic.Sections?
+                .Where(s => s.Tracks != null && s.Tracks.Count > 0)
+                .ToList();
+
+            if (sectionsWithTracks != null && sectionsWithTracks.Count > 0)
+            {
+                chosenSection = sectionsWithTracks[Random.Shared.Next(sectionsWithTracks.Count)];
+                if (chosenSection.Tracks!.Count > 0)
+                {
+                    chosenTrack = chosenSection.Tracks[Random.Shared.Next(chosenSection.Tracks.Count)];
+                }
+            }
+            chosenTrack ??= melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
+
+            var latestSchedule = state.Value.CurrentSchedule;
+            if (latestSchedule == null || latestSchedule.Id != scheduleId ||
+                !string.IsNullOrEmpty(latestSchedule.MusicPublicationCode))
+            {
+                return;
+            }
+
+            var clonedSchedule = latestSchedule.DeepClone();
+            clonedSchedule.MusicEnabled = true;
+            clonedSchedule.MusicPublicationCode = defaultPublicationCode;
+            clonedSchedule.MusicPublicationName = defaultPublicationName;
+            clonedSchedule.MusicLanguageCode = null;
+            clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
+            clonedSchedule.MusicSectionName = chosenSection?.Name;
+            clonedSchedule.MusicTrackNumber = chosenTrack.Number;
+            clonedSchedule.MusicRepeat = false;
+            clonedSchedule.MusicTrackName = WebUtility.HtmlDecode(chosenTrack.Title).Replace('\u00A0', ' ');
+
+            stateTracker.RecordDefaultMusicTriggered(scheduleId);
+            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
+
+            MainThread.BeginInvokeOnMainThread(() => propertyNotifier.NotifyAllMusicPropertiesChanged());
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "MusicStateChangeHandler: Error loading default music when publication code was null");
         }
     }
 

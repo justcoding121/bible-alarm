@@ -40,6 +40,8 @@ public static class ApplicationMusicReducer
     {
         // IMPORTANT: Update CurrentSchedule synchronously here to ensure schedule page shows
         // the new track immediately when modal closes. The async effect runs too late.
+        // Cascade rule: only the changed row and rows below are updated; do not clear the language row
+        // when only publication/track changed (e.g. switching from iam to osg keeps "English").
         var updatedCurrentSchedule = state.CurrentSchedule;
         if (updatedCurrentSchedule != null && action.CurrentMusic != null)
         {
@@ -50,9 +52,15 @@ public static class ApplicationMusicReducer
             updatedCurrentSchedule.MusicSectionCode = music.SectionCode; // Clear if null (when language/publication changes)
             updatedCurrentSchedule.MusicTrackNumber = music.TrackNumber;
             updatedCurrentSchedule.MusicRepeat = music.Repeat;
-            // Also update display names and language direction
-            updatedCurrentSchedule.MusicLanguageName = music.LanguageName;
-            updatedCurrentSchedule.MusicLanguageDirection = music.LanguageDirection;
+            // Display names: use action when provided. When switching to vocal (LanguageCode set) but action has no
+            // LanguageName (e.g. tapped osg from merged list without selecting language), preserve existing so the
+            // language row stays "English" and is not overwritten with null (which would show "E").
+            updatedCurrentSchedule.MusicLanguageName = !string.IsNullOrEmpty(music.LanguageName)
+                ? music.LanguageName
+                : (string.IsNullOrEmpty(music.LanguageCode) ? null : updatedCurrentSchedule.MusicLanguageName);
+            updatedCurrentSchedule.MusicLanguageDirection = !string.IsNullOrEmpty(music.LanguageDirection)
+                ? music.LanguageDirection
+                : (string.IsNullOrEmpty(music.LanguageCode) ? null : updatedCurrentSchedule.MusicLanguageDirection);
             updatedCurrentSchedule.MusicPublicationName = music.PublicationName;
             updatedCurrentSchedule.MusicSectionName = music.SectionName; // Clear if null (when language/publication changes)
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
@@ -69,6 +77,7 @@ public static class ApplicationMusicReducer
     {
         // IMPORTANT: Update CurrentSchedule synchronously here to ensure schedule page shows
         // the new section immediately when modal closes. The async effect runs too late.
+        // Preserve language row when action has no LanguageName but has LanguageCode (same as OnMusicTrackSelected).
         var updatedCurrentSchedule = state.CurrentSchedule;
         if (updatedCurrentSchedule != null && action.CurrentMusic != null)
         {
@@ -79,9 +88,12 @@ public static class ApplicationMusicReducer
             updatedCurrentSchedule.MusicSectionCode = music.SectionCode;
             updatedCurrentSchedule.MusicTrackNumber = music.TrackNumber;
             updatedCurrentSchedule.MusicRepeat = music.Repeat;
-            // Also update display names and language direction
-            updatedCurrentSchedule.MusicLanguageName = music.LanguageName;
-            updatedCurrentSchedule.MusicLanguageDirection = music.LanguageDirection;
+            updatedCurrentSchedule.MusicLanguageName = !string.IsNullOrEmpty(music.LanguageName)
+                ? music.LanguageName
+                : (string.IsNullOrEmpty(music.LanguageCode) ? null : updatedCurrentSchedule.MusicLanguageName);
+            updatedCurrentSchedule.MusicLanguageDirection = !string.IsNullOrEmpty(music.LanguageDirection)
+                ? music.LanguageDirection
+                : (string.IsNullOrEmpty(music.LanguageCode) ? null : updatedCurrentSchedule.MusicLanguageDirection);
             updatedCurrentSchedule.MusicPublicationName = music.PublicationName;
             updatedCurrentSchedule.MusicSectionName = music.SectionName;
             updatedCurrentSchedule.MusicTrackName = music.TrackName;

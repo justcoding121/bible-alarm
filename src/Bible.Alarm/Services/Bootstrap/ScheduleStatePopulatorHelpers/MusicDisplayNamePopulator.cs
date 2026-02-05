@@ -111,6 +111,16 @@ internal sealed class MusicDisplayNamePopulator
         AlarmMusic music,
         LookupDataLoader.LookupData lookupData)
     {
+        // No-language (melody) music: show "English" in the language row, same as Bible container for no-language publications.
+        // Effective language for display and for publication modal is "E" (English + no-language pubs together).
+        if (lookupData.VocalLanguages.TryGetValue("E", out var englishLanguage))
+        {
+            scheduleStateItem.MusicLanguageName = englishLanguage.Name;
+            scheduleStateItem.MusicLanguageDirection = englishLanguage.Direction ?? "ltr";
+            Log.Logger.Debug("Set MusicLanguageName '{MusicLanguageName}' for melody (no-language) in schedule {ScheduleId} (effective display: English)",
+                englishLanguage.Name, schedule.Id);
+        }
+
         // Populate melody publication name
         if (!string.IsNullOrWhiteSpace(music.PublicationCode))
         {

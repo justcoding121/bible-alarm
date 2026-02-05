@@ -32,18 +32,10 @@ internal sealed class MusicPublicationFetchCoordinator
 
         if (isMelodyMusic)
         {
-            // Instrumental music only - get publications without language FK
-            // Use empty string as language code to get all Music category publications
-            // GetBiblePublications will return publications with LanguageId == null for Music category
-            publicationsData = await mediaService.GetBiblePublications(string.Empty, "Music", downloadAll, progress);
-
-            // Filter to only publications without LanguageId
-            if (publicationsData != null)
-            {
-                publicationsData = publicationsData
-                    .Where(kvp => kvp.Value.LanguageId == null)
-                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            }
+            // When in melody mode, show BOTH melody (e.g. Kingdom Melodies) and vocal English (e.g. Original Songs)
+            // so the user can switch without having to select "Vocal" and language first.
+            // GetBiblePublications("E", "Music") returns publications with language E and publications without language FK.
+            publicationsData = await mediaService.GetBiblePublications("E", "Music", downloadAll, progress);
         }
         else if (!string.IsNullOrEmpty(languageCode))
         {

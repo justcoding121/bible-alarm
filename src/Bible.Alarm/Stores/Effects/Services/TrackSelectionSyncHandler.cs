@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -55,7 +56,7 @@ public sealed class TrackSelectionSyncHandler
                     currentSchedule.MusicLanguageCode, action.CurrentMusic.LanguageCode);
             }
 
-            var updatedSchedule = CreateUpdatedScheduleFromTrackSelection(currentSchedule, action, languageCodeChanged);
+            var updatedSchedule = await CreateUpdatedScheduleFromTrackSelectionAsync(currentSchedule, action, languageCodeChanged);
             DispatchTrackUpdateAction(dispatcher, updatedSchedule, currentSchedule.Id);
         }
         catch (Exception ex)
@@ -315,12 +316,12 @@ public sealed class TrackSelectionSyncHandler
         return true;
     }
 
-    private ScheduleStateItem CreateUpdatedScheduleFromTrackSelection(ScheduleStateItem currentSchedule, MusicTrackSelectedAction action, bool languageCodeChanged)
+    private async Task<ScheduleStateItem> CreateUpdatedScheduleFromTrackSelectionAsync(ScheduleStateItem currentSchedule, MusicTrackSelectedAction action, bool languageCodeChanged)
     {
         var updatedSchedule = CloneBasicScheduleProperties(currentSchedule);
         PreserveBiblePublicationProperties(updatedSchedule, currentSchedule);
         UpdateMusicProperties(updatedSchedule, currentSchedule, action.CurrentMusic!, languageCodeChanged);
-        SetMusicDisplayNames(updatedSchedule, action.CurrentMusic!);
+        await SetMusicDisplayNamesAsync(updatedSchedule, action.CurrentMusic!);
         return updatedSchedule;
     }
 
@@ -378,15 +379,43 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.MusicTrackName = currentSchedule.MusicTrackName;
     }
 
-    private void SetMusicDisplayNames(ScheduleStateItem updatedSchedule, MusicStateItem actionMusic)
+    private async Task SetMusicDisplayNamesAsync(ScheduleStateItem updatedSchedule, MusicStateItem actionMusic)
     {
-        // IMPORTANT: Use display names from the action (populated from list items when user tapped).
-        // Do NOT query the database - display names are already available from the selection.
+        // Use display names from the action when present (same as Bible container).
         updatedSchedule.MusicLanguageName = actionMusic.LanguageName;
         updatedSchedule.MusicLanguageDirection = actionMusic.LanguageDirection;
         updatedSchedule.MusicPublicationName = actionMusic.PublicationName;
         updatedSchedule.MusicSectionName = actionMusic.SectionName;
         updatedSchedule.MusicTrackName = actionMusic.TrackName;
+
+        // When switching from melody to vocal (e.g. osg), action may have LanguageCode but LanguageName null
+        // (user tapped osg from merged list without a selected language). Resolve name so the row shows "English" not "E".
+        if (string.IsNullOrWhiteSpace(updatedSchedule.MusicLanguageName) && !string.IsNullOrWhiteSpace(actionMusic.LanguageCode))
+        {
+            var mediaService = ServiceProviderManager.GetService<IMediaService>();
+            if (mediaService != null)
+            {
+                try
+                {
+                    var languages = await mediaService.GetVocalMusicLanguages();
+                    if (languages.TryGetValue(actionMusic.LanguageCode, out var language))
+                    {
+                        updatedSchedule.MusicLanguageName = language.Name;
+                        updatedSchedule.MusicLanguageDirection = language.Direction ?? "ltr";
+                    }
+                    else
+                    {
+                        updatedSchedule.MusicLanguageName = actionMusic.LanguageCode;
+                        updatedSchedule.MusicLanguageDirection = "ltr";
+                    }
+                }
+                catch
+                {
+                    updatedSchedule.MusicLanguageName = actionMusic.LanguageCode;
+                    updatedSchedule.MusicLanguageDirection = "ltr";
+                }
+            }
+        }
 
         Log.Debug("ScheduleEffects: HandleTrackSelected - Using display names from action. LanguageName: {LanguageName}, PublicationName: {PublicationName}, SectionName: {SectionName}, TrackName: {TrackName}",
             updatedSchedule.MusicLanguageName ?? "null",

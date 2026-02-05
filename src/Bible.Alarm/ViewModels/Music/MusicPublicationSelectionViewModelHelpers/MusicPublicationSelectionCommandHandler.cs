@@ -44,9 +44,9 @@ public sealed class MusicPublicationSelectionCommandHandler(
         // Publications without language FK (LanguageId == null) are melody/instrumental.
         var isMelodyMusic = songPublication.IsPublicationWithoutLanguage;
 
-        // For melody music, language code is not needed
-        // For vocal music, language code is required
-        var languageCode = currentLanguage?.Code ?? string.Empty;
+        // For melody music, language code is not needed.
+        // For vocal music, use selected language or the publication's language (e.g. when opening from melody mode we show E + melody list; tapping osg uses publication language "E").
+        var languageCode = currentLanguage?.Code ?? songPublication.PublicationLanguageCode ?? string.Empty;
         if (!isMelodyMusic && string.IsNullOrEmpty(languageCode))
         {
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -178,17 +178,33 @@ public sealed class MusicPublicationSelectionCommandHandler(
 
             progressTracker.UpdateProgress(0.7);
 
+            // For vocal music when currentLanguage is null (e.g. tapped osg from merged list in melody mode),
+            // resolve language name/direction so the reducer can set them and the UI shows "English" not "E".
+            string? resolvedLanguageName = null;
+            string? resolvedLanguageDirection = null;
+            if (!isMelodyMusic && !string.IsNullOrEmpty(languageCode) && currentLanguage == null)
+            {
+                var languages = await mediaService.GetVocalMusicLanguages();
+                if (languages.TryGetValue(languageCode, out var lang))
+                {
+                    resolvedLanguageName = lang.Name;
+                    resolvedLanguageDirection = lang.Direction;
+                }
+            }
+
             // For melody music, LanguageCode is null (stored as null in DB)
             // For vocal music, LanguageCode is the selected language
             var trackSelectedItem = CreateMusicStateItemForSongPublication(
-                songPublication, 
-                isMelodyMusic ? null : languageCode, 
-                trackNumber, 
-                trackName, 
-                isMelodyMusic ? null : currentLanguage, 
+                songPublication,
+                isMelodyMusic ? null : languageCode,
+                trackNumber,
+                trackName,
+                isMelodyMusic ? null : currentLanguage,
                 currentSchedule,
                 sectionCode,
-                sectionName);
+                sectionName,
+                resolvedLanguageName,
+                resolvedLanguageDirection);
             dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
             
             // Wait for cascade to complete by checking state
@@ -345,8 +361,13 @@ public sealed class MusicPublicationSelectionCommandHandler(
         LanguageListViewItemModel? currentLanguage,
         ScheduleStateItem? currentSchedule,
         string? sectionCode = null,
-        string? sectionName = null)
+        string? sectionName = null,
+        string? languageNameOverride = null,
+        string? languageDirectionOverride = null)
     {
+        // Prefer currentLanguage (user selected a language row), then overrides (resolved when tapping vocal from merged list).
+        var languageName = currentLanguage?.Name ?? languageNameOverride;
+        var languageDirection = currentLanguage?.Direction ?? languageDirectionOverride;
         return new MusicStateItem
         {
             Repeat = currentSchedule?.MusicRepeat ?? false,
@@ -354,8 +375,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
             PublicationCode = songPublication.Code,
             SectionCode = sectionCode, // Explicitly set SectionCode (null for non-sectioned publications)
             TrackNumber = trackNumber,
-            LanguageName = currentLanguage?.Name,
-            LanguageDirection = currentLanguage?.Direction,
+            LanguageName = languageName,
+            LanguageDirection = languageDirection,
             PublicationName = songPublication.Name,
             SectionName = sectionName, // Explicitly set SectionName (null for non-sectioned publications)
             TrackName = trackName

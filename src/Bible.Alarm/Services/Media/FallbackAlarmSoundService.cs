@@ -22,8 +22,9 @@ public sealed class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSo
             var fallbackMetadata = new TrackMetadata
             {
                 PublicationCode = "Fallback",
-                // Set TrackNumber > 0 to make it Music type
-                TrackNumber = 1
+                TrackNumber = 1,
+                // Not from media index; use sentinel so LookUpPath getter is never used for cache/key
+                LookUpPath = "?fallback=1"
             };
 
             return new AudioPlayerTrack

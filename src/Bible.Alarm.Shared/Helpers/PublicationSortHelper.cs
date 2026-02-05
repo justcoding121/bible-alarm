@@ -73,4 +73,24 @@ public static class PublicationSortHelper
     {
         return PublicationCodeHelper.GetPriorityPublicationCodes();
     }
+
+    /// <summary>
+    /// Sorts publications by category-specific priority then by name.
+    /// Music: osg first; Bible (or null): nwt, bi12 first; other categories: no priority, then by name.
+    /// </summary>
+    public static IEnumerable<T> SortByPriorityForCategory<T>(
+        IEnumerable<T> publications,
+        Func<T, string> getCode,
+        Func<T, string>? getName,
+        string? categoryName)
+    {
+        if (publications == null)
+            return Enumerable.Empty<T>();
+
+        var comparer = PublicationCodeHelper.GetPublicationCodeComparerForCategory(categoryName);
+        return publications
+            .OrderBy(p => getCode(p), comparer)
+            .ThenBy(p => getName != null ? getName(p) : getCode(p))
+            .ToList();
+    }
 }
