@@ -75,7 +75,7 @@ public sealed class PlaybackNavigationHandler
 
             // Seek-to-saved-position is only for initial play of a track. Any transition via next/prev starts from beginning.
             manuallyVisitedTrackIndices.Add(nextTrackIndex);
-            await playCurrentTrackAsync(startFromBeginning: true);
+            await playCurrentTrackAsync(true);
             return;
         }
 

@@ -1,0 +1,534 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ContentView
+    x:Class="Bible.Alarm.Views.General.PlaybackModalLandscapeContent"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:shared="clr-namespace:Bible.Alarm.ViewModels.Shared"
+    xmlns:fn="clr-namespace:Bible.Alarm.Views"
+    xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
+    xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
+    x:DataType="shared:PlaybackViewModel"
+    IsVisible="{Binding ShowLandscapeLayout}"
+    HorizontalOptions="Fill"
+    VerticalOptions="Fill">
+    <ContentView.Resources>
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        <Color x:Key="WhiteColor">#FFFFFF</Color>
+        <Style x:Key="ControlLabelTextColorStyle" TargetType="Label">
+            <Setter Property="TextColor" Value="{DynamicResource TextSecondaryColor}" />
+            <Style.Triggers>
+                <DataTrigger TargetType="Label" Binding="{Binding AreControlsEnabled}" Value="False">
+                    <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="ControlSliderStyle" TargetType="Slider">
+            <Setter Property="ThumbColor" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="MinimumTrackColor" Value="{DynamicResource PrimaryColor}" />
+            <Style.Triggers>
+                <DataTrigger TargetType="Slider" Binding="{Binding AreControlsEnabled}" Value="False">
+                    <Setter Property="ThumbColor" Value="{DynamicResource DisabledTextColor}" />
+                    <Setter Property="MinimumTrackColor" Value="{DynamicResource DisabledTextColor}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="PlayPauseBorderStyle" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="{DynamicResource PrimaryColor}" />
+            <Style.Triggers>
+                <DataTrigger TargetType="Border" Binding="{Binding AreControlsEnabled}" Value="False">
+                    <Setter Property="BackgroundColor" Value="{DynamicResource DisabledTextColor}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </ContentView.Resources>
+    <Grid
+        RowSpacing="0"
+        VerticalOptions="Fill"
+        HorizontalOptions="Fill">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Background layer: artwork, title, subtitle (layout never changes when panel shows/hides) -->
+        <Grid
+            Grid.Row="0"
+            Padding="{DynamicResource PaddingThickness16}"
+            RowSpacing="{DynamicResource SpacingMedium}"
+            VerticalOptions="Fill"
+            HorizontalOptions="Fill">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Progress indicator when preparing tracks (landscape) -->
+            <Border Grid.Row="0"
+                    IsVisible="{Binding ShowPreparingProgress}"
+                    BackgroundColor="{DynamicResource CardBackgroundColor}"
+                    Opacity="0.95"
+                    StrokeThickness="0"
+                    Padding="{DynamicResource PaddingThickness24_20}"
+                    HorizontalOptions="Center">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16" />
+                </Border.StrokeShape>
+                <Grid
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    RowSpacing="12"
+                    WidthRequest="{DynamicResource ContentWidthMedium}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Label Grid.Row="0"
+                           FontSize="{DynamicResource LargeFontSize}"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Fill"
+                           HorizontalTextAlignment="Center"
+                           Text="{Binding ProgressText}"
+                           TextColor="{DynamicResource TextPrimaryColor}"
+                           MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
+                    <ProgressBar Grid.Row="1"
+                                 Margin="{DynamicResource MarginThickness10_5}"
+                                 WidthRequest="{DynamicResource ContentWidthSmall}"
+                                 HorizontalOptions="Center"
+                                 Progress="{Binding PreparationProgress}"
+                                 ProgressColor="{StaticResource PrimaryColor}" />
+                    <Grid Grid.Row="2"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center"
+                          HeightRequest="{DynamicResource IconStandardContainerSize}"
+                          WidthRequest="{DynamicResource IconStandardContainerSize}"
+                          Margin="0,8,0,0">
+                        <core:SfBusyIndicator
+                            IsRunning="{Binding ShowPreparingProgress}"
+                            AnimationType="DoubleCircle"
+                            HorizontalOptions="Fill"
+                            VerticalOptions="Fill"
+                            HeightRequest="{DynamicResource IconStandardContainerSize}"
+                            WidthRequest="{DynamicResource IconStandardContainerSize}"
+                            IndicatorColor="{StaticResource PrimaryColor}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Error message when playback fails (landscape) -->
+            <Border Grid.Row="1"
+                    IsVisible="{Binding HasError}"
+                    BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                    Opacity="0.95"
+                    StrokeThickness="1"
+                    Stroke="#4A2A2A"
+                    Padding="{DynamicResource PaddingThickness24_20_24_48}"
+                    HorizontalOptions="Center">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16" />
+                </Border.StrokeShape>
+                <Grid RowSpacing="16"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Label Grid.Row="0"
+                           FontSize="{DynamicResource MediumFontSize}"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"
+                           TextColor="#FF6B6B"
+                           Text="{Binding ErrorMessage}"
+                           LineBreakMode="WordWrap" />
+                    <Border Grid.Row="1"
+                            BackgroundColor="{StaticResource PrimaryColor}"
+                            HeightRequest="{DynamicResource IconLargeContainerSize}"
+                            WidthRequest="{DynamicResource IconLargeContainerSize}"
+                            StrokeThickness="0"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                            Margin="0,8,0,0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="100" />
+                        </Border.StrokeShape>
+                        <Button
+                            Padding="0"
+                            BackgroundColor="Transparent"
+                            BorderWidth="0"
+                            BorderColor="Transparent"
+                            Command="{Binding RetryCommand}"
+                            IsEnabled="{Binding HasError}"
+                            InputTransparent="False"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="{DynamicResource IconLargeFontSize}"
+                            HorizontalOptions="Fill"
+                            Text="{x:Static fn:GlyphNames.Retry}"
+                            TextColor="White"
+                            VerticalOptions="Fill" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Landscape main player: artwork with title/subtitle overlaid on top (drawn above artwork) -->
+            <Grid Grid.Row="2"
+                  IsVisible="{Binding ShowMainPlayerContent}"
+                  VerticalOptions="Fill"
+                  HorizontalOptions="Fill">
+                <Grid
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    WidthRequest="{DynamicResource ContentWidthLarge}"
+                    HeightRequest="{DynamicResource ContentWidthLarge}">
+                    <Grid
+                        IsVisible="{Binding IsArtworkLoading}"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        HeightRequest="{DynamicResource IconLargeContainerSize}"
+                        WidthRequest="{DynamicResource IconLargeContainerSize}">
+                        <core:SfBusyIndicator
+                            IsRunning="{Binding IsArtworkLoading}"
+                            AnimationType="DoubleCircle"
+                            HorizontalOptions="Fill"
+                            VerticalOptions="Fill"
+                            HeightRequest="{DynamicResource IconLargeContainerSize}"
+                            WidthRequest="{DynamicResource IconLargeContainerSize}"
+                            IndicatorColor="{StaticResource PrimaryColor}" />
+                    </Grid>
+
+                    <Border
+                        IsVisible="{Binding IsArtworkLoading, Converter={StaticResource negateBooleanConverter}}"
+                        BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                        StrokeThickness="0"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8" />
+                        </Border.StrokeShape>
+                        <Grid>
+                            <Image Aspect="AspectFill"
+                                   HorizontalOptions="Fill"
+                                   IsVisible="{Binding HasArtwork}"
+                                   Source="{Binding ArtworkSource}"
+                                   VerticalOptions="Fill" />
+                            <Label FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                   FontSize="{DynamicResource AlarmBellIconFontSize}"
+                                   HorizontalOptions="Center"
+                                   HorizontalTextAlignment="Center"
+                                   IsVisible="{Binding HasArtwork, Converter={StaticResource negateBooleanConverter}}"
+                                   Text="{x:Static fn:GlyphNames.Bell}"
+                                   TextColor="{DynamicResource TextPrimaryColor}"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Title and subtitle overlaid on top of artwork (left padding so not touching screen edge) -->
+                <VerticalStackLayout
+                    Spacing="{DynamicResource SpacingSmall}"
+                    HorizontalOptions="Start"
+                    VerticalOptions="Start"
+                    Margin="{DynamicResource MarginThickness16_0_0_0}">
+                    <Label FontSize="{DynamicResource LargeFontSize}"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Start"
+                           Text="{Binding Title}"
+                           TextColor="{DynamicResource TextPrimaryColor}"
+                           LineBreakMode="TailTruncation"
+                           MaxLines="1" />
+                    <Label FontSize="{DynamicResource MediumFontSize}"
+                           HorizontalTextAlignment="Start"
+                           Text="{Binding SubTitle}"
+                           TextColor="{DynamicResource TextSecondaryColor}"
+                           LineBreakMode="TailTruncation"
+                           MaxLines="1" />
+                </VerticalStackLayout>
+            </Grid>
+        </Grid>
+
+        <!-- Floating control panel at bottom (overlays background; show/hide does not affect artwork layout) -->
+        <Border
+            Grid.Row="0"
+            VerticalOptions="End"
+            HorizontalOptions="Fill"
+            IsVisible="{Binding ShowLandscapeOverlayControls}"
+            BackgroundColor="{DynamicResource CardBackgroundColor}"
+            Opacity="0.92"
+            StrokeThickness="0"
+            Padding="{DynamicResource PaddingThickness24_20}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="16" />
+            </Border.StrokeShape>
+            <Grid ColumnSpacing="{DynamicResource SpacingMedium}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border
+                    Grid.Column="0"
+                    AutomationId="AlarmDismissButtonLandscape"
+                    BackgroundColor="{StaticResource ErrorColor}"
+                    HeightRequest="{DynamicResource IconStandardContainerSize}"
+                    WidthRequest="{DynamicResource IconStandardContainerSize}"
+                    StrokeThickness="0"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="100" />
+                    </Border.StrokeShape>
+                    <Grid HorizontalOptions="Fill" VerticalOptions="Fill">
+                        <Button
+                            x:Name="LandscapeStopButton"
+                            Padding="0"
+                            BackgroundColor="Transparent"
+                            BorderWidth="0"
+                            BorderColor="Transparent"
+                            Command="{Binding DismissCommand}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="{DynamicResource IconStandardFontSize}"
+                            HorizontalOptions="Fill"
+                            VerticalOptions="Fill"
+                            IsEnabled="{Binding IsStopButtonEnabled}"
+                            IsVisible="{Binding IsStopping, Converter={StaticResource negateBooleanConverter}}"
+                            Text="{x:Static fn:GlyphNames.Stop}"
+                            TextColor="White" />
+
+                        <ActivityIndicator
+                            IsRunning="{Binding IsStopping}"
+                            IsVisible="{Binding IsStopping}"
+                            Color="White"
+                            WidthRequest="{DynamicResource IconStandardFontSize}"
+                            HeightRequest="{DynamicResource IconStandardFontSize}"
+                            VerticalOptions="Center"
+                            HorizontalOptions="Center"
+                            Opacity="0.95" />
+                    </Grid>
+                </Border>
+
+                <Grid
+                    Grid.Column="1"
+                    ColumnSpacing="{DynamicResource SpacingSmall}"
+                    VerticalOptions="Center"
+                    IsEnabled="{Binding AreControlsEnabled}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                            HeightRequest="{DynamicResource IconStandardContainerSize}"
+                            WidthRequest="{DynamicResource IconStandardContainerSize}"
+                            StrokeThickness="0"
+                            VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="100" />
+                        </Border.StrokeShape>
+                        <Button Padding="0"
+                                BackgroundColor="Transparent"
+                                BorderWidth="0"
+                                BorderColor="Transparent"
+                                Command="{Binding PreviousCommand}"
+                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                FontSize="{DynamicResource IconStandardFontSize}"
+                                IsEnabled="{Binding PreviousEnabled}"
+                                Text="{x:Static fn:GlyphNames.Previous}"
+                                VerticalOptions="Fill"
+                                HorizontalOptions="Fill">
+                            <Button.Triggers>
+                                <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                    <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                </Trigger>
+                                <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                    <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
+                                </Trigger>
+                            </Button.Triggers>
+                        </Button>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                            HeightRequest="{DynamicResource IconStandardContainerSize}"
+                            WidthRequest="{DynamicResource IconStandardContainerSize}"
+                            StrokeThickness="0"
+                            VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="100" />
+                        </Border.StrokeShape>
+                        <Button Padding="0"
+                                BackgroundColor="Transparent"
+                                BorderWidth="0"
+                                BorderColor="Transparent"
+                                Command="{Binding BackwardCommand}"
+                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                FontSize="{DynamicResource HeaderFontSize}"
+                                IsEnabled="{Binding AreControlsEnabled}"
+                                Text="{x:Static fn:GlyphNames.Backward}"
+                                VerticalOptions="Fill"
+                                HorizontalOptions="Fill">
+                            <Button.Triggers>
+                                <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                    <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                </Trigger>
+                                <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                    <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
+                                </Trigger>
+                            </Button.Triggers>
+                        </Button>
+                    </Border>
+
+                    <Border Grid.Column="2"
+                            HeightRequest="{DynamicResource IconLargeContainerSize}"
+                            WidthRequest="{DynamicResource IconLargeContainerSize}"
+                            StrokeThickness="0"
+                            Style="{StaticResource PlayPauseBorderStyle}"
+                            VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="100" />
+                        </Border.StrokeShape>
+                        <Grid>
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
+                                    Command="{Binding PlayCommand}"
+                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                    FontSize="{DynamicResource IconLargeFontSize}"
+                                    IsEnabled="{Binding AreControlsEnabled}"
+                                    IsVisible="{Binding PlayVisible}"
+                                    Text="{x:Static fn:GlyphNames.Play}"
+                                    VerticalOptions="Fill"
+                                    HorizontalOptions="Fill">
+                                <Button.Triggers>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                        <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                    </Trigger>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                        <Setter Property="TextColor" Value="{StaticResource WhiteColor}" />
+                                    </Trigger>
+                                </Button.Triggers>
+                            </Button>
+                            <Button Padding="0"
+                                    BackgroundColor="Transparent"
+                                    BorderWidth="0"
+                                    BorderColor="Transparent"
+                                    Command="{Binding PauseCommand}"
+                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                    FontSize="{DynamicResource IconLargeFontSize}"
+                                    IsEnabled="{Binding AreControlsEnabled}"
+                                    IsVisible="{Binding PauseVisible}"
+                                    Text="{x:Static fn:GlyphNames.Pause}"
+                                    VerticalOptions="Fill"
+                                    HorizontalOptions="Fill">
+                                <Button.Triggers>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                        <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                    </Trigger>
+                                    <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                        <Setter Property="TextColor" Value="{StaticResource WhiteColor}" />
+                                    </Trigger>
+                                </Button.Triggers>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="3"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                            HeightRequest="{DynamicResource IconStandardContainerSize}"
+                            WidthRequest="{DynamicResource IconStandardContainerSize}"
+                            StrokeThickness="0"
+                            VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="100" />
+                        </Border.StrokeShape>
+                        <Button Padding="0"
+                                BackgroundColor="Transparent"
+                                BorderWidth="0"
+                                BorderColor="Transparent"
+                                Command="{Binding ForwardCommand}"
+                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                FontSize="{DynamicResource HeaderFontSize}"
+                                IsEnabled="{Binding AreControlsEnabled}"
+                                Text="{x:Static fn:GlyphNames.Forward}"
+                                VerticalOptions="Fill"
+                                HorizontalOptions="Fill">
+                            <Button.Triggers>
+                                <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                    <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                </Trigger>
+                                <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                    <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
+                                </Trigger>
+                            </Button.Triggers>
+                        </Button>
+                    </Border>
+
+                    <Border Grid.Column="4"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                            HeightRequest="{DynamicResource IconStandardContainerSize}"
+                            WidthRequest="{DynamicResource IconStandardContainerSize}"
+                            StrokeThickness="0"
+                            VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="100" />
+                        </Border.StrokeShape>
+                        <Button Padding="0"
+                                BackgroundColor="Transparent"
+                                BorderWidth="0"
+                                BorderColor="Transparent"
+                                Command="{Binding NextCommand}"
+                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                FontSize="{DynamicResource IconStandardFontSize}"
+                                IsEnabled="{Binding NextEnabled}"
+                                Text="{x:Static fn:GlyphNames.Next}"
+                                VerticalOptions="Fill"
+                                HorizontalOptions="Fill">
+                            <Button.Triggers>
+                                <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                                    <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
+                                </Trigger>
+                                <Trigger TargetType="Button" Property="IsEnabled" Value="True">
+                                    <Setter Property="TextColor" Value="{DynamicResource TextPrimaryColor}" />
+                                </Trigger>
+                            </Button.Triggers>
+                        </Button>
+                    </Border>
+
+                    <Label Grid.Column="5"
+                           FontSize="{DynamicResource StandardFontSize}"
+                           FontAttributes="Bold"
+                           VerticalOptions="Center"
+                           Text="{Binding CurrentTime}"
+                           Style="{StaticResource ControlLabelTextColorStyle}" />
+
+                    <Slider Grid.Column="6"
+                            x:Name="LandscapeProgressSlider"
+                            HorizontalOptions="Fill"
+                            VerticalOptions="Center"
+                            Minimum="0"
+                            Maximum="1"
+                            IsEnabled="{Binding AreControlsEnabled}"
+                            Value="{Binding Progress}"
+                            Style="{StaticResource ControlSliderStyle}"
+                            MaximumTrackColor="{DynamicResource ProgressBarBackgroundColor}" />
+
+                    <Label Grid.Column="7"
+                           FontSize="{DynamicResource StandardFontSize}"
+                           FontAttributes="Bold"
+                           VerticalOptions="Center"
+                           Text="{Binding EndTime}"
+                           Style="{StaticResource ControlLabelTextColorStyle}" />
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentView>

@@ -3,6 +3,7 @@ using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
@@ -477,6 +478,20 @@ public sealed class ScheduleListItemViewModel(
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
     {
+        var state = playbackState.Value;
+        var scheduleId = ScheduleId;
+        if (scheduleId <= 0)
+        {
+            return;
+        }
+
+        var isThisSchedulePlaying = state.CurrentScheduleId == scheduleId;
+        var isActiveStatus = state.Status is PlayStatus.Loading or PlayStatus.Playing or PlayStatus.Paused;
+
+        if (IsBusy && (!isThisSchedulePlaying || !isActiveStatus))
+        {
+            MainThread.BeginInvokeOnMainThread(() => IsBusy = false);
+        }
     }
 
     private void OnThemeChanged() => MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(nameof(This)));

@@ -201,7 +201,8 @@ These are registered in DI in `ServiceRegistrationHelper.RegisterViewModels()` a
     - instrumental/melody music (often `LanguageId == null`, sectioned by disc)
 
 - **Alarm / playback UI**
-  - `AlarmModal` + `AlarmViewModel`
+  - `PlaybackModal` + `PlaybackViewModel`
+  - landscape (horizontal) layout: `PlaybackModalLandscapeContent` (separate XAML/code-behind)
   - driven by `PlaybackService` state/actions and system events (alarm trigger, Android Auto/CarPlay controls)
 
 DI registers:

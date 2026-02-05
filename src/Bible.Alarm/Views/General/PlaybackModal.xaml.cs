@@ -65,6 +65,8 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         // Wait a bit to ensure the modal is fully rendered and visible
         await Task.Delay(100);
 
+        WireLandscapeContentEvents();
+
 #if IOS
         // On iOS, Slider doesn't support tap-to-seek natively, so add TapGestureRecognizer
         SetupIOSTapToSeek();
@@ -79,6 +81,48 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
         }
     }
 
+    private void WireLandscapeContentEvents()
+    {
+        if (LandscapeContent == null)
+        {
+            return;
+        }
+
+        if (LandscapeContent.StopButton != null)
+        {
+            LandscapeContent.StopButton.Clicked += OnStopButtonClicked;
+        }
+
+        var slider = LandscapeContent.ProgressSlider;
+        if (slider != null)
+        {
+            slider.ValueChanged += OnSliderValueChanged;
+            slider.DragStarted += OnSliderDragStarted;
+            slider.DragCompleted += OnSliderDragCompleted;
+        }
+    }
+
+    private void UnwireLandscapeContentEvents()
+    {
+        if (LandscapeContent == null)
+        {
+            return;
+        }
+
+        if (LandscapeContent.StopButton != null)
+        {
+            LandscapeContent.StopButton.Clicked -= OnStopButtonClicked;
+        }
+
+        var slider = LandscapeContent.ProgressSlider;
+        if (slider != null)
+        {
+            slider.ValueChanged -= OnSliderValueChanged;
+            slider.DragStarted -= OnSliderDragStarted;
+            slider.DragCompleted -= OnSliderDragCompleted;
+        }
+    }
+
 #if IOS
     private void SetupIOSTapToSeek()
     {
@@ -89,11 +133,12 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             ProgressSlider.GestureRecognizers.Add(tapGesture);
         }
 
-        if (LandscapeProgressSlider != null)
+        var landscapeSlider = LandscapeContent?.ProgressSlider;
+        if (landscapeSlider != null)
         {
             var tapGesture = new TapGestureRecognizer();
             tapGesture.Tapped += OnSliderTapped;
-            LandscapeProgressSlider.GestureRecognizers.Add(tapGesture);
+            landscapeSlider.GestureRecognizers.Add(tapGesture);
         }
     }
 #endif
@@ -403,6 +448,7 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             {
                 Loaded -= OnPageLoaded;
                 SizeChanged -= OnSizeChanged;
+                UnwireLandscapeContentEvents();
             }
             catch
             {
