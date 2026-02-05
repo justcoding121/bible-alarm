@@ -73,12 +73,9 @@ public sealed class PlaybackNavigationHandler
             // This prevents button flicker during track transitions
             navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
 
-            // If we've already manually visited this track, start from beginning
-            // Otherwise, allow resume from saved position (for Bible tracks)
-            var startFromBeginning = manuallyVisitedTrackIndices.Contains(nextTrackIndex);
+            // Seek-to-saved-position is only for initial play of a track. Any transition via next/prev starts from beginning.
             manuallyVisitedTrackIndices.Add(nextTrackIndex);
-
-            await playCurrentTrackAsync(startFromBeginning);
+            await playCurrentTrackAsync(startFromBeginning: true);
             return;
         }
 
