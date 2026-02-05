@@ -44,14 +44,45 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
         await using var scope = scopeFactory.CreateAsyncScope();
 
         // Migrate Schedule database (always safe - app owns this DB)
-        // Optimize: Copy from bundled resource on first launch, or check version to skip migration check
+        // On this release, we're switching to a new database name (schedule.db)
+        // Delete old database and version.dat files if they exist (no longer used)
 #if DEBUG
         var scheduleDbStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
         var scheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
-        // Check if database file exists
+        // Get database directory and storage root for cleanup
         var dbPath = scheduleDb.Database.GetDbConnection().DataSource;
+        var dbDirectory = System.IO.Path.GetDirectoryName(dbPath) ?? "";
+        var storageRoot = storageService.StorageRoot;
+
+        // Delete old database files and their auxiliary files if they exist
+        // These are previous database names that are no longer used
+        var oldDbPath1 = System.IO.Path.Combine(dbDirectory, "bibleAlarm.db");
+        await DeleteOldDatabaseFilesAsync(oldDbPath1, "old Schedule database (bibleAlarm.db)");
+        
+        var oldDbPath2 = System.IO.Path.Combine(dbDirectory, "bibleAlarm2.db");
+        await DeleteOldDatabaseFilesAsync(oldDbPath2, "old Schedule database (bibleAlarm2.db)");
+
+        // Delete version.dat files in multiple possible locations (legacy, no longer used)
+        // The app previously used version.dat for version tracking, but now uses Preferences only
+        // Check in database directory (same location as database file)
+        var versionDatPath1 = System.IO.Path.Combine(dbDirectory, "version.dat");
+        await DeleteLegacyFileAsync(versionDatPath1, "version.dat (database directory)");
+
+        // Check in storage root directory
+        var versionDatPath2 = System.IO.Path.Combine(storageRoot, "version.dat");
+        await DeleteLegacyFileAsync(versionDatPath2, "version.dat (storage root)");
+
+        // Check in Data subdirectory (Windows stores it here for backward compatibility)
+        var dataSubDir = System.IO.Path.Combine(storageRoot, "Data");
+        if (System.IO.Directory.Exists(dataSubDir))
+        {
+            var versionDatPath3 = System.IO.Path.Combine(dataSubDir, "version.dat");
+            await DeleteLegacyFileAsync(versionDatPath3, "version.dat (Data subdirectory)");
+        }
+
+        // Check if new database file exists
         var dbExists = System.IO.File.Exists(dbPath);
 
         // If database doesn't exist, try copying from bundled resource first
@@ -62,6 +93,7 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
             dbExists = System.IO.File.Exists(dbPath); // Re-check after copy attempt
         }
 
+        // Check if version matches (using Preferences only, no version.dat fallback)
         // Even if version matches, we still need to verify the schema exists
         // (database file might be corrupted, empty, or missing schema)
         // GetPendingMigrationsAsync() is fast if schema exists (just reads migrations history table)
@@ -275,6 +307,56 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
                     "Failed to copy Schedule database from resource, will create with migrations instead");
             }
         }
+    }
+
+    /// <summary>
+    /// Deletes old database file and its auxiliary files (WAL, SHM) if they exist.
+    /// </summary>
+    private async Task DeleteOldDatabaseFilesAsync(string dbPath, string description)
+    {
+        if (!System.IO.File.Exists(dbPath))
+        {
+            return;
+        }
+
+        try
+        {
+            System.IO.File.Delete(dbPath);
+            var oldWalPath = dbPath + "-wal";
+            var oldShmPath = dbPath + "-shm";
+            try { if (System.IO.File.Exists(oldWalPath)) System.IO.File.Delete(oldWalPath); } catch { }
+            try { if (System.IO.File.Exists(oldShmPath)) System.IO.File.Delete(oldShmPath); } catch { }
+            Log.Logger.Information("[BOOTSTRAP] Deleted {Description}: {DbPath}", description, dbPath);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to delete {Description} (non-critical): {DbPath}", description, dbPath);
+        }
+
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Deletes a legacy file if it exists.
+    /// </summary>
+    private async Task DeleteLegacyFileAsync(string filePath, string description)
+    {
+        if (!System.IO.File.Exists(filePath))
+        {
+            return;
+        }
+
+        try
+        {
+            System.IO.File.Delete(filePath);
+            Log.Logger.Information("[BOOTSTRAP] Deleted legacy {Description}: {FilePath}", description, filePath);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to delete legacy {Description} (non-critical): {FilePath}", description, filePath);
+        }
+
+        await Task.CompletedTask;
     }
 }
 

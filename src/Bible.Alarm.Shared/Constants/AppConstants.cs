@@ -42,7 +42,7 @@ public static class AppConstants
         /// <summary>
         /// Schedule database filename
         /// </summary>
-        public const string ScheduleDatabaseFileName = "bibleAlarm.db";
+        public const string ScheduleDatabaseFileName = "schedule.db";
 
         /// <summary>
         /// Media index database filename

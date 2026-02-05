@@ -11,14 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bible.Alarm.Shared.Database.Migrations.Schedule
 {
     [DbContext(typeof(ScheduleDbContext))]
-    [Migration("20260121035348_UpdateToNextRelease")]
-    partial class UpdateToNextRelease
+    [Migration("20260205045529_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.2");
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Schedule.AlarmMusic", b =>
                 {
@@ -32,9 +32,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     b.Property<string>("LanguageCode")
                         .HasMaxLength(10)
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("MusicType")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("PublicationCode")
                         .IsRequired()
@@ -165,7 +162,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LanguageCode")
-                        .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("TEXT");
 
