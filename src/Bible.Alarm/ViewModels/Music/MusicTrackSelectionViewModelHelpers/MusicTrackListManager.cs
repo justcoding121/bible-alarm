@@ -1,10 +1,10 @@
 #nullable enable
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Serilog;
@@ -13,6 +13,7 @@ namespace Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles track list management and population for MusicTrackSelectionViewModel.
+/// Music type is inferred from isMelodyMusic parameter (true = instrumental, false = vocal).
 /// </summary>
 public sealed class MusicTrackListManager(
     ILogger logger,
@@ -21,7 +22,7 @@ public sealed class MusicTrackListManager(
     private readonly Dictionary<MusicTrackListViewItemModel, PropertyChangedEventHandler> propertyChangedHandlers = [];
 
     public async Task PopulateTracks(
-        MusicType musicType,
+        bool isMelodyMusic,
         string? languageCode,
         string publicationCode,
         string? sectionCode,
@@ -35,7 +36,7 @@ public sealed class MusicTrackListManager(
 
                 // Run database operations off UI thread
                 SortedDictionary<int, MusicTrack> tracksFromDb;
-                if (musicType == MusicType.Music)
+                if (isMelodyMusic)
                 {
                     // IMPORTANT: Some melody publications (notably "iam") are sectioned by disc.
                     // For those, the track list must be loaded for the currently selected section code.
@@ -60,12 +61,10 @@ public sealed class MusicTrackListManager(
                         await mediaService.GetVocalMusicTracks(languageCode, publicationCode));
                 }
 
-                var trackVMs = new ObservableCollection<MusicTrackListViewItemModel>();
-                var isMelody = musicType == MusicType.Music;
-
+                var trackVMs = new List<MusicTrackListViewItemModel>();
                 foreach (var track in tracksFromDb.Select(x => x.Value))
                 {
-                    var trackVm = new MusicTrackListViewItemModel(track, isMelody);
+                    var trackVm = new MusicTrackListViewItemModel(track, isMelodyMusic);
                     trackVMs.Add(trackVm);
                 }
 

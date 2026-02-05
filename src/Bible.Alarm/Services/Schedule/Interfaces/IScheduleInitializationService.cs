@@ -1,9 +1,12 @@
 #nullable enable
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.Services.Schedule.Interfaces;
 
+/// <summary>
+/// Service for initializing schedule state.
+/// Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal.
+/// </summary>
 public interface IScheduleInitializationService
 {
     Task<ScheduleStateItem> InitializeNewScheduleAsync();
@@ -18,7 +21,6 @@ public interface IScheduleInitializationService
     void InitializeTrackingFields(
         ScheduleStateItem scheduleStateItem,
         ref int lastScheduleId,
-        ref MusicType? lastMusicType,
         ref int? lastMusicTrackNumber,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,

@@ -15,9 +15,8 @@ public class BiblePublicationSchedule
     [Key]
     public int Id { get; set; }
 
-    [Required]
     [MaxLength(10)]
-    public string LanguageCode { get; set; } = string.Empty;
+    public string? LanguageCode { get; set; }
 
     [Required]
     [MaxLength(50)]

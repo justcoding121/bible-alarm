@@ -273,7 +273,6 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
             BiblePublicationFinishedDuration = source.BiblePublicationFinishedDuration,
             MusicId = source.MusicId,
             MusicSectionCode = source.MusicSectionCode,
-            MusicType = source.MusicType,
             MusicPublicationCode = source.MusicPublicationCode,
             MusicLanguageCode = source.MusicLanguageCode,
             MusicTrackNumber = source.MusicTrackNumber,

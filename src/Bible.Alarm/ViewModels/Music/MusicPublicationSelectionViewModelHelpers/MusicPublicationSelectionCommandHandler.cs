@@ -3,7 +3,6 @@ using System.Net.Http;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
@@ -90,8 +89,9 @@ public sealed class MusicPublicationSelectionCommandHandler(
 
                     // Prefer preserving current section if same publication; otherwise take first section.
                     var selectedSection = sections.First();
-                    if (currentSchedule?.MusicType == MusicType.Music &&
-                        currentSchedule.MusicPublicationCode == songPublication.Code &&
+                    // Check if current schedule is for melody music (no language code) and same publication
+                    if (string.IsNullOrEmpty(currentSchedule?.MusicLanguageCode) &&
+                        currentSchedule?.MusicPublicationCode == songPublication.Code &&
                         !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode))
                     {
                         var match = sections.FirstOrDefault(kvp =>
@@ -115,8 +115,9 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     }
 
                     // Preserve current track if it's valid for this section; otherwise pick random track within the section.
-                    if (currentSchedule?.MusicType == MusicType.Music &&
-                        currentSchedule.MusicPublicationCode == songPublication.Code &&
+                    // Check if current schedule is for melody music (no language code) and same publication/section
+                    if (string.IsNullOrEmpty(currentSchedule?.MusicLanguageCode) &&
+                        currentSchedule?.MusicPublicationCode == songPublication.Code &&
                         string.Equals(currentSchedule.MusicSectionCode, selectedSectionCode, StringComparison.OrdinalIgnoreCase) &&
                         currentSchedule.MusicTrackNumber.HasValue &&
                         sectionTracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var existingTrack))
@@ -143,8 +144,9 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     }
 
                     // Use current track if same publication, otherwise random
-                    if (currentSchedule?.MusicType == MusicType.Music &&
-                        currentSchedule.MusicPublicationCode == songPublication.Code &&
+                    // Check if current schedule is for melody music (no language code) and same publication
+                    if (string.IsNullOrEmpty(currentSchedule?.MusicLanguageCode) &&
+                        currentSchedule?.MusicPublicationCode == songPublication.Code &&
                         currentSchedule.MusicTrackNumber.HasValue &&
                         tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
                     {
@@ -176,14 +178,15 @@ public sealed class MusicPublicationSelectionCommandHandler(
 
             progressTracker.UpdateProgress(0.7);
 
+            // For melody music, LanguageCode is null (stored as null in DB)
+            // For vocal music, LanguageCode is the selected language
             var trackSelectedItem = CreateMusicStateItemForSongPublication(
                 songPublication, 
-                isMelodyMusic ? string.Empty : languageCode, 
+                isMelodyMusic ? null : languageCode, 
                 trackNumber, 
                 trackName, 
                 isMelodyMusic ? null : currentLanguage, 
                 currentSchedule,
-                isMelodyMusic ? MusicType.Music : MusicType.VocalMusic,
                 sectionCode,
                 sectionName);
             dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
@@ -336,19 +339,17 @@ public sealed class MusicPublicationSelectionCommandHandler(
 
     private MusicStateItem CreateMusicStateItemForSongPublication(
         PublicationListViewItemModel songPublication,
-        string languageCode,
+        string? languageCode,
         int trackNumber,
         string trackName,
         LanguageListViewItemModel? currentLanguage,
         ScheduleStateItem? currentSchedule,
-        MusicType musicType,
         string? sectionCode = null,
         string? sectionName = null)
     {
         return new MusicStateItem
         {
             Repeat = currentSchedule?.MusicRepeat ?? false,
-            MusicType = musicType,
             LanguageCode = languageCode,
             PublicationCode = songPublication.Code,
             SectionCode = sectionCode, // Explicitly set SectionCode (null for non-sectioned publications)
@@ -372,8 +373,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
         return new MusicStateItem
         {
             Repeat = currentSchedule?.MusicRepeat ?? false,
-            MusicType = MusicType.VocalMusic,
-            LanguageCode = language.Code,
+            LanguageCode = language.Code, // Vocal music always has a language code
             PublicationCode = publicationCode,
             SectionCode = null, // Clear section code when language changes (section belongs to old publication)
             TrackNumber = trackNumber,

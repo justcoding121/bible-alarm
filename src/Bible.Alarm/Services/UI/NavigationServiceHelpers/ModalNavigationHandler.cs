@@ -15,13 +15,6 @@ namespace Bible.Alarm.Services.UI.NavigationServiceHelpers;
 /// </summary>
 public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serviceProvider)
 {
-    public async Task OpenMusicSelectionModalAsync(INavigation navigation, object bindingContext)
-    {
-        var modal = serviceProvider.GetRequiredService<MusicTypeSelectionModal>();
-        modal.BindingContext = bindingContext;
-        await navigation.PushModalAsync(modal, animated: false);
-    }
-
     public async Task OpenSongPublicationSelectionModalAsync(INavigation navigation, object bindingContext)
     {
         var modal = serviceProvider.GetRequiredService<MusicPublicationSelectionModal>();

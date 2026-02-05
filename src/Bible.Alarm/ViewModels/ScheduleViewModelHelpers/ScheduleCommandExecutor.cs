@@ -257,8 +257,9 @@ public sealed class ScheduleCommandExecutor
 
         // If music is enabled and has properties, assume it might have changed
         // This is a conservative check - we'll let the save logic handle the actual comparison
+        // Music type is inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal
         var hasMusicProperties = currentSchedule.MusicEnabled &&
-                                 currentSchedule.MusicType.HasValue &&
+                                 !string.IsNullOrEmpty(currentSchedule.MusicPublicationCode) &&
                                  currentSchedule.MusicTrackNumber.HasValue &&
                                  currentSchedule.MusicTrackNumber.Value > 0;
 

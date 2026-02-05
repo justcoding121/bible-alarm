@@ -4,7 +4,6 @@ using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -19,7 +18,8 @@ namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 
 /// <summary>
 /// Handles cascade auto-population for Music publication selections.
-/// Cascade order: MusicType → Language → Publication → Section → Track
+/// Cascade order: Language → Publication → Section → Track
+/// Note: MusicType is no longer used. Publication type (languaged vs. non-languaged) is inferred from LanguageId.
 /// </summary>
 public sealed class MusicCascadeHandler
 {
@@ -56,7 +56,6 @@ public sealed class MusicCascadeHandler
                 return;
             }
 
-            var musicType = currentSchedule.MusicType;
             var languageCode = currentSchedule.MusicLanguageCode;
             var publicationCode = currentSchedule.MusicPublicationCode;
             var sectionCode = currentSchedule.MusicSectionCode;
@@ -66,31 +65,14 @@ public sealed class MusicCascadeHandler
                 !string.IsNullOrWhiteSpace(publicationCode) &&
                 PublicationTypeHelper.HasSectionStructure(publicationCode);
 
-            // Cascade 1: MusicType selected but language not (for VocalMusic) → populate language, publication, section, track
-            if (musicType == MusicType.VocalMusic && string.IsNullOrWhiteSpace(languageCode))
-            {
-                await HandleMusicTypeCascadeAsync(currentSchedule, dispatcher);
-                // MusicType cascade handles everything below
-                return;
-            }
-
-            // Cascade 1b: MusicType is Music (Instrumental) but publication not → populate publication, section, track
-            if (musicType == MusicType.Music && string.IsNullOrWhiteSpace(publicationCode))
+            // Cascade 1: Publication not selected → populate publication, section, track
+            if (string.IsNullOrWhiteSpace(publicationCode))
             {
                 await HandleLanguageCascadeAsync(currentSchedule, dispatcher);
-                // Language cascade handles everything below (including Instrumental Music)
                 return;
             }
 
-            // Cascade 2: Language selected but publication not → populate publication, section, track
-            if (!string.IsNullOrWhiteSpace(languageCode) && string.IsNullOrWhiteSpace(publicationCode))
-            {
-                await HandleLanguageCascadeAsync(currentSchedule, dispatcher);
-                // Language cascade handles everything below
-                return;
-            }
-
-            // Cascade 3/4: Publication/Section/Track cascade
+            // Cascade 2/3: Publication/Section/Track cascade
             //
             // IMPORTANT:
             // Many music publications (vocal/instrumental) are FLAT (no sections). For those, SectionCode is expected to be null,
@@ -133,12 +115,11 @@ public sealed class MusicCascadeHandler
 
     private async Task HandleFlatPublicationCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
     {
-        var musicType = currentSchedule.MusicType!.Value;
         var languageCode = currentSchedule.MusicLanguageCode ?? string.Empty;
         var publicationCode = currentSchedule.MusicPublicationCode!;
 
-        logger.Information("MusicCascadeHandler: Flat publication cascade - publication={PublicationCode}, language={LanguageCode}, musicType={MusicType}",
-            publicationCode, languageCode, musicType);
+        logger.Information("MusicCascadeHandler: Flat publication cascade - publication={PublicationCode}, language={LanguageCode}",
+            publicationCode, languageCode);
 
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -185,62 +166,26 @@ public sealed class MusicCascadeHandler
             dispatcher: dispatcher);
     }
 
-    private async Task HandleMusicTypeCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
-    {
-        var musicType = currentSchedule.MusicType!.Value;
-
-        logger.Information("MusicCascadeHandler: MusicType cascade - musicType={MusicType}",
-            musicType);
-
-        // For VocalMusic, we need a language - default to English
-        if (musicType == MusicType.VocalMusic)
-        {
-            var languages = await mediaService.GetBiblePublicationLanguages("Music");
-            if (languages.Count == 0)
-            {
-                logger.Warning("MusicCascadeHandler: No languages found for Music category");
-                return;
-            }
-
-            // Default to English, fallback to first available
-            var languageCode = languages.ContainsKey("E") ? "E" : languages.Keys.First();
-            var language = languages[languageCode];
-
-            // Now cascade to language
-            var updatedSchedule = currentSchedule.DeepClone();
-            updatedSchedule.MusicLanguageCode = languageCode;
-            updatedSchedule.MusicLanguageName = language.Name;
-            updatedSchedule.MusicLanguageDirection = language.Direction ?? "ltr";
-
-            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
-            
-            // Language cascade will handle the rest
-            return;
-        }
-
-        // For Music (instrumental), no language needed - get first publication without language
-        await HandleLanguageCascadeAsync(currentSchedule, dispatcher);
-    }
-
     private async Task HandleLanguageCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
     {
         var languageCode = currentSchedule.MusicLanguageCode ?? string.Empty;
-        var musicType = currentSchedule.MusicType!.Value;
 
-        logger.Information("MusicCascadeHandler: Language cascade - language={LanguageCode}, musicType={MusicType}",
-            languageCode, musicType);
+        logger.Information("MusicCascadeHandler: Language cascade - language={LanguageCode}",
+            languageCode);
 
-        // Get first publication for this language and music type
+        // Get first publication based on language selection
         string? publicationCode = null;
         string? publicationName = null;
         bool publicationWithoutLanguage = false;
+        string? effectiveLanguageCode = languageCode;
 
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        if (musicType == MusicType.VocalMusic && !string.IsNullOrEmpty(languageCode))
+        if (!string.IsNullOrEmpty(languageCode))
         {
-            // For vocal music, get first publication with LanguageId
+            // Language is selected - get publications for that language AND non-languaged publications
+            // Prefer languaged publications first, but if none found, use non-languaged
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
             var publicationLanguage = await db.PublicationLanguages
                 .AsNoTracking()
@@ -280,7 +225,6 @@ public sealed class MusicCascadeHandler
                     }
                     
                     // Invalidate cache after downloading to ensure UI display/selectability checks use fresh data.
-                    // This mirrors BiblePublicationCascadeHandler behavior and prevents stale placeholder names.
                     mediaService.InvalidateBiblePublicationsCache(languageCode, "Music");
 
                     // Re-query to get the actual publication
@@ -295,10 +239,30 @@ public sealed class MusicCascadeHandler
                     publicationName = publication?.Name ?? publicationCode;
                 }
             }
+            else
+            {
+                // No languaged publication found for this language - fall back to non-languaged (like "iam")
+                var noLangPublication = await db.BiblePublications
+                    .AsNoTracking()
+                    .Where(bp => bp.Category != null &&
+                               bp.Category.CategoryName == "Music" &&
+                               bp.LanguageId == null)
+                    .OrderBy(bp => bp.Id)
+                    .FirstOrDefaultAsync();
+
+                if (noLangPublication != null)
+                {
+                    publicationCode = noLangPublication.PublicationCode;
+                    publicationName = noLangPublication.Name;
+                    publicationWithoutLanguage = true;
+                    // For non-languaged publications, we store null for LanguageCode
+                    effectiveLanguageCode = null;
+                }
+            }
         }
-        else if (musicType == MusicType.Music)
+        else
         {
-            // For instrumental music, get first publication without LanguageId
+            // No language selected - get first non-languaged publication (like "iam")
             var publication = await db.BiblePublications
                 .AsNoTracking()
                 .Where(bp => bp.Category != null &&
@@ -317,8 +281,8 @@ public sealed class MusicCascadeHandler
 
         if (string.IsNullOrEmpty(publicationCode))
         {
-            logger.Warning("MusicCascadeHandler: No publication found for language={LanguageCode}, musicType={MusicType}",
-                languageCode, musicType);
+            logger.Warning("MusicCascadeHandler: No publication found for language={LanguageCode}",
+                languageCode);
             return;
         }
 
@@ -337,17 +301,33 @@ public sealed class MusicCascadeHandler
             return;
         }
 
+        // If using a non-languaged publication, clear the language code from state
+        if (publicationWithoutLanguage)
+        {
+            var updatedSchedule = currentSchedule.DeepClone();
+            updatedSchedule.MusicLanguageCode = null;
+            updatedSchedule.MusicLanguageName = null;
+            updatedSchedule.MusicPublicationCode = publicationCode;
+            updatedSchedule.MusicPublicationName = publicationName;
+            updatedSchedule.MusicSectionCode = sectionCode;
+            updatedSchedule.MusicSectionName = !string.IsNullOrWhiteSpace(sectionName) ? sectionName : null;
+            updatedSchedule.MusicTrackNumber = trackNum;
+            updatedSchedule.MusicTrackName = !string.IsNullOrWhiteSpace(trackTitle) ? trackTitle : null;
+            
+            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
+            return;
+        }
+
         UpdateSchedule(currentSchedule, publicationCode, publicationName, sectionCode, sectionName, trackNum, trackTitle, dispatcher);
     }
 
     private async Task HandlePublicationCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
     {
-        var languageCode = currentSchedule.MusicLanguageCode!;
+        var languageCode = currentSchedule.MusicLanguageCode ?? string.Empty;
         var publicationCode = currentSchedule.MusicPublicationCode!;
-        var musicType = currentSchedule.MusicType!.Value;
 
-        logger.Information("MusicCascadeHandler: Publication cascade - publication={PublicationCode}, language={LanguageCode}, musicType={MusicType}",
-            publicationCode, languageCode, musicType);
+        logger.Information("MusicCascadeHandler: Publication cascade - publication={PublicationCode}, language={LanguageCode}",
+            publicationCode, languageCode);
 
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -388,7 +368,7 @@ public sealed class MusicCascadeHandler
 
     private async Task HandleSectionCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
     {
-        var languageCode = currentSchedule.MusicLanguageCode!;
+        var languageCode = currentSchedule.MusicLanguageCode ?? string.Empty;
         var publicationCode = currentSchedule.MusicPublicationCode!;
         var sectionCode = currentSchedule.MusicSectionCode!;
 

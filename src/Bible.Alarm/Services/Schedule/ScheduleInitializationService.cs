@@ -1,7 +1,6 @@
 #nullable enable
 using AutoMapper;
 using Bible.Alarm.Services.Schedule.Interfaces;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -46,9 +45,9 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
         // Map sample schedule to state item
         var scheduleStateItem = mapper.Map<ScheduleStateItem>(sampleSchedule);
 
-        // Log the music type to verify it's Melodies (not Vocals)
-        logger.Information("InitializeNewScheduleAsync: Mapped sample schedule. MusicType={MusicType}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}, MusicSectionCode={SectionCode}",
-            scheduleStateItem.MusicType?.ToString() ?? "null",
+        // Log the music settings (type is inferred from LanguageCode: NULL/empty = melody, otherwise = vocal)
+        logger.Information("InitializeNewScheduleAsync: Mapped sample schedule. MusicLanguageCode={LanguageCode}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}, MusicSectionCode={SectionCode}",
+            scheduleStateItem.MusicLanguageCode ?? "null",
             scheduleStateItem.MusicTrackNumber?.ToString() ?? "null",
             scheduleStateItem.MusicPublicationCode ?? "null",
             scheduleStateItem.MusicSectionCode ?? "null");
@@ -117,14 +116,12 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
     public void InitializeTrackingFields(
         ScheduleStateItem scheduleStateItem,
         ref int lastScheduleId,
-        ref MusicType? lastMusicType,
         ref int? lastMusicTrackNumber,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,
         ref bool? lastMusicRepeat)
     {
         lastScheduleId = scheduleStateItem.Id;
-        lastMusicType = scheduleStateItem.MusicType;
         lastMusicTrackNumber = scheduleStateItem.MusicTrackNumber;
         lastMusicPublicationCode = scheduleStateItem.MusicPublicationCode;
         lastMusicLanguageCode = scheduleStateItem.MusicLanguageCode;

@@ -5,7 +5,6 @@ using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Stores;
@@ -34,7 +33,6 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private readonly MusicSectionSelectionCommandHandler commandHandler;
     private bool initComplete;
     private string? lastPublicationCode;
-    private MusicType? lastMusicType;
     private string? lastSectionCode;
     private bool isDisposed;
     private bool isSelectingSection;
@@ -117,8 +115,6 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             logger,
             () => lastPublicationCode,
             (code) => lastPublicationCode = code,
-            () => lastMusicType,
-            (type) => lastMusicType = type,
             () => lastSectionCode,
             (code) => lastSectionCode = code,
             () => initComplete,
@@ -250,32 +246,30 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
 
         // Use CurrentSchedule as the source of truth
         if (stateValue.CurrentSchedule == null ||
-            !stateValue.CurrentSchedule.MusicType.HasValue ||
             string.IsNullOrEmpty(stateValue.CurrentSchedule.MusicPublicationCode))
         {
             return;
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var musicType = currentSchedule.MusicType.Value;
         var publicationCode = currentSchedule.MusicPublicationCode;
         var sectionCode = currentSchedule.MusicSectionCode;
-
-        // Only handle instrumental music (Music) for now
+        
+        // Only handle instrumental music (no language code) for now
         // Vocal music sections use the Bible publication section selection
-        if (musicType != MusicType.Music)
+        // Music type is inferred: NULL/empty LanguageCode = instrumental
+        var isMelodyMusic = string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
+        if (!isMelodyMusic)
         {
             return;
         }
 
-        // Check if publication code or music type changed (need to repopulate sections)
+        // Check if publication code changed (need to repopulate sections)
         var publicationCodeChanged = lastPublicationCode != publicationCode;
-        var musicTypeChanged = lastMusicType != musicType;
-        var needsRepopulation = publicationCodeChanged || musicTypeChanged || !initComplete;
+        var needsRepopulation = publicationCodeChanged || !initComplete;
 
         // Update tracking variables
         lastPublicationCode = publicationCode;
-        lastMusicType = musicType;
         lastSectionCode = sectionCode;
 
         if (!initComplete)

@@ -303,7 +303,6 @@ public static class ServiceRegistrationHelper
     {
         services.AddTransient<HomeViewModel>();
         services.AddTransient<ScheduleViewModel>();
-        services.AddTransient<MusicTypeSelectionViewModel>();
         services.AddTransient<MusicPublicationSelectionViewModel>();
         services.AddTransient<ViewModels.Music.MusicTrackSelectionViewModel>();
         services.AddTransient<BiblePublicationSelectionViewModel>();
@@ -336,7 +335,6 @@ public static class ServiceRegistrationHelper
     {
         services.AddTransient<Home>();
         services.AddTransient<Schedule>();
-        services.AddTransient<MusicTypeSelection>();
         services.AddTransient<MusicPublicationSelection>();
         services.AddTransient<Views.Music.MusicTrackSelection>();
         services.AddTransient<BiblePublicationSelection>();
@@ -350,7 +348,6 @@ public static class ServiceRegistrationHelper
         services.AddTransient<BiblePublicationSectionSelectionModal>();
         services.AddTransient<Views.Music.MusicTrackSelectionModal>();
         services.AddTransient<Views.Music.MusicSectionSelectionModal>();
-        services.AddTransient<MusicTypeSelectionModal>();
         services.AddTransient<MusicPublicationSelectionModal>();
         services.AddTransient<BiblePublicationTrackSelectionModal>();
         services.AddTransient<AndroidAlarmPermissionModal>();

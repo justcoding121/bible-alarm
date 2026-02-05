@@ -4,7 +4,6 @@ using System.Net.Http;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
@@ -53,16 +52,16 @@ internal sealed class MusicSectionSelectionCommandHandler
             // Always use CurrentSchedule as the source of truth
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null ||
-                !currentSchedule.MusicType.HasValue ||
                 string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
             {
                 return;
             }
 
-            var musicType = currentSchedule.MusicType.Value;
             var publicationCode = currentSchedule.MusicPublicationCode;
             // May be null for instrumental music
             var languageCode = currentSchedule.MusicLanguageCode;
+            // Music type is inferred: NULL/empty LanguageCode = instrumental (melody)
+            var isMelodyMusic = string.IsNullOrEmpty(languageCode);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -72,22 +71,15 @@ internal sealed class MusicSectionSelectionCommandHandler
 
             // Get tracks for the selected section
             SortedDictionary<int, MusicTrack> tracks;
-            if (musicType == MusicType.VocalMusic && !string.IsNullOrEmpty(languageCode))
+            if (!isMelodyMusic)
             {
-                tracks = await mediaService.GetVocalMusicTracks(languageCode, publicationCode);
-            }
-            else if (musicType == MusicType.Music)
-            {
-                tracks = await mediaService.GetMelodyMusicTracksBySection(publicationCode, selectedSection.Section.SectionCode);
+                // Vocal music
+                tracks = await mediaService.GetVocalMusicTracks(languageCode!, publicationCode);
             }
             else
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (isDisposed()) return;
-                    selectedSection.DownloadProgress = 0.0;
-                });
-                return;
+                // Instrumental/melody music
+                tracks = await mediaService.GetMelodyMusicTracksBySection(publicationCode, selectedSection.Section.SectionCode);
             }
 
             if (tracks == null || tracks.Count == 0)
@@ -112,7 +104,6 @@ internal sealed class MusicSectionSelectionCommandHandler
             // Create MusicStateItem with selected section and track
             var musicStateItem = new MusicStateItem
             {
-                MusicType = musicType,
                 LanguageCode = languageCode,
                 PublicationCode = publicationCode,
                 SectionCode = selectedSection.Section.SectionCode,

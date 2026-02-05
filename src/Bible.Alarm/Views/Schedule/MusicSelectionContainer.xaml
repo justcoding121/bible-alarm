@@ -98,8 +98,6 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <!-- Divider -->
                 <BoxView Grid.Row="0"
@@ -107,82 +105,14 @@
                          BackgroundColor="{DynamicResource DividerColor}"
                          Margin="0"
                          HorizontalOptions="Fill" />
-                <!-- Music Type Row -->
+                <!-- Music Language Row (always visible when music enabled) -->
                 <core:SfEffectsView Grid.Row="1"
                                      TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                      TouchUpEffects="None"
                                      RippleBackground="{StaticResource PrimaryColor}"
                                      HighlightBackground="{StaticResource PrimaryLightColor}"
                                      RippleAnimationDuration="200"
-                                     ShouldIgnoreTouches="{Binding IsMusicTypeSelectable, Converter={StaticResource negateBooleanConverter}}">
-                    <core:SfEffectsView.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding SelectMusicTypeCommand}"
-                                              NumberOfTapsRequired="1" />
-                    </core:SfEffectsView.GestureRecognizers>
-                    <Grid x:Name="MusicTypeButton"
-                          Margin="0"
-                          Padding="16,16"
-                          BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                          MinimumHeightRequest="56"
-                          HorizontalOptions="Fill"
-                          VerticalOptions="Fill">
-                        <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Label x:Name="MusicTypeLabel"
-                           Grid.Column="0"
-                           FontSize="{DynamicResource LargeFontSize}"
-                           FontAttributes="None"
-                           HorizontalOptions="Fill"
-                           HorizontalTextAlignment="Start"
-                           LineBreakMode="WordWrap"
-                           MinimumHeightRequest="24"
-                           Text="{Binding MusicTypeDisplayText, Mode=OneWay}"
-                           TextColor="{Binding IsMusicTypeSelectable, Converter={StaticResource selectableTextColorConverter}}"
-                           VerticalOptions="Center"
-                           VerticalTextAlignment="Center" />
-                    <Border Grid.Column="1"
-                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                            HeightRequest="{DynamicResource IconSmallContainerSize}"
-                            HorizontalOptions="End"
-                            Margin="12,0,0,0"
-                            StrokeThickness="0"
-                            VerticalOptions="Center"
-                            WidthRequest="{DynamicResource IconSmallContainerSize}"
-                            IsVisible="{Binding IsMusicTypeSelectable}">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16" />
-                        </Border.StrokeShape>
-                        <Label
-                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="{DynamicResource IconStandardFontSize}"
-                            HorizontalOptions="Center"
-                            HorizontalTextAlignment="Center"
-                            InputTransparent="True"
-                            Text="{x:Static fn:GlyphNames.Folder}"
-                            TextColor="{DynamicResource TextSecondaryColor}"
-                            VerticalOptions="Center"
-                            VerticalTextAlignment="Center" />
-                    </Border>
-                    </Grid>
-                </core:SfEffectsView>
-                <!-- Divider -->
-                <BoxView Grid.Row="2"
-                         HeightRequest="1"
-                         BackgroundColor="{DynamicResource DividerColor}"
-                         Margin="0"
-                         HorizontalOptions="Fill"
-                         IsVisible="{Binding IsMusicLanguageVisible}" />
-                <!-- Music Language Row (only visible when Music Type is Vocals) -->
-                <core:SfEffectsView Grid.Row="3"
-                                     TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
-                                     TouchUpEffects="None"
-                                     RippleBackground="{StaticResource PrimaryColor}"
-                                     HighlightBackground="{StaticResource PrimaryLightColor}"
-                                     RippleAnimationDuration="200"
-                                     ShouldIgnoreTouches="{Binding IsMusicLanguageSelectable, Converter={StaticResource negateBooleanConverter}}"
-                                     IsVisible="{Binding IsMusicLanguageVisible}">
+                                     ShouldIgnoreTouches="{Binding IsMusicLanguageSelectable, Converter={StaticResource negateBooleanConverter}}">
                     <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectMusicLanguageCommand}"
                                               NumberOfTapsRequired="1" />
@@ -235,21 +165,19 @@
                     </Grid>
                 </core:SfEffectsView>
                 <!-- Divider -->
-                <BoxView Grid.Row="4"
+                <BoxView Grid.Row="2"
                          HeightRequest="1"
                          BackgroundColor="{DynamicResource DividerColor}"
                          Margin="0"
-                         HorizontalOptions="Fill"
-                         IsVisible="{Binding IsSongPublicationVisible}" />
+                         HorizontalOptions="Fill" />
                 <!-- Music Publication Selection Row -->
-                <core:SfEffectsView Grid.Row="5"
+                <core:SfEffectsView Grid.Row="3"
                                      TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                      TouchUpEffects="None"
                                      RippleBackground="{StaticResource PrimaryColor}"
                                      HighlightBackground="{StaticResource PrimaryLightColor}"
                                      RippleAnimationDuration="200"
-                                     ShouldIgnoreTouches="{Binding IsSongPublicationSelectable, Converter={StaticResource negateBooleanConverter}}"
-                                     IsVisible="{Binding IsSongPublicationVisible}">
+                                     ShouldIgnoreTouches="{Binding IsSongPublicationSelectable, Converter={StaticResource negateBooleanConverter}}">
                     <core:SfEffectsView.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding SelectSongPublicationCommand}"
                                               NumberOfTapsRequired="1" />
@@ -299,14 +227,14 @@
                     </Grid>
                 </core:SfEffectsView>
                 <!-- Divider -->
-                <BoxView Grid.Row="6"
+                <BoxView Grid.Row="4"
                          HeightRequest="1"
                          BackgroundColor="{DynamicResource DividerColor}"
                          Margin="0"
                          HorizontalOptions="Fill"
                          IsVisible="{Binding IsMusicSectionVisible}" />
                 <!-- Music Section Row (only visible when sections exist for the publication) -->
-                <core:SfEffectsView Grid.Row="7"
+                <core:SfEffectsView Grid.Row="5"
                                      TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                      TouchUpEffects="None"
                                      RippleBackground="{StaticResource PrimaryColor}"
@@ -363,13 +291,13 @@
                     </Grid>
                 </core:SfEffectsView>
                 <!-- Divider -->
-                <BoxView Grid.Row="8"
+                <BoxView Grid.Row="6"
                          HeightRequest="1"
                          BackgroundColor="{DynamicResource DividerColor}"
                          Margin="0"
                          HorizontalOptions="Fill" />
                 <!-- Track Name Row -->
-                <core:SfEffectsView Grid.Row="9"
+                <core:SfEffectsView Grid.Row="7"
                                      TouchDownEffects="{OnPlatform Android=Ripple, iOS=Highlight, Default=Ripple}"
                                      TouchUpEffects="None"
                                      RippleBackground="{StaticResource PrimaryColor}"

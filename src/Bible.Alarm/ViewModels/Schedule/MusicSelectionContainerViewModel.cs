@@ -46,7 +46,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     private bool shouldScrollToBottom;
 
     // Cached selectability flags (updated when state changes)
-    private bool isMusicTypeSelectable = true; // Music type always has 2 options (Instrumental/Vocal)
     private bool isMusicLanguageSelectable = false;
     private bool isSongPublicationSelectable = false;
     private bool isMusicSectionSelectable = false;
@@ -257,7 +256,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             // e.g., changing the Bible publication category).
             var signature = string.Join('|',
                 currentSchedule.MusicEnabled.ToString(),
-                currentSchedule.MusicType?.ToString() ?? string.Empty,
                 currentSchedule.MusicLanguageCode ?? string.Empty,
                 currentSchedule.MusicPublicationCode ?? string.Empty,
                 currentSchedule.MusicSectionCode ?? string.Empty,
@@ -347,7 +345,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         }
     }
 
-    public string MusicTypeDisplayText => displayTextProvider.GetMusicTypeDisplayText();
     public bool IsSongPublicationVisible => displayTextProvider.GetIsSongPublicationVisible();
     public bool IsMusicLanguageVisible => displayTextProvider.GetIsMusicLanguageVisible();
     public string MusicLanguageDisplayText => displayTextProvider.GetMusicLanguageDisplayText();
@@ -367,7 +364,6 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
     public FlowDirection ContentFlowDirection => displayTextProvider.GetFlowDirection();
 
     // Selectability properties - rows are only tappable if there are multiple options
-    public bool IsMusicTypeSelectable => isMusicTypeSelectable;
     public bool IsMusicLanguageSelectable => isMusicLanguageSelectable;
     public bool IsSongPublicationSelectable => isSongPublicationSelectable;
     public bool IsMusicSectionSelectable => isMusicSectionSelectable;

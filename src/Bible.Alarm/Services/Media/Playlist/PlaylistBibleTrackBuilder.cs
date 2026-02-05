@@ -229,8 +229,9 @@ public class PlaylistBiblePublicationTrackBuilder
             return await GetInitialTrackInfoForNonSectionedPublication(biblePublicationSchedule);
         }
 
+        var languageCode = biblePublicationSchedule.LanguageCode ?? "E";
         var tracks = await mediaService.GetBiblePublicationTracks(
-            biblePublicationSchedule.LanguageCode,
+            languageCode,
             biblePublicationSchedule.PublicationCode,
             biblePublicationSchedule.SectionCode);
 
@@ -247,7 +248,7 @@ public class PlaylistBiblePublicationTrackBuilder
         // For no-language publications, we use "E" for both URL construction and API response parsing
         var isNoLanguagePublication = biblePublicationService != null &&
             await biblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
-        var effectiveLanguageCode = isNoLanguagePublication ? "E" : biblePublicationSchedule.LanguageCode;
+        var effectiveLanguageCode = isNoLanguagePublication ? "E" : (biblePublicationSchedule.LanguageCode ?? "E");
 
         // Compute URL on-demand using TrackMetadata
         var trackMetadata = new TrackMetadata
@@ -297,8 +298,9 @@ public class PlaylistBiblePublicationTrackBuilder
             throw new InvalidOperationException("IBiblePublicationService is required for non-sectioned publications");
         }
 
+        var languageCode = biblePublicationSchedule.LanguageCode ?? "E";
         var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(
-            biblePublicationSchedule.LanguageCode,
+            languageCode,
             biblePublicationSchedule.PublicationCode);
 
         if (publication == null || publication.Tracks == null || publication.Tracks.Count == 0)
@@ -318,7 +320,7 @@ public class PlaylistBiblePublicationTrackBuilder
         var trackMetadata = new TrackMetadata
         {
             IsBibleContent = true,
-            LanguageCode = biblePublicationSchedule.LanguageCode,
+            LanguageCode = languageCode,
             PublicationCode = biblePublicationSchedule.PublicationCode,
             SectionCode = null, // Non-sectioned
             TrackNumber = track.Number
@@ -360,7 +362,7 @@ public class PlaylistBiblePublicationTrackBuilder
         // Check if this is a no-language publication (e.g., instrumental music)
         var isNoLanguagePublication = biblePublicationService != null &&
             await biblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
-        var effectiveLanguageCode = isNoLanguagePublication ? "E" : biblePublicationSchedule.LanguageCode;
+        var effectiveLanguageCode = isNoLanguagePublication ? "E" : (biblePublicationSchedule.LanguageCode ?? "E");
 
         var trackMetadata = new TrackMetadata
         {
@@ -435,8 +437,9 @@ public class PlaylistBiblePublicationTrackBuilder
         int currentTrackNumber,
         Func<string, string, string?, int, Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>>> getNextBiblePublicationTrackAsync)
     {
+        var languageCode = biblePublicationSchedule.LanguageCode ?? "E";
         var next = await getNextBiblePublicationTrackAsync(
-            biblePublicationSchedule.LanguageCode,
+            languageCode,
             biblePublicationSchedule.PublicationCode,
             currentSectionCode,
             currentTrackNumber);
@@ -452,7 +455,7 @@ public class PlaylistBiblePublicationTrackBuilder
         // Check if this is a no-language publication (e.g., instrumental music)
         var isNoLanguagePublication = biblePublicationService != null &&
             await biblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
-        var effectiveLanguageCode = isNoLanguagePublication ? "E" : biblePublicationSchedule.LanguageCode;
+        var effectiveLanguageCode = isNoLanguagePublication ? "E" : (biblePublicationSchedule.LanguageCode ?? "E");
 
         var trackMetadata = new TrackMetadata
         {

@@ -4,7 +4,6 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -115,48 +114,18 @@ public sealed class MusicPublicationSelectionDataProvider(
 
         if (publicationsData != null && publicationsData.Count > 0)
         {
-            // Process publications - filter based on MusicType
+            // Show ALL music publications (both with and without LanguageId)
+            // This matches Bible container behavior - merging languaged and non-languaged publications
             foreach (var publication in publicationsData.Values)
             {
-                // Filter based on MusicType:
-                // - VocalMusic: needs publications with LanguageId (or both if language is selected)
-                // - Music: needs publications without LanguageId
-                if (current?.MusicType == MusicType.Music)
-                {
-                    // Instrumental music - only publications without LanguageId
-                    if (publication.LanguageId != null)
-                    {
-                        continue;
-                    }
-                }
-                else if (current?.MusicType == MusicType.VocalMusic)
-                {
-                    // Vocal music - only publications with LanguageId (when language is selected)
-                    if (!string.IsNullOrEmpty(languageCode) && publication.LanguageId == null)
-                    {
-                        // Skip publications without language when language is selected for vocal music
-                        // But keep them if they're already in the list (from previous selection)
-                        continue;
-                    }
-                }
-
                 // Skip duplicates - if code already exists, use the existing one
                 if (newMapping.TryGetValue(publication.PublicationCode, out var existingVm))
                 {
                     // Check if this matches the current publication code
                     if (current != null && current.PublicationCode == publication.PublicationCode)
                     {
-                        var isVocalMatch = current.MusicType == MusicType.VocalMusic &&
-                                           current.LanguageCode == languageCode &&
-                                           publication.LanguageId != null;
-                        var isInstrumentalMatch = current.MusicType == MusicType.Music &&
-                                                  publication.LanguageId == null;
-
-                        if (isVocalMatch || isInstrumentalMatch)
-                        {
-                            existingVm.IsSelected = true;
-                            selectedSongPublication = existingVm;
-                        }
+                        existingVm.IsSelected = true;
+                        selectedSongPublication = existingVm;
                     }
                     continue;
                 }
@@ -168,17 +137,8 @@ public sealed class MusicPublicationSelectionDataProvider(
                 // Check if this matches the current publication code
                 if (current != null && current.PublicationCode == publication.PublicationCode)
                 {
-                    var isVocalMatch = current.MusicType == MusicType.VocalMusic &&
-                                       current.LanguageCode == languageCode &&
-                                       publication.LanguageId != null;
-                    var isInstrumentalMatch = current.MusicType == MusicType.Music &&
-                                              publication.LanguageId == null;
-
-                    if (isVocalMatch || isInstrumentalMatch)
-                    {
-                        songPublicationListViewItemModel.IsSelected = true;
-                        selectedSongPublication = songPublicationListViewItemModel;
-                    }
+                    songPublicationListViewItemModel.IsSelected = true;
+                    selectedSongPublication = songPublicationListViewItemModel;
                 }
             }
 
@@ -271,11 +231,7 @@ public sealed class MusicPublicationSelectionDataProvider(
     private static bool IsSameSongPublication(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
     {
         return currentSchedule != null &&
-               currentSchedule.MusicType == MusicType.VocalMusic &&
                currentSchedule.MusicLanguageCode == languageCode &&
                currentSchedule.MusicPublicationCode == publicationCode;
     }
-
-    // IsSameLanguageAndSongPublication moved to VocalMusicFirstPublicationTrackSelector
 }
-

@@ -1,7 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -43,20 +42,20 @@ public sealed class TrackSelectionSyncHandler
             }
 
             var currentSchedule = currentState!.CurrentSchedule!;
-            var musicTypeChanged = HasMusicTypeChanged(currentSchedule, action.CurrentMusic!);
+            var languageCodeChanged = HasLanguageCodeChanged(currentSchedule, action.CurrentMusic!);
 
-            if (!ShouldSyncMusic(currentSchedule, action.CurrentMusic!, musicTypeChanged))
+            if (!ShouldSyncMusic(currentSchedule, action.CurrentMusic!, languageCodeChanged))
             {
                 return;
             }
 
-            if (musicTypeChanged)
+            if (languageCodeChanged)
             {
-                Log.Information("ScheduleEffects: HandleTrackSelected - Music type changed from {OldType} to {NewType}. Syncing.",
-                    currentSchedule.MusicType, action.CurrentMusic.MusicType);
+                Log.Information("ScheduleEffects: HandleTrackSelected - Music language changed from {OldLang} to {NewLang}. Syncing.",
+                    currentSchedule.MusicLanguageCode, action.CurrentMusic.LanguageCode);
             }
 
-            var updatedSchedule = CreateUpdatedScheduleFromTrackSelection(currentSchedule, action, musicTypeChanged);
+            var updatedSchedule = CreateUpdatedScheduleFromTrackSelection(currentSchedule, action, languageCodeChanged);
             DispatchTrackUpdateAction(dispatcher, updatedSchedule, currentSchedule.Id);
         }
         catch (Exception ex)
@@ -262,9 +261,10 @@ public sealed class TrackSelectionSyncHandler
 
     private void LogTrackSelectedStart(MusicTrackSelectedAction action)
     {
-        Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, MusicType: {MusicType}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}",
+        // Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal
+        Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}",
             action.CurrentMusic != null ? "not null" : "null",
-            action.CurrentMusic?.MusicType ?? MusicType.Music,
+            action.CurrentMusic?.LanguageCode ?? "null (melody)",
             action.CurrentMusic?.PublicationCode ?? "null",
             action.CurrentMusic?.TrackNumber ?? 0);
     }
@@ -281,13 +281,16 @@ public sealed class TrackSelectionSyncHandler
         return true;
     }
 
-    private static bool HasMusicTypeChanged(ScheduleStateItem currentSchedule, MusicStateItem actionMusic)
+    private static bool HasLanguageCodeChanged(ScheduleStateItem currentSchedule, MusicStateItem actionMusic)
     {
-        return currentSchedule.MusicType.HasValue &&
-               currentSchedule.MusicType.Value != actionMusic.MusicType;
+        // Check if the language code changed (which also indicates music type change)
+        // NULL/empty = melody/instrumental, non-empty = vocal
+        var currentIsMelody = string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
+        var actionIsMelody = string.IsNullOrEmpty(actionMusic.LanguageCode);
+        return currentIsMelody != actionIsMelody || currentSchedule.MusicLanguageCode != actionMusic.LanguageCode;
     }
 
-    private bool ShouldSyncMusic(ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool musicTypeChanged)
+    private bool ShouldSyncMusic(ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool languageCodeChanged)
     {
         Log.Debug("ScheduleEffects: HandleTrackSelected - CurrentSchedule Id: {ScheduleId}, MusicId: {MusicId}, Action Music Id: {ActionMusicId}",
             currentSchedule.Id, currentSchedule.MusicId, actionMusic.Id);
@@ -295,12 +298,12 @@ public sealed class TrackSelectionSyncHandler
         // Allow syncing if:
         // 1. Action has Id=0 (new selection, not yet saved) - always sync to update current schedule
         // 2. Action Id matches current schedule's MusicId - same schedule, sync
-        // 3. Music type changed (e.g., Melodies -> Vocals) - always sync to update current schedule
-        // Reject only if action has a non-zero ID that doesn't match (different schedule) AND music type hasn't changed
+        // 3. Language code changed (e.g., Melodies -> Vocals) - always sync to update current schedule
+        // Reject only if action has a non-zero ID that doesn't match (different schedule) AND language hasn't changed
         if (actionMusic.Id > 0 &&
             currentSchedule.MusicId.HasValue &&
             actionMusic.Id != currentSchedule.MusicId.Value &&
-            !musicTypeChanged)
+            !languageCodeChanged)
         {
             Log.Warning("ScheduleEffects: HandleTrackSelected - Different Music ID. Current: {CurrentId}, Action: {ActionId}. Not syncing.",
                 currentSchedule.MusicId.Value, actionMusic.Id);
@@ -312,11 +315,11 @@ public sealed class TrackSelectionSyncHandler
         return true;
     }
 
-    private ScheduleStateItem CreateUpdatedScheduleFromTrackSelection(ScheduleStateItem currentSchedule, MusicTrackSelectedAction action, bool musicTypeChanged)
+    private ScheduleStateItem CreateUpdatedScheduleFromTrackSelection(ScheduleStateItem currentSchedule, MusicTrackSelectedAction action, bool languageCodeChanged)
     {
         var updatedSchedule = CloneBasicScheduleProperties(currentSchedule);
         PreserveBiblePublicationProperties(updatedSchedule, currentSchedule);
-        UpdateMusicProperties(updatedSchedule, currentSchedule, action.CurrentMusic!, musicTypeChanged);
+        UpdateMusicProperties(updatedSchedule, currentSchedule, action.CurrentMusic!, languageCodeChanged);
         SetMusicDisplayNames(updatedSchedule, action.CurrentMusic!);
         return updatedSchedule;
     }
@@ -356,14 +359,13 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.BiblePublicationSectionName = currentSchedule.BiblePublicationSectionName;
     }
 
-    private static void UpdateMusicProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool musicTypeChanged)
+    private static void UpdateMusicProperties(ScheduleStateItem updatedSchedule, ScheduleStateItem currentSchedule, MusicStateItem actionMusic, bool languageCodeChanged)
     {
-        // If music type changed or Id is 0 (new selection), set MusicId to null or action's Id
+        // If language code changed or Id is 0 (new selection), set MusicId to null or action's Id
         // Otherwise preserve the existing MusicId
-        updatedSchedule.MusicId = (musicTypeChanged || actionMusic.Id == 0)
+        updatedSchedule.MusicId = (languageCodeChanged || actionMusic.Id == 0)
             ? (actionMusic.Id > 0 ? (int?)actionMusic.Id : null)
             : currentSchedule.MusicId;
-        updatedSchedule.MusicType = actionMusic.MusicType;
         updatedSchedule.MusicPublicationCode = actionMusic.PublicationCode;
         updatedSchedule.MusicLanguageCode = actionMusic.LanguageCode;
         updatedSchedule.MusicSectionCode = actionMusic.SectionCode;
@@ -395,10 +397,10 @@ public sealed class TrackSelectionSyncHandler
 
     private void DispatchTrackUpdateAction(IDispatcher dispatcher, ScheduleStateItem updatedSchedule, int scheduleId)
     {
-        Log.Information("ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, MusicType: {MusicType}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, TrackNumber: {TrackNumber}, TrackName: {TrackName}",
+        // Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal
+        Log.Information("ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, TrackNumber: {TrackNumber}, TrackName: {TrackName}",
             updatedSchedule.Id,
-            updatedSchedule.MusicType,
-            updatedSchedule.MusicLanguageCode ?? "null",
+            updatedSchedule.MusicLanguageCode ?? "null (melody)",
             updatedSchedule.MusicLanguageName ?? "null",
             updatedSchedule.MusicPublicationCode ?? "null",
             updatedSchedule.MusicPublicationName ?? "null",

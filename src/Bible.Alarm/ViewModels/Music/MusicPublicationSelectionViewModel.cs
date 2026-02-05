@@ -5,7 +5,6 @@ using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -75,7 +74,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         // Check current state immediately in case state is already set
         // Use CurrentSchedule as source of truth
         var currentState = state.Value;
-        if (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue)
+        if (currentState.CurrentSchedule != null && !string.IsNullOrEmpty(currentState.CurrentSchedule.MusicPublicationCode))
         {
             OnMusicInitialized(null, EventArgs.Empty);
         }
@@ -314,7 +313,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         }
 
         // Handle instrumental music (no language needed)
-        if (current.MusicType == MusicType.Music)
+        // Music type is inferred from LanguageCode: null = melody/instrumental
+        if (string.IsNullOrEmpty(current.LanguageCode))
         {
             await PopulateSongPublications(null); // null language code for instrumental music
             return;
@@ -423,11 +423,11 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
         // Wait for state to be updated (in case language was just changed)
         // This handles the race condition where the modal opens before state is fully updated
-        // Use CurrentSchedule as primary source, but fall back to CurrentMusic if CurrentSchedule isn't updated yet
+        // Use CurrentSchedule as primary source
         const int maxWaitAttempts = 10;
         const int delayMs = 100;
         string? newLanguageCode = null;
-        MusicType? musicType = null;
+        bool isMelodyMusic = false; // inferred from LanguageCode being null
 
         try
         {
@@ -436,18 +436,19 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
                 var stateValue = state.Value;
 
                 // Use CurrentSchedule as the source of truth
-                if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
+                if (stateValue.CurrentSchedule != null && !string.IsNullOrEmpty(stateValue.CurrentSchedule.MusicPublicationCode))
                 {
-                    musicType = stateValue.CurrentSchedule.MusicType.Value;
                     newLanguageCode = stateValue.CurrentSchedule.MusicLanguageCode;
+                    isMelodyMusic = string.IsNullOrEmpty(newLanguageCode);
+                    
                     // For Vocals, we need language code; for Melodies, it can be null
-                    if (musicType == MusicType.VocalMusic && !string.IsNullOrEmpty(newLanguageCode))
+                    if (!isMelodyMusic && !string.IsNullOrEmpty(newLanguageCode))
                     {
                         break;
                     }
-                    else if (musicType == MusicType.Music)
+                    else if (isMelodyMusic)
                     {
-                        // For Melodies, language code can be null, so we can proceed
+                        // For Melodies, language code is null, so we can proceed
                         break;
                     }
                 }
@@ -457,13 +458,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             }
 
             var finalStateValue = state.Value;
-            if (finalStateValue.CurrentSchedule == null || !musicType.HasValue)
-            {
-                return;
-            }
-
-            // For Vocals, language code is required
-            if (musicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(newLanguageCode))
+            if (finalStateValue.CurrentSchedule == null)
             {
                 return;
             }
@@ -474,8 +469,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
                 stateManager.EnsureCurrentIsSet(state, mapper);
             }
 
-            // For vocal music, ensure languages are populated
-            if (musicType.Value == MusicType.VocalMusic)
+            // For vocal music (has language code), ensure languages are populated
+            if (!isMelodyMusic)
             {
                 if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
                 {
@@ -489,7 +484,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
             // For Vocals, if no language is selected but languages are available, select based on current schedule
             string? languageCodeToUse = null;
-            if (finalStateValue.CurrentSchedule?.MusicType == MusicType.VocalMusic &&
+            if (!isMelodyMusic &&
                 propertyManager.CurrentLanguage == null &&
                 propertyManager.Languages != null &&
                 propertyManager.Languages.Count > 0)
@@ -537,8 +532,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
                 text => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressText = text),
                 isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = isVisible));
 
-            // For instrumental music, populate publications directly (no language needed)
-            if (musicType.Value == MusicType.Music)
+            // For instrumental music (no language), populate publications directly
+            if (isMelodyMusic)
             {
                 // null language code for instrumental music
                 await PopulateSongPublications(null, downloadAll: true, progressTracker);

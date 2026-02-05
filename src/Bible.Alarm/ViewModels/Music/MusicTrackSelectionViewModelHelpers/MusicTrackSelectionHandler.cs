@@ -26,12 +26,11 @@ public sealed class MusicTrackSelectionHandler(
         if (current == null)
         {
             var stateValue = state.Value;
-            if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
+            if (stateValue.CurrentSchedule != null && !string.IsNullOrEmpty(stateValue.CurrentSchedule.MusicPublicationCode))
             {
                 var schedule = stateValue.CurrentSchedule;
                 current = new AlarmMusic
                 {
-                    MusicType = schedule.MusicType.Value,
                     LanguageCode = schedule.MusicLanguageCode,
                     PublicationCode = schedule.MusicPublicationCode ?? string.Empty,
                     TrackNumber = schedule.MusicTrackNumber ?? 0,
@@ -41,7 +40,7 @@ public sealed class MusicTrackSelectionHandler(
         }
 
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || !currentSchedule.MusicType.HasValue || string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
+        if (currentSchedule == null || string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
             return;
 
         if (current == null)
@@ -51,7 +50,6 @@ public sealed class MusicTrackSelectionHandler(
 
         var trackSelectedItem = new MusicStateItem
         {
-            MusicType = currentSchedule.MusicType.Value,
             LanguageCode = currentSchedule.MusicLanguageCode,
             PublicationCode = currentSchedule.MusicPublicationCode,
             SectionCode = PublicationTypeHelper.HasSectionStructure(currentSchedule.MusicPublicationCode)

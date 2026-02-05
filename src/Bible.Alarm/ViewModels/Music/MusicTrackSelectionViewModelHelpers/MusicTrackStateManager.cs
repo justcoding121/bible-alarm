@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -9,26 +8,25 @@ namespace Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 
 /// <summary>
 /// Handles state management and initialization for MusicTrackSelectionViewModel.
+/// Music type is inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal.
 /// </summary>
 public sealed class MusicTrackStateManager
 {
     private AlarmMusic? current;
     private AlarmMusic? lastCurrent;
     private bool initComplete;
-    private MusicType? lastMusicType;
     private string? lastLanguageCode;
     private string? lastPublicationCode;
 
     public void InitializeCurrent(IState<ApplicationState> state)
     {
         var stateValue = state.Value;
-        if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
+        if (stateValue.CurrentSchedule != null && !string.IsNullOrEmpty(stateValue.CurrentSchedule.MusicPublicationCode))
         {
             var currentSchedule = stateValue.CurrentSchedule;
             current = new AlarmMusic
             {
-                MusicType = currentSchedule.MusicType.Value,
-                LanguageCode = currentSchedule.MusicLanguageCode ?? string.Empty,
+                LanguageCode = currentSchedule.MusicLanguageCode,
                 PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
                 TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
                 Repeat = currentSchedule.MusicRepeat ?? false
@@ -47,31 +45,24 @@ public sealed class MusicTrackStateManager
             return;
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newMusicType = currentSchedule.MusicType;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
         var newPublicationCode = currentSchedule.MusicPublicationCode;
 
-        if (!newMusicType.HasValue || string.IsNullOrEmpty(newPublicationCode))
-            return;
-        if (newMusicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(newLanguageCode))
+        // Must have a publication code to proceed
+        if (string.IsNullOrEmpty(newPublicationCode))
             return;
 
-        lastMusicType = newMusicType.Value;
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
 
-        if (currentSchedule != null)
+        current = new AlarmMusic
         {
-            current = new AlarmMusic
-            {
-                MusicType = newMusicType.Value,
-                LanguageCode = newLanguageCode,
-                PublicationCode = newPublicationCode,
-                TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
-                Repeat = currentSchedule.MusicRepeat ?? false
-            };
-            lastCurrent = current;
-        }
+            LanguageCode = newLanguageCode,
+            PublicationCode = newPublicationCode,
+            TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+            Repeat = currentSchedule.MusicRepeat ?? false
+        };
+        lastCurrent = current;
 
         initComplete = true;
 
@@ -100,46 +91,38 @@ public sealed class MusicTrackStateManager
             return;
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newMusicType = currentSchedule.MusicType;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
         var newPublicationCode = currentSchedule.MusicPublicationCode;
 
-        if (!newMusicType.HasValue || string.IsNullOrEmpty(newPublicationCode))
-            return;
-        if (newMusicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(newLanguageCode))
+        // Must have a publication code to proceed
+        if (string.IsNullOrEmpty(newPublicationCode))
             return;
 
-        var musicTypeChanged = lastMusicType != newMusicType.Value;
         var languageCodeChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
-        var needsRepopulation = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
+        var needsRepopulation = languageCodeChanged || publicationCodeChanged;
 
         if (!needsRepopulation && initComplete)
             return;
 
-        lastMusicType = newMusicType.Value;
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
 
-        if (currentSchedule != null)
+        current = new AlarmMusic
         {
-            current = new AlarmMusic
-            {
-                MusicType = newMusicType.Value,
-                LanguageCode = newLanguageCode,
-                PublicationCode = newPublicationCode,
-                TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
-                Repeat = currentSchedule.MusicRepeat ?? false
-            };
-            lastCurrent = current;
-        }
+            LanguageCode = newLanguageCode,
+            PublicationCode = newPublicationCode,
+            TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+            Repeat = currentSchedule.MusicRepeat ?? false
+        };
+        lastCurrent = current;
 
         if (needsRepopulation && initComplete && newPublicationCode != null)
         {
             Task.Run(async () =>
             {
                 await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                await initializeTracks(newLanguageCode ?? string.Empty, newPublicationCode);
+                await initializeTracks(newLanguageCode, newPublicationCode);
                 await MainThread.InvokeOnMainThreadAsync(setSelectedTrack);
                 // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
             });
@@ -152,7 +135,6 @@ public sealed class MusicTrackStateManager
 
     public AlarmMusic? Current => current;
     public bool InitComplete => initComplete;
-    public MusicType? LastMusicType => lastMusicType;
     public string? LastLanguageCode => lastLanguageCode;
     public string? LastPublicationCode => lastPublicationCode;
 }

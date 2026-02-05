@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Helpers;
 
@@ -7,6 +6,7 @@ namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 
 /// <summary>
 /// Collects all unique keys needed for batch loading lookup data.
+/// Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal.
 /// </summary>
 internal sealed class LookupDataCollector
 {
@@ -44,26 +44,28 @@ internal sealed class LookupDataCollector
             }
 
             // Collect music keys
+            // Music type is inferred: NULL/empty LanguageCode = melody (instrumental), otherwise = vocal
             if (schedule.Music != null)
             {
                 var music = schedule.Music;
-                if (music.MusicType == MusicType.VocalMusic)
+                var isMelodyMusic = string.IsNullOrEmpty(music.LanguageCode);
+                
+                if (!isMelodyMusic)
                 {
-                    if (!string.IsNullOrWhiteSpace(music.LanguageCode))
+                    // Vocal music (has language code)
+                    vocalMusicLanguageCodes.Add(music.LanguageCode!);
+                    if (!string.IsNullOrWhiteSpace(music.PublicationCode))
                     {
-                        vocalMusicLanguageCodes.Add(music.LanguageCode);
-                        if (!string.IsNullOrWhiteSpace(music.PublicationCode))
+                        vocalMusicKeys.Add((music.LanguageCode!, music.PublicationCode));
+                        if (music.TrackNumber > 0)
                         {
-                            vocalMusicKeys.Add((music.LanguageCode, music.PublicationCode));
-                            if (music.TrackNumber > 0)
-                            {
-                                vocalTrackKeys.Add((music.LanguageCode, music.PublicationCode));
-                            }
+                            vocalTrackKeys.Add((music.LanguageCode!, music.PublicationCode));
                         }
                     }
                 }
-                else if (music.MusicType == MusicType.Music)
+                else
                 {
+                    // Melody/instrumental music (no language code)
                     if (!string.IsNullOrWhiteSpace(music.PublicationCode))
                     {
                         melodyPublicationCodes.Add(music.PublicationCode);

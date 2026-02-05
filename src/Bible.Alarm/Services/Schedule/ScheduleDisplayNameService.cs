@@ -3,7 +3,6 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
@@ -389,9 +388,11 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
 
     private async Task PopulateMusicDisplayNamesAsync(ScheduleStateItem scheduleStateItem, AlarmMusic music)
     {
-        // Music language name and direction (for vocals)
-        if (music.MusicType == MusicType.VocalMusic &&
-            !string.IsNullOrWhiteSpace(music.LanguageCode))
+        // Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal
+        var isMelodyMusic = string.IsNullOrEmpty(music.LanguageCode);
+
+        // Music language name and direction (for vocals only - when LanguageCode is not null)
+        if (!isMelodyMusic && !string.IsNullOrWhiteSpace(music.LanguageCode))
         {
             try
             {
@@ -421,8 +422,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         {
             try
             {
-                if (music.MusicType == MusicType.VocalMusic &&
-                    !string.IsNullOrWhiteSpace(music.LanguageCode))
+                if (!isMelodyMusic && !string.IsNullOrWhiteSpace(music.LanguageCode))
                 {
                     // Populate for vocals
                     var vocalMusicService = serviceProvider.GetRequiredService<IVocalMusicService>();
@@ -432,7 +432,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         scheduleStateItem.MusicPublicationName = release.Name;
                     }
                 }
-                else if (music.MusicType == MusicType.Music)
+                else if (isMelodyMusic)
                 {
                     // Populate for melodies (instrumental music)
                     var releases = await mediaService.GetMelodyMusicReleases();
@@ -454,7 +454,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         {
             try
             {
-                if (music.MusicType == MusicType.VocalMusic)
+                if (!isMelodyMusic)
                 {
                     // For vocal music, we need language code and section number
                     if (!string.IsNullOrWhiteSpace(music.LanguageCode))
@@ -476,7 +476,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         }
                     }
                 }
-                else if (music.MusicType == MusicType.Music)
+                else
                 {
                     // For melodies, music publications are BiblePublications with Category=Music and LanguageId=null
                     // Section codes are strings like "iam-1", "iam-2" - query directly by SectionCode (no need to convert to int)
@@ -522,7 +522,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             try
             {
                 string? trackName = null;
-                if (music.MusicType == MusicType.Music)
+                if (isMelodyMusic)
                 {
                     if (!string.IsNullOrWhiteSpace(music.PublicationCode))
                     {
@@ -552,8 +552,9 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         }
                     }
                 }
-                else if (music.MusicType == MusicType.VocalMusic)
+                else
                 {
+                    // Vocal music
                     if (!string.IsNullOrWhiteSpace(music.LanguageCode) && !string.IsNullOrWhiteSpace(music.PublicationCode))
                     {
                         var tracks = await Task.Run(async () =>

@@ -45,7 +45,6 @@ public static class ApplicationMusicReducer
         {
             var music = action.CurrentMusic;
             updatedCurrentSchedule = updatedCurrentSchedule.DeepClone();
-            updatedCurrentSchedule.MusicType = music.MusicType;
             updatedCurrentSchedule.MusicLanguageCode = music.LanguageCode;
             updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
             updatedCurrentSchedule.MusicSectionCode = music.SectionCode; // Clear if null (when language/publication changes)
@@ -58,8 +57,8 @@ public static class ApplicationMusicReducer
             updatedCurrentSchedule.MusicSectionName = music.SectionName; // Clear if null (when language/publication changes)
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
 
-            Log.Debug("ApplicationMusicReducer.OnMusicTrackSelected: Updated CurrentSchedule with MusicType={MusicType}, TrackNumber={TrackNumber}, TrackName={TrackName}",
-                music.MusicType, music.TrackNumber, music.TrackName);
+            Log.Debug("ApplicationMusicReducer.OnMusicTrackSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, TrackNumber={TrackNumber}, TrackName={TrackName}",
+                music.LanguageCode ?? "(null)", music.TrackNumber, music.TrackName);
         }
 
         return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);
@@ -75,7 +74,6 @@ public static class ApplicationMusicReducer
         {
             var music = action.CurrentMusic;
             updatedCurrentSchedule = updatedCurrentSchedule.DeepClone();
-            updatedCurrentSchedule.MusicType = music.MusicType;
             updatedCurrentSchedule.MusicLanguageCode = music.LanguageCode;
             updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
             updatedCurrentSchedule.MusicSectionCode = music.SectionCode;
@@ -88,8 +86,8 @@ public static class ApplicationMusicReducer
             updatedCurrentSchedule.MusicSectionName = music.SectionName;
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
 
-            Log.Debug("ApplicationMusicReducer.OnMusicSectionSelected: Updated CurrentSchedule with MusicType={MusicType}, SectionCode={SectionCode}, SectionName={SectionName}, TrackNumber={TrackNumber}",
-                music.MusicType, music.SectionCode, music.SectionName, music.TrackNumber);
+            Log.Debug("ApplicationMusicReducer.OnMusicSectionSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, SectionCode={SectionCode}, SectionName={SectionName}, TrackNumber={TrackNumber}",
+                music.LanguageCode ?? "(null)", music.SectionCode, music.SectionName, music.TrackNumber);
         }
 
         return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);

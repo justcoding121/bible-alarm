@@ -217,7 +217,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         
         // Check if this is a no-language publication (e.g., instrumental music)
         var isNoLanguagePublication = await BiblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
-        var effectiveLanguageCode = isNoLanguagePublication ? "E" : biblePublicationSchedule.LanguageCode;
+        var effectiveLanguageCode = isNoLanguagePublication ? "E" : (biblePublicationSchedule.LanguageCode ?? "E");
         
         var trackMetadata = new TrackMetadata
         {
@@ -271,8 +271,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             return;
         }
 
+        var languageCode = schedule.BiblePublicationSchedule.LanguageCode ?? "E";
         var next = await trackNavigator.GetNextBiblePublicationTrack(
-            schedule.BiblePublicationSchedule.LanguageCode,
+            languageCode,
             schedule.BiblePublicationSchedule.PublicationCode,
             schedule.BiblePublicationSchedule.SectionCode,
             schedule.BiblePublicationSchedule.TrackNumber);
@@ -293,8 +294,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             return;
         }
 
+        var languageCode = schedule.BiblePublicationSchedule.LanguageCode ?? "E";
         var previous = await trackNavigator.GetPreviousBiblePublicationTrack(
-            schedule.BiblePublicationSchedule.LanguageCode,
+            languageCode,
             schedule.BiblePublicationSchedule.PublicationCode,
             schedule.BiblePublicationSchedule.SectionCode,
             schedule.BiblePublicationSchedule.TrackNumber);
@@ -344,12 +346,11 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             throw new InvalidOperationException($"Music is null for schedule {schedule.Id}");
         }
 
-        return schedule.Music.MusicType switch
-        {
-            MusicType.Music => await GetNextMusicTrackAsync(schedule, next),
-            MusicType.VocalMusic => await GetNextVocalMusicTrackAsync(schedule, next),
-            _ => throw new ApplicationException("Invalid MusicType.")
-        };
+        // Music type is inferred from LanguageCode: null/empty = melody (instrumental), otherwise = vocal
+        var isMelodyMusic = string.IsNullOrEmpty(schedule.Music.LanguageCode);
+        return isMelodyMusic
+            ? await GetNextMusicTrackAsync(schedule, next)
+            : await GetNextVocalMusicTrackAsync(schedule, next);
     }
 
     private async Task<PlayItem> GetNextMusicTrackAsync(AlarmSchedule schedule, bool next)

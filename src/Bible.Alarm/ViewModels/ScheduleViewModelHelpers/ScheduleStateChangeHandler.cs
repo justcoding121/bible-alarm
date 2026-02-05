@@ -1,11 +1,14 @@
 #nullable enable
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 
+/// <summary>
+/// Handles schedule state changes for music properties.
+/// Music type is inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal.
+/// </summary>
 public class ScheduleStateChangeHandler
 {
     private readonly ILogger logger;
@@ -19,7 +22,6 @@ public class ScheduleStateChangeHandler
 
     public bool HandleScheduleUpdateFromState(
         ScheduleStateItem? currentSchedule,
-        ref MusicType? lastMusicType,
         ref int? lastMusicTrackNumber,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,
@@ -34,16 +36,14 @@ public class ScheduleStateChangeHandler
         }
 
         // Check if music properties changed
-        var musicTypeChanged = lastMusicType != currentSchedule.MusicType;
         var musicTrackChanged = lastMusicTrackNumber != currentSchedule.MusicTrackNumber;
         var musicPublicationChanged = lastMusicPublicationCode != currentSchedule.MusicPublicationCode;
         var musicLanguageChanged = lastMusicLanguageCode != currentSchedule.MusicLanguageCode;
         var musicRepeatChanged = lastMusicRepeat != currentSchedule.MusicRepeat;
 
-        if (musicTypeChanged || musicTrackChanged || musicPublicationChanged || musicLanguageChanged || musicRepeatChanged)
+        if (musicTrackChanged || musicPublicationChanged || musicLanguageChanged || musicRepeatChanged)
         {
-            logger.Debug("HandleScheduleUpdateFromState: Music changed. Type: {OldType} -> {NewType}, Track: {OldTrack} -> {NewTrack}, Publication: {OldPub} -> {NewPub}, Language: {OldLang} -> {NewLang}, Repeat: {OldRepeat} -> {NewRepeat}",
-                lastMusicType, currentSchedule.MusicType,
+            logger.Debug("HandleScheduleUpdateFromState: Music changed. Track: {OldTrack} -> {NewTrack}, Publication: {OldPub} -> {NewPub}, Language: {OldLang} -> {NewLang}, Repeat: {OldRepeat} -> {NewRepeat}",
                 lastMusicTrackNumber, currentSchedule.MusicTrackNumber,
                 lastMusicPublicationCode, currentSchedule.MusicPublicationCode,
                 lastMusicLanguageCode, currentSchedule.MusicLanguageCode,
@@ -52,7 +52,6 @@ public class ScheduleStateChangeHandler
             hasChanges = true;
 
             // Update tracking fields
-            lastMusicType = currentSchedule.MusicType;
             lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
             lastMusicPublicationCode = currentSchedule.MusicPublicationCode;
             lastMusicLanguageCode = currentSchedule.MusicLanguageCode;
@@ -64,13 +63,11 @@ public class ScheduleStateChangeHandler
 
     public void UpdateMusicTrackingFields(
         ScheduleStateItem scheduleStateItem,
-        ref MusicType? lastMusicType,
         ref int? lastMusicTrackNumber,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,
         ref bool? lastMusicRepeat)
     {
-        lastMusicType = scheduleStateItem.MusicType;
         lastMusicTrackNumber = scheduleStateItem.MusicTrackNumber;
         lastMusicPublicationCode = scheduleStateItem.MusicPublicationCode;
         lastMusicLanguageCode = scheduleStateItem.MusicLanguageCode;
@@ -78,13 +75,11 @@ public class ScheduleStateChangeHandler
     }
 
     public void ResetMusicTrackingFields(
-        ref MusicType? lastMusicType,
         ref int? lastMusicTrackNumber,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,
         ref bool? lastMusicRepeat)
     {
-        lastMusicType = null;
         lastMusicTrackNumber = null;
         lastMusicPublicationCode = null;
         lastMusicLanguageCode = null;

@@ -1,7 +1,6 @@
 #nullable enable
 
 using System.Collections.ObjectModel;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.BiblePublications;
@@ -12,15 +11,13 @@ namespace Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModelHelpers;
 /// <summary>
 /// Handles state change logic for MusicSectionSelectionViewModel.
 /// Similar to BiblePublicationSectionSelectionViewModelHelpers (Bible publications) but for music.
-/// Music container always uses "Music" category and filters by MusicType (Music vs VocalMusic).
+/// Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal.
 /// </summary>
 public class MusicSectionSelectionStateChangeHandler
 {
     private readonly ILogger logger;
     private readonly Func<string?> getLastPublicationCode;
     private readonly Action<string?> setLastPublicationCode;
-    private readonly Func<MusicType?> getLastMusicType;
-    private readonly Action<MusicType?> setLastMusicType;
     private readonly Func<string?> getLastSectionCode;
     private readonly Action<string?> setLastSectionCode;
     private readonly Func<bool> getInitComplete;
@@ -31,15 +28,12 @@ public class MusicSectionSelectionStateChangeHandler
 
     // Track last values to detect changes
     private string? lastPublicationCode;
-    private MusicType? lastMusicType;
     private string? lastSectionCode;
 
     public MusicSectionSelectionStateChangeHandler(
         ILogger logger,
         Func<string?> getLastPublicationCode,
         Action<string?> setLastPublicationCode,
-        Func<MusicType?> getLastMusicType,
-        Action<MusicType?> setLastMusicType,
         Func<string?> getLastSectionCode,
         Action<string?> setLastSectionCode,
         Func<bool> getInitComplete,
@@ -51,8 +45,6 @@ public class MusicSectionSelectionStateChangeHandler
         this.logger = logger;
         this.getLastPublicationCode = getLastPublicationCode;
         this.setLastPublicationCode = setLastPublicationCode;
-        this.getLastMusicType = getLastMusicType;
-        this.setLastMusicType = setLastMusicType;
         this.getLastSectionCode = getLastSectionCode;
         this.setLastSectionCode = setLastSectionCode;
         this.getInitComplete = getInitComplete;
@@ -72,23 +64,21 @@ public class MusicSectionSelectionStateChangeHandler
 
         var currentSchedule = stateValue.CurrentSchedule;
         
-        // Only handle instrumental music (Music) for now
+        // Only handle instrumental music (no language code) for now
         // Vocal music sections use the Bible publication section selection
-        if (!currentSchedule.MusicType.HasValue || 
-            currentSchedule.MusicType.Value != MusicType.Music ||
-            string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
+        // Music type is inferred: NULL/empty LanguageCode = instrumental
+        var isMelodyMusic = string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
+        if (!isMelodyMusic || string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
         {
             return;
         }
 
         var newPublicationCode = currentSchedule.MusicPublicationCode;
-        var newMusicType = currentSchedule.MusicType.Value;
         var newSectionCode = currentSchedule.MusicSectionCode;
 
-        // Check if publication code or music type changed (need to repopulate sections)
+        // Check if publication code changed (need to repopulate sections)
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
-        var musicTypeChanged = lastMusicType != newMusicType;
-        var needsRepopulation = publicationCodeChanged || musicTypeChanged;
+        var needsRepopulation = publicationCodeChanged;
 
         // If no changes detected and we're already initialized, skip
         if (!needsRepopulation && getInitComplete())
@@ -107,13 +97,11 @@ public class MusicSectionSelectionStateChangeHandler
 
         // Update tracking variables
         lastPublicationCode = newPublicationCode;
-        lastMusicType = newMusicType;
         lastSectionCode = newSectionCode;
         setLastPublicationCode(newPublicationCode);
-        setLastMusicType(newMusicType);
         setLastSectionCode(newSectionCode);
 
-        // If publication code or music type changed, repopulate sections
+        // If publication code changed, repopulate sections
         if (needsRepopulation && getInitComplete())
         {
             Task.Run(async () =>

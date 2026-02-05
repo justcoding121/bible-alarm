@@ -2,7 +2,6 @@
 using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Microsoft.Maui;
@@ -20,7 +19,8 @@ public sealed class MusicDisplayTextProvider
     private int? lastMusicTrackNumber;
     private string? lastTrackPublicationCode;
     private string? lastTrackLanguageCode;
-    private MusicType? lastTrackMusicType;
+    private string? cachedDefaultLanguageName;
+    private bool isLoadingDefaultLanguageName;
 
     public MusicDisplayTextProvider(IState<ApplicationState> state, IMediaService mediaService)
     {
@@ -36,7 +36,7 @@ public sealed class MusicDisplayTextProvider
         lastMusicTrackNumber = null;
         lastTrackPublicationCode = null;
         lastTrackLanguageCode = null;
-        lastTrackMusicType = null;
+        // Note: Don't clear cachedDefaultLanguageName - it's a static lookup for "E" = "English"
     }
 
     public void ClearSongPublicationCache()
@@ -51,16 +51,14 @@ public sealed class MusicDisplayTextProvider
         lastMusicTrackNumber = null;
         lastTrackPublicationCode = null;
         lastTrackLanguageCode = null;
-        lastTrackMusicType = null;
     }
 
-    public void UpdateTrackCache(string? trackName, int? trackNumber, string? publicationCode, string? languageCode, MusicType? musicType)
+    public void UpdateTrackCache(string? trackName, int? trackNumber, string? publicationCode, string? languageCode)
     {
         cachedTrackName = trackName;
         lastMusicTrackNumber = trackNumber;
         lastTrackPublicationCode = publicationCode;
         lastTrackLanguageCode = languageCode;
-        lastTrackMusicType = musicType;
     }
 
     public void UpdateSongPublicationCache(string? songPublicationName, string? publicationCode)
@@ -69,46 +67,22 @@ public sealed class MusicDisplayTextProvider
         lastMusicPublicationCode = publicationCode;
     }
 
-    public string GetMusicTypeDisplayText()
-    {
-        var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
-        {
-            return "Instrumental Music";
-        }
-
-        return currentSchedule.MusicType.Value switch
-        {
-            MusicType.Music => "Instrumental Music",
-            MusicType.VocalMusic => "Vocal Music",
-            _ => "Instrumental Music"
-        };
-    }
-
     public bool GetIsSongPublicationVisible()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        return currentSchedule != null && currentSchedule.MusicType.HasValue;
+        // Publication row is always visible when music is enabled
+        return currentSchedule != null && currentSchedule.MusicEnabled;
     }
 
     public bool GetIsMusicLanguageVisible()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
-        {
-            return false;
-        }
-
-        return currentSchedule.MusicType.Value == MusicType.VocalMusic;
+        // Language row is always visible when music is enabled
+        return currentSchedule != null && currentSchedule.MusicEnabled;
     }
 
     public string GetMusicLanguageDisplayText()
     {
-        if (!GetIsMusicLanguageVisible())
-        {
-            return string.Empty;
-        }
-
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null)
         {
@@ -126,7 +100,80 @@ public sealed class MusicDisplayTextProvider
             return currentSchedule.MusicLanguageCode!;
         }
 
+        // When music is enabled but LanguageCode is null (non-languaged publications like "iam"),
+        // default to English for display purposes - fetch name from DB
+        if (currentSchedule.MusicEnabled)
+        {
+            // Return cached value if available
+            if (!string.IsNullOrEmpty(cachedDefaultLanguageName))
+            {
+                return cachedDefaultLanguageName;
+            }
+
+            // Trigger async load if not already loading
+            if (!isLoadingDefaultLanguageName)
+            {
+                _ = LoadDefaultLanguageNameAsync();
+            }
+
+            // Return "E" as fallback while loading
+            return "E";
+        }
+
         return string.Empty;
+    }
+
+    private async Task LoadDefaultLanguageNameAsync(Action<string>? onPropertyChanged = null)
+    {
+        if (isLoadingDefaultLanguageName || !string.IsNullOrEmpty(cachedDefaultLanguageName))
+        {
+            return;
+        }
+
+        isLoadingDefaultLanguageName = true;
+        try
+        {
+            var languages = await mediaService.GetVocalMusicLanguages();
+            if (languages.TryGetValue("E", out var englishLanguage))
+            {
+                cachedDefaultLanguageName = englishLanguage.Name;
+            }
+            else
+            {
+                // Fallback if "E" not found in DB
+                cachedDefaultLanguageName = "English";
+            }
+
+            // Notify UI to update if callback provided
+            if (onPropertyChanged != null)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    onPropertyChanged("MusicLanguageDisplayText");
+                });
+            }
+        }
+        catch
+        {
+            // Fallback on error
+            cachedDefaultLanguageName = "English";
+        }
+        finally
+        {
+            isLoadingDefaultLanguageName = false;
+        }
+    }
+
+    /// <summary>
+    /// Ensures the default language name (English) is loaded from DB.
+    /// Call this when music is enabled to pre-load and notify UI.
+    /// </summary>
+    public async Task EnsureDefaultLanguageNameLoadedAsync(Action<string>? onPropertyChanged = null)
+    {
+        if (string.IsNullOrEmpty(cachedDefaultLanguageName))
+        {
+            await LoadDefaultLanguageNameAsync(onPropertyChanged);
+        }
     }
 
     public string GetSongPublicationDisplayText()
@@ -169,17 +216,7 @@ public sealed class MusicDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null ||
-            !currentSchedule.MusicType.HasValue ||
-            currentSchedule.MusicType.Value != MusicType.VocalMusic ||
-            string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode) ||
-            string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode))
-        {
-            return string.Empty;
-        }
-
-        // For VocalMusic, we also need language code
-        if (currentSchedule.MusicType.Value == MusicType.VocalMusic &&
-            string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode))
+            string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode))
         {
             return string.Empty;
         }
@@ -207,7 +244,6 @@ public sealed class MusicDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null ||
-            !currentSchedule.MusicType.HasValue ||
             !currentSchedule.MusicTrackNumber.HasValue ||
             currentSchedule.MusicTrackNumber.Value <= 0)
         {
@@ -224,7 +260,6 @@ public sealed class MusicDisplayTextProvider
                 lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
                 lastTrackPublicationCode = currentSchedule.MusicPublicationCode;
                 lastTrackLanguageCode = currentSchedule.MusicLanguageCode;
-                lastTrackMusicType = currentSchedule.MusicType.Value;
             }
             return currentSchedule.MusicTrackName;
         }
@@ -243,7 +278,6 @@ public sealed class MusicDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null ||
-            !currentSchedule.MusicType.HasValue ||
             !currentSchedule.MusicTrackNumber.HasValue ||
             currentSchedule.MusicTrackNumber.Value <= 0)
         {
@@ -257,7 +291,6 @@ public sealed class MusicDisplayTextProvider
             lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
             lastTrackPublicationCode = currentSchedule.MusicPublicationCode;
             lastTrackLanguageCode = currentSchedule.MusicLanguageCode;
-            lastTrackMusicType = currentSchedule.MusicType.Value;
             return currentSchedule.MusicTrackName;
         }
 
@@ -265,8 +298,7 @@ public sealed class MusicDisplayTextProvider
         if (!string.IsNullOrEmpty(cachedTrackName) &&
             lastMusicTrackNumber == currentSchedule.MusicTrackNumber.Value &&
             lastTrackPublicationCode == currentSchedule.MusicPublicationCode &&
-            lastTrackLanguageCode == currentSchedule.MusicLanguageCode &&
-            lastTrackMusicType == currentSchedule.MusicType.Value)
+            lastTrackLanguageCode == currentSchedule.MusicLanguageCode)
         {
             return cachedTrackName;
         }
@@ -284,7 +316,6 @@ public sealed class MusicDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
         return currentSchedule != null &&
-               currentSchedule.MusicType.HasValue &&
                currentSchedule.MusicTrackNumber.HasValue &&
                currentSchedule.MusicTrackNumber.Value > 0;
     }
@@ -301,33 +332,18 @@ public sealed class MusicDisplayTextProvider
     /// <summary>
     /// Determines if the music section row should be visible.
     /// Section row is visible when:
-    /// - Music type is set
     /// - Publication code is set
-    /// - For VocalMusic: language code is set
     /// - Publication has sections (checked via PublicationTypeHelper.HasSectionStructure)
-    /// 
-    /// IMPORTANT: We only check PublicationTypeHelper.HasSectionStructure, NOT MusicSectionCode/MusicSectionName.
-    /// This ensures that when switching from a sectioned publication to a non-sectioned one, the section row
-    /// is hidden even if MusicSectionCode/MusicSectionName is still set (cascade handler should clear these,
-    /// but this provides a safety check).
     /// </summary>
     public bool GetIsMusicSectionVisible()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || !currentSchedule.MusicType.HasValue || string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
-        {
-            return false;
-        }
-
-        // For VocalMusic, we need language code
-        if (currentSchedule.MusicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(currentSchedule.MusicLanguageCode))
+        if (currentSchedule == null || string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
         {
             return false;
         }
 
         // Only show section row if the publication actually has sections
-        // This ensures section row is hidden for non-sectioned publications (e.g., "Sing out Joyfully")
-        // even if MusicSectionCode/MusicSectionName is still set from a previous sectioned publication
         return PublicationTypeHelper.HasSectionStructure(currentSchedule.MusicPublicationCode);
     }
 
@@ -356,15 +372,15 @@ public sealed class MusicDisplayTextProvider
     }
 
     /// <summary>
-    /// Checks if there are multiple languages available for the current music type (VocalMusic only).
+    /// Checks if there are multiple languages available for music.
     /// Returns true if there are 2 or more languages, false if only 1 or 0.
     /// </summary>
     public async Task<bool> GetIsMusicLanguageSelectableAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || currentSchedule.MusicType != MusicType.VocalMusic)
+        if (currentSchedule == null)
         {
-            return false; // Only vocal music has languages
+            return false;
         }
 
         try
@@ -380,13 +396,13 @@ public sealed class MusicDisplayTextProvider
     }
 
     /// <summary>
-    /// Checks if there are multiple publications available for the current music type and language.
+    /// Checks if there are multiple publications available for the current language.
     /// Returns true if there are 2 or more publications, false if only 1 or 0.
     /// </summary>
     public Task<bool> GetIsSongPublicationSelectableAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null || !currentSchedule.MusicType.HasValue)
+        if (currentSchedule == null)
         {
             return Task.FromResult(false);
         }
@@ -431,10 +447,8 @@ public sealed class MusicDisplayTextProvider
             return false;
         }
 
-        var musicType = currentSchedule.MusicType ?? MusicType.Music;
-        var languageCode = musicType == MusicType.VocalMusic 
-            ? (currentSchedule.MusicLanguageCode ?? string.Empty)
-            : string.Empty;
+        // Use language code if available, otherwise empty string for no-language publications
+        var languageCode = currentSchedule.MusicLanguageCode ?? string.Empty;
         var publicationCode = currentSchedule.MusicPublicationCode;
         var sectionCode = Bible.Alarm.Shared.Helpers.SectionCodeHelper.Normalize(currentSchedule.MusicSectionCode);
 
@@ -458,4 +472,3 @@ public sealed class MusicDisplayTextProvider
         }
     }
 }
-

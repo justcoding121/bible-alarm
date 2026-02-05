@@ -44,7 +44,6 @@ public static class SchedulePropertyCopier
         // Music properties
         target.MusicId = source.MusicId;
         target.MusicSectionCode = source.MusicSectionCode;
-        target.MusicType = source.MusicType;
         target.MusicPublicationCode = source.MusicPublicationCode;
         target.MusicLanguageCode = source.MusicLanguageCode;
         target.MusicTrackNumber = source.MusicTrackNumber;

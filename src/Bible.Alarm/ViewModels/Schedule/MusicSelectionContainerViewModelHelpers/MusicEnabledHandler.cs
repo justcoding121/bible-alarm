@@ -1,7 +1,6 @@
 #nullable enable
 
 using Bible.Alarm.Common.Extensions;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -89,14 +88,6 @@ public class MusicEnabledHandler
             // DeepClone already returns ScheduleStateItem, no need to map again
             clonedSchedule.MusicEnabled = value;
 
-            // If enabling music and MusicType is not set, set default to Melodies immediately
-            // This ensures MusicTypeDisplayText shows "Orchestral Melodies" right away
-            // before the async DB query for the default track completes
-            if (value && !clonedSchedule.MusicType.HasValue)
-            {
-                clonedSchedule.MusicType = MusicType.Music;
-            }
-
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, false, false, shouldSave: false));
         });
 
@@ -173,7 +164,8 @@ public class MusicEnabledHandler
 
                             // Check if music properties are already set to what we want to set
                             // This prevents redundant dispatches if the state was already updated
-                            if (latestSchedule.MusicType == MusicType.Music &&
+                            // For melody music, LanguageCode is null
+                            if (latestSchedule.MusicLanguageCode == null &&
                                 latestSchedule.MusicPublicationCode == defaultPublicationCode &&
                                 latestSchedule.MusicSectionCode == chosenSection?.SectionCode &&
                                 latestSchedule.MusicTrackNumber == chosenTrack.Number &&
@@ -188,10 +180,9 @@ public class MusicEnabledHandler
                             var clonedSchedule = latestSchedule.DeepClone();
                             // MusicEnabled should already be true from the first dispatch, but ensure it's set
                             clonedSchedule.MusicEnabled = true;
-                            clonedSchedule.MusicType = MusicType.Music;
                             clonedSchedule.MusicPublicationCode = defaultPublicationCode;
                             clonedSchedule.MusicPublicationName = defaultPublicationName;
-                            clonedSchedule.MusicLanguageCode = null;
+                            clonedSchedule.MusicLanguageCode = null; // Melody music has no language
                             clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
                             clonedSchedule.MusicSectionName = chosenSection?.Name;
                             clonedSchedule.MusicTrackNumber = chosenTrack.Number;
@@ -222,4 +213,3 @@ public class MusicEnabledHandler
         return true;
     }
 }
-

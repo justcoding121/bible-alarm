@@ -1,6 +1,5 @@
 #nullable enable
 using Bible.Alarm.Services.Scheduler.Interfaces;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Services.Scheduler;
@@ -16,18 +15,17 @@ public sealed class ScheduleSelectionService
     /// Only queries media index DB for track lists, publications, etc.
     /// </summary>
     public AlarmMusic? LoadMusicForSelection(int scheduleId, bool isNewSchedule, AlarmMusic? currentMusic,
-        MusicType? musicType, string? publicationCode, string? languageCode, int? trackNumber, bool? repeat)
+        string? publicationCode, string? languageCode, int? trackNumber, bool? repeat)
     {
         // Create AlarmMusic from CurrentSchedule properties if we have the required data
         // This works for both new and existing schedules - CurrentSchedule is the source of truth
         // For new schedules, CurrentSchedule has the music data from when it was created/updated
         // For existing schedules, CurrentSchedule has the music data loaded from AlarmDB on page load
-        if (musicType.HasValue && !string.IsNullOrWhiteSpace(publicationCode) && trackNumber.HasValue)
+        if (!string.IsNullOrWhiteSpace(publicationCode) && trackNumber.HasValue)
         {
             return new AlarmMusic
             {
                 Id = 0, // Will be set when saved
-                MusicType = musicType.Value,
                 PublicationCode = publicationCode,
                 LanguageCode = languageCode,
                 TrackNumber = trackNumber.Value,

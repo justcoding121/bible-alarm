@@ -36,6 +36,7 @@ public static class ApplicationSelectors
     /// <summary>
     /// Selector: Get current music as AlarmMusic entity (for ViewModel use).
     /// Derives from CurrentSchedule (single source of truth).
+    /// Music is considered present if we have a publication code (MusicType is now inferred from LanguageCode).
     /// </summary>
     public static AlarmMusic? GetCurrentMusicEntity(ApplicationState state, IMapper mapper)
     {
@@ -45,8 +46,9 @@ public static class ApplicationSelectors
         }
 
         // Extract music from CurrentSchedule (flattened properties)
+        // Music is present if we have a publication code
         var schedule = state.CurrentSchedule;
-        if (!schedule.MusicId.HasValue && !schedule.MusicType.HasValue)
+        if (!schedule.MusicId.HasValue && string.IsNullOrEmpty(schedule.MusicPublicationCode))
         {
             return null;
         }

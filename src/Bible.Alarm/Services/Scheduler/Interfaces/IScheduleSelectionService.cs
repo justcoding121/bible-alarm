@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Services.Scheduler.Interfaces;
@@ -12,7 +11,7 @@ public interface IScheduleSelectionService : IDisposable
     /// Only queries media index DB for track lists, publications, etc.
     /// </summary>
     AlarmMusic? LoadMusicForSelection(int scheduleId, bool isNewSchedule, AlarmMusic? currentMusic,
-        MusicType? musicType, string? publicationCode, string? languageCode, int? trackNumber, bool? repeat);
+        string? publicationCode, string? languageCode, int? trackNumber, bool? repeat);
 
     /// <summary>
     /// Loads Bible reading for selection modal. For existing schedules, creates BiblePublicationSchedule from CurrentSchedule properties

@@ -87,10 +87,9 @@ public sealed class ScheduleUpdateProcessor
     /// </summary>
     public void LogScheduleUpdateResult(AlarmSchedule savedSchedule)
     {
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated in DB. ScheduleId: {ScheduleId}, savedSchedule.Music={HasMusic}, savedSchedule.Music.MusicType={MusicType}, savedSchedule.Music.TrackNumber={TrackNumber}, savedSchedule.Music.PublicationCode={PublicationCode}, savedSchedule.Music.LanguageCode={LanguageCode}",
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated in DB. ScheduleId: {ScheduleId}, savedSchedule.Music={HasMusic}, savedSchedule.Music.TrackNumber={TrackNumber}, savedSchedule.Music.PublicationCode={PublicationCode}, savedSchedule.Music.LanguageCode={LanguageCode}",
             savedSchedule.Id,
             savedSchedule.Music != null ? "not null" : "null",
-            savedSchedule.Music?.MusicType.ToString() ?? "null",
             savedSchedule.Music?.TrackNumber.ToString() ?? "null",
             savedSchedule.Music?.PublicationCode ?? "null",
             savedSchedule.Music?.LanguageCode ?? "null");
@@ -133,11 +132,10 @@ public sealed class ScheduleUpdateProcessor
     /// </summary>
     public void LogMappingResult(ScheduleStateItem scheduleStateItem)
     {
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - After mapping savedSchedule to scheduleStateItem. scheduleStateItem.MusicType={MusicType}, scheduleStateItem.MusicTrackNumber={TrackNumber}, scheduleStateItem.MusicPublicationCode={PublicationCode}, scheduleStateItem.MusicLanguageCode={LanguageCode}",
-            scheduleStateItem.MusicType?.ToString() ?? "null",
-            scheduleStateItem.MusicTrackNumber?.ToString() ?? "null",
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - After mapping savedSchedule to scheduleStateItem. scheduleStateItem.MusicPublicationCode={PublicationCode}, scheduleStateItem.MusicLanguageCode={LanguageCode}, scheduleStateItem.MusicTrackNumber={TrackNumber}",
             scheduleStateItem.MusicPublicationCode ?? "null",
-            scheduleStateItem.MusicLanguageCode ?? "null");
+            scheduleStateItem.MusicLanguageCode ?? "null",
+            scheduleStateItem.MusicTrackNumber?.ToString() ?? "null");
     }
 
     /// <summary>
@@ -151,17 +149,18 @@ public sealed class ScheduleUpdateProcessor
 
     /// <summary>
     /// Preserves music properties if needed.
+    /// Music type is inferred from LanguageCode: null/empty = melody (instrumental), otherwise = vocal.
     /// </summary>
     public void PreserveMusicPropertiesIfNeeded(ScheduleStateItem scheduleStateItem, ScheduleStateItem actionSchedule)
     {
-        if (actionSchedule.MusicType.HasValue &&
-            (!scheduleStateItem.MusicType.HasValue || scheduleStateItem.MusicType.Value != actionSchedule.MusicType.Value))
+        // Check if publication code mismatches - if so, preserve from action
+        if (!string.IsNullOrEmpty(actionSchedule.MusicPublicationCode) &&
+            scheduleStateItem.MusicPublicationCode != actionSchedule.MusicPublicationCode)
         {
-            Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - MusicType mismatch! savedSchedule.Music.MusicType={SavedMusicType}, action.Schedule.MusicType={ActionMusicType}. Using action.Schedule.MusicType.",
-                scheduleStateItem.MusicType?.ToString() ?? "null",
-                actionSchedule.MusicType?.ToString() ?? "null");
+            Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - Music publication mismatch! savedSchedule.Music.PublicationCode={SavedPublicationCode}, action.Schedule.MusicPublicationCode={ActionPublicationCode}. Using action.Schedule properties.",
+                scheduleStateItem.MusicPublicationCode ?? "null",
+                actionSchedule.MusicPublicationCode ?? "null");
 
-            scheduleStateItem.MusicType = actionSchedule.MusicType;
             scheduleStateItem.MusicTrackNumber = actionSchedule.MusicTrackNumber;
             scheduleStateItem.MusicPublicationCode = actionSchedule.MusicPublicationCode;
             scheduleStateItem.MusicLanguageCode = actionSchedule.MusicLanguageCode;

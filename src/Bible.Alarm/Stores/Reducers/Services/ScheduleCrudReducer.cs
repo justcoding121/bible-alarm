@@ -67,7 +67,6 @@ public static class ScheduleCrudReducer
             BiblePublicationFinishedDuration = actionSchedule.BiblePublicationFinishedDuration,
             MusicId = actionSchedule.MusicId,
             MusicSectionCode = actionSchedule.MusicSectionCode,
-            MusicType = actionSchedule.MusicType,
             MusicPublicationCode = actionSchedule.MusicPublicationCode,
             MusicLanguageCode = actionSchedule.MusicLanguageCode,
             MusicTrackNumber = actionSchedule.MusicTrackNumber,

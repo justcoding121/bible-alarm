@@ -1,6 +1,5 @@
 #nullable enable
 using AutoMapper;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -9,6 +8,7 @@ namespace Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers
 
 /// <summary>
 /// Handles state management and initialization for MusicPublicationSelectionViewModel.
+/// Music type (melody vs. vocal) is inferred from LanguageCode: NULL = melody, non-NULL = vocal.
 /// </summary>
 public sealed class MusicPublicationSelectionStateManager
 {
@@ -16,25 +16,22 @@ public sealed class MusicPublicationSelectionStateManager
     private AlarmMusic? lastCurrent;
     private bool initComplete;
 
-    // Track last music type and language code to detect changes
-    private MusicType? lastMusicType;
+    // Track last language code to detect changes
     private string? lastLanguageCode;
 
     public AlarmMusic? Current => current;
     public bool InitComplete => initComplete;
-    public MusicType? LastMusicType => lastMusicType;
     public string? LastLanguageCode => lastLanguageCode;
 
     public void InitializeCurrent(IState<ApplicationState> state)
     {
         var stateValue = state.Value;
         // Derive from CurrentSchedule (single source of truth)
-        if (stateValue.CurrentSchedule != null && stateValue.CurrentSchedule.MusicType.HasValue)
+        if (stateValue.CurrentSchedule != null && !string.IsNullOrEmpty(stateValue.CurrentSchedule.MusicPublicationCode))
         {
             var schedule = stateValue.CurrentSchedule;
             current = new AlarmMusic
             {
-                MusicType = schedule.MusicType.Value,
                 LanguageCode = schedule.MusicLanguageCode,
                 PublicationCode = schedule.MusicPublicationCode ?? string.Empty,
                 TrackNumber = schedule.MusicTrackNumber ?? 0,
@@ -57,30 +54,19 @@ public sealed class MusicPublicationSelectionStateManager
 
         var stateValue = state.Value;
 
-        // Use CurrentSchedule as the source of truth, not CurrentMusic
+        // Use CurrentSchedule as the source of truth
         if (stateValue.CurrentSchedule == null)
         {
             return;
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newMusicType = currentSchedule.MusicType;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
 
-        // Require MusicType, but allow LanguageCode to be null/empty for Vocals
-        // (user might be opening language modal to select a language)
-        // For Melodies, LanguageCode can be null
-        if (!newMusicType.HasValue)
-        {
-            return;
-        }
-
-        // For Vocals, we need LanguageCode eventually, but allow initialization without it
-        // Initialize() will set a default language if needed
-        // For Melodies, LanguageCode can be null
+        // Allow initialization with or without language code
+        // For melody music, language code is null; for vocal music, it's required
 
         // Update tracking variables
-        lastMusicType = newMusicType.Value;
         lastLanguageCode = newLanguageCode;
 
         // Update current from CurrentSchedule
@@ -88,11 +74,9 @@ public sealed class MusicPublicationSelectionStateManager
         if (currentSchedule != null)
         {
             // Create AlarmMusic from CurrentSchedule
-            // LanguageCode can be null/empty for Vocals when opening language modal
             current = new AlarmMusic
             {
-                MusicType = newMusicType.Value,
-                LanguageCode = newLanguageCode ?? string.Empty,
+                LanguageCode = newLanguageCode,
                 PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
                 TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
                 Repeat = currentSchedule.MusicRepeat ?? false
@@ -125,24 +109,11 @@ public sealed class MusicPublicationSelectionStateManager
         }
 
         var currentSchedule = stateValue.CurrentSchedule;
-        var newMusicType = currentSchedule.MusicType;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
 
-        if (!newMusicType.HasValue)
-        {
-            return;
-        }
-
-        // For vocal music, language code is required
-        if (newMusicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(newLanguageCode))
-        {
-            return;
-        }
-
-        // Check if music type or language code changed
-        var musicTypeChanged = lastMusicType != newMusicType.Value;
+        // Check if language code changed
         var languageCodeChanged = lastLanguageCode != newLanguageCode;
-        var needsRepopulation = musicTypeChanged || languageCodeChanged;
+        var needsRepopulation = languageCodeChanged;
 
         if (!needsRepopulation && initComplete)
         {
@@ -150,7 +121,6 @@ public sealed class MusicPublicationSelectionStateManager
         }
 
         // Update tracking variables
-        lastMusicType = newMusicType.Value;
         lastLanguageCode = newLanguageCode;
 
         // Update current from CurrentSchedule (single source of truth)
@@ -159,8 +129,7 @@ public sealed class MusicPublicationSelectionStateManager
             // Create AlarmMusic from CurrentSchedule
             current = new AlarmMusic
             {
-                MusicType = newMusicType.Value,
-                LanguageCode = newLanguageCode ?? string.Empty,
+                LanguageCode = newLanguageCode,
                 PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
                 TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
                 Repeat = currentSchedule.MusicRepeat ?? false
@@ -168,7 +137,7 @@ public sealed class MusicPublicationSelectionStateManager
             lastCurrent = current;
         }
 
-        // If music type or language changed, repopulate song sections
+        // If language changed, repopulate song sections
         if (needsRepopulation && initComplete)
         {
             Task.Run(async () =>
@@ -176,8 +145,8 @@ public sealed class MusicPublicationSelectionStateManager
                 try
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => setBusy(true));
-                    // For instrumental music, pass null; for vocal music, pass language code
-                    await populateSongPublications(newMusicType.Value == MusicType.Music ? null : newLanguageCode);
+                    // Pass language code (null for melody music)
+                    await populateSongPublications(newLanguageCode);
                     // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 }
                 catch (Exception ex)
@@ -200,12 +169,11 @@ public sealed class MusicPublicationSelectionStateManager
         {
             // Derive from CurrentSchedule (single source of truth)
             var currentSchedule = state.Value.CurrentSchedule;
-            if (currentSchedule != null && currentSchedule.MusicType.HasValue)
+            if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
             {
                 current = new AlarmMusic
                 {
-                    MusicType = currentSchedule.MusicType.Value,
-                    LanguageCode = currentSchedule.MusicLanguageCode ?? string.Empty,
+                    LanguageCode = currentSchedule.MusicLanguageCode,
                     PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
                     TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
                     Repeat = currentSchedule.MusicRepeat ?? false
@@ -217,7 +185,7 @@ public sealed class MusicPublicationSelectionStateManager
     public AlarmMusic? GetCurrentFromState(IState<ApplicationState> state, IMapper mapper)
     {
         var stateValue = state.Value;
-        if (stateValue.CurrentSchedule == null || !stateValue.CurrentSchedule.MusicType.HasValue)
+        if (stateValue.CurrentSchedule == null || string.IsNullOrEmpty(stateValue.CurrentSchedule.MusicPublicationCode))
         {
             return null;
         }
@@ -225,12 +193,10 @@ public sealed class MusicPublicationSelectionStateManager
         var currentSchedule = stateValue.CurrentSchedule;
         return new AlarmMusic
         {
-            MusicType = currentSchedule.MusicType.Value,
-            LanguageCode = currentSchedule.MusicLanguageCode ?? string.Empty,
+            LanguageCode = currentSchedule.MusicLanguageCode,
             PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
             TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
             Repeat = currentSchedule.MusicRepeat ?? false
         };
     }
 }
-

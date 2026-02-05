@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Windows.Input;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
@@ -69,7 +68,7 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
         state.StateChanged += OnMusicChanged;
 
         var currentState = state.Value;
-        if (currentState.CurrentSchedule != null && currentState.CurrentSchedule.MusicType.HasValue)
+        if (currentState.CurrentSchedule != null && !string.IsNullOrEmpty(currentState.CurrentSchedule.MusicPublicationCode))
             OnMusicInitialized(null, EventArgs.Empty);
     }
 
@@ -107,37 +106,24 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
     {
         const int maxWaitAttempts = 10;
         const int delayMs = 100;
-        string? languageCode = null;
         string? publicationCode = null;
-        MusicType? musicType = null;
 
         for (int i = 0; i < maxWaitAttempts; i++)
         {
             var stateValue = state.Value;
             if (stateValue.CurrentSchedule != null)
             {
-                musicType = stateValue.CurrentSchedule.MusicType;
-                languageCode = stateValue.CurrentSchedule.MusicLanguageCode;
                 publicationCode = stateValue.CurrentSchedule.MusicPublicationCode;
 
-                if (musicType.HasValue && !string.IsNullOrEmpty(publicationCode))
-                {
-                    if (musicType.Value == MusicType.VocalMusic && !string.IsNullOrEmpty(languageCode))
-                        break;
-                    if (musicType.Value == MusicType.Music)
-                        break;
-                }
+                // Only need a valid publication code to proceed
+                if (!string.IsNullOrEmpty(publicationCode))
+                    break;
             }
             await Task.Delay(delayMs);
         }
 
         var finalStateValue = state.Value;
-        if (finalStateValue.CurrentSchedule == null || !musicType.HasValue || string.IsNullOrEmpty(publicationCode))
-        {
-            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
-            return;
-        }
-        if (musicType.Value == MusicType.VocalMusic && string.IsNullOrEmpty(languageCode))
+        if (finalStateValue.CurrentSchedule == null || string.IsNullOrEmpty(publicationCode))
         {
             // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
             return;
@@ -200,9 +186,10 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
 
     private async Task Initialize(string? languageCode, string publicationCode)
     {
-        var musicType = stateManager.LastMusicType ?? stateManager.Current?.MusicType ?? MusicType.VocalMusic;
+        // Music type is inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal
+        var isMelodyMusic = string.IsNullOrEmpty(languageCode);
         var currentSectionCode = state.Value.CurrentSchedule?.MusicSectionCode;
-        await listManager.PopulateTracks(musicType, languageCode, publicationCode, currentSectionCode, propertyManager.Tracks);
+        await listManager.PopulateTracks(isMelodyMusic, languageCode, publicationCode, currentSectionCode, propertyManager.Tracks);
         foreach (var track in propertyManager.Tracks)
             listManager.SubscribeToTrackEvents(track, propertyManager.Tracks);
         listManager.SetupCollectionChangedHandler(propertyManager.Tracks);

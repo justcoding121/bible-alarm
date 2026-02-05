@@ -7,7 +7,6 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -178,7 +177,9 @@ public class ScheduleEffects(
                 
                 // Even when not saving, we may need to populate missing display names (e.g., section name from track number)
                 // This is especially important when switching music types where track number is preserved but section name is missing
-                if (action.MusicUpdated && action.Schedule.MusicType == MusicType.Music &&
+                // Music type is inferred from LanguageCode: null/empty = melody (instrumental), otherwise = vocal
+                var isMelodyMusic = string.IsNullOrEmpty(action.Schedule.MusicLanguageCode);
+                if (action.MusicUpdated && isMelodyMusic &&
                     action.Schedule.MusicTrackNumber.HasValue && action.Schedule.MusicTrackNumber.Value > 0 &&
                     string.IsNullOrWhiteSpace(action.Schedule.MusicSectionName) &&
                     !string.IsNullOrWhiteSpace(action.Schedule.MusicPublicationCode))
@@ -203,8 +204,8 @@ public class ScheduleEffects(
             var scheduleStateItem = await updateProcessor.MapAndPreserveDisplayNames(action, savedSchedule);
             dispatcher.Dispatch(new UpdateScheduleSuccessAction(scheduleStateItem));
 
-            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}, scheduleStateItem.MusicType={MusicType}",
-                scheduleStateItem.Id, scheduleStateItem.MusicType?.ToString() ?? "null");
+            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Dispatched UpdateScheduleSuccessAction for ScheduleId: {ScheduleId}, scheduleStateItem.MusicLanguageCode={LanguageCode}",
+                scheduleStateItem.Id, scheduleStateItem.MusicLanguageCode ?? "null");
 
             // Note: Cache invalidation is handled by HandleUpdateScheduleSuccess effect to avoid duplication
         }
@@ -407,7 +408,6 @@ public class ScheduleEffects(
                a.MusicSectionModalItemCount == b.MusicSectionModalItemCount;
     }
 
-    private static bool HasMusicType(ScheduleStateItem schedule) => schedule.MusicType.HasValue;
 
     private async Task<ScheduleStateItem?> TryPopulateModalCountsAsync(ScheduleStateItem currentSchedule)
     {
@@ -428,7 +428,7 @@ public class ScheduleEffects(
             updated.BiblePublicationModalItemCount = await GetBiblePublicationModalItemCountAsync(db, updated);
             updated.BiblePublicationSectionModalItemCount = await GetBiblePublicationSectionModalItemCountAsync(db, updated);
 
-            if (updated.MusicEnabled && HasMusicType(updated))
+            if (updated.MusicEnabled && HasMusicConfigured(updated))
             {
                 updated.MusicPublicationModalItemCount = await GetMusicPublicationModalItemCountAsync(db, updated);
                 updated.MusicSectionModalItemCount = await GetMusicSectionModalItemCountAsync(db, updated);
@@ -447,6 +447,11 @@ public class ScheduleEffects(
             Log.Error(ex, "ScheduleEffects: Error populating modal counts. ScheduleId={ScheduleId}", currentSchedule.Id);
             return null;
         }
+    }
+
+    private static bool HasMusicConfigured(ScheduleStateItem schedule)
+    {
+        return !string.IsNullOrWhiteSpace(schedule.MusicPublicationCode);
     }
 
     private static async Task<int?> GetBiblePublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
@@ -543,31 +548,22 @@ public class ScheduleEffects(
 
     private static async Task<int?> GetMusicPublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
     {
-        if (!schedule.MusicType.HasValue)
-        {
-            return null;
-        }
-
-        var musicType = schedule.MusicType.Value;
+        // When MusicLanguageCode is null (no explicit language selected), default to "E" (English)
+        // for display and cascade purposes - this shows publications for "E" + no-language publications.
+        var languageCode = schedule.MusicLanguageCode;
+        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? "E" : languageCode;
+        var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
+        
         var query = db.PublicationLanguages
             .AsNoTracking()
             .Where(pl => pl.Category != null && pl.Category.CategoryName == "Music");
 
-        if (musicType == MusicType.Music)
-        {
-            // Instrumental music is no-language (LanguageId == null).
-            query = query.Where(pl => pl.LanguageId == null);
-        }
-        else
-        {
-            var languageCode = schedule.MusicLanguageCode;
-            if (string.IsNullOrWhiteSpace(languageCode))
-            {
-                return 0;
-            }
-            var normalizedLanguageCode = languageCode.ToUpperInvariant();
-            query = query.Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode);
-        }
+        // Music publication modal shows both:
+        // - publications in the selected language (or default "E" when null)
+        // - publications without a language FK (LanguageId == null)
+        query = query.Where(pl =>
+            (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||
+            pl.LanguageId == null);
 
         return await query
             .Select(pl => pl.PublicationCode)
@@ -577,40 +573,28 @@ public class ScheduleEffects(
 
     private static async Task<int?> GetMusicSectionModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
     {
-        if (!schedule.MusicType.HasValue)
-        {
-            return null;
-        }
-
         var publicationCode = schedule.MusicPublicationCode;
         if (string.IsNullOrWhiteSpace(publicationCode) || !PublicationTypeHelper.HasSectionStructure(publicationCode))
         {
             return 0;
         }
 
-        var musicType = schedule.MusicType.Value;
+        // When MusicLanguageCode is null (no explicit language selected), default to "E" (English).
+        // For sectioned publications like "iam", count sections for "E" + no-language sections.
+        var languageCode = schedule.MusicLanguageCode;
+        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? "E" : languageCode;
+        var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
+        
         var query = db.SectionLanguages
             .AsNoTracking()
             .Where(sl => sl.PublicationCode == publicationCode);
 
-        if (musicType == MusicType.Music)
-        {
-            // Instrumental music is treated as "no-language" in the app, but the discovery table may contain:
-            // - LanguageId == null rows (seeded from publications without language)
-            // - LanguageId == "E" (or other) rows (from discovery parsing / seeders)
-            // For the section-row arrow, we only care how many unique section codes exist in discovery.
-            // So count ALL distinct section codes for the publication, regardless of LanguageId.
-        }
-        else
-        {
-            var languageCode = schedule.MusicLanguageCode;
-            if (string.IsNullOrWhiteSpace(languageCode))
-            {
-                return 0;
-            }
-            var normalizedLanguageCode = languageCode.ToUpperInvariant();
-            query = query.Where(sl => sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode);
-        }
+        // Section modal shows both:
+        // - sections in the selected language (or default "E" when null)
+        // - sections without a language FK (LanguageId == null)
+        query = query.Where(sl =>
+            (sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode) ||
+            sl.LanguageId == null);
 
         return await query
             .Select(sl => sl.SectionCode)
@@ -743,12 +727,15 @@ public class ScheduleEffects(
     /// Populates MusicSectionName in the state item when we have a track number but no section name for instrumental music.
     /// This is used when switching music types where the track number is preserved but section name is missing.
     /// Follows the same pattern as Bible container: only populate section name if publication has section structure.
+    /// Music type is inferred from LanguageCode: null/empty = melody (instrumental), otherwise = vocal.
     /// </summary>
     private async Task PopulateMusicSectionNameForStateAsync(ScheduleStateItem scheduleStateItem, IDispatcher dispatcher)
     {
         try
         {
-            if (scheduleStateItem.MusicType != MusicType.Music ||
+            // Music type is inferred from LanguageCode: null/empty = melody (instrumental), otherwise = vocal
+            var isMelodyMusic = string.IsNullOrEmpty(scheduleStateItem.MusicLanguageCode);
+            if (!isMelodyMusic ||
                 !scheduleStateItem.MusicTrackNumber.HasValue ||
                 scheduleStateItem.MusicTrackNumber.Value <= 0 ||
                 string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationCode))

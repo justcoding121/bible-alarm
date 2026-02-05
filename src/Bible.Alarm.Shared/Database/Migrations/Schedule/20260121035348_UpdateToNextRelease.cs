@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -96,6 +96,11 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                 oldClrType: typeof(string),
                 oldType: "TEXT",
                 oldNullable: true);
+
+            // Drop MusicType column from AlarmMusic (no longer used)
+            migrationBuilder.DropColumn(
+                name: "MusicType",
+                table: "AlarmMusic");
 
             // Add SectionCode column to AlarmMusic for music publications with sections
             migrationBuilder.AddColumn<string>(
@@ -204,6 +209,14 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
             migrationBuilder.DropColumn(
                 name: "SectionCode",
                 table: "AlarmMusic");
+
+            // Re-add MusicType column to AlarmMusic
+            migrationBuilder.AddColumn<int>(
+                name: "MusicType",
+                table: "AlarmMusic",
+                type: "INTEGER",
+                nullable: false,
+                defaultValue: 0);
 
             migrationBuilder.AlterColumn<string>(
                 name: "LanguageCode",

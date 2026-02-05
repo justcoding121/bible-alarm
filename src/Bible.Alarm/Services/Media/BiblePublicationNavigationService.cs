@@ -22,8 +22,9 @@ public sealed class BiblePublicationNavigationService(
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             
+            var languageCode = schedule.LanguageCode ?? "E";
             var nextSection = await playlistService.GetPreviousBiblePublicationSection(
-                schedule.LanguageCode,
+                languageCode,
                 schedule.PublicationCode,
                 schedule.SectionCode);
 
@@ -56,8 +57,9 @@ public sealed class BiblePublicationNavigationService(
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             
+            var languageCode = schedule.LanguageCode ?? "E";
             var nextSection = await playlistService.GetNextBiblePublicationSection(
-                schedule.LanguageCode,
+                languageCode,
                 schedule.PublicationCode,
                 schedule.SectionCode);
 
@@ -90,8 +92,9 @@ public sealed class BiblePublicationNavigationService(
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             
+            var languageCode = schedule.LanguageCode ?? "E";
             var prevTrack = await playlistService.GetPreviousBiblePublicationTrack(
-                schedule.LanguageCode,
+                languageCode,
                 schedule.PublicationCode,
                 schedule.SectionCode,
                 schedule.TrackNumber);
@@ -125,8 +128,9 @@ public sealed class BiblePublicationNavigationService(
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             
+            var languageCode = schedule.LanguageCode ?? "E";
             var nextTrack = await playlistService.GetNextBiblePublicationTrack(
-                schedule.LanguageCode,
+                languageCode,
                 schedule.PublicationCode,
                 schedule.SectionCode,
                 schedule.TrackNumber);

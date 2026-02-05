@@ -55,7 +55,6 @@ public sealed class ScheduleStateItem : IComparable
 
     // Music properties (flattened from AlarmMusic)
     public int? MusicId { get; set; }
-    public MusicType? MusicType { get; set; }
     public string? MusicPublicationCode { get; set; }
     public string? MusicLanguageCode { get; set; }
     public string? MusicSectionCode { get; set; } // Section code for music publications with sections

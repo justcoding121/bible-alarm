@@ -69,7 +69,7 @@ public sealed class MusicStateChangeHandler
                 onPropertyChanged);
         }
 
-        // Check if CurrentSchedule.MusicType or MusicRepeat changed
+        // Check if CurrentSchedule.MusicRepeat or MusicLanguageCode changed (MusicType is inferred from LanguageCode)
         if (currentSchedule != null)
         {
             HandleMusicPropertyChanges(
@@ -91,12 +91,12 @@ public sealed class MusicStateChangeHandler
         }
 
         // Check if CurrentSchedule music changed (CurrentSchedule is the single source of truth)
-        if (currentSchedule != null && currentSchedule.MusicType.HasValue)
+        // Music is valid if we have a publication code (MusicType is now inferred from LanguageCode)
+        if (currentSchedule != null && !string.IsNullOrEmpty(currentSchedule.MusicPublicationCode))
         {
             // Create MusicStateItem from CurrentSchedule for the handler
             var musicStateItem = new MusicStateItem
             {
-                MusicType = currentSchedule.MusicType.Value,
                 LanguageCode = currentSchedule.MusicLanguageCode,
                 PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
                 TrackNumber = currentSchedule.MusicTrackNumber ?? 0,
@@ -152,38 +152,34 @@ public sealed class MusicStateChangeHandler
                     onPropertyChanged("MusicEnabled");
                 });
 
-                // If music was just enabled, update cache from state
+                // If music was just enabled, update cache from state and notify all music properties
                 // NOTE: Loading default music from DB is handled in MusicEnabled setter
                 if (stateMusicEnabled && !previousMusicEnabled)
                 {
-                    // Update lastScheduleMusicType to ensure change detection works
-                    if (currentSchedule.MusicType.HasValue)
+                    // Update tracking to ensure change detection works
+                    stateTracker.InitializeFromSchedule(currentSchedule);
+
+                    // Notify all music properties when music is enabled (including language display text)
+                    MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        stateTracker.InitializeFromSchedule(currentSchedule);
+                        propertyNotifier.NotifyAllMusicPropertiesChanged();
+                    });
+
+                    // If language code is null (non-languaged publication), pre-load default language name from DB
+                    if (string.IsNullOrEmpty(currentSchedule.MusicLanguageCode))
+                    {
+                        _ = displayTextProvider.EnsureDefaultLanguageNameLoadedAsync(onPropertyChanged);
                     }
 
                     // Check if MusicTrackName is already in state (from bootstrap or from DB load in setter)
                     if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
                     {
-                        // Update cache and notify
+                        // Update cache
                         displayTextProvider.UpdateTrackCache(
                             currentSchedule.MusicTrackName,
                             currentSchedule.MusicTrackNumber,
                             currentSchedule.MusicPublicationCode,
-                            currentSchedule.MusicLanguageCode,
-                            currentSchedule.MusicType);
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            onPropertyChanged("TrackDisplayText");
-                        });
-                    }
-                    else
-                    {
-                        // Track name not in state yet - wait for MusicEnabled setter to load it from DB
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            onPropertyChanged("TrackDisplayText");
-                        });
+                            currentSchedule.MusicLanguageCode);
                     }
                 }
             }
@@ -202,14 +198,14 @@ public sealed class MusicStateChangeHandler
         Action<bool> setShouldScrollToBottom,
         Action<string> onPropertyChanged)
     {
-        var (musicTypeChanged, languageCodeChanged, publicationCodeChanged, sectionCodeChanged, trackNumberChanged, repeatChanged) =
+        var (languageCodeChanged, publicationCodeChanged, sectionCodeChanged, trackNumberChanged, repeatChanged) =
             stateTracker.DetectChanges(currentSchedule);
 
         // Also check for display name changes (publication name, section name) that don't trigger code changes
         var publicationNameChanged = stateTracker.HasMusicPublicationNameChanged(currentSchedule);
         var sectionNameChanged = stateTracker.HasMusicSectionNameChanged(currentSchedule);
 
-        if (musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged || repeatChanged || publicationNameChanged || sectionNameChanged)
+        if (languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged || repeatChanged || publicationNameChanged || sectionNameChanged)
         {
             // Update last values immediately to prevent duplicate detection
             stateTracker.UpdateFromSchedule(currentSchedule);
@@ -222,7 +218,8 @@ public sealed class MusicStateChangeHandler
             isPropertyChangeScheduled = true;
 
             // Capture values for the closure
-            var capturedMusicType = currentSchedule.MusicType;
+            // Music type is inferred: NULL/empty LanguageCode = instrumental (melody)
+            var isMelodyMusic = string.IsNullOrEmpty(currentSchedule.MusicLanguageCode);
             var capturedMusicEnabled = currentSchedule.MusicEnabled;
 
             // Trigger property change notifications with cascading logic (single batched call)
@@ -230,17 +227,16 @@ public sealed class MusicStateChangeHandler
             {
                 isPropertyChangeScheduled = false;
                 propertyNotifier.NotifyPropertiesChanged(
-                    musicTypeChanged,
                     languageCodeChanged,
                     publicationCodeChanged,
                     sectionCodeChanged,
                     trackNumberChanged,
                     repeatChanged,
-                    capturedMusicType,
+                    isMelodyMusic,
                     shouldScroll => { if (capturedMusicEnabled) setShouldScrollToBottom(shouldScroll); });
 
                 // Also notify display text properties if only display names changed (not codes)
-                if (!musicTypeChanged && !languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackNumberChanged && !repeatChanged)
+                if (!languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackNumberChanged && !repeatChanged)
                 {
                     if (publicationNameChanged)
                     {
@@ -289,11 +285,9 @@ public sealed class MusicStateChangeHandler
                         stateHolder.Music == null ||
                         stateHolder.LastMusic.LanguageCode != newMusicItem.LanguageCode ||
                         stateHolder.LastMusic.PublicationCode != newMusicItem.PublicationCode ||
-                        stateHolder.LastMusic.MusicType != newMusicItem.MusicType ||
                         stateHolder.LastMusic.TrackNumber != newMusicItem.TrackNumber ||
                         (stateHolder.Music != null &&
                          (stateHolder.Music.TrackNumber != newMusicItem.TrackNumber ||
-                          stateHolder.Music.MusicType != newMusicItem.MusicType ||
                           stateHolder.Music.LanguageCode != newMusicItem.LanguageCode ||
                           stateHolder.Music.PublicationCode != newMusicItem.PublicationCode));
 
@@ -306,13 +300,14 @@ public sealed class MusicStateChangeHandler
         var newMusic = mapper.Map<AlarmMusic>(newMusicItem);
 
         // Determine what changed to trigger cascading notifications (compare BEFORE updating)
-        var musicTypeChanged = stateHolder.Music?.MusicType != newMusic.MusicType;
         var languageCodeChanged = stateHolder.Music?.LanguageCode != newMusic.LanguageCode;
         var publicationCodeChanged = stateHolder.Music?.PublicationCode != newMusic.PublicationCode;
         // Check section code from CurrentSchedule (now stored in AlarmMusic.SectionCode)
         var currentSchedule = state.Value.CurrentSchedule;
         var sectionCodeChanged = currentSchedule?.MusicSectionCode != stateTracker.LastMusicSectionCode;
         var trackNumberChanged = stateHolder.Music?.TrackNumber != newMusic.TrackNumber;
+        // Music type is inferred: NULL/empty LanguageCode = instrumental (melody)
+        var isMelodyMusic = string.IsNullOrEmpty(newMusic.LanguageCode);
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -322,13 +317,12 @@ public sealed class MusicStateChangeHandler
 
             // Trigger cascading property change notifications
             propertyNotifier.NotifyPropertiesChanged(
-                musicTypeChanged,
                 languageCodeChanged,
                 publicationCodeChanged,
                 sectionCodeChanged,
                 trackNumberChanged,
                 false,
-                newMusic.MusicType);
+                isMelodyMusic);
         });
     }
 }

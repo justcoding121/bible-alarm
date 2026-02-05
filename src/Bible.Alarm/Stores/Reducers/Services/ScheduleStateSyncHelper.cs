@@ -53,7 +53,6 @@ public static class ScheduleStateSyncHelper
 
         // Compare key properties that would trigger state changes
         return current.Id == action.Id &&
-               current.MusicType == action.MusicType &&
                current.MusicLanguageCode == action.MusicLanguageCode &&
                current.MusicPublicationCode == action.MusicPublicationCode &&
                current.MusicTrackNumber == action.MusicTrackNumber &&
@@ -175,31 +174,29 @@ public static class ScheduleStateSyncHelper
         }
 
         var music = CreateMusicFromCurrent(updatedCurrentSchedule);
-        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentMusic from CurrentSchedule. MusicType: {MusicType}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
-            music.MusicType, music.LanguageCode ?? "null", music.PublicationCode);
+        Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - Synced CurrentMusic from CurrentSchedule. LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}",
+            music.LanguageCode ?? "(null)", music.PublicationCode);
         return music;
     }
 
     public static bool HasValidMusicProperties(ScheduleStateItem schedule)
     {
-        return schedule.MusicType.HasValue &&
-               !string.IsNullOrWhiteSpace(schedule.MusicPublicationCode) &&
+        return !string.IsNullOrWhiteSpace(schedule.MusicPublicationCode) &&
                schedule.MusicTrackNumber.HasValue &&
                schedule.MusicTrackNumber.Value > 0;
     }
 
     public static MusicStateItem CreateMusicFromCurrent(ScheduleStateItem updatedCurrentSchedule)
     {
-        if (!updatedCurrentSchedule.MusicType.HasValue || !updatedCurrentSchedule.MusicTrackNumber.HasValue)
+        if (!updatedCurrentSchedule.MusicTrackNumber.HasValue)
         {
-            throw new InvalidOperationException("MusicType and MusicTrackNumber must have values");
+            throw new InvalidOperationException("MusicTrackNumber must have a value");
         }
         return new MusicStateItem
         {
             Id = updatedCurrentSchedule.MusicId ?? 0,
-            MusicType = updatedCurrentSchedule.MusicType.Value,
             PublicationCode = updatedCurrentSchedule.MusicPublicationCode ?? string.Empty,
-            LanguageCode = updatedCurrentSchedule.MusicLanguageCode ?? string.Empty,
+            LanguageCode = updatedCurrentSchedule.MusicLanguageCode,
             SectionCode = updatedCurrentSchedule.MusicSectionCode,
             TrackNumber = updatedCurrentSchedule.MusicTrackNumber.Value,
             Repeat = updatedCurrentSchedule.MusicRepeat ?? false,

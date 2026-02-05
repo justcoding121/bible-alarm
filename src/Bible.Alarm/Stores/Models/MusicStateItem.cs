@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Shared.Models.Enums;
 
 namespace Bible.Alarm.Stores.Models;
 
@@ -7,11 +6,11 @@ namespace Bible.Alarm.Stores.Models;
 /// Music item DTO for Fluxor state.
 /// Contains all music properties needed for display and state management.
 /// No database entities - this is a pure DTO.
+/// Music type (melody vs. vocal) is inferred from LanguageCode: NULL = melody, non-NULL = vocal.
 /// </summary>
 public sealed class MusicStateItem : IComparable
 {
     public int Id { get; set; }
-    public MusicType MusicType { get; set; }
     public string PublicationCode { get; set; } = string.Empty;
     public string? LanguageCode { get; set; }
     public string? SectionCode { get; set; } // Section code for music publications with sections

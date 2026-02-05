@@ -146,12 +146,6 @@ public sealed class NavigationService(
         });
     }
 
-    public async Task OpenMusicSelectionModalAsync(object bindingContext)
-    {
-        var navigation = GetNavigation();
-        await modalHandler.OpenMusicSelectionModalAsync(navigation, bindingContext);
-    }
-
     public async Task OpenSongPublicationSelectionModalAsync(object bindingContext)
     {
         var navigation = GetNavigation();

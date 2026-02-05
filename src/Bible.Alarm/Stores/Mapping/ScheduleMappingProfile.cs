@@ -1,6 +1,5 @@
 #nullable enable
 using AutoMapper;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Shared.Helpers;
@@ -24,7 +23,6 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.BiblePublicationTrackNumber, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (int?)src.BiblePublicationSchedule.TrackNumber : null))
             .ForMember(dest => dest.BiblePublicationFinishedDuration, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (TimeSpan?)src.BiblePublicationSchedule.FinishedDuration : null))
             .ForMember(dest => dest.MusicId, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.Id : null))
-            .ForMember(dest => dest.MusicType, opt => opt.MapFrom(src => src.Music != null ? (MusicType?)src.Music.MusicType : null))
             .ForMember(dest => dest.MusicPublicationCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.PublicationCode : null))
             .ForMember(dest => dest.MusicLanguageCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.LanguageCode : null))
             .ForMember(dest => dest.MusicSectionCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.SectionCode : null))
@@ -48,10 +46,9 @@ public class ScheduleMappingProfile : Profile
                 FinishedDuration = src.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = src.Id
             } : null))
-            .ForMember(dest => dest.Music, opt => opt.MapFrom(src => (src.MusicId.HasValue || src.MusicType.HasValue) ? new AlarmMusic
+            .ForMember(dest => dest.Music, opt => opt.MapFrom(src => (src.MusicId.HasValue || !string.IsNullOrEmpty(src.MusicPublicationCode)) ? new AlarmMusic
             {
                 Id = src.MusicId ?? 0,
-                MusicType = src.MusicType ?? MusicType.Music,
                 PublicationCode = src.MusicPublicationCode ?? string.Empty,
                 LanguageCode = src.MusicLanguageCode,
                 SectionCode = src.MusicSectionCode,

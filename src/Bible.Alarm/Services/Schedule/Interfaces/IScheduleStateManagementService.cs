@@ -1,9 +1,12 @@
 #nullable enable
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 
 namespace Bible.Alarm.Services.Schedule.Interfaces;
 
+/// <summary>
+/// Service for managing schedule state changes.
+/// Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal.
+/// </summary>
 public interface IScheduleStateManagementService
 {
     void HandleStateChanged(
@@ -17,7 +20,6 @@ public interface IScheduleStateManagementService
     bool HandleScheduleUpdateFromState(
         ApplicationState stateValue,
         int currentScheduleId,
-        ref MusicType? lastMusicType,
         ref int? lastMusicTrackNumber,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,

@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Models;
 using Serilog;
@@ -8,6 +7,7 @@ namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 
 /// <summary>
 /// Populates music display names from cached lookup data.
+/// Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal.
 /// </summary>
 internal sealed class MusicDisplayNamePopulator
 {
@@ -22,12 +22,15 @@ internal sealed class MusicDisplayNamePopulator
         }
 
         var music = schedule.Music;
+        
+        // Music type is inferred: NULL/empty LanguageCode = melody (instrumental), otherwise = vocal
+        var isMelodyMusic = string.IsNullOrEmpty(music.LanguageCode);
 
-        if (music.MusicType == MusicType.VocalMusic)
+        if (!isMelodyMusic)
         {
             PopulateVocalMusic(schedule, scheduleStateItem, music, lookupData);
         }
-        else if (music.MusicType == MusicType.Music)
+        else
         {
             PopulateMelodyMusic(schedule, scheduleStateItem, music, lookupData);
         }

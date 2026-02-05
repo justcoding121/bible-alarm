@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.ViewModels.Schedule;
 
 namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
@@ -7,6 +6,7 @@ namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers.MusicSelection;
 /// <summary>
 /// Handles cascading property change notifications for music properties.
 /// Separated from MusicSelectionContainerViewModel for better modularity.
+/// Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal.
 /// </summary>
 public sealed class MusicPropertyNotifier
 {
@@ -26,7 +26,6 @@ public sealed class MusicPropertyNotifier
     public void NotifyAllMusicPropertiesChanged()
     {
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicEnabled));
-        onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicTypeDisplayText));
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsMusicLanguageVisible));
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicLanguageDisplayText));
         onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsSongPublicationVisible));
@@ -50,68 +49,43 @@ public sealed class MusicPropertyNotifier
 
     /// <summary>
     /// Notifies properties based on what changed, using cascading logic.
+    /// isMelodyMusic = true means instrumental (no language), false means vocal (has language).
     /// </summary>
     public void NotifyPropertiesChanged(
-        bool musicTypeChanged,
         bool languageCodeChanged,
         bool publicationCodeChanged,
         bool sectionCodeChanged,
         bool trackNumberChanged,
         bool repeatChanged,
-        MusicType? musicType,
+        bool isMelodyMusic,
         Action<bool>? setShouldScrollToBottom = null)
     {
         // Determine which properties need to be notified (cascading logic)
-        var notifyMusicType = musicTypeChanged;
-        var notifyLanguage = musicTypeChanged || languageCodeChanged;
-        var notifySongPublication = musicTypeChanged || languageCodeChanged || publicationCodeChanged;
-        var notifySection = musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged;
-        var notifyTrack = musicTypeChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged;
+        var notifyLanguage = languageCodeChanged;
+        var notifySongPublication = languageCodeChanged || publicationCodeChanged;
+        var notifySection = languageCodeChanged || publicationCodeChanged || sectionCodeChanged;
+        var notifyTrack = languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged;
 
-        // Music type change cascades to all below (including flow direction for RTL support)
-        if (notifyMusicType)
+        // Language change cascades to all below (including flow direction for RTL support)
+        if (notifyLanguage)
         {
-            onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicTypeDisplayText));
+            onPropertyChanged(nameof(MusicSelectionContainerViewModel.ContentFlowDirection));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsMusicLanguageVisible));
-            onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsSongPublicationVisible));
-            onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsMusicSectionVisible));
-            onPropertyChanged(nameof(MusicSelectionContainerViewModel.ContentFlowDirection));
-
-            // Clear cached values when music type changes
-            displayTextProvider.ClearCaches();
-
-            // For vocals: notify language, music publication, section, and track
-            if (musicType == MusicType.VocalMusic)
-            {
-                onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicLanguageDisplayText));
-                onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
-                onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
-                onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
-
-                // Signal to scroll to bottom when user selects vocals (only if music is enabled)
-                setShouldScrollToBottom?.Invoke(true);
-            }
-            // For melodies (instrumental): notify publication, section, and track (no language)
-            else if (musicType == MusicType.Music)
-            {
-                onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
-                onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
-                onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
-            }
-        }
-        // Language change (vocals only) cascades to music publication, section, track, and flow direction
-        else if (notifyLanguage && musicType == MusicType.VocalMusic)
-        {
-            onPropertyChanged(nameof(MusicSelectionContainerViewModel.ContentFlowDirection));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicLanguageDisplayText));
+            onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsSongPublicationVisible));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.SongPublicationDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsMusicSectionVisible));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.MusicSectionDisplayText));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.TrackDisplayText));
 
-            // Clear music publication, section, and track caches when language changes
-            displayTextProvider.ClearSongPublicationCache();
-            displayTextProvider.ClearTrackCache();
+            // Clear cached values when language changes
+            displayTextProvider.ClearCaches();
+
+            // Signal to scroll to bottom when user selects vocals (only if music is enabled and has language)
+            if (!isMelodyMusic)
+            {
+                setShouldScrollToBottom?.Invoke(true);
+            }
         }
         // Music publication change cascades to section and track
         else if (notifySongPublication)
@@ -143,7 +117,7 @@ public sealed class MusicPropertyNotifier
         }
 
         // Always notify repeat and has track selected if any music property changed
-        if (notifyMusicType || notifyLanguage || notifySongPublication || notifySection || notifyTrack || repeatChanged)
+        if (notifyLanguage || notifySongPublication || notifySection || notifyTrack || repeatChanged)
         {
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.IsRepeatEnabled));
             onPropertyChanged(nameof(MusicSelectionContainerViewModel.HasTrackSelected));

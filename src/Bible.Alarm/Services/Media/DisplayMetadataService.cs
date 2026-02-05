@@ -11,6 +11,7 @@ using Serilog;
 using System.Net;
 using File = TagLib.File;
 using IPicture = TagLib.IPicture;
+using ReadStyle = TagLib.ReadStyle;
 
 namespace Bible.Alarm.Services.Media;
 
@@ -419,22 +420,45 @@ public sealed class DisplayMetadataService(
             try
             {
                 var filePath = ConvertUriToFilePath(uri);
-                
-                // Verify file exists before attempting to read metadata
-                // This provides better diagnostics than relying on TagLib's FileNotFoundException
+
                 if (!System.IO.File.Exists(filePath))
                 {
                     logger.Debug("File does not exist for metadata extraction: {FilePath} (from URI: {Uri})", filePath, uri);
                     return CreateFallbackMetadata();
                 }
 
-                using var file = File.Create(filePath);
-                var tag = file.Tag;
+                File? file = null;
+                try
+                {
+                    file = File.Create(filePath);
+                }
+                catch (Exception ex) when (filePath.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Cached file may have .mp4 extension but contain MP3 (e.g. when API returned MP3 for video publication).
+                    logger.Debug(ex, "TagLib failed for .mp4 path, trying as audio/mpeg: {FilePath}", filePath);
+                    try
+                    {
+                        file = File.Create(filePath, "audio/mpeg", ReadStyle.None);
+                    }
+                    catch
+                    {
+                        logger.Warning(ex, "Failed to extract metadata from {Uri}", uri);
+                        return CreateFallbackMetadata();
+                    }
+                }
 
-                var meta = ExtractBasicMetadata(tag);
-                ExtractArtworkIfAvailable(tag, meta, uri);
+                if (file == null)
+                {
+                    return CreateFallbackMetadata();
+                }
 
-                return meta;
+                using (file)
+                {
+                    var tag = file.Tag;
+                    var meta = ExtractBasicMetadata(tag);
+                    ExtractArtworkIfAvailable(tag, meta, uri);
+                    return meta;
+                }
             }
             catch (Exception ex)
             {

@@ -50,7 +50,8 @@ public sealed class MusicStateInitializer
 
         // Initialize track name cache from state if available (populated during bootstrap)
         // NOTE: Do NOT query database here - track names should be in state from bootstrap
-        if (currentSchedule.MusicType.HasValue &&
+        // Music type is now inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal
+        if (!string.IsNullOrEmpty(currentSchedule.MusicPublicationCode) &&
             currentSchedule.MusicTrackNumber.HasValue &&
             currentSchedule.MusicTrackNumber.Value > 0)
         {
@@ -61,8 +62,7 @@ public sealed class MusicStateInitializer
                     currentSchedule.MusicTrackName,
                     currentSchedule.MusicTrackNumber,
                     currentSchedule.MusicPublicationCode,
-                    currentSchedule.MusicLanguageCode,
-                    currentSchedule.MusicType);
+                    currentSchedule.MusicLanguageCode);
             }
         }
 

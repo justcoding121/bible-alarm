@@ -1,5 +1,4 @@
 #nullable enable
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores.Models;
 
 namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
@@ -7,11 +6,11 @@ namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelper
 /// <summary>
 /// Tracks last values from CurrentSchedule to detect changes.
 /// Separated from MusicSelectionContainerViewModel for better modularity.
+/// Music type is no longer tracked - inferred from LanguageCode (null = melody, non-null = vocal).
 /// </summary>
 public sealed class MusicStateTracker
 {
     // Track last values from CurrentSchedule to detect changes
-    private MusicType? lastScheduleMusicType;
     private int? lastScheduleMusicTrackNumber;
     private string? lastScheduleMusicSectionCode;
     private string? lastScheduleMusicPublicationCode;
@@ -23,7 +22,6 @@ public sealed class MusicStateTracker
     private string? lastMusicPublicationName;
     private string? lastMusicSectionName;
 
-    public MusicType? LastScheduleMusicType => lastScheduleMusicType;
     public int? LastScheduleMusicTrackNumber => lastScheduleMusicTrackNumber;
     public string? LastMusicSectionCode => lastScheduleMusicSectionCode;
     public string? LastScheduleMusicPublicationCode => lastScheduleMusicPublicationCode;
@@ -43,7 +41,6 @@ public sealed class MusicStateTracker
             return;
         }
 
-        lastScheduleMusicType = currentSchedule.MusicType;
         lastScheduleMusicTrackNumber = currentSchedule.MusicTrackNumber;
         lastScheduleMusicSectionCode = currentSchedule.MusicSectionCode;
         lastScheduleMusicPublicationCode = currentSchedule.MusicPublicationCode;
@@ -64,7 +61,6 @@ public sealed class MusicStateTracker
             return;
         }
 
-        lastScheduleMusicType = currentSchedule.MusicType;
         lastScheduleMusicTrackNumber = currentSchedule.MusicTrackNumber;
         lastScheduleMusicSectionCode = currentSchedule.MusicSectionCode;
         lastScheduleMusicPublicationCode = currentSchedule.MusicPublicationCode;
@@ -105,22 +101,22 @@ public sealed class MusicStateTracker
 
     /// <summary>
     /// Detects changes in music properties from CurrentSchedule.
+    /// Returns tuple without musicTypeChanged (no longer used).
     /// </summary>
-    public (bool musicTypeChanged, bool languageCodeChanged, bool publicationCodeChanged, bool sectionCodeChanged, bool trackNumberChanged, bool repeatChanged) DetectChanges(ScheduleStateItem? currentSchedule)
+    public (bool languageCodeChanged, bool publicationCodeChanged, bool sectionCodeChanged, bool trackNumberChanged, bool repeatChanged) DetectChanges(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule == null)
         {
-            return (false, false, false, false, false, false);
+            return (false, false, false, false, false);
         }
 
-        var musicTypeChanged = lastScheduleMusicType != currentSchedule.MusicType;
         var languageCodeChanged = lastScheduleMusicLanguageCode != currentSchedule.MusicLanguageCode;
         var publicationCodeChanged = lastScheduleMusicPublicationCode != currentSchedule.MusicPublicationCode;
         var sectionCodeChanged = lastScheduleMusicSectionCode != currentSchedule.MusicSectionCode;
         var trackNumberChanged = lastScheduleMusicTrackNumber != currentSchedule.MusicTrackNumber;
         var repeatChanged = lastScheduleMusicRepeat != (currentSchedule.MusicRepeat ?? false);
 
-        return (musicTypeChanged, languageCodeChanged, publicationCodeChanged, sectionCodeChanged, trackNumberChanged, repeatChanged);
+        return (languageCodeChanged, publicationCodeChanged, sectionCodeChanged, trackNumberChanged, repeatChanged);
     }
 
     /// <summary>

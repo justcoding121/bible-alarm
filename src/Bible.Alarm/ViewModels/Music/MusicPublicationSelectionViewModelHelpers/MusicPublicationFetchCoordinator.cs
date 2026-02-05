@@ -1,7 +1,6 @@
 #nullable enable
 
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -23,11 +22,15 @@ internal sealed class MusicPublicationFetchCoordinator
         bool downloadAll,
         IFetchProgress? progress)
     {
-        // For instrumental music (MusicType.Music), we need publications without language
-        // For vocal music (MusicType.VocalMusic), we need publications with language (or both)
+        // Music type is inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal
+        // For instrumental music, we need publications without language
+        // For vocal music, we need publications with language (or both)
         Dictionary<string, BiblePublication>? publicationsData = null;
+        
+        // Check if this is instrumental music (no language code)
+        var isMelodyMusic = string.IsNullOrEmpty(current?.LanguageCode) && string.IsNullOrEmpty(languageCode);
 
-        if (current?.MusicType == MusicType.Music && string.IsNullOrEmpty(languageCode))
+        if (isMelodyMusic)
         {
             // Instrumental music only - get publications without language FK
             // Use empty string as language code to get all Music category publications

@@ -2,7 +2,6 @@
 
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
@@ -258,8 +257,9 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
     private static bool IsSameLanguageAndSongPublication(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)
     {
+        // Vocal music has a non-null LanguageCode
         return currentSchedule != null &&
-               currentSchedule.MusicType == MusicType.VocalMusic &&
+               !string.IsNullOrEmpty(currentSchedule.MusicLanguageCode) &&
                currentSchedule.MusicLanguageCode == languageCode &&
                currentSchedule.MusicPublicationCode == publicationCode;
     }
