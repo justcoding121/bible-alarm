@@ -37,7 +37,7 @@ public sealed class ScheduleListItemViewModel(
     private readonly ScheduleListItemPropertyManager propertyManager = new(logger, scheduleStateService);
     private readonly ScheduleListItemCommandHandler commandHandler = new(logger, playbackService, playlistService);
     private readonly ScheduleListItemStateHandler stateHandler = new(logger, mapper, applicationState);
-    private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, applicationState);
+    private readonly ScheduleListItemSubtitleManager subtitleManager = new(logger, applicationState, playbackState);
     private readonly ScheduleListItemBibleDisplayNameProvider bibleDisplayNameProvider = new(applicationState);
     private ScheduleListItemStateChangeApplier? stateChangeApplier;
     private ScheduleListItemStateChangeApplier StateChangeApplier => stateChangeApplier ??= new(logger, applicationState, stateHandler, propertyManager);

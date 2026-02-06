@@ -119,22 +119,11 @@ internal static class MediaCacheDownloadCoordinator
             }
 
             logger.Warning(
-                "Download returned null or empty bytes for: LookUpPath={LookUpPath}, URL={Url}, attempting URL refresh",
+                "Download returned null or empty bytes for: LookUpPath={LookUpPath}, URL={Url}. No URL refresh - failing.",
                 lookUpPath,
                 playItem.Url);
-            var refreshedUrl = await RefreshUrlAndRetryDownloadAsync(
-                logger,
-                downloadService,
-                storageService,
-                urlRefreshService,
-                mediaService,
-                getScheduleCacheFolder,
-                getCacheFileName,
-                playItem,
-                scheduleId,
-                cancellationToken);
-            downloadTaskSource.SetResult(refreshedUrl);
-            return refreshedUrl;
+            downloadTaskSource.SetResult(null);
+            return null;
         }
         catch (OperationCanceledException)
         {
@@ -144,88 +133,15 @@ internal static class MediaCacheDownloadCoordinator
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Exception while downloading track: LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
-
-            // Try refreshing URL and retrying
-            try
-            {
-                var refreshedUrl = await RefreshUrlAndRetryDownloadAsync(
-                    logger,
-                    downloadService,
-                    storageService,
-                    urlRefreshService,
-                    mediaService,
-                    getScheduleCacheFolder,
-                    getCacheFileName,
-                    playItem,
-                    scheduleId,
-                    cancellationToken);
-                downloadTaskSource.SetResult(refreshedUrl);
-                return refreshedUrl;
-            }
-            catch (OperationCanceledException)
-            {
-                logger.Information("URL refresh cancelled for track: {Url}", playItem.Url);
-                downloadTaskSource.SetCanceled(cancellationToken);
-                throw;
-            }
-            catch (Exception refreshEx)
-            {
-                logger.Error(refreshEx, "Exception while refreshing URL for track: {Url}", playItem.Url);
-                downloadTaskSource.SetResult(null);
-                return null;
-            }
+            logger.Error(ex, "Exception while downloading track: LookUpPath={LookUpPath}, URL={Url}. No URL refresh - rethrowing.", lookUpPath, playItem.Url);
+            downloadTaskSource.SetException(ex);
+            throw;
         }
         finally
         {
             // Always remove from the dictionary when done (success or failure)
             inProgressDownloads.TryRemove(downloadKey, out _);
         }
-    }
-
-    private static async Task<string?> RefreshUrlAndRetryDownloadAsync(
-        ILogger logger,
-        IDownloadService downloadService,
-        IStorageService storageService,
-        IMediaUrlRefreshService urlRefreshService,
-        IMediaService mediaService,
-        Func<int, string> getScheduleCacheFolder,
-        Func<string, string> getCacheFileName,
-        PlayItem playItem,
-        int scheduleId,
-        CancellationToken cancellationToken = default)
-    {
-        // Check for cancellation
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var trackMetadata = playItem.Metadata;
-        var refreshedUrl = await urlRefreshService.RefreshUrlAsync(trackMetadata);
-
-        if (refreshedUrl == null || refreshedUrl == playItem.Url)
-        {
-            return null;
-        }
-
-        await mediaService.UpdateTrackUrlAsync(trackMetadata, refreshedUrl);
-        logger.Warning("Refreshed URL from {OldUrl} to {NewUrl} for {PlayItem}", playItem.Url, refreshedUrl, playItem);
-
-        var bytes = await downloadService.DownloadAsync(refreshedUrl, cancellationToken: cancellationToken);
-        if (bytes == null)
-        {
-            return null;
-        }
-
-        // Use lookup path (stable) instead of CDN URL (dynamic) for cache filename
-        var lookUpPath = playItem.Metadata.LookUpPath;
-        var scheduleCacheFolder = getScheduleCacheFolder(scheduleId);
-        await storageService.SaveFile(scheduleCacheFolder, getCacheFileName(lookUpPath), bytes);
-        logger.Warning(
-            "Downloaded using updated URL {RefreshedUrl} (lookup path: {LookUpPath}) for {PlayItem}, ScheduleId: {ScheduleId}",
-            refreshedUrl,
-            lookUpPath,
-            playItem,
-            scheduleId);
-        return refreshedUrl;
     }
 }
 

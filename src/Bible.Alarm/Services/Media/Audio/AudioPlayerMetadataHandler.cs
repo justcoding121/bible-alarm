@@ -51,6 +51,29 @@ public class AudioPlayerMetadataHandler
         }
     }
 
+    /// <summary>
+    /// Syncs playback metadata (title, artist, album, artwork) to Fluxor and MediaSession for the given track.
+    /// Use when MediaOpened may not fire (e.g. Android queue-based track change) so Android Auto Now Playing shows the correct title.
+    /// </summary>
+    public async Task SyncMetadataForTrackAsync(AudioPlayerTrack track)
+    {
+        try
+        {
+            var metadata = await displayMetadataService.GetDisplayMetadataAsync(track);
+            await SendMetadataMessageAsync(metadata);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "SyncMetadataForTrack failed for track");
+            var fallbackMeta = new MetaData
+            {
+                Title = "Unknown Title",
+                Artist = "Unknown Artist"
+            };
+            await SendMetadataMessageAsync(fallbackMeta);
+        }
+    }
+
     private async Task ApplyMetadataToMediaElement(MetaData meta, MediaElement mediaElement)
     {
         await MainThread.InvokeOnMainThreadAsync(async () =>

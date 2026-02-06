@@ -9,10 +9,12 @@ namespace Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
 
 /// <summary>
 /// Handles subtitle and language management for ScheduleListItemViewModel.
+/// When a schedule is currently playing, uses PlaybackState.Title so the list shows the actual track (e.g. "Jacob—A Man who loved peace...") instead of the saved selection.
 /// </summary>
 public sealed class ScheduleListItemSubtitleManager(
     ILogger logger,
-    IState<ApplicationState> applicationState)
+    IState<ApplicationState> applicationState,
+    IState<PlaybackState> playbackState)
 {
     private string subtitle = string.Empty;
     private string language = string.Empty;
@@ -58,7 +60,10 @@ public sealed class ScheduleListItemSubtitleManager(
             if (scheduleStateItem?.BiblePublicationScheduleId.HasValue == true)
             {
                 UpdateLanguageFromState(scheduleStateItem, setLanguage, onPropertyChanged);
-                var subtitle = BuildSubtitleFromState(scheduleStateItem);
+                var playingTrackTitle = (playbackState.Value.CurrentScheduleId == scheduleId && playbackState.Value.IsPreparingOrPlaying && !string.IsNullOrWhiteSpace(playbackState.Value.Title))
+                    ? playbackState.Value.Title
+                    : null;
+                var subtitle = BuildSubtitleFromState(scheduleStateItem, playingTrackTitle);
                 
                 logger.Debug("ScheduleListItemSubtitleManager: RefreshSubTitleFromState - Built subtitle: '{Subtitle}' for schedule {ScheduleId}", subtitle, scheduleId);
                 
@@ -122,7 +127,7 @@ public sealed class ScheduleListItemSubtitleManager(
         onPropertyChanged("Language");
     }
 
-    private static string BuildSubtitleFromState(ScheduleStateItem scheduleStateItem)
+    private static string BuildSubtitleFromState(ScheduleStateItem scheduleStateItem, string? overrideTrackTitle = null)
     {
         var parts = new List<string>();
         static void AddPart(List<string> parts, string? value)
@@ -147,7 +152,8 @@ public sealed class ScheduleListItemSubtitleManager(
             AddPart(parts, scheduleStateItem.BiblePublicationSectionName);
         }
 
-        // Add Track Name
+        // Add Track Name (use override when this schedule is currently playing so list shows actual track)
+        var trackTitleForDisplay = !string.IsNullOrWhiteSpace(overrideTrackTitle) ? overrideTrackTitle : scheduleStateItem.BiblePublicationTrackTitle;
         var hasSectionStructureForTrack = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode);
         if (hasSectionStructureForTrack)
         {
@@ -157,9 +163,9 @@ public sealed class ScheduleListItemSubtitleManager(
             var categoryName = scheduleStateItem.BiblePublicationCategoryName;
             var isMusicCategory = string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase);
 
-            if (isMusicCategory && !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
+            if (isMusicCategory && !string.IsNullOrWhiteSpace(trackTitleForDisplay))
             {
-                AddPart(parts, scheduleStateItem.BiblePublicationTrackTitle);
+                AddPart(parts, trackTitleForDisplay);
             }
             else
             {
@@ -175,9 +181,9 @@ public sealed class ScheduleListItemSubtitleManager(
         else
         {
             // For non-sectioned publications (dramas/videos), show track title
-            if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
+            if (!string.IsNullOrWhiteSpace(trackTitleForDisplay))
             {
-                AddPart(parts, scheduleStateItem.BiblePublicationTrackTitle);
+                AddPart(parts, trackTitleForDisplay);
             }
         }
 

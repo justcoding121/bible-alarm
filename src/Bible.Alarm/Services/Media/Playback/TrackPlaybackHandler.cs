@@ -59,6 +59,10 @@ public sealed class TrackPlaybackHandler
         {
             await audioPlayer.PrepareAsync(track, isFirstTrack, isLastTrack);
 
+            // On Android with queue (SetSourceWithDummyQueue), MediaOpened may not fire when changing tracks,
+            // so MediaSession/Android Auto keeps the previous track's title. Sync metadata now so Now Playing shows the correct track.
+            await audioPlayer.SyncMetadataForTrackAsync(track);
+
             // On iOS, MediaElement may need a brief moment after PrepareAsync before it can play
             // Wait for the media to be in a ready state (not None or Failed)
             // This also gives time for the state to transition from "Opening" to "Paused"

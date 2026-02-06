@@ -85,8 +85,8 @@ internal static class DramaTrackParser
                     }
                 }
 
-                // Build lookup path using GETPUBMEDIALINKS format
-                var lookUpPath = $"?output=json&pub={sectionCode}&fileformat=MP3&langwritten={languageCode}&track={trackNumber}";
+                // Build lookup path using GETPUBMEDIALINKS format (no track param for drama sections)
+                var lookUpPath = $"?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}";
 
                 tracks.Add(new DramaTrack
                 {

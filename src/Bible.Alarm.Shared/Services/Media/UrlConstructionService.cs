@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
@@ -174,12 +175,17 @@ public class UrlConstructionService : IUrlConstructionService
         }
 
         // Build query string in the expected order: output, pub, booknum, fileformat, alllangs, langwritten, track
+        // Drama sections: GETPUBMEDIALINKS returns one file per section (pub=sectionCode); do not send track param.
         var orderedKeys = new[] { "output", "pub", "booknum", "fileformat", "alllangs", "langwritten", "track" };
         var queryParts = new List<string>();
-        
-        // Add parameters in the specified order
+        var isDrama = PublicationTypeHelper.IsDrama(publication.PublicationCode);
+
         foreach (var key in orderedKeys)
         {
+            if (key == "track" && isDrama)
+            {
+                continue;
+            }
             if (queryParams.ContainsKey(key))
             {
                 queryParts.Add($"{Uri.EscapeDataString(key)}={Uri.EscapeDataString(queryParams[key])}");

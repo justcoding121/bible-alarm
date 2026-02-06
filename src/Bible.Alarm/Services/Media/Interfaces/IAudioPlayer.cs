@@ -20,6 +20,11 @@ public interface IAudioPlayer : IDisposable
 
     Task SeekToAsync(TimeSpan position);
 
+    /// <summary>
+    /// Syncs playback metadata for the given track to Fluxor/MediaSession (e.g. so Android Auto Now Playing shows correct title after track change).
+    /// </summary>
+    Task SyncMetadataForTrackAsync(AudioPlayerTrack track);
+
     TimeSpan? CurrentPosition { get; }
 
     TimeSpan Duration { get; }

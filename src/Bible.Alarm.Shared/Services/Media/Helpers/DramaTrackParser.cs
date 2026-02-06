@@ -80,19 +80,6 @@ internal sealed class DramaTrackParser
             return null;
         }
 
-        // Get track number from API (original track number within the section)
-        // If not present, use the sequential trackNumber parameter
-        int originalTrackNumber = trackNumber; // Default to sequential number
-        if (trackFile.TryGetProperty("track", out var trackElement))
-        {
-            originalTrackNumber = trackElement.GetInt32();
-            // If track property exists but is 0, use sequential number instead
-            if (originalTrackNumber == 0)
-            {
-                originalTrackNumber = trackNumber;
-            }
-        }
-
         // Get title - handle both string and object formats
         string title = "Unknown";
         if (trackFile.TryGetProperty("title", out var titleElement))
@@ -115,8 +102,8 @@ internal sealed class DramaTrackParser
             return null;
         }
 
-        // Create track with URL params
-        // For dramas, pub should be the section code (e.g., "iaze"), not the publication code
+        // Create track with URL params.
+        // GETPUBMEDIALINKS for drama sections returns a single file per section (pub=sectionCode); no track param.
         var trackUrlParams = new List<UrlParam>
         {
             new UrlParam
@@ -147,14 +134,6 @@ internal sealed class DramaTrackParser
             {
                 Key = "langwritten",
                 Value = normalizedLanguageCode,
-                IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
-            },
-            new UrlParam
-            {
-                Key = "track",
-                Value = originalTrackNumber.ToString(),
                 IsQueryParam = true,
                 BaseUrl = baseUrl,
                 BaseUrlId = baseUrl.Id

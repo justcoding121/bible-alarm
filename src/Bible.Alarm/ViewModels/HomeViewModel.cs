@@ -196,6 +196,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
             async () => await progressBarManager.FadeOutAsync());
 
         state.StateChanged += OnStateChanged;
+        playbackState.StateChanged += OnPlaybackStateChanged;
 
         // Immediately process current state when ViewModel is created
         OnStateChanged(this, EventArgs.Empty);
@@ -393,6 +394,16 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         });
     }
 
+    private void OnPlaybackStateChanged(object? sender, EventArgs e)
+    {
+        // Refresh list so the playing schedule row shows PlaybackState.Title instead of saved track
+        var stateValue = state.Value;
+        _ = MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            await stateChangeHandler.HandleStateChangedAsync(stateValue);
+        });
+    }
+
     public void Receive(ShowProgressBarMessage message)
     {
         MainThread.BeginInvokeOnMainThread(() =>
@@ -414,6 +425,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     public void Dispose()
     {
         state.StateChanged -= OnStateChanged;
+        playbackState.StateChanged -= OnPlaybackStateChanged;
         WeakReferenceMessenger.Default.Unregister<ShowProgressBarMessage>(this);
         WeakReferenceMessenger.Default.Unregister<HideProgressBarMessage>(this);
         bootstrapReadyManager.Dispose();

@@ -50,6 +50,7 @@ public static class AndroidAutoScheduleHelper
     /// <summary>
     /// Builds the display title for a schedule state item.
     /// Bible category: section name (e.g. "Hebrews 13"). Other categories: track name.
+    /// When this schedule is currently playing, uses PlaybackState.Title so Auto and phone list show the actual track.
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
@@ -60,6 +61,12 @@ public static class AndroidAutoScheduleHelper
                 : "Unnamed schedule";
         }
 
+        var playbackState = ServiceProviderManager.GetService<IState<PlaybackState>>()?.Value;
+        var usePlayingTitle = playbackState != null
+            && playbackState.CurrentScheduleId == scheduleItem.Id
+            && playbackState.IsPreparingOrPlaying
+            && !string.IsNullOrWhiteSpace(playbackState.Title);
+
         var categoryName = scheduleItem.BiblePublicationCategoryName
             ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
         var isBibleCategory = string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase);
@@ -67,6 +74,11 @@ public static class AndroidAutoScheduleHelper
         if (isBibleCategory && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
         {
             return scheduleItem.BiblePublicationSectionName;
+        }
+
+        if (usePlayingTitle)
+        {
+            return playbackState!.Title!;
         }
 
         if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
