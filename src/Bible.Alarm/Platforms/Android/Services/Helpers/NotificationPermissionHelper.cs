@@ -84,15 +84,35 @@ public static class NotificationPermissionHelper
             }
         });
 
-        // Wait a bit for the permission dialog to appear and user to respond
-        // Then check the status
-        logger.Debug("Waiting 500ms for user to respond to permission dialog");
-        await Task.Delay(500);
+        // Wait for the permission dialog to appear and user to respond
+        // Poll multiple times with increasing delays to handle varying response times
+        logger.Debug("Waiting for user to respond to permission dialog");
+        var maxWaitTime = TimeSpan.FromSeconds(10);
+        var checkInterval = TimeSpan.FromMilliseconds(200);
+        var elapsed = TimeSpan.Zero;
+        
+        while (elapsed < maxWaitTime)
+        {
+            await Task.Delay(checkInterval);
+            elapsed = elapsed.Add(checkInterval);
+            
+            var granted = IsNotificationPermissionGranted();
+            if (granted)
+            {
+                logger.Information("Notification permission granted after {ElapsedMs}ms", elapsed.TotalMilliseconds);
+                return true;
+            }
+            
+            // Increase check interval after initial wait to reduce polling frequency
+            if (elapsed.TotalMilliseconds > 1000)
+            {
+                checkInterval = TimeSpan.FromMilliseconds(500);
+            }
+        }
 
-        // Check permission status after request
-        var granted = IsNotificationPermissionGranted();
-        logger.Information("Notification permission request result: Granted: {Granted}", granted);
-
-        return granted;
+        // Final check after max wait time
+        var finalGranted = IsNotificationPermissionGranted();
+        logger.Information("Notification permission request result after {MaxWaitTime}s: Granted: {Granted}", maxWaitTime.TotalSeconds, finalGranted);
+        return finalGranted;
     }
 }

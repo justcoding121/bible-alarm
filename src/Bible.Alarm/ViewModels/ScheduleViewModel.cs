@@ -487,6 +487,14 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         overlayTimeoutController.SetIsSaving(saving);
     }
 
+    public void StopPermissionCheckTasks()
+    {
+#if ANDROID
+        propertyManager.AlarmSettingsContainerViewModel?.StopPermissionCheckTaskIfRunning();
+        propertyManager.NumberOfTrackContainerViewModel?.StopPermissionCheckTaskIfRunning();
+#endif
+    }
+
     public void Dispose()
     {
         state.StateChanged -= OnStateChanged;

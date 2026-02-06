@@ -191,6 +191,8 @@ public partial class Schedule : BaseContentPage, IDisposable
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        // Stop permission check tasks immediately when navigating away
+        ViewModel?.StopPermissionCheckTasks();
         // Disposal happens in Dispose() when page is popped from navigation stack
     }
 
