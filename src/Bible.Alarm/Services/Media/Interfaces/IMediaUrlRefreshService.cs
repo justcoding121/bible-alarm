@@ -7,10 +7,10 @@ public interface IMediaUrlRefreshService
 {
     Task<string?> RefreshUrlAsync(TrackMetadata trackMetadata);
 
-    Task<string?> GetBiblePublicationTrackUrl(string languageCode, string pubCode, int track, string lookUpPath);
+    Task<string?> GetBiblePublicationTrackUrl(string languageCode, string pubCode, string trackCode, string lookUpPath);
 
     Task<string?> GetMusicTrackUrl(string languageCode, string lookUpPath);
 
-    Task<string?> GetDramaTrackUrl(string categoryKey, string languageCode, int trackNumber, string? naturalKey = null);
+    Task<string?> GetDramaTrackUrl(string categoryKey, string languageCode, string trackCode, string? naturalKey = null);
 }
 

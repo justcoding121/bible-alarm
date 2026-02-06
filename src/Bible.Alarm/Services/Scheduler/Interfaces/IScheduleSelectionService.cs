@@ -11,7 +11,7 @@ public interface IScheduleSelectionService : IDisposable
     /// Only queries media index DB for track lists, publications, etc.
     /// </summary>
     AlarmMusic? LoadMusicForSelection(int scheduleId, bool isNewSchedule, AlarmMusic? currentMusic,
-        string? publicationCode, string? languageCode, int? trackNumber, bool? repeat);
+        string? publicationCode, string? languageCode, string? trackCode, bool? repeat);
 
     /// <summary>
     /// Loads Bible reading for selection modal. For existing schedules, creates BiblePublicationSchedule from CurrentSchedule properties
@@ -19,6 +19,6 @@ public interface IScheduleSelectionService : IDisposable
     /// Only queries media index DB for section lists, tracks, etc.
     /// </summary>
     BiblePublicationSchedule? LoadBiblePublicationForSelection(int scheduleId, bool isNewSchedule, BiblePublicationSchedule? currentBiblePublication,
-        string? languageCode, string? publicationCode, string? sectionCode, int? trackNumber, TimeSpan? finishedDuration);
+        string? languageCode, string? publicationCode, string? sectionCode, string? trackCode, TimeSpan? finishedDuration);
 }
 

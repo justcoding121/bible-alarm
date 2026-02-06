@@ -107,7 +107,7 @@ internal sealed class MusicSectionSelectionCommandHandler
                 LanguageCode = languageCode,
                 PublicationCode = publicationCode,
                 SectionCode = selectedSection.Section.SectionCode,
-                TrackNumber = firstTrack.Number,
+                TrackCode = firstTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 Repeat = currentSchedule.MusicRepeat ?? false,
                 // Store display names
                 PublicationName = currentSchedule.MusicPublicationName,

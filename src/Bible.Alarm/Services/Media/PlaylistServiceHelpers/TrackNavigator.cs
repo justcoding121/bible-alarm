@@ -1,4 +1,5 @@
 #nullable enable
+using System.Globalization;
 using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
@@ -82,19 +83,19 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
         string languageCode,
         string publicationCode,
         string? sectionCode,
-        int track)
+        string trackCode)
     {
         // Handle non-sectioned publications (dramas, videos)
         if (string.IsNullOrWhiteSpace(sectionCode))
         {
-            return await GetNextNonSectionedTrack(languageCode, publicationCode, track);
+            return await GetNextNonSectionedTrack(languageCode, publicationCode, trackCode);
         }
 
         // Sectioned publication: circle within the whole publication (all sections), not within a section.
         var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
         if (string.IsNullOrEmpty(normalizedSectionCode))
         {
-            return await GetNextNonSectionedTrack(languageCode, publicationCode, track);
+            return await GetNextNonSectionedTrack(languageCode, publicationCode, trackCode);
         }
 
         var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
@@ -104,7 +105,8 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
         }
 
         var tracks = await GetTracksCachedAsync(languageCode, publicationCode, normalizedSectionCode);
-        var nextTrack = tracks.SkipWhile(kvp => kvp.Key <= track).FirstOrDefault();
+        var currentKey = ResolveTrackCodeToKey(tracks, trackCode);
+        var nextTrack = tracks.SkipWhile(kvp => kvp.Key <= currentKey).FirstOrDefault();
 
         if (!nextTrack.Equals(default(KeyValuePair<int, BiblePublicationTrack>)))
         {
@@ -127,6 +129,22 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
         return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(nextSection.Value, tracks.ElementAt(0).Value);
     }
 
+    private static int ResolveTrackCodeToKey(SortedDictionary<int, BiblePublicationTrack> tracks, string trackCode)
+    {
+        if (int.TryParse(trackCode, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) && tracks.ContainsKey(n))
+        {
+            return n;
+        }
+        foreach (var kvp in tracks)
+        {
+            if (TrackCodeHelper.GetFromTrack(kvp.Value) == trackCode)
+            {
+                return kvp.Key;
+            }
+        }
+        throw new InvalidOperationException($"Track not found for trackCode={trackCode}");
+    }
+
     /// <summary>
     /// Gets the previous Bible track.
     /// For non-sectioned publications, navigates through tracks with wrap at start.
@@ -137,19 +155,19 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
         string languageCode,
         string publicationCode,
         string? sectionCode,
-        int track)
+        string trackCode)
     {
         // Handle non-sectioned publications (dramas, videos)
         if (string.IsNullOrWhiteSpace(sectionCode))
         {
-            return await GetPreviousNonSectionedTrack(languageCode, publicationCode, track);
+            return await GetPreviousNonSectionedTrack(languageCode, publicationCode, trackCode);
         }
 
         // Sectioned publication: circle within the whole publication (all sections), not within a section.
         var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
         if (string.IsNullOrEmpty(normalizedSectionCode))
         {
-            return await GetPreviousNonSectionedTrack(languageCode, publicationCode, track);
+            return await GetPreviousNonSectionedTrack(languageCode, publicationCode, trackCode);
         }
 
         var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
@@ -159,7 +177,8 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
         }
 
         var tracks = await GetTracksCachedAsync(languageCode, publicationCode, normalizedSectionCode);
-        var previousTrack = tracks.OrderBy(kvp => kvp.Key).Reverse().SkipWhile(kvp => kvp.Key >= track).FirstOrDefault();
+        var currentKey = ResolveTrackCodeToKey(tracks, trackCode);
+        var previousTrack = tracks.OrderBy(kvp => kvp.Key).Reverse().SkipWhile(kvp => kvp.Key >= currentKey).FirstOrDefault();
 
         if (!previousTrack.Equals(default(KeyValuePair<int, BiblePublicationTrack>)))
         {
@@ -189,7 +208,7 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
     private async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextNonSectionedTrack(
         string languageCode,
         string publicationCode,
-        int currentTrackNumber)
+        string trackCode)
     {
         var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode)
             ?? throw new InvalidOperationException($"Publication not found: languageCode={languageCode}, publicationCode={publicationCode}");
@@ -199,9 +218,11 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             throw new InvalidOperationException($"No tracks found for non-sectioned publication: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        // Find the next track
         var orderedTracks = publication.Tracks.OrderBy(t => t.Number).ToList();
-        var nextTrack = orderedTracks.FirstOrDefault(t => t.Number > currentTrackNumber);
+        var currentKey = ResolveTrackCodeToKey(new SortedDictionary<int, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.Number, t => t)), trackCode);
+
+        // Find the next track
+        var nextTrack = orderedTracks.FirstOrDefault(t => t.Number > currentKey);
 
         if (nextTrack != null)
         {
@@ -219,7 +240,7 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
     private async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousNonSectionedTrack(
         string languageCode,
         string publicationCode,
-        int currentTrackNumber)
+        string trackCode)
     {
         var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode)
             ?? throw new InvalidOperationException($"Publication not found: languageCode={languageCode}, publicationCode={publicationCode}");
@@ -229,9 +250,11 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             throw new InvalidOperationException($"No tracks found for non-sectioned publication: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        // Find the previous track
         var orderedTracks = publication.Tracks.OrderBy(t => t.Number).ToList();
-        var previousTrack = orderedTracks.LastOrDefault(t => t.Number < currentTrackNumber);
+        var currentKey = ResolveTrackCodeToKey(new SortedDictionary<int, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.Number, t => t)), trackCode);
+
+        // Find the previous track
+        var previousTrack = orderedTracks.LastOrDefault(t => t.Number < currentKey);
 
         if (previousTrack != null)
         {

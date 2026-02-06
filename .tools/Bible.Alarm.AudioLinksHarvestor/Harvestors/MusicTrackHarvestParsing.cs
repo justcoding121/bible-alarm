@@ -23,7 +23,7 @@ internal static class MusicTrackHarvestParsing
         JsonElement musicFiles,
         string publicationDownloadCode,
         string? languageCode,
-        int trackNumber,
+        int trackCode,
         List<MusicTrack> musicTracks)
     {
         foreach (var musicFile in musicFiles.EnumerateArray())
@@ -38,12 +38,12 @@ internal static class MusicTrackHarvestParsing
                 continue;
             }
 
-            var musicTrack = CreateMusicTrack(trackNumber, track, title, url, publicationDownloadCode, languageCode);
+            var musicTrack = CreateMusicTrack(trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture), track, title, url, publicationDownloadCode, languageCode);
             musicTracks.Add(musicTrack);
-            trackNumber++;
+            trackCode++;
         }
 
-        return trackNumber;
+        return trackCode;
     }
 
     internal static void SaveMusicTracks(string dir, string file, List<MusicTrack> musicTracks)
@@ -98,7 +98,7 @@ internal static class MusicTrackHarvestParsing
     }
 
     private static MusicTrack CreateMusicTrack(
-        int trackNumber,
+        string trackCode,
         int track,
         string title,
         string url,
@@ -107,16 +107,16 @@ internal static class MusicTrackHarvestParsing
     {
         // LookUpPath is no longer stored in the database - it's computed at runtime
         // Store DownloadCode for melody music that uses disc codes (e.g., "iam-1", "iam-2")
-        // Store OriginalTrackNumber for melody music - the API expects the track number within that disc
+        // Store OriginalTrackCode for melody music - the API expects the track number within that disc
         _ = languageCode; // Reserved for future use (keeps method signature aligned with callers)
 
         return new MusicTrack
         {
-            Number = trackNumber,
+            Number = int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedNum) ? parsedNum : track,
             Title = title,
             Url = url,
             DownloadCode = publicationDownloadCode,
-            OriginalTrackNumber = track // Store the original track number from API (within the disc)
+            OriginalTrackCode = track // Store the original track number from API (within the disc)
         };
     }
 }

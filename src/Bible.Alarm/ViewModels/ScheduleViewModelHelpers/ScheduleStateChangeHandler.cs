@@ -22,7 +22,7 @@ public class ScheduleStateChangeHandler
 
     public bool HandleScheduleUpdateFromState(
         ScheduleStateItem? currentSchedule,
-        ref int? lastMusicTrackNumber,
+        ref string? lastMusicTrackCode,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,
         ref bool? lastMusicRepeat,
@@ -36,7 +36,7 @@ public class ScheduleStateChangeHandler
         }
 
         // Check if music properties changed
-        var musicTrackChanged = lastMusicTrackNumber != currentSchedule.MusicTrackNumber;
+        var musicTrackChanged = lastMusicTrackCode != currentSchedule.MusicTrackCode;
         var musicPublicationChanged = lastMusicPublicationCode != currentSchedule.MusicPublicationCode;
         var musicLanguageChanged = lastMusicLanguageCode != currentSchedule.MusicLanguageCode;
         var musicRepeatChanged = lastMusicRepeat != currentSchedule.MusicRepeat;
@@ -44,7 +44,7 @@ public class ScheduleStateChangeHandler
         if (musicTrackChanged || musicPublicationChanged || musicLanguageChanged || musicRepeatChanged)
         {
             logger.Debug("HandleScheduleUpdateFromState: Music changed. Track: {OldTrack} -> {NewTrack}, Publication: {OldPub} -> {NewPub}, Language: {OldLang} -> {NewLang}, Repeat: {OldRepeat} -> {NewRepeat}",
-                lastMusicTrackNumber, currentSchedule.MusicTrackNumber,
+                lastMusicTrackCode, currentSchedule.MusicTrackCode,
                 lastMusicPublicationCode, currentSchedule.MusicPublicationCode,
                 lastMusicLanguageCode, currentSchedule.MusicLanguageCode,
                 lastMusicRepeat, currentSchedule.MusicRepeat);
@@ -52,7 +52,7 @@ public class ScheduleStateChangeHandler
             hasChanges = true;
 
             // Update tracking fields
-            lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
+            lastMusicTrackCode = currentSchedule.MusicTrackCode;
             lastMusicPublicationCode = currentSchedule.MusicPublicationCode;
             lastMusicLanguageCode = currentSchedule.MusicLanguageCode;
             lastMusicRepeat = currentSchedule.MusicRepeat;
@@ -63,24 +63,24 @@ public class ScheduleStateChangeHandler
 
     public void UpdateMusicTrackingFields(
         ScheduleStateItem scheduleStateItem,
-        ref int? lastMusicTrackNumber,
+        ref string? lastMusicTrackCode,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,
         ref bool? lastMusicRepeat)
     {
-        lastMusicTrackNumber = scheduleStateItem.MusicTrackNumber;
+        lastMusicTrackCode = scheduleStateItem.MusicTrackCode;
         lastMusicPublicationCode = scheduleStateItem.MusicPublicationCode;
         lastMusicLanguageCode = scheduleStateItem.MusicLanguageCode;
         lastMusicRepeat = scheduleStateItem.MusicRepeat;
     }
 
     public void ResetMusicTrackingFields(
-        ref int? lastMusicTrackNumber,
+        ref string? lastMusicTrackCode,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,
         ref bool? lastMusicRepeat)
     {
-        lastMusicTrackNumber = null;
+        lastMusicTrackCode = null;
         lastMusicPublicationCode = null;
         lastMusicLanguageCode = null;
         lastMusicRepeat = null;

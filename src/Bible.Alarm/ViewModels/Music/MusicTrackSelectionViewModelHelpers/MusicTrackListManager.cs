@@ -155,7 +155,9 @@ public sealed class MusicTrackListManager(
             return;
         }
 
-        var track = tracks.FirstOrDefault(t => t.Number == current.TrackNumber);
+        var track = tracks.FirstOrDefault(t => !string.IsNullOrWhiteSpace(current.TrackCode) &&
+            int.TryParse(current.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
+            t.Number == trackNum);
         if (track != null)
         {
             setSelectedTrack(track);

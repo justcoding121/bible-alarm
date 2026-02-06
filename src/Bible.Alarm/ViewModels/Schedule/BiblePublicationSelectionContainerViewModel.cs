@@ -47,7 +47,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
     private string? lastProcessedPublicationName;
     private string? lastProcessedSectionCode;
     private string? lastProcessedSectionName;
-    private int? lastProcessedTrackNumber;
+    private string? lastProcessedTrackCode;
     private bool shouldScrollToContainer;
 
     // Cached selectability flags (updated when state changes)
@@ -99,7 +99,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
                 currentSchedule.BiblePublicationLanguageCode,
                 currentSchedule.BiblePublicationCode,
                 currentSchedule.BiblePublicationSectionCode,
-                currentSchedule.BiblePublicationTrackNumber);
+                currentSchedule.BiblePublicationTrackCode);
 
             // Initialize last processed state to prevent duplicate processing
             lastProcessedScheduleId = currentSchedule.Id;
@@ -112,7 +112,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             lastProcessedPublicationName = currentSchedule.BiblePublicationName;
             lastProcessedSectionCode = currentSchedule.BiblePublicationSectionCode;
             lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
-            lastProcessedTrackNumber = currentSchedule.BiblePublicationTrackNumber;
+            lastProcessedTrackCode = currentSchedule.BiblePublicationTrackCode;
 
             // Batch property notifications to reduce UI thread work
             propertyNotifier.NotifyAllDisplayTextPropertiesChanged();
@@ -235,7 +235,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
                 currentSchedule.BiblePublicationName == lastProcessedPublicationName &&
                 string.Equals(currentSchedule.BiblePublicationSectionCode, lastProcessedSectionCode, StringComparison.OrdinalIgnoreCase) &&
                 currentSchedule.BiblePublicationSectionName == lastProcessedSectionName &&
-                currentSchedule.BiblePublicationTrackNumber == lastProcessedTrackNumber)
+                currentSchedule.BiblePublicationTrackCode == lastProcessedTrackCode)
             {
                 return;
             }
@@ -274,7 +274,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
                 lastProcessedPublicationName = currentSchedule.BiblePublicationName;
             lastProcessedSectionCode = currentSchedule.BiblePublicationSectionCode;
                 lastProcessedSectionName = currentSchedule.BiblePublicationSectionName;
-                lastProcessedTrackNumber = currentSchedule.BiblePublicationTrackNumber;
+                lastProcessedTrackCode = currentSchedule.BiblePublicationTrackCode;
             }
         }
         finally

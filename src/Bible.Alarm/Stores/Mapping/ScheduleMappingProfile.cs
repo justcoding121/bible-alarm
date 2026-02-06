@@ -20,13 +20,13 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.BiblePublicationCode, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.PublicationCode : null))
             .ForMember(dest => dest.BiblePublicationSectionCode, opt => opt.MapFrom(src =>
                 src.BiblePublicationSchedule != null ? SectionCodeHelper.Normalize(src.BiblePublicationSchedule.SectionCode) : null))
-            .ForMember(dest => dest.BiblePublicationTrackNumber, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (int?)src.BiblePublicationSchedule.TrackNumber : null))
+            .ForMember(dest => dest.BiblePublicationTrackCode, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? src.BiblePublicationSchedule.TrackCode : null))
             .ForMember(dest => dest.BiblePublicationFinishedDuration, opt => opt.MapFrom(src => src.BiblePublicationSchedule != null ? (TimeSpan?)src.BiblePublicationSchedule.FinishedDuration : null))
             .ForMember(dest => dest.MusicId, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.Id : null))
             .ForMember(dest => dest.MusicPublicationCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.PublicationCode : null))
             .ForMember(dest => dest.MusicLanguageCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.LanguageCode : null))
             .ForMember(dest => dest.MusicSectionCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.SectionCode : null))
-            .ForMember(dest => dest.MusicTrackNumber, opt => opt.MapFrom(src => src.Music != null ? (int?)src.Music.TrackNumber : null))
+            .ForMember(dest => dest.MusicTrackCode, opt => opt.MapFrom(src => src.Music != null ? src.Music.TrackCode : null))
             .ForMember(dest => dest.MusicRepeat, opt => opt.MapFrom(src => src.Music != null ? (bool?)src.Music.Repeat : null))
             // Set manually during bootstrap
             .ForMember(dest => dest.BiblePublicationLanguageName, opt => opt.Ignore())
@@ -42,7 +42,7 @@ public class ScheduleMappingProfile : Profile
                 LanguageCode = src.BiblePublicationLanguageCode ?? string.Empty,
                 PublicationCode = src.BiblePublicationCode ?? string.Empty,
                 SectionCode = SectionCodeHelper.Normalize(src.BiblePublicationSectionCode),
-                TrackNumber = src.BiblePublicationTrackNumber ?? 0,
+                TrackCode = src.BiblePublicationTrackCode ?? string.Empty,
                 FinishedDuration = src.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
                 AlarmScheduleId = src.Id
             } : null))
@@ -52,7 +52,7 @@ public class ScheduleMappingProfile : Profile
                 PublicationCode = src.MusicPublicationCode ?? string.Empty,
                 LanguageCode = src.MusicLanguageCode,
                 SectionCode = src.MusicSectionCode,
-                TrackNumber = src.MusicTrackNumber ?? 0,
+                TrackCode = src.MusicTrackCode ?? string.Empty,
                 Repeat = src.MusicRepeat ?? false,
                 AlarmScheduleId = src.Id
             } : null))

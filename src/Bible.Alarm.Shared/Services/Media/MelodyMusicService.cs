@@ -139,7 +139,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
             // Melody music is now stored as a sectioned publication (e.g., iam has sections like "iam-1", "iam-2")
-            // Include sections and their tracks (with UrlParams for OriginalTrackNumber)
+            // Include sections and their tracks (with UrlParams for OriginalTrackCode)
             var publication = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Category)
@@ -179,7 +179,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             }
 
             // Map BiblePublicationTrack to MusicTrack
-            // For sectioned melody (e.g. iam): set DownloadCode = section code (e.g. iam-1) and OriginalTrackNumber from UrlParams so LookUpPath uses pub=sectionCode.
+            // For sectioned melody (e.g. iam): set DownloadCode = section code (e.g. iam-1) and OriginalTrackCode from UrlParams so LookUpPath uses pub=sectionCode.
             // Handle duplicate track numbers by taking the first occurrence
             var musicTracks = allTracks
                 .OrderBy(t => t.Number)
@@ -248,20 +248,20 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
     }
 
     /// <summary>
-    /// Maps a BiblePublicationTrack to MusicTrack, setting DownloadCode (section/disc code) and OriginalTrackNumber
+    /// Maps a BiblePublicationTrack to MusicTrack, setting DownloadCode (section/disc code) and OriginalTrackCode
     /// from Section and UrlParams so that LookUpPath uses pub=sectionCode (e.g. iam-1) for melody music.
     /// </summary>
     /// <param name="sectionCodeFallback">When provided (e.g. from GetTracksBySectionCodeAsync), used if track.Section is not populated.</param>
     private static MusicTrack MapBiblePublicationTrackToMusicTrack(BiblePublicationTrack t, string? sectionCodeFallback = null)
     {
         var downloadCode = t.Section?.SectionCode ?? sectionCodeFallback;
-        int? originalTrackNumber = null;
+        int? originalTrackCode = null;
         if (t.UrlParams != null)
         {
             var trackParam = t.UrlParams.FirstOrDefault(p => p.Key == "track");
-            if (trackParam != null && int.TryParse(trackParam.Value, out var trackNum))
+            if (trackParam != null && int.TryParse(trackParam.Value, out var trackCode))
             {
-                originalTrackNumber = trackNum;
+                originalTrackCode = trackCode;
             }
         }
 
@@ -272,11 +272,11 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             Url = string.Empty,
             LookUpPath = string.Empty,
             DownloadCode = downloadCode,
-            OriginalTrackNumber = originalTrackNumber
+            OriginalTrackCode = originalTrackCode
         };
     }
 
-    public async Task UpdateTrackUrlAsync(string publicationCode, int trackNumber, string url, CancellationToken cancellationToken = default)
+    public async Task UpdateTrackUrlAsync(string publicationCode, string trackCode, string url, CancellationToken cancellationToken = default)
     {
         // URLs are now computed on-demand, no need to store them
         // This method is kept for backward compatibility but does nothing

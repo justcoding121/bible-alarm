@@ -27,7 +27,7 @@ public sealed class BiblePublicationStateItem : IComparable
     /// </summary>
     public string? SectionCode { get; set; }
 
-    public int TrackNumber { get; set; }
+    public string TrackCode { get; set; } = string.Empty;
     public TimeSpan FinishedDuration { get; set; }
     public int AlarmScheduleId { get; set; }
 

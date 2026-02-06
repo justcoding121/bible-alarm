@@ -27,11 +27,11 @@ internal sealed class DramaTrackParser
         string normalizedLanguageCode,
         string sectionCode,
         BaseUrl baseUrl,
-        int startTrackNumber,
-        out int nextTrackNumber)
+        int startTrackCode,
+        out int nextTrackCode)
     {
         var tracks = new List<BiblePublicationTrack>();
-        nextTrackNumber = startTrackNumber;
+        nextTrackCode = startTrackCode;
 
         if (!sectionFilesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) ||
             !languageFiles.TryGetProperty("MP3", out var mp3Files))
@@ -41,11 +41,11 @@ internal sealed class DramaTrackParser
 
         foreach (var trackFile in mp3Files.EnumerateArray())
         {
-            var track = ParseSingleTrack(trackFile, nextTrackNumber, sectionCode, baseUrl, normalizedLanguageCode);
+            var track = ParseSingleTrack(trackFile, nextTrackCode, sectionCode, baseUrl, normalizedLanguageCode);
             if (track != null)
             {
                 tracks.Add(track);
-                nextTrackNumber++;
+                nextTrackCode++;
             }
         }
 

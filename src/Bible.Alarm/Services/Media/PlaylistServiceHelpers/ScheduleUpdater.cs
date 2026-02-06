@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -26,7 +27,7 @@ public sealed class ScheduleUpdater(
                 // For non-sectioned publications, keep section as null
                 // Use SectionCode from the section, or null if section is null
                 brs.SectionCode = next.Key?.SectionCode;
-                brs.TrackNumber = next.Value.Number;
+                brs.TrackCode = TrackCodeHelper.GetFromTrack(next.Value);
                 brs.FinishedDuration = TimeSpan.Zero;
             },
             cancellationToken);
@@ -46,7 +47,7 @@ public sealed class ScheduleUpdater(
                 // For non-sectioned publications, keep section as null
                 // Use SectionCode from the section, or null if section is null
                 brs.SectionCode = previous.Key?.SectionCode;
-                brs.TrackNumber = previous.Value.Number;
+                brs.TrackCode = TrackCodeHelper.GetFromTrack(previous.Value);
                 brs.FinishedDuration = TimeSpan.Zero;
             },
             cancellationToken);

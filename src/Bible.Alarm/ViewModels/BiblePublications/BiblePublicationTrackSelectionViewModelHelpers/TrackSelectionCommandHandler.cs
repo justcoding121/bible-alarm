@@ -38,7 +38,7 @@ public sealed class TrackSelectionCommandHandler(
 
         var sectionCode = currentSchedule.BiblePublicationSectionCode;
 
-        logger.Debug("TrackSelectionCommandHandler: Setting track {TrackNumber} ({TrackTitle}) for section {SectionCode}",
+        logger.Debug("TrackSelectionCommandHandler: Setting track {TrackCode} ({TrackTitle}) for section {SectionCode}",
             track.Number, track.Title, sectionCode ?? "(none)");
 
         // Map entity to DTO before dispatching
@@ -47,7 +47,7 @@ public sealed class TrackSelectionCommandHandler(
             LanguageCode = currentSchedule.BiblePublicationLanguageCode,
             PublicationCode = currentSchedule.BiblePublicationCode,
             SectionCode = sectionCode,
-            TrackNumber = track.Number,
+            TrackCode = TrackCodeHelper.GetFromTrack(track.Track),
             // Store display names from current state and list item
             LanguageName = currentSchedule.BiblePublicationLanguageName,
             LanguageDirection = currentSchedule.BiblePublicationLanguageDirection,

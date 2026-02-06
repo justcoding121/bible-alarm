@@ -190,7 +190,7 @@ internal sealed class BiblePublicationDisplayNamePopulator
         LookupDataLoader.LookupData lookupData)
     {
         if (string.IsNullOrWhiteSpace(biblePublication.PublicationCode) ||
-            biblePublication.TrackNumber <= 0)
+            string.IsNullOrWhiteSpace(biblePublication.TrackCode))
         {
             return;
         }
@@ -218,24 +218,28 @@ internal sealed class BiblePublicationDisplayNamePopulator
                     if (section != null)
                     {
                         // Find the track in the section's tracks
-                        var track = section.Tracks?.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
+                        var track = section.Tracks?.FirstOrDefault(t => !string.IsNullOrWhiteSpace(biblePublication.TrackCode) &&
+                            int.TryParse(biblePublication.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
+                            t.Number == trackNum);
                         if (track != null && !string.IsNullOrWhiteSpace(track.Title))
                         {
                             scheduleStateItem.BiblePublicationTrackTitle = track.Title;
-                            Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (SectionCode: {SectionCode}, TrackNumber: {TrackNumber})",
-                                track.Title, schedule.Id, biblePublication.SectionCode, biblePublication.TrackNumber);
+                            Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (SectionCode: {SectionCode}, TrackCode: {TrackCode})",
+                                track.Title, schedule.Id, biblePublication.SectionCode, biblePublication.TrackCode);
                         }
                     }
                 }
                 else
                 {
                     // For non-sectioned publications (Drama/Video), find track directly in publication's tracks
-                    var track = publication.Tracks?.FirstOrDefault(t => t.Number == biblePublication.TrackNumber);
+                    var track = publication.Tracks?.FirstOrDefault(t => !string.IsNullOrWhiteSpace(biblePublication.TrackCode) &&
+                        int.TryParse(biblePublication.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
+                        t.Number == trackNum);
                     if (track != null && !string.IsNullOrWhiteSpace(track.Title))
                     {
                         scheduleStateItem.BiblePublicationTrackTitle = track.Title;
-                        Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
-                            track.Title, schedule.Id, biblePublication.TrackNumber);
+                        Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' for schedule {ScheduleId} (TrackCode: {TrackCode})",
+                            track.Title, schedule.Id, biblePublication.TrackCode);
                     }
 
                     // Populate category from publication (for non-sectioned publications that weren't loaded earlier)
@@ -255,11 +259,11 @@ internal sealed class BiblePublicationDisplayNamePopulator
 
         // Fallback: no-language track title lookup (e.g. melody discs stored with LanguageId == null).
         var normalizedSectionCode = SectionCodeHelper.Normalize(biblePublication.SectionCode);
-        if (lookupData.NoLanguageTrackTitles.TryGetValue((biblePublication.PublicationCode, normalizedSectionCode, biblePublication.TrackNumber), out var noLangTitle))
+        if (lookupData.NoLanguageTrackTitles.TryGetValue((biblePublication.PublicationCode, normalizedSectionCode, biblePublication.TrackCode), out var noLangTitle))
         {
             scheduleStateItem.BiblePublicationTrackTitle = noLangTitle;
-            Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' (no-language) for schedule {ScheduleId} (SectionCode: {SectionCode}, TrackNumber: {TrackNumber})",
-                noLangTitle, schedule.Id, biblePublication.SectionCode, biblePublication.TrackNumber);
+            Log.Logger.Debug("Set BiblePublicationTrackTitle '{BiblePublicationTrackTitle}' (no-language) for schedule {ScheduleId} (SectionCode: {SectionCode}, TrackCode: {TrackCode})",
+                noLangTitle, schedule.Id, biblePublication.SectionCode, biblePublication.TrackCode);
         }
     }
 }

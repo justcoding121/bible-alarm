@@ -33,7 +33,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                     return await GetDramaTrackUrl(
                         trackMetadata.PublicationCode,
                         trackMetadata.LanguageCode,
-                        trackMetadata.TrackNumber,
+                        trackMetadata.TrackCode,
                         trackMetadata.NaturalKey);
                 }
                 
@@ -41,7 +41,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                 return await GetBiblePublicationTrackUrl(
                     trackMetadata.LanguageCode,
                     trackMetadata.PublicationCode,
-                    trackMetadata.TrackNumber,
+                    trackMetadata.TrackCode,
                     lookUpPath);
             }
 
@@ -57,7 +57,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
     }
 
-    public async Task<string?> GetBiblePublicationTrackUrl(string languageCode, string pubCode, int track,
+    public async Task<string?> GetBiblePublicationTrackUrl(string languageCode, string pubCode, string trackCode,
         string lookUpPath)
     {
         try
@@ -132,6 +132,12 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
 
             // Find the file with matching track number (harvester extracts track from "track" property)
             JsonElement? selectedFile = null;
+            if (!int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackCode))
+            {
+                logger.Warning("Invalid trackCode '{TrackCode}' for Bible track URL refresh", trackCode);
+                return null;
+            }
+
             if (fileFormat == "MP4")
             {
                 // For MP4 (videos), find by track number first, then prefer 240p quality
@@ -139,8 +145,8 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                 {
                     if (file.TryGetProperty("track", out var trackElement))
                     {
-                        var fileTrackNumber = trackElement.GetInt32();
-                        if (fileTrackNumber == track)
+                        var fileTrackCode = trackElement.GetInt32();
+                        if (fileTrackCode == parsedTrackCode)
                         {
                             // Found matching track - check for preferred quality
                             if (file.TryGetProperty("label", out var labelElement))
@@ -182,8 +188,8 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                 {
                     if (file.TryGetProperty("track", out var trackElement))
                     {
-                        var fileTrackNumber = trackElement.GetInt32();
-                        if (fileTrackNumber == track)
+                        var fileTrackCode = trackElement.GetInt32();
+                        if (fileTrackCode == parsedTrackCode)
                         {
                             selectedFile = file;
                             break;
@@ -222,7 +228,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Exception in GetBiblePublicationTrackUrl for language '{LanguageCode}', publication '{PublicationCode}', track {Track}", languageCode, pubCode, track);
+            logger.Error(ex, "Exception in GetBiblePublicationTrackUrl for language '{LanguageCode}', publication '{PublicationCode}', trackCode {TrackCode}", languageCode, pubCode, trackCode);
             return null;
         }
     }
@@ -308,7 +314,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
         }
     }
 
-    public async Task<string?> GetDramaTrackUrl(string categoryKey, string languageCode, int trackNumber, string? naturalKey = null)
+    public async Task<string?> GetDramaTrackUrl(string categoryKey, string languageCode, string trackCode, string? naturalKey = null)
     {
         try
         {
@@ -342,7 +348,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
             // Find the matching track
             // The harvester assigns track numbers sequentially (1, 2, 3...) as it iterates through the media array
             // So we need to match by position in the array, not by a "track" property
-            int currentTrackNumber = 0;
+            int currentTrackCode = 0;
             foreach (var mediaItem in mediaArray.EnumerateArray())
             {
                 // Skip audio descriptions (same logic as harvester)
@@ -357,7 +363,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                 }
 
                 // Increment track number for valid items
-                currentTrackNumber++;
+                currentTrackCode++;
 
                 // Try to get natural key for more precise matching
                 string? itemNaturalKey = null;
@@ -372,7 +378,7 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                 {
                     matches = itemNaturalKey.Equals(naturalKey, StringComparison.OrdinalIgnoreCase);
                 }
-                else if (currentTrackNumber == trackNumber)
+                else if (int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackCode) && currentTrackCode == parsedTrackCode)
                 {
                     matches = true;
                 }
@@ -409,14 +415,14 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                 }
             }
 
-            logger.Warning("No matching MP3 file found for drama track. Category: {CategoryKey}, Language: {LanguageCode}, Track: {TrackNumber}", 
-                categoryKey, languageCode, trackNumber);
+            logger.Warning("No matching MP3 file found for drama track. Category: {CategoryKey}, Language: {LanguageCode}, Track: {TrackCode}", 
+                categoryKey, languageCode, trackCode);
             return null;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Exception in GetDramaTrackUrl for category '{CategoryKey}', language '{LanguageCode}', track {TrackNumber}", 
-                categoryKey, languageCode, trackNumber);
+            logger.Error(ex, "Exception in GetDramaTrackUrl for category '{CategoryKey}', language '{LanguageCode}', track {TrackCode}", 
+                categoryKey, languageCode, trackCode);
             return null;
         }
     }

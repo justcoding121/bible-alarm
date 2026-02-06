@@ -204,9 +204,9 @@ internal sealed class SectionFetcher
                 }
                 else
                 {
-                    int nextTrackNumber;
+                    int nextTrackCode;
                     tracks = dramaTrackParser.ParseTracksFromJson(
-                        filesElement, normalizedLanguageCode, sectionCode, baseUrl, startTrackNumber: 1, out nextTrackNumber);
+                        filesElement, normalizedLanguageCode, sectionCode, baseUrl, startTrackCode: 1, out nextTrackCode);
                 }
 
                 // Create and save section immediately (incremental save)
@@ -340,7 +340,7 @@ internal sealed class SectionFetcher
         }
 
         var tracks = new List<BiblePublicationTrack>();
-        var trackNumber = 1;
+        var trackCode = 1;
 
         foreach (var trackFile in mp3Files.EnumerateArray())
         {
@@ -398,7 +398,7 @@ internal sealed class SectionFetcher
 
             var track = new BiblePublicationTrack
             {
-                Number = trackNumber,
+                Number = trackCode,
                 Title = title,
                 Publication = publication,
                 BiblePublicationId = publication.Id,
@@ -441,7 +441,7 @@ internal sealed class SectionFetcher
             track.UrlParams.Add(new UrlParam
             {
                 Key = "track",
-                Value = trackNumber.ToString(),
+                Value = trackCode.ToString(),
                 IsQueryParam = true,
                 BaseUrl = baseUrl,
                 BaseUrlId = baseUrl.Id
@@ -475,7 +475,7 @@ internal sealed class SectionFetcher
             });
 
             tracks.Add(track);
-            trackNumber++;
+            trackCode++;
         }
 
         if (tracks.Count == 0)

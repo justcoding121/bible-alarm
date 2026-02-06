@@ -10,14 +10,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bible.Alarm.Shared.Database.Migrations.Media
 {
     [DbContext(typeof(MediaDbContext))]
-    [Migration("20260202144958_InitialCreate")]
+    [Migration("20260206141813_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.2");
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BaseUrl", b =>
                 {

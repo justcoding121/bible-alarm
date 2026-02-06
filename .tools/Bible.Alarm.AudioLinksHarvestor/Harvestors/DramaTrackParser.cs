@@ -44,7 +44,7 @@ internal static class DramaTrackParser
                 return (null, sectionName);
             }
 
-            var trackNumber = 1;
+            var trackCode = 1;
             foreach (var trackFile in mp3Files.EnumerateArray())
             {
                 if (!trackFile.TryGetProperty("file", out var fileElement))
@@ -90,13 +90,13 @@ internal static class DramaTrackParser
 
                 tracks.Add(new DramaTrack
                 {
-                    Number = trackNumber,
+                    Number = trackCode,
                     Title = title,
                     Url = url,
                     LookUpPath = lookUpPath
                 });
 
-                trackNumber++;
+                trackCode++;
             }
         }
         catch (Exception ex)

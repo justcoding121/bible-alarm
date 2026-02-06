@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using Bible.Alarm.Shared.Database;
-using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
@@ -29,7 +28,7 @@ public class UrlConstructionService : IUrlConstructionService
 
     private static readonly TimeSpan LookUpPathCacheTtl = TimeSpan.FromMinutes(5);
 
-    private readonly record struct LookUpPathCacheKey(string PublicationCode, string LanguageCode, string SectionCode, int TrackNumber);
+    private readonly record struct LookUpPathCacheKey(string PublicationCode, string LanguageCode, string SectionCode, string TrackCode);
 
     private sealed class LookUpPathCacheEntry(DateTimeOffset createdAt, Lazy<Task<string?>> value)
     {
@@ -58,10 +57,11 @@ public class UrlConstructionService : IUrlConstructionService
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
+        // Only load params that belong to the base URL (not track params that also reference BaseUrlId)
         return await dbContext.BaseUrls
             .AsNoTracking()
             .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
-            .Include(bu => bu.UrlParams)
+            .Include(bu => bu.UrlParams.Where(p => p.BiblePublicationTrackId == null))
             .ToListAsync();
     }
 
@@ -174,38 +174,14 @@ public class UrlConstructionService : IUrlConstructionService
             queryParams["fileformat"] = queryParams["fileformat"].ToUpperInvariant();
         }
 
-        // Build query string in the expected order: output, pub, booknum, fileformat, alllangs, langwritten, track
-        // Drama sections: GETPUBMEDIALINKS returns one file per section (pub=sectionCode); do not send track param.
-        var orderedKeys = new[] { "output", "pub", "booknum", "fileformat", "alllangs", "langwritten", "track" };
-        var queryParts = new List<string>();
-        var isDrama = PublicationTypeHelper.IsDrama(publication.PublicationCode);
-
-        foreach (var key in orderedKeys)
+        // Build query string strictly from DB params (base URL + track UrlParams)
+        if (queryParams.Count == 0)
         {
-            if (key == "track" && isDrama)
-            {
-                continue;
-            }
-            if (queryParams.ContainsKey(key))
-            {
-                queryParts.Add($"{Uri.EscapeDataString(key)}={Uri.EscapeDataString(queryParams[key])}");
-            }
+            return urlPath;
         }
-        
-        // Add any remaining query parameters that weren't in the ordered list
-        foreach (var kvp in queryParams.Where(kvp => !orderedKeys.Contains(kvp.Key)))
-        {
-            queryParts.Add($"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}");
-        }
-
-        // Build final URL
-        if (queryParts.Count > 0)
-        {
-            var queryString = string.Join("&", queryParts);
-            return $"{urlPath}?{queryString}";
-        }
-        
-        return urlPath;
+        var queryString = string.Join("&", queryParams.Select(kvp =>
+            $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
+        return $"{urlPath}?{queryString}";
     }
 
     /// <summary>
@@ -215,7 +191,7 @@ public class UrlConstructionService : IUrlConstructionService
         string publicationCode,
         string languageCode,
         string? sectionCode,
-        int trackNumber)
+        string trackCode)
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -232,28 +208,27 @@ public class UrlConstructionService : IUrlConstructionService
             .AsNoTracking()
             .AnyAsync(p => p.PublicationCode == publicationCode && p.LanguageId == null);
 
+        var normalizedTrackCode = trackCode ?? string.Empty;
+
         var query = dbContext.BiblePublicationTracks
-            .AsNoTracking() // Read-only, improves performance
+            .AsNoTracking()
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
             .Include(t => t.Section)
             .Include(t => t.UrlParams)
-            .Where(t => t.Publication != null
-                && t.Publication.PublicationCode == publicationCode
-                && t.Number == trackNumber);
+            .Where(t => t.Publication != null && t.Publication.PublicationCode == publicationCode);
 
-        // Filter by language: no-language publications don't have a language, others require matching language
         if (isNoLanguagePublication)
         {
             query = query.Where(t => t.Publication!.Language == null);
         }
         else
         {
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
             query = query.Where(t => t.Publication!.Language != null
-                && t.Publication.Language.LanguageCode == languageCode);
+                && t.Publication.Language.LanguageCode == normalizedLanguageCode);
         }
 
-        // Filter by section if provided
         if (!string.IsNullOrEmpty(sectionCode))
         {
             var normalizedSectionCode = sectionCode.ToLowerInvariant();
@@ -264,7 +239,17 @@ public class UrlConstructionService : IUrlConstructionService
             query = query.Where(t => t.Section == null);
         }
 
-        var track = await query.FirstOrDefaultAsync();
+        if (int.TryParse(normalizedTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
+        {
+            query = query.Where(t => t.Number == trackNum);
+        }
+        else
+        {
+            var normalizedPubValue = normalizedTrackCode.ToUpperInvariant();
+            query = query.Where(t => t.UrlParams.Any(p => p.Key == "pub" && p.Value.ToUpperInvariant() == normalizedPubValue));
+        }
+
+        var track = await query.SingleOrDefaultAsync();
 
         if (track == null)
         {
@@ -294,12 +279,12 @@ public class UrlConstructionService : IUrlConstructionService
         string publicationCode,
         string? languageCode,
         string? sectionCode,
-        int trackNumber)
+        string trackCode)
     {
         var normalizedPublicationCode = publicationCode ?? string.Empty;
         var normalizedLanguageCode = languageCode ?? string.Empty;
         var normalizedSectionCode = sectionCode ?? string.Empty;
-        var key = new LookUpPathCacheKey(normalizedPublicationCode, normalizedLanguageCode, normalizedSectionCode, trackNumber);
+        var key = new LookUpPathCacheKey(normalizedPublicationCode, normalizedLanguageCode, normalizedSectionCode, trackCode);
         var now = DateTimeOffset.UtcNow;
 
         static Lazy<Task<string?>> CreateLazy(
@@ -307,17 +292,17 @@ public class UrlConstructionService : IUrlConstructionService
             string pub,
             string? lang,
             string? section,
-            int track)
+            string track)
             => new(() => self.LoadTrackLookUpPathUncachedAsync(pub, lang, section, track),
                 LazyThreadSafetyMode.ExecutionAndPublication);
 
         var entry = lookUpPathCache.AddOrUpdate(
             key,
-            _ => new LookUpPathCacheEntry(now, CreateLazy(this, normalizedPublicationCode, languageCode, sectionCode, trackNumber)),
+            _ => new LookUpPathCacheEntry(now, CreateLazy(this, normalizedPublicationCode, languageCode, sectionCode, trackCode ?? string.Empty)),
             (_, existing) =>
                 now - existing.CreatedAt <= LookUpPathCacheTtl
                     ? existing
-                    : new LookUpPathCacheEntry(now, CreateLazy(this, normalizedPublicationCode, languageCode, sectionCode, trackNumber)));
+                    : new LookUpPathCacheEntry(now, CreateLazy(this, normalizedPublicationCode, languageCode, sectionCode, trackCode ?? string.Empty)));
 
         try
         {
@@ -335,18 +320,18 @@ public class UrlConstructionService : IUrlConstructionService
         string publicationCode,
         string? languageCode,
         string? sectionCode,
-        int trackNumber)
+        string trackCode)
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
+        var normalizedTrackCode = trackCode ?? string.Empty;
+
         // Check if this publication exists without a language (e.g., instrumental music)
-        // This is more generic than hard-coding specific publication codes
         var isNoLanguagePublication = await dbContext.BiblePublications
             .AsNoTracking()
             .AnyAsync(p => p.PublicationCode == publicationCode && p.LanguageId == null);
 
-        // For no-language publications, ignore the passed language code
         var effectiveLanguageCode = isNoLanguagePublication ? null : languageCode;
 
         var query = dbContext.BiblePublicationTracks
@@ -355,22 +340,18 @@ public class UrlConstructionService : IUrlConstructionService
                 .ThenInclude(p => p!.Language)
             .Include(t => t.Section)
             .Include(t => t.UrlParams)
-            .Where(t => t.Publication != null
-                && t.Publication.PublicationCode == publicationCode
-                && t.Number == trackNumber);
+            .Where(t => t.Publication != null && t.Publication.PublicationCode == publicationCode);
 
-        // Filter by language if provided
         if (!string.IsNullOrEmpty(effectiveLanguageCode))
         {
-            query = query.Where(t => t.Publication!.Language != null && t.Publication.Language.LanguageCode == effectiveLanguageCode);
+            var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
+            query = query.Where(t => t.Publication!.Language != null && t.Publication.Language.LanguageCode == normalizedLanguageCode);
         }
         else
         {
-            // For publications without language (e.g., melodies), allow null language
             query = query.Where(t => t.Publication!.Language == null);
         }
 
-        // Filter by section if provided
         if (!string.IsNullOrEmpty(sectionCode))
         {
             var normalizedSectionCode = sectionCode.ToLowerInvariant();
@@ -381,7 +362,18 @@ public class UrlConstructionService : IUrlConstructionService
             query = query.Where(t => t.Section == null);
         }
 
-        var track = await query.FirstOrDefaultAsync();
+        // Resolve track by trackCode: numeric (Number) or drama (UrlParam pub value)
+        if (int.TryParse(normalizedTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
+        {
+            query = query.Where(t => t.Number == trackNum);
+        }
+        else
+        {
+            var normalizedPubValue = normalizedTrackCode.ToUpperInvariant();
+            query = query.Where(t => t.UrlParams.Any(p => p.Key == "pub" && p.Value.ToUpperInvariant() == normalizedPubValue));
+        }
+
+        var track = await query.SingleOrDefaultAsync();
 
         if (track == null || track.Publication == null)
         {

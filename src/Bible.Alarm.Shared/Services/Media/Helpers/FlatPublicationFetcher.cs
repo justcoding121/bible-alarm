@@ -59,7 +59,7 @@ internal sealed class FlatPublicationFetcher
                 normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
         }
         
-        var trackNumber = 1;
+        var trackCode = 1;
         var consecutiveFailures = 0;
         const int MaxConsecutiveFailures = 3;
 
@@ -67,13 +67,13 @@ internal sealed class FlatPublicationFetcher
         {
             try
             {
-                var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&fileformat={fileFormat}&alllangs=0{trackParam}{trackNumber}&langwritten={normalizedLanguageCode}";
+                var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&fileformat={fileFormat}&alllangs=0{trackParam}{trackCode}&langwritten={normalizedLanguageCode}";
                 var response = await httpClient.GetAsync(harvestLink, cancellationToken);
                 
                 if (!response.IsSuccessStatusCode)
                 {
                     consecutiveFailures++;
-                    trackNumber++;
+                    trackCode++;
                     continue;
                 }
 
@@ -84,21 +84,21 @@ internal sealed class FlatPublicationFetcher
                 if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
                 {
                     consecutiveFailures++;
-                    trackNumber++;
+                    trackCode++;
                     continue;
                 }
 
                 if (!filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles))
                 {
                     consecutiveFailures++;
-                    trackNumber++;
+                    trackCode++;
                     continue;
                 }
 
                 if (!languageFiles.TryGetProperty(fileFormat, out var formatFiles))
                 {
                     consecutiveFailures++;
-                    trackNumber++;
+                    trackCode++;
                     continue;
                 }
 
@@ -189,7 +189,7 @@ internal sealed class FlatPublicationFetcher
                                     new UrlParam
                                     {
                                         Key = "track",
-                                        Value = trackNumber.ToString(),
+                                        Value = trackCode.ToString(),
                                         IsQueryParam = true,
                                         BaseUrl = baseUrl,
                                         BaseUrlId = baseUrl.Id
@@ -222,7 +222,7 @@ internal sealed class FlatPublicationFetcher
 
                                 var track = new BiblePublicationTrack
                                 {
-                                    Number = trackNumber,
+                                    Number = trackCode,
                                     Title = title,
                                     UrlParams = trackUrlParams
                                 };
@@ -254,8 +254,8 @@ internal sealed class FlatPublicationFetcher
                             continue;
                         }
 
-                        var apiTrackNumber = trackElement.GetInt32();
-                        if (apiTrackNumber == 0 || url.EndsWith(".zip"))
+                        var apiTrackCode = trackElement.GetInt32();
+                        if (apiTrackCode == 0 || url.EndsWith(".zip"))
                         {
                             continue;
                         }
@@ -285,7 +285,7 @@ internal sealed class FlatPublicationFetcher
                             new UrlParam
                             {
                                 Key = "track",
-                                Value = apiTrackNumber.ToString(),
+                                Value = apiTrackCode.ToString(),
                                 IsQueryParam = true,
                                 BaseUrl = baseUrl,
                                 BaseUrlId = baseUrl.Id
@@ -318,31 +318,31 @@ internal sealed class FlatPublicationFetcher
 
                         var bibleTrack = new BiblePublicationTrack
                         {
-                            Number = trackNumber,
+                            Number = trackCode,
                             Title = title,
                             UrlParams = trackUrlParams
                         };
                         tracks.Add(bibleTrack);
-                        trackNumber++;
+                        trackCode++;
                     }
                     consecutiveFailures = 0;
                     break; // Music returns all tracks in one response
                 }
 
-                trackNumber++;
+                trackCode++;
             }
             catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
             {
                 consecutiveFailures++;
-                trackNumber++;
+                trackCode++;
                 continue;
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to fetch track {TrackNumber} for publication {PublicationCode} in language {LanguageCode}",
-                    trackNumber, normalizedPublicationCode, normalizedLanguageCode);
+                logger.Warning(ex, "Failed to fetch track {TrackCode} for publication {PublicationCode} in language {LanguageCode}",
+                    trackCode, normalizedPublicationCode, normalizedLanguageCode);
                 consecutiveFailures++;
-                trackNumber++;
+                trackCode++;
                 continue;
             }
         }

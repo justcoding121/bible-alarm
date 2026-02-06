@@ -182,7 +182,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 Url = string.Empty, // URLs are computed on-demand
                 LookUpPath = string.Empty,
                 DownloadCode = null,
-                OriginalTrackNumber = null
+                OriginalTrackCode = null
             }).ToDictionary(x => x.Number, x => x);
             
             return new SortedDictionary<int, MusicTrack>(musicTracks);
@@ -195,7 +195,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
         }
     }
 
-    public async Task UpdateTrackUrlAsync(string languageCode, string publicationCode, int trackNumber, string url, CancellationToken cancellationToken = default)
+    public async Task UpdateTrackUrlAsync(string languageCode, string publicationCode, string trackCode, string url, CancellationToken cancellationToken = default)
     {
         // URLs are now computed on-demand, no need to store them
         // This method is kept for backward compatibility but does nothing

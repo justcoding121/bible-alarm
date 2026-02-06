@@ -76,33 +76,22 @@ internal sealed class TrackSelectionResolver
             return null;
         }
 
-        // If it's the same section, preserve the current track number (if valid)
+        // If it's the same section, preserve the current track code (if valid)
         // Otherwise, use the first track
-        int trackNumber;
+        string trackCode;
         string? trackTitle;
 
-        if (isSameSection && currentSchedule.BiblePublicationTrackNumber.HasValue)
+        if (isSameSection && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationTrackCode) &&
+            int.TryParse(currentSchedule.BiblePublicationTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var currentTrackNum) &&
+            tracks.TryGetValue(currentTrackNum, out var existingTrack))
         {
-            var currentTrackNumber = currentSchedule.BiblePublicationTrackNumber.Value;
-            // Verify the current track exists in the tracks list
-            if (tracks.TryGetValue(currentTrackNumber, out var existingTrack))
-            {
-                trackNumber = currentTrackNumber;
-                trackTitle = existingTrack.Title;
-            }
-            else
-            {
-                // Current track doesn't exist in this section, use first track
-                var firstTrack = tracks.Values.First();
-                trackNumber = firstTrack.Number;
-                trackTitle = firstTrack.Title;
-            }
+            trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(existingTrack);
+            trackTitle = existingTrack.Title;
         }
         else
         {
-            // Different section selected, use first track
             var firstTrack = tracks.Values.First();
-            trackNumber = firstTrack.Number;
+            trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
             trackTitle = firstTrack.Title;
         }
 
@@ -114,7 +103,7 @@ internal sealed class TrackSelectionResolver
             LanguageCode = languageCode, // Can be empty for publications without language
             PublicationCode = currentSchedule.BiblePublicationCode!,
             SectionCode = sectionItem.Section.SectionCode,
-            TrackNumber = trackNumber,
+            TrackCode = trackCode ?? string.Empty,
             // Store display names from list items and current state
             LanguageName = currentSchedule.BiblePublicationLanguageName,
             LanguageDirection = currentSchedule.BiblePublicationLanguageDirection,

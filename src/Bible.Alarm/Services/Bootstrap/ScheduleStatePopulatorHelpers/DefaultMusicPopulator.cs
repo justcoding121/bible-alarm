@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
@@ -28,8 +29,7 @@ internal sealed class DefaultMusicPopulator
         {
             var stateItem = scheduleStateItems[i];
             if (string.IsNullOrEmpty(stateItem.MusicPublicationCode) ||
-                !stateItem.MusicTrackNumber.HasValue ||
-                stateItem.MusicTrackNumber.Value <= 0)
+                string.IsNullOrWhiteSpace(stateItem.MusicTrackCode))
             {
                 schedulesNeedingMusic.Add((alarmSchedules[i], stateItem));
             }
@@ -94,12 +94,12 @@ internal sealed class DefaultMusicPopulator
                 stateItem.MusicPublicationCode = defaultPublicationCode;
                 stateItem.MusicPublicationName = defaultPublicationName;
                 stateItem.MusicLanguageCode = null;
-                stateItem.MusicTrackNumber = randomTrack.Number;
+                stateItem.MusicTrackCode = TrackCodeHelper.GetFromTrack(randomTrack);
                 stateItem.MusicRepeat = false;
                 // Titles for melody tracks should come from harvested track titles as-is.
                 stateItem.MusicTrackName = randomTrack.Title;
 
-                Log.Logger.Debug("Populated default music properties for schedule {ScheduleId}. PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
+                Log.Logger.Debug("Populated default music properties for schedule {ScheduleId}. PublicationCode={PublicationCode}, TrackCode={TrackCode}",
                     schedule.Id, defaultPublicationCode, randomTrack.Number);
             }
 

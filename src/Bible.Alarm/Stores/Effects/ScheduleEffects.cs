@@ -180,12 +180,12 @@ public class ScheduleEffects(
                 // Music type is inferred from LanguageCode: null/empty = melody (instrumental), otherwise = vocal
                 var isMelodyMusic = string.IsNullOrEmpty(action.Schedule.MusicLanguageCode);
                 if (action.MusicUpdated && isMelodyMusic &&
-                    action.Schedule.MusicTrackNumber.HasValue && action.Schedule.MusicTrackNumber.Value > 0 &&
+                    !string.IsNullOrWhiteSpace(action.Schedule.MusicTrackCode) &&
                     string.IsNullOrWhiteSpace(action.Schedule.MusicSectionName) &&
                     !string.IsNullOrWhiteSpace(action.Schedule.MusicPublicationCode))
                 {
-                    Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModel - Populating MusicSectionName from track for Instrumental. PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
-                        action.Schedule.MusicPublicationCode, action.Schedule.MusicTrackNumber);
+                    Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModel - Populating MusicSectionName from track for Instrumental. PublicationCode={PublicationCode}, TrackCode={TrackCode}",
+                        action.Schedule.MusicPublicationCode, action.Schedule.MusicTrackCode);
                     await PopulateMusicSectionNameForStateAsync(action.Schedule, dispatcher);
                 }
                 
@@ -744,8 +744,7 @@ public class ScheduleEffects(
             // Music type is inferred from LanguageCode: null/empty = melody (instrumental), otherwise = vocal
             var isMelodyMusic = string.IsNullOrEmpty(scheduleStateItem.MusicLanguageCode);
             if (!isMelodyMusic ||
-                !scheduleStateItem.MusicTrackNumber.HasValue ||
-                scheduleStateItem.MusicTrackNumber.Value <= 0 ||
+                string.IsNullOrWhiteSpace(scheduleStateItem.MusicTrackCode) ||
                 string.IsNullOrWhiteSpace(scheduleStateItem.MusicPublicationCode))
             {
                 return;
@@ -785,14 +784,20 @@ public class ScheduleEffects(
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Find the section that contains this track number
+            // Find the section that contains this track (music uses numeric track code)
+            var trackCode = scheduleStateItem.MusicTrackCode ?? string.Empty;
+            if (!int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
+            {
+                return;
+            }
+
             var sectionInfo = await dbContext.BiblePublicationTracks
                 .AsNoTracking()
                 .Include(t => t.Section)
                     .ThenInclude(s => s!.BiblePublication)
                         .ThenInclude(p => p.Category)
                 .Where(t => t.BiblePublicationSectionId != null
-                    && t.Number == scheduleStateItem.MusicTrackNumber.Value
+                    && t.Number == trackNum
                     && t.Publication.PublicationCode == scheduleStateItem.MusicPublicationCode
                     && t.Publication.Category.CategoryName == "Music"
                     && t.Publication.LanguageId == null)
@@ -806,8 +811,8 @@ public class ScheduleEffects(
                 updatedSchedule.MusicSectionCode = sectionInfo.SectionCode;
                 updatedSchedule.MusicSectionName = sectionInfo.Name;
 
-                Log.Debug("ScheduleEffects: Populated MusicSectionCode '{MusicSectionCode}' and MusicSectionName '{MusicSectionName}' from track {TrackNumber}",
-                    sectionInfo.SectionCode, sectionInfo.Name, scheduleStateItem.MusicTrackNumber.Value);
+                Log.Debug("ScheduleEffects: Populated MusicSectionCode '{MusicSectionCode}' and MusicSectionName '{MusicSectionName}' from track {TrackCode}",
+                    sectionInfo.SectionCode, sectionInfo.Name, scheduleStateItem.MusicTrackCode);
 
                 // Dispatch update to state (without saving to DB)
                 dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));

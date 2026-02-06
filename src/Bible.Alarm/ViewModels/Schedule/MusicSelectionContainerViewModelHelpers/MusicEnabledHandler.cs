@@ -187,7 +187,7 @@ public class MusicEnabledHandler
                             if (latestSchedule.MusicLanguageCode == null &&
                                 latestSchedule.MusicPublicationCode == defaultPublicationCode &&
                                 latestSchedule.MusicSectionCode == chosenSection?.SectionCode &&
-                                latestSchedule.MusicTrackNumber == chosenTrack.Number &&
+                                latestSchedule.MusicTrackCode == chosenTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture) &&
                                 latestSchedule.MusicEnabled == true)
                             {
                                 return;
@@ -204,7 +204,7 @@ public class MusicEnabledHandler
                             clonedSchedule.MusicLanguageCode = null; // Melody music has no language
                             clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
                             clonedSchedule.MusicSectionName = chosenSection?.Name;
-                            clonedSchedule.MusicTrackNumber = chosenTrack.Number;
+                            clonedSchedule.MusicTrackCode = chosenTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
                             clonedSchedule.MusicRepeat = false;
                             // Titles for melody tracks should come from harvested track titles as-is.
                             clonedSchedule.MusicTrackName = WebUtility.HtmlDecode(chosenTrack.Title).Replace('\u00A0', ' ');

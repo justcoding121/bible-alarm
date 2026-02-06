@@ -163,11 +163,12 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                     // For non-sectioned publications, we already loaded tracks above: populate track title here
                     // so we don't need a second call to GetByLanguageAndCodeWithTracksAsync later.
                     if (!hasSections &&
-                        biblePublicationSchedule.TrackNumber > 0 &&
+                        !string.IsNullOrWhiteSpace(biblePublicationSchedule.TrackCode) &&
                         publication.Tracks != null &&
-                        publication.Tracks.Count > 0)
+                        publication.Tracks.Count > 0 &&
+                        int.TryParse(biblePublicationSchedule.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
                     {
-                        var track = publication.Tracks.FirstOrDefault(t => t.Number == biblePublicationSchedule.TrackNumber);
+                        var track = publication.Tracks.FirstOrDefault(t => t.Number == trackNum);
                         if (track != null && !string.IsNullOrWhiteSpace(track.Title))
                         {
                             scheduleStateItem.BiblePublicationTrackTitle = track.Title;
@@ -277,7 +278,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         }
 
         // Track title
-        if (biblePublicationSchedule.TrackNumber > 0 &&
+        if (!string.IsNullOrWhiteSpace(biblePublicationSchedule.TrackCode) &&
             !string.IsNullOrWhiteSpace(publicationCode))
         {
             try
@@ -300,7 +301,9 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                             try
                             {
                                 var melodyTracks = await mediaService.GetMelodyMusicTracksBySection(publicationCode, sectionCodeForTracks);
-                                if (melodyTracks.TryGetValue(biblePublicationSchedule.TrackNumber, out var melodyTrack) && melodyTrack != null)
+                                if (!string.IsNullOrWhiteSpace(biblePublicationSchedule.TrackCode) &&
+                                    int.TryParse(biblePublicationSchedule.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var melodyTrackNum) &&
+                                    melodyTracks.TryGetValue(melodyTrackNum, out var melodyTrack) && melodyTrack != null)
                                 {
                                     var normalized = NormalizeTrackTitle(melodyTrack.Title);
                                     if (!string.IsNullOrWhiteSpace(normalized))
@@ -312,8 +315,8 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                             }
                             catch (Exception ex)
                             {
-                                logger.Debug(ex, "Failed to resolve melody track title (PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackNumber={TrackNumber})",
-                                    publicationCode, sectionCodeForTracks, biblePublicationSchedule.TrackNumber);
+                                logger.Debug(ex, "Failed to resolve melody track title (PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode})",
+                                    publicationCode, sectionCodeForTracks, biblePublicationSchedule.TrackCode);
                             }
                         }
 
@@ -334,7 +337,9 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                                     sectionCodeForTracks));
                         }
 
-                        if (tracks != null && tracks.TryGetValue(biblePublicationSchedule.TrackNumber, out var track))
+                        if (tracks != null && !string.IsNullOrWhiteSpace(biblePublicationSchedule.TrackCode) &&
+                            int.TryParse(biblePublicationSchedule.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
+                            tracks.TryGetValue(trackNum, out var track))
                         {
                             if (!string.IsNullOrWhiteSpace(track.Title))
                             {
@@ -360,10 +365,10 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 // Never label Music-category schedules as "Chapter".
                 scheduleStateItem.BiblePublicationTrackTitle =
                     string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase)
-                        ? $"Track {biblePublicationSchedule.TrackNumber}"
+                        ? $"Track {biblePublicationSchedule.TrackCode}"
                         : PublicationTypeHelper.HasSectionStructure(publicationCode)
-                            ? $"Chapter {biblePublicationSchedule.TrackNumber}"
-                            : $"Track {biblePublicationSchedule.TrackNumber}";
+                            ? $"Chapter {biblePublicationSchedule.TrackCode}"
+                            : $"Track {biblePublicationSchedule.TrackCode}";
             }
         }
     }
@@ -540,7 +545,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
         }
 
         // Music track name
-        if (music.TrackNumber > 0)
+        if (!string.IsNullOrWhiteSpace(music.TrackCode))
         {
             try
             {
@@ -569,7 +574,9 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                             tracks = await Task.Run(async () =>
                                 await mediaService.GetMelodyMusicTracks(music.PublicationCode));
                         }
-                        if (tracks.TryGetValue(music.TrackNumber, out var track))
+                        if (!string.IsNullOrWhiteSpace(music.TrackCode) &&
+                            int.TryParse(music.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
+                            tracks.TryGetValue(trackNum, out var track))
                         {
                             trackName = NormalizeTrackTitle(track.Title) ?? track.Title;
                         }
@@ -582,7 +589,9 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                     {
                         var tracks = await Task.Run(async () =>
                             await mediaService.GetVocalMusicTracks(music.LanguageCode, music.PublicationCode));
-                        if (tracks.TryGetValue(music.TrackNumber, out var track))
+                        if (!string.IsNullOrWhiteSpace(music.TrackCode) &&
+                            int.TryParse(music.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
+                            tracks.TryGetValue(trackNum, out var track))
                         {
                             trackName = track.Title;
                         }

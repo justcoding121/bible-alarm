@@ -46,9 +46,9 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
         var scheduleStateItem = mapper.Map<ScheduleStateItem>(sampleSchedule);
 
         // Log the music settings (type is inferred from LanguageCode: NULL/empty = melody, otherwise = vocal)
-        logger.Information("InitializeNewScheduleAsync: Mapped sample schedule. MusicLanguageCode={LanguageCode}, MusicTrackNumber={TrackNumber}, MusicPublicationCode={PublicationCode}, MusicSectionCode={SectionCode}",
+        logger.Information("InitializeNewScheduleAsync: Mapped sample schedule. MusicLanguageCode={LanguageCode}, MusicTrackCode={TrackCode}, MusicPublicationCode={PublicationCode}, MusicSectionCode={SectionCode}",
             scheduleStateItem.MusicLanguageCode ?? "null",
-            scheduleStateItem.MusicTrackNumber?.ToString() ?? "null",
+            scheduleStateItem.MusicTrackCode?.ToString() ?? "null",
             scheduleStateItem.MusicPublicationCode ?? "null",
             scheduleStateItem.MusicSectionCode ?? "null");
 
@@ -116,13 +116,13 @@ public sealed class ScheduleInitializationService : IScheduleInitializationServi
     public void InitializeTrackingFields(
         ScheduleStateItem scheduleStateItem,
         ref int lastScheduleId,
-        ref int? lastMusicTrackNumber,
+        ref string? lastMusicTrackCode,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,
         ref bool? lastMusicRepeat)
     {
         lastScheduleId = scheduleStateItem.Id;
-        lastMusicTrackNumber = scheduleStateItem.MusicTrackNumber;
+        lastMusicTrackCode = scheduleStateItem.MusicTrackCode;
         lastMusicPublicationCode = scheduleStateItem.MusicPublicationCode;
         lastMusicLanguageCode = scheduleStateItem.MusicLanguageCode;
         lastMusicRepeat = scheduleStateItem.MusicRepeat;

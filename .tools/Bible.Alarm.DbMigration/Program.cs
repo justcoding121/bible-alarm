@@ -41,6 +41,9 @@ class Program
                 case "generate-empty-schedule-db":
                     await GenerateEmptyScheduleDatabase(args);
                     break;
+                case "apply-and-update-resources":
+                    await ApplyMigrationsAndUpdateResources(contextName);
+                    break;
                 default:
                     Console.WriteLine($"Unknown command: {command}");
                     PrintUsage();
@@ -61,8 +64,9 @@ class Program
         Console.WriteLine();
         Console.WriteLine("Usage:");
         Console.WriteLine("  dotnet run -- list [Schedule|Media]     - List all migrations");
-        Console.WriteLine("  dotnet run -- status [Schedule|Media]    - Show migration status");
+        Console.WriteLine("  dotnet run -- status [Schedule|Media]    - Show migration status (checks Resources database for Schedule)");
         Console.WriteLine("  dotnet run -- generate-empty-schedule-db [outputPath] - Generate empty Schedule database with all migrations applied");
+        Console.WriteLine("  dotnet run -- apply-and-update-resources [Schedule|Media] - Apply migrations and update Resources database");
         Console.WriteLine();
         Console.WriteLine("To create migrations, use EF Core tools:");
         Console.WriteLine("  dotnet ef migrations add <MigrationName> --project .tools/Bible.Alarm.DbMigration --context ScheduleDbContext");
@@ -93,7 +97,7 @@ class Program
         if (string.IsNullOrEmpty(contextName) || contextName.Equals("Schedule", StringComparison.OrdinalIgnoreCase))
         {
             Console.WriteLine("Schedule Database Migration Status:");
-            await ShowMigrationStatusForContext<ScheduleDbContext>();
+            await ShowMigrationStatusForScheduleContext();
         }
 
         if (string.IsNullOrEmpty(contextName) || contextName.Equals("Media", StringComparison.OrdinalIgnoreCase))
@@ -121,6 +125,53 @@ class Program
         foreach (var migration in migrations)
         {
             Console.WriteLine($"    ○ {migration}");
+        }
+    }
+
+    static async Task ShowMigrationStatusForScheduleContext()
+    {
+        // Check the Resources database (the bundled database that ships with the app)
+        var resourcesDbPath = GetResourcesDatabasePath();
+        Console.WriteLine($"  Checking Resources database: {resourcesDbPath}");
+        
+        if (File.Exists(resourcesDbPath))
+        {
+            var resourcesConnectionString = string.Format(
+                AppConstants.Database.ScheduleDatabaseConnectionStringFormat,
+                resourcesDbPath);
+            var resourcesOptionsBuilder = new DbContextOptionsBuilder<ScheduleDbContext>();
+            resourcesOptionsBuilder.UseSqlite(resourcesConnectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
+            
+            using (var resourcesContext = new ScheduleDbContext(resourcesOptionsBuilder.Options))
+            {
+                var pendingMigrations = await resourcesContext.Database.GetPendingMigrationsAsync();
+                var appliedMigrations = await resourcesContext.Database.GetAppliedMigrationsAsync();
+
+                Console.WriteLine($"  Applied migrations: {appliedMigrations.Count()}");
+                foreach (var migration in appliedMigrations)
+                {
+                    Console.WriteLine($"    ✓ {migration}");
+                }
+
+                if (pendingMigrations.Any())
+                {
+                    Console.WriteLine($"  ⚠ Resources database is not up to date. {pendingMigrations.Count()} pending migration(s):");
+                    foreach (var migration in pendingMigrations)
+                    {
+                        Console.WriteLine($"    ○ {migration}");
+                    }
+                    Console.WriteLine($"  Run 'dotnet run -- apply-and-update-resources Schedule' to apply migrations and update Resources database.");
+                }
+                else
+                {
+                    Console.WriteLine($"  ✓ Resources database is up to date. {appliedMigrations.Count()} migration(s) applied.");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine($"  ⚠ Resources database not found at: {resourcesDbPath}");
+            Console.WriteLine($"  Run 'dotnet run -- generate-empty-schedule-db' to create it.");
         }
     }
 
@@ -306,6 +357,30 @@ class Program
                     // Ignore cleanup errors
                 }
             }
+        }
+    }
+
+    static string GetResourcesDatabasePath()
+    {
+        return Path.GetFullPath(Path.Combine("..", "..", "src", "Bible.Alarm", "Resources", AppConstants.Database.ScheduleDatabaseFileName));
+    }
+
+    static async Task ApplyMigrationsAndUpdateResources(string? contextName)
+    {
+        if (string.IsNullOrEmpty(contextName) || contextName.Equals("Schedule", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine("Applying migrations and updating Resources database for Schedule...");
+            await GenerateEmptyScheduleDatabase(new[] { "generate-empty-schedule-db" });
+        }
+        else if (contextName.Equals("Media", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine("Media database is managed separately (shipped as index.zip).");
+            Console.WriteLine("Use the harvester tool to regenerate the Media index database.");
+        }
+        else
+        {
+            Console.WriteLine($"Unknown context: {contextName}");
+            Console.WriteLine("Supported contexts: Schedule, Media");
         }
     }
 }

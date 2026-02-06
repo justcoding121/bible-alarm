@@ -274,7 +274,7 @@ public sealed class CategorySelectionAutoPopulateHandler
 
             // Step 4: Get first section and track for the publication
             string? sectionCode = null;
-            int trackNumber = 0;
+            string trackCode = string.Empty;
             string sectionName = string.Empty;
             string publicationName = string.Empty;
             string trackTitle = string.Empty;
@@ -321,7 +321,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                             if (section?.Tracks != null && section.Tracks.Count > 0)
                             {
                                 var firstTrack = section.Tracks.OrderBy(t => t.Number).First();
-                                trackNumber = firstTrack.Number;
+                                trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
                                 trackTitle = firstTrack.Title ?? string.Empty;
                             }
                         }
@@ -343,7 +343,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                         if (pub?.Tracks != null && pub.Tracks.Count > 0)
                         {
                             var firstTrack = pub.Tracks.OrderBy(t => t.Number).First();
-                            trackNumber = firstTrack.Number;
+                            trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
                             trackTitle = firstTrack.Title ?? string.Empty;
                         }
                     }
@@ -361,12 +361,12 @@ public sealed class CategorySelectionAutoPopulateHandler
                 var languageModel = new LanguageListViewItemModel(selectedLanguage);
                 // Publication+section+tracks already saved during harvest (0.90)
                 // GetPublicationSectionAndTrackForLanguageAsync reads from DB and resolves names
-                var (resultPublicationCode, resultSectionCode, resultTrackNumber, resultSectionName, resultPublicationName, resultTrackTitle) =
+                var (resultPublicationCode, resultSectionCode, resultTrackCode, resultSectionName, resultPublicationName, resultTrackTitle) =
                     await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(languageModel);
                 // Data read from DB, ready to update state
                 ReportProgress(0.95);
 
-                if (string.IsNullOrEmpty(resultPublicationCode) || resultTrackNumber <= 0)
+                if (string.IsNullOrEmpty(resultPublicationCode) || string.IsNullOrWhiteSpace(resultTrackCode))
                 {
                     logger.Warning("CategorySelectionAutoPopulateHandler: No valid track found for publication={PublicationCode}, language={LanguageCode}",
                         publicationCode, selectedLanguage.LanguageCode);
@@ -377,13 +377,13 @@ public sealed class CategorySelectionAutoPopulateHandler
                 // Use the publication code and name from the result (may differ for dramas)
                 publicationCode = resultPublicationCode;
                 sectionCode = string.IsNullOrWhiteSpace(resultSectionCode) ? null : resultSectionCode;
-                trackNumber = resultTrackNumber;
+                trackCode = resultTrackCode;
                 sectionName = resultSectionName;
                 publicationName = resultPublicationName;
                 trackTitle = resultTrackTitle;
             }
 
-            if (trackNumber <= 0)
+            if (string.IsNullOrWhiteSpace(trackCode))
             {
                 logger.Warning("CategorySelectionAutoPopulateHandler: No valid track found for publication={PublicationCode}",
                     publicationCode);
@@ -395,8 +395,8 @@ public sealed class CategorySelectionAutoPopulateHandler
             ReportProgress(0.98);
 
             var languageCodeForLog = publicationWithoutLanguage ? "N/A" : (selectedLanguage?.LanguageCode ?? "N/A");
-            logger.Information("CategorySelectionAutoPopulateHandler: Auto-populated - Language={LanguageCode}, Publication={PublicationCode}, Section={SectionCode}, Track={TrackNumber}, WithoutLanguage={WithoutLanguage}",
-                languageCodeForLog, publicationCode, sectionCode, trackNumber, publicationWithoutLanguage);
+            logger.Information("CategorySelectionAutoPopulateHandler: Auto-populated - Language={LanguageCode}, Publication={PublicationCode}, Section={SectionCode}, Track={TrackCode}, WithoutLanguage={WithoutLanguage}",
+                languageCodeForLog, publicationCode, sectionCode, trackCode, publicationWithoutLanguage);
 
             // Step 6: Update schedule with selected values
             var updatedSchedule = currentSchedule.DeepClone();
@@ -428,7 +428,7 @@ public sealed class CategorySelectionAutoPopulateHandler
             updatedSchedule.BiblePublicationName = publicationName;
             updatedSchedule.BiblePublicationSectionCode = Bible.Alarm.Shared.Helpers.SectionCodeHelper.Normalize(sectionCode);
             updatedSchedule.BiblePublicationSectionName = sectionName;
-            updatedSchedule.BiblePublicationTrackNumber = trackNumber;
+            updatedSchedule.BiblePublicationTrackCode = trackCode;
             updatedSchedule.BiblePublicationTrackTitle = trackTitle;
             // Do NOT reset progress here. Progress reset is applied only on Save.
 

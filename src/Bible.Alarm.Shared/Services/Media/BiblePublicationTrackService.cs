@@ -77,7 +77,7 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
         string languageCode,
         string publicationCode,
         string? sectionCode,
-        int trackNumber,
+        string trackCode,
         CancellationToken cancellationToken = default)
     {
         try
@@ -100,26 +100,38 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
                 return null;
             }
 
-            return await dbContext.BiblePublicationTracks
+            var query = dbContext.BiblePublicationTracks
                 .AsNoTracking()
+                .Include(t => t.Section)
+                .Include(t => t.UrlParams)
                 .Where(t => t.BiblePublicationId == publicationId)
                 .Where(t =>
                     string.IsNullOrWhiteSpace(sectionCode)
                         ? t.BiblePublicationSectionId == null
-                        : t.Section != null && t.Section.SectionCode == sectionCode)
-                .Where(t => t.Number == trackNumber)
-                .FirstOrDefaultAsync(cancellationToken);
+                        : t.Section != null && t.Section.SectionCode == sectionCode);
+
+            if (int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
+            {
+                query = query.Where(t => t.Number == trackNum);
+            }
+            else
+            {
+                var normalizedPubValue = trackCode.ToUpperInvariant();
+                query = query.Where(t => t.UrlParams.Any(p => p.Key == "pub" && p.Value.ToUpperInvariant() == normalizedPubValue));
+            }
+
+            return await query.SingleOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
             logger.Error(ex,
-                "Error getting BiblePublicationTrack. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackNumber={TrackNumber}",
-                languageCode, publicationCode, sectionCode, trackNumber);
+                "Error getting BiblePublicationTrack. LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}",
+                languageCode, publicationCode, sectionCode, trackCode);
             throw;
         }
     }
 
-    public async Task UpdateTrackUrlAsync(string languageCode, string publicationCode, string? sectionCode, int trackNumber, string url, CancellationToken cancellationToken = default)
+    public async Task UpdateTrackUrlAsync(string languageCode, string publicationCode, string? sectionCode, string trackCode, string url, CancellationToken cancellationToken = default)
     {
         // URLs are now computed on-demand, no need to store them
         // This method is kept for backward compatibility but does nothing

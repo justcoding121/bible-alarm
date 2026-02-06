@@ -100,7 +100,7 @@ public sealed class BiblePublicationCommandInitializer
                 currentSchedule?.BiblePublicationLanguageCode,
                 currentSchedule?.BiblePublicationCode,
                 currentSchedule?.BiblePublicationSectionCode,
-                currentSchedule?.BiblePublicationTrackNumber,
+                currentSchedule?.BiblePublicationTrackCode,
                 currentSchedule?.BiblePublicationFinishedDuration);
 
             setBiblePublication(loadedBiblePublication);
@@ -133,7 +133,7 @@ public sealed class BiblePublicationCommandInitializer
                 currentSchedule?.BiblePublicationLanguageCode,
                 currentSchedule?.BiblePublicationCode,
                 currentSchedule?.BiblePublicationSectionCode,
-                currentSchedule?.BiblePublicationTrackNumber,
+                currentSchedule?.BiblePublicationTrackCode,
                 currentSchedule?.BiblePublicationFinishedDuration);
 
             setBiblePublication(loadedBiblePublication);
@@ -166,7 +166,7 @@ public sealed class BiblePublicationCommandInitializer
                 currentSchedule?.BiblePublicationLanguageCode,
                 currentSchedule?.BiblePublicationCode,
                 currentSchedule?.BiblePublicationSectionCode,
-                currentSchedule?.BiblePublicationTrackNumber,
+                currentSchedule?.BiblePublicationTrackCode,
                 currentSchedule?.BiblePublicationFinishedDuration);
 
             setBiblePublication(loadedBiblePublication);

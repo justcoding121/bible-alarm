@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -47,20 +48,24 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
         var trackViewModelList = new List<BiblePublicationTrackListViewItemModel>();
         BiblePublicationTrackListViewItemModel? selectedTrack = null;
 
-        Log.Debug("TrackSelectionDataProvider.PopulateTracks: current TrackNumber={CurrentTrackNumber}",
-            current?.TrackNumber ?? -1);
+        Log.Debug("TrackSelectionDataProvider.PopulateTracks: current TrackCode={CurrentTrackCode}",
+            current?.TrackCode ?? "(null)");
 
         foreach (var track in tracksFromDb)
         {
             var trackVm = new BiblePublicationTrackListViewItemModel(track);
             trackViewModelList.Add(trackVm);
 
-            if (current != null && current.TrackNumber == track.Number)
+            if (current != null && !string.IsNullOrWhiteSpace(current.TrackCode))
             {
-                selectedTrack = trackVm;
-                selectedTrack.IsSelected = true;
-                Log.Debug("TrackSelectionDataProvider.PopulateTracks: Matched track {TrackNumber} ({TrackTitle}) as selected",
-                    track.Number, track.Title);
+                var trackCodeFromTrack = TrackCodeHelper.GetFromTrack(track);
+                if (current.TrackCode == trackCodeFromTrack)
+                {
+                    selectedTrack = trackVm;
+                    selectedTrack.IsSelected = true;
+                    Log.Debug("TrackSelectionDataProvider.PopulateTracks: Matched track {TrackCode} ({TrackTitle}) as selected",
+                        trackCodeFromTrack, track.Title);
+                }
             }
         }
 
@@ -89,8 +94,8 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
         BiblePublicationTrackListViewItemModel? currentSelectedTrack,
         Action<BiblePublicationTrackListViewItemModel?> setSelectedTrack)
     {
-        Log.Debug("TrackSelectionDataProvider.SetSelectedTrack: current TrackNumber={CurrentTrackNumber}, tracksCount={TracksCount}",
-            current?.TrackNumber ?? -1, tracks?.Count ?? 0);
+        Log.Debug("TrackSelectionDataProvider.SetSelectedTrack: current TrackCode={CurrentTrackCode}, tracksCount={TracksCount}",
+            current?.TrackCode ?? "(none)", tracks?.Count ?? 0);
 
         if (current == null || tracks == null || tracks.Count == 0)
         {
@@ -102,18 +107,20 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
             currentSelectedTrack.IsSelected = false;
         }
 
-        var track = tracks.FirstOrDefault(c => c.Number == current.TrackNumber);
+        var track = tracks.FirstOrDefault(c => !string.IsNullOrWhiteSpace(current.TrackCode) &&
+            int.TryParse(current.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
+            c.Number == trackNum);
         if (track != null)
         {
-            Log.Debug("TrackSelectionDataProvider.SetSelectedTrack: Setting selected track {TrackNumber} ({TrackTitle})",
+            Log.Debug("TrackSelectionDataProvider.SetSelectedTrack: Setting selected track {TrackCode} ({TrackTitle})",
                 track.Number, track.Title);
             setSelectedTrack(track);
             track.IsSelected = true;
         }
         else
         {
-            Log.Warning("TrackSelectionDataProvider.SetSelectedTrack: Could not find track {TrackNumber} in tracks collection",
-                current.TrackNumber);
+            Log.Warning("TrackSelectionDataProvider.SetSelectedTrack: Could not find track {TrackCode} in tracks collection",
+                current.TrackCode);
         }
     }
 }

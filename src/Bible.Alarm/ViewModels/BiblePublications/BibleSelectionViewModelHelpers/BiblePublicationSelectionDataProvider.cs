@@ -324,7 +324,7 @@ public sealed class BiblePublicationSelectionDataProvider
                                     currentSchedule.BiblePublicationLanguageCode == languageCode &&
                                     currentSchedule.BiblePublicationCode == defaultPublication.Code &&
                                     string.Equals(currentSectionCode, "1", StringComparison.OrdinalIgnoreCase) &&
-                                    currentSchedule.BiblePublicationTrackNumber == 1;
+                                    currentSchedule.BiblePublicationTrackCode == "1";
 
                 if (!alreadyMatches)
                 {
@@ -380,7 +380,7 @@ public sealed class BiblePublicationSelectionDataProvider
             }
 
             var firstTrack = tracks.Values.First();
-            Log.Debug("DispatchDefaultPublicationAsync: First track number={TrackNumber}, title={TrackTitle}",
+            Log.Debug("DispatchDefaultPublicationAsync: First track number={TrackCode}, title={TrackTitle}",
                 firstTrack.Number, firstTrack.Title);
 
             // IMPORTANT: Always preserve category from current schedule - category can only be changed via CategorySelectionAction
@@ -393,7 +393,7 @@ public sealed class BiblePublicationSelectionDataProvider
                 LanguageCode = languageCode,
                 PublicationCode = defaultPublication.Code,
                 SectionCode = firstSectionCode,
-                TrackNumber = firstTrack.Number,
+                TrackCode = TrackCodeHelper.GetFromTrack(firstTrack),
                 LanguageName = languageName,
                 LanguageDirection = languageDirection,
                 PublicationName = defaultPublication.Name,
@@ -401,7 +401,7 @@ public sealed class BiblePublicationSelectionDataProvider
                 TrackTitle = firstTrack.Title
             };
 
-            Log.Information("DispatchDefaultPublicationAsync: Dispatching TrackSelectedAction for publication={PublicationCode}, section={SectionCode}/{SectionName}, track={TrackNumber}/{TrackTitle}",
+            Log.Information("DispatchDefaultPublicationAsync: Dispatching TrackSelectedAction for publication={PublicationCode}, section={SectionCode}/{SectionName}, track={TrackCode}/{TrackTitle}",
                 defaultPublication.Code, firstSectionCode, firstSection.Name, firstTrack.Number, firstTrack.Title);
             
             dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));

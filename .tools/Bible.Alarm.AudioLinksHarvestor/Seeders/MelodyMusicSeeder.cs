@@ -181,7 +181,7 @@ internal sealed class MelodyMusicSeeder
                         new SharedUrlParam
                         {
                             Key = "track",
-                            Value = (musicTrack.OriginalTrackNumber ?? musicTrack.Number).ToString(),
+                            Value = (musicTrack.OriginalTrackCode ?? musicTrack.Number).ToString(),
                             IsQueryParam = true,
                             BaseUrl = baseUrl,
                             BaseUrlId = baseUrl.Id

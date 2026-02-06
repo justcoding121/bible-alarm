@@ -289,7 +289,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             LanguageCode = newLanguageCode, // Can be empty for publications without language
             PublicationCode = newPublicationCode,
             SectionCode = currentSchedule.BiblePublicationSectionCode,
-            TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+            TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
             FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
         };
         lastCurrent = current;

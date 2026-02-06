@@ -142,7 +142,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                     _ => { },
                     _ => { });
                 
-                (string? sectionCode, int trackNumber, string sectionName, string trackTitle) result;
+                (string? sectionCode, string trackCode, string sectionName, string trackTitle) result;
                 try
                 {
                     result = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressTracker);
@@ -157,15 +157,15 @@ public sealed class BiblePublicationSelectionCommandHandler
                     await navigationService.PopModalAsync();
                     return;
                 }
-                var (sectionCode, trackNumber, sectionName, trackTitle) = result;
+                var (sectionCode, trackCode, sectionName, trackTitle) = result;
 
-            Log.Debug("CreateSectionSelectionCommand: Result sectionCode={SectionCode}, trackNumber={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
-                sectionCode, trackNumber, sectionName, trackTitle);
+            Log.Debug("CreateSectionSelectionCommand: Result sectionCode={SectionCode}, trackCode={TrackCode}, sectionName={SectionName}, trackTitle={TrackTitle}",
+                sectionCode, trackCode, sectionName, trackTitle);
 
-            // trackNumber must be valid; sectionCode can be 0 for non-sectioned publications (dramas)
-            if (trackNumber <= 0)
+            // trackCode must be valid; sectionCode can be null/empty for non-sectioned publications (dramas)
+            if (string.IsNullOrWhiteSpace(trackCode))
             {
-                Log.Warning("CreateSectionSelectionCommand: Invalid trackNumber={TrackNumber}, returning", trackNumber);
+                Log.Warning("CreateSectionSelectionCommand: Invalid trackCode={TrackCode}, returning", trackCode ?? "(null)");
                 return;
             }
 
@@ -177,14 +177,14 @@ public sealed class BiblePublicationSelectionCommandHandler
             }
             if (string.IsNullOrWhiteSpace(trackTitle))
             {
-                Log.Warning("CreateSectionSelectionCommand: TrackTitle is empty for trackNumber={TrackNumber}, publication={PublicationCode}. This may cause empty track row in UI.",
-                    trackNumber, x.Code);
+                Log.Warning("CreateSectionSelectionCommand: TrackTitle is empty for trackCode={TrackCode}, publication={PublicationCode}. This may cause empty track row in UI.",
+                    trackCode, x.Code);
             }
 
-            var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionCode, trackNumber, sectionName, trackTitle, currentLanguage, currentSchedule);
+            var biblePublicationItem = CreateBiblePublicationItemFromSelection(x, sectionCode, trackCode, sectionName, trackTitle, currentLanguage, currentSchedule);
 
-            Log.Information("CreateSectionSelectionCommand: Dispatching selection for publication={PublicationCode}, section={SectionCode}, track={TrackNumber}, sectionName={SectionName}, trackTitle={TrackTitle}",
-                x.Code, sectionCode ?? "(null)", trackNumber, sectionName, trackTitle);
+            Log.Information("CreateSectionSelectionCommand: Dispatching selection for publication={PublicationCode}, section={SectionCode}, track={TrackCode}, sectionName={SectionName}, trackTitle={TrackTitle}",
+                x.Code, sectionCode ?? "(null)", trackCode, sectionName, trackTitle);
 
                 var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
                 actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);
@@ -200,8 +200,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                     var currentState = state.Value.CurrentSchedule;
                     if (currentState != null && 
                         !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
-                        currentState.BiblePublicationTrackNumber.HasValue &&
-                        currentState.BiblePublicationTrackNumber.Value > 0)
+                        !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode))
                     {
                         // Cascade complete
                         break;
@@ -276,7 +275,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                     text => { }, // No text updates for list item progress
                     isVisible => { }); // No visibility updates for list item progress
                 
-                (string? publicationCode, string? sectionCode, int trackNumber, string sectionName, string publicationName, string trackTitle) result;
+                (string? publicationCode, string? sectionCode, string trackCode, string sectionName, string publicationName, string trackTitle) result;
                 try
                 {
                     result = await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x, progressTracker);
@@ -294,7 +293,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                     await navigationService.PopModalAsync();
                     return;
                 }
-                var (publicationCode, sectionCode, trackNumber, sectionName, publicationName, trackTitle) = result;
+                var (publicationCode, sectionCode, trackCode, sectionName, publicationName, trackTitle) = result;
 
                 // Check for both null and empty string - GetPublicationSectionAndTrackForLanguageAsync returns empty string on failure
                 if (string.IsNullOrEmpty(publicationCode))
@@ -304,11 +303,11 @@ public sealed class BiblePublicationSelectionCommandHandler
                     return;
                 }
 
-                // Validate that we have valid track number (sectionCode can be null for non-sectioned publications like dramas)
-                if (trackNumber <= 0)
+                // Validate that we have valid track code (sectionCode can be null for non-sectioned publications like dramas)
+                if (string.IsNullOrWhiteSpace(trackCode))
                 {
-                    Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid track ({TrackNumber}) for language {LanguageCode}", 
-                        trackNumber, x.Code);
+                    Log.Warning("BibleSelectionCommandHandler: Cannot execute SelectLanguageCommand - Invalid track ({TrackCode}) for language {LanguageCode}", 
+                        trackCode ?? "(null)", x.Code);
                     await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                     return;
                 }
@@ -321,15 +320,15 @@ public sealed class BiblePublicationSelectionCommandHandler
                     return;
                 }
 
-                Log.Information("BibleSelectionCommandHandler: SelectLanguageCommand - Creating item for language {LanguageCode}, publication {PublicationCode}, section {SectionCode}, track {TrackNumber}",
-                    x.Code, publicationCode, sectionCode, trackNumber);
+                Log.Information("BibleSelectionCommandHandler: SelectLanguageCommand - Creating item for language {LanguageCode}, publication {PublicationCode}, section {SectionCode}, track {TrackCode}",
+                    x.Code, publicationCode, sectionCode, trackCode);
 
                 // Only update the UI selection after we know we have valid content.
                 // If fetching/harvesting fails, we must keep the previous language selection (and schedule state) unchanged.
                 updateSelectedLanguage(x);
 
                 var biblePublicationItem = CreateBiblePublicationItemForLanguageSelection(
-                    x, publicationCode, sectionCode, trackNumber, sectionName, publicationName, trackTitle, currentSchedule);
+                    x, publicationCode, sectionCode, trackCode, sectionName, publicationName, trackTitle, currentSchedule);
                 var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
                 actionDispatcher.DispatchLanguageSelectionActions(biblePublicationItem);
                 
@@ -344,8 +343,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                     var currentState = state.Value.CurrentSchedule;
                     if (currentState != null && 
                         !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
-                        currentState.BiblePublicationTrackNumber.HasValue &&
-                        currentState.BiblePublicationTrackNumber.Value > 0)
+                        !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode))
                     {
                         // Cascade complete
                         break;
@@ -375,7 +373,7 @@ public sealed class BiblePublicationSelectionCommandHandler
     private BiblePublicationStateItem CreateBiblePublicationItemFromSelection(
         PublicationListViewItemModel publication,
         string? sectionCode,
-        int trackNumber,
+        string trackCode,
         string sectionName,
         string trackTitle,
         LanguageListViewItemModel language,
@@ -403,7 +401,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             PublicationCode = publication.Code,
             LanguageCode = language.Code,
             SectionCode = sectionCode,
-            TrackNumber = trackNumber,
+            TrackCode = trackCode,
             LanguageName = language.Name,
             LanguageDirection = language.Direction,
             PublicationName = publication.Name,
@@ -416,7 +414,7 @@ public sealed class BiblePublicationSelectionCommandHandler
         LanguageListViewItemModel language,
         string publicationCode,
         string? sectionCode,
-        int trackNumber,
+        string trackCode,
         string sectionName,
         string publicationName,
         string trackTitle,
@@ -429,7 +427,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             LanguageCode = language.Code,
             PublicationCode = publicationCode,
             SectionCode = sectionCode,
-            TrackNumber = trackNumber,
+            TrackCode = trackCode,
             LanguageName = language.Name,
             LanguageDirection = language.Direction,
             PublicationName = publicationName,

@@ -94,7 +94,7 @@ public class StateChangeHandler
             LanguageCode = newLanguageCode,
             PublicationCode = newPublicationCode ?? string.Empty,
             SectionCode = sectionCode,
-            TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+            TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
             FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
         };
         setCurrent(newCurrent);

@@ -42,8 +42,10 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("TrackNumber")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("TrackCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -171,8 +173,10 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("TrackNumber")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("TrackCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 

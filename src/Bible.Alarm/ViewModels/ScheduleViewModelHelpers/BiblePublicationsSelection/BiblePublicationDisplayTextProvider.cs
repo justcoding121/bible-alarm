@@ -153,7 +153,7 @@ public sealed class BiblePublicationDisplayTextProvider
             return currentSchedule.BiblePublicationTrackTitle;
         }
 
-        if (currentSchedule.BiblePublicationTrackNumber is > 0)
+        if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationTrackCode))
         {
             var pubCode = currentSchedule.BiblePublicationCode ?? string.Empty;
 
@@ -171,15 +171,15 @@ public sealed class BiblePublicationDisplayTextProvider
 
             if (isBible && PublicationTypeHelper.HasSectionStructure(pubCode))
             {
-                return $"Chapter {currentSchedule.BiblePublicationTrackNumber.Value}";
+                return $"Chapter {currentSchedule.BiblePublicationTrackCode}";
             }
 
             if (isMusic && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationName))
             {
-                return $"{currentSchedule.BiblePublicationName} {currentSchedule.BiblePublicationTrackNumber.Value}";
+                return $"{currentSchedule.BiblePublicationName} {currentSchedule.BiblePublicationTrackCode}";
             }
 
-            return $"Track {currentSchedule.BiblePublicationTrackNumber.Value}";
+            return $"Track {currentSchedule.BiblePublicationTrackCode}";
         }
 
         return string.Empty;

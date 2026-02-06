@@ -103,7 +103,7 @@ public sealed class BiblePublicationSelectionStateHandler
                     LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                     PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
                     SectionCode = currentSchedule.BiblePublicationSectionCode,
-                    TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                    TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
                     FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
                 };
                 if (string.IsNullOrEmpty(lastLanguageCode))
@@ -119,7 +119,7 @@ public sealed class BiblePublicationSelectionStateHandler
                     LanguageCode = newLanguageCode,
                     PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
                     SectionCode = currentSchedule?.BiblePublicationSectionCode,
-                    TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
+                    TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
                 };
             }
 
@@ -181,7 +181,7 @@ public sealed class BiblePublicationSelectionStateHandler
                             LanguageCode = selectedLanguage.Code,
                             PublicationCode = string.Empty,
                             SectionCode = "1",
-                            TrackNumber = 1
+                            TrackCode = "1"
                         };
                     }
                     else
@@ -262,7 +262,7 @@ public sealed class BiblePublicationSelectionStateHandler
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
                     SectionCode = currentSchedule.BiblePublicationSectionCode,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
             lastCurrent = current;
@@ -275,7 +275,7 @@ public sealed class BiblePublicationSelectionStateHandler
                 LanguageCode = newLanguageCode,
                 PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
                     SectionCode = currentSchedule?.BiblePublicationSectionCode,
-                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
+                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
             };
             lastCurrent = current;
         }
@@ -431,7 +431,7 @@ public sealed class BiblePublicationSelectionStateHandler
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
                 SectionCode = currentSchedule.BiblePublicationSectionCode,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
         }
@@ -442,7 +442,7 @@ public sealed class BiblePublicationSelectionStateHandler
                 LanguageCode = newLanguageCode,
                 PublicationCode = currentSchedule?.BiblePublicationCode ?? string.Empty,
                 SectionCode = currentSchedule?.BiblePublicationSectionCode,
-                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
+                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
             };
         }
 

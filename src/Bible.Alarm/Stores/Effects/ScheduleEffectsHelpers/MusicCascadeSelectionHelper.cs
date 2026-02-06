@@ -1,13 +1,14 @@
 #nullable enable
 
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 
 namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 
 internal static class MusicCascadeSelectionHelper
 {
-    internal static async Task<(string? SectionCode, string SectionName, int TrackNumber, string TrackTitle)> GetFirstSectionAndTrackAsync(
+    internal static async Task<(string? SectionCode, string SectionName, string TrackCode, string TrackTitle)> GetFirstSectionAndTrackAsync(
         IMediaService mediaService,
         string languageCode,
         string publicationCode,
@@ -30,10 +31,10 @@ internal static class MusicCascadeSelectionHelper
                 if (tracks != null && tracks.Count > 0)
                 {
                     var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
-                    return (sectionCode, sectionName, firstTrack.Number, firstTrack.Title ?? string.Empty);
+                    return (sectionCode, sectionName, TrackCodeHelper.GetFromTrack(firstTrack), firstTrack.Title ?? string.Empty);
                 }
 
-                return (sectionCode, sectionName, 0, string.Empty);
+                return (sectionCode, sectionName, string.Empty, string.Empty);
             }
 
             // Flat publication - get tracks directly
@@ -41,10 +42,10 @@ internal static class MusicCascadeSelectionHelper
             if (flatTracks != null && flatTracks.Count > 0)
             {
                 var firstTrack = flatTracks.Values.OrderBy(t => t.Number).First();
-                return (null, string.Empty, firstTrack.Number, firstTrack.Title ?? string.Empty);
+                return (null, string.Empty, TrackCodeHelper.GetFromTrack(firstTrack), firstTrack.Title ?? string.Empty);
             }
 
-            return (null, string.Empty, 0, string.Empty);
+            return (null, string.Empty, string.Empty, string.Empty);
         }
 
         // For publications with language, use same logic as Bible publication cascade
@@ -61,10 +62,10 @@ internal static class MusicCascadeSelectionHelper
             if (tracks != null && tracks.Count > 0)
             {
                 var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
-                return (sectionCode, sectionName, firstTrack.Number, firstTrack.Title ?? string.Empty);
+                return (sectionCode, sectionName, TrackCodeHelper.GetFromTrack(firstTrack), firstTrack.Title ?? string.Empty);
             }
 
-            return (sectionCode, sectionName, 0, string.Empty);
+            return (sectionCode, sectionName, string.Empty, string.Empty);
         }
 
         // Flat publication - get tracks directly
@@ -72,10 +73,10 @@ internal static class MusicCascadeSelectionHelper
         if (flatTracksWithLanguage != null && flatTracksWithLanguage.Count > 0)
         {
             var firstTrack = flatTracksWithLanguage.Values.OrderBy(t => t.Number).First();
-            return (null, string.Empty, firstTrack.Number, firstTrack.Title ?? string.Empty);
+            return (null, string.Empty, TrackCodeHelper.GetFromTrack(firstTrack), firstTrack.Title ?? string.Empty);
         }
 
-        return (null, string.Empty, 0, string.Empty);
+        return (null, string.Empty, string.Empty, string.Empty);
     }
 }
 

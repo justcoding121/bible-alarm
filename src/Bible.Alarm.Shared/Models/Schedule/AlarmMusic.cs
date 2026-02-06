@@ -31,9 +31,12 @@ public class AlarmMusic
     [MaxLength(50)]
     public string? SectionCode { get; set; }
 
+    /// <summary>
+    /// Track code from API (e.g. "1", "2" for track number within publication or disc).
+    /// </summary>
     [Required]
-    [Range(1, 500)]
-    public int TrackNumber { get; set; }
+    [MaxLength(50)]
+    public string TrackCode { get; set; } = string.Empty;
 
     //Always play current track.
     [Required]

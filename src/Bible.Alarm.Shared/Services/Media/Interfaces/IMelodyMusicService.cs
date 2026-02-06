@@ -35,6 +35,6 @@ public interface IMelodyMusicService : IDisposable
     /// <summary>
     /// Updates the URL for a MelodyMusic track's audio source.
     /// </summary>
-    Task UpdateTrackUrlAsync(string publicationCode, int trackNumber, string url, CancellationToken cancellationToken = default);
+    Task UpdateTrackUrlAsync(string publicationCode, string trackCode, string url, CancellationToken cancellationToken = default);
 }
 

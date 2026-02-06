@@ -9,7 +9,7 @@ public class PlayItem(TrackMetadata metadata, string url)
     public override string ToString()
     {
         return Metadata.LanguageCode + " " + Metadata.PublicationCode + " "
-            + (Metadata.IsAlarmMusic ? Metadata.TrackNumber.ToString()
-            : (Metadata.SectionCode ?? string.Empty) + " " + Metadata.TrackNumber);
+            + (Metadata.IsAlarmMusic ? Metadata.TrackCode.ToString()
+            : (Metadata.SectionCode ?? string.Empty) + " " + Metadata.TrackCode);
     }
 }

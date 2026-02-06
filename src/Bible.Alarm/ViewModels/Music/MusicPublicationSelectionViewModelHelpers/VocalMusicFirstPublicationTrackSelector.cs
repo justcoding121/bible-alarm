@@ -34,7 +34,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
     /// Gets the first song publication and track for a language.
     /// Progress milestones: 50% after publication+section saved, 100% after tracks saved.
     /// </summary>
-    public async Task<(string? PublicationCode, int TrackNumber, string TrackName, string PublicationName)> GetFirstSongPublicationAndTrackForLanguageAsync(
+    public async Task<(string? PublicationCode, string TrackCode, string TrackName, string PublicationName)> GetFirstSongPublicationAndTrackForLanguageAsync(
         LanguageListViewItemModel language,
         ScheduleStateItem? currentSchedule,
         IFetchProgress? progress = null)
@@ -54,7 +54,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
             if (scopeFactory == null)
             {
                 Serilog.Log.Warning("GetFirstSongPublicationAndTrackForLanguageAsync: scopeFactory is null, cannot filter publications without LanguageId");
-                return (null, 0, string.Empty, string.Empty);
+                return (null, string.Empty, string.Empty, string.Empty);
             }
 
             using var scope = scopeFactory.CreateScope();
@@ -121,7 +121,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         if (string.IsNullOrEmpty(firstPublicationCode))
         {
             Serilog.Log.Warning("GetFirstSongPublicationAndTrackForLanguageAsync: No first publication found for language={LanguageCode}", language.Code);
-            return (null, 0, string.Empty, string.Empty);
+            return (null, string.Empty, string.Empty, string.Empty);
         }
 
         Serilog.Log.Debug("GetFirstSongPublicationAndTrackForLanguageAsync: First publication by ID order={PublicationCode} for language={LanguageCode}",
@@ -167,7 +167,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
         if (songPublications == null || songPublications.Count == 0)
         {
-            return (null, 0, string.Empty, string.Empty);
+            return (null, string.Empty, string.Empty, string.Empty);
         }
 
         static bool IsHarvestedPublication(Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication publication)
@@ -202,7 +202,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
         if (firstSongPublication == null)
         {
-            return (null, 0, string.Empty, string.Empty);
+            return (null, string.Empty, string.Empty, string.Empty);
         }
 
         var publicationCode = firstSongPublication.PublicationCode;
@@ -231,28 +231,29 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
         if (tracks == null || tracks.Count == 0)
         {
-            return (null, 0, string.Empty, string.Empty);
+            return (null, string.Empty, string.Empty, string.Empty);
         }
 
-        int trackNumber;
+        string trackCode;
         string trackName;
 
         if (isSameLanguage &&
-            currentSchedule?.MusicTrackNumber.HasValue == true &&
-            tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
+            !string.IsNullOrWhiteSpace(currentSchedule?.MusicTrackCode) &&
+            int.TryParse(currentSchedule.MusicTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackNum) &&
+            tracks.TryGetValue(parsedTrackNum, out var currentTrack))
         {
-            trackNumber = currentSchedule.MusicTrackNumber.Value;
+            trackCode = currentSchedule.MusicTrackCode;
             trackName = currentTrack.Title;
         }
         else
         {
             var tracksList = tracks.Values.ToList();
             var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-            trackNumber = randomTrack.Number;
+            trackCode = randomTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
             trackName = randomTrack.Title;
         }
 
-        return (publicationCode, trackNumber, trackName, firstSongPublication.Name);
+        return (publicationCode, trackCode, trackName, firstSongPublication.Name);
     }
 
     private static bool IsSameLanguageAndSongPublication(ScheduleStateItem? currentSchedule, string languageCode, string publicationCode)

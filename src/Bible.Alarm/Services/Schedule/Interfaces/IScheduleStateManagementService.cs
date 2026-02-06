@@ -20,7 +20,7 @@ public interface IScheduleStateManagementService
     bool HandleScheduleUpdateFromState(
         ApplicationState stateValue,
         int currentScheduleId,
-        ref int? lastMusicTrackNumber,
+        ref string? lastMusicTrackCode,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,
         ref bool? lastMusicRepeat,

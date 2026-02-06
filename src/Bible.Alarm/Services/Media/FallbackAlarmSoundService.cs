@@ -22,7 +22,7 @@ public sealed class FallbackAlarmSoundService(ILogger logger) : IFallbackAlarmSo
             var fallbackMetadata = new TrackMetadata
             {
                 PublicationCode = "Fallback",
-                TrackNumber = 1,
+                TrackCode = "1",
                 // Not from media index; use sentinel so LookUpPath getter is never used for cache/key
                 LookUpPath = "?fallback=1"
             };

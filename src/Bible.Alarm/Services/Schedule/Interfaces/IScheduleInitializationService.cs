@@ -21,7 +21,7 @@ public interface IScheduleInitializationService
     void InitializeTrackingFields(
         ScheduleStateItem scheduleStateItem,
         ref int lastScheduleId,
-        ref int? lastMusicTrackNumber,
+        ref string? lastMusicTrackCode,
         ref string? lastMusicPublicationCode,
         ref string? lastMusicLanguageCode,
         ref bool? lastMusicRepeat);

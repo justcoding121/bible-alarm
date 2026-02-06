@@ -66,7 +66,7 @@ public sealed class MusicCommandInitializer
                 getMusic(),
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
-                currentSchedule?.MusicTrackNumber,
+                currentSchedule?.MusicTrackCode,
                 currentSchedule?.MusicRepeat);
 
             setMusic(loadedMusic);
@@ -112,7 +112,7 @@ public sealed class MusicCommandInitializer
                 getMusic(),
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
-                currentSchedule?.MusicTrackNumber,
+                currentSchedule?.MusicTrackCode,
                 currentSchedule?.MusicRepeat);
 
             setMusic(loadedMusic);
@@ -143,7 +143,7 @@ public sealed class MusicCommandInitializer
                 getMusic(),
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
-                currentSchedule?.MusicTrackNumber,
+                currentSchedule?.MusicTrackCode,
                 currentSchedule?.MusicRepeat);
 
             setMusic(loadedMusic);
@@ -174,7 +174,7 @@ public sealed class MusicCommandInitializer
                 getMusic(),
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
-                currentSchedule?.MusicTrackNumber,
+                currentSchedule?.MusicTrackCode,
                 currentSchedule?.MusicRepeat);
 
             setMusic(loadedMusic);
@@ -205,7 +205,7 @@ public sealed class MusicCommandInitializer
                 getMusic(),
                 currentSchedule?.MusicPublicationCode,
                 currentSchedule?.MusicLanguageCode,
-                currentSchedule?.MusicTrackNumber,
+                currentSchedule?.MusicTrackCode,
                 currentSchedule?.MusicRepeat);
 
             setMusic(loadedMusic);

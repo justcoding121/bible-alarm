@@ -50,7 +50,7 @@ public static class ApplicationMusicReducer
             updatedCurrentSchedule.MusicLanguageCode = music.LanguageCode;
             updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
             updatedCurrentSchedule.MusicSectionCode = music.SectionCode; // Clear if null (when language/publication changes)
-            updatedCurrentSchedule.MusicTrackNumber = music.TrackNumber;
+            updatedCurrentSchedule.MusicTrackCode = music.TrackCode;
             updatedCurrentSchedule.MusicRepeat = music.Repeat;
             // Display names: use action when provided. When switching to vocal (LanguageCode set) but action has no
             // LanguageName (e.g. tapped osg from merged list without selecting language), preserve existing so the
@@ -65,8 +65,8 @@ public static class ApplicationMusicReducer
             updatedCurrentSchedule.MusicSectionName = music.SectionName; // Clear if null (when language/publication changes)
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
 
-            Log.Debug("ApplicationMusicReducer.OnMusicTrackSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, TrackNumber={TrackNumber}, TrackName={TrackName}",
-                music.LanguageCode ?? "(null)", music.TrackNumber, music.TrackName);
+            Log.Debug("ApplicationMusicReducer.OnMusicTrackSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, TrackCode={TrackCode}, TrackName={TrackName}",
+                music.LanguageCode ?? "(null)", music.TrackCode, music.TrackName);
         }
 
         return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);
@@ -86,7 +86,7 @@ public static class ApplicationMusicReducer
             updatedCurrentSchedule.MusicLanguageCode = music.LanguageCode;
             updatedCurrentSchedule.MusicPublicationCode = music.PublicationCode;
             updatedCurrentSchedule.MusicSectionCode = music.SectionCode;
-            updatedCurrentSchedule.MusicTrackNumber = music.TrackNumber;
+            updatedCurrentSchedule.MusicTrackCode = music.TrackCode;
             updatedCurrentSchedule.MusicRepeat = music.Repeat;
             updatedCurrentSchedule.MusicLanguageName = !string.IsNullOrEmpty(music.LanguageName)
                 ? music.LanguageName
@@ -98,8 +98,8 @@ public static class ApplicationMusicReducer
             updatedCurrentSchedule.MusicSectionName = music.SectionName;
             updatedCurrentSchedule.MusicTrackName = music.TrackName;
 
-            Log.Debug("ApplicationMusicReducer.OnMusicSectionSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, SectionCode={SectionCode}, SectionName={SectionName}, TrackNumber={TrackNumber}",
-                music.LanguageCode ?? "(null)", music.SectionCode, music.SectionName, music.TrackNumber);
+            Log.Debug("ApplicationMusicReducer.OnMusicSectionSelected: Updated CurrentSchedule with LanguageCode={LanguageCode}, SectionCode={SectionCode}, SectionName={SectionName}, TrackCode={TrackCode}",
+                music.LanguageCode ?? "(null)", music.SectionCode, music.SectionName, music.TrackCode);
         }
 
         return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);

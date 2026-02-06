@@ -34,7 +34,7 @@ public sealed class BiblePublicationNavigationService(
             }
 
             schedule.SectionCode = nextSection.Value.SectionCode;
-            schedule.TrackNumber = 1;
+            schedule.TrackCode = "1";
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
         }
@@ -69,7 +69,7 @@ public sealed class BiblePublicationNavigationService(
             }
 
             schedule.SectionCode = nextSection.Value.SectionCode;
-            schedule.TrackNumber = 1;
+            schedule.TrackCode = "1";
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
         }
@@ -97,7 +97,7 @@ public sealed class BiblePublicationNavigationService(
                 languageCode,
                 schedule.PublicationCode,
                 schedule.SectionCode,
-                schedule.TrackNumber);
+                schedule.TrackCode);
 
             if (prevTrack.Key == null || prevTrack.Value == null)
             {
@@ -105,7 +105,7 @@ public sealed class BiblePublicationNavigationService(
             }
 
             schedule.SectionCode = prevTrack.Key?.SectionCode;
-            schedule.TrackNumber = prevTrack.Value.Number;
+            schedule.TrackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(prevTrack.Value);
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
         }
@@ -133,7 +133,7 @@ public sealed class BiblePublicationNavigationService(
                 languageCode,
                 schedule.PublicationCode,
                 schedule.SectionCode,
-                schedule.TrackNumber);
+                schedule.TrackCode);
 
             if (nextTrack.Key == null || nextTrack.Value == null)
             {
@@ -141,7 +141,7 @@ public sealed class BiblePublicationNavigationService(
             }
 
             schedule.SectionCode = nextTrack.Key?.SectionCode;
-            schedule.TrackNumber = nextTrack.Value.Number;
+            schedule.TrackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(nextTrack.Value);
             schedule.FinishedDuration = TimeSpan.Zero;
             return true;
         }

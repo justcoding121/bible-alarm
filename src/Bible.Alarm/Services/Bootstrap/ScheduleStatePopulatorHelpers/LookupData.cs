@@ -342,10 +342,10 @@ internal sealed class LookupDataLoader
             })
             .ToListAsync(CancellationToken.None);
 
-        var trackTitles = new Dictionary<(string PublicationCode, string? SectionCode, int TrackNumber), string>();
+        var trackTitles = new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>();
 
         // Precompute the desired track keys so we only retain titles for tracks we actually need.
-        var neededTrackKeys = new HashSet<(string PublicationCode, string? SectionCode, int TrackNumber)>();
+        var neededTrackKeys = new HashSet<(string PublicationCode, string? SectionCode, string TrackCode)>();
         foreach (var key in keys.BibleTrackKeys)
         {
             if (!missingPublicationCodes.Contains(key.PublicationCode))
@@ -353,7 +353,7 @@ internal sealed class LookupDataLoader
                 continue;
             }
 
-            neededTrackKeys.Add((key.PublicationCode, SectionCodeHelper.Normalize(key.SectionCode), key.TrackNumber));
+            neededTrackKeys.Add((key.PublicationCode, SectionCodeHelper.Normalize(key.SectionCode), key.TrackCode));
         }
 
         foreach (var t in tracks)
@@ -375,7 +375,7 @@ internal sealed class LookupDataLoader
                 continue;
             }
 
-            var trackKey = (pubCode, sectionCode, t.Number);
+            var trackKey = (pubCode, sectionCode, t.Number.ToString(System.Globalization.CultureInfo.InvariantCulture));
             if (!neededTrackKeys.Contains(trackKey))
             {
                 continue;
@@ -392,7 +392,7 @@ internal sealed class LookupDataLoader
         Dictionary<(string LanguageCode, string PublicationCode, string SectionCode), string> Sections,
         Dictionary<string, NoLanguagePublicationMeta> NoLanguagePublications,
         Dictionary<(string PublicationCode, string SectionCode), string> NoLanguageSections,
-        Dictionary<(string PublicationCode, string? SectionCode, int TrackNumber), string> NoLanguageTrackTitles,
+        Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string> NoLanguageTrackTitles,
         Dictionary<string, Language> VocalLanguages,
         Dictionary<(string LanguageCode, string PublicationCode), VocalMusic> VocalReleases,
         Dictionary<(string LanguageCode, string PublicationCode), SortedDictionary<int, MusicTrack>> VocalTracks,
@@ -405,12 +405,12 @@ internal sealed class LookupDataLoader
     private sealed record NoLanguageLookupData(
         Dictionary<string, NoLanguagePublicationMeta> Publications,
         Dictionary<(string PublicationCode, string SectionCode), string> Sections,
-        Dictionary<(string PublicationCode, string? SectionCode, int TrackNumber), string> TrackTitles)
+        Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string> TrackTitles)
     {
         public static readonly NoLanguageLookupData Empty =
             new(new Dictionary<string, NoLanguagePublicationMeta>(StringComparer.OrdinalIgnoreCase),
                 new Dictionary<(string PublicationCode, string SectionCode), string>(),
-                new Dictionary<(string PublicationCode, string? SectionCode, int TrackNumber), string>());
+                new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>());
     }
 }
 

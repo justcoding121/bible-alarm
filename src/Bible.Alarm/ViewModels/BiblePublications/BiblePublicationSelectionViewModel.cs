@@ -83,7 +83,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
                 SectionCode = currentSchedule.BiblePublicationSectionCode,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 1
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty
             };
             initialLanguageCode = initialCurrent.LanguageCode;
             initialCategoryName = currentSchedule.BiblePublicationCategoryName;

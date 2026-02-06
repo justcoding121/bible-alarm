@@ -28,7 +28,7 @@ public sealed class MusicTrackStateManager
             {
                 LanguageCode = currentSchedule.MusicLanguageCode,
                 PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
-                TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+                TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
                 Repeat = currentSchedule.MusicRepeat ?? false
             };
             lastCurrent = current;
@@ -59,7 +59,7 @@ public sealed class MusicTrackStateManager
         {
             LanguageCode = newLanguageCode,
             PublicationCode = newPublicationCode,
-            TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+            TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
             Repeat = currentSchedule.MusicRepeat ?? false
         };
         lastCurrent = current;
@@ -112,7 +112,7 @@ public sealed class MusicTrackStateManager
         {
             LanguageCode = newLanguageCode,
             PublicationCode = newPublicationCode,
-            TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+            TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
             Repeat = currentSchedule.MusicRepeat ?? false
         };
         lastCurrent = current;

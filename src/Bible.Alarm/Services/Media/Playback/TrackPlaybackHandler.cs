@@ -53,6 +53,12 @@ public sealed class TrackPlaybackHandler
             track.Uri,
             track.PlayItem?.Url ?? "Unknown");
 
+        if (track.PlayItem?.Metadata is { } meta)
+        {
+            logger.Information("[Playback] Playing track at index {TrackIndex}: ScheduleId={ScheduleId}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, LookUpPath={LookUpPath}",
+                currentTrackIndex, meta.ScheduleId, meta.PublicationCode, meta.SectionCode ?? "(null)", meta.TrackCode, meta.LookUpPath);
+        }
+
         // Mark that we're preparing a track to prevent race conditions in IsPreparingOrPlayingInternal
         setIsPreparingTrack(true);
         try

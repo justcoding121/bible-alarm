@@ -130,7 +130,7 @@ Finally, it dispatches an updated `ScheduleStateItem` with:
 The Bible cascade handler runs only when `biblePublicationUpdated=true` and fills “lower” fields when they are missing:
 - if `LanguageCode` is set but `PublicationCode` is missing → pick publication+section+track
 - else if `PublicationCode` is set but `SectionCode` is missing → pick section+track for that publication
-- else if `SectionCode` is set but `TrackNumber` is missing → pick first track in that section
+- else if `SectionCode` is set but `TrackCode` is missing → pick first track in that section
 
 Key nuance for **existing schedules**:
 - if the schedule already has a `PublicationCode`, the handler tries to **keep it**:
@@ -299,7 +299,7 @@ The schedule’s main content is persisted into Schedule DB tables:
   - `PublicationCode`
   - `LanguageCode` (nullable)
   - `SectionCode` (nullable)
-  - `TrackNumber`
+  - `TrackCode`
   - `FinishedDuration` reset is controlled by `biblePublicationUpdated`
 
 ### What gets saved for begin-with-music
@@ -311,7 +311,7 @@ Begin-with-music is stored as:
   - `PublicationCode`
   - `LanguageCode` (vocal only)
   - `SectionCode` (for sectioned melody releases)
-  - `TrackNumber`
+  - `TrackCode`
   - `Repeat`
 
 ### The save path

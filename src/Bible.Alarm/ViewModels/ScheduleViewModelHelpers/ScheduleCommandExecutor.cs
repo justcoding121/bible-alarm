@@ -260,8 +260,7 @@ public sealed class ScheduleCommandExecutor
         // Music type is inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal
         var hasMusicProperties = currentSchedule.MusicEnabled &&
                                  !string.IsNullOrEmpty(currentSchedule.MusicPublicationCode) &&
-                                 currentSchedule.MusicTrackNumber.HasValue &&
-                                 currentSchedule.MusicTrackNumber.Value > 0;
+                                 !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode);
 
         logger.Debug("DetectMusicChanges: musicContainer not found, hasMusicProperties={HasMusicProperties}", hasMusicProperties);
         return hasMusicProperties;
@@ -295,7 +294,7 @@ public sealed class ScheduleCommandExecutor
         var sameLanguage = string.Equals(Norm(persisted.BiblePublicationLanguageCode), Norm(currentSchedule.BiblePublicationLanguageCode), StringComparison.OrdinalIgnoreCase);
         var samePublication = string.Equals(Norm(persisted.BiblePublicationCode), Norm(currentSchedule.BiblePublicationCode), StringComparison.OrdinalIgnoreCase);
         var sameSection = string.Equals(SectionCodeHelper.Normalize(persisted.BiblePublicationSectionCode), SectionCodeHelper.Normalize(currentSchedule.BiblePublicationSectionCode), StringComparison.OrdinalIgnoreCase);
-        var sameTrack = (persisted.BiblePublicationTrackNumber ?? 0) == (currentSchedule.BiblePublicationTrackNumber ?? 0);
+        var sameTrack = (persisted.BiblePublicationTrackCode ?? string.Empty) == (currentSchedule.BiblePublicationTrackCode ?? string.Empty);
 
         return !(sameLanguage && samePublication && sameSection && sameTrack);
     }

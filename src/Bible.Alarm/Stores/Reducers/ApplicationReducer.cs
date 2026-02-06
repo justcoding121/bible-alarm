@@ -303,7 +303,7 @@ public static class ApplicationReducer
         updatedSchedule.BiblePublicationName = null;
         updatedSchedule.BiblePublicationSectionCode = null;
         updatedSchedule.BiblePublicationSectionName = null;
-        updatedSchedule.BiblePublicationTrackNumber = null;
+        updatedSchedule.BiblePublicationTrackCode = null;
         updatedSchedule.BiblePublicationTrackTitle = null;
         // Do NOT reset progress here. Progress reset is applied only on Save.
 
@@ -350,7 +350,7 @@ public static class ApplicationReducer
             
             var publicationChanged = !string.Equals(previous.BiblePublicationCode, biblePub.PublicationCode, StringComparison.OrdinalIgnoreCase);
             var sectionChanged = !string.Equals(previous.BiblePublicationSectionCode, biblePub.SectionCode, StringComparison.OrdinalIgnoreCase);
-            var trackChanged = previous.BiblePublicationTrackNumber != biblePub.TrackNumber;
+            var trackChanged = previous.BiblePublicationTrackCode != biblePub.TrackCode;
 
             // Update ALL bible publication fields to ensure CurrentSchedule is fully in sync
             // This prevents ViewModels from reading stale values when they dispatch updates
@@ -397,7 +397,7 @@ public static class ApplicationReducer
             updatedCurrentSchedule.BiblePublicationSectionCode = !string.IsNullOrWhiteSpace(biblePub.SectionCode)
                 ? biblePub.SectionCode
                 : null;
-            updatedCurrentSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
+            updatedCurrentSchedule.BiblePublicationTrackCode = biblePub.TrackCode;
             // Do NOT reset progress here. Progress reset is applied only on Save.
             
             // Update other display names - use action values if provided, otherwise keep existing
@@ -460,9 +460,9 @@ public static class ApplicationReducer
             }
 
             Log.Debug("ApplicationReducer.OnBiblePublicationTrackSelected: Updated CurrentSchedule with " +
-                "LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackNumber={TrackNumber}, CategoryName={CategoryName}",
+                "LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, CategoryName={CategoryName}",
                 updatedCurrentSchedule.BiblePublicationLanguageCode, updatedCurrentSchedule.BiblePublicationCode,
-                updatedCurrentSchedule.BiblePublicationSectionCode ?? "null", biblePub.TrackNumber, updatedCurrentSchedule.BiblePublicationCategoryName);
+                updatedCurrentSchedule.BiblePublicationSectionCode ?? "null", biblePub.TrackCode, updatedCurrentSchedule.BiblePublicationCategoryName);
         }
 
         return StateFactory.CreateUpdatedState(state, updatedCurrentSchedule);

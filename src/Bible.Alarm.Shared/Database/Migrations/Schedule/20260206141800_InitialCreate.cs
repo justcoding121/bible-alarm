@@ -59,7 +59,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     PublicationCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     LanguageCode = table.Column<string>(type: "TEXT", maxLength: 10, nullable: true),
                     SectionCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: true),
-                    TrackNumber = table.Column<int>(type: "INTEGER", nullable: false),
+                    TrackCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     Repeat = table.Column<bool>(type: "INTEGER", nullable: false),
                     AlarmScheduleId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
@@ -107,7 +107,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Schedule
                     LanguageCode = table.Column<string>(type: "TEXT", maxLength: 10, nullable: true),
                     PublicationCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     SectionCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: true),
-                    TrackNumber = table.Column<int>(type: "INTEGER", nullable: false),
+                    TrackCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     FinishedDuration = table.Column<TimeSpan>(type: "TEXT", nullable: false),
                     AlarmScheduleId = table.Column<int>(type: "INTEGER", nullable: false)
                 },

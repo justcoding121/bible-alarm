@@ -33,7 +33,7 @@ public sealed class MusicTrackSelectionHandler(
                 {
                     LanguageCode = schedule.MusicLanguageCode,
                     PublicationCode = schedule.MusicPublicationCode ?? string.Empty,
-                    TrackNumber = schedule.MusicTrackNumber ?? 0,
+                    TrackCode = schedule.MusicTrackCode ?? string.Empty,
                     Repeat = schedule.MusicRepeat ?? false
                 };
             }
@@ -45,7 +45,7 @@ public sealed class MusicTrackSelectionHandler(
 
         if (current == null)
             current = new AlarmMusic();
-        current.TrackNumber = track.Number;
+        current.TrackCode = track.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
         current.Repeat = track.Repeat;
 
         var trackSelectedItem = new MusicStateItem
@@ -55,7 +55,7 @@ public sealed class MusicTrackSelectionHandler(
             SectionCode = PublicationTypeHelper.HasSectionStructure(currentSchedule.MusicPublicationCode)
                 ? currentSchedule.MusicSectionCode
                 : null,
-            TrackNumber = track.Number,
+            TrackCode = track.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),
             Repeat = track.Repeat,
             LanguageName = currentSchedule.MusicLanguageName,
             LanguageDirection = currentSchedule.MusicLanguageDirection,

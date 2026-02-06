@@ -285,14 +285,14 @@ internal class MusicHarvester : BaseHarvester
         {
             // Original logic for other publications
             var file = $"{dir}/tracks.json";
-            var trackNumber = 1;
+            var trackCode = 1;
             var musicTracks = new List<MusicTrack>();
             string? localizedPubName = null;
 
             foreach (var publicationDownloadCode in publicationDownloadCodes)
             {
-                var result = await FetchAndProcessMusicFiles(publicationDownloadCode, publicationCode, languageCode, trackNumber, musicTracks);
-                trackNumber = result.TrackNumber;
+                var result = await FetchAndProcessMusicFiles(publicationDownloadCode, publicationCode, languageCode, trackCode, musicTracks);
+                trackCode = result.TrackCode;
 
                 // Capture localized publication name (only need it once per publication/language combo)
                 if (localizedPubName == null && result.LocalizedPubName != null)
@@ -348,11 +348,11 @@ internal class MusicHarvester : BaseHarvester
         }
     }
 
-    private async Task<(int TrackNumber, string? LocalizedPubName, string? DiscName)> FetchAndProcessMusicFiles(
+    private async Task<(int TrackCode, string? LocalizedPubName, string? DiscName)> FetchAndProcessMusicFiles(
         string publicationDownloadCode,
         string publicationCode,
         string? languageCode,
-        int trackNumber,
+        int trackCode,
         List<MusicTrack> musicTracks)
     {
         string jsonString;
@@ -363,12 +363,12 @@ internal class MusicHarvester : BaseHarvester
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("Response status code"))
         {
-            return (trackNumber, null, null);
+            return (trackCode, null, null);
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to fetch tracks for publication {PublicationCode}. Skipping.", publicationDownloadCode);
-            return (trackNumber, null, null);
+            return (trackCode, null, null);
         }
 
         // Parse and process within the same scope to keep JsonDocument alive
@@ -377,14 +377,14 @@ internal class MusicHarvester : BaseHarvester
 
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("files", out var filesElement))
         {
-            return (trackNumber, null, null);
+            return (trackCode, null, null);
         }
 
         var lc = languageCode ?? "E";
         if (!filesElement.TryGetProperty(lc, out var languageFiles) ||
             !languageFiles.TryGetProperty("MP3", out var musicFiles))
         {
-            return (trackNumber, null, null);
+            return (trackCode, null, null);
         }
 
         // Extract localized publication name from pubName field
@@ -407,8 +407,8 @@ internal class MusicHarvester : BaseHarvester
             }
         }
 
-        var newTrackNumber = MusicTrackHarvestParsing.ProcessMusicFiles(musicFiles, publicationDownloadCode, languageCode, trackNumber, musicTracks);
-        return (newTrackNumber, localizedPubName, discName);
+        var newTrackCode = MusicTrackHarvestParsing.ProcessMusicFiles(musicFiles, publicationDownloadCode, languageCode, trackCode, musicTracks);
+        return (newTrackCode, localizedPubName, discName);
     }
 
 }

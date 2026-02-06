@@ -24,7 +24,7 @@ public interface IUrlConstructionService
         string publicationCode,
         string languageCode,
         string? sectionCode,
-        int trackNumber);
+        string trackCode);
 
     /// <summary>
     /// Constructs the lookup path (query string) for a track by publication code, language code, section code, and track number.
@@ -35,5 +35,5 @@ public interface IUrlConstructionService
         string publicationCode,
         string? languageCode,
         string? sectionCode,
-        int trackNumber);
+        string trackCode);
 }

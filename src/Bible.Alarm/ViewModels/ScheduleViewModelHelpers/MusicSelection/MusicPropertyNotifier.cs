@@ -55,7 +55,7 @@ public sealed class MusicPropertyNotifier
         bool languageCodeChanged,
         bool publicationCodeChanged,
         bool sectionCodeChanged,
-        bool trackNumberChanged,
+        bool trackCodeChanged,
         bool repeatChanged,
         bool isMelodyMusic,
         Action<bool>? setShouldScrollToBottom = null)
@@ -64,7 +64,7 @@ public sealed class MusicPropertyNotifier
         var notifyLanguage = languageCodeChanged;
         var notifySongPublication = languageCodeChanged || publicationCodeChanged;
         var notifySection = languageCodeChanged || publicationCodeChanged || sectionCodeChanged;
-        var notifyTrack = languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged;
+        var notifyTrack = languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackCodeChanged;
 
         // Language change cascades to all below (including flow direction for RTL support)
         if (notifyLanguage)

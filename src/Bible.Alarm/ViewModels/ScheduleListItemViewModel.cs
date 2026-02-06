@@ -240,7 +240,7 @@ public sealed class ScheduleListItemViewModel(
         => bibleDisplayNameProvider.IsBibleCategory(ScheduleId);
 
     /// <summary>
-    /// Home page display: for Bible category, show "SectionName TrackNumber" (e.g. "Exodus 9") as one line.
+    /// Home page display: for Bible category, show "SectionName TrackCode" (e.g. "Exodus 9") as one line.
     /// </summary>
     public string BiblePublicationSectionAndTrackOneLine
         => bibleDisplayNameProvider.GetBiblePublicationSectionAndTrackOneLine(ScheduleId);
@@ -398,11 +398,11 @@ public sealed class ScheduleListItemViewModel(
             return;
         }
 
-        logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - ScheduleId: {ScheduleId}, CurrentPublicationCode: {PublicationCode}, CurrentSectionCode: {SectionCode}, CurrentTrackNumber: {TrackNumber}",
+        logger.Debug("ScheduleListItemViewModel: OnApplicationStateChanged - ScheduleId: {ScheduleId}, CurrentPublicationCode: {PublicationCode}, CurrentSectionCode: {SectionCode}, CurrentTrackCode: {TrackCode}",
             schedule.Id,
             schedule.BiblePublicationSchedule?.PublicationCode ?? "null",
             schedule.BiblePublicationSchedule?.SectionCode ?? "null",
-            schedule.BiblePublicationSchedule?.TrackNumber.ToString() ?? "null");
+            schedule.BiblePublicationSchedule?.TrackCode.ToString() ?? "null");
 
         var changeInfo = stateHandler.HandleApplicationStateChanged(schedule.Id, schedule);
         if (changeInfo == null)

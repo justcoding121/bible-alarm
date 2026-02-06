@@ -99,7 +99,7 @@ Helper:
   - file: `src/Bible.Alarm/ViewModels/ScheduleListItemViewModelHelpers/ScheduleListItemBibleDisplayNameProvider.cs`
 
 Notes:
-- It treats “Bible” category specially (one-line `"SectionName TrackNumber"`).
+- It treats “Bible” category specially (one-line `"SectionName TrackCode"`).
 - If category name is temporarily missing (category isn’t persisted in Schedule DB), it falls back to inferring category from the publication code.
 
 ### B) The `SubTitle` + `Language` strings
@@ -112,7 +112,7 @@ File:
 - `src/Bible.Alarm/ViewModels/ScheduleListItemViewModelHelpers/ScheduleListItemSubtitleManager.cs`
 
 Subtitle format:
-- `Category • Publication • (SectionName if sectioned) • (TrackNumber or TrackTitle) • Language`
+- `Category • Publication • (SectionName if sectioned) • (TrackCode or TrackTitle) • Language`
 
 Track portion rules:
 - if sectioned:

@@ -99,8 +99,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
                     !string.IsNullOrEmpty(currentState.BiblePublicationCategoryName) &&
                     currentState.BiblePublicationCategoryName == category.Name &&
                     !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
-                    currentState.BiblePublicationTrackNumber.HasValue &&
-                    currentState.BiblePublicationTrackNumber.Value > 0)
+                    !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode))
                 {
                     // Cascade complete
                     break;

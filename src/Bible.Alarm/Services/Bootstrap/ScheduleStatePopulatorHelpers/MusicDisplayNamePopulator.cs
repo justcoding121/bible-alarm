@@ -90,17 +90,18 @@ internal sealed class MusicDisplayNamePopulator
         }
 
         // Use cached vocal tracks
-        if (music.TrackNumber > 0 &&
+        if (!string.IsNullOrWhiteSpace(music.TrackCode) &&
             !string.IsNullOrWhiteSpace(music.LanguageCode) &&
             !string.IsNullOrWhiteSpace(music.PublicationCode))
         {
             var trackKey = (music.LanguageCode, music.PublicationCode);
             if (lookupData.VocalTracks.TryGetValue(trackKey, out var tracks) &&
-                tracks.TryGetValue(music.TrackNumber, out var track))
+                int.TryParse(music.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
+                tracks.TryGetValue(trackNum, out var track))
             {
                 scheduleStateItem.MusicTrackName = track.Title;
-                Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
-                    track.Title, schedule.Id, music.TrackNumber);
+                Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackCode: {TrackCode})",
+                    track.Title, schedule.Id, music.TrackCode);
             }
         }
     }
@@ -134,26 +135,27 @@ internal sealed class MusicDisplayNamePopulator
 
         // Use cached melody tracks.
         // For sectioned melody publications (e.g. "iam"), keys are (PublicationCode, SectionCode) to avoid ambiguity.
-        if (!string.IsNullOrWhiteSpace(music.PublicationCode) && music.TrackNumber > 0)
+        if (!string.IsNullOrWhiteSpace(music.PublicationCode) && !string.IsNullOrWhiteSpace(music.TrackCode) &&
+            int.TryParse(music.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
         {
             if (!string.IsNullOrWhiteSpace(music.SectionCode) &&
                 lookupData.MelodyTracksBySection.TryGetValue((music.PublicationCode, music.SectionCode), out var sectionTracks) &&
-                sectionTracks.TryGetValue(music.TrackNumber, out var sectionTrack))
+                sectionTracks.TryGetValue(trackNum, out var sectionTrack))
             {
                 // Titles for melody tracks should come from harvested track titles as-is.
                 scheduleStateItem.MusicTrackName = sectionTrack.Title;
-                Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
-                    sectionTrack.Title, schedule.Id, music.TrackNumber);
+                Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackCode: {TrackCode})",
+                    sectionTrack.Title, schedule.Id, music.TrackCode);
                 return;
             }
 
             if (lookupData.MelodyTracksFlat.TryGetValue(music.PublicationCode, out var flatTracks) &&
-                flatTracks.TryGetValue(music.TrackNumber, out var flatTrack))
+                flatTracks.TryGetValue(trackNum, out var flatTrack))
             {
                 // Titles for melody tracks should come from harvested track titles as-is.
                 scheduleStateItem.MusicTrackName = flatTrack.Title;
-                Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackNumber: {TrackNumber})",
-                    flatTrack.Title, schedule.Id, music.TrackNumber);
+                Log.Logger.Debug("Set MusicTrackName '{MusicTrackName}' for schedule {ScheduleId} (TrackCode: {TrackCode})",
+                    flatTrack.Title, schedule.Id, music.TrackCode);
             }
         }
     }

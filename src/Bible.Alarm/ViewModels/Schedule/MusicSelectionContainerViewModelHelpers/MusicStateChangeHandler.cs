@@ -123,7 +123,7 @@ public sealed class MusicStateChangeHandler
             {
                 LanguageCode = currentSchedule.MusicLanguageCode,
                 PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
-                TrackNumber = currentSchedule.MusicTrackNumber ?? 0,
+                TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
                 Repeat = currentSchedule.MusicRepeat ?? false
             };
             HandleCurrentMusicChange(
@@ -198,7 +198,7 @@ public sealed class MusicStateChangeHandler
             clonedSchedule.MusicLanguageCode = null;
             clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
             clonedSchedule.MusicSectionName = chosenSection?.Name;
-            clonedSchedule.MusicTrackNumber = chosenTrack.Number;
+            clonedSchedule.MusicTrackCode = chosenTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
             clonedSchedule.MusicRepeat = false;
             clonedSchedule.MusicTrackName = WebUtility.HtmlDecode(chosenTrack.Title).Replace('\u00A0', ' ');
 
@@ -281,7 +281,7 @@ public sealed class MusicStateChangeHandler
                         // Update cache
                         displayTextProvider.UpdateTrackCache(
                             currentSchedule.MusicTrackName,
-                            currentSchedule.MusicTrackNumber,
+                            currentSchedule.MusicTrackCode,
                             currentSchedule.MusicPublicationCode,
                             currentSchedule.MusicLanguageCode);
                     }
@@ -302,14 +302,14 @@ public sealed class MusicStateChangeHandler
         Action<bool> setShouldScrollToBottom,
         Action<string> onPropertyChanged)
     {
-        var (languageCodeChanged, publicationCodeChanged, sectionCodeChanged, trackNumberChanged, repeatChanged) =
+        var (languageCodeChanged, publicationCodeChanged, sectionCodeChanged, trackCodeChanged, repeatChanged) =
             stateTracker.DetectChanges(currentSchedule);
 
         // Also check for display name changes (publication name, section name) that don't trigger code changes
         var publicationNameChanged = stateTracker.HasMusicPublicationNameChanged(currentSchedule);
         var sectionNameChanged = stateTracker.HasMusicSectionNameChanged(currentSchedule);
 
-        if (languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged || repeatChanged || publicationNameChanged || sectionNameChanged)
+        if (languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackCodeChanged || repeatChanged || publicationNameChanged || sectionNameChanged)
         {
             // Update last values immediately to prevent duplicate detection
             stateTracker.UpdateFromSchedule(currentSchedule);
@@ -334,13 +334,13 @@ public sealed class MusicStateChangeHandler
                     languageCodeChanged,
                     publicationCodeChanged,
                     sectionCodeChanged,
-                    trackNumberChanged,
+                    trackCodeChanged,
                     repeatChanged,
                     isMelodyMusic,
                     shouldScroll => { if (capturedMusicEnabled) setShouldScrollToBottom(shouldScroll); });
 
                 // Also notify display text properties if only display names changed (not codes)
-                if (!languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackNumberChanged && !repeatChanged)
+                if (!languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackCodeChanged && !repeatChanged)
                 {
                     if (publicationNameChanged)
                     {
@@ -389,9 +389,9 @@ public sealed class MusicStateChangeHandler
                         stateHolder.Music == null ||
                         stateHolder.LastMusic.LanguageCode != newMusicItem.LanguageCode ||
                         stateHolder.LastMusic.PublicationCode != newMusicItem.PublicationCode ||
-                        stateHolder.LastMusic.TrackNumber != newMusicItem.TrackNumber ||
+                        stateHolder.LastMusic.TrackCode != newMusicItem.TrackCode ||
                         (stateHolder.Music != null &&
-                         (stateHolder.Music.TrackNumber != newMusicItem.TrackNumber ||
+                         (stateHolder.Music.TrackCode != newMusicItem.TrackCode ||
                           stateHolder.Music.LanguageCode != newMusicItem.LanguageCode ||
                           stateHolder.Music.PublicationCode != newMusicItem.PublicationCode));
 
@@ -409,7 +409,7 @@ public sealed class MusicStateChangeHandler
         // Check section code from CurrentSchedule (now stored in AlarmMusic.SectionCode)
         var currentSchedule = state.Value.CurrentSchedule;
         var sectionCodeChanged = currentSchedule?.MusicSectionCode != stateTracker.LastMusicSectionCode;
-        var trackNumberChanged = stateHolder.Music?.TrackNumber != newMusic.TrackNumber;
+        var trackCodeChanged = stateHolder.Music?.TrackCode != newMusic.TrackCode;
         // Music type is inferred: NULL/empty LanguageCode = instrumental (melody)
         var isMelodyMusic = string.IsNullOrEmpty(newMusic.LanguageCode);
 
@@ -424,7 +424,7 @@ public sealed class MusicStateChangeHandler
                 languageCodeChanged,
                 publicationCodeChanged,
                 sectionCodeChanged,
-                trackNumberChanged,
+                trackCodeChanged,
                 false,
                 isMelodyMusic);
         });

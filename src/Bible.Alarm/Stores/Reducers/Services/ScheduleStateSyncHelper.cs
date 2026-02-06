@@ -55,12 +55,12 @@ public static class ScheduleStateSyncHelper
         return current.Id == action.Id &&
                current.MusicLanguageCode == action.MusicLanguageCode &&
                current.MusicPublicationCode == action.MusicPublicationCode &&
-               current.MusicTrackNumber == action.MusicTrackNumber &&
+               current.MusicTrackCode == action.MusicTrackCode &&
                current.MusicRepeat == action.MusicRepeat &&
                current.BiblePublicationLanguageCode == action.BiblePublicationLanguageCode &&
                current.BiblePublicationCode == action.BiblePublicationCode &&
                string.Equals(currentSectionCode, actionSectionCode, StringComparison.OrdinalIgnoreCase) &&
-               current.BiblePublicationTrackNumber == action.BiblePublicationTrackNumber &&
+               current.BiblePublicationTrackCode == action.BiblePublicationTrackCode &&
                current.BiblePublicationModalItemCount == action.BiblePublicationModalItemCount &&
                current.BiblePublicationSectionModalItemCount == action.BiblePublicationSectionModalItemCount &&
                current.MusicPublicationModalItemCount == action.MusicPublicationModalItemCount &&
@@ -102,8 +102,7 @@ public static class ScheduleStateSyncHelper
 
         // Basic required properties for all content types
         if (string.IsNullOrWhiteSpace(schedule.BiblePublicationCode) ||
-            !schedule.BiblePublicationTrackNumber.HasValue ||
-            schedule.BiblePublicationTrackNumber.Value <= 0)
+            string.IsNullOrWhiteSpace(schedule.BiblePublicationTrackCode))
         {
             return false;
         }
@@ -128,9 +127,9 @@ public static class ScheduleStateSyncHelper
 
     public static BiblePublicationStateItem CreateBiblePublicationScheduleFromCurrent(ScheduleStateItem updatedCurrentSchedule)
     {
-        if (!updatedCurrentSchedule.BiblePublicationTrackNumber.HasValue)
+        if (string.IsNullOrWhiteSpace(updatedCurrentSchedule.BiblePublicationTrackCode))
         {
-            throw new InvalidOperationException("BiblePublicationTrackNumber must have a value");
+            throw new InvalidOperationException("BiblePublicationTrackCode must have a value");
         }
 
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(updatedCurrentSchedule.BiblePublicationCode);
@@ -150,7 +149,7 @@ public static class ScheduleStateSyncHelper
             LanguageCode = updatedCurrentSchedule.BiblePublicationLanguageCode ?? string.Empty,
             PublicationCode = updatedCurrentSchedule.BiblePublicationCode ?? string.Empty,
             SectionCode = sectionCode,
-            TrackNumber = updatedCurrentSchedule.BiblePublicationTrackNumber.Value,
+            TrackCode = updatedCurrentSchedule.BiblePublicationTrackCode ?? string.Empty,
             FinishedDuration = updatedCurrentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero,
             AlarmScheduleId = updatedCurrentSchedule.Id,
             LanguageName = updatedCurrentSchedule.BiblePublicationLanguageName,
@@ -182,15 +181,14 @@ public static class ScheduleStateSyncHelper
     public static bool HasValidMusicProperties(ScheduleStateItem schedule)
     {
         return !string.IsNullOrWhiteSpace(schedule.MusicPublicationCode) &&
-               schedule.MusicTrackNumber.HasValue &&
-               schedule.MusicTrackNumber.Value > 0;
+               !string.IsNullOrWhiteSpace(schedule.MusicTrackCode);
     }
 
     public static MusicStateItem CreateMusicFromCurrent(ScheduleStateItem updatedCurrentSchedule)
     {
-        if (!updatedCurrentSchedule.MusicTrackNumber.HasValue)
+        if (string.IsNullOrWhiteSpace(updatedCurrentSchedule.MusicTrackCode))
         {
-            throw new InvalidOperationException("MusicTrackNumber must have a value");
+            throw new InvalidOperationException("MusicTrackCode must have a value");
         }
         return new MusicStateItem
         {
@@ -198,7 +196,7 @@ public static class ScheduleStateSyncHelper
             PublicationCode = updatedCurrentSchedule.MusicPublicationCode ?? string.Empty,
             LanguageCode = updatedCurrentSchedule.MusicLanguageCode,
             SectionCode = updatedCurrentSchedule.MusicSectionCode,
-            TrackNumber = updatedCurrentSchedule.MusicTrackNumber.Value,
+            TrackCode = updatedCurrentSchedule.MusicTrackCode ?? string.Empty,
             Repeat = updatedCurrentSchedule.MusicRepeat ?? false,
             AlarmScheduleId = updatedCurrentSchedule.Id,
             LanguageName = updatedCurrentSchedule.MusicLanguageName,

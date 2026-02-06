@@ -100,9 +100,9 @@ public sealed class ProgressTracker
                     if (currentPosition.HasValue && currentPosition.Value > TimeSpan.Zero)
                     {
                         logger.Information(
-                            "Marking music track as finished on first progress update - ScheduleId: {ScheduleId}, TrackNumber: {TrackNumber}, Position: {Position}",
+                            "Marking music track as finished on first progress update - ScheduleId: {ScheduleId}, TrackCode: {TrackCode}, Position: {Position}",
                             track.PlayItem.Metadata.ScheduleId,
-                            track.PlayItem.Metadata.TrackNumber,
+                            track.PlayItem.Metadata.TrackCode,
                             currentPosition.Value);
 
                         await playlistService.MarkTrackAsFinished(track.PlayItem.Metadata);

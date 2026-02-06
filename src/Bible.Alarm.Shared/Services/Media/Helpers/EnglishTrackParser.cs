@@ -70,7 +70,7 @@ internal sealed class EnglishTrackParser
             var trackNumber = 1;
             foreach (var trackFile in mp3Files.EnumerateArray())
             {
-                var track = ParseTrackFromJson(trackFile, trackNumber, baseUrl, sectionCode, 
+                var track = ParseTrackFromJson(trackFile, trackNumber, baseUrl, sectionCode,
                     normalizedPublicationCode, normalizedLanguageCode, isBible: true);
                 if (track != null)
                 {
@@ -106,13 +106,13 @@ internal sealed class EnglishTrackParser
         }
 
         // Get track number from API (original track number within the disc/book)
-        int originalTrackNumber = 0;
+        int originalTrackCode = 0;
         if (trackFile.TryGetProperty("track", out var trackElement))
         {
-            originalTrackNumber = trackElement.GetInt32();
+            originalTrackCode = trackElement.GetInt32();
         }
 
-        if (originalTrackNumber == 0)
+        if (originalTrackCode == 0)
         {
             return null;
         }
@@ -155,7 +155,7 @@ internal sealed class EnglishTrackParser
             trackUrlParams.Add(new UrlParam
             {
                 Key = "track",
-                Value = originalTrackNumber.ToString(),
+                Value = originalTrackCode.ToString(),
                 IsQueryParam = true,
                 BaseUrl = baseUrl,
                 BaseUrlId = baseUrl.Id
@@ -182,7 +182,7 @@ internal sealed class EnglishTrackParser
             trackUrlParams.Add(new UrlParam
             {
                 Key = "track",
-                Value = originalTrackNumber.ToString(),
+                Value = originalTrackCode.ToString(),
                 IsQueryParam = true,
                 BaseUrl = baseUrl,
                 BaseUrlId = baseUrl.Id

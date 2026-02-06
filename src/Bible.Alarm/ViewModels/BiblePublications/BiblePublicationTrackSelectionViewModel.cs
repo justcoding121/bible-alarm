@@ -206,8 +206,8 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
 
     private async Task Initialize(string languageCode, string publicationCode, string? sectionCode)
     {
-        Log.Debug("BiblePublicationTrackSelectionViewModel.Initialize: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}, current.TrackNumber={CurrentTrackNumber}",
-            languageCode, publicationCode, sectionCode ?? "(none)", stateManager.Current?.TrackNumber ?? -1);
+        Log.Debug("BiblePublicationTrackSelectionViewModel.Initialize: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}, current.TrackCode={CurrentTrackCode}",
+            languageCode, publicationCode, sectionCode ?? "(none)", stateManager.Current?.TrackCode ?? "(none)");
 
         await dataProvider.PopulateTracks(
             languageCode,
@@ -251,6 +251,8 @@ public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, I
     {
         this.track = track;
     }
+
+    public BiblePublicationTrack Track => track;
 
     private bool isSelected;
     private bool isNavigating;

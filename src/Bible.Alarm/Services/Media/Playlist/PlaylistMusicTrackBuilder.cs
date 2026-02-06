@@ -151,7 +151,7 @@ public class PlaylistMusicTrackBuilder
         // Always select tracks from the schedule's selected disc (SectionCode) when sectioned.
         var melodyTracks = await GetMelodyTracksCachedAsync(melodyMusic);
 
-        var trackKey = GetNextTrackKey(melodyTracks, melodyMusic.TrackNumber, next);
+        var trackKey = GetNextTrackKey(melodyTracks, melodyMusic.TrackCode, next);
         var melodyTrack = melodyTracks[trackKey];
         return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
     }
@@ -161,7 +161,7 @@ public class PlaylistMusicTrackBuilder
         var melodyMusic = schedule.Music ?? throw new InvalidOperationException("Music is null");
         var melodyTracks = await GetMelodyTracksCachedAsync(melodyMusic);
 
-        var trackKey = GetPreviousTrackKey(melodyTracks, melodyMusic.TrackNumber);
+        var trackKey = GetPreviousTrackKey(melodyTracks, melodyMusic.TrackCode);
         var melodyTrack = melodyTracks[trackKey];
         return await CreateMelodyPlayItem(schedule, melodyMusic, melodyTrack);
     }
@@ -172,7 +172,7 @@ public class PlaylistMusicTrackBuilder
         // Vocal music requires a language code - should not be null if we're here
         // (IsMelodyMusic would have routed to melody track methods if LanguageCode was null)
         var vocalTracks = await GetVocalTracksCachedAsync(vocalMusic);
-        var trackKey = GetNextTrackKey(vocalTracks, vocalMusic.TrackNumber, next);
+        var trackKey = GetNextTrackKey(vocalTracks, vocalMusic.TrackCode, next);
         var vocalTrack = vocalTracks[trackKey];
         return await CreateVocalPlayItem(schedule, vocalMusic, vocalTrack);
     }
@@ -183,25 +183,30 @@ public class PlaylistMusicTrackBuilder
         // Vocal music requires a language code - should not be null if we're here
 
         var vocalTracks = await GetVocalTracksCachedAsync(vocalMusic);
-        var trackKey = GetPreviousTrackKey(vocalTracks, vocalMusic.TrackNumber);
+        var trackKey = GetPreviousTrackKey(vocalTracks, vocalMusic.TrackCode);
         var vocalTrack = vocalTracks[trackKey];
         return await CreateVocalPlayItem(schedule, vocalMusic, vocalTrack);
     }
 
-    private static int GetNextTrackKey(SortedDictionary<int, MusicTrack> tracks, int currentTrackNumber, bool next)
+    private static int GetNextTrackKey(SortedDictionary<int, MusicTrack> tracks, string? currentTrackCode, bool next)
     {
         if (tracks.Count == 0)
         {
             throw new InvalidOperationException("No tracks available");
         }
 
+        if (!int.TryParse(currentTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var currentTrackNum))
+        {
+            return tracks.Keys.First();
+        }
+
         if (!next)
         {
-            return tracks.ContainsKey(currentTrackNumber) ? currentTrackNumber : tracks.Keys.First();
+            return tracks.ContainsKey(currentTrackNum) ? currentTrackNum : tracks.Keys.First();
         }
 
         var keys = tracks.Keys.ToList();
-        var currentIndex = keys.IndexOf(currentTrackNumber);
+        var currentIndex = keys.IndexOf(currentTrackNum);
         if (currentIndex < 0)
         {
             return keys[0];
@@ -209,15 +214,20 @@ public class PlaylistMusicTrackBuilder
         return keys[(currentIndex + 1) % keys.Count];
     }
 
-    private static int GetPreviousTrackKey(SortedDictionary<int, MusicTrack> tracks, int currentTrackNumber)
+    private static int GetPreviousTrackKey(SortedDictionary<int, MusicTrack> tracks, string? currentTrackCode)
     {
         if (tracks.Count == 0)
         {
             throw new InvalidOperationException("No tracks available");
         }
 
+        if (!int.TryParse(currentTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var currentTrackNum))
+        {
+            return tracks.Keys.Last();
+        }
+
         var keys = tracks.Keys.ToList();
-        var currentIndex = keys.IndexOf(currentTrackNumber);
+        var currentIndex = keys.IndexOf(currentTrackNum);
         if (currentIndex < 0)
         {
             return keys[^1];
@@ -233,9 +243,9 @@ public class PlaylistMusicTrackBuilder
         {
             ScheduleId = schedule.Id,
             PublicationCode = melodyMusic.PublicationCode,
-            TrackNumber = melodyTrack.Number,
+            TrackCode = melodyTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),
             DownloadCode = melodyTrack.DownloadCode, // Store disc code (e.g., "iam-1", "iam-2") for melody music
-            OriginalTrackNumber = melodyTrack.OriginalTrackNumber // Store original track number from API (within the disc)
+            OriginalTrackCode = melodyTrack.OriginalTrackCode // Store original track number from API (within the disc)
             // LanguageCode is empty for melody music
         };
 
@@ -245,7 +255,7 @@ public class PlaylistMusicTrackBuilder
             melodyMusic.PublicationCode,
             null, // Melodies don't have language
             melodyTrack.DownloadCode, // Section/disc code (e.g. "iam-1")
-            melodyTrack.Number);
+            melodyTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture));
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(
@@ -270,9 +280,9 @@ public class PlaylistMusicTrackBuilder
             ScheduleId = schedule.Id,
             PublicationCode = vocalMusic.PublicationCode,
             LanguageCode = vocalMusic.LanguageCode ?? string.Empty,
-            TrackNumber = vocalTrack.Number,
+            TrackCode = vocalTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),
             DownloadCode = vocalTrack.DownloadCode, // Typically same as publication code, but store for consistency
-            OriginalTrackNumber = vocalTrack.OriginalTrackNumber // Typically same as Number for vocal music
+            OriginalTrackCode = vocalTrack.OriginalTrackCode // Typically same as Number for vocal music
         };
 
         // Lookup path from media index only (we only play harvested tracks)
@@ -280,7 +290,7 @@ public class PlaylistMusicTrackBuilder
             vocalMusic.PublicationCode,
             vocalMusic.LanguageCode,
             null, // No section for vocal music
-            vocalTrack.Number);
+            vocalTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture));
         if (string.IsNullOrEmpty(lookUpPath))
         {
             throw new InvalidOperationException(

@@ -193,7 +193,7 @@ public sealed class MusicPublicationSelectionDataProvider(
         songPublication.IsSelected = true;
     }
 
-    public async Task<(int TrackNumber, string TrackName)> GetTrackForSongPublicationAsync(
+    public async Task<(string TrackCode, string TrackName)> GetTrackForSongPublicationAsync(
         PublicationListViewItemModel songPublication,
         string languageCode,
         ScheduleStateItem? currentSchedule,
@@ -205,22 +205,23 @@ public sealed class MusicPublicationSelectionDataProvider(
 
         if (tracks == null || tracks.Count == 0)
         {
-            return (0, string.Empty);
+            return (string.Empty, string.Empty);
         }
 
         if (isSameSongPublication &&
-            currentSchedule?.MusicTrackNumber.HasValue == true &&
-            tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
+            !string.IsNullOrWhiteSpace(currentSchedule?.MusicTrackCode) &&
+            int.TryParse(currentSchedule.MusicTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackNum) &&
+            tracks.TryGetValue(parsedTrackNum, out var currentTrack))
         {
-            return (currentSchedule.MusicTrackNumber.Value, currentTrack.Title);
+            return (currentSchedule.MusicTrackCode, currentTrack.Title);
         }
 
         var tracksList = tracks.Values.ToList();
         var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-        return (randomTrack.Number, randomTrack.Title);
+        return (randomTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture), randomTrack.Title);
     }
 
-    public async Task<(string? PublicationCode, int TrackNumber, string TrackName, string PublicationName)> GetFirstSongPublicationAndTrackForLanguageAsync(
+    public async Task<(string? PublicationCode, string TrackCode, string TrackName, string PublicationName)> GetFirstSongPublicationAndTrackForLanguageAsync(
         LanguageListViewItemModel language,
         ScheduleStateItem? currentSchedule,
         IFetchProgress? progress = null)

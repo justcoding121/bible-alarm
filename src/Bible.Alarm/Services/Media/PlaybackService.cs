@@ -737,7 +737,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                a.LanguageCode == b.LanguageCode &&
                a.PublicationCode == b.PublicationCode &&
                a.SectionCode == b.SectionCode &&
-               a.TrackNumber == b.TrackNumber;
+               a.TrackCode == b.TrackCode;
     }
 
     private async Task<PlayItem> ResolveNextPlayItemForSessionAsync(TrackMetadata currentMetadata)

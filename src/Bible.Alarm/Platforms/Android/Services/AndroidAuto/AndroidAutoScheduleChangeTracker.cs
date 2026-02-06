@@ -152,13 +152,13 @@ public class AndroidAutoScheduleChangeTracker
             var sectionCode = schedule.BiblePublicationSectionCode ?? string.Empty;
             // Create a signature from key properties that affect Android Auto display
             // Include MusicEnabled since it affects the icon shown in Android Auto
-            // Include music track properties (MusicPublicationCode, MusicLanguageCode, MusicTrackNumber)
+            // Include music track properties (MusicPublicationCode, MusicLanguageCode, MusicTrackCode)
             // so that track navigation (next/prev) triggers a refresh
             // Note: MusicType is now inferred from MusicLanguageCode (null/empty = melody, otherwise = vocal)
             // Include BiblePublicationTrackTitle for dramas/videos where track title is shown
             // Include BiblePublicationName and BiblePublicationCategoryName since subtitle rendering depends on them
             // NOTE: IsEnabled is intentionally excluded - enabling/disabling schedules should NOT refresh Android Auto
-            var signature = $"{schedule.Name}|{schedule.BiblePublicationCategoryName}|{schedule.BiblePublicationName}|{sectionCode}|{schedule.BiblePublicationTrackNumber}|{schedule.BiblePublicationLanguageName}|{schedule.BiblePublicationSectionName}|{schedule.BiblePublicationTrackTitle}|{schedule.MusicEnabled}|{schedule.MusicPublicationCode}|{schedule.MusicLanguageCode}|{schedule.MusicTrackNumber}";
+            var signature = $"{schedule.Name}|{schedule.BiblePublicationCategoryName}|{schedule.BiblePublicationName}|{sectionCode}|{schedule.BiblePublicationTrackCode}|{schedule.BiblePublicationLanguageName}|{schedule.BiblePublicationSectionName}|{schedule.BiblePublicationTrackTitle}|{schedule.MusicEnabled}|{schedule.MusicPublicationCode}|{schedule.MusicLanguageCode}|{schedule.MusicTrackCode}";
             signatures[schedule.Id] = signature;
         }
 

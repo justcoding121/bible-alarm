@@ -26,10 +26,10 @@ public sealed class ScheduleSaveService : IScheduleSaveService
     {
         logger.Information("PrepareModelForSave: Starting. musicUpdated={MusicUpdated}, IsNewSchedule={IsNewSchedule}", musicUpdated, isNewSchedule);
 
-        logger.Information("PrepareModelForSave: CurrentSchedule state - MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicTrackNumber={TrackNumber}, MusicId={MusicId}, NumberOfTracksToPlay={NumberOfTracksToPlay}, AlwaysPlayFromStart={AlwaysPlayFromStart}",
+        logger.Information("PrepareModelForSave: CurrentSchedule state - MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicTrackCode={TrackCode}, MusicId={MusicId}, NumberOfTracksToPlay={NumberOfTracksToPlay}, AlwaysPlayFromStart={AlwaysPlayFromStart}",
             currentSchedule?.MusicPublicationCode ?? "null",
             currentSchedule?.MusicLanguageCode ?? "null",
-            currentSchedule?.MusicTrackNumber?.ToString() ?? "null",
+            currentSchedule?.MusicTrackCode?.ToString() ?? "null",
             currentSchedule?.MusicId?.ToString() ?? "null",
             currentSchedule?.NumberOfTracksToPlay ?? 0,
             currentSchedule?.AlwaysPlayFromStart ?? false);
@@ -44,9 +44,9 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         logger.Information("PrepareModelForSave: After mapping - model.NumberOfTracksToPlay={NumberOfTracksToPlay}, model.AlwaysPlayFromStart={AlwaysPlayFromStart}",
             model.NumberOfTracksToPlay, model.AlwaysPlayFromStart);
 
-        logger.Information("PrepareModelForSave: After GetModel() - model.Music={HasMusic}, model.Music?.TrackNumber={TrackNumber}, model.Music?.PublicationCode={PublicationCode}, model.Music?.LanguageCode={LanguageCode}",
+        logger.Information("PrepareModelForSave: After GetModel() - model.Music={HasMusic}, model.Music?.TrackCode={TrackCode}, model.Music?.PublicationCode={PublicationCode}, model.Music?.LanguageCode={LanguageCode}",
             model.Music != null ? "not null" : "null",
-            model.Music?.TrackNumber.ToString() ?? "null",
+            model.Music?.TrackCode ?? "null",
             model.Music?.PublicationCode ?? "null",
             model.Music?.LanguageCode ?? "null");
 
@@ -58,8 +58,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         {
             logger.Information("PrepareModelForSave: musicUpdated=true, updating model.Music from state");
             if (!string.IsNullOrEmpty(currentSchedule.MusicPublicationCode) &&
-                currentSchedule.MusicTrackNumber.HasValue &&
-                currentSchedule.MusicTrackNumber.Value > 0)
+                !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode))
             {
                 if (model.Music == null)
                 {
@@ -70,34 +69,34 @@ public sealed class ScheduleSaveService : IScheduleSaveService
                         PublicationCode = currentSchedule.MusicPublicationCode,
                         LanguageCode = currentSchedule.MusicLanguageCode,
                         SectionCode = currentSchedule.MusicSectionCode,
-                        TrackNumber = currentSchedule.MusicTrackNumber.Value,
+                        TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
                         Repeat = currentSchedule.MusicRepeat ?? false,
                         AlarmScheduleId = model.Id
                     };
-                    logger.Information("PrepareModelForSave: Created model.Music from state. TrackNumber={TrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
-                        model.Music.TrackNumber, model.Music.PublicationCode, model.Music.LanguageCode);
+                    logger.Information("PrepareModelForSave: Created model.Music from state. TrackCode={TrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+                        model.Music.TrackCode, model.Music.PublicationCode, model.Music.LanguageCode);
                 }
                 else
                 {
-                    var oldTrackNumber = model.Music.TrackNumber;
+                    var oldTrackCode = model.Music.TrackCode;
                     model.Music.PublicationCode = currentSchedule.MusicPublicationCode;
                     model.Music.LanguageCode = currentSchedule.MusicLanguageCode;
                     model.Music.SectionCode = currentSchedule.MusicSectionCode;
-                    model.Music.TrackNumber = currentSchedule.MusicTrackNumber.Value;
+                    model.Music.TrackCode = currentSchedule.MusicTrackCode ?? string.Empty;
                     model.Music.Repeat = currentSchedule.MusicRepeat ?? false;
                     if (currentSchedule.MusicId.HasValue)
                     {
                         model.Music.Id = currentSchedule.MusicId.Value;
                     }
-                    logger.Information("PrepareModelForSave: Updated model.Music from state. Old TrackNumber={OldTrackNumber} -> New TrackNumber={NewTrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
-                        oldTrackNumber, model.Music.TrackNumber, model.Music.PublicationCode, model.Music.LanguageCode);
+                    logger.Information("PrepareModelForSave: Updated model.Music from state. Old TrackCode={OldTrackCode} -> New TrackCode={NewTrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+                        oldTrackCode, model.Music.TrackCode, model.Music.PublicationCode, model.Music.LanguageCode);
                 }
             }
             else
             {
-                logger.Warning("PrepareModelForSave: musicUpdated=true but CurrentSchedule music properties are invalid. MusicPublicationCode={PublicationCode}, MusicTrackNumber={TrackNumber}",
+                logger.Warning("PrepareModelForSave: musicUpdated=true but CurrentSchedule music properties are invalid. MusicPublicationCode={PublicationCode}, MusicTrackCode={TrackCode}",
                     currentSchedule?.MusicPublicationCode ?? "null",
-                    currentSchedule?.MusicTrackNumber?.ToString() ?? "null");
+                    currentSchedule?.MusicTrackCode?.ToString() ?? "null");
             }
         }
         else
@@ -128,9 +127,9 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         logger.Information("PrepareModelForSave: Set model.MusicEnabled={MusicEnabled} from CurrentSchedule state",
             model.MusicEnabled);
 
-        logger.Information("PrepareModelForSave: Final model - Model.Id={ModelId}, Model.Name={ModelName}, HasMusic={HasMusic}, MusicEnabled={MusicEnabled}, TrackNumber={TrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+        logger.Information("PrepareModelForSave: Final model - Model.Id={ModelId}, Model.Name={ModelName}, HasMusic={HasMusic}, MusicEnabled={MusicEnabled}, TrackCode={TrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
             model.Id, model.Name, model.Music != null, model.MusicEnabled,
-            model.Music?.TrackNumber.ToString() ?? "null",
+            model.Music?.TrackCode ?? "null",
             model.Music?.PublicationCode ?? "null",
             model.Music?.LanguageCode ?? "null");
 
@@ -178,7 +177,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         {
             // When Music category is selected, disable music and clear music data
             scheduleStateItem.MusicEnabled = false;
-            scheduleStateItem.MusicTrackNumber = null;
+            scheduleStateItem.MusicTrackCode = null;
             scheduleStateItem.MusicPublicationCode = null;
             scheduleStateItem.MusicLanguageCode = null;
             scheduleStateItem.MusicSectionCode = null;
@@ -227,10 +226,9 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         {
             logger.Information("PrepareScheduleStateItem: musicUpdated=true, overriding with CurrentSchedule state");
             if (!string.IsNullOrEmpty(currentSchedule.MusicPublicationCode) &&
-                currentSchedule.MusicTrackNumber.HasValue &&
-                currentSchedule.MusicTrackNumber.Value > 0)
+                !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode))
             {
-                scheduleStateItem.MusicTrackNumber = currentSchedule.MusicTrackNumber;
+                scheduleStateItem.MusicTrackCode = currentSchedule.MusicTrackCode;
                 scheduleStateItem.MusicPublicationCode = currentSchedule.MusicPublicationCode;
                 scheduleStateItem.MusicLanguageCode = currentSchedule.MusicLanguageCode;
                 scheduleStateItem.MusicRepeat = currentSchedule.MusicRepeat;
@@ -240,14 +238,14 @@ public sealed class ScheduleSaveService : IScheduleSaveService
                 scheduleStateItem.MusicPublicationName = currentSchedule.MusicPublicationName;
                 scheduleStateItem.MusicTrackName = currentSchedule.MusicTrackName;
 
-                logger.Information("PrepareScheduleStateItem: Overrode music properties from CurrentSchedule state. TrackNumber={TrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}, Repeat={Repeat}",
-                    scheduleStateItem.MusicTrackNumber, scheduleStateItem.MusicPublicationCode, scheduleStateItem.MusicLanguageCode, scheduleStateItem.MusicRepeat);
+                logger.Information("PrepareScheduleStateItem: Overrode music properties from CurrentSchedule state. TrackCode={TrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}, Repeat={Repeat}",
+                    scheduleStateItem.MusicTrackCode, scheduleStateItem.MusicPublicationCode, scheduleStateItem.MusicLanguageCode, scheduleStateItem.MusicRepeat);
             }
             else
             {
-                logger.Warning("PrepareScheduleStateItem: musicUpdated=true but CurrentSchedule music properties are invalid. MusicPublicationCode={PublicationCode}, MusicTrackNumber={TrackNumber}",
+                logger.Warning("PrepareScheduleStateItem: musicUpdated=true but CurrentSchedule music properties are invalid. MusicPublicationCode={PublicationCode}, MusicTrackCode={TrackCode}",
                     currentSchedule?.MusicPublicationCode ?? "null",
-                    currentSchedule?.MusicTrackNumber?.ToString() ?? "null");
+                    currentSchedule?.MusicTrackCode?.ToString() ?? "null");
             }
         }
         // Populate default music properties when music is disabled
@@ -255,15 +253,13 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         else if (!musicUpdated && (!model.MusicEnabled || model.Music == null))
         {
             var needsDefaultMusic = string.IsNullOrEmpty(scheduleStateItem.MusicPublicationCode) ||
-                                   !scheduleStateItem.MusicTrackNumber.HasValue ||
-                                   scheduleStateItem.MusicTrackNumber.Value <= 0;
+                                   string.IsNullOrWhiteSpace(scheduleStateItem.MusicTrackCode);
 
             if (needsDefaultMusic &&
                 !string.IsNullOrEmpty(currentSchedule.MusicPublicationCode) &&
-                currentSchedule.MusicTrackNumber.HasValue &&
-                currentSchedule.MusicTrackNumber.Value > 0)
+                !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode))
             {
-                scheduleStateItem.MusicTrackNumber = currentSchedule.MusicTrackNumber;
+                scheduleStateItem.MusicTrackCode = currentSchedule.MusicTrackCode;
                 scheduleStateItem.MusicPublicationCode = currentSchedule.MusicPublicationCode;
                 scheduleStateItem.MusicLanguageCode = currentSchedule.MusicLanguageCode;
                 scheduleStateItem.MusicRepeat = currentSchedule.MusicRepeat;
@@ -275,7 +271,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         // For existing schedules where music is enabled but not updated, preserve existing music properties
         else if (model.Id > 0 && !musicUpdated && model.Music == null)
         {
-            scheduleStateItem.MusicTrackNumber = currentSchedule.MusicTrackNumber;
+            scheduleStateItem.MusicTrackCode = currentSchedule.MusicTrackCode;
             scheduleStateItem.MusicPublicationCode = currentSchedule.MusicPublicationCode;
             scheduleStateItem.MusicLanguageCode = currentSchedule.MusicLanguageCode;
             scheduleStateItem.MusicRepeat = currentSchedule.MusicRepeat;
@@ -285,14 +281,14 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             scheduleStateItem.MusicPublicationName = currentSchedule.MusicPublicationName;
             scheduleStateItem.MusicTrackName = currentSchedule.MusicTrackName;
 
-            logger.Debug("PrepareScheduleStateItem: Preserved music properties from current schedule state. PublicationCode={PublicationCode}, TrackNumber={TrackNumber}",
-                scheduleStateItem.MusicPublicationCode, scheduleStateItem.MusicTrackNumber);
+            logger.Debug("PrepareScheduleStateItem: Preserved music properties from current schedule state. PublicationCode={PublicationCode}, TrackCode={TrackCode}",
+                scheduleStateItem.MusicPublicationCode, scheduleStateItem.MusicTrackCode);
         }
 
-        logger.Information("PrepareScheduleStateItem: Final scheduleStateItem before dispatch - MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicTrackNumber={TrackNumber}, MusicId={MusicId}",
+        logger.Information("PrepareScheduleStateItem: Final scheduleStateItem before dispatch - MusicPublicationCode={PublicationCode}, MusicLanguageCode={LanguageCode}, MusicTrackCode={TrackCode}, MusicId={MusicId}",
             scheduleStateItem.MusicPublicationCode ?? "null",
             scheduleStateItem.MusicLanguageCode ?? "null",
-            scheduleStateItem.MusicTrackNumber?.ToString() ?? "null",
+            scheduleStateItem.MusicTrackCode?.ToString() ?? "null",
             scheduleStateItem.MusicId?.ToString() ?? "null");
 
         return scheduleStateItem;

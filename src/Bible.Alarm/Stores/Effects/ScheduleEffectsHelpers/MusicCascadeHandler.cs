@@ -59,7 +59,7 @@ public sealed class MusicCascadeHandler
             var languageCode = currentSchedule.MusicLanguageCode;
             var publicationCode = currentSchedule.MusicPublicationCode;
             var sectionCode = currentSchedule.MusicSectionCode;
-            var trackNumber = currentSchedule.MusicTrackNumber;
+            var trackCode = currentSchedule.MusicTrackCode;
 
             var publicationHasSections =
                 !string.IsNullOrWhiteSpace(publicationCode) &&
@@ -76,10 +76,10 @@ public sealed class MusicCascadeHandler
             //
             // IMPORTANT:
             // Many music publications (vocal/instrumental) are FLAT (no sections). For those, SectionCode is expected to be null,
-            // and we must NOT treat "missing section" as an incomplete selection once a TrackNumber is already chosen.
+            // and we must NOT treat "missing section" as an incomplete selection once a TrackCode is already chosen.
             if (!string.IsNullOrWhiteSpace(publicationCode))
             {
-                var trackMissing = !trackNumber.HasValue || trackNumber.Value <= 0;
+                var trackMissing = string.IsNullOrWhiteSpace(trackCode);
 
                 // Sectioned publications (e.g. "iam") need a section first.
                 if (publicationHasSections)
@@ -140,16 +140,16 @@ public sealed class MusicCascadeHandler
 
         var publicationWithoutLanguage = publication.LanguageId == null;
 
-        // For flat publications, GetFirstSectionAndTrackAsync will return (null, "", firstTrackNumber, firstTrackTitle)
+        // For flat publications, GetFirstSectionAndTrackAsync will return (null, "", firstTrackCode, firstTrackTitle)
         // and we intentionally keep MusicSectionCode null.
-        var (_, _, trackNum, trackTitle) =
+        var (_, _, trackCode, trackTitle) =
             await MusicCascadeSelectionHelper.GetFirstSectionAndTrackAsync(
                 mediaService,
                 languageCode,
                 publicationCode,
                 publicationWithoutLanguage);
 
-        if (trackNum <= 0)
+        if (string.IsNullOrWhiteSpace(trackCode))
         {
             logger.Warning("MusicCascadeHandler: No valid track found for publication={PublicationCode}", publicationCode);
             return;
@@ -165,7 +165,7 @@ public sealed class MusicCascadeHandler
             currentSchedule.MusicPublicationName,
             sectionCode: null,
             sectionName: string.Empty,
-            trackNumber: trackNum,
+            trackCode: trackCode,
             trackTitle: trackTitle,
             publicationModalItemCount,
             sectionModalItemCount,
@@ -293,14 +293,14 @@ public sealed class MusicCascadeHandler
         }
 
         // Get section and track
-        var (sectionCode, sectionName, trackNum, trackTitle) =
+        var (sectionCode, sectionName, trackCode, trackTitle) =
             await MusicCascadeSelectionHelper.GetFirstSectionAndTrackAsync(
                 mediaService,
                 languageCode,
                 publicationCode,
                 publicationWithoutLanguage);
 
-        if (trackNum <= 0)
+        if (string.IsNullOrWhiteSpace(trackCode))
         {
             logger.Warning("MusicCascadeHandler: No valid track found for publication={PublicationCode}",
                 publicationCode);
@@ -324,7 +324,7 @@ public sealed class MusicCascadeHandler
             updatedSchedule.MusicPublicationName = publicationName;
             updatedSchedule.MusicSectionCode = sectionCode;
             updatedSchedule.MusicSectionName = !string.IsNullOrWhiteSpace(sectionName) ? sectionName : null;
-            updatedSchedule.MusicTrackNumber = trackNum;
+            updatedSchedule.MusicTrackCode = trackCode;
             updatedSchedule.MusicTrackName = !string.IsNullOrWhiteSpace(trackTitle) ? trackTitle : null;
             updatedSchedule.MusicPublicationModalItemCount = publicationModalItemCount;
             updatedSchedule.MusicSectionModalItemCount = sectionModalItemCount;
@@ -333,7 +333,7 @@ public sealed class MusicCascadeHandler
             return;
         }
 
-        UpdateSchedule(currentSchedule, publicationCode, publicationName, sectionCode, sectionName, trackNum, trackTitle, publicationModalItemCount, sectionModalItemCount, dispatcher);
+        UpdateSchedule(currentSchedule, publicationCode, publicationName, sectionCode, sectionName, trackCode, trackTitle, publicationModalItemCount, sectionModalItemCount, dispatcher);
     }
 
     private async Task HandlePublicationCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
@@ -364,14 +364,14 @@ public sealed class MusicCascadeHandler
 
         bool publicationWithoutLanguage = publication.LanguageId == null;
 
-        var (sectionCode, sectionName, trackNum, trackTitle) =
+        var (sectionCode, sectionName, trackCode, trackTitle) =
             await MusicCascadeSelectionHelper.GetFirstSectionAndTrackAsync(
                 mediaService,
                 languageCode,
                 publicationCode,
                 publicationWithoutLanguage);
 
-        if (trackNum <= 0)
+        if (string.IsNullOrWhiteSpace(trackCode))
         {
             logger.Warning("MusicCascadeHandler: No valid track found for publication={PublicationCode}",
                 publicationCode);
@@ -382,7 +382,7 @@ public sealed class MusicCascadeHandler
         var publicationModalItemCount = await GetMusicPublicationModalItemCountAsync(db, currentSchedule);
         var sectionModalItemCount = await GetMusicSectionModalItemCountAsync(db, currentSchedule);
 
-        UpdateSchedule(currentSchedule, publicationCode, publication.Name, sectionCode, sectionName, trackNum, trackTitle, publicationModalItemCount, sectionModalItemCount, dispatcher);
+        UpdateSchedule(currentSchedule, publicationCode, publication.Name, sectionCode, sectionName, trackCode, trackTitle, publicationModalItemCount, sectionModalItemCount, dispatcher);
     }
 
     private async Task HandleSectionCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
@@ -432,21 +432,22 @@ public sealed class MusicCascadeHandler
 
         var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
         var sectionName = currentSchedule.MusicSectionName ?? string.Empty;
+        var trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
 
         // Align with Bible cascade: set modal counts (category = "Music").
         var publicationModalItemCount = await GetMusicPublicationModalItemCountAsync(db, currentSchedule);
         var sectionModalItemCount = await GetMusicSectionModalItemCountAsync(db, currentSchedule);
 
-        UpdateSchedule(currentSchedule, publicationCode, currentSchedule.MusicPublicationName, sectionCode, sectionName, firstTrack.Number, firstTrack.Title ?? string.Empty, publicationModalItemCount, sectionModalItemCount, dispatcher);
+        UpdateSchedule(currentSchedule, publicationCode, currentSchedule.MusicPublicationName, sectionCode, sectionName, trackCode, firstTrack.Title ?? string.Empty, publicationModalItemCount, sectionModalItemCount, dispatcher);
     }
 
     private void UpdateSchedule(ScheduleStateItem currentSchedule, string publicationCode, string? publicationName,
-        string? sectionCode, string sectionName, int trackNumber, string trackTitle,
+        string? sectionCode, string sectionName, string trackCode, string trackTitle,
         int? publicationModalItemCount, int? sectionModalItemCount, IDispatcher dispatcher)
     {
         // Check if values have actually changed to prevent cascade cycles (align with Bible cascade).
         var currentSectionCode = currentSchedule.MusicSectionCode;
-        var currentTrackNum = currentSchedule.MusicTrackNumber;
+        var currentTrackCode = currentSchedule.MusicTrackCode;
         var currentTrackTitle = currentSchedule.MusicTrackName;
         var currentPublicationCode = currentSchedule.MusicPublicationCode;
         var currentPublicationModalItemCount = currentSchedule.MusicPublicationModalItemCount;
@@ -454,20 +455,20 @@ public sealed class MusicCascadeHandler
 
         var publicationChanged = !string.Equals(currentPublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase);
         var sectionChanged = !string.Equals(currentSectionCode, sectionCode, StringComparison.OrdinalIgnoreCase);
-        var trackChanged = currentTrackNum != trackNumber;
+        var trackChanged = currentTrackCode != trackCode;
         var publicationModalCountChanged = currentPublicationModalItemCount != publicationModalItemCount;
         var sectionModalCountChanged = currentSectionModalItemCount != sectionModalItemCount;
 
         // If all values are already set correctly, don't dispatch to prevent infinite loop
         if (currentSchedule.MusicPublicationCode == publicationCode &&
             string.Equals(currentSectionCode, sectionCode, StringComparison.OrdinalIgnoreCase) &&
-            currentTrackNum == trackNumber &&
+            currentTrackCode == trackCode &&
             currentTrackTitle == trackTitle &&
             !publicationModalCountChanged &&
             !sectionModalCountChanged)
         {
-            logger.Debug("MusicCascadeHandler: Values unchanged, skipping dispatch to prevent cycle. publication={PublicationCode}, section={SectionCode}, track={TrackNumber}",
-                publicationCode, sectionCode ?? "null", trackNumber);
+            logger.Debug("MusicCascadeHandler: Values unchanged, skipping dispatch to prevent cycle. publication={PublicationCode}, section={SectionCode}, track={TrackCode}",
+                publicationCode, sectionCode ?? "null", trackCode);
             return;
         }
 
@@ -494,7 +495,7 @@ public sealed class MusicCascadeHandler
         {
             updatedSchedule.MusicSectionName = sectionName;
         }
-        updatedSchedule.MusicTrackNumber = trackNumber;
+        updatedSchedule.MusicTrackCode = trackCode;
         if (publicationChanged || sectionChanged || trackChanged)
         {
             updatedSchedule.MusicTrackName = !string.IsNullOrWhiteSpace(trackTitle)

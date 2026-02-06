@@ -50,7 +50,7 @@ public sealed class ScheduleStateItem : IComparable
     /// </summary>
     public string? BiblePublicationSectionCode { get; set; }
 
-    public int? BiblePublicationTrackNumber { get; set; }
+    public string? BiblePublicationTrackCode { get; set; }
     public TimeSpan? BiblePublicationFinishedDuration { get; set; }
 
     // Music properties (flattened from AlarmMusic)
@@ -58,7 +58,7 @@ public sealed class ScheduleStateItem : IComparable
     public string? MusicPublicationCode { get; set; }
     public string? MusicLanguageCode { get; set; }
     public string? MusicSectionCode { get; set; } // Section code for music publications with sections
-    public int? MusicTrackNumber { get; set; }
+    public string? MusicTrackCode { get; set; }
     public bool? MusicRepeat { get; set; }
 
     /// <summary>

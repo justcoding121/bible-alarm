@@ -7,8 +7,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Helpers;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
@@ -336,7 +336,7 @@ public sealed class AlarmSchedule : IComparable
             },
             BiblePublicationSchedule = new BiblePublicationSchedule
             {
-                TrackNumber = 1,
+                TrackCode = "1",
                 LanguageCode = bibleLanguageCode,
                 PublicationCode = biblePublicationCode,
                 SectionCode = "1" // Will be updated below with a random section
@@ -374,7 +374,7 @@ public sealed class AlarmSchedule : IComparable
         // Get the first track of the selected section (book)
         // We already verified the section has tracks above
         var firstTrack = section.Tracks!.OrderBy(t => t.Number).First();
-        sample.BiblePublicationSchedule.TrackNumber = firstTrack.Number;
+        sample.BiblePublicationSchedule.TrackCode = firstTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         if (sample.Music == null)
         {
@@ -402,7 +402,7 @@ public sealed class AlarmSchedule : IComparable
             }
             
             var track = music.Tracks[Random.Shared.Next(music.Tracks.Count)];
-            sample.Music.TrackNumber = track.Number;
+            sample.Music.TrackCode = GetTrackCodeFromTrack(track);
         }
         else
         {
@@ -419,7 +419,7 @@ public sealed class AlarmSchedule : IComparable
             
             // Select a random track from the selected section
             var randomTrack = randomSection.Tracks[Random.Shared.Next(randomSection.Tracks.Count)];
-            sample.Music.TrackNumber = randomTrack.Number;
+            sample.Music.TrackCode = GetTrackCodeFromTrack(randomTrack);
         }
 
         var totalElapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
@@ -427,4 +427,6 @@ public sealed class AlarmSchedule : IComparable
 
         return sample;
     }
+
+    private static string GetTrackCodeFromTrack(BiblePublicationTrack track) => TrackCodeHelper.GetFromTrack(track);
 }

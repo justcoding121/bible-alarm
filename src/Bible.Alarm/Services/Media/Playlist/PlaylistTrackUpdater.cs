@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -12,11 +13,11 @@ namespace Bible.Alarm.Services.Media.Playlist;
 /// </summary>
 public static class PlaylistTrackUpdater
 {
-    public static void UpdateMusicTrack(AlarmSchedule schedule, int? nextTrackNumber)
+    public static void UpdateMusicTrack(AlarmSchedule schedule, string? nextTrackCode)
     {
-        if (schedule.Music != null && !schedule.Music.Repeat && nextTrackNumber.HasValue)
+        if (schedule.Music != null && !schedule.Music.Repeat && !string.IsNullOrWhiteSpace(nextTrackCode))
         {
-            schedule.Music.TrackNumber = nextTrackNumber.Value;
+            schedule.Music.TrackCode = nextTrackCode;
         }
     }
 
@@ -29,17 +30,17 @@ public static class PlaylistTrackUpdater
         biblePublicationSchedule.SectionCode = string.IsNullOrWhiteSpace(trackMetadata.SectionCode)
             ? null
             : trackMetadata.SectionCode;
-        biblePublicationSchedule.TrackNumber = trackMetadata.TrackNumber;
+        biblePublicationSchedule.TrackCode = trackMetadata.TrackCode;
         biblePublicationSchedule.LanguageCode = trackMetadata.LanguageCode;
         biblePublicationSchedule.PublicationCode = trackMetadata.PublicationCode;
         biblePublicationSchedule.FinishedDuration = trackMetadata.FinishedDuration;
     }
 
-    public static void UpdateMusicTrackForFinished(AlarmSchedule schedule, int? nextTrackNumber)
+    public static void UpdateMusicTrackForFinished(AlarmSchedule schedule, string? nextTrackCode)
     {
-        if (schedule.Music != null && !schedule.Music.Repeat && nextTrackNumber.HasValue)
+        if (schedule.Music != null && !schedule.Music.Repeat && !string.IsNullOrWhiteSpace(nextTrackCode))
         {
-            schedule.Music.TrackNumber = nextTrackNumber.Value;
+            schedule.Music.TrackCode = nextTrackCode;
         }
     }
 
@@ -59,7 +60,7 @@ public static class PlaylistTrackUpdater
         // For non-sectioned publications, Key (section) will be null
         // Use SectionCode from the section, or null if section is null
         biblePublicationSchedule.SectionCode = nextTrack.Value.Key?.SectionCode;
-        biblePublicationSchedule.TrackNumber = nextTrack.Value.Value.Number;
+        biblePublicationSchedule.TrackCode = TrackCodeHelper.GetFromTrack(nextTrack.Value.Value);
         biblePublicationSchedule.LanguageCode = trackMetadata.LanguageCode;
         biblePublicationSchedule.PublicationCode = trackMetadata.PublicationCode;
         biblePublicationSchedule.FinishedDuration = TimeSpan.Zero;
@@ -68,11 +69,11 @@ public static class PlaylistTrackUpdater
     public static void UpdateScheduleForPlayedTrackInternal(
         AlarmSchedule schedule,
         TrackMetadata trackMetadata,
-        int? nextTrackNumber)
+        string? nextTrackCode)
     {
         if (trackMetadata.PlayType == PlayType.Music)
         {
-            UpdateMusicTrack(schedule, nextTrackNumber);
+            UpdateMusicTrack(schedule, nextTrackCode);
         }
         else
         {

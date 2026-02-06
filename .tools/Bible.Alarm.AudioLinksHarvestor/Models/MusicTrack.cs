@@ -27,7 +27,7 @@ public class MusicTrack : IComparable
     /// not the sequential track number across all discs.
     /// For regular publications, this will be the same as Number.
     /// </summary>
-    public int? OriginalTrackNumber { get; set; }
+    public int? OriginalTrackCode { get; set; }
 
     public int CompareTo(object? obj) => Number.CompareTo((obj as MusicTrack)?.Number ?? 0);
 }

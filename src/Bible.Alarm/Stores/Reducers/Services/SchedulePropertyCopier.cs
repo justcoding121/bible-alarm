@@ -38,7 +38,7 @@ public static class SchedulePropertyCopier
         target.BiblePublicationLanguageCode = source.BiblePublicationLanguageCode;
         target.BiblePublicationCode = source.BiblePublicationCode;
         target.BiblePublicationSectionCode = source.BiblePublicationSectionCode;
-        target.BiblePublicationTrackNumber = source.BiblePublicationTrackNumber;
+        target.BiblePublicationTrackCode = source.BiblePublicationTrackCode;
         target.BiblePublicationFinishedDuration = source.BiblePublicationFinishedDuration;
 
         // Music properties
@@ -46,7 +46,7 @@ public static class SchedulePropertyCopier
         target.MusicSectionCode = source.MusicSectionCode;
         target.MusicPublicationCode = source.MusicPublicationCode;
         target.MusicLanguageCode = source.MusicLanguageCode;
-        target.MusicTrackNumber = source.MusicTrackNumber;
+        target.MusicTrackCode = source.MusicTrackCode;
         target.MusicRepeat = source.MusicRepeat;
 
         // Display name properties

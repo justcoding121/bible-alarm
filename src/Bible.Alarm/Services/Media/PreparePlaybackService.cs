@@ -34,9 +34,15 @@ public sealed class PreparePlaybackService(
 
         if (playItems.Count == 0)
         {
-            // Nothing to play.
+            logger.Debug("[Playback] No play items for schedule {ScheduleId}", scheduleId);
             SendProgressMessage(1, 1, 0, 1, 1, 1, 1);
             return new List<AudioPlayerTrack>();
+        }
+
+        if (playItems[0].Metadata is { } firstMeta)
+        {
+            logger.Information("[Playback] Preparing first track for schedule {ScheduleId}: PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, LookUpPath={LookUpPath}",
+                scheduleId, firstMeta.PublicationCode, firstMeta.SectionCode ?? "(null)", firstMeta.TrackCode, firstMeta.LookUpPath);
         }
 
         // Build playlist immediately; tracks will get their Uri filled as they download.

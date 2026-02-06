@@ -31,7 +31,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         this.languageContentService = languageContentService;
     }
 
-    internal async Task<(string? SectionCode, int TrackNumber, string SectionName, string TrackTitle)>
+    internal async Task<(string? SectionCode, string TrackCode, string SectionName, string TrackTitle)>
         GetFirstSectionAndTrackFromSectionsAsync(
             string? languageCode,
             string publicationCode,
@@ -174,18 +174,19 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             Log.Warning("GetFirstSectionAndTrackFromSectionsAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}, sectionCode={SectionCode}",
                 languageCode ?? "(null)", publicationCode, firstSection.SectionCode);
             progress?.UpdateProgress(1.0);
-            return (null, 0, string.Empty, string.Empty);
+            return (null, string.Empty, string.Empty, string.Empty);
         }
 
         var firstTrack = tracks.Values.First();
-        Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First track number={TrackNumber}, title={TrackTitle}",
-            firstTrack.Number, firstTrack.Title);
+        var trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
+        Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First track trackCode={TrackCode}, title={TrackTitle}",
+            trackCode, firstTrack.Title);
 
         progress?.UpdateProgress(1.0);
-        return (firstSection.SectionCode, firstTrack.Number, firstSection.Name, firstTrack.Title);
+        return (firstSection.SectionCode, trackCode, firstSection.Name, firstTrack.Title ?? string.Empty);
     }
 
-    internal async Task<(string? SectionCode, int TrackNumber, string SectionName, string TrackTitle)>
+    internal async Task<(string? SectionCode, string TrackCode, string SectionName, string TrackTitle)>
         GetFirstTrackForNonSectionedAsync(string? languageCode, string publicationCode, IFetchProgress? progress = null)
     {
         Log.Debug(
@@ -197,7 +198,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         if (biblePublicationService == null)
         {
             Log.Warning("GetFirstTrackForNonSectionedAsync: biblePublicationService is null, returning empty result");
-            return (null, 0, string.Empty, string.Empty);
+            return (null, string.Empty, string.Empty, string.Empty);
         }
 
         BiblePublication? publication;
@@ -257,15 +258,16 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         {
             Log.Warning("GetFirstTrackForNonSectionedAsync: No tracks found for language={LanguageCode}, publication={PublicationCode}",
                 languageCode ?? "(null)", publicationCode);
-            return (null, 0, string.Empty, string.Empty);
+            return (null, string.Empty, string.Empty, string.Empty);
         }
 
         var firstTrack = publication.Tracks.OrderBy(t => t.Number).First();
-        Log.Information("GetFirstTrackForNonSectionedAsync: Found first track Number={TrackNumber}, Title={TrackTitle}",
-            firstTrack.Number, firstTrack.Title);
+        var trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
+        Log.Information("GetFirstTrackForNonSectionedAsync: Found first track trackCode={TrackCode}, Title={TrackTitle}",
+            trackCode, firstTrack.Title);
 
         progress?.UpdateProgress(1.0);
-        return (null, firstTrack.Number, string.Empty, firstTrack.Title);
+        return (null, trackCode, string.Empty, firstTrack.Title ?? string.Empty);
     }
 
     internal async Task<bool> CheckIfPublicationWithFirstSectionHarvestedAsync(string publicationCode, string languageCode)

@@ -99,23 +99,23 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
             return string.Empty;
         }
 
-        // Prefer track number (data-driven), fall back to parsing any numeric suffix from track title.
-        int? trackNumber = scheduleStateItem.BiblePublicationTrackNumber is > 0
-            ? scheduleStateItem.BiblePublicationTrackNumber
+        // Prefer track code (string), fall back to parsing any numeric suffix from track title.
+        string? trackCode = !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackCode)
+            ? scheduleStateItem.BiblePublicationTrackCode
             : null;
 
-        if (trackNumber == null && !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
+        if (trackCode == null && !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackTitle))
         {
             // e.g. "Chapter 9" -> 9
             var digits = new string(scheduleStateItem.BiblePublicationTrackTitle.Where(char.IsDigit).ToArray());
-            if (int.TryParse(digits, out var parsed) && parsed > 0)
+            if (!string.IsNullOrEmpty(digits))
             {
-                trackNumber = parsed;
+                trackCode = digits;
             }
         }
 
-        return trackNumber.HasValue
-            ? DisplayTextHelper.NormalizeSingleLine($"{sectionName} {trackNumber.Value}")
+        return !string.IsNullOrWhiteSpace(trackCode)
+            ? DisplayTextHelper.NormalizeSingleLine($"{sectionName} {trackCode}")
             : sectionName;
     }
 
@@ -138,15 +138,14 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
             return DisplayTextHelper.NormalizeSingleLine(scheduleStateItem.BiblePublicationTrackTitle);
         }
 
-        // Fallback: If track title is not available, show track number for sectioned publications
+        // Fallback: If track title is not available, show track code for sectioned publications
         // This can happen if the track title hasn't been populated yet
-        if (scheduleStateItem.BiblePublicationTrackNumber.HasValue &&
-            scheduleStateItem.BiblePublicationTrackNumber.Value > 0)
+        if (!string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackCode))
         {
             var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleStateItem.BiblePublicationCode ?? string.Empty);
             if (hasSectionStructure)
             {
-                // For Music publications (e.g., "iam"), show "<PublicationName> <TrackNumber>" instead of bare "17".
+                // For Music publications (e.g., "iam"), show "<PublicationName> <TrackCode>" instead of bare "17".
                 var categoryName =
                     scheduleStateItem.BiblePublicationCategoryName
                     ?? JwSourceHelper.GetCategoryName(scheduleStateItem.BiblePublicationCode ?? string.Empty)
@@ -155,10 +154,10 @@ internal sealed class ScheduleListItemBibleDisplayNameProvider
                 if (string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase) &&
                     !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationName))
                 {
-                    return DisplayTextHelper.NormalizeSingleLine($"{scheduleStateItem.BiblePublicationName} {scheduleStateItem.BiblePublicationTrackNumber.Value}");
+                    return DisplayTextHelper.NormalizeSingleLine($"{scheduleStateItem.BiblePublicationName} {scheduleStateItem.BiblePublicationTrackCode}");
                 }
 
-                return DisplayTextHelper.NormalizeSingleLine(scheduleStateItem.BiblePublicationTrackNumber.Value.ToString());
+                return DisplayTextHelper.NormalizeSingleLine(scheduleStateItem.BiblePublicationTrackCode);
             }
         }
 

@@ -36,6 +36,6 @@ public interface IVocalMusicService : IDisposable
     /// <summary>
     /// Updates the URL for a VocalMusic track's audio source.
     /// </summary>
-    Task UpdateTrackUrlAsync(string languageCode, string publicationCode, int trackNumber, string url, CancellationToken cancellationToken = default);
+    Task UpdateTrackUrlAsync(string languageCode, string publicationCode, string trackCode, string url, CancellationToken cancellationToken = default);
 }
 

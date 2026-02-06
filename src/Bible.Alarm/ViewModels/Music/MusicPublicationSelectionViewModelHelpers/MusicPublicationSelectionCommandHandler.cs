@@ -67,7 +67,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 _ => { });
             
             // Get track based on music type
-            int trackNumber;
+            string trackCode;
             string trackName;
             string? sectionCode = null;
             string? sectionName = null;
@@ -119,17 +119,18 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     if (string.IsNullOrEmpty(currentSchedule?.MusicLanguageCode) &&
                         currentSchedule?.MusicPublicationCode == songPublication.Code &&
                         string.Equals(currentSchedule.MusicSectionCode, selectedSectionCode, StringComparison.OrdinalIgnoreCase) &&
-                        currentSchedule.MusicTrackNumber.HasValue &&
-                        sectionTracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var existingTrack))
+                        !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
+                        int.TryParse(currentSchedule.MusicTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackNum) &&
+                        sectionTracks.TryGetValue(parsedTrackNum, out var existingTrack))
                     {
-                        trackNumber = existingTrack.Number;
+                        trackCode = existingTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         trackName = existingTrack.Title ?? string.Empty;
                     }
                     else
                     {
                         var tracksList = sectionTracks.Values.ToList();
                         var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                        trackNumber = randomTrack.Number;
+                        trackCode = randomTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         trackName = randomTrack.Title ?? string.Empty;
                     }
                 }
@@ -147,17 +148,18 @@ public sealed class MusicPublicationSelectionCommandHandler(
                     // Check if current schedule is for melody music (no language code) and same publication
                     if (string.IsNullOrEmpty(currentSchedule?.MusicLanguageCode) &&
                         currentSchedule?.MusicPublicationCode == songPublication.Code &&
-                        currentSchedule.MusicTrackNumber.HasValue &&
-                        tracks.TryGetValue(currentSchedule.MusicTrackNumber.Value, out var currentTrack))
+                        !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
+                        int.TryParse(currentSchedule.MusicTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedFlatTrackNum) &&
+                        tracks.TryGetValue(parsedFlatTrackNum, out var currentTrack))
                     {
-                        trackNumber = currentSchedule.MusicTrackNumber.Value;
+                        trackCode = currentSchedule.MusicTrackCode;
                         trackName = currentTrack.Title;
                     }
                     else
                     {
                         var tracksList = tracks.Values.ToList();
                         var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                        trackNumber = randomTrack.Number;
+                        trackCode = randomTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         trackName = randomTrack.Title;
                     }
                 }
@@ -167,12 +169,12 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 // For vocal music, use existing logic
                 progressTracker.UpdateProgress(0.3);
                 var result = await dataProvider.GetTrackForSongPublicationAsync(songPublication, languageCode, currentSchedule, progressTracker);
-                if (result.TrackNumber == 0)
+                if (string.IsNullOrWhiteSpace(result.TrackCode))
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
                     return;
                 }
-                trackNumber = result.TrackNumber;
+                trackCode = result.TrackCode;
                 trackName = result.TrackName;
             }
 
@@ -197,7 +199,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             var trackSelectedItem = CreateMusicStateItemForSongPublication(
                 songPublication,
                 isMelodyMusic ? null : languageCode,
-                trackNumber,
+                trackCode,
                 trackName,
                 isMelodyMusic ? null : currentLanguage,
                 currentSchedule,
@@ -218,8 +220,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 var currentState = state.Value.CurrentSchedule;
                 if (currentState != null && 
                     !string.IsNullOrEmpty(currentState.MusicPublicationCode) &&
-                    currentState.MusicTrackNumber.HasValue &&
-                    currentState.MusicTrackNumber.Value > 0)
+                    !string.IsNullOrWhiteSpace(currentState.MusicTrackCode))
                 {
                     // Cascade complete
                     break;
@@ -288,7 +289,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 text => { }, // No text updates for list item progress
                 isVisible => { }); // No visibility updates for list item progress
             
-            (string? publicationCode, int trackNumber, string trackName, string publicationName) result;
+            (string? publicationCode, string trackCode, string trackName, string publicationName) result;
             try
             {
                 result = await dataProvider.GetFirstSongPublicationAndTrackForLanguageAsync(language, currentSchedule, progressTracker);
@@ -303,8 +304,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 await navigationService.PopModalAsync();
                 return;
             }
-            var (publicationCode, trackNumber, trackName, publicationName) = result;
-            if (publicationCode == null || trackNumber <= 0)
+            var (publicationCode, trackCode, trackName, publicationName) = result;
+            if (publicationCode == null || string.IsNullOrWhiteSpace(trackCode))
             {
                 await MainThread.InvokeOnMainThreadAsync(() => language.DownloadProgress = 0.0);
                 return;
@@ -314,7 +315,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             // If fetching/harvesting fails, we must keep the previous language selection (and schedule state) unchanged.
             updateSelectedLanguage(language);
 
-            var trackSelectedItem = CreateMusicStateItemForLanguage(language, publicationCode, trackNumber, trackName, publicationName, currentSchedule);
+            var trackSelectedItem = CreateMusicStateItemForLanguage(language, publicationCode ?? string.Empty, trackCode, trackName, publicationName, currentSchedule);
             dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
             
             // Wait for cascade to complete by checking state
@@ -328,8 +329,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 var currentState = state.Value.CurrentSchedule;
                 if (currentState != null && 
                     !string.IsNullOrEmpty(currentState.MusicPublicationCode) &&
-                    currentState.MusicTrackNumber.HasValue &&
-                    currentState.MusicTrackNumber.Value > 0)
+                    !string.IsNullOrWhiteSpace(currentState.MusicTrackCode))
                 {
                     // Cascade complete
                     break;
@@ -356,7 +356,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
     private MusicStateItem CreateMusicStateItemForSongPublication(
         PublicationListViewItemModel songPublication,
         string? languageCode,
-        int trackNumber,
+        string trackCode,
         string trackName,
         LanguageListViewItemModel? currentLanguage,
         ScheduleStateItem? currentSchedule,
@@ -374,7 +374,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             LanguageCode = languageCode,
             PublicationCode = songPublication.Code,
             SectionCode = sectionCode, // Explicitly set SectionCode (null for non-sectioned publications)
-            TrackNumber = trackNumber,
+            TrackCode = trackCode,
             LanguageName = languageName,
             LanguageDirection = languageDirection,
             PublicationName = songPublication.Name,
@@ -386,7 +386,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
     private MusicStateItem CreateMusicStateItemForLanguage(
         LanguageListViewItemModel language,
         string publicationCode,
-        int trackNumber,
+        string trackCode,
         string trackName,
         string publicationName,
         ScheduleStateItem? currentSchedule)
@@ -397,7 +397,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             LanguageCode = language.Code, // Vocal music always has a language code
             PublicationCode = publicationCode,
             SectionCode = null, // Clear section code when language changes (section belongs to old publication)
-            TrackNumber = trackNumber,
+            TrackCode = trackCode,
             LanguageName = language.Name,
             LanguageDirection = language.Direction,
             PublicationName = publicationName,

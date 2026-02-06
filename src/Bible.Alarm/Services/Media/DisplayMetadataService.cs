@@ -98,14 +98,16 @@ public sealed class DisplayMetadataService(
             if (publication != null)
             {
                 // Title: Track title from database
-                var track = publication.Tracks?.FirstOrDefault(t => t.Number == trackMetadata.TrackNumber);
+                var track = publication.Tracks?.FirstOrDefault(t => !string.IsNullOrWhiteSpace(trackMetadata.TrackCode) &&
+                    int.TryParse(trackMetadata.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
+                    t.Number == trackNum);
                 if (track != null && !string.IsNullOrWhiteSpace(track.Title))
                 {
                     meta.Title = track.Title;
                 }
                 else
                 {
-                    meta.Title = $"Track {trackMetadata.TrackNumber}";
+                    meta.Title = $"Track {trackMetadata.TrackCode}";
                 }
                 
                 // Artist: Publication name + (jw.org)
@@ -123,13 +125,13 @@ public sealed class DisplayMetadataService(
         }
         
         // Fallback if no publication found
-        meta.Title = $"Track {trackMetadata.TrackNumber}";
+        meta.Title = $"Track {trackMetadata.TrackCode}";
     }
 
     private async Task SetBiblePublicationSectionMetadataAsync(TrackMetadata trackMetadata, MetaData meta, BiblePublicationSection section)
     {
         // Title: Section name + Track number
-        meta.Title = $"{section.Name} {trackMetadata.TrackNumber}";
+        meta.Title = $"{section.Name} {trackMetadata.TrackCode}";
 
         // Description: Language name
         var languages = await mediaService.GetBiblePublicationLanguages();
@@ -186,8 +188,10 @@ public sealed class DisplayMetadataService(
             tracks = await mediaService.GetMelodyMusicTracks(trackMetadata.PublicationCode);
         }
 
-        var trackNumber = trackMetadata.OriginalTrackNumber ?? trackMetadata.TrackNumber;
-        if (tracks.TryGetValue(trackNumber, out var melodyTrack))
+        var trackCode = trackMetadata.OriginalTrackCode?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? trackMetadata.TrackCode;
+        if (!string.IsNullOrWhiteSpace(trackCode) &&
+            int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
+            tracks.TryGetValue(trackNum, out var melodyTrack))
         {
             meta.Title = NormalizeTitle(melodyTrack.Title);
         }
@@ -251,16 +255,18 @@ public sealed class DisplayMetadataService(
         try
         {
             var tracks = await mediaService.GetMelodyMusicTracksBySection(trackMetadata.PublicationCode, trackMetadata.DownloadCode);
-            var trackNumber = trackMetadata.OriginalTrackNumber ?? trackMetadata.TrackNumber;
-            if (tracks.TryGetValue(trackNumber, out var melodyTrack))
+            var trackCode = trackMetadata.OriginalTrackCode?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? trackMetadata.TrackCode;
+            if (!string.IsNullOrWhiteSpace(trackCode) &&
+                int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackNum) &&
+                tracks.TryGetValue(parsedTrackNum, out var melodyTrack))
             {
                 meta.Title = NormalizeTitle(melodyTrack.Title);
             }
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Failed to resolve melody disc track title for {PublicationCode}/{DiscCode}/{TrackNumber}",
-                trackMetadata.PublicationCode, trackMetadata.DownloadCode, trackMetadata.TrackNumber);
+            logger.Debug(ex, "Failed to resolve melody disc track title for {PublicationCode}/{DiscCode}/{TrackCode}",
+                trackMetadata.PublicationCode, trackMetadata.DownloadCode, trackMetadata.TrackCode);
         }
 
         try
@@ -293,7 +299,7 @@ public sealed class DisplayMetadataService(
         }
 
         // Ensure we at least have a title.
-        meta.Title ??= $"Track {trackMetadata.TrackNumber}";
+        meta.Title ??= $"Track {trackMetadata.TrackCode}";
         meta.Artist ??= "jw.org";
 
         return true;
@@ -337,7 +343,9 @@ public sealed class DisplayMetadataService(
         var tracks = await mediaService.GetVocalMusicTracks(
             trackMetadata.LanguageCode,
             trackMetadata.PublicationCode);
-        if (tracks.TryGetValue(trackMetadata.TrackNumber, out var vocalTrack))
+        if (!string.IsNullOrWhiteSpace(trackMetadata.TrackCode) &&
+            int.TryParse(trackMetadata.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
+            tracks.TryGetValue(trackNum, out var vocalTrack))
         {
             meta.Title = vocalTrack.Title;
         }

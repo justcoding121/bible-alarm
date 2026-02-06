@@ -82,13 +82,13 @@ The Media DB supports a few **independent axes**. Most bugs in cascade/playback/
 
 - **Language-bound + Sectioned**
   - typical Bible pattern: Publication → Sections → Tracks
-  - selection keys: `(LanguageCode, PublicationCode, SectionCode, TrackNumber)`
+  - selection keys: `(LanguageCode, PublicationCode, SectionCode, TrackCode)`
 - **Language-bound + Flat**
   - typical vocal music / many videos: Publication → Tracks
-  - selection keys: `(LanguageCode, PublicationCode, TrackNumber)` (no SectionCode)
+  - selection keys: `(LanguageCode, PublicationCode, TrackCode)` (no SectionCode)
 - **No-language + Sectioned**
   - melody discs (e.g. `iam`): Publication → Sections (disc codes) → Tracks
-  - selection keys: `(PublicationCode, SectionCode, TrackNumber)` (no LanguageCode)
+  - selection keys: `(PublicationCode, SectionCode, TrackCode)` (no LanguageCode)
 - **No-language + Flat**
   - less common, but structurally supported: Publication → Tracks (no LanguageCode, no SectionCode)
 
@@ -147,7 +147,7 @@ DbContext:
     - `LanguageCode`
     - `PublicationCode`
     - optional `SectionCode`
-    - `TrackNumber`
+    - `TrackCode`
     - `FinishedDuration`
 
 - `AlarmMusic` (1:1 with `AlarmSchedules`)

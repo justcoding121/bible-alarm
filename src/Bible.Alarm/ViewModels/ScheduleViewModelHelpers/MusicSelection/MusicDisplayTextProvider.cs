@@ -16,7 +16,7 @@ public sealed class MusicDisplayTextProvider
     private string? cachedSongPublicationName;
     private string? lastMusicPublicationCode;
     private string? cachedTrackName;
-    private int? lastMusicTrackNumber;
+    private string? lastMusicTrackCode;
     private string? lastTrackPublicationCode;
     private string? lastTrackLanguageCode;
     private string? cachedDefaultLanguageName;
@@ -33,7 +33,7 @@ public sealed class MusicDisplayTextProvider
         cachedSongPublicationName = null;
         cachedTrackName = null;
         lastMusicPublicationCode = null;
-        lastMusicTrackNumber = null;
+        lastMusicTrackCode = null;
         lastTrackPublicationCode = null;
         lastTrackLanguageCode = null;
         // Note: Don't clear cachedDefaultLanguageName - it's a static lookup for "E" = "English"
@@ -48,15 +48,15 @@ public sealed class MusicDisplayTextProvider
     public void ClearTrackCache()
     {
         cachedTrackName = null;
-        lastMusicTrackNumber = null;
+        lastMusicTrackCode = null;
         lastTrackPublicationCode = null;
         lastTrackLanguageCode = null;
     }
 
-    public void UpdateTrackCache(string? trackName, int? trackNumber, string? publicationCode, string? languageCode)
+    public void UpdateTrackCache(string? trackName, string? trackCode, string? publicationCode, string? languageCode)
     {
         cachedTrackName = trackName;
-        lastMusicTrackNumber = trackNumber;
+        lastMusicTrackCode = trackCode;
         lastTrackPublicationCode = publicationCode;
         lastTrackLanguageCode = languageCode;
     }
@@ -244,8 +244,7 @@ public sealed class MusicDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null ||
-            !currentSchedule.MusicTrackNumber.HasValue ||
-            currentSchedule.MusicTrackNumber.Value <= 0)
+            string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode))
         {
             return string.Empty;
         }
@@ -257,7 +256,7 @@ public sealed class MusicDisplayTextProvider
             if (string.IsNullOrEmpty(cachedTrackName) || cachedTrackName != currentSchedule.MusicTrackName)
             {
                 cachedTrackName = currentSchedule.MusicTrackName;
-                lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
+                lastMusicTrackCode = currentSchedule.MusicTrackCode;
                 lastTrackPublicationCode = currentSchedule.MusicPublicationCode;
                 lastTrackLanguageCode = currentSchedule.MusicLanguageCode;
             }
@@ -270,16 +269,15 @@ public sealed class MusicDisplayTextProvider
             return cachedTrackName;
         }
 
-        // Fall back to track number (matches Bible container behavior of showing *something*).
-        return currentSchedule.MusicTrackNumber.Value.ToString();
+        // Fall back to track code (matches Bible container behavior of showing *something*).
+        return currentSchedule.MusicTrackCode;
     }
 
     public async Task<string> GetTrackDisplayTextAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null ||
-            !currentSchedule.MusicTrackNumber.HasValue ||
-            currentSchedule.MusicTrackNumber.Value <= 0)
+            string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode))
         {
             return string.Empty;
         }
@@ -288,7 +286,7 @@ public sealed class MusicDisplayTextProvider
         if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
         {
             cachedTrackName = currentSchedule.MusicTrackName;
-            lastMusicTrackNumber = currentSchedule.MusicTrackNumber;
+            lastMusicTrackCode = currentSchedule.MusicTrackCode;
             lastTrackPublicationCode = currentSchedule.MusicPublicationCode;
             lastTrackLanguageCode = currentSchedule.MusicLanguageCode;
             return currentSchedule.MusicTrackName;
@@ -296,14 +294,14 @@ public sealed class MusicDisplayTextProvider
 
         // Return cached value if nothing changed
         if (!string.IsNullOrEmpty(cachedTrackName) &&
-            lastMusicTrackNumber == currentSchedule.MusicTrackNumber.Value &&
+            lastMusicTrackCode == currentSchedule.MusicTrackCode &&
             lastTrackPublicationCode == currentSchedule.MusicPublicationCode &&
             lastTrackLanguageCode == currentSchedule.MusicLanguageCode)
         {
             return cachedTrackName;
         }
 
-        return currentSchedule.MusicTrackNumber.Value.ToString();
+        return currentSchedule.MusicTrackCode;
     }
 
     public bool GetIsRepeatEnabled()
@@ -316,8 +314,7 @@ public sealed class MusicDisplayTextProvider
     {
         var currentSchedule = state.Value.CurrentSchedule;
         return currentSchedule != null &&
-               currentSchedule.MusicTrackNumber.HasValue &&
-               currentSchedule.MusicTrackNumber.Value > 0;
+               !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode);
     }
 
     public FlowDirection GetFlowDirection()

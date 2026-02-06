@@ -325,10 +325,10 @@ public sealed class MediaService(
     }
 
     public async Task<BiblePublicationTrack?> GetBiblePublicationTrack(string languageCode,
-        string versionCode, string? sectionCode, int trackNumber)
+        string versionCode, string? sectionCode, string trackCode)
     {
         await mediaIndexService.Verify();
-        return await biblePublicationTrackService.GetTrackAsync(languageCode, versionCode, sectionCode, trackNumber, cancellationTokenSource.Token);
+        return await biblePublicationTrackService.GetTrackAsync(languageCode, versionCode, sectionCode, trackCode, cancellationTokenSource.Token);
     }
 
     public async Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases()
@@ -516,23 +516,23 @@ public sealed class MediaService(
     }
 
     public async Task UpdateBiblePublicationTrackUrl(string languageCode, string versionCode,
-        string? sectionCode, int trackNumber, string url)
+        string? sectionCode, string trackCode, string url)
     {
         await mediaIndexService.Verify();
-        await biblePublicationTrackService.UpdateTrackUrlAsync(languageCode, versionCode, sectionCode, trackNumber, url, cancellationTokenSource.Token);
+        await biblePublicationTrackService.UpdateTrackUrlAsync(languageCode, versionCode, sectionCode, trackCode, url, cancellationTokenSource.Token);
     }
 
     public async Task UpdateVocalTrackUrl(string languageCode, string publicationCode,
-        int trackNumber, string url)
+        string trackCode, string url)
     {
         await mediaIndexService.Verify();
-        await vocalMusicService.UpdateTrackUrlAsync(languageCode, publicationCode, trackNumber, url, cancellationTokenSource.Token);
+        await vocalMusicService.UpdateTrackUrlAsync(languageCode, publicationCode, trackCode, url, cancellationTokenSource.Token);
     }
 
-    public async Task UpdateMelodyTrackUrl(string publicationCode, int trackNumber, string url)
+    public async Task UpdateMelodyTrackUrl(string publicationCode, string trackCode, string url)
     {
         await mediaIndexService.Verify();
-        await melodyMusicService.UpdateTrackUrlAsync(publicationCode, trackNumber, url, cancellationTokenSource.Token);
+        await melodyMusicService.UpdateTrackUrlAsync(publicationCode, trackCode, url, cancellationTokenSource.Token);
     }
 
     public async Task UpdateTrackUrlAsync(TrackMetadata trackMetadata, string url)
@@ -543,7 +543,7 @@ public sealed class MediaService(
                 trackMetadata.LanguageCode,
                 trackMetadata.PublicationCode,
                 trackMetadata.SectionCode,
-                trackMetadata.TrackNumber,
+                trackMetadata.TrackCode,
                 url);
         }
         else
@@ -552,7 +552,7 @@ public sealed class MediaService(
             {
                 await UpdateMelodyTrackUrl(
                     trackMetadata.PublicationCode,
-                    trackMetadata.TrackNumber,
+                    trackMetadata.TrackCode,
                     url);
             }
             else
@@ -560,7 +560,7 @@ public sealed class MediaService(
                 await UpdateVocalTrackUrl(
                     trackMetadata.LanguageCode,
                     trackMetadata.PublicationCode,
-                    trackMetadata.TrackNumber,
+                    trackMetadata.TrackCode,
                     url);
             }
         }

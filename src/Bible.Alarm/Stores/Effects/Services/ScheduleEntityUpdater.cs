@@ -91,8 +91,7 @@ public static class ScheduleEntityUpdater
     {
         return schedule != null &&
                !string.IsNullOrEmpty(schedule.MusicPublicationCode) &&
-               schedule.MusicTrackNumber.HasValue &&
-               schedule.MusicTrackNumber.Value > 0;
+               !string.IsNullOrWhiteSpace(schedule.MusicTrackCode);
     }
 
     /// <summary>
@@ -105,8 +104,8 @@ public static class ScheduleEntityUpdater
             Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - dbSchedule.Music is null, skipping music update");
             return;
         }
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating music. dbSchedule.Music.TrackNumber={TrackNumber}, dbSchedule.Music.PublicationCode={PublicationCode}, dbSchedule.Music.LanguageCode={LanguageCode}",
-            dbSchedule.Music.TrackNumber, dbSchedule.Music.PublicationCode, dbSchedule.Music.LanguageCode);
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating music. dbSchedule.Music.TrackCode={TrackCode}, dbSchedule.Music.PublicationCode={PublicationCode}, dbSchedule.Music.LanguageCode={LanguageCode}",
+            dbSchedule.Music.TrackCode, dbSchedule.Music.PublicationCode, dbSchedule.Music.LanguageCode);
 
         if (existing.Music == null)
         {
@@ -118,22 +117,22 @@ public static class ScheduleEntityUpdater
                 PublicationCode = dbSchedule.Music.PublicationCode,
                 LanguageCode = dbSchedule.Music.LanguageCode,
                 SectionCode = dbSchedule.Music.SectionCode,
-                TrackNumber = dbSchedule.Music.TrackNumber,
+                TrackCode = dbSchedule.Music.TrackCode,
                 Repeat = dbSchedule.Music.Repeat,
                 AlarmScheduleId = existing.Id
             };
         }
         else
         {
-            var oldTrackNumber = existing.Music.TrackNumber;
-            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music. Old TrackNumber={OldTrackNumber}",
-                oldTrackNumber);
+            var oldTrackCode = existing.Music.TrackCode;
+            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music. Old TrackCode={OldTrackCode}",
+                oldTrackCode);
 
             // Always update all properties
             existing.Music.PublicationCode = dbSchedule.Music.PublicationCode;
             existing.Music.LanguageCode = dbSchedule.Music.LanguageCode;
             existing.Music.SectionCode = dbSchedule.Music.SectionCode;
-            existing.Music.TrackNumber = dbSchedule.Music.TrackNumber;
+            existing.Music.TrackCode = dbSchedule.Music.TrackCode;
             existing.Music.Repeat = dbSchedule.Music.Repeat;
 
             // Update Id if it changed
@@ -142,8 +141,8 @@ public static class ScheduleEntityUpdater
                 existing.Music.Id = dbSchedule.Music.Id;
             }
 
-            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music. New TrackNumber={NewTrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
-                existing.Music.TrackNumber, existing.Music.PublicationCode, existing.Music.LanguageCode);
+            Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music. New TrackCode={NewTrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+                existing.Music.TrackCode, existing.Music.PublicationCode, existing.Music.LanguageCode);
         }
     }
 
@@ -152,8 +151,8 @@ public static class ScheduleEntityUpdater
     /// </summary>
     public static void UpdateMusicFromActionSchedule(AlarmSchedule existing, UpdateScheduleFromViewModelAction action)
     {
-        Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null. Creating Music from action.Schedule. TrackNumber={TrackNumber}",
-            action.Schedule!.MusicTrackNumber);
+        Log.Warning("ScheduleEffects: HandleUpdateScheduleFromViewModel - action.MusicUpdated=true but dbSchedule.Music is null. Creating Music from action.Schedule. TrackCode={TrackCode}",
+            action.Schedule!.MusicTrackCode);
 
         if (existing.Music == null)
         {
@@ -177,7 +176,7 @@ public static class ScheduleEntityUpdater
             PublicationCode = schedule.MusicPublicationCode ?? string.Empty,
             LanguageCode = schedule.MusicLanguageCode,
             SectionCode = schedule.MusicSectionCode,
-            TrackNumber = schedule.MusicTrackNumber!.Value,
+            TrackCode = schedule.MusicTrackCode ?? string.Empty,
             Repeat = schedule.MusicRepeat ?? false,
             AlarmScheduleId = alarmScheduleId
         };
@@ -188,14 +187,14 @@ public static class ScheduleEntityUpdater
     /// </summary>
     public static void UpdateExistingMusicFromActionSchedule(AlarmSchedule existing, ScheduleStateItem schedule)
     {
-        var oldTrackNumber = existing.Music!.TrackNumber;
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music from action.Schedule. Old TrackNumber={OldTrackNumber}",
-            oldTrackNumber);
+        var oldTrackCode = existing.Music!.TrackCode;
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updating existing Music from action.Schedule. Old TrackCode={OldTrackCode}",
+            oldTrackCode);
 
         existing.Music.PublicationCode = schedule.MusicPublicationCode ?? string.Empty;
         existing.Music.LanguageCode = schedule.MusicLanguageCode;
         existing.Music.SectionCode = schedule.MusicSectionCode;
-        existing.Music.TrackNumber = schedule.MusicTrackNumber!.Value;
+        existing.Music.TrackCode = schedule.MusicTrackCode ?? string.Empty;
         existing.Music.Repeat = schedule.MusicRepeat ?? false;
 
         if (schedule.MusicId.HasValue)
@@ -203,8 +202,8 @@ public static class ScheduleEntityUpdater
             existing.Music.Id = schedule.MusicId.Value;
         }
 
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music from action.Schedule. New TrackNumber={NewTrackNumber}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
-            existing.Music.TrackNumber, existing.Music.PublicationCode, existing.Music.LanguageCode);
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated Music from action.Schedule. New TrackCode={NewTrackCode}, PublicationCode={PublicationCode}, LanguageCode={LanguageCode}",
+            existing.Music.TrackCode, existing.Music.PublicationCode, existing.Music.LanguageCode);
     }
 
     /// <summary>
@@ -237,7 +236,7 @@ public static class ScheduleEntityUpdater
         UpdateScheduleFromViewModelAction action)
     {
         existing.SectionCode = dbSchedule.SectionCode;
-        existing.TrackNumber = dbSchedule.TrackNumber;
+        existing.TrackCode = dbSchedule.TrackCode;
         existing.LanguageCode = dbSchedule.LanguageCode;
         existing.PublicationCode = dbSchedule.PublicationCode;
 

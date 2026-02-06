@@ -87,10 +87,10 @@ public sealed class ScheduleUpdateProcessor
     /// </summary>
     public void LogScheduleUpdateResult(AlarmSchedule savedSchedule)
     {
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated in DB. ScheduleId: {ScheduleId}, savedSchedule.Music={HasMusic}, savedSchedule.Music.TrackNumber={TrackNumber}, savedSchedule.Music.PublicationCode={PublicationCode}, savedSchedule.Music.LanguageCode={LanguageCode}",
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - Updated in DB. ScheduleId: {ScheduleId}, savedSchedule.Music={HasMusic}, savedSchedule.Music.TrackCode={TrackCode}, savedSchedule.Music.PublicationCode={PublicationCode}, savedSchedule.Music.LanguageCode={LanguageCode}",
             savedSchedule.Id,
             savedSchedule.Music != null ? "not null" : "null",
-            savedSchedule.Music?.TrackNumber.ToString() ?? "null",
+            savedSchedule.Music?.TrackCode.ToString() ?? "null",
             savedSchedule.Music?.PublicationCode ?? "null",
             savedSchedule.Music?.LanguageCode ?? "null");
     }
@@ -132,10 +132,10 @@ public sealed class ScheduleUpdateProcessor
     /// </summary>
     public void LogMappingResult(ScheduleStateItem scheduleStateItem)
     {
-        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - After mapping savedSchedule to scheduleStateItem. scheduleStateItem.MusicPublicationCode={PublicationCode}, scheduleStateItem.MusicLanguageCode={LanguageCode}, scheduleStateItem.MusicTrackNumber={TrackNumber}",
+        Log.Information("ScheduleEffects: HandleUpdateScheduleFromViewModel - After mapping savedSchedule to scheduleStateItem. scheduleStateItem.MusicPublicationCode={PublicationCode}, scheduleStateItem.MusicLanguageCode={LanguageCode}, scheduleStateItem.MusicTrackCode={TrackCode}",
             scheduleStateItem.MusicPublicationCode ?? "null",
             scheduleStateItem.MusicLanguageCode ?? "null",
-            scheduleStateItem.MusicTrackNumber?.ToString() ?? "null");
+            scheduleStateItem.MusicTrackCode?.ToString() ?? "null");
     }
 
     /// <summary>
@@ -161,7 +161,7 @@ public sealed class ScheduleUpdateProcessor
                 scheduleStateItem.MusicPublicationCode ?? "null",
                 actionSchedule.MusicPublicationCode ?? "null");
 
-            scheduleStateItem.MusicTrackNumber = actionSchedule.MusicTrackNumber;
+            scheduleStateItem.MusicTrackCode = actionSchedule.MusicTrackCode;
             scheduleStateItem.MusicPublicationCode = actionSchedule.MusicPublicationCode;
             scheduleStateItem.MusicLanguageCode = actionSchedule.MusicLanguageCode;
             scheduleStateItem.MusicRepeat = actionSchedule.MusicRepeat;

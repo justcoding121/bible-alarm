@@ -31,11 +31,11 @@ public class BiblePublicationSchedule
     public string? SectionCode { get; set; }
 
     /// <summary>
-    /// Track number for traditional Bible readings, or track/part number for dramas.
+    /// Track code from API: chapter number as string for Bible (e.g. "1", "2"), pub value for drama (e.g. "iacu"), track number as string for music/video.
     /// </summary>
     [Required]
-    [Range(1, 500)]
-    public int TrackNumber { get; set; }
+    [MaxLength(50)]
+    public string TrackCode { get; set; } = string.Empty;
 
     [Required]
     public TimeSpan FinishedDuration { get; set; }

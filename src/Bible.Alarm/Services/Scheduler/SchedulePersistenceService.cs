@@ -115,7 +115,7 @@ public sealed class SchedulePersistenceService(
             existing.Music.LanguageCode = schedule.Music.LanguageCode;
             existing.Music.PublicationCode = schedule.Music.PublicationCode;
             existing.Music.SectionCode = schedule.Music.SectionCode;
-            existing.Music.TrackNumber = schedule.Music.TrackNumber;
+            existing.Music.TrackCode = schedule.Music.TrackCode;
         }
     }
 
@@ -124,7 +124,7 @@ public sealed class SchedulePersistenceService(
         if (schedule.BiblePublicationSchedule != null && existing.BiblePublicationSchedule != null)
         {
             existing.BiblePublicationSchedule.SectionCode = schedule.BiblePublicationSchedule.SectionCode;
-            existing.BiblePublicationSchedule.TrackNumber = schedule.BiblePublicationSchedule.TrackNumber;
+            existing.BiblePublicationSchedule.TrackCode = schedule.BiblePublicationSchedule.TrackCode;
             existing.BiblePublicationSchedule.LanguageCode = schedule.BiblePublicationSchedule.LanguageCode;
             existing.BiblePublicationSchedule.PublicationCode = schedule.BiblePublicationSchedule.PublicationCode;
             // Only reset duration if bible reading was changed

@@ -52,15 +52,14 @@ public sealed class MusicStateInitializer
         // NOTE: Do NOT query database here - track names should be in state from bootstrap
         // Music type is now inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal
         if (!string.IsNullOrEmpty(currentSchedule.MusicPublicationCode) &&
-            currentSchedule.MusicTrackNumber.HasValue &&
-            currentSchedule.MusicTrackNumber.Value > 0)
+            !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode))
         {
             // If MusicTrackName is already in state (from bootstrap), use it immediately
             if (!string.IsNullOrWhiteSpace(currentSchedule.MusicTrackName))
             {
                 displayTextProvider.UpdateTrackCache(
                     currentSchedule.MusicTrackName,
-                    currentSchedule.MusicTrackNumber,
+                    currentSchedule.MusicTrackCode,
                     currentSchedule.MusicPublicationCode,
                     currentSchedule.MusicLanguageCode);
             }

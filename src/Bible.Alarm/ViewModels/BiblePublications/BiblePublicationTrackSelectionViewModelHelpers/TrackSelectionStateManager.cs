@@ -75,7 +75,7 @@ public sealed class TrackSelectionStateManager
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
                 SectionCode = newSectionCode,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
             lastCurrent = current;
@@ -88,7 +88,7 @@ public sealed class TrackSelectionStateManager
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionCode = newSectionCode,
-                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
+                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
             };
             lastCurrent = current;
         }
@@ -152,7 +152,7 @@ public sealed class TrackSelectionStateManager
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
                 SectionCode = newSectionCode,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
             lastCurrent = current;
@@ -165,7 +165,7 @@ public sealed class TrackSelectionStateManager
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionCode = newSectionCode,
-                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
+                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
             };
             lastCurrent = current;
         }
@@ -221,7 +221,7 @@ public sealed class TrackSelectionStateManager
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
                 SectionCode = newSectionCode,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
         }
@@ -232,7 +232,7 @@ public sealed class TrackSelectionStateManager
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionCode = newSectionCode,
-                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
+                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
             };
         }
         lastCurrent = current;
@@ -276,7 +276,7 @@ public sealed class TrackSelectionStateManager
                 LanguageCode = currentSchedule.BiblePublicationLanguageCode,
                 PublicationCode = currentSchedule.BiblePublicationCode ?? string.Empty,
                 SectionCode = newSectionCode,
-                TrackNumber = currentSchedule.BiblePublicationTrackNumber ?? 0,
+                TrackCode = currentSchedule.BiblePublicationTrackCode ?? string.Empty,
                 FinishedDuration = currentSchedule.BiblePublicationFinishedDuration ?? TimeSpan.Zero
             };
         }
@@ -287,7 +287,7 @@ public sealed class TrackSelectionStateManager
                 LanguageCode = newLanguageCode,
                 PublicationCode = newPublicationCode,
                 SectionCode = newSectionCode,
-                TrackNumber = currentSchedule?.BiblePublicationTrackNumber ?? 1
+                TrackCode = currentSchedule?.BiblePublicationTrackCode ?? string.Empty
             };
         }
         lastCurrent = current;

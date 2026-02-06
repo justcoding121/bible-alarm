@@ -169,12 +169,12 @@ public sealed class ScheduleListItemSubtitleManager(
             }
             else
             {
-                var trackNumber = scheduleStateItem.BiblePublicationTrackNumber.HasValue && scheduleStateItem.BiblePublicationTrackNumber.Value > 0
-                    ? scheduleStateItem.BiblePublicationTrackNumber.Value.ToString()
+                var trackCode = !string.IsNullOrWhiteSpace(scheduleStateItem.BiblePublicationTrackCode)
+                    ? scheduleStateItem.BiblePublicationTrackCode
                     : null;
-                if (trackNumber != null)
+                if (trackCode != null)
                 {
-                    AddPart(parts, trackNumber);
+                    AddPart(parts, trackCode);
                 }
             }
         }

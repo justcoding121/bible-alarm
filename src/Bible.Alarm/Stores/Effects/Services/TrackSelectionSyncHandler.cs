@@ -76,10 +76,10 @@ public sealed class TrackSelectionSyncHandler
         {
             var actionPub = action.CurrentBiblePublicationSchedule;
             Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Received action. " +
-                "CurrentBiblePublicationSchedule: {CurrentBiblePublicationSchedule}, TrackNumber={TrackNumber}, TrackTitle={TrackTitle}, " +
+                "CurrentBiblePublicationSchedule: {CurrentBiblePublicationSchedule}, TrackCode={TrackCode}, TrackTitle={TrackTitle}, " +
                 "SectionCode={SectionCode}, PublicationCode={PublicationCode}",
                 actionPub != null ? "not null" : "null",
-                actionPub?.TrackNumber ?? -1,
+                actionPub?.TrackCode ?? "(null)",
                 actionPub?.TrackTitle ?? "(null)",
                 actionPub?.SectionCode ?? (actionPub?.SectionCode?.ToString() ?? "(null)"),
                 actionPub?.PublicationCode ?? "(null)");
@@ -103,7 +103,7 @@ public sealed class TrackSelectionSyncHandler
                 currentSchedule.BiblePublicationLanguageCode == biblePub.LanguageCode &&
                 currentSchedule.BiblePublicationCode == biblePub.PublicationCode &&
                 string.Equals(currentSectionCode, actionSectionCode, StringComparison.OrdinalIgnoreCase) &&
-                currentSchedule.BiblePublicationTrackNumber == biblePub.TrackNumber;
+                currentSchedule.BiblePublicationTrackCode == biblePub.TrackCode;
             
             if (alreadyInSync)
             {
@@ -188,7 +188,7 @@ public sealed class TrackSelectionSyncHandler
             
             updatedSchedule.BiblePublicationCode = biblePub.PublicationCode;
             updatedSchedule.BiblePublicationSectionCode = actionSectionCode;
-            updatedSchedule.BiblePublicationTrackNumber = biblePub.TrackNumber;
+            updatedSchedule.BiblePublicationTrackCode = biblePub.TrackCode;
             // Do NOT reset progress here.
             // Progress reset (BiblePublicationFinishedDuration/FInishedDuration) is only persisted on Save,
             // after comparing the saved track identity to the originally-opened one.
@@ -222,11 +222,11 @@ public sealed class TrackSelectionSyncHandler
                         "Publication={PublicationCode}. This may cause empty section row in UI.",
                         actionSectionCode, biblePub.PublicationCode);
                 }
-                if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationTrackTitle) && biblePub.TrackNumber > 0)
+                if (string.IsNullOrEmpty(updatedSchedule.BiblePublicationTrackTitle) && !string.IsNullOrWhiteSpace(biblePub.TrackCode))
                 {
-                    Log.Warning("TrackSelectionSyncHandler: TrackTitle is empty after publication change but TrackNumber={TrackNumber} is valid. " +
+                    Log.Warning("TrackSelectionSyncHandler: TrackTitle is empty after publication change but TrackCode={TrackCode} is valid. " +
                         "Publication={PublicationCode}. This may cause empty track row in UI.",
-                        biblePub.TrackNumber, biblePub.PublicationCode);
+                        biblePub.TrackCode, biblePub.PublicationCode);
                 }
             }
             else
@@ -250,8 +250,8 @@ public sealed class TrackSelectionSyncHandler
             }
 
             Log.Information("TrackSelectionSyncHandler: HandleTrackSelected (BiblePublication) - Dispatching UpdateScheduleFromViewModelAction. " +
-                "ScheduleId: {ScheduleId}, TrackNumber={TrackNumber}, TrackTitle={TrackTitle}, SectionCode={SectionCode}",
-                updatedSchedule.Id, updatedSchedule.BiblePublicationTrackNumber, updatedSchedule.BiblePublicationTrackTitle, updatedSchedule.BiblePublicationSectionCode);
+                "ScheduleId: {ScheduleId}, TrackCode={TrackCode}, TrackTitle={TrackTitle}, SectionCode={SectionCode}",
+                updatedSchedule.Id, updatedSchedule.BiblePublicationTrackCode, updatedSchedule.BiblePublicationTrackTitle, updatedSchedule.BiblePublicationSectionCode);
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
         }
         catch (Exception ex)
@@ -263,11 +263,11 @@ public sealed class TrackSelectionSyncHandler
     private void LogTrackSelectedStart(MusicTrackSelectedAction action)
     {
         // Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal
-        Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackNumber: {TrackNumber}",
+        Log.Information("ScheduleEffects: HandleTrackSelected - Received action. CurrentMusic: {CurrentMusic}, LanguageCode: {LanguageCode}, PublicationCode: {PublicationCode}, TrackCode: {TrackCode}",
             action.CurrentMusic != null ? "not null" : "null",
             action.CurrentMusic?.LanguageCode ?? "null (melody)",
             action.CurrentMusic?.PublicationCode ?? "null",
-            action.CurrentMusic?.TrackNumber ?? 0);
+            action.CurrentMusic?.TrackCode ?? "(null)");
     }
 
     private bool CanSyncTrackSelection(ApplicationState? currentState, MusicTrackSelectedAction action)
@@ -353,7 +353,7 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.BiblePublicationCode = currentSchedule.BiblePublicationCode;
         updatedSchedule.BiblePublicationSectionCode = currentSchedule.BiblePublicationSectionCode;
         updatedSchedule.BiblePublicationSectionCode = currentSchedule.BiblePublicationSectionCode;
-        updatedSchedule.BiblePublicationTrackNumber = currentSchedule.BiblePublicationTrackNumber;
+        updatedSchedule.BiblePublicationTrackCode = currentSchedule.BiblePublicationTrackCode;
         updatedSchedule.BiblePublicationFinishedDuration = currentSchedule.BiblePublicationFinishedDuration;
         updatedSchedule.BiblePublicationLanguageName = currentSchedule.BiblePublicationLanguageName;
         updatedSchedule.BiblePublicationName = currentSchedule.BiblePublicationName;
@@ -370,7 +370,7 @@ public sealed class TrackSelectionSyncHandler
         updatedSchedule.MusicPublicationCode = actionMusic.PublicationCode;
         updatedSchedule.MusicLanguageCode = actionMusic.LanguageCode;
         updatedSchedule.MusicSectionCode = actionMusic.SectionCode;
-        updatedSchedule.MusicTrackNumber = actionMusic.TrackNumber;
+        updatedSchedule.MusicTrackCode = actionMusic.TrackCode;
         updatedSchedule.MusicRepeat = actionMusic.Repeat;
         // Preserve music display names from current schedule (will be repopulated if needed)
         updatedSchedule.MusicLanguageName = currentSchedule.MusicLanguageName;
@@ -427,13 +427,13 @@ public sealed class TrackSelectionSyncHandler
     private void DispatchTrackUpdateAction(IDispatcher dispatcher, ScheduleStateItem updatedSchedule, int scheduleId)
     {
         // Music type is inferred from LanguageCode: NULL/empty = instrumental (melody), otherwise = vocal
-        Log.Information("ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, TrackNumber: {TrackNumber}, TrackName: {TrackName}",
+        Log.Information("ScheduleEffects: HandleTrackSelected - Dispatching UpdateScheduleFromViewModelAction. ScheduleId: {ScheduleId}, LanguageCode: {LanguageCode}, LanguageName: {LanguageName}, PublicationCode: {PublicationCode}, PublicationName: {PublicationName}, TrackCode: {TrackCode}, TrackName: {TrackName}",
             updatedSchedule.Id,
             updatedSchedule.MusicLanguageCode ?? "null (melody)",
             updatedSchedule.MusicLanguageName ?? "null",
             updatedSchedule.MusicPublicationCode ?? "null",
             updatedSchedule.MusicPublicationName ?? "null",
-            updatedSchedule.MusicTrackNumber,
+            updatedSchedule.MusicTrackCode,
             updatedSchedule.MusicTrackName ?? "null");
         dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
 

@@ -27,7 +27,7 @@ public sealed class BiblePublicationPropertyChangeDetector
     private string? lastLanguageCode;
     private string? lastPublicationCode;
     private string? lastSectionCode;
-    private int? lastTrackNumber;
+    private string? lastTrackCode;
 
     public BiblePublicationPropertyChangeDetector(BiblePublicationDisplayTextProvider displayTextProvider)
     {
@@ -40,14 +40,14 @@ public sealed class BiblePublicationPropertyChangeDetector
         string? languageCode,
         string? publicationCode,
         string? sectionCode,
-        int? trackNumber)
+        string? trackCode)
     {
         lastCategoryId = categoryId;
         lastCategoryName = categoryName;
         lastLanguageCode = languageCode;
         lastPublicationCode = publicationCode;
         lastSectionCode = sectionCode;
-        lastTrackNumber = trackNumber;
+        lastTrackCode = trackCode;
         lastCategoryDisplayText = displayTextProvider.GetCategoryDisplayText();
         lastLanguageDisplayText = displayTextProvider.GetLanguageDisplayText();
         lastPublicationDisplayText = displayTextProvider.GetPublicationDisplayText();
@@ -65,14 +65,14 @@ public sealed class BiblePublicationPropertyChangeDetector
         var currentLanguageCode = currentSchedule?.BiblePublicationLanguageCode;
         var currentPublicationCode = currentSchedule?.BiblePublicationCode;
         var currentSectionCode = currentSchedule?.BiblePublicationSectionCode;
-        var currentTrackNumber = currentSchedule?.BiblePublicationTrackNumber;
+        var currentTrackCode = currentSchedule?.BiblePublicationTrackCode;
 
         var categoryIdChanged = currentCategoryId != lastCategoryId;
         var categoryNameChanged = currentCategoryName != lastCategoryName;
         var languageCodeChanged = currentLanguageCode != lastLanguageCode;
         var publicationCodeChanged = currentPublicationCode != lastPublicationCode;
         var sectionCodeChanged = currentSectionCode != lastSectionCode;
-        var trackNumberChanged = currentTrackNumber != lastTrackNumber;
+        var trackCodeChanged = currentTrackCode != lastTrackCode;
 
         // Section visibility changes when publication code changes to/from a drama type
         var sectionVisibilityTypeChanged = publicationCodeChanged &&
@@ -101,7 +101,7 @@ public sealed class BiblePublicationPropertyChangeDetector
         var notifyLanguage = categoryIdChanged || categoryNameChanged || languageCodeChanged;
         var notifyPublication = categoryIdChanged || categoryNameChanged || languageCodeChanged || publicationCodeChanged;
         var notifySection = categoryIdChanged || categoryNameChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged;
-        var notifyTrack = categoryIdChanged || categoryNameChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged;
+        var notifyTrack = categoryIdChanged || categoryNameChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackCodeChanged;
         var notifyIsSectionVisible = sectionVisibilityTypeChanged || isSectionVisibleChanged;
         var notifyIsLanguageVisible = categoryIdChanged || categoryNameChanged || isLanguageVisibleChanged;
 
@@ -109,9 +109,9 @@ public sealed class BiblePublicationPropertyChangeDetector
                                     (languageDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged) ||
                                     (publicationDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged) ||
                                     (sectionDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged) ||
-                                    (trackDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackNumberChanged);
+                                    (trackDisplayChanged && !categoryIdChanged && !categoryNameChanged && !languageCodeChanged && !publicationCodeChanged && !sectionCodeChanged && !trackCodeChanged);
 
-        var cascadeChangeOccurred = categoryIdChanged || categoryNameChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackNumberChanged;
+        var cascadeChangeOccurred = categoryIdChanged || categoryNameChanged || languageCodeChanged || publicationCodeChanged || sectionCodeChanged || trackCodeChanged;
 
         var changeInfo = new PropertyChangeInfo
         {
@@ -120,7 +120,7 @@ public sealed class BiblePublicationPropertyChangeDetector
             CurrentLanguageCode = currentLanguageCode,
             CurrentPublicationCode = currentPublicationCode,
             CurrentSectionCode = currentSectionCode,
-            CurrentTrackNumber = currentTrackNumber,
+            CurrentTrackCode = currentTrackCode,
             NewCategoryDisplayText = newCategoryDisplayText,
             NewLanguageDisplayText = newLanguageDisplayText,
             NewPublicationDisplayText = newPublicationDisplayText,
@@ -151,7 +151,7 @@ public sealed class BiblePublicationPropertyChangeDetector
         lastLanguageCode = currentLanguageCode;
         lastPublicationCode = currentPublicationCode;
         lastSectionCode = currentSectionCode;
-        lastTrackNumber = currentTrackNumber;
+        lastTrackCode = currentTrackCode;
         lastCategoryDisplayText = newCategoryDisplayText;
         lastLanguageDisplayText = newLanguageDisplayText;
         lastPublicationDisplayText = newPublicationDisplayText;
@@ -170,7 +170,7 @@ public sealed class BiblePublicationPropertyChangeDetector
         public string? CurrentLanguageCode { get; init; }
         public string? CurrentPublicationCode { get; init; }
         public string? CurrentSectionCode { get; init; }
-        public int? CurrentTrackNumber { get; init; }
+        public string? CurrentTrackCode { get; init; }
         public string NewCategoryDisplayText { get; init; } = string.Empty;
         public string NewLanguageDisplayText { get; init; } = string.Empty;
         public string NewPublicationDisplayText { get; init; } = string.Empty;

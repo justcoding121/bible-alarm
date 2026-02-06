@@ -41,9 +41,9 @@ public class TrackMetadata
     /// <summary>
     /// Original track number from the API response (within the disc).
     /// This is needed for melody music with multiple discs, where the API expects the track number within that specific disc.
-    /// For regular publications, this will be null and TrackNumber will be used.
+    /// For regular publications, this will be null and TrackCode will be used.
     /// </summary>
-    public int? OriginalTrackNumber { get; set; }
+    public int? OriginalTrackCode { get; set; }
 
     /// <summary>
     /// The lookup path (query string) for refreshing the URL from the API.
@@ -66,11 +66,11 @@ public class TrackMetadata
     }
 
     public string? SectionCode { get; set; }
-    public int TrackNumber { get; set; }
+    public string TrackCode { get; set; } = string.Empty;
 
     public TimeSpan FinishedDuration { get; set; }
 
-    public bool IsAlarmMusic => TrackNumber > 0;
+    public bool IsAlarmMusic => !IsBibleContent;
 
     public bool IsLastTrack { get; set; }
 }

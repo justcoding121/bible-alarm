@@ -34,7 +34,7 @@ public sealed class MusicPublicationSelectionStateManager
             {
                 LanguageCode = schedule.MusicLanguageCode,
                 PublicationCode = schedule.MusicPublicationCode ?? string.Empty,
-                TrackNumber = schedule.MusicTrackNumber ?? 0,
+                TrackCode = schedule.MusicTrackCode ?? string.Empty,
                 Repeat = schedule.MusicRepeat ?? false
             };
             lastCurrent = current;
@@ -78,7 +78,7 @@ public sealed class MusicPublicationSelectionStateManager
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
-                TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+                TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
                 Repeat = currentSchedule.MusicRepeat ?? false
             };
             lastCurrent = current;
@@ -131,7 +131,7 @@ public sealed class MusicPublicationSelectionStateManager
             {
                 LanguageCode = newLanguageCode,
                 PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
-                TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+                TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
                 Repeat = currentSchedule.MusicRepeat ?? false
             };
             lastCurrent = current;
@@ -175,7 +175,7 @@ public sealed class MusicPublicationSelectionStateManager
                 {
                     LanguageCode = currentSchedule.MusicLanguageCode,
                     PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
-                    TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+                    TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
                     Repeat = currentSchedule.MusicRepeat ?? false
                 };
             }
@@ -195,7 +195,7 @@ public sealed class MusicPublicationSelectionStateManager
         {
             LanguageCode = currentSchedule.MusicLanguageCode,
             PublicationCode = currentSchedule.MusicPublicationCode ?? string.Empty,
-            TrackNumber = currentSchedule.MusicTrackNumber ?? 1,
+            TrackCode = currentSchedule.MusicTrackCode ?? string.Empty,
             Repeat = currentSchedule.MusicRepeat ?? false
         };
     }

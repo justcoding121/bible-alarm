@@ -14,7 +14,7 @@ internal sealed class LookupDataCollector
     {
         var publicationKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var sectionKeys = new HashSet<(string LanguageCode, string PublicationCode, string SectionCode)>();
-        var bibleTrackKeys = new HashSet<(string LanguageCode, string PublicationCode, string? SectionCode, int TrackNumber)>();
+        var bibleTrackKeys = new HashSet<(string LanguageCode, string PublicationCode, string? SectionCode, string TrackCode)>();
         var vocalMusicLanguageCodes = new HashSet<string>();
         var vocalMusicKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
         var vocalTrackKeys = new HashSet<(string LanguageCode, string PublicationCode)>();
@@ -36,9 +36,9 @@ internal sealed class LookupDataCollector
                         sectionKeys.Add((br.LanguageCode, br.PublicationCode, normalizedSectionCode));
                     }
 
-                    if (br.TrackNumber > 0)
+                    if (!string.IsNullOrWhiteSpace(br.TrackCode))
                     {
-                        bibleTrackKeys.Add((br.LanguageCode, br.PublicationCode, normalizedSectionCode, br.TrackNumber));
+                        bibleTrackKeys.Add((br.LanguageCode, br.PublicationCode, normalizedSectionCode, br.TrackCode));
                     }
                 }
             }
@@ -57,7 +57,7 @@ internal sealed class LookupDataCollector
                     if (!string.IsNullOrWhiteSpace(music.PublicationCode))
                     {
                         vocalMusicKeys.Add((music.LanguageCode!, music.PublicationCode));
-                        if (music.TrackNumber > 0)
+                        if (!string.IsNullOrWhiteSpace(music.TrackCode))
                         {
                             vocalTrackKeys.Add((music.LanguageCode!, music.PublicationCode));
                         }
@@ -93,7 +93,7 @@ internal sealed class LookupDataCollector
     public sealed record LookupKeys(
         HashSet<(string LanguageCode, string PublicationCode)> PublicationKeys,
         HashSet<(string LanguageCode, string PublicationCode, string SectionCode)> SectionKeys,
-        HashSet<(string LanguageCode, string PublicationCode, string? SectionCode, int TrackNumber)> BibleTrackKeys,
+        HashSet<(string LanguageCode, string PublicationCode, string? SectionCode, string TrackCode)> BibleTrackKeys,
         HashSet<string> VocalMusicLanguageCodes,
         HashSet<(string LanguageCode, string PublicationCode)> VocalMusicKeys,
         HashSet<(string LanguageCode, string PublicationCode)> VocalTrackKeys,
