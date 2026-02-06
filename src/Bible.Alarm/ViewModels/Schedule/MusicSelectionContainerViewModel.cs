@@ -69,8 +69,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
-                // Default to visible
-                return true;
+                // Hide container when no schedule is active (e.g., during navigation)
+                return false;
             }
 
             var categoryName = currentSchedule.BiblePublicationCategoryName;

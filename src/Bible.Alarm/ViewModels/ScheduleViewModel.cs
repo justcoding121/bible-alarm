@@ -417,8 +417,8 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
-                logger.Debug("IsMusicSelectionVisible: CurrentSchedule is null, returning true (default visible)");
-                return true; // Default to visible
+                logger.Debug("IsMusicSelectionVisible: CurrentSchedule is null, returning false (hide container)");
+                return false; // Hide container when no schedule is active (e.g., during navigation)
             }
 
             var categoryName = currentSchedule.BiblePublicationCategoryName;

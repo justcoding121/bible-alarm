@@ -1,6 +1,7 @@
 #nullable enable
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
@@ -9,6 +10,7 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.Shared.Helpers;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
@@ -181,6 +183,20 @@ public sealed class ScheduleCommandExecutor
         logger.Information("DeleteCommand: Delete button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}",
             IsNewSchedule(), GetScheduleId());
 
+        var isNewSchedule = IsNewSchedule();
+        var scheduleId = GetScheduleId();
+
+        // Check if this is the last schedule BEFORE showing overlay or doing any work
+        // Only count saved schedules (Id > 0), not unsaved/new schedules
+        var savedScheduleCount = state.Value.Schedules?.Count(s => s.Id > 0) ?? 0;
+        
+        if (!isNewSchedule && scheduleId > 0 && savedScheduleCount <= 1)
+        {
+            logger.Warning("DeleteCommand: Cannot delete schedule {ScheduleId} - it is the last schedule", scheduleId);
+            WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
+            return;
+        }
+
         // Set IsDeleteBusy immediately to show loading indicator
         setIsDeleteBusy?.Invoke(true);
         setIsSaving?.Invoke(true);
@@ -194,17 +210,12 @@ public sealed class ScheduleCommandExecutor
 
         try
         {
-            var isNewSchedule = IsNewSchedule();
-            var scheduleId = GetScheduleId();
-
             await scheduleCommandService.StopPlaybackIfNeededAsync(
                 isNewSchedule,
                 playbackState.Value.IsPreparingOrPlaying,
                 scheduleId,
                 playbackState.Value.CurrentScheduleId ?? -1);
 
-            // Only count saved schedules (Id > 0), not unsaved/new schedules
-            var savedScheduleCount = state.Value.Schedules?.Count(s => s.Id > 0) ?? 0;
             var deleted = await scheduleCommandService.ExecuteDeleteAsync(isNewSchedule, scheduleId, savedScheduleCount);
 
             // On successful delete, keep isSaving=true so overlay stays visible until page is destroyed by navigation
