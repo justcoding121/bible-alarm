@@ -50,7 +50,6 @@ internal sealed class DramaTrackFetcher
         }
 
         var allTracks = new List<BiblePublicationTrack>();
-        var trackCode = 1;
         var successfulSections = 0;
         var failedSections = 0;
 
@@ -61,14 +60,13 @@ internal sealed class DramaTrackFetcher
         {
             try
             {
-                var (tracks, nextTrackCode) = await FetchTracksForSectionAsync(
+                var tracks = await FetchTracksForSectionAsync(
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode, baseUrl, 
-                    trackCode, cancellationToken);
+                    cancellationToken);
                 
                 if (tracks.Count > 0)
                 {
                     allTracks.AddRange(tracks);
-                    trackCode = nextTrackCode;
                     successfulSections++;
                     logger.Debug("DramaTrackFetcher: Fetched {TrackCount} tracks for section {SectionCode}",
                         tracks.Count, sectionCode);
@@ -102,12 +100,11 @@ internal sealed class DramaTrackFetcher
         return allTracks;
     }
 
-    private async Task<(List<BiblePublicationTrack> Tracks, int NextTrackCode)> FetchTracksForSectionAsync(
+    private async Task<List<BiblePublicationTrack>> FetchTracksForSectionAsync(
         string sectionCode,
         string normalizedPublicationCode,
         string normalizedLanguageCode,
         BaseUrl baseUrl,
-        int startTrackCode,
         CancellationToken cancellationToken)
     {
         var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
@@ -115,7 +112,7 @@ internal sealed class DramaTrackFetcher
         
         if (!sectionResponse.IsSuccessStatusCode)
         {
-            return (new List<BiblePublicationTrack>(), startTrackCode);
+            return new List<BiblePublicationTrack>();
         }
 
         var sectionJsonString = await sectionResponse.Content.ReadAsStringAsync(cancellationToken);
@@ -124,12 +121,12 @@ internal sealed class DramaTrackFetcher
 
         if (sectionRoot.ValueKind != JsonValueKind.Object || !sectionRoot.TryGetProperty("files", out var sectionFilesElement))
         {
-            return (new List<BiblePublicationTrack>(), startTrackCode);
+            return new List<BiblePublicationTrack>();
         }
 
         var tracks = trackParser.ParseTracksFromJson(
-            sectionFilesElement, normalizedLanguageCode, sectionCode, baseUrl, startTrackCode, out int nextTrackCode);
+            sectionFilesElement, normalizedLanguageCode, sectionCode, baseUrl);
         
-        return (tracks, nextTrackCode);
+        return tracks;
     }
 }

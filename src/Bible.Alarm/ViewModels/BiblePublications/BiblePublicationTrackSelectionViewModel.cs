@@ -270,7 +270,7 @@ public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, I
     }
 
     // LookUpPath is no longer stored in the database - it's computed at runtime by TrackMetadata
-    public int Number => track.Number;
+    public string TrackCode => track.TrackCode;
 
     /// <summary>
     /// Gets the track title with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
@@ -279,5 +279,5 @@ public sealed class BiblePublicationTrackListViewItemModel : ObservableObject, I
     // URLs are now computed on-demand, not stored
     public string Url => string.Empty;
 
-    public int CompareTo(object? obj) => Number.CompareTo((obj as BiblePublicationTrackListViewItemModel)?.Number);
+    public int CompareTo(object? obj) => track.CompareTo((obj as BiblePublicationTrackListViewItemModel)?.track);
 }

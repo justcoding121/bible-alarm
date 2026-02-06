@@ -339,7 +339,7 @@ public sealed class BiblePublicationCascadeHandler
                         var section = pub.Sections.FirstOrDefault(s => s.SectionCode == firstSection.SectionCode);
                         if (section?.Tracks != null && section.Tracks.Count > 0)
                         {
-                            var firstTrack = section.Tracks.OrderBy(t => t.Number).First();
+                            var firstTrack = section.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
                             trackCode = TrackCodeHelper.GetFromTrack(firstTrack);
                             trackTitle = firstTrack.Title ?? string.Empty;
                         }
@@ -360,7 +360,7 @@ public sealed class BiblePublicationCascadeHandler
                     
                     if (pub?.Tracks != null && pub.Tracks.Count > 0)
                     {
-                        var firstTrack = pub.Tracks.OrderBy(t => t.Number).First();
+                        var firstTrack = pub.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
                         trackCode = TrackCodeHelper.GetFromTrack(firstTrack);
                         trackTitle = firstTrack.Title ?? string.Empty;
                     }
@@ -495,7 +495,7 @@ public sealed class BiblePublicationCascadeHandler
             return;
         }
 
-        var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
+        var firstTrack = tracks.Values.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
         var trackCodeStr = TrackCodeHelper.GetFromTrack(firstTrack);
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();

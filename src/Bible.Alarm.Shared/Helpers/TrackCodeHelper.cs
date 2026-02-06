@@ -12,20 +12,10 @@ public static class TrackCodeHelper
 {
     /// <summary>
     /// Gets the stable track code from a Bible publication track (for schedule persistence and lookup).
-    /// Prefers URL param "track", then "pub" (drama), then Number as string.
+    /// TrackCode is now the primary property, so this just returns it directly.
     /// </summary>
     public static string GetFromTrack(BiblePublicationTrack track)
     {
-        var trackParam = track.UrlParams?.FirstOrDefault(p => p.Key == "track");
-        if (!string.IsNullOrEmpty(trackParam?.Value))
-        {
-            return trackParam.Value;
-        }
-        var pubParam = track.UrlParams?.FirstOrDefault(p => p.Key == "pub");
-        if (!string.IsNullOrEmpty(pubParam?.Value))
-        {
-            return pubParam.Value;
-        }
-        return track.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return track.TrackCode;
     }
 }

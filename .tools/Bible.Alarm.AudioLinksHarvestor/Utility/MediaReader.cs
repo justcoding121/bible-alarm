@@ -41,7 +41,7 @@ public class MediaReader(string indexRoot)
                                                 .ToDictionary(x => x.Number, x => x));
     }
 
-    public async Task<SortedDictionary<int, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string sectionCode)
+    public async Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string sectionCode)
     {
         var root = indexRoot;
         // Normalize language code and publication code for file path lookup (cross-platform safety)
@@ -49,8 +49,8 @@ public class MediaReader(string indexRoot)
         var normalizedPublicationCode = versionCode.ToUpperInvariant();
         var sectionsIndex = Path.Combine(root, "Bible", normalizedLanguageCode, normalizedPublicationCode, sectionCode, "tracks.json");
         var biblePublicationTracks = await File.ReadAllTextAsync(sectionsIndex);
-        return new SortedDictionary<int, BiblePublicationTrack>(JsonSerializer.Deserialize<IEnumerable<BiblePublicationTrack>>(biblePublicationTracks)!
-                                                   .ToDictionary(x => x.Number, x => x));
+        return new SortedDictionary<string, BiblePublicationTrack>(JsonSerializer.Deserialize<IEnumerable<BiblePublicationTrack>>(biblePublicationTracks)!
+                                                   .ToDictionary(x => x.TrackCode, x => x));
     }
 
     public async Task<Dictionary<string, Publication>> GetMelodyMusicReleases()
@@ -186,7 +186,7 @@ public class MediaReader(string indexRoot)
             .ToDictionary(x => x.Code, x => x);
     }
 
-    public async Task<SortedDictionary<int, DramaTrack>> GetDramaTracks(string languageCode, string categoryKey)
+    public async Task<SortedDictionary<string, DramaTrack>> GetDramaTracks(string languageCode, string categoryKey)
     {
         var root = indexRoot;
         // Unified structure: Dramas/{languageCode}/{categoryKey}/tracks.json (no Audio/Video prefix)
@@ -195,8 +195,8 @@ public class MediaReader(string indexRoot)
         var normalizedCategoryKey = categoryKey.ToUpperInvariant();
         var trackIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedCategoryKey, "tracks.json");
         var dramaTracks = await File.ReadAllTextAsync(trackIndex);
-        return new SortedDictionary<int, DramaTrack>(JsonSerializer.Deserialize<IEnumerable<DramaTrack>>(dramaTracks)!
-            .ToDictionary(x => x.Number, x => x));
+        return new SortedDictionary<string, DramaTrack>(JsonSerializer.Deserialize<IEnumerable<DramaTrack>>(dramaTracks)!
+            .ToDictionary(x => x.TrackCode, x => x));
     }
 
     public async Task<SortedDictionary<int, BiblePublicationSection>> GetDramaPublicationSections(string languageCode, string publicationCode)
@@ -211,7 +211,7 @@ public class MediaReader(string indexRoot)
         return new SortedDictionary<int, BiblePublicationSection>(sections.ToDictionary(x => x.Number, x => x));
     }
 
-    public async Task<SortedDictionary<int, DramaTrack>> GetDramaPublicationTracks(string languageCode, string publicationCode, string sectionCode)
+    public async Task<SortedDictionary<string, DramaTrack>> GetDramaPublicationTracks(string languageCode, string publicationCode, string sectionCode)
     {
         var root = indexRoot;
         // Unified structure: Dramas/{languageCode}/{publicationCode}/{sectionCode}/tracks.json
@@ -220,8 +220,8 @@ public class MediaReader(string indexRoot)
         var normalizedSectionCode = sectionCode.ToUpperInvariant();
         var trackIndex = Path.Combine(root, "Dramas", normalizedLanguageCode, normalizedPublicationCode, normalizedSectionCode, "tracks.json");
         var dramaTracks = await File.ReadAllTextAsync(trackIndex);
-        return new SortedDictionary<int, DramaTrack>(JsonSerializer.Deserialize<IEnumerable<DramaTrack>>(dramaTracks)!
-            .ToDictionary(x => x.Number, x => x));
+        return new SortedDictionary<string, DramaTrack>(JsonSerializer.Deserialize<IEnumerable<DramaTrack>>(dramaTracks)!
+            .ToDictionary(x => x.TrackCode, x => x));
     }
 
     public async Task<Dictionary<string, Language>> GetVideoLanguages()

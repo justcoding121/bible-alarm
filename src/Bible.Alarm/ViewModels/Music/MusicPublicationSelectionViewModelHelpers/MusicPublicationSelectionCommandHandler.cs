@@ -3,6 +3,7 @@ using System.Net.Http;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Music;
@@ -120,17 +121,16 @@ public sealed class MusicPublicationSelectionCommandHandler(
                         currentSchedule?.MusicPublicationCode == songPublication.Code &&
                         string.Equals(currentSchedule.MusicSectionCode, selectedSectionCode, StringComparison.OrdinalIgnoreCase) &&
                         !string.IsNullOrWhiteSpace(currentSchedule.MusicTrackCode) &&
-                        int.TryParse(currentSchedule.MusicTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackNum) &&
-                        sectionTracks.TryGetValue(parsedTrackNum, out var existingTrack))
+                        sectionTracks.TryGetValue(currentSchedule.MusicTrackCode, out var existingTrack))
                     {
-                        trackCode = existingTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        trackCode = TrackCodeHelper.GetFromTrack(existingTrack);
                         trackName = existingTrack.Title ?? string.Empty;
                     }
                     else
                     {
                         var tracksList = sectionTracks.Values.ToList();
                         var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-                        trackCode = randomTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        trackCode = TrackCodeHelper.GetFromTrack(randomTrack);
                         trackName = randomTrack.Title ?? string.Empty;
                     }
                 }

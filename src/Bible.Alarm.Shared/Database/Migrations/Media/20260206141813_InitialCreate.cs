@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -164,7 +164,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    Number = table.Column<int>(type: "INTEGER", nullable: false),
+                    TrackCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
                     Title = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
                     BiblePublicationId = table.Column<int>(type: "INTEGER", nullable: false),
                     BiblePublicationSectionId = table.Column<int>(type: "INTEGER", nullable: true)
@@ -239,14 +239,14 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 column: "BiblePublicationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BiblePublicationTracks_BiblePublicationId_Number",
+                name: "IX_BiblePublicationTracks_BiblePublicationId_TrackCode",
                 table: "BiblePublicationTracks",
-                columns: new[] { "BiblePublicationId", "Number" });
+                columns: new[] { "BiblePublicationId", "TrackCode" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_BiblePublicationTracks_BiblePublicationSectionId_Number",
+                name: "IX_BiblePublicationTracks_BiblePublicationSectionId_TrackCode",
                 table: "BiblePublicationTracks",
-                columns: new[] { "BiblePublicationSectionId", "Number" },
+                columns: new[] { "BiblePublicationSectionId", "TrackCode" },
                 unique: true);
 
             migrationBuilder.CreateIndex(

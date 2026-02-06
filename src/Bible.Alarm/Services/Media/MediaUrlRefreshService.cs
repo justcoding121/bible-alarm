@@ -372,14 +372,31 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
                     itemNaturalKey = naturalKeyElement.GetString();
                 }
 
-                // Match by naturalKey if available, otherwise by sequential track number
+                // Extract pub code from naturalKey if available (format: "pub-{pubCode}_{lang}_{number}_AUDIO")
+                string? itemPubCode = null;
+                if (!string.IsNullOrEmpty(itemNaturalKey) && itemNaturalKey.StartsWith("pub-", StringComparison.OrdinalIgnoreCase))
+                {
+                    var parts = itemNaturalKey.Split('_');
+                    if (parts.Length > 0)
+                    {
+                        itemPubCode = parts[0].Substring(4); // Remove "pub-" prefix
+                    }
+                }
+
+                // Match by naturalKey if available, then by pub code (for dramas), then by sequential track number
                 bool matches = false;
                 if (!string.IsNullOrEmpty(naturalKey) && !string.IsNullOrEmpty(itemNaturalKey))
                 {
                     matches = itemNaturalKey.Equals(naturalKey, StringComparison.OrdinalIgnoreCase);
                 }
+                else if (!string.IsNullOrEmpty(itemPubCode) && !int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out _))
+                {
+                    // trackCode is not numeric (likely a pub param value for dramas) - match by pub code
+                    matches = itemPubCode.Equals(trackCode, StringComparison.OrdinalIgnoreCase);
+                }
                 else if (int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackCode) && currentTrackCode == parsedTrackCode)
                 {
+                    // trackCode is numeric - match by sequential track number
                     matches = true;
                 }
 

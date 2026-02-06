@@ -359,7 +359,7 @@ internal static class CollectionViewScrollExecutor
             }
             else if (item is BiblePublicationTrackListViewItemModel trackItem &&
                      itemsList[i] is BiblePublicationTrackListViewItemModel listTrackItem &&
-                     trackItem.Number == listTrackItem.Number)
+                     trackItem.TrackCode == listTrackItem.TrackCode)
             {
                 return i;
             }

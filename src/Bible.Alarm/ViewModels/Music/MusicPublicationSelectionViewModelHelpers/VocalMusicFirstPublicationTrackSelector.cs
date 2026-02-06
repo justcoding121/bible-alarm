@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
@@ -216,7 +217,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         // Data is already saved, just reading from DB - no progress updates needed
         var sections = await mediaService.GetBiblePublicationSections(language.Code, publicationCode, progress: null);
 
-        SortedDictionary<int, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack>? tracks;
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack>? tracks;
         if (sections != null && sections.Count > 0)
         {
             // Sectioned publication - get tracks from first section
@@ -239,8 +240,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
 
         if (isSameLanguage &&
             !string.IsNullOrWhiteSpace(currentSchedule?.MusicTrackCode) &&
-            int.TryParse(currentSchedule.MusicTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackNum) &&
-            tracks.TryGetValue(parsedTrackNum, out var currentTrack))
+            tracks.TryGetValue(currentSchedule.MusicTrackCode, out var currentTrack))
         {
             trackCode = currentSchedule.MusicTrackCode;
             trackName = currentTrack.Title;
@@ -249,7 +249,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         {
             var tracksList = tracks.Values.ToList();
             var randomTrack = tracksList[Random.Shared.Next(tracksList.Count)];
-            trackCode = randomTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            trackCode = TrackCodeHelper.GetFromTrack(randomTrack);
             trackName = randomTrack.Title;
         }
 

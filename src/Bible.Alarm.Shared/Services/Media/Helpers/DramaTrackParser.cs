@@ -26,12 +26,9 @@ internal sealed class DramaTrackParser
         JsonElement sectionFilesElement,
         string normalizedLanguageCode,
         string sectionCode,
-        BaseUrl baseUrl,
-        int startTrackCode,
-        out int nextTrackCode)
+        BaseUrl baseUrl)
     {
         var tracks = new List<BiblePublicationTrack>();
-        nextTrackCode = startTrackCode;
 
         if (!sectionFilesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) ||
             !languageFiles.TryGetProperty("MP3", out var mp3Files))
@@ -41,11 +38,10 @@ internal sealed class DramaTrackParser
 
         foreach (var trackFile in mp3Files.EnumerateArray())
         {
-            var track = ParseSingleTrack(trackFile, nextTrackCode, sectionCode, baseUrl, normalizedLanguageCode);
+            var track = ParseSingleTrack(trackFile, sectionCode, baseUrl, normalizedLanguageCode);
             if (track != null)
             {
                 tracks.Add(track);
-                nextTrackCode++;
             }
         }
 
@@ -54,7 +50,6 @@ internal sealed class DramaTrackParser
 
     private BiblePublicationTrack? ParseSingleTrack(
         JsonElement trackFile,
-        int trackNumber,
         string sectionCode,
         BaseUrl baseUrl,
         string normalizedLanguageCode)
@@ -140,9 +135,10 @@ internal sealed class DramaTrackParser
             }
         };
 
+        // For dramas, TrackCode is the sectionCode (pub param value), not the sequential number
         return new BiblePublicationTrack
         {
-            Number = trackNumber,
+            TrackCode = sectionCode,
             Title = title,
             UrlParams = trackUrlParams
         };

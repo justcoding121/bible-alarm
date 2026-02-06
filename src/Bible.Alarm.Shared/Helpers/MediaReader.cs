@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
@@ -53,16 +54,21 @@ public class MediaReader(string indexRoot)
         return new SortedDictionary<string, BiblePublicationSection>(map, SectionCodeHelper.SectionCodeComparer);
     }
 
-    public async Task<SortedDictionary<int, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode,
+    public async Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode,
         string sectionCode)
     {
         var root = indexRoot;
         var sectionsIndex = Path.Combine(root, "Audio", "Bible", languageCode, versionCode, sectionCode,
             "tracks.json");
         var biblePublicationTracks = await File.ReadAllTextAsync(sectionsIndex);
-        return new SortedDictionary<int, BiblePublicationTrack>(JsonSerializer
-            .Deserialize<IEnumerable<BiblePublicationTrack>>(biblePublicationTracks)!
-            .ToDictionary(x => x.Number, x => x));
+        // Parse TrackCode as int for dictionary key (for backward compatibility)
+        var tracks = JsonSerializer.Deserialize<IEnumerable<BiblePublicationTrack>>(biblePublicationTracks)!;
+        var dict = new Dictionary<string, BiblePublicationTrack>();
+        foreach (var track in tracks)
+        {
+            dict[track.TrackCode] = track;
+        }
+        return new SortedDictionary<string, BiblePublicationTrack>(dict, TrackCodeComparer.Comparer);
     }
 
     public async Task<Dictionary<string, Publication>> GetMelodyMusicReleases()

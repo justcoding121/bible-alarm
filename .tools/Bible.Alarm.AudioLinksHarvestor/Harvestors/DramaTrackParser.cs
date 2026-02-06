@@ -44,7 +44,6 @@ internal static class DramaTrackParser
                 return (null, sectionName);
             }
 
-            var trackCode = 1;
             foreach (var trackFile in mp3Files.EnumerateArray())
             {
                 if (!trackFile.TryGetProperty("file", out var fileElement))
@@ -88,15 +87,14 @@ internal static class DramaTrackParser
                 // Build lookup path using GETPUBMEDIALINKS format (no track param for drama sections)
                 var lookUpPath = $"?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}";
 
+                // For dramas, TrackCode is the sectionCode (pub param value), not sequential number
                 tracks.Add(new DramaTrack
                 {
-                    Number = trackCode,
+                    TrackCode = sectionCode,
                     Title = title,
                     Url = url,
                     LookUpPath = lookUpPath
                 });
-
-                trackCode++;
             }
         }
         catch (Exception ex)

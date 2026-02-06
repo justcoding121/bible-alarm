@@ -100,7 +100,7 @@ internal sealed class DefaultMusicPopulator
                 stateItem.MusicTrackName = randomTrack.Title;
 
                 Log.Logger.Debug("Populated default music properties for schedule {ScheduleId}. PublicationCode={PublicationCode}, TrackCode={TrackCode}",
-                    schedule.Id, defaultPublicationCode, randomTrack.Number);
+                    schedule.Id, defaultPublicationCode, TrackCodeHelper.GetFromTrack(randomTrack));
             }
 
             Log.Logger.Information("Batch populated default music for {Count} schedules", schedulesNeedingMusic.Count);

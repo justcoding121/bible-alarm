@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -23,7 +24,7 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
 
-    public async Task<SortedDictionary<int, BiblePublicationTrack>> GetTracksBySectionAsync(
+    public async Task<SortedDictionary<string, BiblePublicationTrack>> GetTracksBySectionAsync(
         string languageCode,
         string publicationCode,
         string? sectionCode,
@@ -47,7 +48,7 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
 
             if (publicationId <= 0)
             {
-                return new SortedDictionary<int, BiblePublicationTrack>();
+                return new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
             }
 
             var tracks = await dbContext.BiblePublicationTracks
@@ -57,12 +58,16 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
                     string.IsNullOrWhiteSpace(sectionCode)
                         ? t.BiblePublicationSectionId == null
                         : t.Section != null && t.Section.SectionCode == sectionCode)
-                .OrderBy(t => t.Number)
                 .ToListAsync(cancellationToken);
 
-            return tracks.Count == 0
-                ? new SortedDictionary<int, BiblePublicationTrack>()
-                : new SortedDictionary<int, BiblePublicationTrack>(tracks.ToDictionary(x => x.Number, x => x));
+            if (tracks.Count == 0)
+            {
+                return new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
+            }
+
+            // Order in memory using the custom comparer (EF Core can't translate custom comparers)
+            var orderedTracks = tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
+            return new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(x => x.TrackCode, x => x), TrackCodeComparer.Comparer);
         }
         catch (Exception ex)
         {
@@ -110,15 +115,8 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
                         ? t.BiblePublicationSectionId == null
                         : t.Section != null && t.Section.SectionCode == sectionCode);
 
-            if (int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
-            {
-                query = query.Where(t => t.Number == trackNum);
-            }
-            else
-            {
-                var normalizedPubValue = trackCode.ToUpperInvariant();
-                query = query.Where(t => t.UrlParams.Any(p => p.Key == "pub" && p.Value.ToUpperInvariant() == normalizedPubValue));
-            }
+            // Query by TrackCode (string)
+            query = query.Where(t => t.TrackCode == trackCode);
 
             return await query.SingleOrDefaultAsync(cancellationToken);
         }

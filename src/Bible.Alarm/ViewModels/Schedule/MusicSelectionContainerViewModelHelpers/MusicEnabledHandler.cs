@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -187,7 +188,7 @@ public class MusicEnabledHandler
                             if (latestSchedule.MusicLanguageCode == null &&
                                 latestSchedule.MusicPublicationCode == defaultPublicationCode &&
                                 latestSchedule.MusicSectionCode == chosenSection?.SectionCode &&
-                                latestSchedule.MusicTrackCode == chosenTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture) &&
+                                latestSchedule.MusicTrackCode == TrackCodeHelper.GetFromTrack(chosenTrack) &&
                                 latestSchedule.MusicEnabled == true)
                             {
                                 return;
@@ -204,7 +205,7 @@ public class MusicEnabledHandler
                             clonedSchedule.MusicLanguageCode = null; // Melody music has no language
                             clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
                             clonedSchedule.MusicSectionName = chosenSection?.Name;
-                            clonedSchedule.MusicTrackCode = chosenTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                            clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
                             clonedSchedule.MusicRepeat = false;
                             // Titles for melody tracks should come from harvested track titles as-is.
                             clonedSchedule.MusicTrackName = WebUtility.HtmlDecode(chosenTrack.Title).Replace('\u00A0', ' ');

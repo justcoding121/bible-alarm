@@ -220,9 +220,10 @@ internal sealed class FlatPublicationFetcher
                                     }
                                 };
 
+                                // TrackCode is the track param value from URL params
                                 var track = new BiblePublicationTrack
                                 {
-                                    Number = trackCode,
+                                    TrackCode = trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture),
                                     Title = title,
                                     UrlParams = trackUrlParams
                                 };
@@ -316,9 +317,10 @@ internal sealed class FlatPublicationFetcher
                             }
                         };
 
+                        // TrackCode is the apiTrackCode from the API response (track param value)
                         var bibleTrack = new BiblePublicationTrack
                         {
-                            Number = trackCode,
+                            TrackCode = apiTrackCode.ToString(System.Globalization.CultureInfo.InvariantCulture),
                             Title = title,
                             UrlParams = trackUrlParams
                         };

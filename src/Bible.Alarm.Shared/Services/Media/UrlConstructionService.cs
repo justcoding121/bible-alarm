@@ -239,15 +239,8 @@ public class UrlConstructionService : IUrlConstructionService
             query = query.Where(t => t.Section == null);
         }
 
-        if (int.TryParse(normalizedTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
-        {
-            query = query.Where(t => t.Number == trackNum);
-        }
-        else
-        {
-            var normalizedPubValue = normalizedTrackCode.ToUpperInvariant();
-            query = query.Where(t => t.UrlParams.Any(p => p.Key == "pub" && p.Value.ToUpperInvariant() == normalizedPubValue));
-        }
+        // Query by TrackCode (string)
+        query = query.Where(t => t.TrackCode == normalizedTrackCode);
 
         var track = await query.SingleOrDefaultAsync();
 
@@ -362,16 +355,8 @@ public class UrlConstructionService : IUrlConstructionService
             query = query.Where(t => t.Section == null);
         }
 
-        // Resolve track by trackCode: numeric (Number) or drama (UrlParam pub value)
-        if (int.TryParse(normalizedTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
-        {
-            query = query.Where(t => t.Number == trackNum);
-        }
-        else
-        {
-            var normalizedPubValue = normalizedTrackCode.ToUpperInvariant();
-            query = query.Where(t => t.UrlParams.Any(p => p.Key == "pub" && p.Value.ToUpperInvariant() == normalizedPubValue));
-        }
+        // Resolve track by TrackCode (string)
+        query = query.Where(t => t.TrackCode == normalizedTrackCode);
 
         var track = await query.SingleOrDefaultAsync();
 

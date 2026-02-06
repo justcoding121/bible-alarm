@@ -25,7 +25,7 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
     }
 
     private readonly Dictionary<SectionsCacheKey, CacheEntry<SortedDictionary<string, BiblePublicationSection>>> sectionsCache = new();
-    private readonly Dictionary<TracksCacheKey, CacheEntry<SortedDictionary<int, BiblePublicationTrack>>> tracksCache = new();
+    private readonly Dictionary<TracksCacheKey, CacheEntry<SortedDictionary<string, BiblePublicationTrack>>> tracksCache = new();
     private readonly object cacheLock = new();
 
     private async Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsCachedAsync(string languageCode, string publicationCode)
@@ -50,7 +50,7 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
         return sections;
     }
 
-    private async Task<SortedDictionary<int, BiblePublicationTrack>> GetTracksCachedAsync(string languageCode, string publicationCode, string? sectionCode)
+    private async Task<SortedDictionary<string, BiblePublicationTrack>> GetTracksCachedAsync(string languageCode, string publicationCode, string? sectionCode)
     {
         var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode) ?? string.Empty;
         var key = new TracksCacheKey(languageCode.ToUpperInvariant(), publicationCode, normalizedSectionCode.ToUpperInvariant());
@@ -67,7 +67,7 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
         var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, SectionCodeHelper.Normalize(sectionCode));
         lock (cacheLock)
         {
-            tracksCache[key] = new CacheEntry<SortedDictionary<int, BiblePublicationTrack>>(now, tracks);
+            tracksCache[key] = new CacheEntry<SortedDictionary<string, BiblePublicationTrack>>(now, tracks);
         }
 
         return tracks;
@@ -106,9 +106,10 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
 
         var tracks = await GetTracksCachedAsync(languageCode, publicationCode, normalizedSectionCode);
         var currentKey = ResolveTrackCodeToKey(tracks, trackCode);
-        var nextTrack = tracks.SkipWhile(kvp => kvp.Key <= currentKey).FirstOrDefault();
+        // Use TrackCodeComparer to find next track (tracks dictionary is already sorted correctly)
+        var nextTrack = tracks.SkipWhile(kvp => TrackCodeComparer.Comparer.Compare(kvp.Key, currentKey) <= 0).FirstOrDefault();
 
-        if (!nextTrack.Equals(default(KeyValuePair<int, BiblePublicationTrack>)))
+        if (!nextTrack.Equals(default(KeyValuePair<string, BiblePublicationTrack>)))
         {
             return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, nextTrack.Value);
         }
@@ -129,11 +130,11 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
         return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(nextSection.Value, tracks.ElementAt(0).Value);
     }
 
-    private static int ResolveTrackCodeToKey(SortedDictionary<int, BiblePublicationTrack> tracks, string trackCode)
+    private static string ResolveTrackCodeToKey(SortedDictionary<string, BiblePublicationTrack> tracks, string trackCode)
     {
-        if (int.TryParse(trackCode, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) && tracks.ContainsKey(n))
+        if (tracks.ContainsKey(trackCode))
         {
-            return n;
+            return trackCode;
         }
         foreach (var kvp in tracks)
         {
@@ -178,9 +179,11 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
 
         var tracks = await GetTracksCachedAsync(languageCode, publicationCode, normalizedSectionCode);
         var currentKey = ResolveTrackCodeToKey(tracks, trackCode);
-        var previousTrack = tracks.OrderBy(kvp => kvp.Key).Reverse().SkipWhile(kvp => kvp.Key >= currentKey).FirstOrDefault();
+        
+        // Use TrackCodeComparer to find previous track (tracks dictionary is already sorted correctly)
+        var previousTrack = tracks.Reverse().SkipWhile(kvp => TrackCodeComparer.Comparer.Compare(kvp.Key, currentKey) >= 0).FirstOrDefault();
 
-        if (!previousTrack.Equals(default(KeyValuePair<int, BiblePublicationTrack>)))
+        if (!previousTrack.Equals(default(KeyValuePair<string, BiblePublicationTrack>)))
         {
             return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, previousTrack.Value);
         }
@@ -198,7 +201,8 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             throw new InvalidOperationException($"No tracks in previous section: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={previousSection.Key}");
         }
 
-        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(previousSection.Value, tracks.OrderBy(kvp => kvp.Key).Last().Value);
+        // Use Last() directly since tracks dictionary is already sorted correctly with TrackCodeComparer
+        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(previousSection.Value, tracks.Last().Value);
     }
 
     /// <summary>
@@ -218,11 +222,12 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             throw new InvalidOperationException($"No tracks found for non-sectioned publication: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        var orderedTracks = publication.Tracks.OrderBy(t => t.Number).ToList();
-        var currentKey = ResolveTrackCodeToKey(new SortedDictionary<int, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.Number, t => t)), trackCode);
+        var orderedTracks = publication.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
+        var tracksDict = new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
+        var currentKey = ResolveTrackCodeToKey(tracksDict, trackCode);
 
-        // Find the next track
-        var nextTrack = orderedTracks.FirstOrDefault(t => t.Number > currentKey);
+        // Find the next track using TrackCodeComparer (tracks dictionary is already sorted correctly)
+        var nextTrack = orderedTracks.FirstOrDefault(t => TrackCodeComparer.Comparer.Compare(t.TrackCode, currentKey) > 0);
 
         if (nextTrack != null)
         {
@@ -250,11 +255,12 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
             throw new InvalidOperationException($"No tracks found for non-sectioned publication: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        var orderedTracks = publication.Tracks.OrderBy(t => t.Number).ToList();
-        var currentKey = ResolveTrackCodeToKey(new SortedDictionary<int, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.Number, t => t)), trackCode);
+        var orderedTracks = publication.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
+        var tracksDict = new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
+        var currentKey = ResolveTrackCodeToKey(tracksDict, trackCode);
 
-        // Find the previous track
-        var previousTrack = orderedTracks.LastOrDefault(t => t.Number < currentKey);
+        // Find the previous track using TrackCodeComparer (tracks dictionary is already sorted correctly)
+        var previousTrack = orderedTracks.LastOrDefault(t => TrackCodeComparer.Comparer.Compare(t.TrackCode, currentKey) < 0);
 
         if (previousTrack != null)
         {

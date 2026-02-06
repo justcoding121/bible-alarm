@@ -380,8 +380,8 @@ public sealed class BiblePublicationSelectionDataProvider
             }
 
             var firstTrack = tracks.Values.First();
-            Log.Debug("DispatchDefaultPublicationAsync: First track number={TrackCode}, title={TrackTitle}",
-                firstTrack.Number, firstTrack.Title);
+            Log.Debug("DispatchDefaultPublicationAsync: First track trackCode={TrackCode}, title={TrackTitle}",
+                firstTrack.TrackCode, firstTrack.Title);
 
             // IMPORTANT: Always preserve category from current schedule - category can only be changed via CategorySelectionAction
             var currentSchedule = state.Value.CurrentSchedule;
@@ -402,7 +402,7 @@ public sealed class BiblePublicationSelectionDataProvider
             };
 
             Log.Information("DispatchDefaultPublicationAsync: Dispatching TrackSelectedAction for publication={PublicationCode}, section={SectionCode}/{SectionName}, track={TrackCode}/{TrackTitle}",
-                defaultPublication.Code, firstSectionCode, firstSection.Name, firstTrack.Number, firstTrack.Title);
+                defaultPublication.Code, firstSectionCode, firstSection.Name, firstTrack.TrackCode, firstTrack.Title);
             
             dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
         }

@@ -15,16 +15,20 @@ namespace Bible.Alarm.Shared.Models.Media.BiblePublications;
 /// - Publication-based: Links directly to BiblePublication (Drama/Video publications)
 /// </summary>
 [Table("BiblePublicationTracks")]
-[Index(nameof(BiblePublicationId), nameof(Number))]
-[Index(nameof(BiblePublicationSectionId), nameof(Number), IsUnique = true)]
+[Index(nameof(BiblePublicationId), nameof(TrackCode))]
+[Index(nameof(BiblePublicationSectionId), nameof(TrackCode), IsUnique = true)]
 public sealed class BiblePublicationTrack : IComparable
 {
     [Key]
     public int Id { get; set; }
 
+    /// <summary>
+    /// Track code from API: chapter number as string for Bible (e.g. "1", "2"), pub value for drama (e.g. "iaey"), track number as string for music/video.
+    /// This is the stable identifier used in schedules and for API lookups.
+    /// </summary>
     [Required]
-    [Range(1, 500)]
-    public int Number { get; set; }
+    [MaxLength(50)]
+    public string TrackCode { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(255)]
@@ -68,6 +72,12 @@ public sealed class BiblePublicationTrack : IComparable
             return 1;
         }
 
-        return Number.CompareTo(other.Number);
+        // Compare TrackCode as string, but try to parse as int for numeric comparison when both are numeric
+        if (int.TryParse(TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var thisNum) &&
+            int.TryParse(other.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var otherNum))
+        {
+            return thisNum.CompareTo(otherNum);
+        }
+        return string.Compare(TrackCode, other.TrackCode, StringComparison.OrdinalIgnoreCase);
     }
 }

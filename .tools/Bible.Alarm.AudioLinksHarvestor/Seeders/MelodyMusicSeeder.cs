@@ -195,9 +195,12 @@ internal sealed class MelodyMusicSeeder
                         trackTitle = $"Melody Number(s) {trackTitle}";
                     }
 
+                    // TrackCode is the originalTrackCode from UrlParams (track param), or Number as string fallback
+                    var trackCode = trackUrlParams.FirstOrDefault(p => p.Key == "track")?.Value ?? musicTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    
                     var track = new SharedBiblePublicationTrack
                     {
-                        Number = musicTrack.Number,
+                        TrackCode = trackCode,
                         Title = trackTitle,
                         Section = section,
                         BiblePublicationSectionId = 0, // Will be set after section is saved

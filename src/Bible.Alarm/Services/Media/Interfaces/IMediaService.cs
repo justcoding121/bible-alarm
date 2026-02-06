@@ -13,7 +13,7 @@ public interface IMediaService : IDisposable
     Task<SortedDictionary<string, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode, IFetchProgress? progress = null);
     Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsForPublicationWithoutLanguage(string publicationCode);
     Task<BiblePublicationSection?> GetBiblePublicationSection(string languageCode, string versionCode, string sectionCode);
-    Task<SortedDictionary<int, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode);
+    Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode);
     Task<BiblePublicationTrack?> GetBiblePublicationTrack(string languageCode, string versionCode, string? sectionCode, string trackCode);
     Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases();
     Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode);

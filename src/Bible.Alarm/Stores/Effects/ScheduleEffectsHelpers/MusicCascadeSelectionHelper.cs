@@ -30,7 +30,7 @@ internal static class MusicCascadeSelectionHelper
                 var tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionCode);
                 if (tracks != null && tracks.Count > 0)
                 {
-                    var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
+                    var firstTrack = tracks.Values.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
                     return (sectionCode, sectionName, TrackCodeHelper.GetFromTrack(firstTrack), firstTrack.Title ?? string.Empty);
                 }
 
@@ -41,7 +41,7 @@ internal static class MusicCascadeSelectionHelper
             var flatTracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, null);
             if (flatTracks != null && flatTracks.Count > 0)
             {
-                var firstTrack = flatTracks.Values.OrderBy(t => t.Number).First();
+                var firstTrack = flatTracks.Values.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
                 return (null, string.Empty, TrackCodeHelper.GetFromTrack(firstTrack), firstTrack.Title ?? string.Empty);
             }
 
@@ -61,7 +61,7 @@ internal static class MusicCascadeSelectionHelper
             var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionCode);
             if (tracks != null && tracks.Count > 0)
             {
-                var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
+                var firstTrack = tracks.Values.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
                 return (sectionCode, sectionName, TrackCodeHelper.GetFromTrack(firstTrack), firstTrack.Title ?? string.Empty);
             }
 
@@ -72,7 +72,7 @@ internal static class MusicCascadeSelectionHelper
         var flatTracksWithLanguage = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, null);
         if (flatTracksWithLanguage != null && flatTracksWithLanguage.Count > 0)
         {
-            var firstTrack = flatTracksWithLanguage.Values.OrderBy(t => t.Number).First();
+            var firstTrack = flatTracksWithLanguage.Values.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
             return (null, string.Empty, TrackCodeHelper.GetFromTrack(firstTrack), firstTrack.Title ?? string.Empty);
         }
 

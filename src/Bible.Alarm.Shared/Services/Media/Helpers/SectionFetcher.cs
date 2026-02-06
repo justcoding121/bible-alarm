@@ -204,9 +204,8 @@ internal sealed class SectionFetcher
                 }
                 else
                 {
-                    int nextTrackCode;
                     tracks = dramaTrackParser.ParseTracksFromJson(
-                        filesElement, normalizedLanguageCode, sectionCode, baseUrl, startTrackCode: 1, out nextTrackCode);
+                        filesElement, normalizedLanguageCode, sectionCode, baseUrl);
                 }
 
                 // Create and save section immediately (incremental save)
@@ -396,9 +395,10 @@ internal sealed class SectionFetcher
                 }
             }
 
+            // TrackCode will be set from URL params below (track param for Bible, pub param for drama)
             var track = new BiblePublicationTrack
             {
-                Number = trackCode,
+                TrackCode = trackCode.ToString(System.Globalization.CultureInfo.InvariantCulture), // Will be overridden by URL param value
                 Title = title,
                 Publication = publication,
                 BiblePublicationId = publication.Id,
@@ -436,6 +436,8 @@ internal sealed class SectionFetcher
                     BaseUrl = baseUrl,
                     BaseUrlId = baseUrl.Id
                 });
+                // For dramas, TrackCode is the pub param value (sectionCode)
+                track.TrackCode = normalizedSectionCode;
             }
 
             track.UrlParams.Add(new UrlParam

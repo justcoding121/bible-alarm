@@ -5,6 +5,7 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -320,7 +321,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                             var section = pub.Sections.FirstOrDefault(s => s.SectionCode == firstSection.SectionCode);
                             if (section?.Tracks != null && section.Tracks.Count > 0)
                             {
-                                var firstTrack = section.Tracks.OrderBy(t => t.Number).First();
+                                var firstTrack = section.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
                                 trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
                                 trackTitle = firstTrack.Title ?? string.Empty;
                             }
@@ -342,7 +343,7 @@ public sealed class CategorySelectionAutoPopulateHandler
                         
                         if (pub?.Tracks != null && pub.Tracks.Count > 0)
                         {
-                            var firstTrack = pub.Tracks.OrderBy(t => t.Number).First();
+                            var firstTrack = pub.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
                             trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
                             trackTitle = firstTrack.Title ?? string.Empty;
                         }
@@ -509,12 +510,16 @@ public sealed class CategorySelectionAutoPopulateHandler
             }
 
             // Check if the first section exists
-            var firstSectionId = await db.BiblePublicationSections
+            // Load sections into memory first, then filter case-insensitively (EF Core can't translate ToUpper/Equals with StringComparison)
+            var sections = await db.BiblePublicationSections
                 .AsNoTracking()
-                .Where(s => s.BiblePublicationId == publicationId &&
-                            s.SectionCode.Equals(firstSectionCode, StringComparison.OrdinalIgnoreCase))
-                .Select(s => s.Id)
-                .FirstOrDefaultAsync();
+                .Where(s => s.BiblePublicationId == publicationId)
+                .Select(s => new { s.Id, s.SectionCode })
+                .ToListAsync();
+
+            var firstSection = sections.FirstOrDefault(s =>
+                string.Equals(s.SectionCode, firstSectionCode, StringComparison.OrdinalIgnoreCase));
+            var firstSectionId = firstSection?.Id ?? 0;
 
             if (firstSectionId <= 0)
             {

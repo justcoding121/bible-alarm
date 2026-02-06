@@ -328,7 +328,7 @@ internal sealed class LookupDataLoader
             sectionsDict[(pubCode, normalizedSectionCode)] = s.Name;
         }
 
-        // Load tracks (Number + Title) for relevant no-language publications.
+        // Load tracks (TrackCode + Title) for relevant no-language publications.
         // We load all tracks for these publications; no-language pubs are expected to be small (e.g. melody discs).
         var tracks = await db.BiblePublicationTracks
             .AsNoTracking()
@@ -337,7 +337,7 @@ internal sealed class LookupDataLoader
             {
                 t.BiblePublicationId,
                 t.BiblePublicationSectionId,
-                t.Number,
+                t.TrackCode,
                 t.Title
             })
             .ToListAsync(CancellationToken.None);
@@ -363,11 +363,12 @@ internal sealed class LookupDataLoader
                 continue;
             }
 
-            var sectionCode =
-                t.BiblePublicationSectionId.HasValue &&
-                sectionCodeById.TryGetValue(t.BiblePublicationSectionId.Value, out var sc)
-                    ? sc
-                    : null;
+            string? sectionCode = null;
+            if (t.BiblePublicationSectionId.HasValue &&
+                sectionCodeById.TryGetValue(t.BiblePublicationSectionId.Value, out var sc))
+            {
+                sectionCode = sc;
+            }
 
             var normalizedTitle = t.Title?.Trim();
             if (string.IsNullOrWhiteSpace(normalizedTitle))
@@ -375,7 +376,7 @@ internal sealed class LookupDataLoader
                 continue;
             }
 
-            var trackKey = (pubCode, sectionCode, t.Number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            var trackKey = (pubCode, sectionCode, t.TrackCode);
             if (!neededTrackKeys.Contains(trackKey))
             {
                 continue;

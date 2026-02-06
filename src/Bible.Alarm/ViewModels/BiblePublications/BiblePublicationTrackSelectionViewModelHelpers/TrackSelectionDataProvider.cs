@@ -33,7 +33,7 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
         {
             Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loading non-sectioned tracks for publication={PublicationCode}", publicationCode);
             var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
-            tracksFromDb = publication?.Tracks?.OrderBy(t => t.Number) ?? Enumerable.Empty<BiblePublicationTrack>();
+            tracksFromDb = publication?.Tracks?.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))) ?? Enumerable.Empty<BiblePublicationTrack>();
             Log.Debug("TrackSelectionDataProvider.PopulateTracks: Loaded {TrackCount} non-sectioned tracks", tracksFromDb.Count());
         }
         else
@@ -69,8 +69,8 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
             }
         }
 
-        Log.Debug("TrackSelectionDataProvider.PopulateTracks: Created {VmCount} track VMs, selectedTrack={HasSelected} (number={SelectedNumber})",
-            trackViewModelList.Count, selectedTrack != null, selectedTrack?.Number ?? -1);
+        Log.Debug("TrackSelectionDataProvider.PopulateTracks: Created {VmCount} track VMs, selectedTrack={HasSelected} (trackCode={SelectedTrackCode})",
+            trackViewModelList.Count, selectedTrack != null, selectedTrack?.TrackCode ?? "(none)");
 
         // Minimal UI thread work - just swap the collection contents
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -108,12 +108,11 @@ public sealed class TrackSelectionDataProvider(IMediaService mediaService, IBibl
         }
 
         var track = tracks.FirstOrDefault(c => !string.IsNullOrWhiteSpace(current.TrackCode) &&
-            int.TryParse(current.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
-            c.Number == trackNum);
+            c.TrackCode == current.TrackCode);
         if (track != null)
         {
             Log.Debug("TrackSelectionDataProvider.SetSelectedTrack: Setting selected track {TrackCode} ({TrackTitle})",
-                track.Number, track.Title);
+                track.TrackCode, track.Title);
             setSelectedTrack(track);
             track.IsSelected = true;
         }

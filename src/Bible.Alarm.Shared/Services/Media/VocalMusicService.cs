@@ -173,11 +173,13 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 return new SortedDictionary<int, MusicTrack>();
             }
 
-            var tracks = publication.Tracks.Where(t => t.BiblePublicationSectionId == null).OrderBy(t => t.Number).ToList();
+            var tracks = publication.Tracks.Where(t => t.BiblePublicationSectionId == null)
+                .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
             // Map BiblePublicationTrack to MusicTrack
+            // Parse TrackCode as int for MusicTrack.Number (for backward compatibility with MusicTrack model)
             var musicTracks = tracks.Select(t => new MusicTrack
             {
-                Number = t.Number,
+                Number = int.TryParse(t.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var num) ? num : 0,
                 Title = t.Title,
                 Url = string.Empty, // URLs are computed on-demand
                 LookUpPath = string.Empty,

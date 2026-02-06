@@ -59,7 +59,7 @@ internal static class DramaFilePersistence
                 Directory.CreateDirectory(sectionDir);
             }
 
-            var tracksJson = JsonSerializer.Serialize(tracks.OrderBy(x => x.Number));
+            var tracksJson = JsonSerializer.Serialize(tracks.OrderBy(x => x.TrackCode));
             File.WriteAllText($"{sectionDir}/tracks.json", tracksJson);
         }
     }

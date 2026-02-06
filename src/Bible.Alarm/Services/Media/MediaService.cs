@@ -248,7 +248,7 @@ public sealed class MediaService(
         return await biblePublicationSectionService.GetSectionAsync(languageCode, versionCode, sectionCode, cancellationTokenSource.Token);
     }
 
-    public async Task<SortedDictionary<int, BiblePublicationTrack>>
+    public async Task<SortedDictionary<string, BiblePublicationTrack>>
         GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode)
     {
         await mediaIndexService.Verify();
@@ -266,7 +266,7 @@ public sealed class MediaService(
         return await biblePublicationTrackService.GetTracksBySectionAsync(languageCode, versionCode, sectionCode, cancellationTokenSource.Token);
     }
     
-    private async Task<SortedDictionary<int, BiblePublicationTrack>> GetTracksForPublicationWithoutLanguage(
+    private async Task<SortedDictionary<string, BiblePublicationTrack>> GetTracksForPublicationWithoutLanguage(
         string publicationCode, string? sectionCode)
     {
         using var scope = scopeFactory.CreateScope();
@@ -280,7 +280,7 @@ public sealed class MediaService(
 
         if (publicationId <= 0)
         {
-            return new SortedDictionary<int, BiblePublicationTrack>();
+            return new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
         }
 
         // Non-sectioned publications store tracks with BiblePublicationSectionId == null.
@@ -289,12 +289,15 @@ public sealed class MediaService(
             var flatTracks = await db.BiblePublicationTracks
                 .AsNoTracking()
                 .Where(t => t.BiblePublicationId == publicationId && t.BiblePublicationSectionId == null)
-                .OrderBy(t => t.Number)
                 .ToListAsync(cancellationTokenSource.Token);
 
-            return flatTracks.Count == 0
-                ? new SortedDictionary<int, BiblePublicationTrack>()
-                : new SortedDictionary<int, BiblePublicationTrack>(flatTracks.ToDictionary(t => t.Number, t => t));
+            if (flatTracks.Count == 0)
+            {
+                return new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
+            }
+
+            var orderedTracks = flatTracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
+            return new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
         }
 
         // Sectioned publications resolve by exact SectionCode string.
@@ -306,22 +309,22 @@ public sealed class MediaService(
 
         if (sectionId <= 0)
         {
-            return new SortedDictionary<int, BiblePublicationTrack>();
+            return new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
         }
 
         var tracksList = await db.BiblePublicationTracks
             .AsNoTracking()
             .Where(t => t.BiblePublicationId == publicationId && t.BiblePublicationSectionId == sectionId)
-            .OrderBy(t => t.Number)
             .ToListAsync(cancellationTokenSource.Token);
 
         if (tracksList.Count == 0)
         {
-            return new SortedDictionary<int, BiblePublicationTrack>();
+            return new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
         }
 
-        return new SortedDictionary<int, BiblePublicationTrack>(
-            tracksList.ToDictionary(t => t.Number, t => t));
+        var orderedTracksList = tracksList.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
+        return new SortedDictionary<string, BiblePublicationTrack>(
+            orderedTracksList.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
     }
 
     public async Task<BiblePublicationTrack?> GetBiblePublicationTrack(string languageCode,

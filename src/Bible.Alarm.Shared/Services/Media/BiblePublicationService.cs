@@ -101,6 +101,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             .Include(x => x.Category)
             .Include(x => x.Sections)
                 .ThenInclude(s => s.Tracks)
+                    .ThenInclude(t => t.UrlParams)
             .Where(x => x.PublicationCode == publicationCode && x.Language != null && x.Language.LanguageCode == normalizedLanguageCode)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -178,10 +179,12 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
         // Load publication with only non-sectioned tracks (tracks directly under publication, not under a section)
+        // Include UrlParams so TrackCodeHelper.GetFromTrack can return the correct track code (pub param for dramas)
         var publication = await dbContext.BiblePublications
             .AsNoTracking()
             .Include(x => x.Category)
             .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
+                .ThenInclude(t => t.UrlParams)
             .Where(x => x.PublicationCode == publicationCodeForDb && x.Language != null && x.Language.LanguageCode == normalizedLanguageCode)
             .FirstOrDefaultAsync(cancellationToken);
 

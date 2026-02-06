@@ -82,8 +82,7 @@ internal sealed class TrackSelectionResolver
         string? trackTitle;
 
         if (isSameSection && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationTrackCode) &&
-            int.TryParse(currentSchedule.BiblePublicationTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var currentTrackNum) &&
-            tracks.TryGetValue(currentTrackNum, out var existingTrack))
+            tracks.TryGetValue(currentSchedule.BiblePublicationTrackCode, out var existingTrack))
         {
             trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(existingTrack);
             trackTitle = existingTrack.Title;

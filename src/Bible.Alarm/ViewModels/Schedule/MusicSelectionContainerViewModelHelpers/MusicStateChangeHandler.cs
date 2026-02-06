@@ -2,6 +2,7 @@
 using System.Net;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -198,7 +199,7 @@ public sealed class MusicStateChangeHandler
             clonedSchedule.MusicLanguageCode = null;
             clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
             clonedSchedule.MusicSectionName = chosenSection?.Name;
-            clonedSchedule.MusicTrackCode = chosenTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
             clonedSchedule.MusicRepeat = false;
             clonedSchedule.MusicTrackName = WebUtility.HtmlDecode(chosenTrack.Title).Replace('\u00A0', ' ');
 

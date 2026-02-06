@@ -784,9 +784,9 @@ public class ScheduleEffects(
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Find the section that contains this track (music uses numeric track code)
+            // Find the section that contains this track
             var trackCode = scheduleStateItem.MusicTrackCode ?? string.Empty;
-            if (!int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
+            if (string.IsNullOrWhiteSpace(trackCode))
             {
                 return;
             }
@@ -797,7 +797,7 @@ public class ScheduleEffects(
                     .ThenInclude(s => s!.BiblePublication)
                         .ThenInclude(p => p.Category)
                 .Where(t => t.BiblePublicationSectionId != null
-                    && t.Number == trackNum
+                    && t.TrackCode == trackCode
                     && t.Publication.PublicationCode == scheduleStateItem.MusicPublicationCode
                     && t.Publication.Category.CategoryName == "Music"
                     && t.Publication.LanguageId == null)

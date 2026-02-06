@@ -180,10 +180,10 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
 
             // Map BiblePublicationTrack to MusicTrack
             // For sectioned melody (e.g. iam): set DownloadCode = section code (e.g. iam-1) and OriginalTrackCode from UrlParams so LookUpPath uses pub=sectionCode.
-            // Handle duplicate track numbers by taking the first occurrence
+            // Handle duplicate track codes by taking the first occurrence
             var musicTracks = allTracks
-                .OrderBy(t => t.Number)
-                .GroupBy(t => t.Number)
+                .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
+                .GroupBy(t => t.TrackCode)
                 .Select(g => g.First())
                 .Select(t => MapBiblePublicationTrackToMusicTrack(t))
                 .ToDictionary(x => x.Number, x => x);
@@ -233,7 +233,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
 
             // Map BiblePublicationTrack to MusicTrack (use sectionCode so LookUpPath uses pub=sectionCode)
             var musicTracks = section.Tracks
-                .OrderBy(t => t.Number)
+                .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
                 .Select(t => MapBiblePublicationTrackToMusicTrack(t, sectionCode))
                 .ToDictionary(x => x.Number, x => x);
 
@@ -265,9 +265,11 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             }
         }
 
+        // Parse TrackCode as int for MusicTrack.Number (for backward compatibility with MusicTrack model)
+        var trackNumber = int.TryParse(t.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var num) ? num : 0;
         return new MusicTrack
         {
-            Number = t.Number,
+            Number = trackNumber,
             Title = t.Title,
             Url = string.Empty,
             LookUpPath = string.Empty,

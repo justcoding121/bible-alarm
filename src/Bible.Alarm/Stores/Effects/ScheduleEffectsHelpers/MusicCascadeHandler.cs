@@ -411,7 +411,7 @@ public sealed class MusicCascadeHandler
             return;
         }
 
-        SortedDictionary<int, BiblePublicationTrack>? tracks = null;
+        SortedDictionary<string, BiblePublicationTrack>? tracks = null;
 
         if (publication.LanguageId == null)
         {
@@ -430,7 +430,7 @@ public sealed class MusicCascadeHandler
             return;
         }
 
-        var firstTrack = tracks.Values.OrderBy(t => t.Number).First();
+        var firstTrack = tracks.Values.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
         var sectionName = currentSchedule.MusicSectionName ?? string.Empty;
         var trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
 

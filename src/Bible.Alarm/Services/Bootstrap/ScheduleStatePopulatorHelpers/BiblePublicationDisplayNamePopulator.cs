@@ -219,8 +219,7 @@ internal sealed class BiblePublicationDisplayNamePopulator
                     {
                         // Find the track in the section's tracks
                         var track = section.Tracks?.FirstOrDefault(t => !string.IsNullOrWhiteSpace(biblePublication.TrackCode) &&
-                            int.TryParse(biblePublication.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
-                            t.Number == trackNum);
+                            t.TrackCode == biblePublication.TrackCode);
                         if (track != null && !string.IsNullOrWhiteSpace(track.Title))
                         {
                             scheduleStateItem.BiblePublicationTrackTitle = track.Title;
@@ -233,8 +232,7 @@ internal sealed class BiblePublicationDisplayNamePopulator
                 {
                     // For non-sectioned publications (Drama/Video), find track directly in publication's tracks
                     var track = publication.Tracks?.FirstOrDefault(t => !string.IsNullOrWhiteSpace(biblePublication.TrackCode) &&
-                        int.TryParse(biblePublication.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
-                        t.Number == trackNum);
+                        t.TrackCode == biblePublication.TrackCode);
                     if (track != null && !string.IsNullOrWhiteSpace(track.Title))
                     {
                         scheduleStateItem.BiblePublicationTrackTitle = track.Title;

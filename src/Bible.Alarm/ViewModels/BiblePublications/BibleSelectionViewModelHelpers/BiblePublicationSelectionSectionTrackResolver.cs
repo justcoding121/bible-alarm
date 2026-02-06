@@ -44,7 +44,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         Log.Debug("GetFirstSectionAndTrackFromSectionsAsync: First section codeKey={SectionCodeKey}, sectionCode={SectionCode}, name={SectionName}",
             firstSectionCode, firstSection.SectionCode, firstSection.Name);
 
-        SortedDictionary<int, BiblePublicationTrack>? tracks;
+        SortedDictionary<string, BiblePublicationTrack>? tracks;
 
         // Publications without LanguageId use null/empty languageCode
         if (string.IsNullOrEmpty(languageCode))
@@ -66,18 +66,18 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                 if (section?.Tracks != null && section.Tracks.Count > 0)
                 {
                     var tracksDict = section.Tracks
-                        .OrderBy(t => t.Number)
-                        .ToDictionary(t => t.Number, t => t);
-                    tracks = new SortedDictionary<int, BiblePublicationTrack>(tracksDict);
+                        .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
+                        .ToDictionary(t => t.TrackCode, t => t);
+                    tracks = new SortedDictionary<string, BiblePublicationTrack>(tracksDict, TrackCodeComparer.Comparer);
                 }
                 else
                 {
-                    tracks = new SortedDictionary<int, BiblePublicationTrack>();
+                    tracks = new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
                 }
             }
             else
             {
-                tracks = new SortedDictionary<int, BiblePublicationTrack>();
+                tracks = new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
             }
         }
         else
@@ -95,7 +95,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                            x.Language.LanguageCode == languageCode.ToUpperInvariant())
                 .FirstOrDefaultAsync();
 
-            SortedDictionary<int, BiblePublicationTrack>? foundTracks = null;
+            SortedDictionary<string, BiblePublicationTrack>? foundTracks = null;
 
             if (pub?.Sections != null)
             {
@@ -109,9 +109,9 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                         section.Tracks.Count,
                         section.SectionCode);
                     var tracksDict = section.Tracks
-                        .OrderBy(t => t.Number)
-                        .ToDictionary(t => t.Number, t => t);
-                    foundTracks = new SortedDictionary<int, BiblePublicationTrack>(tracksDict);
+                        .OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b)))
+                        .ToDictionary(t => t.TrackCode, t => t);
+                    foundTracks = new SortedDictionary<string, BiblePublicationTrack>(tracksDict, TrackCodeComparer.Comparer);
                 }
                 else
                 {
@@ -261,7 +261,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             return (null, string.Empty, string.Empty, string.Empty);
         }
 
-        var firstTrack = publication.Tracks.OrderBy(t => t.Number).First();
+        var firstTrack = publication.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
         var trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
         Log.Information("GetFirstTrackForNonSectionedAsync: Found first track trackCode={TrackCode}, Title={TrackTitle}",
             trackCode, firstTrack.Title);

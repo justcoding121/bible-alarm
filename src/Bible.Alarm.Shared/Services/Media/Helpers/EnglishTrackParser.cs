@@ -213,9 +213,10 @@ internal sealed class EnglishTrackParser
             });
         }
 
+        // TrackCode is the originalTrackCode from API (track param value), not the sequential trackNumber
         return new BiblePublicationTrack
         {
-            Number = trackNumber,
+            TrackCode = originalTrackCode.ToString(System.Globalization.CultureInfo.InvariantCulture),
             Title = title,
             UrlParams = trackUrlParams
         };

@@ -206,6 +206,113 @@ Harvester seeds the full language list using the JW site language endpoint:
 
 ---
 
+## Sample API Links for Track CDN URLs
+
+**Base URL**: `https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS`
+
+### Bible Publications (bi12, nwt, osg, pksjj)
+
+**Format**: `?output=json&pub={pubCode}&booknum={bookNumber}&track={trackNumber}&fileformat=MP3&alllangs=0&langwritten={langCode}`
+
+Examples:
+- **nwt** Book 1, Track 1: `?output=json&pub=nwt&booknum=1&track=1&fileformat=MP3&alllangs=0&langwritten=E`
+- **bi12** Book 1, Track 1: `?output=json&pub=bi12&booknum=1&track=1&fileformat=MP3&alllangs=0&langwritten=E`
+
+**TrackCode Source**: `trackFile["track"]` property from JSON response (e.g., `"1"`, `"2"`)
+
+### iam (Kingdom Melodies)
+
+**Format**: `?output=json&pub={discCode}&track={trackNumber}&fileformat=MP3&alllangs=0&langwritten=E`
+
+Examples:
+- Disc 1, Track 1: `?output=json&pub=iam-1&track=1&fileformat=MP3&alllangs=0&langwritten=E`
+- Disc 2, Track 1: `?output=json&pub=iam-2&track=1&fileformat=MP3&alllangs=0&langwritten=E`
+
+**TrackCode Source**: `trackFile["track"]` property from JSON response (per disc, e.g., `"1"`, `"2"`)
+
+### Dramas (Dramas, DramaticBibleReadings)
+
+**Format**: `?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={langCode}`
+
+**Note**: No `track` parameter - each section (drama) is a single file.
+
+Examples:
+- "Keep Your Eye Simple" (iaey): `?output=json&pub=iaey&fileformat=MP3&alllangs=0&langwritten=E`
+- Another drama (iaeb): `?output=json&pub=iaeb&fileformat=MP3&alllangs=0&langwritten=E`
+
+**TrackCode Source**: The `sectionCode` (pub parameter value) itself, e.g., `"iaey"`, `"iaeb"`
+
+**Why**: Dramas don't have multiple tracks per section. Each section is a single audio file identified by its pub code.
+
+### Music Publications (sjjc, sjji, snv)
+
+**Format**: `?output=json&pub={pubCode}&track={trackNumber}&fileformat=MP3&alllangs=0&langwritten={langCode}`
+
+Examples:
+- **sjjc** Track 1: `?output=json&pub=sjjc&track=1&fileformat=MP3&alllangs=0&langwritten=E`
+- **sjji** Track 1: `?output=json&pub=sjji&track=1&fileformat=MP3&alllangs=0&langwritten=E`
+- **snv** Track 1: `?output=json&pub=snv&track=1&fileformat=MP3&alllangs=0&langwritten=E`
+
+**TrackCode Source**: `track` parameter value from JSON response (e.g., `"1"`, `"2"`, `"3"`)
+
+### Video Publications (gnj)
+
+**Format**: `?output=json&pub={pubCode}&track={trackNumber}&fileformat=MP4&alllangs=0&langwritten={langCode}`
+
+Example:
+- **gnj** Episode 1: `?output=json&pub=gnj&track=1&fileformat=MP4&alllangs=0&langwritten=E`
+
+**Note**: Uses `MP4` format instead of `MP3`
+
+**TrackCode Source**: Sequential counter (1, 2, 3...) since videos don't have a `track` property in JSON
+
+### Response Format
+
+All endpoints return JSON:
+```json
+{
+  "pubName": "Publication Name",
+  "files": {
+    "E": {
+      "MP3": [
+        {
+          "file": {
+            "url": "https://cdn.jwplayer.com/videos/...",
+            "duration": 180
+          },
+          "track": 1,
+          "title": "Track Title"
+        }
+      ]
+    }
+  }
+}
+```
+
+**For Dramas** (no track property):
+```json
+{
+  "pubName": "Drama Title",
+  "files": {
+    "E": {
+      "MP3": [
+        {
+          "file": {
+            "url": "https://cdn.jwplayer.com/videos/...",
+            "duration": 3600
+          },
+          "title": "Drama Title"
+        }
+      ]
+    }
+  }
+}
+```
+
+The CDN URL is in `files.{lang}.MP3[0].file.url` (or `MP4` for videos).
+
+---
+
 ## How the app gets the index at runtime
 
 On first run (or if missing), the app extracts the embedded resource:

@@ -165,10 +165,9 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                     if (!hasSections &&
                         !string.IsNullOrWhiteSpace(biblePublicationSchedule.TrackCode) &&
                         publication.Tracks != null &&
-                        publication.Tracks.Count > 0 &&
-                        int.TryParse(biblePublicationSchedule.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum))
+                        publication.Tracks.Count > 0)
                     {
-                        var track = publication.Tracks.FirstOrDefault(t => t.Number == trackNum);
+                        var track = publication.Tracks.FirstOrDefault(t => t.TrackCode == biblePublicationSchedule.TrackCode);
                         if (track != null && !string.IsNullOrWhiteSpace(track.Title))
                         {
                             scheduleStateItem.BiblePublicationTrackTitle = track.Title;
@@ -338,8 +337,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                         }
 
                         if (tracks != null && !string.IsNullOrWhiteSpace(biblePublicationSchedule.TrackCode) &&
-                            int.TryParse(biblePublicationSchedule.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
-                            tracks.TryGetValue(trackNum, out var track))
+                            tracks.TryGetValue(biblePublicationSchedule.TrackCode, out var track))
                         {
                             if (!string.IsNullOrWhiteSpace(track.Title))
                             {

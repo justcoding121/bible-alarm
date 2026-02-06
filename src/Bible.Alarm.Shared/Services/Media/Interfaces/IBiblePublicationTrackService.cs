@@ -16,7 +16,7 @@ public interface IBiblePublicationTrackService : IDisposable
     /// Gets all BiblePublicationTracks for a given section (by language code, publication code, and section code), with Source included.
     /// Pass null/empty sectionCode for non-sectioned publications.
     /// </summary>
-    Task<SortedDictionary<int, BiblePublicationTrack>> GetTracksBySectionAsync(string languageCode, string publicationCode, string? sectionCode, CancellationToken cancellationToken = default);
+    Task<SortedDictionary<string, BiblePublicationTrack>> GetTracksBySectionAsync(string languageCode, string publicationCode, string? sectionCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a BiblePublicationTrack by language code, publication code, section code, and track number, with Source included.
