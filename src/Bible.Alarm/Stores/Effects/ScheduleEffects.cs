@@ -230,12 +230,6 @@ public class ScheduleEffects(
                 return;
             }
 
-            // Only run when Bible/Music selection changed (call sites should set these flags accurately).
-            if (!action.BiblePublicationUpdated && !action.MusicUpdated)
-            {
-                return;
-            }
-
             var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
             var currentSchedule = currentState.Value.CurrentSchedule;
             if (currentSchedule == null)
@@ -248,6 +242,22 @@ public class ScheduleEffects(
             {
                 return;
             }
+
+            // Check if music is enabled and has a publication (needs modal counts refresh)
+            var musicNeedsModalCounts = currentSchedule.MusicEnabled && 
+                                       !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode) &&
+                                       (!currentSchedule.MusicPublicationModalItemCount.HasValue || 
+                                        !currentSchedule.MusicSectionModalItemCount.HasValue);
+
+            // Only run when Bible/Music selection changed (call sites should set these flags accurately),
+            // OR when music is enabled but modal counts are missing (to refresh modal counts for existing music selection).
+            if (!action.BiblePublicationUpdated && !action.MusicUpdated && !musicNeedsModalCounts)
+            {
+                return;
+            }
+
+            Log.Debug("ScheduleEffects: HandleUpdateScheduleFromViewModelPopulateModalCounts - Refreshing modal counts. Reason: BibleUpdated={BibleUpdated}, MusicUpdated={MusicUpdated}, MusicNeedsModalCounts={MusicNeedsModalCounts}",
+                action.BiblePublicationUpdated, action.MusicUpdated, musicNeedsModalCounts);
 
             await TryDispatchModalCountsUpdateAsync(currentSchedule, dispatcher, reason: "UpdateScheduleFromViewModelAction");
         }
@@ -706,8 +716,12 @@ public class ScheduleEffects(
             // Only trigger if this is a music update
             if (!action.MusicUpdated)
             {
+                Log.Debug("ScheduleEffects: HandleMusicCascade - Skipping, musicUpdated=false, ScheduleId={ScheduleId}", action.Schedule?.Id ?? 0);
                 return;
             }
+
+            Log.Debug("ScheduleEffects: HandleMusicCascade - Triggered, ScheduleId={ScheduleId}, MusicPublicationCode={PublicationCode}",
+                action.Schedule?.Id ?? 0, action.Schedule?.MusicPublicationCode ?? "null");
 
             var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>()!;
             var currentMediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>()!;

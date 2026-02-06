@@ -427,7 +427,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             stateManager.CurrentScheduleId,
             () => stateManager.IsPreparingOrPlaying(audioPlayer),
             () => stateManager.Playlist,
-            isPreparing => stateManager.IsPreparingTrack = isPreparing);
+            isPreparing => stateManager.IsPreparingTrack = isPreparing,
+            stateManager.PlayedBibleTrackKeys);
 
         if (!success)
         {

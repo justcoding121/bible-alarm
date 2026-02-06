@@ -73,7 +73,13 @@ public static class AndroidAutoScheduleHelper
 
         if (isBibleCategory && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
         {
-            return scheduleItem.BiblePublicationSectionName;
+            // For Bible category, show "BookName ChapterNumber" (e.g., "Genesis 1")
+            var sectionName = scheduleItem.BiblePublicationSectionName;
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackCode))
+            {
+                return $"{sectionName} {scheduleItem.BiblePublicationTrackCode}";
+            }
+            return sectionName;
         }
 
         if (usePlayingTitle)

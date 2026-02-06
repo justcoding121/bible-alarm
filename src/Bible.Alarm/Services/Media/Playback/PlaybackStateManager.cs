@@ -27,6 +27,12 @@ public sealed class PlaybackStateManager
     public TrackMetadata? PreAnchorBibleMetadata { get; set; }
     public PlayItem? SessionMusicPlayItem { get; set; }
     public HashSet<int> ManuallyVisitedTrackIndices { get; } = [];
+    /// <summary>
+    /// Tracks Bible tracks that have been played in this session (by unique track key).
+    /// Used to prevent seeking to saved progress when returning to a previously played track.
+    /// Key format: "{ScheduleId}:{LanguageCode}:{PublicationCode}:{SectionCode}:{TrackCode}"
+    /// </summary>
+    public HashSet<string> PlayedBibleTrackKeys { get; } = [];
     public CancellationTokenSource? PreparationCancellationTokenSource { get; set; }
     public bool IsPreparingTrack { get; set; }
 
@@ -37,6 +43,7 @@ public sealed class PlaybackStateManager
 
     public void Reset()
     {
+        var playedTracksCount = PlayedBibleTrackKeys.Count;
         CurrentScheduleId = null;
         Playlist = null;
         CurrentTrackIndex = -1;
@@ -46,6 +53,8 @@ public sealed class PlaybackStateManager
         PreAnchorBibleMetadata = null;
         SessionMusicPlayItem = null;
         ManuallyVisitedTrackIndices.Clear();
+        PlayedBibleTrackKeys.Clear();
+        logger.Debug("[PlaybackStateManager] Reset called - cleared {PlayedTracksCount} played Bible track keys", playedTracksCount);
 
         // Dispose cancellation token source
         try

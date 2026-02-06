@@ -53,6 +53,7 @@ public sealed class MusicCascadeHandler
             var currentSchedule = state.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
+                logger.Debug("MusicCascadeHandler: HandleAsync - CurrentSchedule is null, exiting");
                 return;
             }
 
@@ -61,6 +62,9 @@ public sealed class MusicCascadeHandler
             var sectionCode = currentSchedule.MusicSectionCode;
             var trackCode = currentSchedule.MusicTrackCode;
 
+            logger.Debug("MusicCascadeHandler: HandleAsync - PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}, MusicEnabled={MusicEnabled}",
+                publicationCode ?? "null", sectionCode ?? "null", trackCode ?? "null", currentSchedule.MusicEnabled);
+
             var publicationHasSections =
                 !string.IsNullOrWhiteSpace(publicationCode) &&
                 PublicationTypeHelper.HasSectionStructure(publicationCode);
@@ -68,6 +72,7 @@ public sealed class MusicCascadeHandler
             // Cascade 1: Publication not selected → populate publication, section, track
             if (string.IsNullOrWhiteSpace(publicationCode))
             {
+                logger.Debug("MusicCascadeHandler: HandleAsync - No publication code, calling HandleLanguageCascadeAsync");
                 await HandleLanguageCascadeAsync(currentSchedule, dispatcher);
                 return;
             }
@@ -86,12 +91,14 @@ public sealed class MusicCascadeHandler
                 {
                     if (string.IsNullOrWhiteSpace(sectionCode))
                     {
+                        logger.Debug("MusicCascadeHandler: HandleAsync - Sectioned publication but no section code, calling HandlePublicationCascadeAsync");
                         await HandlePublicationCascadeAsync(currentSchedule, dispatcher);
                         return;
                     }
 
                     if (trackMissing)
                     {
+                        logger.Debug("MusicCascadeHandler: HandleAsync - Sectioned publication but no track code, calling HandleSectionCascadeAsync");
                         await HandleSectionCascadeAsync(currentSchedule, dispatcher);
                         return;
                     }
@@ -101,15 +108,60 @@ public sealed class MusicCascadeHandler
                     // Flat publications: only cascade when track is missing.
                     if (trackMissing)
                     {
+                        logger.Debug("MusicCascadeHandler: HandleAsync - Flat publication but no track code, calling HandleFlatPublicationCascadeAsync");
                         await HandleFlatPublicationCascadeAsync(currentSchedule, dispatcher);
                         return;
                     }
                 }
+
+                // Everything is already set - ensure modal counts are refreshed (e.g., when music is enabled on existing schedule)
+                // This ensures the section row arrow shows correctly when music is enabled
+                logger.Debug("MusicCascadeHandler: HandleAsync - Everything is set, calling RefreshModalCountsIfNeededAsync");
+                await RefreshModalCountsIfNeededAsync(currentSchedule, dispatcher);
             }
         }
         catch (Exception ex)
         {
             logger.Error(ex, "MusicCascadeHandler: Error during cascade");
+        }
+    }
+
+    private async Task RefreshModalCountsIfNeededAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var publicationModalItemCount = await GetMusicPublicationModalItemCountAsync(db, currentSchedule);
+            var sectionModalItemCount = await GetMusicSectionModalItemCountAsync(db, currentSchedule);
+
+            logger.Debug("MusicCascadeHandler: RefreshModalCountsIfNeeded - Current: PublicationCount={CurrentPubCount}, SectionCount={CurrentSectionCount}, New: PublicationCount={NewPubCount}, SectionCount={NewSectionCount}",
+                currentSchedule.MusicPublicationModalItemCount, currentSchedule.MusicSectionModalItemCount,
+                publicationModalItemCount, sectionModalItemCount);
+
+            // Only dispatch if counts have changed or are missing
+            if (currentSchedule.MusicPublicationModalItemCount != publicationModalItemCount ||
+                currentSchedule.MusicSectionModalItemCount != sectionModalItemCount)
+            {
+                var updatedSchedule = currentSchedule.DeepClone();
+                updatedSchedule.MusicPublicationModalItemCount = publicationModalItemCount;
+                updatedSchedule.MusicSectionModalItemCount = sectionModalItemCount;
+
+                logger.Information("MusicCascadeHandler: Refreshing modal counts. PublicationCount={PublicationCount}, SectionCount={SectionCount}, PublicationCode={PublicationCode}",
+                    publicationModalItemCount, sectionModalItemCount, currentSchedule.MusicPublicationCode);
+
+                // Use musicUpdated: true to trigger modal counts effect. Cascade handler will exit early since everything is already set.
+                dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
+            }
+            else
+            {
+                logger.Debug("MusicCascadeHandler: Modal counts unchanged, skipping dispatch");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "MusicCascadeHandler: Error refreshing modal counts");
         }
     }
 

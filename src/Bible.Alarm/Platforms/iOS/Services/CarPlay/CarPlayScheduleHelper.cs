@@ -69,7 +69,16 @@ public static class CarPlayScheduleHelper
         string? title = null;
         if (isBibleCategory && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
         {
-            title = scheduleItem.BiblePublicationSectionName;
+            // For Bible category, show "BookName ChapterNumber" (e.g., "Genesis 1")
+            var sectionName = scheduleItem.BiblePublicationSectionName;
+            if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackCode))
+            {
+                title = $"{sectionName} {scheduleItem.BiblePublicationTrackCode}";
+            }
+            else
+            {
+                title = sectionName;
+            }
         }
         else if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationTrackTitle))
         {

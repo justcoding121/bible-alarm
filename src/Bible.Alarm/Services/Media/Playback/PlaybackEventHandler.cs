@@ -48,16 +48,20 @@ public sealed class PlaybackEventHandler
 
         if (playlist is not null && currentTrackIndex < playlist.Count - 1)
         {
+            var nextTrackIndex = currentTrackIndex + 1;
+            var nextTrack = playlist[nextTrackIndex];
+            var isNextTrackBible = nextTrack.PlayItem?.Metadata?.PlayType == PlayType.Bible;
+
             // Set auto-advancing flag before transitioning to next track
             // This keeps the pause button visible during the transition
             logger.Information(
-                "[PlaybackService] OnMediaEnded: Dispatching SetAutoAdvancingAction(true) for automatic next track - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}",
+                "[PlaybackService] OnMediaEnded: Dispatching SetAutoAdvancingAction(true) for automatic next track - ScheduleId={ScheduleId}, FromTrackIndex={FromTrackIndex}, ToTrackIndex={ToTrackIndex}, NextTrackIsBible={NextTrackIsBible}, WillCallPlayCurrentTrackAsync(false)",
                 currentScheduleId,
                 currentTrackIndex,
-                currentTrackIndex + 1);
+                nextTrackIndex,
+                isNextTrackBible);
             dispatcher.Dispatch(new SetAutoAdvancingAction(true));
 
-            var nextTrackIndex = currentTrackIndex + 1;
             setCurrentTrackIndex(nextTrackIndex);
 
             // Dispatch navigation state immediately after setting currentTrackIndex
@@ -65,6 +69,8 @@ public sealed class PlaybackEventHandler
             // This prevents button flicker during track transitions
             navigationManager.NotifyNavigationChanged(playlist, nextTrackIndex);
 
+            // Pass false to allow seeking on first encounter of Bible track
+            logger.Debug("[PlaybackService] OnMediaEnded: Calling playCurrentTrackAsync(false) for automatic transition to track {TrackIndex}", nextTrackIndex);
             await playCurrentTrackAsync(false);
         }
         else

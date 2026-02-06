@@ -38,7 +38,8 @@ public sealed class TrackPlaybackHandler
         int? currentScheduleId,
         Func<bool> isPreparingOrPlaying,
         Func<List<AudioPlayerTrack>?> getPlaylist,
-        Action<bool> setIsPreparingTrack)
+        Action<bool> setIsPreparingTrack,
+        HashSet<string> playedBibleTrackKeys)
     {
         if (string.IsNullOrEmpty(track.Uri))
         {
@@ -100,33 +101,84 @@ public sealed class TrackPlaybackHandler
         // Determine if we need to seek to a saved position
         TimeSpan? seekPosition = null;
 
-        logger.Debug("[Resume] Checking resume conditions - startFromBeginning: {StartFromBeginning}, HasMetadata: {HasMetadata}, PlayType: {PlayType}, FinishedDuration: {FinishedDuration}",
+        // Create unique key for this Bible track to track if it's been played before
+        string? bibleTrackKey = null;
+        var isBibleTrack = track.PlayItem?.Metadata != null && track.PlayItem.Metadata.PlayType == PlayType.Bible;
+        var isFirstEncounter = false;
+
+        if (isBibleTrack && track.PlayItem?.Metadata != null)
+        {
+            var trackMetadata = track.PlayItem.Metadata;
+            bibleTrackKey = $"{trackMetadata.ScheduleId}:{trackMetadata.LanguageCode}:{trackMetadata.PublicationCode}:{trackMetadata.SectionCode ?? "null"}:{trackMetadata.TrackCode}";
+            isFirstEncounter = !playedBibleTrackKeys.Contains(bibleTrackKey);
+        }
+
+        logger.Debug("[Resume] Checking resume conditions - startFromBeginning: {StartFromBeginning}, HasMetadata: {HasMetadata}, PlayType: {PlayType}, FinishedDuration: {FinishedDuration}, TrackIndex: {TrackIndex}, IsFirstEncounter: {IsFirstEncounter}, TrackKey: {TrackKey}",
             startFromBeginning,
             track.PlayItem?.Metadata != null,
             track.PlayItem?.Metadata?.PlayType.ToString() ?? "null",
-            track.PlayItem?.Metadata?.FinishedDuration.ToString() ?? "null");
+            track.PlayItem?.Metadata?.FinishedDuration.ToString() ?? "null",
+            currentTrackIndex,
+            isFirstEncounter,
+            bibleTrackKey ?? "null");
 
-        if (!startFromBeginning
+        // Seek ONLY on first encounter of a Bible track with saved progress
+        // Conditions:
+        // 1. This is the FIRST encounter of this Bible track in this session (manual or automatic)
+        // 2. It's a Bible track with saved progress
+        // 3. Schedule allows resume (AlwaysPlayFromStart == false) - checked via ShouldResumeFromLastPositionAsync
+        // Note: Works for both manual navigation and automatic transitions on first encounter
+        // Subsequent encounters (manual or automatic) will start from beginning (track already marked as played)
+        var shouldCheckSeek = isFirstEncounter
+            && isBibleTrack
             && track.PlayItem?.Metadata != null
-            && track.PlayItem.Metadata.PlayType == PlayType.Bible
-            && track.PlayItem.Metadata.FinishedDuration != TimeSpan.Zero)
+            && track.PlayItem.Metadata.FinishedDuration != TimeSpan.Zero;
+
+        logger.Debug("[Resume] Seek decision - shouldCheckSeek: {ShouldCheckSeek}, Breakdown: isFirstEncounter={IsFirstEncounter}, isBibleTrack={IsBibleTrack}, HasMetadata={HasMetadata}, HasFinishedDuration={HasFinishedDuration}, startFromBeginning={StartFromBeginning}",
+            shouldCheckSeek,
+            isFirstEncounter,
+            isBibleTrack,
+            track.PlayItem?.Metadata != null,
+            track.PlayItem?.Metadata?.FinishedDuration != TimeSpan.Zero,
+            startFromBeginning);
+
+        if (shouldCheckSeek)
         {
             var shouldResume = await trackPreparationHandler.ShouldResumeFromLastPositionAsync(currentScheduleId);
-            logger.Debug("[Resume] ShouldResume check result: {ShouldResume}, ScheduleId: {ScheduleId}", shouldResume, currentScheduleId);
+            logger.Debug("[Resume] ShouldResume check result: {ShouldResume}, ScheduleId: {ScheduleId}, IsFirstEncounter: {IsFirstEncounter}, StartFromBeginning: {StartFromBeginning}",
+                shouldResume, currentScheduleId, isFirstEncounter, startFromBeginning);
 
-            if (shouldResume)
+            if (shouldResume && track.PlayItem?.Metadata != null)
             {
                 seekPosition = track.PlayItem.Metadata.FinishedDuration;
-                logger.Debug("[Resume] Will seek to resume position: {Position}", seekPosition);
+                logger.Information("[Resume] Will seek to resume position: {Position}, TrackIndex: {TrackIndex}, PlayType: {PlayType}, IsFirstEncounter: {IsFirstEncounter}, TrackKey: {TrackKey}",
+                    seekPosition, currentTrackIndex, track.PlayItem.Metadata.PlayType, isFirstEncounter, bibleTrackKey);
+            }
+            else
+            {
+                logger.Debug("[Resume] ShouldResume returned false - schedule may have AlwaysPlayFromStart=true");
             }
         }
         else
         {
-            logger.Debug("[Resume] Skipping seek - conditions not met");
+            logger.Debug("[Resume] Skipping seek - conditions not met. startFromBeginning: {StartFromBeginning}, IsFirstEncounter: {IsFirstEncounter}, HasMetadata: {HasMetadata}, PlayType: {PlayType}, FinishedDuration: {FinishedDuration}, TrackKey: {TrackKey}",
+                startFromBeginning,
+                isFirstEncounter,
+                track.PlayItem?.Metadata != null,
+                track.PlayItem?.Metadata?.PlayType.ToString() ?? "null",
+                track.PlayItem?.Metadata?.FinishedDuration.ToString() ?? "null",
+                bibleTrackKey ?? "null");
         }
 
-#if !IOS
-        // On non-iOS platforms, seek BEFORE play
+        // Mark this Bible track as played (after checking seek conditions, before actually playing)
+        if (isBibleTrack && bibleTrackKey != null)
+        {
+            playedBibleTrackKeys.Add(bibleTrackKey);
+            logger.Debug("[Resume] Marked Bible track as played: TrackKey: {TrackKey}", bibleTrackKey);
+        }
+
+#if !IOS && !ANDROID
+        // On non-iOS/Android platforms (Windows), seek BEFORE play
         if (seekPosition.HasValue)
         {
             await SeekWithRetryAsync(seekPosition.Value);
@@ -152,23 +204,27 @@ public sealed class TrackPlaybackHandler
 
         await audioPlayer.PlayAsync();
 
-        // On iOS, wait a bit longer for playback to actually start
+        // On iOS and Android, wait a bit for playback to actually start
         // MediaElement may need time to transition to Playing state
-#if IOS
+        // On Android, this is especially important when transitioning from music to Bible track
+        // because SetSourceWithDummyQueue may need time to fully configure ExoPlayer
+#if IOS || ANDROID
         await Task.Delay(300);
         var positionAfterPlay = audioPlayer.CurrentPosition;
-        logger.Debug("[iOS Playback] Position AFTER PlayAsync (after 300ms): {Position}", positionAfterPlay);
+        logger.Debug("[Playback] Position AFTER PlayAsync (after 300ms): {Position}", positionAfterPlay);
 
-        // On iOS, seek AFTER play starts - seekable ranges are more reliable once playing
+        // On iOS and Android, seek AFTER play starts - seekable ranges are more reliable once playing
+        // On Android, this is critical when transitioning from music to Bible track because
+        // SetSourceWithDummyQueue's player.SeekTo(currentItemIndex, 0) may interfere with seeking before play
         if (seekPosition.HasValue)
         {
-            logger.Debug("[iOS Resume] Seeking AFTER play started to position: {Position}", seekPosition.Value);
+            logger.Debug("[Resume] Seeking AFTER play started to position: {Position}", seekPosition.Value);
             await SeekWithRetryAsync(seekPosition.Value);
 
             // Verify final position
             await Task.Delay(100);
             var finalPosition = audioPlayer.CurrentPosition;
-            logger.Debug("[iOS Resume] Final position after seek: {Position}", finalPosition);
+            logger.Debug("[Resume] Final position after seek: {Position}", finalPosition);
         }
 #endif
 
@@ -185,45 +241,46 @@ public sealed class TrackPlaybackHandler
     }
 
     /// <summary>
-    /// Attempts to seek to a position with retry logic for iOS.
+    /// Attempts to seek to a position with retry logic for iOS and Android.
     /// On iOS, the AVPlayer may not be fully ready even after WaitForMediaReadyAsync returns,
     /// especially when transitioning between tracks (e.g., music to Bible).
+    /// On Android, ExoPlayer may need time after SetSourceWithDummyQueue and PlayAsync before seeking works reliably.
     /// This method retries the seek operation if it fails due to player not being ready.
     /// </summary>
     private async Task SeekWithRetryAsync(TimeSpan position)
     {
-#if IOS
+#if IOS || ANDROID
         // On iOS, we need to retry seeking because AVPlayer.Status may not be ReadyToPlay yet
         // even though MediaElement state is Paused. This is especially true when transitioning
         // from one source to another (e.g., music track to Bible track).
         const int maxRetries = 10;
         const int retryDelayMs = 300;
 
-        logger.Debug("[iOS Seek] Starting seek retry loop for position {Position}, max retries: {MaxRetries}", position, maxRetries);
+        logger.Debug("[Seek] Starting seek retry loop for position {Position}, max retries: {MaxRetries}", position, maxRetries);
 
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
             try
             {
-                logger.Debug("[iOS Seek] Attempt {Attempt}: Calling SeekToAsync({Position})", attempt, position);
+                logger.Debug("[Seek] Attempt {Attempt}: Calling SeekToAsync({Position})", attempt, position);
                 await audioPlayer.SeekToAsync(position);
 
                 // Verify the seek actually worked by checking position after a brief delay
-                // On iOS, the seek might silently be a no-op if seekable ranges aren't ready yet
+                // On iOS/Android, the seek might silently be a no-op if seekable ranges aren't ready yet
                 await Task.Delay(150);
                 var currentPos = audioPlayer.CurrentPosition;
 
                 // Check if seek actually moved the position (within 1 second tolerance)
                 if (currentPos.HasValue && Math.Abs(currentPos.Value.TotalSeconds - position.TotalSeconds) < 1.0)
                 {
-                    logger.Debug("[iOS Seek] Attempt {Attempt} VERIFIED SUCCESS - Target: {Target}, Current: {Current}",
+                    logger.Debug("[Seek] Attempt {Attempt} VERIFIED SUCCESS - Target: {Target}, Current: {Current}",
                         attempt, position, currentPos);
                     return;
                 }
                 else
                 {
                     // Seek was a no-op (probably no seekable ranges yet)
-                    logger.Warning("[iOS Seek] Attempt {Attempt} was NO-OP - Target: {Target}, Current: {Current}, will retry",
+                    logger.Warning("[Seek] Attempt {Attempt} was NO-OP - Target: {Target}, Current: {Current}, will retry",
                         attempt, position, currentPos);
 
                     if (attempt < maxRetries)
@@ -232,27 +289,27 @@ public sealed class TrackPlaybackHandler
                     }
                     else
                     {
-                        logger.Error("[iOS Seek] All {MaxRetries} attempts were no-ops, will start from beginning", maxRetries);
+                        logger.Error("[Seek] All {MaxRetries} attempts were no-ops, will start from beginning", maxRetries);
                     }
                 }
             }
             catch (InvalidOperationException ex)
             {
-                logger.Warning(ex, "[iOS Seek] Attempt {Attempt} FAILED (InvalidOperationException): {Message}",
+                logger.Warning(ex, "[Seek] Attempt {Attempt} FAILED (InvalidOperationException): {Message}",
                     attempt, ex.Message);
                 if (attempt < maxRetries)
                 {
-                    logger.Debug("[iOS Seek] Waiting {Delay}ms before retry...", retryDelayMs);
+                    logger.Debug("[Seek] Waiting {Delay}ms before retry...", retryDelayMs);
                     await Task.Delay(retryDelayMs);
                 }
                 else
                 {
-                    logger.Error("[iOS Seek] All {MaxRetries} attempts FAILED, will start from beginning", maxRetries);
+                    logger.Error("[Seek] All {MaxRetries} attempts FAILED, will start from beginning", maxRetries);
                 }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "[iOS Seek] Attempt {Attempt} FAILED with unexpected error: {Message}", attempt, ex.Message);
+                logger.Error(ex, "[Seek] Attempt {Attempt} FAILED with unexpected error: {Message}", attempt, ex.Message);
                 return;
             }
         }
