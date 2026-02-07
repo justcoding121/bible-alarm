@@ -341,12 +341,13 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     {
                         CanCancelFetch = true;
                         HasFetchError = false;
-                        // Set ShowProgress to true immediately so cancel button appears right away
-                        ShowProgress = true;
+                        // Don't set ShowProgress here - let Initialize/PopulateSections control it via progress tracker
+                        // This prevents progress from showing when no fetch is needed (e.g., English language)
                     }
                 });
                 
                 // Create progress tracker for modal open with async UI updates (fire-and-forget tasks to avoid blocking)
+                // The progress tracker will set ShowProgress = true when a fetch actually starts
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
                     progress => _ = MainThread.InvokeOnMainThreadAsync(() => 
                     {
@@ -377,6 +378,16 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 // Check again if we're selecting a section (may have changed during async operation)
                 if (isSelectingSection)
                 {
+                    // Ensure progress overlay is hidden before early return
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        if (!isDisposed)
+                        {
+                            CanCancelFetch = false;
+                            ShowProgress = false;
+                            DeviceDisplay.Current.KeepScreenOn = false;
+                        }
+                    });
                     return;
                 }
 

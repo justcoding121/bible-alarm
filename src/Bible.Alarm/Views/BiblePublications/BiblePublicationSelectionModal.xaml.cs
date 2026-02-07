@@ -76,6 +76,13 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
         {
             isSelectingPublication = true;
 
+            // Ensure overlay is hidden when user selects a publication
+            // This prevents overlay from staying visible if cancellation happens before HandleModalAppearingAsync completes
+            if (ViewModel != null && ViewModel.IsBusy)
+            {
+                ViewModel.IsBusy = false;
+            }
+
             // Reset progress and show row indicator immediately
             publicationItem.DownloadProgress = 0.0;
             publicationItem.IsNavigating = true;

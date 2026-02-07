@@ -26,22 +26,37 @@ internal sealed class MusicInstrumentalSectionListLoader
         string? selectedSectionCode,
         IFetchProgress? progress = null)
     {
-        // Show progress while fetching
-        progress?.SetIsVisible(true);
-        progress?.UpdateProgress(0.1);
-        
         // Get cancellation token from progress tracker (same CTS from modal)
         var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
+
+        // First, check if sections are already harvested (without showing progress)
+        var initialSections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
+        
+        // Check if ALL sections are already harvested (not placeholders)
+        var allHarvested = initialSections != null && initialSections.Count > 0 && initialSections.Values.All(s =>
+            !string.IsNullOrEmpty(s.Name) &&
+            s.Name != s.SectionCode &&
+            s.Id > 0);
 
         // Do ALL processing on background thread to avoid blocking spinner animation
         var (items, selected) = await Task.Run(async () =>
         {
             SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsFromDb = null;
             
-            // Retry logic: Retry fetching until all sections are harvested (for future support when sections may not be pre-harvested)
-            sectionsFromDb = await RetryFetchUntilHarvestedAsync(publicationCode, progress, cancellationToken);
-
-            progress?.UpdateProgress(0.7);
+            if (!allHarvested)
+            {
+                // Sections are not fully harvested - show progress and retry fetching
+                // Retry logic: Retry fetching until all sections are harvested (for future support when sections may not be pre-harvested)
+                sectionsFromDb = await RetryFetchUntilHarvestedAsync(publicationCode, progress, cancellationToken);
+                progress?.UpdateProgress(0.7);
+            }
+            else
+            {
+                // Sections are already harvested - use the initial query result, no need to show progress
+                logger.Debug("MusicInstrumentalSectionListLoader: All sections already harvested for publication={PublicationCode}, skipping fetch",
+                    publicationCode);
+                sectionsFromDb = initialSections;
+            }
 
             if (sectionsFromDb == null || sectionsFromDb.Count == 0)
             {
@@ -70,13 +85,21 @@ internal sealed class MusicInstrumentalSectionListLoader
             // Sort using natural sort (numeric sections as int, non-numeric as string)
             vms.Sort();
 
-            progress?.UpdateProgress(0.9);
+            // Only update progress if we were fetching (progress was shown)
+            if (!allHarvested)
+            {
+                progress?.UpdateProgress(0.9);
+            }
 
             return (vms, selected);
         });
 
-        progress?.UpdateProgress(1.0);
-        progress?.SetIsVisible(false);
+        // Only update progress if we were fetching (progress was shown)
+        if (!allHarvested)
+        {
+            progress?.UpdateProgress(1.0);
+            progress?.SetIsVisible(false);
+        }
 
         return (items, selected);
     }

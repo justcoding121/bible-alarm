@@ -494,8 +494,9 @@ public static class ModalScrollHelper
             if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
                 collectionView.Opacity = 1;
 
-            // Hide spinner
-            if (viewModel != null && viewModel.IsBusy)
+            // Always hide spinner on cancellation/error, regardless of current state
+            // This ensures overlay closes even if cancellation happens before items render
+            if (viewModel != null)
                 viewModel.IsBusy = false;
         });
     }

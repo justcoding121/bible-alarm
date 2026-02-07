@@ -214,13 +214,14 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         fetchCts = new CancellationTokenSource();
         propertyManager.CanCancelFetch = true;
         propertyManager.HasFetchError = false;
-        // Set ShowProgress to true immediately so cancel button appears right away
-        propertyManager.ShowProgress = true;
+        // Don't set ShowProgress here - let PopulatePublicationsAsync control it via progress tracker
+        // This prevents progress from showing when no fetch is needed (e.g., English language)
         
         // Keep screen on during download to prevent Android from restricting network access
         DeviceDisplay.Current.KeepScreenOn = true;
 
         // Create progress tracker with cancellation support
+        // The progress tracker will set ShowProgress = true when a fetch actually starts
         var progressTracker = new FetchProgressTracker(
             progress => propertyManager.ProgressPercent = progress,
             text => propertyManager.ProgressText = text,
@@ -242,6 +243,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         {
             // Fetch was cancelled - data saved so far is preserved
             Serilog.Log.Debug("BiblePublicationSelectionViewModel: Fetch cancelled by user");
+            // Hide progress overlay when cancelled
+            propertyManager.ShowProgress = false;
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
         {
@@ -253,6 +256,13 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         finally
         {
             propertyManager.CanCancelFetch = false;
+            // Ensure progress overlay is hidden after operation completes
+            // This handles cases where no fetch was needed (e.g., English language packaged with app)
+            // and the progress tracker didn't call SetIsVisible(false)
+            if (propertyManager.ShowProgress)
+            {
+                propertyManager.ShowProgress = false;
+            }
             // Allow screen to turn off after download completes or fails
             DeviceDisplay.Current.KeepScreenOn = false;
         }

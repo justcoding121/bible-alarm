@@ -551,13 +551,11 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
             // Opening the publications modal is the ONLY time we download ALL publications for a language.
             // Always use downloadAll=true here so placeholders can be hydrated into localized names.
-            // Set ShowProgress to true immediately so cancel button appears right away
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                propertyManager.ShowProgress = true;
-            });
+            // Don't set ShowProgress here - let PopulateSongPublications control it via progress tracker
+            // This prevents progress from showing when no fetch is needed (e.g., English language)
             
             // Create progress tracker with cancellation support
+            // The progress tracker will set ShowProgress = true when a fetch actually starts
             var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
                 progress => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressPercent = progress),
                 text => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressText = text),
@@ -586,6 +584,11 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         {
             // Fetch was cancelled - data saved so far is preserved
             Serilog.Log.Debug("MusicPublicationSelectionViewModel: Fetch cancelled by user");
+            // Hide progress overlay when cancelled
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                propertyManager.ShowProgress = false;
+            });
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
         {
