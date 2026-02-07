@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -293,6 +294,20 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 (stateManager.Playlist == null || stateManager.Playlist.Count == 0 || !stateManager.CurrentScheduleId.HasValue))
             {
                 var defaultScheduleId = playbackState.Value.DefaultScheduleId;
+
+                // Fluxor state may not have DefaultScheduleId yet during cold start
+                // (SetCarPlayScreenAction is deferred 2s after bootstrap for UI responsiveness).
+                // Fall back to the schedule ID saved in Preferences from the last playback session.
+                if (!defaultScheduleId.HasValue || defaultScheduleId.Value <= 0)
+                {
+                    var lastPlayed = LastPlayedMetadataHelper.GetLastPlayedMetadata();
+                    if (lastPlayed?.ScheduleId is > 0)
+                    {
+                        defaultScheduleId = lastPlayed.Value.ScheduleId;
+                        logger.Information("DefaultScheduleId not in Fluxor state, using Preferences fallback: {ScheduleId}", defaultScheduleId.Value);
+                    }
+                }
+
                 if (defaultScheduleId.HasValue && defaultScheduleId.Value > 0)
                 {
                     logger.Information("Play button pressed with no active playback - starting default schedule {ScheduleId}", defaultScheduleId.Value);

@@ -68,7 +68,13 @@ public class SerilogSetup
         loggerConfig.WriteTo.Async(a => a.Debug(
             outputTemplate: AppConstants.Logging.ConsoleOutputTemplate));
 
-#if !ANDROID
+#if ANDROID
+        // Android DEBUG: Also write to logcat for adb logcat -s BibleAlarm
+        // This allows viewing logs via adb even when not debugging in Visual Studio
+        loggerConfig.WriteTo.Sink(
+            new AndroidLogcatSink(),
+            Serilog.Events.LogEventLevel.Debug);
+#elif !ANDROID
         // Configure file logging (DEBUG mode, non-Android only). Android uses logcat / Debug sink only.
         var logDirectory = GetLogDirectory();
         if (!string.IsNullOrEmpty(logDirectory))

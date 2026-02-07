@@ -143,6 +143,26 @@ Key ideas:
 Alarm entrypoint calls:
 - `ForegroundServiceCoordinator.OnAlarmTriggered(context, scheduleId)` from `AlarmRingerReceiver`
 
+### Why two media sessions exist (cannot unify)
+
+The app runs **two separate media sessions** on Android:
+
+1. **Media3 `MediaSession`** — created internally by CommunityToolkit MediaElement / ExoPlayer.
+   - Owns playback and the player notification (notification ID 1).
+   - Created in `libraries/CommunityToolkit.Maui.MediaElement/Views/AndroidGlobalExoPlayerFactory.android.cs` with a random ID. Not exposed or shareable.
+
+2. **Legacy `MediaSessionCompat`** — created by the app for Android Auto and system controls.
+   - Owned by `MediaSessionManager` / `MediaSessionHelper`.
+   - Drives Android Auto notification (notification ID 2), lock screen controls, and car display metadata.
+
+**Why they can't be unified into one session:**
+
+In native Android (Java/Kotlin), the recommended approach is to use Media3's `MediaLibraryService` — a single service that combines `MediaSession` (playback) with `MediaBrowserServiceCompat` (Android Auto browsing), providing automatic backward compatibility with legacy clients.
+
+However, the .NET binding package `Xamarin.AndroidX.Media3.Session` **does not include `MediaLibraryService`** (or `MediaLibrarySession`). These classes are missing from the generated binding surface. Until Microsoft ships these bindings, the app cannot adopt the unified Media3 approach and must maintain the dual-session architecture with `ForegroundServiceCoordinator` managing ownership between them.
+
+**Consequence:** Two notifications can appear during playback (ID 1 from MediaElement, ID 2 from Android Auto/Alarm). The coordinator ensures only one foreground service is active at a time, with proper handoff between owners.
+
 ### MediaSessionCompat (Android Auto + system controls)
 
 Manager:

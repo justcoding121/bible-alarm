@@ -142,23 +142,29 @@ public class MediaSessionCallback(IPlaybackService playbackService, ILogger logg
             {
                 try
                 {
-                    // Always wait for bootstrap to complete before executing the operation
-                    // Check if bootstrap is complete first - if not, set buffering state
+                    // Show buffering feedback while waiting for bootstrap
                     if (!BootstrapHelper.IsBootstrapCompleted())
                     {
-                        // Set buffering state to show immediate feedback while waiting for bootstrap
                         SetBufferingStateImmediately();
                     }
 
                     // Wait for bootstrap to complete (returns immediately if already complete)
-                    await MauiProgram.WaitForBootstrapAsync();
+                    try
+                    {
+                        await MauiProgram.WaitForBootstrapAsync();
+                    }
+                    catch (TimeoutException timeoutEx)
+                    {
+                        // Bootstrap timed out - proceed anyway, operation may still work
+                        // (e.g. PlaybackService falls back to Preferences for schedule ID)
+                        logger?.Warning(timeoutEx, "Bootstrap wait timed out in MediaSessionCallback - proceeding with operation anyway");
+                    }
 
-                    // Execute the callback-specific operation after bootstrap is complete
                     await asyncOperation();
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "Error executing async operation in MediaSessionCallback");
+                    logger?.Error(ex, "Error executing async operation in MediaSessionCallback");
                 }
             });
         }
