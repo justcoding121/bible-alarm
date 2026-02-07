@@ -296,12 +296,22 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             MusicLanguageCode = source.MusicLanguageCode,
             MusicTrackCode = source.MusicTrackCode,
             MusicRepeat = source.MusicRepeat,
+            BiblePublicationCategoryId = source.BiblePublicationCategoryId,
+            BiblePublicationCategoryName = source.BiblePublicationCategoryName,
             BiblePublicationLanguageName = source.BiblePublicationLanguageName,
+            BiblePublicationLanguageDirection = source.BiblePublicationLanguageDirection,
             BiblePublicationName = source.BiblePublicationName,
             BiblePublicationSectionName = source.BiblePublicationSectionName,
+            BiblePublicationTrackTitle = source.BiblePublicationTrackTitle,
             MusicLanguageName = source.MusicLanguageName,
+            MusicLanguageDirection = source.MusicLanguageDirection,
             MusicPublicationName = source.MusicPublicationName,
-            MusicTrackName = source.MusicTrackName
+            MusicSectionName = source.MusicSectionName,
+            MusicTrackName = source.MusicTrackName,
+            BiblePublicationModalItemCount = source.BiblePublicationModalItemCount,
+            BiblePublicationSectionModalItemCount = source.BiblePublicationSectionModalItemCount,
+            MusicPublicationModalItemCount = source.MusicPublicationModalItemCount,
+            MusicSectionModalItemCount = source.MusicSectionModalItemCount
         };
     }
 

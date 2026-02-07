@@ -34,10 +34,9 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     private bool isProcessingStateChange;
     private string? lastCategoryName;
 #if ANDROID
-    private CancellationTokenSource? permissionCheckCancellationTokenSource;
     private bool isUpdatingFromPermissionCheck;
-    private bool isPermissionCheckTaskRunning;
     private bool isSyncingFromState;
+    private NotificationPermissionPollingService? permissionPollingService;
 #endif
     private readonly ContainerReadySignaler containerReadySignaler;
 
@@ -185,7 +184,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                 // Update properties if schedule changed
                 // Don't sync NotificationEnabled if permission check task is running
                 // This prevents OnStateChanged from overriding permission-based updates
-                if (!isPermissionCheckTaskRunning && notificationEnabled != currentSchedule.NotificationEnabled)
+                if (permissionPollingService == null && notificationEnabled != currentSchedule.NotificationEnabled)
                 {
                     isSyncingFromState = true;
                     try
@@ -480,143 +479,50 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 #if ANDROID
     private void StartPermissionCheckTask()
     {
-        // Cancel any existing task
+        // Stop any existing task
         StopPermissionCheckTask();
 
-        // Start background task to poll permission status
-        permissionCheckCancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = permissionCheckCancellationTokenSource.Token;
-        isPermissionCheckTaskRunning = true;
-
-        // Request permission if needed (one-time) - do this first before starting the polling loop
-        _ = Task.Run(async () =>
+        // Create and configure the polling service
+        permissionPollingService = new NotificationPermissionPollingService
         {
-            try
+            GetCurrentValue = () => notificationEnabled,
+            SetValue = value =>
             {
-                await NotificationPermissionHelper.RequestNotificationPermissionIfNeededAsync();
-                logger.Debug("Permission request completed");
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error requesting notification permission");
-            }
-        });
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                // Wait a bit before first check to allow permission dialog to appear
-                await Task.Delay(300, cancellationToken);
-                
-                while (!cancellationToken.IsCancellationRequested)
+                isUpdatingFromPermissionCheck = true;
+                try
                 {
-                    var granted = NotificationPermissionHelper.IsNotificationPermissionGranted();
-                    
-                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    if (SetProperty(ref notificationEnabled, value))
                     {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            return;
-                        }
-
-                        var currentValue = notificationEnabled;
-                        logger.Debug("Permission check: granted={Granted}, currentNotificationEnabled={Current}", granted, currentValue);
-
-                        if (granted)
-                        {
-                            // Permission granted - toggle ON (internal update, not user action)
-                            if (!currentValue)
-                            {
-                                logger.Information("Notification permission granted - updating toggle to ON. Current value: {Current}", currentValue);
-                                isUpdatingFromPermissionCheck = true;
-                                try
-                                {
-                                    // Use SetProperty to ensure proper binding updates
-                                    if (SetProperty(ref notificationEnabled, true))
-                                    {
-                                        DispatchScheduleUpdate(s => s.NotificationEnabled = true);
-                                        logger.Debug("Updated NotificationEnabled to true and dispatched state update");
-                                    }
-                                }
-                                finally
-                                {
-                                    isUpdatingFromPermissionCheck = false;
-                                }
-                            }
-                            else
-                            {
-                                // Permission granted and toggle already ON - task is no longer needed
-                                logger.Debug("Permission granted and NotificationEnabled already true - stopping task");
-                                permissionCheckCancellationTokenSource?.Cancel();
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            // Permission denied - toggle OFF (internal update, not user action)
-                            if (currentValue)
-                            {
-                                logger.Information("Notification permission denied - updating toggle to OFF. Current value: {Current}", currentValue);
-                                isUpdatingFromPermissionCheck = true;
-                                try
-                                {
-                                    // Use SetProperty to ensure proper binding updates
-                                    if (SetProperty(ref notificationEnabled, false))
-                                    {
-                                        DispatchScheduleUpdate(s => s.NotificationEnabled = false);
-                                        logger.Debug("Updated NotificationEnabled to false and dispatched state update");
-                                        
-                                        // Show toast message to inform user
-                                        var toastService = serviceProvider.GetService<IToastService>();
-                                        if (toastService != null)
-                                        {
-                                            _ = toastService.ShowMessage("Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.", 5);
-                                        }
-                                    }
-                                }
-                                finally
-                                {
-                                    isUpdatingFromPermissionCheck = false;
-                                }
-                            }
-                            else
-                            {
-                                logger.Debug("Permission denied but NotificationEnabled already false - no update needed");
-                            }
-                        }
-                    });
-                    
-                    // Wait before next check (increased delay to reduce CPU usage)
-                    await Task.Delay(1000, cancellationToken);
+                        DispatchScheduleUpdate(s => s.NotificationEnabled = value);
+                        logger.Debug("Updated NotificationEnabled to {Value} and dispatched state update", value);
+                    }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                logger.Debug("Permission check task cancelled");
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in permission check task");
-            }
-            finally
-            {
-                MainThread.BeginInvokeOnMainThread(() =>
+                finally
                 {
-                    isPermissionCheckTaskRunning = false;
-                });
+                    isUpdatingFromPermissionCheck = false;
+                }
+            },
+            GetToastService = () => serviceProvider.GetService<IToastService>(),
+            OnPermissionGranted = currentValue =>
+            {
+                logger.Information("Notification permission granted - updating toggle to ON. Current value: {Current}", currentValue);
+            },
+            OnPermissionDenied = currentValue =>
+            {
+                logger.Information("Notification permission denied - updating toggle to OFF. Current value: {Current}", currentValue);
             }
-        }, cancellationToken);
+        };
+
+        permissionPollingService.Start();
     }
 
     private void StopPermissionCheckTask()
     {
-        if (permissionCheckCancellationTokenSource != null)
+        if (permissionPollingService != null)
         {
-            permissionCheckCancellationTokenSource.Cancel();
-            permissionCheckCancellationTokenSource.Dispose();
-            permissionCheckCancellationTokenSource = null;
-            isPermissionCheckTaskRunning = false;
+            permissionPollingService.Stop();
+            permissionPollingService.Dispose();
+            permissionPollingService = null;
             logger.Debug("Stopped permission check task");
         }
     }
@@ -777,7 +683,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     {
         state.StateChanged -= OnStateChanged;
 #if ANDROID
-        StopPermissionCheckTask();
+        permissionPollingService?.Dispose();
 #endif
     }
 }

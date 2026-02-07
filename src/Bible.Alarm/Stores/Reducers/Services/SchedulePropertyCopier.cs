@@ -50,14 +50,22 @@ public static class SchedulePropertyCopier
         target.MusicRepeat = source.MusicRepeat;
 
         // Display name properties
+        target.BiblePublicationCategoryId = source.BiblePublicationCategoryId;
+        target.BiblePublicationCategoryName = source.BiblePublicationCategoryName;
         target.BiblePublicationLanguageName = source.BiblePublicationLanguageName;
         target.BiblePublicationLanguageDirection = source.BiblePublicationLanguageDirection;
         target.BiblePublicationName = source.BiblePublicationName;
         target.BiblePublicationSectionName = source.BiblePublicationSectionName;
+        target.BiblePublicationTrackTitle = source.BiblePublicationTrackTitle;
         target.MusicLanguageName = source.MusicLanguageName;
         target.MusicLanguageDirection = source.MusicLanguageDirection;
         target.MusicPublicationName = source.MusicPublicationName;
+        target.MusicSectionName = source.MusicSectionName;
         target.MusicTrackName = source.MusicTrackName;
+        target.BiblePublicationModalItemCount = source.BiblePublicationModalItemCount;
+        target.BiblePublicationSectionModalItemCount = source.BiblePublicationSectionModalItemCount;
+        target.MusicPublicationModalItemCount = source.MusicPublicationModalItemCount;
+        target.MusicSectionModalItemCount = source.MusicSectionModalItemCount;
     }
 }
 

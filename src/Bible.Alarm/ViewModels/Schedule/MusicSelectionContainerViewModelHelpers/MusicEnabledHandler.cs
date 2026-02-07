@@ -89,7 +89,17 @@ public class MusicEnabledHandler
             // DeepClone already returns ScheduleStateItem, no need to map again
             clonedSchedule.MusicEnabled = value;
 
-            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, false, false, shouldSave: false));
+            // When re-enabling music, if there's already a music selection but section name might be missing,
+            // dispatch with musicUpdated=true so PopulateMusicSectionNameForStateAsync can populate it
+            var shouldTriggerMusicCascade = value && 
+                                           !string.IsNullOrWhiteSpace(clonedSchedule.MusicPublicationCode) &&
+                                           !string.IsNullOrWhiteSpace(clonedSchedule.MusicTrackCode);
+
+            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(
+                clonedSchedule, 
+                musicUpdated: shouldTriggerMusicCascade, 
+                biblePublicationUpdated: false, 
+                shouldSave: false));
         });
 
         // If enabling music, only reset to default music if:
@@ -227,6 +237,7 @@ public class MusicEnabledHandler
             {
                 // Subsequent enable or music was already enabled on page load
                 // Preserve existing music selection
+                // Note: The first dispatch above already handles musicUpdated=true when re-enabling with existing selection
             }
         }
 
