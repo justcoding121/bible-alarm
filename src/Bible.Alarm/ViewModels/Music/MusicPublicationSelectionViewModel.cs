@@ -151,7 +151,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             }
         });
 
-        CancelFetchCommand = new RelayCommand(CancelFetch);
+        CancelFetchCommand = new AsyncRelayCommand(CancelFetchAsync);
         RetryFetchCommand = new AsyncRelayCommand(RetryFetchAsync);
     }
 
@@ -189,8 +189,9 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     public ICommand CancelFetchCommand { get; }
     public ICommand RetryFetchCommand { get; }
 
-    private void CancelFetch()
+    private async Task CancelFetchAsync()
     {
+        Serilog.Log.Information("MusicPublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch");
         fetchCts?.Cancel();
         propertyManager.CanCancelFetch = false;
         propertyManager.ShowProgress = false;
@@ -198,6 +199,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         propertyManager.IsBusy = false;
         // Allow screen to turn off when user cancels
         DeviceDisplay.Current.KeepScreenOn = false;
+        // Close the modal after canceling the fetch
+        await navigationService.PopModalAsync();
     }
 
     private async Task RetryFetchAsync()
@@ -426,9 +429,15 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
     private async Task RefreshFromStateInternal()
     {
+        // Cancel any previous fetch and create new cancellation token
+        fetchCts?.Cancel();
+        fetchCts = new CancellationTokenSource();
+        
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             propertyManager.IsBusy = true;
+            propertyManager.CanCancelFetch = true;
+            propertyManager.HasFetchError = false;
             // Keep screen on during download to prevent Android from restricting network access
             DeviceDisplay.Current.KeepScreenOn = true;
         });
@@ -445,6 +454,9 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         {
             for (int i = 0; i < maxWaitAttempts; i++)
             {
+                // Check for cancellation before each retry attempt
+                fetchCts.Token.ThrowIfCancellationRequested();
+                
                 var stateValue = state.Value;
 
                 // Use CurrentSchedule as the source of truth
@@ -465,8 +477,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
                     }
                 }
 
-                // Wait a bit and retry if language code is not set yet (for Vocals)
-                await Task.Delay(delayMs);
+                // Wait a bit and retry if language code is not set yet (for Vocals) - with cancellation support
+                await Task.Delay(delayMs, fetchCts.Token);
             }
 
             var finalStateValue = state.Value;
@@ -539,21 +551,29 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
             // Opening the publications modal is the ONLY time we download ALL publications for a language.
             // Always use downloadAll=true here so placeholders can be hydrated into localized names.
+            // Set ShowProgress to true immediately so cancel button appears right away
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                propertyManager.ShowProgress = true;
+            });
+            
+            // Create progress tracker with cancellation support
             var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
                 progress => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressPercent = progress),
                 text => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressText = text),
-                isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = isVisible));
+                isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = isVisible),
+                fetchCts.Token);
 
             // For instrumental music (no language), populate publications directly
             if (isMelodyMusic)
             {
                 // null language code for instrumental music
-                await PopulateSongPublications(null, downloadAll: true, progressTracker);
+                await PopulateSongPublications(null, downloadAll: true, progressTracker, fetchCts.Token);
             }
             // For vocal music, always fetch ALL publications when the modal opens (downloadAll=true).
             else if (!string.IsNullOrEmpty(languageCodeToUse))
             {
-                await PopulateSongPublications(languageCodeToUse, downloadAll: true, progressTracker);
+                await PopulateSongPublications(languageCodeToUse, downloadAll: true, progressTracker, fetchCts.Token);
             }
             else
             {
@@ -562,11 +582,27 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
             SetSelectedSongPublication();
         }
+        catch (OperationCanceledException)
+        {
+            // Fetch was cancelled - data saved so far is preserved
+            Serilog.Log.Debug("MusicPublicationSelectionViewModel: Fetch cancelled by user");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+        {
+            // Network error - show error state instead of closing modal
+            Serilog.Log.Warning(ex, "MusicPublicationSelectionViewModel: Fetch failed with network error");
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                propertyManager.ShowProgress = false;
+                propertyManager.HasFetchError = true;
+            });
+        }
         finally
         {
             // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
+                propertyManager.CanCancelFetch = false;
                 propertyManager.ShowProgress = false;
                 // Allow screen to turn off after download completes or fails
                 DeviceDisplay.Current.KeepScreenOn = false;
@@ -574,7 +610,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         }
     }
 
-    private async Task PopulateSongPublications(string? languageCode, bool downloadAll = false, IFetchProgress? progress = null)
+    private async Task PopulateSongPublications(string? languageCode, bool downloadAll = false, IFetchProgress? progress = null, CancellationToken cancellationToken = default)
     {
         await dataProvider.PopulateSongPublications(
             languageCode,
@@ -582,7 +618,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             propertyManager.SongPublications,
             songPublication => propertyManager.SelectedSongPublication = songPublication,
             downloadAll,
-            progress);
+            progress,
+            cancellationToken);
     }
 
     private void UpdateSelectedLanguage(LanguageListViewItemModel language)

@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Threading;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -20,7 +21,8 @@ internal sealed class MusicPublicationFetchCoordinator
         string? languageCode,
         AlarmMusic? current,
         bool downloadAll,
-        IFetchProgress? progress)
+        IFetchProgress? progress,
+        CancellationToken cancellationToken = default)
     {
         // Music type is inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal
         // For instrumental music, we need publications without language
@@ -54,7 +56,7 @@ internal sealed class MusicPublicationFetchCoordinator
         // For non-English languages, publications need to be fetched, so we retry with increasing delays
         if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
         {
-            publicationsData = await RetryFetchUntilHarvestedAsync(languageCode, progress);
+            publicationsData = await RetryFetchUntilHarvestedAsync(languageCode, progress, cancellationToken);
         }
 
         // Final fallback if nothing came back
@@ -66,7 +68,10 @@ internal sealed class MusicPublicationFetchCoordinator
         return publicationsData;
     }
 
-    private async Task<Dictionary<string, BiblePublication>?> RetryFetchUntilHarvestedAsync(string languageCode, IFetchProgress? progress)
+    private async Task<Dictionary<string, BiblePublication>?> RetryFetchUntilHarvestedAsync(
+        string languageCode, 
+        IFetchProgress? progress,
+        CancellationToken cancellationToken)
     {
         // Up to 10 retries
         const int maxRetries = 10;
@@ -81,75 +86,112 @@ internal sealed class MusicPublicationFetchCoordinator
         Serilog.Log.Information("PopulateSongPublications: Starting fetch with retries for language={LanguageCode}, category=Music",
             languageCode);
 
+        // Show progress overlay at the start of retry loop and keep it visible throughout all retries
+        progress?.SetIsVisible(true);
+        progress?.UpdateProgress(0.0);
+
         Dictionary<string, BiblePublication>? publicationsData = null;
 
-        while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+        try
         {
-            attempt++;
-
-            try
+            while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
             {
-                // Fetch publications (this triggers harvesting if needed)
-                // Pass progress to show download percentage during harvesting
-                publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: true, progress);
+                // Check for cancellation before each attempt
+                cancellationToken.ThrowIfCancellationRequested();
+                
+                attempt++;
 
-                // Wait a bit for background harvesting to start
-                await Task.Delay(500);
-
-                // Re-query to check if publications are now harvested (no progress needed for re-query)
-                var reQueriedData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, null);
-
-                // Check if ALL publications are harvested (not placeholders)
-                // A publication is harvested if it has a name that's different from its code and has an ID > 0
-                var hasPublications = reQueriedData != null && reQueriedData.Values.Count > 0;
-                var allHarvestedCheck = hasPublications && reQueriedData!.Values.All(p =>
-                    !string.IsNullOrEmpty(p.Name) &&
-                    p.Name != p.PublicationCode &&
-                    p.Id > 0);
-
-                if (allHarvestedCheck)
+                try
                 {
-                    publicationsData = reQueriedData;
-                    allHarvested = true;
-                    Serilog.Log.Information("PopulateSongPublications: All {Count} publications harvested on attempt {Attempt} for language={LanguageCode}",
-                        publicationsData?.Count ?? 0, attempt, languageCode);
-                }
-                else
-                {
-                    // Log which publications are still placeholders for debugging
-                    if (reQueriedData != null)
+                    // Fetch publications (this triggers harvesting if needed)
+                    // Pass progress to show download percentage during harvesting
+                    // Note: GetBiblePublications will call SetIsVisible(true) internally, but we keep it visible between retries
+                    publicationsData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: true, progress);
+
+                    // Wait a bit for background harvesting to start (with cancellation support)
+                    await Task.Delay(500, cancellationToken);
+
+                    // Re-query to check if publications are now harvested (no progress needed for re-query)
+                    var reQueriedData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, null);
+
+                    // Check if ALL publications are harvested (not placeholders)
+                    // A publication is harvested if it has a name that's different from its code and has an ID > 0
+                    var hasPublications = reQueriedData != null && reQueriedData.Values.Count > 0;
+                    var allHarvestedCheck = hasPublications && reQueriedData!.Values.All(p =>
+                        !string.IsNullOrEmpty(p.Name) &&
+                        p.Name != p.PublicationCode &&
+                        p.Id > 0);
+
+                    if (allHarvestedCheck)
                     {
-                        var placeholders = reQueriedData.Values.Where(p =>
-                            string.IsNullOrEmpty(p.Name) ||
-                            p.Name == p.PublicationCode ||
-                            p.Id == 0).Select(p => p.PublicationCode).ToList();
+                        publicationsData = reQueriedData;
+                        allHarvested = true;
+                        Serilog.Log.Information("PopulateSongPublications: All {Count} publications harvested on attempt {Attempt} for language={LanguageCode}",
+                            publicationsData?.Count ?? 0, attempt, languageCode);
+                    }
+                    else
+                    {
+                        // Log which publications are still placeholders for debugging
+                        if (reQueriedData != null)
+                        {
+                            var placeholders = reQueriedData.Values.Where(p =>
+                                string.IsNullOrEmpty(p.Name) ||
+                                p.Name == p.PublicationCode ||
+                                p.Id == 0).Select(p => p.PublicationCode).ToList();
 
-                        if (placeholders.Count > 0)
-                        {
-                            Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: Still waiting for {Count} publications to be harvested: {Placeholders}",
-                                attempt, placeholders.Count, string.Join(", ", placeholders));
+                            if (placeholders.Count > 0)
+                            {
+                                Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: Still waiting for {Count} publications to be harvested: {Placeholders}",
+                                    attempt, placeholders.Count, string.Join(", ", placeholders));
+                            }
+                            else if (!hasPublications)
+                            {
+                                Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: No publications found yet, will retry",
+                                    attempt);
+                            }
                         }
-                        else if (!hasPublications)
+
+                        // Re-show overlay after GetBiblePublications completes (it hides it in finally block)
+                        // This keeps the overlay visible during retry delays
+                        if (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
                         {
-                            Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: No publications found yet, will retry",
-                                attempt);
+                            progress?.SetIsVisible(true);
                         }
+
+                        // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s) - with cancellation support
+                        var delay = Math.Min(retryDelay * attempt, 5000);
+                        await Task.Delay(delay, cancellationToken);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Re-throw cancellation - data saved so far is preserved
+                    Serilog.Log.Information("PopulateSongPublications: Fetch cancelled at attempt {Attempt} for language={LanguageCode}",
+                        attempt, languageCode);
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Warning(ex, "PopulateSongPublications: Attempt {Attempt} failed for language={LanguageCode}, will retry",
+                        attempt, languageCode);
+
+                    // Re-show overlay after exception (GetBiblePublications hides it in finally block)
+                    // This keeps the overlay visible during retry delays
+                    if (attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+                    {
+                        progress?.SetIsVisible(true);
                     }
 
-                    // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s)
+                    // Wait before retrying on exception (with cancellation support)
                     var delay = Math.Min(retryDelay * attempt, 5000);
-                    await Task.Delay(delay);
+                    await Task.Delay(delay, cancellationToken);
                 }
             }
-            catch (Exception ex)
-            {
-                Serilog.Log.Warning(ex, "PopulateSongPublications: Attempt {Attempt} failed for language={LanguageCode}, will retry",
-                    attempt, languageCode);
-
-                // Wait before retrying on exception
-                var delay = Math.Min(retryDelay * attempt, 5000);
-                await Task.Delay(delay);
-            }
+        }
+        finally
+        {
+            // Hide progress overlay when retry loop completes (success, timeout, or cancellation)
+            progress?.SetIsVisible(false);
         }
 
         if (!allHarvested)

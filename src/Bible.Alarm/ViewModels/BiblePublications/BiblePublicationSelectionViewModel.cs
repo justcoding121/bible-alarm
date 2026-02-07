@@ -24,6 +24,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     private readonly IState<ApplicationState> state;
     private readonly IMapper mapper;
     private readonly IServiceProvider serviceProvider;
+    private readonly INavigationService navigationService;
 
     // Services
     private readonly BiblePublicationSelectionCommandHandler commandHandler;
@@ -58,6 +59,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         this.state = state;
         this.mapper = mapper;
         this.serviceProvider = serviceProvider;
+        this.navigationService = navigationService;
 
         // Initialize services
         dataProvider = new BiblePublicationSelectionDataProvider(mediaService, state, dispatcher);
@@ -123,7 +125,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             busy => propertyManager.IsBusy = busy);
 
         // Cancel and retry fetch commands
-        CancelFetchCommand = new RelayCommand(CancelFetch);
+        CancelFetchCommand = new AsyncRelayCommand(CancelFetchAsync);
         RetryFetchCommand = new AsyncRelayCommand(RetryFetchAsync);
 
         // Always trigger initialization, even if CurrentBiblePublicationSchedule is null
@@ -131,8 +133,9 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         OnBiblePublicationInitialized(null, EventArgs.Empty);
     }
 
-    private void CancelFetch()
+    private async Task CancelFetchAsync()
     {
+        Serilog.Log.Information("BiblePublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch");
         fetchCts?.Cancel();
         propertyManager.CanCancelFetch = false;
         propertyManager.ShowProgress = false;
@@ -140,6 +143,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         propertyManager.IsBusy = false;
         // Allow screen to turn off when user cancels
         DeviceDisplay.Current.KeepScreenOn = false;
+        // Close the modal after canceling the fetch
+        await navigationService.PopModalAsync();
     }
 
     private async Task RetryFetchAsync()
@@ -209,6 +214,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         fetchCts = new CancellationTokenSource();
         propertyManager.CanCancelFetch = true;
         propertyManager.HasFetchError = false;
+        // Set ShowProgress to true immediately so cancel button appears right away
+        propertyManager.ShowProgress = true;
         
         // Keep screen on during download to prevent Android from restricting network access
         DeviceDisplay.Current.KeepScreenOn = true;

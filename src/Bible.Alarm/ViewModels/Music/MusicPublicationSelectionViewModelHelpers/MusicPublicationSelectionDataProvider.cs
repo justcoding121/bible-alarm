@@ -100,13 +100,14 @@ public sealed class MusicPublicationSelectionDataProvider(
         ObservableCollection<PublicationListViewItemModel> songPublications,
         Action<PublicationListViewItemModel?> setSelectedSongPublication,
         bool downloadAll = false,
-        IFetchProgress? progress = null)
+        IFetchProgress? progress = null,
+        CancellationToken cancellationToken = default)
     {
         // Use GetBiblePublications with category="Music" - same API as Bible publication container
         // This returns both publications with language AND without language FK (data-driven)
         // downloadAll=true when publication modal opens (download all publications with first sections and tracks)
         // downloadAll=false when language changes (only download first publication in cascade)
-        var publicationsData = await fetchCoordinator.FetchMusicPublicationsAsync(languageCode, current, downloadAll, progress);
+        var publicationsData = await fetchCoordinator.FetchMusicPublicationsAsync(languageCode, current, downloadAll, progress, cancellationToken);
 
         var songPublicationVMs = new List<PublicationListViewItemModel>();
         var newMapping = new Dictionary<string, PublicationListViewItemModel>();

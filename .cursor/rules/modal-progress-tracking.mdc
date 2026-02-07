@@ -56,3 +56,67 @@ public void Receive(CategoryFetchProgressMessage msg) {
 - List item tap: Use `DownloadProgress` property on list item model (binds to progress circle)
 - Always show numeric percentage (0% to 100%), never text like "Loading..."
 - Track modals don't need progress (data already in local DB)
+
+## Retry, Cancel, and Error Handling (All Modals)
+
+All modals (Bible Publication, Music Publication, Bible Section, Music Section) follow consistent patterns:
+
+### Cancel Button Pattern
+All modals have `CancelFetchCommand` that:
+- Cancels `CancellationTokenSource` (`fetchCts?.Cancel()`)
+- Resets `CanCancelFetch = false`, `ShowProgress = false`, `HasFetchError = false`
+- Closes modal via `navigationService.PopModalAsync()`
+
+### Progress Initialization
+- **Always explicitly set `ShowProgress = true`** before creating `FetchProgressTracker` to ensure cancel button appears immediately
+- Set `CanCancelFetch = true` and `HasFetchError = false` at fetch start
+
+### Retry Logic Pattern (for non-English languages)
+- **Location**: 
+  - Bible Publication: `BiblePublicationSelectionDataProvider.PopulatePublicationsAsync`
+  - Music Publication: `MusicPublicationFetchCoordinator.RetryFetchUntilHarvestedAsync`
+  - Bible Section: `SectionListLoader.RetryFetchUntilHarvestedAsync`
+  - Music Section: `MusicInstrumentalSectionListLoader.RetryFetchUntilHarvestedAsync`
+- **Strategy**: Up to 10 retries, increasing delays (1s, 2s, 3s... up to 5s max), max 60 seconds
+- **Validation**: Checks if items are harvested (not placeholders: `Name != Code` and `Id > 0`)
+- **Progress Management**: 
+  - Show overlay at start (`progress?.SetIsVisible(true)`)
+  - Re-show after fetch operations (they hide in finally blocks)
+  - Hide in finally block when retry loop completes
+
+### Error Handling Pattern
+```csharp
+catch (OperationCanceledException)
+{
+    // Log and preserve data, reset UI state
+    logger.Debug("Fetch cancelled by user");
+    // Reset CanCancelFetch, ShowProgress on main thread
+}
+catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
+{
+    // Show error state instead of closing modal
+    ShowProgress = false;
+    HasFetchError = true;  // Shows retry button
+}
+finally
+{
+    CanCancelFetch = false;
+    DeviceDisplay.Current.KeepScreenOn = false;
+}
+```
+
+### Cancellation Token Propagation
+1. ViewModel creates `CancellationTokenSource` → passes to `FetchProgressTracker`
+2. `FetchProgressTracker` exposes `CancellationToken` property
+3. Data Provider/Coordinator/Loader extracts `progress?.CancellationToken ?? CancellationToken.None`
+4. Retry loops check `cancellationToken.ThrowIfCancellationRequested()` before each attempt
+5. All `Task.Delay` calls use `await Task.Delay(delay, cancellationToken)`
+
+### UI Components
+- **Publication Modals**: Use `ProgressIndicator` for progress/error UI
+- **Section Modals**: Use both `ProgressIndicator` (progress/error) and `BusyOverlay` (cancel button)
+
+### Notes
+- Music sections are currently pre-harvested, but retry logic is implemented for future support
+- Bible sections for English are pre-harvested, retry logic only triggers for non-English languages
+- All retry logic validates harvested state (not placeholders) before considering success

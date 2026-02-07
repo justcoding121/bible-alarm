@@ -37,6 +37,12 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     private bool isUpdatingFromPermissionCheck;
     private bool isSyncingFromState;
     private NotificationPermissionPollingService? permissionPollingService;
+#else
+#pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
+    private bool isUpdatingFromPermissionCheck;
+    private bool isSyncingFromState;
+    private object? permissionPollingService;
+#pragma warning restore CS0649
 #endif
     private readonly ContainerReadySignaler containerReadySignaler;
 

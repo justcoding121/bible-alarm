@@ -1,18 +1,44 @@
 #nullable enable
+using System;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 
 /// <summary>
 /// Handles Bible track and section navigation.
 /// </summary>
-public sealed class TrackNavigator(IMediaService mediaService, IBiblePublicationService biblePublicationService)
+public sealed class TrackNavigator
 {
+    private readonly IMediaService mediaService;
+    private readonly IBiblePublicationService biblePublicationService;
+    private readonly ILanguageContentService? languageContentService;
+    private readonly IServiceScopeFactory? scopeFactory;
+    private readonly ILogger? logger;
+
+    public TrackNavigator(
+        IMediaService mediaService,
+        IBiblePublicationService biblePublicationService,
+        ILanguageContentService? languageContentService = null,
+        IServiceScopeFactory? scopeFactory = null,
+        ILogger? logger = null)
+    {
+        this.mediaService = mediaService;
+        this.biblePublicationService = biblePublicationService;
+        this.languageContentService = languageContentService;
+        this.scopeFactory = scopeFactory;
+        this.logger = logger;
+    }
+
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
 
     private readonly record struct SectionsCacheKey(string LanguageCode, string PublicationCode);
@@ -274,80 +300,381 @@ public sealed class TrackNavigator(IMediaService mediaService, IBiblePublication
     /// <summary>
     /// Gets the previous Bible section in publication order.
     /// Circular: previous of first section is the last section.
+    /// Checks discovered sections and harvests missing ones if needed.
     /// </summary>
     public async Task<KeyValuePair<string, BiblePublicationSection>> GetPreviousBiblePublicationSection(
         string languageCode,
         string publicationCode,
         string sectionCode)
     {
-        var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
-        if (sections.Count == 0)
-        {
-            throw new InvalidOperationException($"No bible sections found: languageCode={languageCode}, publicationCode={publicationCode}");
-        }
-
         var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
         if (string.IsNullOrEmpty(normalizedSectionCode))
         {
             throw new InvalidOperationException($"Invalid section code: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        // Order section keys by natural comparer so index 0 = first section (e.g. Genesis), last index = last section (e.g. Revelation).
-        var orderedKeys = sections.Keys.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
-        var currentIndex = orderedKeys.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+        // Get all discovered section codes for this publication+language
+        var discoveredSectionCodes = await GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
+        if (discoveredSectionCodes.Count == 0)
+        {
+            throw new InvalidOperationException($"No discovered sections found: languageCode={languageCode}, publicationCode={publicationCode}");
+        }
+
+        // Order discovered section codes by natural comparer
+        var orderedDiscoveredKeys = discoveredSectionCodes.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
+        var currentIndex = orderedDiscoveredKeys.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
         if (currentIndex < 0)
         {
-            throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
+            throw new InvalidOperationException($"Bible section not found in discovered sections: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
         }
 
-        // Circular wrap at publication level: previous of first section = last section.
-        var prevIndex = (currentIndex - 1 + orderedKeys.Count) % orderedKeys.Count;
-        var prevKey = orderedKeys[prevIndex];
-        if (!sections.TryGetValue(prevKey, out var prevSection))
+        // Try to find a valid previous section by iterating through discovered sections
+        // Skip sections that can't be harvested
+        var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+        var prevIndex = (currentIndex - 1 + orderedDiscoveredKeys.Count) % orderedDiscoveredKeys.Count;
+        var attempts = 0;
+        var maxAttempts = orderedDiscoveredKeys.Count;
+
+        while (attempts < maxAttempts)
         {
-            throw new InvalidOperationException($"Bible section with key {prevKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
+            var prevSectionCode = orderedDiscoveredKeys[prevIndex];
+
+            // Check if section is already harvested
+            if (sections.TryGetValue(prevSectionCode, out var prevSection))
+            {
+                var tracks = await GetTracksCachedAsync(languageCode, publicationCode, prevSectionCode);
+                if (tracks.Count > 0)
+                {
+                    return new KeyValuePair<string, BiblePublicationSection>(prevSectionCode, prevSection);
+                }
+            }
+
+            // Try to harvest the section
+            var harvested = await EnsureSectionHarvestedAsync(languageCode, publicationCode, prevSectionCode);
+            if (harvested)
+            {
+                // Clear cache and reload sections
+                var key = new SectionsCacheKey(languageCode.ToUpperInvariant(), publicationCode);
+                lock (cacheLock)
+                {
+                    sectionsCache.Remove(key);
+                }
+                sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+
+                if (sections.TryGetValue(prevSectionCode, out prevSection))
+                {
+                    return new KeyValuePair<string, BiblePublicationSection>(prevSectionCode, prevSection);
+                }
+            }
+
+            // Move to next previous section (wrap around)
+            prevIndex = (prevIndex - 1 + orderedDiscoveredKeys.Count) % orderedDiscoveredKeys.Count;
+            attempts++;
         }
 
-        return new KeyValuePair<string, BiblePublicationSection>(prevKey, prevSection);
+        throw new InvalidOperationException($"No valid previous section found after attempting {maxAttempts} sections: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
     }
 
     /// <summary>
     /// Gets the next Bible section in publication order.
     /// Circular: next of last section is the first section.
+    /// Checks discovered sections and harvests missing ones if needed.
     /// </summary>
     public async Task<KeyValuePair<string, BiblePublicationSection>> GetNextBiblePublicationSection(
         string languageCode,
         string publicationCode,
         string sectionCode)
     {
-        var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
-        if (sections.Count == 0)
-        {
-            throw new InvalidOperationException($"No bible sections found: languageCode={languageCode}, publicationCode={publicationCode}");
-        }
-
         var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
         if (string.IsNullOrEmpty(normalizedSectionCode))
         {
             throw new InvalidOperationException($"Invalid section code: languageCode={languageCode}, publicationCode={publicationCode}");
         }
 
-        // Order section keys by natural comparer so index 0 = first section, last index = last section.
-        var orderedKeys = sections.Keys.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
-        var currentIndex = orderedKeys.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+        // Get all discovered section codes for this publication+language
+        var discoveredSectionCodes = await GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
+        if (discoveredSectionCodes.Count == 0)
+        {
+            throw new InvalidOperationException($"No discovered sections found: languageCode={languageCode}, publicationCode={publicationCode}");
+        }
+
+        // Order discovered section codes by natural comparer
+        var orderedDiscoveredKeys = discoveredSectionCodes.OrderBy(k => k, SectionCodeHelper.SectionCodeComparer).ToList();
+        var currentIndex = orderedDiscoveredKeys.FindIndex(k => string.Equals(k, normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
         if (currentIndex < 0)
         {
-            throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
+            throw new InvalidOperationException($"Bible section not found in discovered sections: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
         }
 
-        // Circular wrap at publication level: next of last section = first section.
-        var nextIndex = (currentIndex + 1) % orderedKeys.Count;
-        var nextKey = orderedKeys[nextIndex];
-        if (!sections.TryGetValue(nextKey, out var nextSection))
+        // Try to find a valid next section by iterating through discovered sections
+        // Skip sections that can't be harvested
+        var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+        var nextIndex = (currentIndex + 1) % orderedDiscoveredKeys.Count;
+        var attempts = 0;
+        var maxAttempts = orderedDiscoveredKeys.Count;
+
+        while (attempts < maxAttempts)
         {
-            throw new InvalidOperationException($"Bible section with key {nextKey} not found: languageCode={languageCode}, publicationCode={publicationCode}");
+            var nextSectionCode = orderedDiscoveredKeys[nextIndex];
+
+            // Check if section is already harvested
+            if (sections.TryGetValue(nextSectionCode, out var nextSection))
+            {
+                var tracks = await GetTracksCachedAsync(languageCode, publicationCode, nextSectionCode);
+                if (tracks.Count > 0)
+                {
+                    return new KeyValuePair<string, BiblePublicationSection>(nextSectionCode, nextSection);
+                }
+            }
+
+            // Try to harvest the section
+            var harvested = await EnsureSectionHarvestedAsync(languageCode, publicationCode, nextSectionCode);
+            if (harvested)
+            {
+                // Clear cache and reload sections
+                var key = new SectionsCacheKey(languageCode.ToUpperInvariant(), publicationCode);
+                lock (cacheLock)
+                {
+                    sectionsCache.Remove(key);
+                }
+                sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+
+                if (sections.TryGetValue(nextSectionCode, out nextSection))
+                {
+                    return new KeyValuePair<string, BiblePublicationSection>(nextSectionCode, nextSection);
+                }
+            }
+
+            // Move to next section (wrap around)
+            nextIndex = (nextIndex + 1) % orderedDiscoveredKeys.Count;
+            attempts++;
         }
 
-        return new KeyValuePair<string, BiblePublicationSection>(nextKey, nextSection);
+        throw new InvalidOperationException($"No valid next section found after attempting {maxAttempts} sections: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
+    }
+
+    /// <summary>
+    /// Gets all discovered section codes for a publication+language from SectionLanguages table.
+    /// </summary>
+    private async Task<List<string>> GetDiscoveredSectionCodesAsync(string languageCode, string publicationCode)
+    {
+        if (scopeFactory == null)
+        {
+            // Fallback: use harvested sections only if we can't query discovered sections
+            var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+            return sections.Keys.ToList();
+        }
+
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+
+            // Handle case-sensitive publication codes for dramas
+            var isDrama = Bible.Alarm.Shared.Helpers.PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
+            else
+            {
+                publicationCodeForDb = normalizedPublicationCode;
+            }
+
+            // Get all section codes from SectionLanguages for this publication+language
+            var sectionCodes = await db.SectionLanguages
+                .AsNoTracking()
+                .Include(sl => sl.Language)
+                .Where(sl => sl.PublicationCode == publicationCodeForDb &&
+                           sl.Language != null &&
+                           sl.Language.LanguageCode == normalizedLanguageCode)
+                .Select(sl => sl.SectionCode)
+                .Distinct()
+                .ToListAsync();
+
+            return sectionCodes;
+        }
+        catch (Exception ex)
+        {
+            logger?.Warning(ex, "Failed to get discovered section codes, falling back to harvested sections: languageCode={LanguageCode}, publicationCode={PublicationCode}",
+                languageCode, publicationCode);
+            // Fallback: use harvested sections only
+            var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+            return sections.Keys.ToList();
+        }
+    }
+
+    /// <summary>
+    /// Ensures a section is harvested. If it's not harvested but exists in discovered sections, harvests it.
+    /// Returns true if section is available (harvested or successfully harvested), false otherwise.
+    /// </summary>
+    private async Task<bool> EnsureSectionHarvestedAsync(string languageCode, string publicationCode, string sectionCode)
+    {
+        if (languageContentService == null || scopeFactory == null)
+        {
+            logger?.Warning("ILanguageContentService or IServiceScopeFactory not available, cannot harvest section: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+                languageCode, publicationCode, sectionCode);
+            return false;
+        }
+
+        // Verify section exists in discovered sections before attempting to harvest
+        var discoveredSectionCodes = await GetDiscoveredSectionCodesAsync(languageCode, publicationCode);
+        if (!discoveredSectionCodes.Any(sc => string.Equals(sc, sectionCode, StringComparison.OrdinalIgnoreCase)))
+        {
+            logger?.Warning("Section {SectionCode} not found in discovered sections for languageCode={LanguageCode}, publicationCode={PublicationCode}",
+                sectionCode, languageCode, publicationCode);
+            return false;
+        }
+
+        // Check if section is already harvested
+        var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+        if (sections.ContainsKey(sectionCode))
+        {
+            // Already harvested, check if it has tracks
+            var tracks = await GetTracksCachedAsync(languageCode, publicationCode, sectionCode);
+            if (tracks.Count > 0)
+            {
+                return true; // Section and tracks already exist
+            }
+        }
+
+        // Section not harvested or missing tracks, harvest it
+        // Note: FetchSectionTracksAsync requires the section entity to exist first.
+        // We need to create the section entity if it doesn't exist.
+        try
+        {
+            logger?.Information("Harvesting section for navigation: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+                languageCode, publicationCode, sectionCode);
+
+            // First ensure publication exists
+            var publicationExists = await languageContentService.EnsurePublicationExistsAsync(
+                publicationCode,
+                languageCode,
+                CancellationToken.None);
+
+            if (!publicationExists)
+            {
+                logger?.Warning("Failed to ensure publication exists: languageCode={LanguageCode}, publicationCode={PublicationCode}",
+                    languageCode, publicationCode);
+                return false;
+            }
+
+            // Check if section entity exists, create it if it doesn't
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+            var normalizedSectionCode = sectionCode.ToLowerInvariant();
+            var normalizedLanguageCode = languageCode.ToUpperInvariant();
+
+            var isDrama = Bible.Alarm.Shared.Helpers.PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
+            else
+            {
+                publicationCodeForDb = normalizedPublicationCode;
+            }
+
+            var publication = await db.BiblePublications
+                .Include(bp => bp.Sections)
+                .FirstOrDefaultAsync(
+                    bp => bp.PublicationCode == publicationCodeForDb &&
+                          bp.Language != null &&
+                          bp.Language.LanguageCode == normalizedLanguageCode);
+
+            if (publication == null)
+            {
+                logger?.Warning("Publication {PublicationCode} not found after EnsurePublicationExistsAsync: languageCode={LanguageCode}",
+                    publicationCode, languageCode);
+                return false;
+            }
+
+            // Check if section entity exists
+            var section = publication.Sections.FirstOrDefault(s =>
+                s.SectionCode.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
+
+            if (section == null)
+            {
+                // Section entity doesn't exist, create it
+                // We'll fetch the section name from the API when fetching tracks
+                logger?.Information("Section entity doesn't exist, creating it: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+                    languageCode, publicationCode, sectionCode);
+
+                section = new BiblePublicationSection
+                {
+                    Name = sectionCode, // Temporary name, will be updated when fetching tracks
+                    SectionCode = normalizedSectionCode,
+                    BiblePublication = publication,
+                    BiblePublicationId = publication.Id,
+                    Tracks = new List<BiblePublicationTrack>()
+                };
+
+                publication.Sections.Add(section);
+                await db.SaveChangesAsync();
+            }
+
+            // Now fetch tracks for the section
+            var success = await languageContentService.FetchSectionTracksAsync(
+                publicationCode,
+                sectionCode,
+                languageCode,
+                CancellationToken.None);
+
+            if (success)
+            {
+                // Reload section from database to verify name was updated
+                // Use ToLower() comparison instead of Equals with StringComparison for EF Core translation
+                var reloadedSection = await db.BiblePublicationSections
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        s => s.BiblePublicationId == publication.Id && 
+                             s.SectionCode.ToLower() == normalizedSectionCode.ToLower());
+
+                if (reloadedSection != null)
+                {
+                    logger?.Information("Successfully harvested section: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}, sectionName={SectionName}",
+                        languageCode, publicationCode, sectionCode, reloadedSection.Name);
+                }
+                else
+                {
+                    logger?.Warning("Section harvested but could not reload from database: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+                        languageCode, publicationCode, sectionCode);
+                }
+
+                // Clear cache so next call will get the newly harvested section
+                var key = new SectionsCacheKey(languageCode.ToUpperInvariant(), publicationCode);
+                var tracksKey = new TracksCacheKey(languageCode.ToUpperInvariant(), publicationCode, sectionCode.ToUpperInvariant());
+                lock (cacheLock)
+                {
+                    sectionsCache.Remove(key);
+                    tracksCache.Remove(tracksKey);
+                }
+
+                return true;
+            }
+            else
+            {
+                logger?.Warning("Failed to harvest section: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+                    languageCode, publicationCode, sectionCode);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.Error(ex, "Error harvesting section: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+                languageCode, publicationCode, sectionCode);
+            return false;
+        }
     }
 }

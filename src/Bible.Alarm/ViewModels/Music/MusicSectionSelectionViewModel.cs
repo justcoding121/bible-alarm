@@ -40,6 +40,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private bool showProgress = false;
     private double progressPercent = 0.0;
     private string progressText = "0%";
+    private bool canCancelFetch = false;
+    private bool hasFetchError = false;
     private MusicSectionSelectionStateChangeHandler? stateChangeHandler;
     private CancellationTokenSource? fetchCts;
     
@@ -50,6 +52,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     public ICommand CloseModalCommand { get; set; }
     public ICommand TrackSelectionCommand { get; set; }
     public ICommand CancelFetchCommand { get; }
+    public ICommand RetryFetchCommand { get; }
 
     public MusicSectionSelectionViewModel(
         ILogger logger,
@@ -82,11 +85,19 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         {
             logger.Information("MusicSectionSelectionViewModel: CancelFetchCommand - User cancelled fetch");
             fetchCts?.Cancel();
+            CanCancelFetch = false;
             ShowProgress = false;
+            HasFetchError = false;
             IsBusy = false;
             // Allow screen to turn off when user cancels
             DeviceDisplay.Current.KeepScreenOn = false;
             await navigationService.PopModalAsync();
+        });
+
+        RetryFetchCommand = new AsyncRelayCommand(async () =>
+        {
+            HasFetchError = false;
+            await RefreshFromState();
         });
 
         TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async x =>
@@ -303,6 +314,17 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                 fetchCts?.Dispose();
                 fetchCts = new CancellationTokenSource();
                 
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (!isDisposed && !isSelectingSection)
+                    {
+                        CanCancelFetch = true;
+                        HasFetchError = false;
+                        // Set ShowProgress to true immediately so cancel button appears right away
+                        ShowProgress = true;
+                    }
+                });
+                
                 // Create progress tracker for modal open with async UI updates (fire-and-forget tasks to avoid blocking)
                 var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
                     progress => _ = MainThread.InvokeOnMainThreadAsync(() => 
@@ -351,9 +373,43 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                 {
                     if (!isDisposed && !isSelectingSection)
                     {
+                        CanCancelFetch = false;
                         ShowProgress = false;
                         // Allow screen to turn off after download completes
                         DeviceDisplay.Current.KeepScreenOn = false;
+                    }
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                // Fetch was cancelled - data saved so far is preserved
+                logger.Debug("[MusicSectionSelection] RefreshFromState - Fetch cancelled by user");
+                // Allow screen to turn off after cancellation
+                MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
+                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (!isDisposed && !isSelectingSection)
+                    {
+                        CanCancelFetch = false;
+                        ShowProgress = false;
+                    }
+                });
+            }
+            catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+            {
+                // Network error - show error state instead of closing modal
+                logger.Warning(ex, "[MusicSectionSelection] RefreshFromState - Network error during repopulation");
+                // Allow screen to turn off after error
+                MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
+                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (!isDisposed && !isSelectingSection)
+                    {
+                        CanCancelFetch = false;
+                        ShowProgress = false;
+                        HasFetchError = true;
                     }
                 });
             }
@@ -470,6 +526,18 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     {
         get => progressText;
         set => SetProperty(ref progressText, value);
+    }
+
+    public bool CanCancelFetch
+    {
+        get => canCancelFetch;
+        set => SetProperty(ref canCancelFetch, value);
+    }
+
+    public bool HasFetchError
+    {
+        get => hasFetchError;
+        set => SetProperty(ref hasFetchError, value);
     }
 
     private ObservableCollection<BiblePublicationSectionListViewItemModel> sections = [];

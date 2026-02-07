@@ -1,6 +1,8 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
@@ -27,42 +29,22 @@ internal sealed class SectionListLoader
         // Show progress while fetching
         progress?.SetIsVisible(true);
         progress?.UpdateProgress(0.1);
-        var sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
-
-        // If no sections found and this is a non-English language, sections might be being fetched.
-        // Retry a few times with delays to allow the fetch to complete.
-        if ((sectionsFromDb == null || sectionsFromDb.Count == 0) &&
-            !string.IsNullOrEmpty(languageCode) &&
-            !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        
+        // Get cancellation token from progress tracker (same CTS from modal)
+        var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
+        
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsFromDb = null;
+        
+        // Retry logic: If non-English language, retry fetching until all sections are harvested
+        // For non-English languages, sections need to be fetched, so we retry with increasing delays
+        if (!string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
         {
-            logger.Information(
-                "SectionListLoader: No sections found initially for publication={PublicationCode}, language={LanguageCode}. Sections may be being fetched, will retry...",
-                publicationCode,
-                languageCode);
-
-            // Retry up to 5 times with increasing delays to allow fetch to complete
-            // Total wait time: 2s + 3s + 4s + 5s + 6s = 20 seconds
-            for (int retry = 0; retry < 5; retry++)
-            {
-                // Wait before retrying (2s, 3s, 4s, 5s, 6s)
-                // 0.2 to 0.5
-                progress?.UpdateProgress(0.2 + (retry / 5.0) * 0.3);
-                await Task.Delay(1000 * (retry + 2));
-
-                // Re-query to see if sections are now available
-                sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
-
-                if (sectionsFromDb != null && sectionsFromDb.Count > 0)
-                {
-                    logger.Information(
-                        "SectionListLoader: Found {Count} sections on retry {Retry} for publication={PublicationCode}, language={LanguageCode}",
-                        sectionsFromDb.Count,
-                        retry + 1,
-                        publicationCode,
-                        languageCode);
-                    break;
-                }
-            }
+            sectionsFromDb = await RetryFetchUntilHarvestedAsync(languageCode, publicationCode, progress, cancellationToken);
+        }
+        else
+        {
+            // For English or when language is empty, just fetch once
+            sectionsFromDb = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
         }
 
         progress?.UpdateProgress(0.7);
@@ -103,6 +85,157 @@ internal sealed class SectionListLoader
         progress?.SetIsVisible(false);
 
         return (vms, map);
+    }
+
+    private async Task<SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>?> RetryFetchUntilHarvestedAsync(
+        string languageCode,
+        string publicationCode,
+        IFetchProgress? progress,
+        CancellationToken cancellationToken)
+    {
+        // Up to 10 retries
+        const int maxRetries = 10;
+        // Start with 1 second
+        var retryDelay = 1000;
+        // Total max wait time of 60 seconds
+        var maxWaitTime = TimeSpan.FromSeconds(60);
+        var startTime = DateTime.UtcNow;
+        var allHarvested = false;
+        var attempt = 0;
+
+        logger.Information("SectionListLoader: Starting fetch with retries for publication={PublicationCode}, language={LanguageCode}",
+            publicationCode, languageCode);
+
+        // Show progress overlay at the start of retry loop and keep it visible throughout all retries
+        progress?.SetIsVisible(true);
+        progress?.UpdateProgress(0.0);
+
+        SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsData = null;
+
+        try
+        {
+            while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+            {
+                // Check for cancellation before each attempt
+                cancellationToken.ThrowIfCancellationRequested();
+
+                attempt++;
+
+                try
+                {
+                    // Fetch sections (this triggers harvesting if needed)
+                    // Pass progress to show download percentage during harvesting
+                    // Note: GetBiblePublicationSections will call SetIsVisible(true) internally, but we keep it visible between retries
+                    sectionsData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, progress);
+
+                    // Wait a bit for background harvesting to start (with cancellation support)
+                    await Task.Delay(500, cancellationToken);
+
+                    // Re-query to check if sections are now harvested (no progress needed for re-query)
+                    var reQueriedData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
+
+                    // Check if ALL sections are harvested (not placeholders)
+                    // A section is harvested if it has a name that's different from its code and has an ID > 0
+                    var hasSections = reQueriedData != null && reQueriedData.Values.Count > 0;
+                    var allHarvestedCheck = hasSections && reQueriedData!.Values.All(s =>
+                        !string.IsNullOrEmpty(s.Name) &&
+                        s.Name != s.SectionCode &&
+                        s.Id > 0);
+
+                    if (allHarvestedCheck)
+                    {
+                        sectionsData = reQueriedData;
+                        allHarvested = true;
+                        logger.Information("SectionListLoader: All {Count} sections harvested on attempt {Attempt} for publication={PublicationCode}, language={LanguageCode}",
+                            sectionsData?.Count ?? 0, attempt, publicationCode, languageCode);
+                    }
+                    else
+                    {
+                        // Log which sections are still placeholders for debugging
+                        if (reQueriedData != null)
+                        {
+                            var placeholders = reQueriedData.Values.Where(s =>
+                                string.IsNullOrEmpty(s.Name) ||
+                                s.Name == s.SectionCode ||
+                                s.Id == 0).Select(s => s.SectionCode).ToList();
+
+                            if (placeholders.Count > 0)
+                            {
+                                logger.Debug("SectionListLoader: Attempt {Attempt}: Still waiting for {Count} sections to be harvested: {Placeholders}",
+                                    attempt, placeholders.Count, string.Join(", ", placeholders));
+                            }
+                            else if (!hasSections)
+                            {
+                                logger.Debug("SectionListLoader: Attempt {Attempt}: No sections found yet, will retry",
+                                    attempt);
+                            }
+                        }
+
+                        // Re-show overlay after GetBiblePublicationSections completes (it hides it in finally block)
+                        // This keeps the overlay visible during retry delays
+                        if (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+                        {
+                            progress?.SetIsVisible(true);
+                        }
+
+                        // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s) - with cancellation support
+                        var delay = Math.Min(retryDelay * attempt, 5000);
+                        await Task.Delay(delay, cancellationToken);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Re-throw cancellation - data saved so far is preserved
+                    logger.Information("SectionListLoader: Fetch cancelled at attempt {Attempt} for publication={PublicationCode}, language={LanguageCode}",
+                        attempt, publicationCode, languageCode);
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "SectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, language={LanguageCode}, will retry",
+                        attempt, publicationCode, languageCode);
+
+                    // Re-show overlay after exception (GetBiblePublicationSections hides it in finally block)
+                    // This keeps the overlay visible during retry delays
+                    if (attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+                    {
+                        progress?.SetIsVisible(true);
+                    }
+
+                    // Wait before retrying on exception (with cancellation support)
+                    var delay = Math.Min(retryDelay * attempt, 5000);
+                    await Task.Delay(delay, cancellationToken);
+                }
+            }
+        }
+        finally
+        {
+            // Hide progress overlay when retry loop completes (success, timeout, or cancellation)
+            progress?.SetIsVisible(false);
+        }
+
+        if (!allHarvested)
+        {
+            logger.Warning("SectionListLoader: Timeout after {Attempts} attempts waiting for all sections to be harvested for publication {PublicationCode}, language {LanguageCode}. Some may still be placeholders.",
+                attempt, publicationCode, languageCode);
+
+            // Use the last fetched data even if not all are harvested
+            if (sectionsData == null || sectionsData.Count == 0)
+            {
+                // Final attempt to get at least some data
+                try
+                {
+                    sectionsData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "SectionListLoader: Final fetch attempt failed for publication={PublicationCode}, language={LanguageCode}",
+                        publicationCode, languageCode);
+                }
+            }
+        }
+
+        return sectionsData;
     }
 }
 

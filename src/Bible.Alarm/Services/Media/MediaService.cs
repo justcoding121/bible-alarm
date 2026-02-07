@@ -64,11 +64,14 @@ public sealed class MediaService(
         if (downloadAll || progress != null)
         {
             await mediaIndexService.Verify();
+            // Use cancellation token from progress tracker if available, otherwise use MediaService's token
+            // This allows cancellation from the UI (e.g., cancel button) to propagate through the call chain
+            var cancellationToken = progress?.CancellationToken ?? cancellationTokenSource.Token;
             var result = await MediaServiceBiblePublicationList.GetBiblePublicationsAsync(
                 BiblePublicationService,
                 languageContentService,
                 scopeFactory,
-                cancellationTokenSource.Token,
+                cancellationToken,
                 languageCode,
                 categoryName,
                 downloadAll,

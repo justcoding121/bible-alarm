@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.ObjectModel;
+using System.Threading;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Helpers;
@@ -156,70 +157,117 @@ public sealed class BiblePublicationSelectionDataProvider
                 Log.Information("PopulatePublicationsAsync: Starting fetch with retries for language={LanguageCode}, category={CategoryName}",
                     languageCode, currentCategoryName);
                 
-                while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+                // Show progress overlay at the start of retry loop and keep it visible throughout all retries
+                progress?.SetIsVisible(true);
+                progress?.UpdateProgress(0.0);
+                
+                // Get cancellation token from progress tracker (same CTS from modal)
+                var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
+                
+                try
                 {
-                    attempt++;
-                    
-                    try
+                    while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
                     {
-                        // Fetch publications (this triggers harvesting if needed)
-                        // Pass progress to show download percentage during harvesting
-                        publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
+                        // Check for cancellation before each attempt
+                        cancellationToken.ThrowIfCancellationRequested();
                         
-                        // Wait a bit for background harvesting to start
-                        await Task.Delay(500);
+                        attempt++;
                         
-                        // Re-query to check if publications are now harvested (no progress needed for re-query)
-                        var reQueriedData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
-                        
-                        // Check if ALL publications are harvested (not placeholders)
-                        // A publication is harvested if it has a name that's different from its code and has an ID > 0
-                        var hasPublications = reQueriedData.Values.Count > 0;
-                        var allHarvestedCheck = hasPublications && reQueriedData.Values.All(p => 
-                            !string.IsNullOrEmpty(p.Name) && 
-                            p.Name != p.PublicationCode && 
-                            p.Id > 0);
-                        
-                        if (allHarvestedCheck)
+                        try
                         {
-                            publicationsData = reQueriedData;
-                            allHarvested = true;
-                            Log.Information("PopulatePublicationsAsync: All {Count} publications harvested on attempt {Attempt} for language={LanguageCode}",
-                                publicationsData.Count, attempt, languageCode);
+                            // Fetch publications (this triggers harvesting if needed)
+                            // Pass progress to show download percentage during harvesting
+                            // Note: GetBiblePublications will call SetIsVisible(true) internally, but we keep it visible between retries
+                            publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll, progress);
+                            
+                            // Re-show overlay after GetBiblePublications completes (it hides it in finally block)
+                            // This keeps the overlay visible during retry delays
+                            if (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+                            {
+                                progress?.SetIsVisible(true);
+                            }
+                            
+                            // Wait a bit for background harvesting to start (with cancellation support)
+                            await Task.Delay(500, cancellationToken);
+                            
+                            // Re-query to check if publications are now harvested (no progress needed for re-query)
+                            var reQueriedData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
+                            
+                            // Check if ALL publications are harvested (not placeholders)
+                            // A publication is harvested if it has a name that's different from its code and has an ID > 0
+                            var hasPublications = reQueriedData.Values.Count > 0;
+                            var allHarvestedCheck = hasPublications && reQueriedData.Values.All(p => 
+                                !string.IsNullOrEmpty(p.Name) && 
+                                p.Name != p.PublicationCode && 
+                                p.Id > 0);
+                            
+                            if (allHarvestedCheck)
+                            {
+                                publicationsData = reQueriedData;
+                                allHarvested = true;
+                                Log.Information("PopulatePublicationsAsync: All {Count} publications harvested on attempt {Attempt} for language={LanguageCode}",
+                                    publicationsData.Count, attempt, languageCode);
+                            }
+                            else
+                            {
+                                // Log which publications are still placeholders for debugging
+                                var placeholders = reQueriedData.Values.Where(p => 
+                                    string.IsNullOrEmpty(p.Name) || 
+                                    p.Name == p.PublicationCode || 
+                                    p.Id == 0).Select(p => p.PublicationCode).ToList();
+                                
+                                if (placeholders.Count > 0)
+                                {
+                                    Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: Still waiting for {Count} publications to be harvested: {Placeholders}",
+                                        attempt, placeholders.Count, string.Join(", ", placeholders));
+                                }
+                                else if (!hasPublications)
+                                {
+                                    Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: No publications found yet, will retry",
+                                        attempt);
+                                }
+                                
+                                // Re-show overlay after GetBiblePublications completes (it hides it in finally block)
+                                // This keeps the overlay visible during retry delays
+                                if (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+                                {
+                                    progress?.SetIsVisible(true);
+                                }
+                                
+                                // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s) - with cancellation support
+                                var delay = Math.Min(retryDelay * attempt, 5000);
+                                await Task.Delay(delay, cancellationToken);
+                            }
                         }
-                        else
+                        catch (OperationCanceledException)
                         {
-                            // Log which publications are still placeholders for debugging
-                            var placeholders = reQueriedData.Values.Where(p => 
-                                string.IsNullOrEmpty(p.Name) || 
-                                p.Name == p.PublicationCode || 
-                                p.Id == 0).Select(p => p.PublicationCode).ToList();
+                            // Re-throw cancellation - data saved so far is preserved
+                            Log.Information("PopulatePublicationsAsync: Fetch cancelled at attempt {Attempt} for language={LanguageCode}",
+                                attempt, languageCode);
+                            throw;
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning(ex, "PopulatePublicationsAsync: Attempt {Attempt} failed for language={LanguageCode}, will retry",
+                                attempt, languageCode);
                             
-                            if (placeholders.Count > 0)
+                            // Re-show overlay after exception (GetBiblePublications hides it in finally block)
+                            // This keeps the overlay visible during retry delays
+                            if (attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
                             {
-                                Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: Still waiting for {Count} publications to be harvested: {Placeholders}",
-                                    attempt, placeholders.Count, string.Join(", ", placeholders));
-                            }
-                            else if (!hasPublications)
-                            {
-                                Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: No publications found yet, will retry",
-                                    attempt);
+                                progress?.SetIsVisible(true);
                             }
                             
-                            // Wait with increasing delay before retrying (1s, 2s, 3s, etc., up to 5s)
+                            // Wait before retrying on exception (with cancellation support)
                             var delay = Math.Min(retryDelay * attempt, 5000);
-                            await Task.Delay(delay);
+                            await Task.Delay(delay, cancellationToken);
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        Log.Warning(ex, "PopulatePublicationsAsync: Attempt {Attempt} failed for language={LanguageCode}, will retry",
-                            attempt, languageCode);
-                        
-                        // Wait before retrying on exception
-                        var delay = Math.Min(retryDelay * attempt, 5000);
-                        await Task.Delay(delay);
-                    }
+                }
+                finally
+                {
+                    // Hide progress overlay when retry loop completes (success, timeout, or cancellation)
+                    progress?.SetIsVisible(false);
                 }
                 
                 if (!allHarvested)

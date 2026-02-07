@@ -3,6 +3,7 @@ using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Playlist;
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
+using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -12,6 +13,8 @@ using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.Services.Media;
@@ -45,6 +48,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
     private readonly IMediaUrlRefreshService urlRefreshService;
     private readonly IUrlConstructionService urlConstructionService;
+    private readonly ILanguageContentService? languageContentService;
+    private readonly IServiceScopeFactory? scopeFactory;
+    private readonly IScheduleDisplayNameService? scheduleDisplayNameService;
 
     public PlaylistService(
         ILogger logger,
@@ -55,7 +61,10 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         IBiblePublicationService BiblePublicationService,
         IMelodyMusicService melodyMusicService,
         IMediaUrlRefreshService urlRefreshService,
-        IUrlConstructionService urlConstructionService)
+        IUrlConstructionService urlConstructionService,
+        ILanguageContentService? languageContentService = null,
+        IServiceScopeFactory? scopeFactory = null,
+        IScheduleDisplayNameService? scheduleDisplayNameService = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
@@ -66,10 +75,13 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         this.melodyMusicService = melodyMusicService;
         this.urlRefreshService = urlRefreshService;
         this.urlConstructionService = urlConstructionService ?? throw new ArgumentNullException(nameof(urlConstructionService));
+        this.languageContentService = languageContentService;
+        this.scopeFactory = scopeFactory;
+        this.scheduleDisplayNameService = scheduleDisplayNameService;
         biblePublicationTrackBuilder = new PlaylistBiblePublicationTrackBuilder(logger, mediaService, urlRefreshService, urlConstructionService, BiblePublicationService);
         musicTrackBuilder = new PlaylistMusicTrackBuilder(logger, mediaService, melodyMusicService, urlRefreshService, urlConstructionService);
         trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);
-        trackNavigator = new TrackNavigator(mediaService, BiblePublicationService);
+        trackNavigator = new TrackNavigator(mediaService, BiblePublicationService, languageContentService, scopeFactory, logger);
         scheduleUpdater = new ScheduleUpdater(alarmScheduleService, cancellationTokenSource.Token);
     }
 
@@ -603,6 +615,14 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
 
         var nextTrackCode = TrackCodeHelper.GetFromTrack(next.Value);
+        var nextSectionCode = next.Key?.SectionCode;
+
+        // Check if section changed - if so, refresh schedule display names
+        var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, nextSectionCode, StringComparison.OrdinalIgnoreCase);
+        if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayNameService != null)
+        {
+            await RefreshScheduleDisplayNamesAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, currentTrackMetadata.PublicationCode, nextSectionCode);
+        }
 
         var metadata = new TrackMetadata
         {
@@ -610,7 +630,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             IsBibleContent = true,
             LanguageCode = currentTrackMetadata.LanguageCode,
             PublicationCode = currentTrackMetadata.PublicationCode,
-            SectionCode = next.Key?.SectionCode,
+            SectionCode = nextSectionCode,
             TrackCode = nextTrackCode,
             IsLastTrack = false
         };
@@ -677,6 +697,14 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
 
         var prevTrackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(previous.Value);
+        var prevSectionCode = previous.Key?.SectionCode;
+
+        // Check if section changed - if so, refresh schedule display names
+        var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, prevSectionCode, StringComparison.OrdinalIgnoreCase);
+        if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayNameService != null)
+        {
+            await RefreshScheduleDisplayNamesAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, currentTrackMetadata.PublicationCode, prevSectionCode);
+        }
 
         var metadata = new TrackMetadata
         {
@@ -684,7 +712,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             IsBibleContent = true,
             LanguageCode = currentTrackMetadata.LanguageCode,
             PublicationCode = currentTrackMetadata.PublicationCode,
-            SectionCode = previous.Key?.SectionCode,
+            SectionCode = prevSectionCode,
             TrackCode = prevTrackCode,
             IsLastTrack = false
         };
@@ -709,6 +737,82 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
 
         return new PlayItem(metadata, url);
+    }
+
+    /// <summary>
+    /// Refreshes schedule display names after navigating to a newly harvested section.
+    /// Creates a temporary schedule entity with the new section code to populate display names.
+    /// </summary>
+    private async Task RefreshScheduleDisplayNamesAsync(int scheduleId, string languageCode, string publicationCode, string? sectionCode)
+    {
+        if (scheduleDisplayNameService == null || alarmScheduleService == null)
+        {
+            return;
+        }
+
+        try
+        {
+            // Get the schedule from database
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+                scheduleId,
+                includeMusic: false,
+                includeBiblePublication: true,
+                cancellationTokenSource.Token);
+
+            if (schedule?.BiblePublicationSchedule == null)
+            {
+                return;
+            }
+
+            // Create a temporary schedule entity with the new section code for display name population
+            // We don't update the database schedule here - that happens when the track is played
+            var tempSchedule = new AlarmSchedule
+            {
+                Id = schedule.Id,
+                Name = schedule.Name,
+                IsEnabled = schedule.IsEnabled,
+                Hour = schedule.Hour,
+                Minute = schedule.Minute,
+                Second = schedule.Second,
+                DaysOfWeek = schedule.DaysOfWeek,
+                NotificationEnabled = schedule.NotificationEnabled,
+                MusicEnabled = schedule.MusicEnabled,
+                SnoozeMinutes = schedule.SnoozeMinutes,
+                NumberOfTracksToPlay = schedule.NumberOfTracksToPlay,
+                AlwaysPlayFromStart = schedule.AlwaysPlayFromStart,
+                BiblePublicationSchedule = new BiblePublicationSchedule
+                {
+                    LanguageCode = schedule.BiblePublicationSchedule.LanguageCode ?? languageCode,
+                    PublicationCode = schedule.BiblePublicationSchedule.PublicationCode ?? publicationCode,
+                    SectionCode = sectionCode,
+                    TrackCode = schedule.BiblePublicationSchedule.TrackCode
+                }
+            };
+
+            // Create a temporary ScheduleStateItem to populate display names
+            var scheduleStateItem = new ScheduleStateItem
+            {
+                Id = schedule.Id,
+                BiblePublicationLanguageCode = tempSchedule.BiblePublicationSchedule.LanguageCode,
+                BiblePublicationCode = tempSchedule.BiblePublicationSchedule.PublicationCode,
+                BiblePublicationSectionCode = tempSchedule.BiblePublicationSchedule.SectionCode,
+                BiblePublicationTrackCode = tempSchedule.BiblePublicationSchedule.TrackCode
+            };
+
+            // Populate display names from database (this will read the newly harvested section name)
+            await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, tempSchedule);
+
+            // Dispatch update to refresh schedule state with new display names (without saving to DB)
+            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
+
+            logger.Debug("Refreshed schedule display names after section harvest: ScheduleId={ScheduleId}, SectionCode={SectionCode}, SectionName={SectionName}",
+                scheduleId, sectionCode, scheduleStateItem.BiblePublicationSectionName);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to refresh schedule display names after section harvest: ScheduleId={ScheduleId}, SectionCode={SectionCode}",
+                scheduleId, sectionCode);
+        }
     }
 
     private static void TryApplyDiscStyleDownloadCode(TrackMetadata metadata)

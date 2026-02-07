@@ -287,6 +287,16 @@ internal sealed class SectionFetcher
         BiblePublicationSection section,
         CancellationToken cancellationToken)
     {
+        // Ensure section is tracked by the DbContext
+        // If section was created in a different scope, we need to attach it
+        var entry = db.Entry(section);
+        if (entry.State == Microsoft.EntityFrameworkCore.EntityState.Detached)
+        {
+            logger.Debug("Section entity is detached, attaching to DbContext: sectionCode={SectionCode}",
+                normalizedSectionCode);
+            db.BiblePublicationSections.Attach(section);
+        }
+
         await db.Entry(section).Collection(s => s.Tracks).LoadAsync(cancellationToken);
         if (section.Tracks != null && section.Tracks.Count > 0)
         {
@@ -320,6 +330,41 @@ internal sealed class SectionFetcher
             logger.Warning("Invalid response format for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
                 normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
             return false;
+        }
+
+        // Extract and update section name from API response
+        string? updatedSectionName = null;
+        if (root.TryGetProperty("pubName", out var pubNameElement))
+        {
+            var rawName = pubNameElement.GetString();
+            logger.Debug("Found pubName in API response for section {SectionCode}: rawName={RawName}",
+                normalizedSectionCode, rawName);
+            
+            var sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
+            if (!string.IsNullOrEmpty(sectionName))
+            {
+                var oldName = section.Name;
+                updatedSectionName = sectionName;
+                section.Name = sectionName;
+                // Mark the Name property as modified to ensure EF Core saves it
+                db.Entry(section).Property(s => s.Name).IsModified = true;
+                
+                // Verify the change was detected
+                var isModified = db.Entry(section).Property(s => s.Name).IsModified;
+                logger.Information("Updated section name from API: {OldName} -> {NewName} for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}. IsModified={IsModified}",
+                    oldName, sectionName, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode, isModified);
+            }
+            else
+            {
+                logger.Warning("pubName found in API response but section name is empty after processing. rawName={RawName} for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
+                    rawName, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
+            }
+        }
+        else
+        {
+            logger.Warning("pubName not found in API response for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}. Available properties: {Properties}",
+                normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode, 
+                string.Join(", ", root.EnumerateObject().Select(p => p.Name)));
         }
 
         if (!filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) ||
@@ -487,11 +532,49 @@ internal sealed class SectionFetcher
             return false;
         }
 
-        section.Tracks = tracks;
+        // Add tracks to the section's collection instead of replacing it
+        // This preserves EF Core change tracking for the section entity
+        if (section.Tracks == null)
+        {
+            section.Tracks = new List<BiblePublicationTrack>();
+        }
+        foreach (var track in tracks)
+        {
+            section.Tracks.Add(track);
+        }
+        
+        // Ensure section name is preserved if it was updated from API
+        // Re-apply the name update if it was set earlier (defensive check)
+        if (!string.IsNullOrEmpty(updatedSectionName) && section.Name != updatedSectionName)
+        {
+            logger.Warning("Section name was lost during track addition, re-applying: sectionCode={SectionCode}, expectedName={ExpectedName}, currentName={CurrentName}",
+                normalizedSectionCode, updatedSectionName, section.Name);
+            section.Name = updatedSectionName;
+        }
+        
+        // Ensure section entity is tracked and name changes are saved
+        // Mark as modified AFTER all entity modifications to ensure name update persists
+        if (!string.IsNullOrEmpty(updatedSectionName))
+        {
+            db.Entry(section).Property(s => s.Name).IsModified = true;
+            logger.Debug("Marking section name as modified before save: sectionCode={SectionCode}, name={Name}, isModified={IsModified}",
+                normalizedSectionCode, section.Name, db.Entry(section).Property(s => s.Name).IsModified);
+        }
+        
         await db.SaveChangesAsync(cancellationToken);
 
-        logger.Information("Successfully fetched {Count} tracks for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
-            tracks.Count, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
+        // Reload section from database to verify name was persisted
+        await db.Entry(section).ReloadAsync(cancellationToken);
+        var persistedSectionName = section.Name;
+
+        if (!string.IsNullOrEmpty(updatedSectionName) && persistedSectionName != updatedSectionName)
+        {
+            logger.Error("Section name was not persisted correctly! Expected: {ExpectedName}, Actual: {ActualName} for section {SectionCode}",
+                updatedSectionName, persistedSectionName, normalizedSectionCode);
+        }
+
+        logger.Information("Successfully fetched {Count} tracks for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}. Section name: {SectionName}",
+            tracks.Count, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode, persistedSectionName);
 
         return true;
     }
