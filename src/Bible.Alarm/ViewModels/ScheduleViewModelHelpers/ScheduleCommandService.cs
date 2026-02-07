@@ -147,13 +147,6 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             return false;
         }
 
-        var daysOfWeek = currentSchedule.DaysOfWeek;
-        if (!await scheduleValidationService.ValidateDaysOfWeekAsync(daysOfWeek))
-        {
-            logger.Warning("SaveAsync: Validation failed");
-            return false;
-        }
-
         // Check notification permission if NotificationEnabled is true (Android 13+)
         if (currentSchedule.NotificationEnabled)
         {

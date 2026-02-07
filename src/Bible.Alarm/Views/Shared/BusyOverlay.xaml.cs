@@ -329,8 +329,6 @@ public partial class BusyOverlay : ContentView
         {
             logger.Debug("BusyOverlay: Starting spinner immediately");
             busyIndicator.IsRunning = true;
-            // Force layout update to ensure spinner is positioned correctly
-            InvalidateMeasure();
         }
     }
 

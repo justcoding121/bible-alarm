@@ -127,18 +127,22 @@ public partial class ScheduleContent : ContentView
             if (platform == DevicePlatform.WinUI)
             {
                 deleteButton.Padding = new Thickness(10, 10);
+                deleteButton.VerticalOptions = LayoutOptions.Fill;
             }
             else if (platform == DevicePlatform.iOS)
             {
                 deleteButton.Padding = new Thickness(10, 12);
+                deleteButton.VerticalOptions = LayoutOptions.Fill;
             }
             else if (platform == DevicePlatform.Android)
             {
                 deleteButton.Padding = new Thickness(10, 6, 10, 10);
+                deleteButton.VerticalOptions = LayoutOptions.Center;
             }
             else
             {
                 deleteButton.Padding = new Thickness(10, 8);
+                deleteButton.VerticalOptions = LayoutOptions.Fill;
             }
         }
         

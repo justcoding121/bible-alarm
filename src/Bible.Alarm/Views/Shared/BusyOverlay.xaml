@@ -10,6 +10,7 @@
              xmlns:fn="clr-namespace:Bible.Alarm.Views"
              BackgroundColor="Transparent"
              ZIndex="999"
+             Margin="0"
              HorizontalOptions="Fill"
              VerticalOptions="Fill">
     <ContentView.Resources>
@@ -21,6 +22,7 @@
           Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
           BackgroundColor="{DynamicResource BackgroundColor}"
           ZIndex="999"
+          Margin="0"
           HorizontalOptions="Fill"
           VerticalOptions="Fill">
         <!-- Card container for all overlay content -->

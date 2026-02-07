@@ -28,7 +28,7 @@
         <Grid Grid.Row="0"
               x:Name="ButtonContainer"
               Margin="0,0,0,4"
-              ColumnSpacing="6"
+              ColumnSpacing="4"
               HorizontalOptions="FillAndExpand"
               VerticalOptions="Start">
             <Grid.ColumnDefinitions>
@@ -37,7 +37,7 @@
             </Grid.ColumnDefinitions>
             <!-- Cancel button - SfEffectsView for WinUI only -->
             <Grid Grid.Column="0"
-                  Margin="0,0,3,0"
+                  Margin="0"
                   HorizontalOptions="FillAndExpand"
                   VerticalOptions="Start"
                   HeightRequest="{DynamicResource IconStandardContainerSize}">
@@ -94,7 +94,7 @@
                         Opacity="0.95" />
             </Grid>
             <Grid Grid.Column="0"
-                  Margin="0,0,3,0"
+                  Margin="0"
                   HorizontalOptions="FillAndExpand"
                   HeightRequest="{DynamicResource IconStandardContainerSize}"
                   IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
@@ -137,7 +137,7 @@
             </Grid>
             <!-- Save button - SfEffectsView for WinUI only -->
             <Grid Grid.Column="1"
-                  Margin="3,0,0,0"
+                  Margin="0"
                   HorizontalOptions="FillAndExpand"
                   VerticalOptions="Start"
                   HeightRequest="{DynamicResource IconStandardContainerSize}">
@@ -194,7 +194,7 @@
                         Opacity="0.95" />
             </Grid>
             <Grid Grid.Column="1"
-                  Margin="3,0,0,0"
+                  Margin="0"
                   HorizontalOptions="FillAndExpand"
                   HeightRequest="{DynamicResource IconStandardContainerSize}"
                   IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
@@ -260,7 +260,7 @@
 
                 <!-- Delete button - SfEffectsView for WinUI only -->
                 <Grid Grid.Row="5"
-                      Margin="0,10,0,5"
+                      Margin="0,0,0,5"
                       VerticalOptions="End"
                       HorizontalOptions="Fill"
                       HeightRequest="{DynamicResource IconStandardContainerSize}">
@@ -318,7 +318,7 @@
                 </Grid>
                 <Grid Grid.Row="5"
                       x:Name="DeleteButtonNoEffects"
-                      Margin="0,10,0,5"
+                      Margin="0,0,0,5"
                       IsVisible="{Binding IsExistingSchedule}"
                       VerticalOptions="End"
                       HorizontalOptions="Fill"

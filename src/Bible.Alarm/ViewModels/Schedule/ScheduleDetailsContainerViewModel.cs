@@ -3,6 +3,7 @@
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
@@ -22,6 +23,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
+    private readonly IScheduleValidationService scheduleValidationService;
 
     private TimeSpan time;
     private DaysOfWeek daysOfWeek;
@@ -36,12 +38,14 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         ILogger logger,
         IState<ApplicationState> state,
         IDispatcher dispatcher,
-        IMapper mapper)
+        IMapper mapper,
+        IScheduleValidationService scheduleValidationService)
     {
         this.logger = logger;
         this.state = state;
         this.dispatcher = dispatcher;
         this.mapper = mapper;
+        this.scheduleValidationService = scheduleValidationService;
 
         state.StateChanged += OnStateChanged;
         // Subscribe to theme changes to update day button colors
@@ -52,7 +56,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
 
     private void InitializeCommands()
     {
-        ToggleDayCommand = new RelayCommand<object>(ToggleDay);
+        ToggleDayCommand = new AsyncRelayCommand<object>(ToggleDayAsync);
     }
 
     private void InitializeFromState()
@@ -315,7 +319,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
         };
     }
 
-    private void ToggleDay(object? parameter)
+    private async Task ToggleDayAsync(object? parameter)
     {
         DaysOfWeek day;
 
@@ -333,15 +337,48 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             return;
         }
 
-        // Use property setter to ensure DispatchScheduleUpdate is called
+        // Check if we're deselecting a day
         if ((DaysOfWeek & day) == day)
         {
-            DaysOfWeek = DaysOfWeek & ~day;
+            // Calculate what the new value would be
+            var newDaysOfWeek = DaysOfWeek & ~day;
+
+            // Count how many days are currently selected
+            var currentCount = CountSelectedDays(DaysOfWeek);
+
+            // If only one day is selected and we're trying to deselect it, prevent the change
+            if (currentCount == 1)
+            {
+                logger.Debug("ToggleDay: Attempted to deselect the last remaining day");
+                await scheduleValidationService.ValidateDaysOfWeekAsync(newDaysOfWeek);
+                return;
+            }
+
+            DaysOfWeek = newDaysOfWeek;
         }
         else
         {
             DaysOfWeek = DaysOfWeek | day;
         }
+    }
+
+    private static int CountSelectedDays(DaysOfWeek daysOfWeek)
+    {
+        var count = 0;
+        foreach (DaysOfWeek day in Enum.GetValues(typeof(DaysOfWeek)))
+        {
+            if (day == DaysOfWeek.All)
+            {
+                continue;
+            }
+
+            if ((daysOfWeek & day) == day)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     /// <summary>
