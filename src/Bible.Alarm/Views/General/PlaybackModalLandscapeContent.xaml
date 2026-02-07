@@ -227,6 +227,7 @@
 
                 <!-- Title and subtitle overlaid on top of artwork (left padding so not touching screen edge) -->
                 <VerticalStackLayout
+                    IsVisible="{Binding ShowLandscapeOverlayControls}"
                     Spacing="{DynamicResource SpacingSmall}"
                     HorizontalOptions="Start"
                     VerticalOptions="Start"

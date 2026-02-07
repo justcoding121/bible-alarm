@@ -189,8 +189,17 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             return;
         }
 
-        SetLandscapeOverlayControlsVisible(true);
-        ScheduleLandscapeAutoHide();
+        // Toggle visibility: if visible, hide immediately; if hidden, show and schedule auto-hide
+        if (areLandscapeOverlayControlsVisible)
+        {
+            CancelLandscapeAutoHide();
+            SetLandscapeOverlayControlsVisible(false);
+        }
+        else
+        {
+            SetLandscapeOverlayControlsVisible(true);
+            ScheduleLandscapeAutoHide();
+        }
     }
 
     private void SetLandscapeOverlayControlsVisible(bool visible)
