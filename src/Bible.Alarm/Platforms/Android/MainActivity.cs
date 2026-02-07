@@ -145,4 +145,19 @@ public class MainActivity : MauiAppCompatActivity
         MainActivityLifecycleHelper.PerformActivityTeardown();
     }
 
+    /// <summary>
+    /// Handles permission request results from Android system.
+    /// Routes notification permission results to NotificationPermissionService.
+    /// </summary>
+    public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
+    {
+        base.OnRequestPermissionsResult(requestCode, permissions, grantResults);
+        
+        if (requestCode == NotificationPermissionService.NotificationPermissionRequestCode)
+        {
+            Logger.Debug("MainActivity: Received notification permission result");
+            NotificationPermissionService.Instance.HandlePermissionResult(requestCode, permissions, grantResults);
+        }
+    }
+
 }

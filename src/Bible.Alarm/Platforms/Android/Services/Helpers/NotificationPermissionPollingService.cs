@@ -14,6 +14,7 @@ public sealed class NotificationPermissionPollingService : IDisposable
     private static readonly ILogger logger = Log.ForContext<NotificationPermissionPollingService>();
     private CancellationTokenSource? cancellationTokenSource;
     private bool isRunning;
+    private volatile bool justRequestedPermission;
 
     /// <summary>
     /// Callback invoked when permission is granted. Parameter is the current value before update.
@@ -54,12 +55,14 @@ public sealed class NotificationPermissionPollingService : IDisposable
         cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
         isRunning = true;
+        justRequestedPermission = false;
 
         // Request permission if needed (one-time) - do this first before starting the polling loop
         _ = Task.Run(async () =>
         {
             try
             {
+                justRequestedPermission = true;
                 await NotificationPermissionHelper.RequestNotificationPermissionIfNeededAsync();
                 logger.Debug("Permission request completed");
             }
@@ -67,14 +70,21 @@ public sealed class NotificationPermissionPollingService : IDisposable
             {
                 logger.Error(ex, "Error requesting notification permission");
             }
+            finally
+            {
+                // Reset flag after a delay to allow user time to respond
+                await Task.Delay(3000);
+                justRequestedPermission = false;
+            }
         });
 
         _ = Task.Run(async () =>
         {
             try
             {
-                // Wait a bit before first check to allow permission dialog to appear
-                await Task.Delay(300, cancellationToken);
+                // Wait longer before first check to allow user time to respond to permission dialog
+                // Give at least 3 seconds for the user to see and respond to the dialog
+                await Task.Delay(3000, cancellationToken);
 
                 while (!cancellationToken.IsCancellationRequested)
                 {
@@ -112,15 +122,26 @@ public sealed class NotificationPermissionPollingService : IDisposable
                             // Permission denied - toggle OFF (internal update, not user action)
                             if (currentValue)
                             {
-                                logger.Information("Notification permission denied - updating toggle to OFF. Current value: {Current}", currentValue);
-                                OnPermissionDenied?.Invoke(currentValue);
-                                SetValue?.Invoke(false);
-
-                                // Show toast message to inform user
-                                var toastService = GetToastService?.Invoke();
-                                if (toastService != null)
+                                // Don't flip toggle or show toast if we just requested permission
+                                // Give the user time to respond to the permission dialog
+                                if (justRequestedPermission)
                                 {
-                                    _ = toastService.ShowMessage("Notification permission is denied by Android", 5);
+                                    logger.Debug("Permission denied but we just requested permission - waiting for user response before flipping toggle");
+                                }
+                                else
+                                {
+                                    logger.Information("Notification permission denied - updating toggle to OFF. Current value: {Current}", currentValue);
+                                    OnPermissionDenied?.Invoke(currentValue);
+                                    
+                                    // Only show toast when we actually flip the toggle back to OFF
+                                    SetValue?.Invoke(false);
+                                    
+                                    // Show toast message to inform user (only shown when toggle is flipped from ON to OFF)
+                                    var toastService = GetToastService?.Invoke();
+                                    if (toastService != null)
+                                    {
+                                        _ = toastService.ShowMessage("Notification permission is denied by Android", 5);
+                                    }
                                 }
                             }
                             else
