@@ -67,6 +67,7 @@ public static class ScheduleStateSyncHelper
                current.MusicSectionModalItemCount == action.MusicSectionModalItemCount &&
                current.Name == action.Name &&
                current.IsEnabled == action.IsEnabled &&
+               current.NotificationEnabled == action.NotificationEnabled &&
                current.Hour == action.Hour &&
                current.Minute == action.Minute &&
                current.Second == action.Second &&

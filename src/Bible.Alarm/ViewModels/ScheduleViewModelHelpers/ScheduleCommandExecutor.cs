@@ -6,6 +6,7 @@ using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions;
+using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.Shared.Helpers;
@@ -30,6 +31,8 @@ public sealed class ScheduleCommandExecutor
     private readonly IDispatcher dispatcher;
     private readonly IMapper mapper;
     private readonly Func<MusicSelectionContainerViewModel?> getMusicSelectionContainerViewModel;
+    private readonly Func<AlarmSettingsContainerViewModel?>? getAlarmSettingsContainerViewModel;
+    private readonly Func<NumberOfTrackContainerViewModel?>? getNumberOfTrackContainerViewModel;
     private readonly Action<bool>? setIsSaving;
     private readonly Action<bool>? setIsCancelBusy;
     private readonly Action<bool>? setIsSaveBusy;
@@ -44,6 +47,8 @@ public sealed class ScheduleCommandExecutor
         IMapper mapper,
         ILogger logger,
         Func<MusicSelectionContainerViewModel?> getMusicSelectionContainerViewModel,
+        Func<AlarmSettingsContainerViewModel?>? getAlarmSettingsContainerViewModel = null,
+        Func<NumberOfTrackContainerViewModel?>? getNumberOfTrackContainerViewModel = null,
         Action<bool>? setIsSaving = null,
         Action<bool>? setIsCancelBusy = null,
         Action<bool>? setIsSaveBusy = null,
@@ -57,6 +62,8 @@ public sealed class ScheduleCommandExecutor
         this.dispatcher = dispatcher;
         this.mapper = mapper;
         this.getMusicSelectionContainerViewModel = getMusicSelectionContainerViewModel;
+        this.getAlarmSettingsContainerViewModel = getAlarmSettingsContainerViewModel;
+        this.getNumberOfTrackContainerViewModel = getNumberOfTrackContainerViewModel;
         this.setIsSaving = setIsSaving;
         this.setIsCancelBusy = setIsCancelBusy;
         this.setIsSaveBusy = setIsSaveBusy;
@@ -118,8 +125,60 @@ public sealed class ScheduleCommandExecutor
             var isNewSchedule = IsNewSchedule();
             var scheduleId = GetScheduleId();
 
-            logger.Information("SaveCommand: Reading state - currentSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, currentSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
-                currentSchedule?.NumberOfTracksToPlay ?? 0, currentSchedule?.AlwaysPlayFromStart ?? false);
+            // Sync NotificationEnabled from ViewModel property to ensure we have the latest value
+            // This is important because permission polling may have updated the ViewModel property
+            // but the state update might not have been processed yet
+#if ANDROID
+            var alarmSettingsViewModel = getAlarmSettingsContainerViewModel?.Invoke();
+            var numberOfTrackViewModel = getNumberOfTrackContainerViewModel?.Invoke();
+            
+            if (currentSchedule != null)
+            {
+                // Check AlarmSettingsContainerViewModel first (primary source for NotificationEnabled)
+                if (alarmSettingsViewModel != null && currentSchedule.NotificationEnabled != alarmSettingsViewModel.NotificationEnabled)
+                {
+                    logger.Information("SaveCommand: Syncing NotificationEnabled from AlarmSettingsContainerViewModel. State={StateValue}, ViewModel={ViewModelValue}",
+                        currentSchedule.NotificationEnabled, alarmSettingsViewModel.NotificationEnabled);
+                    
+                    // Update the cloned schedule for save
+                    currentSchedule = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
+                    currentSchedule.NotificationEnabled = alarmSettingsViewModel.NotificationEnabled;
+                    
+                    // Dispatch state update to prevent OnStateChanged from overwriting ViewModel
+                    // Use shouldSave: false to avoid triggering another save cycle
+                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(currentSchedule, false, false, shouldSave: false));
+                    
+                    // Wait briefly for state update to process
+                    await Task.Delay(50);
+                    
+                    // Re-read from state to get the updated value
+                    currentSchedule = state.Value.CurrentSchedule;
+                }
+                // Fallback to NumberOfTrackContainerViewModel if AlarmSettingsContainerViewModel is not available
+                else if (numberOfTrackViewModel != null && currentSchedule.NotificationEnabled != numberOfTrackViewModel.NotificationEnabled)
+                {
+                    logger.Information("SaveCommand: Syncing NotificationEnabled from NumberOfTrackContainerViewModel. State={StateValue}, ViewModel={ViewModelValue}",
+                        currentSchedule.NotificationEnabled, numberOfTrackViewModel.NotificationEnabled);
+                    
+                    // Update the cloned schedule for save
+                    currentSchedule = ScheduleStateHelper.CloneScheduleStateItem(currentSchedule);
+                    currentSchedule.NotificationEnabled = numberOfTrackViewModel.NotificationEnabled;
+                    
+                    // Dispatch state update to prevent OnStateChanged from overwriting ViewModel
+                    // Use shouldSave: false to avoid triggering another save cycle
+                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(currentSchedule, false, false, shouldSave: false));
+                    
+                    // Wait briefly for state update to process
+                    await Task.Delay(50);
+                    
+                    // Re-read from state to get the updated value
+                    currentSchedule = state.Value.CurrentSchedule;
+                }
+            }
+#endif
+
+            logger.Information("SaveCommand: Reading state - currentSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, currentSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}, currentSchedule.NotificationEnabled={NotificationEnabled}",
+                currentSchedule?.NumberOfTracksToPlay ?? 0, currentSchedule?.AlwaysPlayFromStart ?? false, currentSchedule?.NotificationEnabled ?? false);
 
             var musicUpdated = DetectMusicChanges();
             var biblePublicationUpdated = DetectBiblePublicationChanges();

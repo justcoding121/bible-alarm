@@ -126,6 +126,7 @@ public partial class BusyOverlay : ContentView
     }
 
     private CancellationTokenSource? timeoutCancellation;
+    private CancellationTokenSource? spinnerStopCancellation;
     private bool isProcessingVisibilityChange;
 
     public static new readonly BindableProperty IsVisibleProperty = BindableProperty.Create(
@@ -258,13 +259,17 @@ public partial class BusyOverlay : ContentView
                 // Handle spinner and hard timeout based on visibility change
                 if (newBoolValue)
                 {
+                    // Cancel any pending spinner stop (in case overlay was quickly hidden then shown again)
+                    overlay.CancelSpinnerStop();
                     overlay.StartSpinnerImmediately();
                     overlay.StartHardTimeout();
                 }
                 else
                 {
-                    overlay.StopSpinnerImmediately();
+                    // Don't stop spinner immediately - let it fade out with the card
+                    // Stop it after a short delay to allow the opacity fade to complete
                     overlay.CancelHardTimeout();
+                    overlay.StopSpinnerAfterDelay();
                 }
             }
 
@@ -334,10 +339,69 @@ public partial class BusyOverlay : ContentView
     /// </summary>
     public void StopSpinnerImmediately()
     {
+        // Cancel any pending delayed stop
+        CancelSpinnerStop();
+        
         if (busyIndicator != null)
         {
             logger.Debug("BusyOverlay: Stopping spinner immediately");
             busyIndicator.IsRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// Stops the spinner after a short delay to allow the opacity fade to complete.
+    /// This ensures the spinner fades out smoothly with the card instead of disappearing instantly.
+    /// </summary>
+    private void StopSpinnerAfterDelay()
+    {
+        // Cancel any existing delayed stop
+        CancelSpinnerStop();
+        
+        // Delay of 300ms should be enough for the opacity fade to complete
+        // This matches typical MAUI animation durations
+        spinnerStopCancellation = new CancellationTokenSource();
+        var token = spinnerStopCancellation.Token;
+        
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(300, token);
+                
+                if (!token.IsCancellationRequested && busyIndicator != null)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        if (busyIndicator != null)
+                        {
+                            logger.Debug("BusyOverlay: Stopping spinner after fade delay");
+                            busyIndicator.IsRunning = false;
+                        }
+                    });
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Stop was cancelled (overlay became visible again)
+            }
+        }, token);
+    }
+
+    /// <summary>
+    /// Cancels any pending delayed spinner stop.
+    /// </summary>
+    private void CancelSpinnerStop()
+    {
+        if (spinnerStopCancellation != null)
+        {
+            try
+            {
+                spinnerStopCancellation.Cancel();
+                spinnerStopCancellation.Dispose();
+            }
+            catch { }
+            spinnerStopCancellation = null;
         }
     }
 
