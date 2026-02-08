@@ -71,6 +71,7 @@
             <!-- iOS: SearchBar without Border wrapper to avoid double-border effect -->
             <SearchBar
                 x:Name="LanguageSearchBarIOS"
+                AutomationId="LanguageSearchBar"
                 Grid.Row="1"
                 Margin="16,8,16,0"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -78,6 +79,7 @@
                 HorizontalOptions="Fill"
                 HorizontalTextAlignment="Start"
                 Placeholder="Search languages"
+                PlaceholderColor="{DynamicResource TextSecondaryColor}"
                 Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
                 TextColor="{DynamicResource TextPrimaryColor}"
                 FontSize="{DynamicResource LargeFontSize}"
@@ -102,12 +104,14 @@
                 </Border.Shadow>
                 <SearchBar
                     x:Name="LanguageSearchBarNonIOS"
+                    AutomationId="LanguageSearchBar"
                     Margin="8"
                     BackgroundColor="Transparent"
                     MinimumHeightRequest="50"
                     HorizontalOptions="Fill"
                     HorizontalTextAlignment="Start"
                     Placeholder="Search languages"
+                    PlaceholderColor="{DynamicResource TextSecondaryColor}"
                     Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
                     TextColor="{DynamicResource TextPrimaryColor}"
                     FontSize="{DynamicResource LargeFontSize}"

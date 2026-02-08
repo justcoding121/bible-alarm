@@ -6,6 +6,8 @@ using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Devices;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -73,6 +75,24 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         {
             return;
         }
+
+        // Focus the search bar after modal content is loaded for better UX
+        FocusSearchBar();
+    }
+
+    private void FocusSearchBar()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var searchBar = DeviceInfo.Platform == DevicePlatform.iOS
+                ? LanguageSearchBarIOS
+                : LanguageSearchBarNonIOS;
+
+            if (searchBar != null)
+            {
+                searchBar.Focus();
+            }
+        });
     }
 
     private void OnGridTapped(object? sender, TappedEventArgs e)
