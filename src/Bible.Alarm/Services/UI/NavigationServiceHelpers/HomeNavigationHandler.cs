@@ -15,11 +15,11 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
     /// <summary>
     /// Navigates to the home page, reusing existing if available.
     /// </summary>
-    public async Task NavigateToHomeAsync(INavigation navigation)
+    public async Task NavigateToHomeAsync(INavigation navigation, bool animated = true)
     {
 #if DEBUG
         var navStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-        Logger.Information("[BOOTSTRAP] NavigateToHomeAsync starting");
+        Logger.Information("[BOOTSTRAP] NavigateToHomeAsync starting (animated={Animated})", animated);
 #endif
 
         if (IsAlreadyOnHomePage(navigation))
@@ -34,7 +34,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         var existingHome = FindExistingHomeInStack(navigation);
         if (existingHome != null)
         {
-            await PopToExistingHomeAsync(navigation, existingHome);
+            await PopToExistingHomeAsync(navigation, existingHome, animated);
 #if DEBUG
             var navElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - navStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             Logger.Information("[BOOTSTRAP] NavigateToHomeAsync completed (existing home) in {ElapsedMs:F2}ms", navElapsed);
@@ -68,7 +68,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
         return null;
     }
 
-    private async Task PopToExistingHomeAsync(INavigation navigation, Home existingHome)
+    private async Task PopToExistingHomeAsync(INavigation navigation, Home existingHome, bool animated = true)
     {
         // Capture the pages to pop BEFORE starting - this prevents race conditions
         // where a new page is pushed while we're popping and we accidentally pop the new page too
@@ -90,7 +90,7 @@ public sealed class HomeNavigationHandler(ILogger logger, IServiceProvider servi
             // This handles the edge case where another navigation already happened
             if (navigation.NavigationStack.LastOrDefault() == page)
             {
-                await navigation.PopAsync(animated: true);
+                await navigation.PopAsync(animated: animated);
                 if (page is IDisposable disposable)
                 {
                     disposable.Dispose();

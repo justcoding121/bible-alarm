@@ -6,7 +6,7 @@ namespace Bible.Alarm.Services.UI.Interfaces;
 
 public interface INavigationService : IDisposable
 {
-    Task NavigateToHomeAsync();
+    Task NavigateToHomeAsync(bool animated = true);
     Task NavigateToScheduleAsync();
 
     /// <summary>

@@ -35,13 +35,13 @@ public sealed class NavigationService(
     /// </summary>
     public void ClearCache() => navigationManager.ClearCache();
 
-    public async Task NavigateToHomeAsync()
+    public async Task NavigateToHomeAsync(bool animated = true)
     {
         // Use lock to prevent race conditions with concurrent navigation (e.g., Cancel then Add quickly)
         await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
         {
             var navigation = GetNavigation();
-            await homeHandler.NavigateToHomeAsync(navigation);
+            await homeHandler.NavigateToHomeAsync(navigation, animated);
         });
     }
 

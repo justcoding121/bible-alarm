@@ -209,9 +209,10 @@ public sealed class ScheduleCommandService : IScheduleCommandService
     {
         if (isNewSchedule)
         {
-            // Keep overlay visible until page is destroyed by navigation
-            // The overlay will be hidden when the page is destroyed
-            await navigationService.NavigateToHomeAsync();
+            // Pop without animation to prevent the overlay from being visible
+            // during the page transition
+            await navigationService.NavigateToHomeAsync(animated: false);
+            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
             return true;
         }
 
@@ -239,10 +240,12 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         // Clear CurrentSchedule after delete operation
         dispatcher.Dispatch(new ResetScheduleStateAction());
 
-        // Keep overlay visible until page is destroyed by navigation
-        // The overlay will be hidden when the page is destroyed
-        await Task.Delay(100);
-        await navigationService.NavigateToHomeAsync();
+        // Pop without animation to prevent the overlay from being visible
+        // during the page transition
+        await navigationService.NavigateToHomeAsync(animated: false);
+
+        // Clean up stale overlay state now that the schedule page is gone
+        dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
         return true;
     }
 
@@ -287,10 +290,12 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             // Clear CurrentSchedule after successful save
             dispatcher.Dispatch(new ResetScheduleStateAction());
 
-            // Keep overlay visible until page is destroyed by navigation
-            // The overlay will be hidden when the page is destroyed
-            await Task.Delay(100);
-            await navigationService.NavigateToHomeAsync();
+            // Pop without animation to prevent the overlay from being visible
+            // during the page transition (overlay sliding over the home page)
+            await navigationService.NavigateToHomeAsync(animated: false);
+
+            // Clean up stale overlay state now that the schedule page is gone
+            dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = false });
         }
         else
         {
