@@ -1,0 +1,313 @@
+#nullable enable
+
+using System.Windows.Input;
+using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Services.UI.Interfaces;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.ApplicationModel;
+using Serilog;
+using Bible.Alarm.ViewModels;
+
+#if ANDROID
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+#elif IOS
+using Bible.Alarm.Platforms.iOS.Services.Helpers;
+#endif
+
+namespace Bible.Alarm.ViewModels.General;
+
+public sealed class NotificationPermissionViewModel : ObservableObject, IDisposable
+{
+    private readonly ILogger logger;
+    private readonly INavigationService navigationService;
+    private readonly IServiceProvider serviceProvider;
+
+#if ANDROID
+    private readonly NotificationPermissionService? permissionService;
+#elif IOS
+    private readonly IOSNotificationPermissionService? permissionService;
+#endif
+
+    private bool isNotificationPermissionGranted;
+    private System.Timers.Timer? permissionCheckTimer;
+
+    public NotificationPermissionViewModel(
+        ILogger logger,
+        INavigationService navigationService,
+        IServiceProvider serviceProvider)
+    {
+        this.logger = logger;
+        this.navigationService = navigationService;
+        this.serviceProvider = serviceProvider;
+
+#if ANDROID
+        permissionService = NotificationPermissionService.Instance;
+#elif IOS
+        permissionService = IOSNotificationPermissionService.Instance;
+#endif
+
+        InitializeCommands();
+        InitializePermissionStatus();
+    }
+
+    private void InitializeCommands()
+    {
+        RequestNotificationPermissionCommand = new AsyncRelayCommand(async () =>
+        {
+#if ANDROID
+            if (DeviceInfo.Platform == DevicePlatform.Android && permissionService != null)
+            {
+                // Request permission - will fire PermissionGranted or PermissionDenied event
+                permissionService.RequestPermissionIfNeeded();
+            }
+#elif IOS
+            if (DeviceInfo.Platform == DevicePlatform.iOS && permissionService != null)
+            {
+                // Request permission - will fire PermissionGranted or PermissionDenied event
+                permissionService.RequestPermissionIfNeeded();
+            }
+#endif
+        });
+
+        OpenSettingsCommand = new AsyncRelayCommand(async () =>
+        {
+#if ANDROID
+            if (DeviceInfo.Platform == DevicePlatform.Android)
+            {
+                // Open Android app settings
+                await Launcher.OpenAsync(new Uri("app-settings:"));
+            }
+#elif IOS
+            if (DeviceInfo.Platform == DevicePlatform.iOS)
+            {
+                // Open iOS app settings
+                await Launcher.OpenAsync(new Uri("app-settings:"));
+            }
+#endif
+        });
+
+        DismissCommand = new AsyncRelayCommand(async () =>
+        {
+            StopPermissionCheckTimer();
+            await navigationService.PopModalAsync();
+            UpdateHomePageButtonVisibility();
+        });
+    }
+
+    private void InitializePermissionStatus()
+    {
+        CheckPermissionStatus();
+    }
+
+    private void CheckPermissionStatus()
+    {
+        try
+        {
+            logger.Debug("Checking notification permission status...");
+            var wasGranted = IsNotificationPermissionGranted;
+
+#if ANDROID
+            if (DeviceInfo.Platform == DevicePlatform.Android && permissionService != null)
+            {
+                IsNotificationPermissionGranted = permissionService.IsGranted;
+            }
+#elif IOS
+            if (DeviceInfo.Platform == DevicePlatform.iOS && permissionService != null)
+            {
+                IsNotificationPermissionGranted = permissionService.IsGranted;
+            }
+#endif
+
+            logger.Debug("Permission check completed - Granted: {IsGranted} (was {WasGranted})",
+                IsNotificationPermissionGranted, wasGranted);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error checking notification permission status");
+        }
+    }
+
+    public void StartPermissionCheckTimer()
+    {
+        // Stop any existing timer before starting a new one
+        StopPermissionCheckTimer();
+
+        logger.Debug("Starting permission check timer for notification permission modal");
+
+#if ANDROID
+        if (DeviceInfo.Platform == DevicePlatform.Android && permissionService != null)
+        {
+            // Subscribe to permission events
+            permissionService.PermissionGranted += OnPermissionGranted;
+            permissionService.PermissionDenied += OnPermissionDenied;
+        }
+#elif IOS
+        if (DeviceInfo.Platform == DevicePlatform.iOS && permissionService != null)
+        {
+            // Subscribe to permission events
+            permissionService.PermissionGranted += OnPermissionGranted;
+            permissionService.PermissionDenied += OnPermissionDenied;
+        }
+#endif
+
+        // Check permissions every 1 second while modal is open
+        permissionCheckTimer = new System.Timers.Timer(1000);
+        permissionCheckTimer.Elapsed += (sender, e) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                logger.Debug("Permission check timer elapsed - checking permissions");
+                CheckPermissionStatus();
+            });
+        };
+        permissionCheckTimer.AutoReset = true;
+        permissionCheckTimer.Start();
+        logger.Debug("Permission check timer started successfully");
+    }
+
+    private void OnPermissionGranted(object? sender, EventArgs e)
+    {
+        logger.Information("Notification permission granted event received");
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            CheckPermissionStatus();
+        });
+    }
+
+    private void OnPermissionDenied(object? sender, EventArgs e)
+    {
+        logger.Information("Notification permission denied event received");
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            CheckPermissionStatus();
+        });
+    }
+
+    private void StopPermissionCheckTimer()
+    {
+        if (permissionCheckTimer != null)
+        {
+            permissionCheckTimer.Stop();
+            permissionCheckTimer.Dispose();
+            permissionCheckTimer = null;
+        }
+
+#if ANDROID
+        if (DeviceInfo.Platform == DevicePlatform.Android && permissionService != null)
+        {
+            // Unsubscribe from permission events
+            permissionService.PermissionGranted -= OnPermissionGranted;
+            permissionService.PermissionDenied -= OnPermissionDenied;
+        }
+#elif IOS
+        if (DeviceInfo.Platform == DevicePlatform.iOS && permissionService != null)
+        {
+            // Unsubscribe from permission events
+            permissionService.PermissionGranted -= OnPermissionGranted;
+            permissionService.PermissionDenied -= OnPermissionDenied;
+        }
+#endif
+    }
+
+    private void UpdateHomePageButtonVisibility()
+    {
+        try
+        {
+            // Get the Home page from navigation service
+            var homePage = navigationService.GetCurrentHomePage();
+            if (homePage?.BindingContext is HomeViewModel homeViewModel)
+            {
+                // Update the notification permission button visibility based on current permissions
+                // This follows the same pattern as BatteryOptimizationViewModel.UpdateHomePageButtonVisibility()
+                homeViewModel.UpdateNotificationPermissionButtonVisibility();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error updating home page button visibility after modal close");
+        }
+    }
+
+    public bool IsNotificationPermissionGranted
+    {
+        get => isNotificationPermissionGranted;
+        set
+        {
+            if (SetProperty(ref isNotificationPermissionGranted, value))
+            {
+                OnPropertyChanged(nameof(IsRequestButtonVisible));
+                OnPropertyChanged(nameof(IsOpenSettingsButtonVisible));
+                OnPropertyChanged(nameof(IsInstructionsVisible));
+            }
+        }
+    }
+
+    public string RequestButtonText => "REQUEST NOTIFICATION PERMISSION";
+
+    public string OpenSettingsButtonText
+    {
+        get
+        {
+#if ANDROID
+            return "OPEN APP SETTINGS";
+#elif IOS
+            return "OPEN SETTINGS";
+#else
+            return "OPEN SETTINGS";
+#endif
+        }
+    }
+
+    public string MainMessage
+    {
+        get
+        {
+#if ANDROID
+            return "Notification permission is required for tap-to-play alarms. Please enable notifications to allow the app to show reminder notifications that you can tap to play alarms.";
+#elif IOS
+            return "Notification permission is required for alarms to work on iOS. Please enable notifications to allow the app to play alarms at scheduled times.";
+#else
+            return "Notification permission is required for alarms. Please enable notifications.";
+#endif
+        }
+    }
+
+    public string InstructionsText
+    {
+        get
+        {
+#if ANDROID
+            return "After clicking the button below, tap 'Allow' in the system permission dialog to enable notifications. If you've previously denied permission, use 'Open App Settings' to enable it in system settings.";
+#elif IOS
+            return "After clicking the button below, tap 'Allow' in the system permission dialog to enable notifications. If you've previously denied permission, use 'Open Settings' to enable it in system settings.";
+#else
+            return "Please enable notifications in system settings.";
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Shows the request button only if notification permission is not granted and can be requested.
+    /// </summary>
+    public bool IsRequestButtonVisible => !IsNotificationPermissionGranted;
+
+    /// <summary>
+    /// Shows the open settings button if permission is not granted (user may have denied it previously).
+    /// </summary>
+    public bool IsOpenSettingsButtonVisible => !IsNotificationPermissionGranted;
+
+    /// <summary>
+    /// Shows the instructions label only if permission is not granted (i.e., there's something to configure).
+    /// </summary>
+    public bool IsInstructionsVisible => !IsNotificationPermissionGranted;
+
+    public ICommand RequestNotificationPermissionCommand { get; private set; } = null!;
+    public ICommand OpenSettingsCommand { get; private set; } = null!;
+    public ICommand DismissCommand { get; private set; } = null!;
+
+    public void Dispose()
+    {
+        StopPermissionCheckTimer();
+    }
+}

@@ -1,11 +1,11 @@
 namespace Bible.Alarm.Views.General;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
-public partial class IOSNotificationPermissionModal : BaseContentPage, IDisposable
+public partial class NotificationPermissionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
 
-    public IOSNotificationPermissionModal()
+    public NotificationPermissionModal()
     {
         InitializeComponent();
     }

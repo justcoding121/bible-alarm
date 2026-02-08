@@ -121,29 +121,9 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
 
     private void SetupNotifications()
     {
+        // Set delegate for handling notifications, but do NOT request permission on app start
+        // Permission should only be requested when user explicitly enables reminder or taps notification permission button
         UNUserNotificationCenter.Current.Delegate = this;
-        UNUserNotificationCenter.Current.RequestAuthorization(
-            UNAuthorizationOptions.Alert
-            | UNAuthorizationOptions.Sound
-            | UNAuthorizationOptions.Badge, HandleNotificationAuthorizationResponse);
-    }
-
-    private void HandleNotificationAuthorizationResponse(bool approved, NSError? error)
-    {
-        if (!approved)
-        {
-            Task.Run(async () =>
-            {
-                try
-                {
-                    await ShowNotificationDisabledMessageAsync();
-                }
-                catch (Exception e)
-                {
-                    logger.Error(e, "Error when prompting iOS notification permission on launch.");
-                }
-            });
-        }
     }
 
     private async Task ShowNotificationDisabledMessageAsync()

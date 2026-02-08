@@ -144,7 +144,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
             () => progressBarManager.ShowTemporarily(),
             async () => await progressBarManager.HideTemporarilyAsync());
 
-        // Command to open alarm settings modal (Android) or iOS notification permission modal (iOS)
+        // Command to open battery optimization modal (Android only)
         OpenAlarmSettingsCommand = new AsyncRelayCommand(async () =>
         {
             if (DeviceInfo.Platform == DevicePlatform.Android)
@@ -178,25 +178,26 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
                     logger.Error(ex, "Error opening alarm settings modal from floating button");
                 }
             }
-            else if (DeviceInfo.Platform == DevicePlatform.iOS)
-            {
-                try
-                {
-#if IOS
-                    // Create a view model for the iOS notification permission modal
-                    var iosNotificationViewModel = new IOSNotificationPermissionViewModel(
-                        logger,
-                        navigationService);
+        });
 
-                    // Start permission check timer when opening iOS notification permission modal
-                    iosNotificationViewModel.StartPermissionCheckTimer();
-                    await navigationService.OpenIOSNotificationPermissionModalAsync(iosNotificationViewModel);
-#endif
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "Error opening iOS notification permission modal from floating button");
-                }
+        // Command to open notification permission modal (Android and iOS)
+        OpenNotificationPermissionCommand = new AsyncRelayCommand(async () =>
+        {
+            try
+            {
+                // Create a view model for the notification permission modal
+                var notificationViewModel = new NotificationPermissionViewModel(
+                    logger,
+                    navigationService,
+                    serviceProvider);
+
+                // Start permission check timer when opening notification permission modal
+                notificationViewModel.StartPermissionCheckTimer();
+                await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error opening notification permission modal from floating button");
             }
         });
 
@@ -225,6 +226,17 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
 
         // Start tracking bootstrap ready state
         bootstrapReadyManager.StartTracking();
+        bootstrapReadyManager.BootstrapReadyChanged += (isReady) =>
+        {
+            logger.Information("[BOOTSTRAP-READY] BootstrapReadyChanged event fired - isReady={IsReady}", isReady);
+            if (isReady)
+            {
+                logger.Information("[BOOTSTRAP-READY] Bootstrap ready, calling UpdateNotificationPermissionButtonVisibility");
+                // Update notification permission button visibility when bootstrap completes and schedules are loaded
+                UpdateNotificationPermissionButtonVisibility();
+                logger.Information("[BOOTSTRAP-READY] UpdateNotificationPermissionButtonVisibility completed");
+            }
+        };
 
         // Register for progress bar messages
         WeakReferenceMessenger.Default.Register<ShowProgressBarMessage>(this);
@@ -297,12 +309,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     public void ResetScheduleState() => dispatcher.Dispatch(new ResetScheduleStateAction());
 
     /// <summary>
-    /// Updates the floating button visibility based on permission status.
-    /// Android: Hides button if both battery optimization and DND permissions are granted.
-    /// iOS: Shows button if notification permission is not granted and any schedule has NotificationEnabled=true.
+    /// Updates the battery optimization floating button visibility (Android only).
+    /// Hides button if both battery optimization and DND permissions are granted.
     /// </summary>
     public void UpdateFloatingButtonVisibility()
     {
+        logger.Information("[FLOATING-BUTTON] UpdateFloatingButtonVisibility called - Platform={Platform}", DeviceInfo.Platform);
+        
         if (DeviceInfo.Platform == DevicePlatform.Android)
         {
             try
@@ -319,7 +332,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
                     if (IsFloatingButtonVisible != shouldShow)
                     {
                         IsFloatingButtonVisible = shouldShow;
-                        CollectionViewBottomMargin = shouldShow ? 80 : 0; // 56 (button) + 24 (margin)
                     }
                 }
             }
@@ -328,45 +340,16 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
                 logger.Error(ex, "Error updating floating button visibility");
                 // Default to showing button if there's an error
                 IsFloatingButtonVisible = true;
-                CollectionViewBottomMargin = 80;
-            }
-        }
-        else if (DeviceInfo.Platform == DevicePlatform.iOS)
-        {
-            try
-            {
-#if IOS
-                var permissionService = Platforms.iOS.Services.Helpers.IOSNotificationPermissionService.Instance;
-                var isPermissionGranted = permissionService.IsGranted;
-
-                // Check if any schedule has NotificationEnabled=true
-                var hasReminderEnabled = state.Value.Schedules?.Any(s => s.NotificationEnabled) ?? false;
-
-                // Show button if permission is not granted AND any schedule has reminder enabled
-                var shouldShow = !isPermissionGranted && hasReminderEnabled;
-
-                if (IsFloatingButtonVisible != shouldShow)
-                {
-                    IsFloatingButtonVisible = shouldShow;
-                    CollectionViewBottomMargin = shouldShow ? 80 : 0; // 56 (button) + 24 (margin)
-                }
-#else
-                IsFloatingButtonVisible = false;
-                CollectionViewBottomMargin = 0;
-#endif
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error updating floating button visibility for iOS");
-                IsFloatingButtonVisible = false;
-                CollectionViewBottomMargin = 0;
             }
         }
         else
         {
             IsFloatingButtonVisible = false;
-            CollectionViewBottomMargin = 0;
         }
+
+        // Update notification permission button visibility (which also updates margins)
+        logger.Information("[FLOATING-BUTTON] Calling UpdateNotificationPermissionButtonVisibility");
+        UpdateNotificationPermissionButtonVisibility();
     }
 
     /// <summary>
@@ -378,12 +361,19 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     {
         try
         {
-            // Update floating button visibility based on current permission status
+            logger.Information("[NOTIFICATION-BUTTON] CheckAndShowAlarmSettingsOnFirstLaunchAsync called");
+            
+            // Update button visibility based on current permission status
             // The modal will only be shown when user taps the warning icon button
             UpdateFloatingButtonVisibility();
+            // Also explicitly check notification permission button
+            UpdateNotificationPermissionButtonVisibility();
         }
         catch (Exception ex)
         {
+            var errorMsg = $"[NOTIFICATION-BUTTON] Error in CheckAndShowAlarmSettingsOnFirstLaunchAsync: {ex.Message}";
+            System.Diagnostics.Debug.WriteLine(errorMsg);
+            Console.WriteLine(errorMsg);
             logger.Error(ex, "Error checking alarm settings on first launch");
         }
     }
@@ -392,12 +382,28 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     public ICommand AddScheduleCommand { get; set; }
     public ICommand ViewScheduleCommand { get; set; }
     public ICommand OpenAlarmSettingsCommand { get; private set; } = null!;
+    public ICommand OpenNotificationPermissionCommand { get; private set; } = null!;
 
     private bool isFloatingButtonVisible = true;
     public bool IsFloatingButtonVisible
     {
         get => isFloatingButtonVisible;
         set => SetProperty(ref isFloatingButtonVisible, value);
+    }
+
+    private bool isNotificationPermissionButtonVisible = false;
+    public bool IsNotificationPermissionButtonVisible
+    {
+        get => isNotificationPermissionButtonVisible;
+        set
+        {
+            if (SetProperty(ref isNotificationPermissionButtonVisible, value))
+            {
+                // Force UI update
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsNotificationPermissionButtonVisible));
+            }
+        }
     }
 
     private double collectionViewBottomMargin = 0;
@@ -407,16 +413,48 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         set => SetProperty(ref collectionViewBottomMargin, value);
     }
 
+    private double notificationPermissionButtonBottomMargin = 0;
+    public double NotificationPermissionButtonBottomMargin
+    {
+        get => notificationPermissionButtonBottomMargin;
+        set => SetProperty(ref notificationPermissionButtonBottomMargin, value);
+    }
+
+
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        var stateValue = state.Value;
-        _ = MainThread.InvokeOnMainThreadAsync(async () =>
+        try
         {
-            await stateChangeHandler.HandleStateChangedAsync(stateValue);
-            // Update floating button visibility when schedules change (e.g., NotificationEnabled changes)
-            UpdateFloatingButtonVisibility();
-        });
+            var stateValue = state.Value;
+            var scheduleCount = stateValue.Schedules?.Count ?? 0;
+            
+            // Log immediately at start - use Debug level to ensure it's captured
+            System.Diagnostics.Debug.WriteLine($"[STATE-CHANGE] OnStateChanged START - ScheduleCount={scheduleCount}");
+            logger.Debug("[STATE-CHANGE] OnStateChanged called - ScheduleCount={Count}", scheduleCount);
+            logger.Information("[STATE-CHANGE] OnStateChanged called - ScheduleCount={Count}", scheduleCount);
+            
+            _ = MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                try
+                {
+                    logger.Debug("[STATE-CHANGE] Inside async lambda, calling HandleStateChangedAsync");
+                    await stateChangeHandler.HandleStateChangedAsync(stateValue);
+                    logger.Information("[STATE-CHANGE] HandleStateChangedAsync completed, calling UpdateFloatingButtonVisibility");
+                    // Update button visibility when schedules change (e.g., NotificationEnabled or IsEnabled changes)
+                    UpdateFloatingButtonVisibility();
+                    logger.Information("[STATE-CHANGE] UpdateFloatingButtonVisibility completed");
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "[STATE-CHANGE] Error in OnStateChanged async handler");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "[STATE-CHANGE] Error at start of OnStateChanged");
+        }
     }
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e)
@@ -445,6 +483,154 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
             // Hide progress bar temporarily (doesn't affect normal visibility logic)
             await progressBarManager.HideTemporarilyAsync();
         });
+    }
+
+
+    /// <summary>
+    /// Updates the notification permission button visibility based on permission status and schedules.
+    /// Shows button if permission is not granted AND at least one schedule requires permission.
+    /// </summary>
+    public void UpdateNotificationPermissionButtonVisibility()
+    {
+        try
+        {
+            // Log at Information level so it appears in file logs
+            logger.Information("UpdateNotificationPermissionButtonVisibility called - Platform={Platform}", DeviceInfo.Platform);
+            
+            
+            bool shouldShow = false;
+
+#if ANDROID
+            if (DeviceInfo.Platform == DevicePlatform.Android)
+            {
+                var permissionService = Platforms.Android.Services.Helpers.NotificationPermissionService.Instance;
+                var isPermissionGranted = permissionService.IsGranted;
+
+                // Check if any schedule has NotificationEnabled=true (tap to play)
+                var hasTapToPlayEnabled = state.Value.Schedules?.Any(s => s.NotificationEnabled) ?? false;
+
+                // Show button if permission is not granted AND any schedule has tap to play enabled
+                shouldShow = !isPermissionGranted && hasTapToPlayEnabled;
+                
+                logger.Debug("UpdateNotificationPermissionButtonVisibility (Android): PermissionGranted={PermissionGranted}, HasTapToPlay={HasTapToPlay}, ShouldShow={ShouldShow}",
+                    isPermissionGranted, hasTapToPlayEnabled, shouldShow);
+            }
+#elif IOS
+            if (DeviceInfo.Platform == DevicePlatform.iOS)
+            {
+                // Log using Serilog Information level (goes to Debug sink on iOS = os_log)
+                logger.Information("[NOTIFICATION-BUTTON] UpdateNotificationPermissionButtonVisibility (iOS): Starting");
+                
+                var permissionService = Platforms.iOS.Services.Helpers.IOSNotificationPermissionService.Instance;
+                logger.Information("[NOTIFICATION-BUTTON] Permission service instance obtained");
+                
+                // Use synchronous property which uses cached result or safe default
+                var isPermissionGranted = permissionService.IsGranted;
+                logger.Information("[NOTIFICATION-BUTTON] Permission granted: {PermissionGranted}", isPermissionGranted);
+
+                // Check if any schedule has IsEnabled=true (reminder enabled)
+                // iOS always uses notifications for alarms, so any enabled reminder requires permission
+                var scheduleCount = state.Value.Schedules?.Count ?? 0;
+                var schedules = state.Value.Schedules?.ToList() ?? new List<ScheduleStateItem>();
+                var hasReminderEnabled = schedules.Any(s => s.IsEnabled);
+                
+                // Log detailed schedule info for debugging
+                if (scheduleCount > 0)
+                {
+                    foreach (var schedule in schedules)
+                    {
+                        logger.Information("[NOTIFICATION-BUTTON] Schedule ID={Id}, Name={Name}, IsEnabled={IsEnabled}", 
+                            schedule.Id, schedule.Name, schedule.IsEnabled);
+                    }
+                }
+                
+                logger.Information("[NOTIFICATION-BUTTON] ScheduleCount: {ScheduleCount}, HasReminderEnabled: {HasReminderEnabled}", 
+                    scheduleCount, hasReminderEnabled);
+
+                // Show button if permission is not granted AND any schedule has reminder enabled
+                shouldShow = !isPermissionGranted && hasReminderEnabled;
+                
+                logger.Information("[NOTIFICATION-BUTTON] ShouldShow button: {ShouldShow} (PermissionGranted={PermissionGranted}, HasReminderEnabled={HasReminderEnabled})",
+                    shouldShow, isPermissionGranted, hasReminderEnabled);
+                
+                // Set margins immediately for iOS
+                NotificationPermissionButtonBottomMargin = shouldShow ? 16 : 0;
+                CollectionViewBottomMargin = shouldShow ? 16 + 56 : 0;
+                
+                // Also trigger async check to update cache and refresh button if needed
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var asyncResult = await permissionService.IsGrantedAsync();
+                        logger.Information("[NOTIFICATION-BUTTON] Async permission check completed: {Result}", asyncResult);
+                        // Update button visibility again once we have the real result
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            UpdateNotificationPermissionButtonVisibility();
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "[NOTIFICATION-BUTTON] Error in async permission check");
+                    }
+                });
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] Platform check failed - Platform={DeviceInfo.Platform}");
+                logger.Debug("UpdateNotificationPermissionButtonVisibility (iOS): Platform check failed - Platform={Platform}", DeviceInfo.Platform);
+            }
+#endif
+
+            logger.Information("[NOTIFICATION-BUTTON] Current button visible: {CurrentVisible}, Should show: {ShouldShow}",
+                IsNotificationPermissionButtonVisible, shouldShow);
+            
+            // Always update to ensure button state is correct
+            IsNotificationPermissionButtonVisible = shouldShow;
+            
+            if (IsNotificationPermissionButtonVisible != shouldShow)
+            {
+                logger.Information("[NOTIFICATION-BUTTON] Updating button visibility to: {ShouldShow}", shouldShow);
+            }
+
+            // Calculate bottom margins based on which buttons are visible
+            // Notification permission button is above battery optimization button (Android)
+            if (DeviceInfo.Platform == DevicePlatform.Android)
+            {
+                if (shouldShow && IsFloatingButtonVisible)
+                {
+                    // Both buttons visible: battery optimization at 16px, notification permission 16px above it (72px total)
+                    NotificationPermissionButtonBottomMargin = 16 + 56 + 16; // 88px from bottom
+                    CollectionViewBottomMargin = 88 + 56; // 144px total (button + margin)
+                }
+                else if (shouldShow)
+                {
+                    // Only notification permission button visible
+                    NotificationPermissionButtonBottomMargin = 16;
+                    CollectionViewBottomMargin = 16 + 56; // 72px total
+                }
+                else if (IsFloatingButtonVisible)
+                {
+                    // Only battery optimization button visible
+                    NotificationPermissionButtonBottomMargin = 0;
+                    CollectionViewBottomMargin = 16 + 56; // 72px total
+                }
+                else
+                {
+                    // No buttons visible
+                    NotificationPermissionButtonBottomMargin = 0;
+                    CollectionViewBottomMargin = 0;
+                }
+            }
+            // iOS margins are set above in the iOS-specific block
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error updating notification permission button visibility");
+            IsNotificationPermissionButtonVisible = false;
+            NotificationPermissionButtonBottomMargin = 0;
+        }
     }
 
     public void Dispose()

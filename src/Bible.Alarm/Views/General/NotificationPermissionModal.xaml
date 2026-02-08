@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <views:BaseContentPage
-    x:Class="Bible.Alarm.Views.General.IOSNotificationPermissionModal"
+    x:Class="Bible.Alarm.Views.General.NotificationPermissionModal"
     xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -11,7 +11,7 @@
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
-    x:DataType="vm:IOSNotificationPermissionViewModel"
+    x:DataType="vm:NotificationPermissionViewModel"
     mc:Ignorable="d">
     <ContentPage.Resources>
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
@@ -34,7 +34,7 @@
                                 Radius="16" />
                     </Border.Shadow>
                     <Grid
-                        AutomationId="IOSNotificationPermissionModal"
+                        AutomationId="NotificationPermissionModal"
                         HorizontalOptions="Fill"
                         RowSpacing="20"
                         VerticalOptions="Start">
@@ -62,7 +62,7 @@
                         HorizontalOptions="Fill"
                         HorizontalTextAlignment="Center"
                         LineBreakMode="WordWrap"
-                        Text="Notification permission is required for alarms to work on iOS. Please enable notifications to allow the app to play alarms at scheduled times."
+                        Text="{Binding MainMessage}"
                         TextColor="{DynamicResource TextPrimaryColor}"
                         VerticalOptions="Start"
                         VerticalTextAlignment="Start" />
@@ -74,7 +74,7 @@
                         HorizontalOptions="Fill"
                         HorizontalTextAlignment="Center"
                         LineBreakMode="WordWrap"
-                        Text="After clicking the button below, tap 'Allow' in the system permission dialog to enable notifications."
+                        Text="{Binding InstructionsText}"
                         TextColor="{DynamicResource TextSecondaryColor}"
                         VerticalOptions="Start"
                         VerticalTextAlignment="Start" />
@@ -85,6 +85,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Button Grid.Row="0"
                             IsVisible="{Binding IsRequestButtonVisible}"
@@ -93,10 +94,10 @@
                             BorderColor="Transparent"
                             Command="{Binding RequestNotificationPermissionCommand}"
                             CornerRadius="12"
-                            FontSize="{DynamicResource LargeFontSize}"
+                            FontSize="{DynamicResource MediumFontSize}"
                             FontAttributes="Bold"
                             HorizontalOptions="Fill"
-                            Padding="20,12"
+                            Padding="16,10"
                             Text="{Binding RequestButtonText}"
                             TextColor="White"
                             VerticalOptions="Fill">
@@ -108,8 +109,30 @@
                             </Button.Shadow>
                         </Button>
                         
-                        <Border Grid.Row="1"
-                            AutomationId="IOSNotificationPermissionDismissButton"
+                        <Button Grid.Row="1"
+                            IsVisible="{Binding IsOpenSettingsButtonVisible}"
+                            BackgroundColor="{StaticResource PrimaryColor}"
+                            BorderWidth="0"
+                            BorderColor="Transparent"
+                            Command="{Binding OpenSettingsCommand}"
+                            CornerRadius="12"
+                            FontSize="{DynamicResource MediumFontSize}"
+                            FontAttributes="Bold"
+                            HorizontalOptions="Fill"
+                            Padding="16,10"
+                            Text="{Binding OpenSettingsButtonText}"
+                            TextColor="White"
+                            VerticalOptions="Fill">
+                            <Button.Shadow>
+                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                        Offset="0,4"
+                                        Opacity="0.2"
+                                        Radius="8" />
+                            </Button.Shadow>
+                        </Button>
+                        
+                        <Border Grid.Row="2"
+                            AutomationId="NotificationPermissionDismissButton"
                             BackgroundColor="{DynamicResource ControlBackgroundColor}"
                             HorizontalOptions="Fill"
                             Padding="20,12"

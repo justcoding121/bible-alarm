@@ -147,21 +147,21 @@ public sealed class ModalNavigationHandler(ILogger logger, IServiceProvider serv
         });
     }
 
-    public async Task OpenIOSNotificationPermissionModalAsync(INavigation navigation, object bindingContext)
+    public async Task OpenNotificationPermissionModalAsync(INavigation navigation, object bindingContext)
     {
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
             try
             {
-                var modal = serviceProvider.GetRequiredService<IOSNotificationPermissionModal>();
+                var modal = serviceProvider.GetRequiredService<NotificationPermissionModal>();
                 modal.BindingContext = bindingContext;
                 // Disable animation for instant appearance
                 await navigation.PushModalAsync(modal, animated: false);
-                logger.Information("IOSNotificationPermissionModal opened successfully");
+                logger.Information("NotificationPermissionModal opened successfully");
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error opening IOSNotificationPermissionModal");
+                logger.Error(ex, "Error opening NotificationPermissionModal");
             }
         });
     }

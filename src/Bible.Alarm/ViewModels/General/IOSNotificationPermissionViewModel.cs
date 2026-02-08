@@ -1,7 +1,7 @@
 #nullable enable
 
 using System.Windows.Input;
-using Bible.Alarm.Common.Interfaces.UI;
+using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Platforms.iOS.Services.Helpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -159,8 +159,9 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
             var homePage = navigationService.GetCurrentHomePage();
             if (homePage?.BindingContext is HomeViewModel homeViewModel)
             {
-                // Update the floating button visibility based on current permissions
-                homeViewModel.UpdateFloatingButtonVisibility();
+                // Update the notification permission button visibility based on current permissions
+                // This follows the same pattern as NotificationPermissionViewModel.UpdateHomePageButtonVisibility()
+                homeViewModel.UpdateNotificationPermissionButtonVisibility();
             }
         }
         catch (Exception ex)

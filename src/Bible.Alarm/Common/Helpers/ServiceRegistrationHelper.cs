@@ -351,7 +351,7 @@ public static class ServiceRegistrationHelper
         services.AddTransient<MusicPublicationSelectionModal>();
         services.AddTransient<BiblePublicationTrackSelectionModal>();
         services.AddTransient<AndroidAlarmPermissionModal>();
-        services.AddTransient<IOSNotificationPermissionModal>();
+        services.AddTransient<NotificationPermissionModal>();
         services.AddTransient<NumberOfTracksModal>();
 
         // NavigationPage with Home as the root page

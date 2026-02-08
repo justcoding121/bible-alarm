@@ -11,6 +11,8 @@ using Bible.Alarm.Shared.Models.Schedule;
 
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Services.Helpers;
+#elif IOS
+using Bible.Alarm.Platforms.iOS.Services.Helpers;
 #endif
 
 namespace Bible.Alarm.Services.Scheduler;
@@ -31,9 +33,59 @@ public sealed class ScheduleStateService(
     public async Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled)
     {
         // Check notification permissions if enabling
-        if (isEnabled && !await CheckNotificationPermissionsAsync(scheduleId))
+        if (isEnabled)
         {
-            return false;
+#if ANDROID
+            // Android: If NotificationEnabled is true but permission is denied,
+            // disable NotificationEnabled but still allow IsEnabled to be enabled
+            // Android reminder can work without notification permission
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
+            if (schedule != null && schedule.NotificationEnabled)
+            {
+                var granted = await NotificationPermissionHelper.RequestNotificationPermissionIfNeededAsync();
+                if (!granted)
+                {
+                    logger.Warning("Cannot enable NotificationEnabled for schedule {ScheduleId} - notification permission denied. Disabling NotificationEnabled but allowing reminder to be enabled.", scheduleId);
+                    await toastService.ShowMessage(
+                        "Notification permission is required for tap-to-play alarms. Tap-to-play has been disabled, but reminder is enabled.",
+                        7);
+                    
+                    // Disable NotificationEnabled but continue to enable IsEnabled
+                    AlarmSchedule? updatedSchedule = null;
+                    try
+                    {
+                        updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
+                            scheduleId,
+                            s => 
+                            {
+                                s.IsEnabled = isEnabled;
+                                s.NotificationEnabled = false;
+                            },
+                            cancellationTokenSource.Token);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (IsSecurityException(ex))
+                        {
+                            return await HandleSecurityExceptionAsync(scheduleId, ex);
+                        }
+                        throw;
+                    }
+                    
+                    await alarmService.Update(updatedSchedule);
+                    UpdateFluxorStore(updatedSchedule);
+                    await ShowNotificationIfEnabledAsync(isEnabled, updatedSchedule);
+                    return true;
+                }
+            }
+            // Android: Permission granted or NotificationEnabled is false - proceed normally
+#else
+            // iOS and other platforms: Permission is required for IsEnabled
+            if (!await CheckNotificationPermissionsAsync(scheduleId))
+            {
+                return false;
+            }
+#endif
         }
 
         // Update database and alarm service
@@ -66,8 +118,11 @@ public sealed class ScheduleStateService(
 #if ANDROID
         // Android: Only check notification permission if "Tap to Play" (NotificationEnabled) is enabled
         // The main reminder (IsEnabled) can work without notification permission
+        // However, if user enables IsEnabled (reminder) from home page and NotificationEnabled is already true,
+        // we need to check/request notification permission because tap-to-play requires it
         if (schedule != null && schedule.NotificationEnabled)
         {
+            logger.Information("Android: Schedule {ScheduleId} has NotificationEnabled=true, checking notification permission before enabling reminder", scheduleId);
             var granted = await NotificationPermissionHelper.RequestNotificationPermissionIfNeededAsync();
             if (!granted)
             {
@@ -77,19 +132,95 @@ public sealed class ScheduleStateService(
                     7);
                 return false;
             }
+            logger.Information("Android: Notification permission granted for schedule {ScheduleId}", scheduleId);
+        }
+        else if (schedule != null)
+        {
+            logger.Debug("Android: Schedule {ScheduleId} has NotificationEnabled=false, no permission check needed", scheduleId);
         }
         return true; // Android permission check passed or not needed
 #elif IOS
         // iOS: Always check notification permission when enabling a reminder
         // iOS always uses notifications for alarms, so permission is required for the reminder itself
         // There is no separate "Tap to Play" toggle on iOS
-        if (!await notificationService.CanScheduleAsync())
+        // Request permission if not already granted
+        var permissionService = IOSNotificationPermissionService.Instance;
+        if (!permissionService.IsGranted)
         {
-            logger.Warning("Cannot enable schedule {ScheduleId} - notification permission denied. iOS requires notification permission for reminders.", scheduleId);
-            await toastService.ShowMessage(
-                "Notification permission is required for reminders on iOS. Please enable notifications in system settings.",
-                7);
-            return false;
+            // Request permission - this will show the iOS permission dialog
+            logger.Information("Requesting iOS notification permission for schedule {ScheduleId}", scheduleId);
+            
+            // Use TaskCompletionSource to wait for permission response
+            var tcs = new TaskCompletionSource<bool>();
+            EventHandler? grantedHandler = null;
+            EventHandler? deniedHandler = null;
+            
+            grantedHandler = (sender, e) =>
+            {
+                permissionService.PermissionGranted -= grantedHandler;
+                permissionService.PermissionDenied -= deniedHandler;
+                if (!tcs.Task.IsCompleted)
+                {
+                    tcs.SetResult(true);
+                }
+            };
+            
+            deniedHandler = (sender, e) =>
+            {
+                permissionService.PermissionGranted -= grantedHandler;
+                permissionService.PermissionDenied -= deniedHandler;
+                if (!tcs.Task.IsCompleted)
+                {
+                    tcs.SetResult(false);
+                }
+            };
+            
+            permissionService.PermissionGranted += grantedHandler;
+            permissionService.PermissionDenied += deniedHandler;
+            
+            try
+            {
+                // Request permission
+                permissionService.RequestPermissionIfNeeded();
+                
+                // Wait for user response (with timeout of 10 seconds)
+                var timeoutTask = Task.Delay(10000);
+                var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
+                
+                bool granted = false;
+                if (completedTask == tcs.Task)
+                {
+                    try
+                    {
+                        granted = await tcs.Task;
+                    }
+                    catch
+                    {
+                        granted = false;
+                    }
+                }
+                else
+                {
+                    // Timeout - user didn't respond, assume denied
+                    logger.Warning("Permission request timeout for schedule {ScheduleId}", scheduleId);
+                    granted = false;
+                }
+                
+                if (!granted)
+                {
+                    logger.Warning("Cannot enable schedule {ScheduleId} - notification permission denied. iOS requires notification permission for reminders.", scheduleId);
+                    await toastService.ShowMessage(
+                        "Notification permission is required for reminders on iOS. Please enable notifications in system settings.",
+                        7);
+                    return false;
+                }
+            }
+            finally
+            {
+                // Clean up event handlers
+                permissionService.PermissionGranted -= grantedHandler;
+                permissionService.PermissionDenied -= deniedHandler;
+            }
         }
         return true; // iOS permission check passed
 #else

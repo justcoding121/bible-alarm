@@ -44,8 +44,14 @@ public sealed class IOSNotificationPermissionService : IDisposable
     /// </summary>
     public event EventHandler? PermissionDenied;
 
+    private bool? cachedPermissionResult;
+    private DateTime lastPermissionCheck = DateTime.MinValue;
+    private readonly TimeSpan permissionCacheTimeout = TimeSpan.FromSeconds(30);
+
     /// <summary>
     /// Gets whether notification permission is currently granted.
+    /// Uses cached result if available and recent, otherwise returns false (safe default).
+    /// The actual permission check happens asynchronously via IsGrantedAsync().
     /// </summary>
     public bool IsGranted
     {
@@ -53,26 +59,77 @@ public sealed class IOSNotificationPermissionService : IDisposable
         {
             try
             {
-                var taskCompletionSource = new TaskCompletionSource<bool>();
-
-                MainThread.BeginInvokeOnMainThread(() =>
+                // Return cached result if available and recent
+                if (cachedPermissionResult.HasValue && 
+                    DateTime.Now - lastPermissionCheck < permissionCacheTimeout)
                 {
-                    UNUserNotificationCenter.Current.GetNotificationSettings(settings =>
+                logger.Information("[NOTIFICATION-PERMISSION] Using cached result: {Result}", cachedPermissionResult.Value);
+                    return cachedPermissionResult.Value;
+                }
+
+                logger.Information("[NOTIFICATION-PERMISSION] No cached result, starting async check");
+
+                // Start async check to update cache (fire and forget)
+                _ = Task.Run(async () =>
+                {
+                    try
                     {
-                        var result = settings.AlertSetting == UNNotificationSetting.Enabled;
-                        taskCompletionSource.SetResult(result);
-                    });
+                        var result = await IsGrantedAsync();
+                        cachedPermissionResult = result;
+                        lastPermissionCheck = DateTime.Now;
+                        logger.Information("[NOTIFICATION-PERMISSION] Cache updated with result: {Result}", result);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "[NOTIFICATION-PERMISSION] Error updating permission cache");
+                    }
                 });
 
-                var granted = taskCompletionSource.Task.Result;
-                logger.Debug("IOSNotificationPermissionService.IsGranted: {Granted}", granted);
-                return granted;
+                // Return false as safe default until async check completes
+                logger.Information("[NOTIFICATION-PERMISSION] Returning false as safe default (no cache)");
+                return cachedPermissionResult ?? false;
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "IOSNotificationPermissionService.IsGranted: Exception checking permission");
                 return false;
             }
+        }
+    }
+
+    /// <summary>
+    /// Gets whether notification permission is currently granted (async version).
+    /// </summary>
+    public async Task<bool> IsGrantedAsync()
+    {
+        try
+        {
+            logger.Information("[NOTIFICATION-PERMISSION] IsGrantedAsync: Starting async check");
+            
+            var result = await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                var taskCompletionSource = new TaskCompletionSource<bool>();
+
+                logger.Information("[NOTIFICATION-PERMISSION] IsGrantedAsync: Calling GetNotificationSettings");
+                
+                UNUserNotificationCenter.Current.GetNotificationSettings(settings =>
+                {
+                    var isEnabled = settings.AlertSetting == UNNotificationSetting.Enabled;
+                    logger.Information("[NOTIFICATION-PERMISSION] IsGrantedAsync: Callback - AlertSetting={AlertSetting}, IsEnabled={IsEnabled}",
+                        settings.AlertSetting, isEnabled);
+                    taskCompletionSource.SetResult(isEnabled);
+                });
+
+                return taskCompletionSource.Task;
+            });
+            
+            logger.Information("[NOTIFICATION-PERMISSION] IsGrantedAsync: Final result={Result}", result);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "[NOTIFICATION-PERMISSION] IsGrantedAsync: Exception checking permission");
+            return false;
         }
     }
 

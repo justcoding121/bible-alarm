@@ -5,7 +5,6 @@ using Serilog;
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Logging;
 #endif
-
 namespace Bible.Alarm.Common;
 
 public class SerilogSetup
@@ -74,8 +73,43 @@ public class SerilogSetup
         loggerConfig.WriteTo.Sink(
             new AndroidLogcatSink(),
             Serilog.Events.LogEventLevel.Debug);
-#elif !ANDROID
-        // Configure file logging (DEBUG mode, non-Android only). Android uses logcat / Debug sink only.
+#elif IOS
+        // iOS DEBUG: Debug sink for Visual Studio + async file sink (devicectl copy from device)
+        // Debug sink writes to System.Diagnostics.Debug (os_log) - view in Visual Studio Output window
+        loggerConfig.WriteTo.Debug(
+            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);
+
+        var iosLogDirectory = GetLogDirectory();
+        if (!string.IsNullOrEmpty(iosLogDirectory))
+        {
+            try
+            {
+                Directory.CreateDirectory(iosLogDirectory);
+                DeleteTodaysLogFile(iosLogDirectory);
+                var logFilePath = Path.Combine(iosLogDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
+                loggerConfig.WriteTo.Async(a => a.File(
+                    path: logFilePath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 7,
+                    outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Debug,
+                    shared: true,
+                    flushToDiskInterval: TimeSpan.FromSeconds(1)));
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    var fallbackLogger = loggerConfig.CreateLogger();
+                    fallbackLogger.Error(ex, "Failed to configure iOS file logging");
+                }
+                catch
+                {
+                }
+            }
+        }
+#else
+        // Windows/Other platforms DEBUG: Configure file logging
         var logDirectory = GetLogDirectory();
         if (!string.IsNullOrEmpty(logDirectory))
         {
@@ -115,8 +149,31 @@ public class SerilogSetup
         loggerConfig.WriteTo.Sink(
             new AndroidLogcatSink(),
             Serilog.Events.LogEventLevel.Error);
+#elif IOS
+        // iOS release: Async file sink only, Error level and above
+        var logDirectory = GetLogDirectory();
+        if (!string.IsNullOrEmpty(logDirectory))
+        {
+            try
+            {
+                Directory.CreateDirectory(logDirectory);
+                var logFilePath = Path.Combine(logDirectory, AppConstants.FilePaths.LogFileNamePattern + ".txt");
+                loggerConfig.WriteTo.Async(a => a.File(
+                    path: logFilePath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 7,
+                    outputTemplate: AppConstants.Logging.ConsoleOutputTemplate,
+                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error,
+                    shared: true,
+                    flushToDiskInterval: TimeSpan.FromSeconds(2)));
+            }
+            catch (Exception ex)
+            {
+                _ = ex;
+            }
+        }
 #else
-        // Non-Android release: file logging only
+        // Windows/Other platforms release: file logging only
         var logDirectory = GetLogDirectory();
         if (!string.IsNullOrEmpty(logDirectory))
         {
@@ -175,10 +232,10 @@ public class SerilogSetup
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || CurrentDevice.RuntimePlatform == "iOS")
             {
-                // iOS: Use Caches directory which OS can clear when storage is low
-                // Path: ~/Library/Caches
-                var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-                cacheBasePath = Path.Combine(documentsPath, "..", "Library", "Caches");
+                // iOS: Use Documents directory for file sharing access (UIFileSharingEnabled in Info.plist)
+                // This allows accessing logs via Finder when device is connected
+                // Path: ~/Documents
+                cacheBasePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             }
             else
             {

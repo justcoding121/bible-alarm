@@ -57,9 +57,6 @@ public partial class Home : BaseContentPage, IDisposable
         // Check and show alarm settings modal on first app launch
         await viewModel.CheckAndShowAlarmSettingsOnFirstLaunchAsync();
 
-        // Update floating button visibility based on permissions
-        viewModel.UpdateFloatingButtonVisibility();
-
 #if DEBUG
         // Log that home page is fully loaded with data
         var totalBootstrapTime = BootstrapTimingHelper.GetElapsedMilliseconds();
@@ -181,6 +178,8 @@ public partial class Home : BaseContentPage, IDisposable
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        Log.Information("Home.OnAppearing called");
+        
         // Reset schedule state when navigating back to home
         // This ensures only one schedule is in state at any time
         viewModel?.ResetScheduleState();
@@ -189,7 +188,9 @@ public partial class Home : BaseContentPage, IDisposable
         Loaded += OnPageLoaded;
 
         // Update floating button visibility based on permissions
+        Log.Information("Home.OnAppearing: Calling UpdateFloatingButtonVisibility");
         viewModel?.UpdateFloatingButtonVisibility();
+        Log.Information("Home.OnAppearing: UpdateFloatingButtonVisibility completed");
     }
 
     protected override bool OnBackButtonPressed() =>

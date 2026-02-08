@@ -50,7 +50,14 @@ public sealed class ScheduleListItemPropertyManager(
         catch (Exception ex)
         {
             logger.Error(ex, "An error occurred while handling IsEnabled change for schedule {ScheduleId}", scheduleId);
-            await revertChange(newValue);
+            try
+            {
+                await revertChange(newValue);
+            }
+            catch (Exception revertEx)
+            {
+                logger.Error(revertEx, "Error reverting IsEnabled change for schedule {ScheduleId}", scheduleId);
+            }
         }
     }
 
