@@ -190,7 +190,16 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         if (isNewSchedule)
         {
             logger.Information("DispatchSaveActionAsync: Dispatching CreateScheduleAction");
+
+            // Capture the current saved schedule count before dispatching
+            var previousSavedCount = state.Value.Schedules?.Count(s => s.Id > 0) ?? 0;
+
             dispatcher.Dispatch(new CreateScheduleAction(scheduleStateItem, musicUpdated, biblePublicationUpdated));
+
+            // Wait for the Fluxor effect to complete and the new schedule to appear in state.
+            // This keeps the save overlay visible on the schedule page until the schedule is ready,
+            // so when we navigate to home the schedule is already in the list (no delay / missing row).
+            await WaitForNewScheduleInStateAsync(previousSavedCount);
         }
         else
         {
@@ -200,6 +209,46 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         }
 
         return true;
+    }
+
+    private async Task WaitForNewScheduleInStateAsync(int previousSavedCount)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+
+        void OnStateChanged(object? sender, EventArgs e)
+        {
+            var schedules = state.Value.Schedules;
+            if (schedules == null)
+            {
+                return;
+            }
+
+            var currentSavedCount = schedules.Count(s => s.Id > 0);
+            if (currentSavedCount > previousSavedCount)
+            {
+                tcs.TrySetResult(true);
+            }
+        }
+
+        state.StateChanged += OnStateChanged;
+
+        try
+        {
+            // Check immediately in case the effect already completed
+            OnStateChanged(null, EventArgs.Empty);
+
+            // Wait with a 10-second timeout to avoid hanging forever if something goes wrong
+            var completed = await Task.WhenAny(tcs.Task, Task.Delay(10000));
+
+            if (completed != tcs.Task)
+            {
+                logger.Warning("WaitForNewScheduleInStateAsync: Timed out waiting for new schedule to appear in state");
+            }
+        }
+        finally
+        {
+            state.StateChanged -= OnStateChanged;
+        }
     }
 
     public async Task<bool> ExecuteDeleteAsync(

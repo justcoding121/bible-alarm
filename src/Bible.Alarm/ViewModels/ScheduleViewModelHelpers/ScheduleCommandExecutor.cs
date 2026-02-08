@@ -117,6 +117,10 @@ public sealed class ScheduleCommandExecutor
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
         logger.Debug("SaveCommand: Showing busy overlay");
 
+        // Yield so the queued BeginInvokeOnMainThread property update executes
+        // and the XAML overlay actually renders before the save proceeds
+        await Task.Delay(50);
+
         try
         {
             // Read current schedule fresh from state to ensure we have the latest values
@@ -266,6 +270,10 @@ public sealed class ScheduleCommandExecutor
         // Show busy overlay after progress indicator is visible
         dispatcher.Dispatch(new SetSchedulePageOverlayAction { IsVisible = true });
         logger.Debug("DeleteCommand: Showing busy overlay");
+
+        // Yield so the queued BeginInvokeOnMainThread property update executes
+        // and the XAML overlay actually renders before the delete proceeds
+        await Task.Delay(50);
 
         try
         {

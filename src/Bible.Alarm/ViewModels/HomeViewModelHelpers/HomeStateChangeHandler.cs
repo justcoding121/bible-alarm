@@ -113,17 +113,6 @@ public class HomeStateChangeHandler
                 updateProgressBarVisibility();
             }
 
-            // Show progress indicator when schedule count increases (new schedule added)
-            // This ensures progress is shown after saving a new schedule and redirecting to home
-            // Check this BEFORE preparing data so progress shows immediately
-            if (currentScheduleCount > previousScheduleCount && previousScheduleCount > 0)
-            {
-                logger.Debug("OnStateChanged: New schedule(s) detected - showing progress indicator. Previous count: {PreviousCount}, current count: {CurrentCount}",
-                    previousScheduleCount, currentScheduleCount);
-                setIsBusy(true);
-                updateProgressBarVisibility();
-            }
-
             // Prepare data structures off UI thread
             var (scheduleDataMap, scheduleStateItemMap) = await Task.Run(() =>
             {
