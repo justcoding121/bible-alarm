@@ -225,7 +225,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             }
 #endif
 
-            PopulateNumberOfTracksListView();
+            _ = PopulateNumberOfTracksListViewAsync();
 
             OnPropertyChanged(nameof(NotificationEnabled));
             OnPropertyChanged(nameof(AlwaysPlayFromStart));
@@ -338,7 +338,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                     const int newDefault = 1;
 
                     // Repopulate the list (unit labels may have changed)
-                    PopulateNumberOfTracksListView(newDefault);
+                    _ = PopulateNumberOfTracksListViewAsync(newDefault);
 
                     // Only update NumberOfTracksToPlay if we're in finite mode.
                     if (!playIndefinitely)
@@ -673,7 +673,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             }
 
             // Ensure UI list has a selection even if schedule previously stored 0.
-            PopulateNumberOfTracksListView(selected);
+            _ = PopulateNumberOfTracksListViewAsync(selected);
             DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = selected);
         }
     }
@@ -683,7 +683,11 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     /// </summary>
     public bool IsNumberOfTracksSelectionVisible => !PlayIndefinitely;
 
-    private async void PopulateNumberOfTracksListView(int? forceSelection = null)
+    /// <summary>
+    /// Populates the number of tracks list view.
+    /// This method is async because it may need to fetch publication data for dramas.
+    /// </summary>
+    public async Task PopulateNumberOfTracksListViewAsync(int? forceSelection = null)
     {
         // Preserve the current selection if user has made one, or use forced selection
         var preservedSelection = forceSelection ?? CurrentNumberOfTracks?.Value;
@@ -758,6 +762,14 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         
         // Notify that the list has been updated (in case selection needs to be reapplied)
         OnPropertyChanged(nameof(NumberOfTracksList));
+    }
+
+    /// <summary>
+    /// Private wrapper for backward compatibility with fire-and-forget calls.
+    /// </summary>
+    private async void PopulateNumberOfTracksListView(int? forceSelection = null)
+    {
+        await PopulateNumberOfTracksListViewAsync(forceSelection);
     }
 
     private void DispatchScheduleUpdate(Action<ScheduleStateItem> updateAction)

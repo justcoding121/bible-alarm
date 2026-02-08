@@ -84,61 +84,26 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
     {
         Appearing -= OnAppearing;
 
-        try
-        {
-            // Hide CollectionView - overlay is already visible (no binding)
-            // Skip on Windows to avoid access violation crash
-            if (DeviceInfo.Platform != DevicePlatform.WinUI)
-            {
-                TracksCollectionView.Opacity = 0;
-            }
-
-            // Small delay to ensure CollectionView is rendered
-            await Task.Delay(150, cancellationTokenSource.Token);
-
-            // Scroll to selected item if any
-            if (ViewModel?.CurrentNumberOfTracks != null)
-            {
-                await CollectionViewHelper.ScrollToWhenReadyAsync(
-                    TracksCollectionView,
-                    ViewModel.CurrentNumberOfTracks,
-                    animated: false,
-                    cancellationToken: cancellationTokenSource.Token);
-
-                // Small delay to ensure scroll completes
-                await Task.Delay(50, cancellationTokenSource.Token);
-            }
-
-            // Hide overlay and reveal list together (binding: set IsBusy = false)
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (ViewModel != null)
-                    ViewModel.IsBusy = false;
-                if (DeviceInfo.Platform != DevicePlatform.WinUI)
-                    TracksCollectionView.Opacity = 1;
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (ViewModel != null)
-                    ViewModel.IsBusy = false;
-                if (DeviceInfo.Platform != DevicePlatform.WinUI)
-                    TracksCollectionView.Opacity = 1;
-            });
-        }
-        catch (Exception ex)
-        {
-            Serilog.Log.Warning(ex, "Error in NumberOfTracksModal.OnAppearing");
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (ViewModel != null)
-                    ViewModel.IsBusy = false;
-                if (DeviceInfo.Platform != DevicePlatform.WinUI)
-                    TracksCollectionView.Opacity = 1;
-            });
-        }
+        await ModalScrollHelper.HandleModalAppearingAsync(
+            isBusyGetter: () => ViewModel?.IsBusy ?? false,
+            busyOverlay: BusyOverlay,
+            collectionView: TracksCollectionView,
+            getSelectedItem: () => ViewModel?.CurrentNumberOfTracks,
+            refreshAction: ViewModel != null
+                ? async () =>
+                {
+                    await ViewModel.PopulateNumberOfTracksListViewAsync();
+                    
+                    // Set IsBusy to false after data is loaded (helper will wait for this)
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        if (ViewModel != null)
+                            ViewModel.IsBusy = false;
+                    });
+                }
+                : null,
+            onFetchFailed: null,
+            cancellationToken: cancellationTokenSource.Token);
     }
 
     public void Dispose()
