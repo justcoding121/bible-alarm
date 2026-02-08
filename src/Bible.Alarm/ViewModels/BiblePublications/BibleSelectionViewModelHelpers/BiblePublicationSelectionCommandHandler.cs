@@ -80,8 +80,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             }
 
             // For item-click fetches, we show per-row progress (spinner + percent) instead of modal overlays.
-            // The caller sets IsNavigating; we just drive the row progress percent.
-            await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
+            // The caller sets IsNavigating; progress will be set by FetchProgressTracker only when a fetch actually happens.
 
             // No DB probing: the tapped publication row already knows whether it has LanguageId or not.
             // If it's a publication without language FK, use "E" (English default) for cascade consistency.
@@ -130,34 +129,33 @@ public sealed class BiblePublicationSelectionCommandHandler
             Log.Debug("CreateSectionSelectionCommand: Calling GetSectionAndTrackForPublicationAsync for publication={PublicationCode}, language={LanguageCode}",
                 x.Code, currentLanguage.Code);
             
+            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
+            var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
+            var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
+            
+            // Create progress tracker for per-row percent updates (no modal progress card / busy overlay).
+            var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
+                progress => _ = MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = progress),
+                _ => { },
+                _ => { });
+            
+            (string? sectionCode, string trackCode, string sectionName, string trackTitle) result;
             try
             {
-                var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
-                var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
-                var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
-                
-                // Create progress tracker for per-row percent updates (no modal progress card / busy overlay).
-                var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                    progress => _ = MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = progress),
-                    _ => { },
-                    _ => { });
-                
-                (string? sectionCode, string trackCode, string sectionName, string trackTitle) result;
-                try
-                {
-                    result = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressTracker);
-                }
-                catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
-                {
-                    // List item click failure: show toast and close modal (retain state)
-                    Log.Warning(ex, "CreateSectionSelectionCommand: Network error for publication={PublicationCode}", x.Code);
-                    await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
-                    var toastService = ServiceProviderManager.GetService<IToastService>();
-                    await toastService.ShowMessage("Unable to load. Please check your connection.");
-                    await navigationService.PopModalAsync();
-                    return;
-                }
-                var (sectionCode, trackCode, sectionName, trackTitle) = result;
+                result = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressTracker);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+            {
+                // List item click failure: show toast and close modal (retain state)
+                Log.Warning(ex, "CreateSectionSelectionCommand: Network error for publication={PublicationCode}", x.Code);
+                // Reset progress on error (only if it was set during fetch)
+                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
+                var toastService = ServiceProviderManager.GetService<IToastService>();
+                await toastService.ShowMessage("Unable to load. Please check your connection.");
+                await navigationService.PopModalAsync();
+                return;
+            }
+            var (sectionCode, trackCode, sectionName, trackTitle) = result;
 
             Log.Debug("CreateSectionSelectionCommand: Result sectionCode={SectionCode}, trackCode={TrackCode}, sectionName={SectionName}, trackTitle={TrackTitle}",
                 sectionCode, trackCode, sectionName, trackTitle);
@@ -186,36 +184,24 @@ public sealed class BiblePublicationSelectionCommandHandler
             Log.Information("CreateSectionSelectionCommand: Dispatching selection for publication={PublicationCode}, section={SectionCode}, track={TrackCode}, sectionName={SectionName}, trackTitle={TrackTitle}",
                 x.Code, sectionCode ?? "(null)", trackCode, sectionName, trackTitle);
 
-                var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
-                actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);
-                
-                // Wait for cascade to complete by checking state
-                progressTracker.UpdateProgress(0.9);
-                
-                // Wait for state to be updated (cascade effect)
-                const int maxWaitAttempts = 30;
-                const int delayMs = 200;
-                for (int i = 0; i < maxWaitAttempts; i++)
-                {
-                    var currentState = state.Value.CurrentSchedule;
-                    if (currentState != null && 
-                        !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
-                        !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode))
-                    {
-                        // Cascade complete
-                        break;
-                    }
-                    // Update progress gradually while waiting
-                    var waitProgress = 0.9 + (i / (double)maxWaitAttempts) * 0.1;
-                    progressTracker.UpdateProgress(waitProgress);
-                    await Task.Delay(delayMs);
-                }
-                
-                progressTracker.UpdateProgress(1.0);
-            }
-            finally
+            var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
+            actionDispatcher.DispatchBiblePublicationSelectionActions(biblePublicationItem);
+            
+            // Wait for cascade to complete by checking state matches the dispatched values
+            // Check for the SPECIFIC publication code we just dispatched (not just "non-empty")
+            // to avoid exiting early when stale values from a previous selection are still present.
+            const int maxWaitAttempts = 30;
+            const int delayMs = 200;
+            for (int i = 0; i < maxWaitAttempts; i++)
             {
-                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 1.0);
+                var currentState = state.Value.CurrentSchedule;
+                if (currentState != null && 
+                    currentState.BiblePublicationCode == x.Code &&
+                    !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode))
+                {
+                    break;
+                }
+                await Task.Delay(delayMs);
             }
             
             await navigationService.PopModalAsync();
@@ -254,12 +240,8 @@ public sealed class BiblePublicationSelectionCommandHandler
                 return;
             }
 
-            // Show progress on the list item itself (not as overlay)
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                x.DownloadProgress = 0.0;
-            });
-            
+            // Track if progress was set (fetch happened) - only show completion if fetch occurred
+            bool fetchOccurred = false;
             try
             {
                 var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
@@ -271,6 +253,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                     progress => _ = MainThread.InvokeOnMainThreadAsync(() =>
                     {
                         x.DownloadProgress = progress;
+                        fetchOccurred = true; // Mark that fetch occurred when progress is set
                     }),
                     text => { }, // No text updates for list item progress
                     isVisible => { }); // No visibility updates for list item progress
@@ -332,38 +315,40 @@ public sealed class BiblePublicationSelectionCommandHandler
                 var actionDispatcher = new BiblePublicationSelectionActionDispatcher(dispatcher);
                 actionDispatcher.DispatchLanguageSelectionActions(biblePublicationItem);
                 
-                // Wait for cascade to complete by checking state
-                progressTracker.UpdateProgress(0.9);
-                
-                // Wait for state to be updated (cascade effect)
+                // Wait for cascade to complete - check for the SPECIFIC language we just dispatched
                 const int maxWaitAttempts = 30;
                 const int delayMs = 200;
                 for (int i = 0; i < maxWaitAttempts; i++)
                 {
                     var currentState = state.Value.CurrentSchedule;
                     if (currentState != null && 
+                        currentState.BiblePublicationLanguageCode == x.Code &&
                         !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
                         !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode))
                     {
-                        // Cascade complete
                         break;
                     }
-                    // Update progress gradually while waiting
-                    var waitProgress = 0.9 + (i / (double)maxWaitAttempts) * 0.1;
-                    progressTracker.UpdateProgress(waitProgress);
                     await Task.Delay(delayMs);
                 }
-                
-                progressTracker.UpdateProgress(1.0);
-                // Brief delay to show completion
-                await Task.Delay(200);
             }
             finally
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
+                // Only set to 1.0 if a fetch actually occurred (progress was set during operation)
+                if (fetchOccurred)
                 {
-                    x.DownloadProgress = 1.0;
-                });
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        x.DownloadProgress = 1.0;
+                    });
+                }
+                else
+                {
+                    // No fetch occurred - reset progress to not-set state
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        x.DownloadProgress = -1.0;
+                    });
+                }
             }
             
             await navigationService.PopModalAsync();

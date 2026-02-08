@@ -11,6 +11,7 @@ namespace Bible.Alarm.Views.Music;
 public partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
+    private bool isSelectingTrack;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private readonly INavigationService navigationService;
     private readonly IToastService toastService;
@@ -62,8 +63,15 @@ public partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
     {
         try { cancellationTokenSource.Cancel(); } catch { }
 
+        if (isSelectingTrack)
+        {
+            return;
+        }
+
         if (sender is View view && view.BindingContext is MusicTrackListViewItemModel trackItem)
         {
+            isSelectingTrack = true;
+
             trackItem.IsNavigating = true;
             await Task.Delay(50);
 
@@ -83,6 +91,7 @@ public partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
             finally
             {
                 trackItem.IsNavigating = false;
+                isSelectingTrack = false;
             }
         }
     }

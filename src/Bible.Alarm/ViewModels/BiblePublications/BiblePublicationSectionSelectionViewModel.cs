@@ -132,8 +132,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     return;
                 }
                 
-                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
-                
+                // Progress will be set by BuildSelectionAsync/fetch methods only when a fetch actually happens.
                 // Language code can be null/empty for publications without language (e.g., "iam")
                 // GetBiblePublicationTracks handles this case
                 var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
@@ -141,8 +140,6 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 // Check if the selected section is the same as the current section (for debugging / future optimizations)
                 var currentSectionCode = currentSchedule.BiblePublicationSectionCode;
                 _ = string.Equals(currentSectionCode, x.Section.SectionCode, StringComparison.OrdinalIgnoreCase);
-
-                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.3);
 
                 var biblePublicationItem = await trackSelectionResolver.BuildSelectionAsync(
                     x,
@@ -154,12 +151,9 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     return;
                 }
 
-                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.9);
-
                 // Dispatch TrackSelectedAction to update CurrentBiblePublicationSchedule
                 // Effect will automatically sync to CurrentSchedule
                 dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
-                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 1.0);
                 
                 // Navigate back to schedule page
                 await navigationService.PopModalAsync();

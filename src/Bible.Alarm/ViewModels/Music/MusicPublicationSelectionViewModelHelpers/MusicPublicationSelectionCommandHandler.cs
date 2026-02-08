@@ -38,9 +38,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             return;
         }
 
-        // For item-click fetches, we show per-row progress (spinner + percent) instead of modal overlays.
-        await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
-
+        // Progress will be set by FetchProgressTracker only when a fetch actually happens.
         // No DB probing: the tapped row already knows if it has LanguageId or not.
         // Publications without language FK (LanguageId == null) are melody/instrumental.
         var isMelodyMusic = songPublication.IsPublicationWithoutLanguage;
@@ -74,9 +72,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
             string? sectionName = null;
             if (isMelodyMusic)
             {
-                progressTracker.UpdateProgress(0.3);
-
                 // Melody publications are usually flat, but some (e.g. "iam") are sectioned (discs).
+                // Progress will be set by fetch methods if a fetch is needed (DB queries don't set progress).
                 // For sectioned publications we MUST pick section + track so Schedule always has section data.
                 var isSectionedMelody = Bible.Alarm.Shared.Helpers.PublicationTypeHelper.HasSectionStructure(songPublication.Code);
                 if (isSectionedMelody)
@@ -209,29 +206,20 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 resolvedLanguageDirection);
             dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
             
-            // Wait for cascade to complete by checking state
-            progressTracker.UpdateProgress(0.9);
-            
-            // Wait for state to be updated (cascade effect)
+            // Wait for cascade to complete - check for the SPECIFIC publication we just dispatched
             const int maxWaitAttempts = 30;
             const int delayMs = 200;
             for (int i = 0; i < maxWaitAttempts; i++)
             {
                 var currentState = state.Value.CurrentSchedule;
                 if (currentState != null && 
-                    !string.IsNullOrEmpty(currentState.MusicPublicationCode) &&
+                    currentState.MusicPublicationCode == songPublication.Code &&
                     !string.IsNullOrWhiteSpace(currentState.MusicTrackCode))
                 {
-                    // Cascade complete
                     break;
                 }
-                // Update progress gradually while waiting
-                var waitProgress = 0.9 + (i / (double)maxWaitAttempts) * 0.1;
-                progressTracker.UpdateProgress(waitProgress);
                 await Task.Delay(delayMs);
             }
-            
-            progressTracker.UpdateProgress(1.0);
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
         {
@@ -273,9 +261,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
             return;
         }
 
-        // Show progress on the list item itself (not as overlay)
-        await MainThread.InvokeOnMainThreadAsync(() => language.DownloadProgress = 0.0);
-
+        // Track if progress was set (fetch happened) - only show completion if fetch occurred
+        bool fetchOccurred = false;
         try
         {
             var currentSchedule = state.Value.CurrentSchedule;
@@ -285,6 +272,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 progress => _ = MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     language.DownloadProgress = progress;
+                    fetchOccurred = true; // Mark that fetch occurred when progress is set
                 }),
                 text => { }, // No text updates for list item progress
                 isVisible => { }); // No visibility updates for list item progress
@@ -318,36 +306,41 @@ public sealed class MusicPublicationSelectionCommandHandler(
             var trackSelectedItem = CreateMusicStateItemForLanguage(language, publicationCode ?? string.Empty, trackCode, trackName, publicationName, currentSchedule);
             dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
             
-            // Wait for cascade to complete by checking state
-            progressTracker.UpdateProgress(0.9);
-            
-            // Wait for state to be updated (cascade effect)
+            // Only update progress if fetch occurred
+            // Wait for cascade to complete - check for the SPECIFIC language we just dispatched
             const int maxWaitAttempts = 30;
             const int delayMs = 200;
             for (int i = 0; i < maxWaitAttempts; i++)
             {
                 var currentState = state.Value.CurrentSchedule;
                 if (currentState != null && 
+                    currentState.MusicLanguageCode == language.Code &&
                     !string.IsNullOrEmpty(currentState.MusicPublicationCode) &&
                     !string.IsNullOrWhiteSpace(currentState.MusicTrackCode))
                 {
-                    // Cascade complete
                     break;
                 }
-                // Update progress gradually while waiting
-                var waitProgress = 0.9 + (i / (double)maxWaitAttempts) * 0.1;
-                progressTracker.UpdateProgress(waitProgress);
                 await Task.Delay(delayMs);
             }
-            
-            progressTracker.UpdateProgress(1.0);
         }
         finally
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            // Only set to 1.0 if a fetch actually occurred (progress was set during operation)
+            if (fetchOccurred)
             {
-                language.DownloadProgress = 1.0;
-            });
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    language.DownloadProgress = 1.0;
+                });
+            }
+            else
+            {
+                // No fetch occurred - reset progress to not-set state
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    language.DownloadProgress = -1.0;
+                });
+            }
         }
         
         await navigationService.PopModalAsync();

@@ -11,6 +11,7 @@ namespace Bible.Alarm.Views.Bible;
 public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
+    private bool isSelectingTrack;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private readonly INavigationService navigationService;
     private readonly IToastService toastService;
@@ -65,8 +66,15 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
         // Cancel any ongoing scroll operation to prevent race conditions
         try { cancellationTokenSource.Cancel(); } catch { }
 
+        if (isSelectingTrack)
+        {
+            return;
+        }
+
         if (sender is View view && view.BindingContext is BiblePublicationTrackListViewItemModel trackItem)
         {
+            isSelectingTrack = true;
+
             // Set IsNavigating immediately to show progress indicator
             trackItem.IsNavigating = true;
             
@@ -92,6 +100,7 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
             {
                 // Reset IsNavigating after operation completes
                 trackItem.IsNavigating = false;
+                isSelectingTrack = false;
             }
         }
     }

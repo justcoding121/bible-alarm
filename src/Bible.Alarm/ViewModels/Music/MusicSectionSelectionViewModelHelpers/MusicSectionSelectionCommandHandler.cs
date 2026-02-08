@@ -41,12 +41,7 @@ internal sealed class MusicSectionSelectionCommandHandler
         BiblePublicationSectionListViewItemModel selectedSection,
         Func<bool> isDisposed)
     {
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            if (isDisposed()) return;
-            selectedSection.DownloadProgress = 0.0;
-        });
-
+        // Progress will only be set if a fetch actually happens (not for DB-only queries)
         try
         {
             // Always use CurrentSchedule as the source of truth
@@ -63,13 +58,7 @@ internal sealed class MusicSectionSelectionCommandHandler
             // Music type is inferred: NULL/empty LanguageCode = instrumental (melody)
             var isMelodyMusic = string.IsNullOrEmpty(languageCode);
 
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (isDisposed()) return;
-                selectedSection.DownloadProgress = 0.3;
-            });
-
-            // Get tracks for the selected section
+            // Get tracks for the selected section (DB query only, no fetch)
             SortedDictionary<int, MusicTrack> tracks;
             if (!isMelodyMusic)
             {
@@ -84,19 +73,8 @@ internal sealed class MusicSectionSelectionCommandHandler
 
             if (tracks == null || tracks.Count == 0)
             {
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (isDisposed()) return;
-                    selectedSection.DownloadProgress = 0.0;
-                });
                 return;
             }
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (isDisposed()) return;
-                selectedSection.DownloadProgress = 0.7;
-            });
 
             // Use the first track from the selected section
             var firstTrack = tracks.Values.First();
@@ -117,11 +95,6 @@ internal sealed class MusicSectionSelectionCommandHandler
 
             // Dispatch MusicSectionSelectedAction to update CurrentSchedule
             dispatcher.Dispatch(new MusicSectionSelectedAction(musicStateItem));
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                if (isDisposed()) return;
-                selectedSection.DownloadProgress = 1.0;
-            });
 
             await navigationService.PopModalAsync();
         }

@@ -76,8 +76,7 @@ public partial class MusicPublicationSelectionModal : BaseContentPage, IDisposab
         {
             isSelectingPublication = true;
 
-            // Reset progress and show row indicator immediately
-            publicationItem.DownloadProgress = 0.0;
+            // Show row indicator immediately (progress will be set by command handler only if fetch happens)
             publicationItem.IsNavigating = true;
             
             // Wait 50ms to ensure UI thread renders the update before doing backend work

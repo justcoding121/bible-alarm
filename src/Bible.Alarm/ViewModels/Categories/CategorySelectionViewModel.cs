@@ -69,18 +69,20 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
             return;
         }
 
-        // Get current language code before category change to preserve it if possible
+        // Get current state before category change to detect actual change
         var currentSchedule = state.Value.CurrentSchedule;
         var previousLanguageCode = currentSchedule?.BiblePublicationLanguageCode;
+        var previousCategoryName = currentSchedule?.BiblePublicationCategoryName;
+        var previousPublicationCode = currentSchedule?.BiblePublicationCode;
 
         // Track the category being fetched so we can update its progress from messages
         currentFetchingCategory = category;
 
         // Show progress on the list item itself (not as overlay)
+        // Progress will be set by effect handler via WeakReferenceMessenger only when a fetch actually happens
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             category.IsNavigating = true;
-            category.DownloadProgress = 0.0;
         });
 
         try
@@ -89,37 +91,52 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
             dispatcher.Dispatch(new CategorySelectionAction(category.Id, category.Name, previousLanguageCode));
             
             // Wait for state to be updated (cascade effect)
-            // Progress is now updated via WeakReferenceMessenger from the effect handler
+            // Check that category matches AND publication has actually changed from the old value.
+            // Without the publication-change check, the loop exits immediately when the category
+            // is updated but the old publication/track codes are still present from the previous category.
             const int maxWaitAttempts = 60;
             const int delayMs = 200;
             for (int i = 0; i < maxWaitAttempts; i++)
             {
                 var currentState = state.Value.CurrentSchedule;
                 if (currentState != null && 
-                    !string.IsNullOrEmpty(currentState.BiblePublicationCategoryName) &&
                     currentState.BiblePublicationCategoryName == category.Name &&
                     !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
-                    !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode))
+                    !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode) &&
+                    // Ensure the publication actually changed (not stale from previous category)
+                    (currentState.BiblePublicationCategoryName != previousCategoryName ||
+                     currentState.BiblePublicationCode != previousPublicationCode))
                 {
-                    // Cascade complete
                     break;
                 }
                 
                 await Task.Delay(delayMs);
             }
         }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "CategorySelectionViewModel: Error during category selection for category={CategoryName}", category.Name);
+        }
         finally
         {
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 category.IsNavigating = false;
-                category.DownloadProgress = 1.0;
+                // Progress completion will be set by effect handler via WeakReferenceMessenger if a fetch happened
             });
             currentFetchingCategory = null;
         }
         
-        // Close modal after fetch completes
-        await navigationService.PopModalAsync();
+        // Close modal after fetch completes (or timeout/error)
+        try
+        {
+            await navigationService.PopModalAsync();
+            Serilog.Log.Debug("CategorySelectionViewModel: Modal closed successfully for category={CategoryName}", category.Name);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "CategorySelectionViewModel: Error closing modal for category={CategoryName}", category.Name);
+        }
     });
 
     private async Task LoadCategoriesAsync()

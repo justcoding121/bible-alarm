@@ -89,8 +89,7 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         {
             isSelectingLanguage = true;
 
-            // Set IsNavigating immediately to show progress indicator
-            languageItem.DownloadProgress = 0.0;
+            // Set IsNavigating immediately to show progress indicator (progress will be set by command handler only if fetch happens)
             languageItem.IsNavigating = true;
             
             // Wait 50ms to ensure UI thread renders the update before doing backend work

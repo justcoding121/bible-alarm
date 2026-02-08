@@ -44,7 +44,6 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
             isSelectingLanguage = true;
 
             languageItem.IsNavigating = true;
-            languageItem.DownloadProgress = 0.0;
             await Task.Delay(50);
 
             try

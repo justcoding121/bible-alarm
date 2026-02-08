@@ -74,8 +74,7 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
         {
             isSelectingSection = true;
 
-            // Reset progress and show row indicator immediately
-            sectionItem.DownloadProgress = 0.0;
+            // Show row indicator immediately (progress will be set by command handler only if fetch happens)
             sectionItem.IsNavigating = true;
             
             // Wait 50ms to ensure UI thread renders the update before doing backend work

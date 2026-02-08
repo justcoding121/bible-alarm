@@ -11,7 +11,7 @@ public sealed class CategoryListViewItemModel(Category category) : ObservableObj
 
     private bool isSelected;
     private bool isNavigating;
-    private double downloadProgress;
+    private double downloadProgress = -1.0; // -1 means "not set", >= 0 means "fetch in progress or completed"
 
     public bool IsSelected
     {
@@ -34,8 +34,10 @@ public sealed class CategoryListViewItemModel(Category category) : ObservableObj
         get => downloadProgress;
         set
         {
-            // Clamp value between 0.0 and 1.0
-            var clamped = Math.Max(0.0, Math.Min(1.0, value));
+            var clamped = value;
+            // Allow -1.0 as sentinel value meaning "not set", otherwise clamp to 0.0-1.0
+            if (clamped >= 0.0 && clamped > 1.0) clamped = 1.0;
+            if (clamped < -1.0) clamped = -1.0;
 
             if (SetProperty(ref downloadProgress, clamped))
             {
@@ -48,7 +50,14 @@ public sealed class CategoryListViewItemModel(Category category) : ObservableObj
     {
         get
         {
+            // Return empty string if progress is not set (< 0), otherwise return percentage
+            if (downloadProgress < 0.0)
+            {
+                return string.Empty;
+            }
             var percent = (int)Math.Round(downloadProgress * 100);
+            if (percent < 0) percent = 0;
+            if (percent > 100) percent = 100;
             return $"{percent}%";
         }
     }

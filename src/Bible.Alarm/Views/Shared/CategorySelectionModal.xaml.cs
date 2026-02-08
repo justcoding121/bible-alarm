@@ -13,6 +13,7 @@ namespace Bible.Alarm.Views.Shared;
 public partial class CategorySelectionModal : BaseContentPage, IDisposable
 {
     private bool isDisposed;
+    private bool isSelectingCategory;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private readonly INavigationService navigationService;
     private readonly IToastService toastService;
@@ -57,8 +58,15 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
     {
         try { cancellationTokenSource.Cancel(); } catch { }
 
+        if (isSelectingCategory)
+        {
+            return;
+        }
+
         if (sender is View view && view.BindingContext is CategoryListViewItemModel categoryItem)
         {
+            isSelectingCategory = true;
+
             // Set IsNavigating immediately to show progress indicator
             categoryItem.IsNavigating = true;
             
@@ -95,6 +103,7 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
             {
                 // Reset IsNavigating after operation completes
                 categoryItem.IsNavigating = false;
+                isSelectingCategory = false;
             }
         }
     }

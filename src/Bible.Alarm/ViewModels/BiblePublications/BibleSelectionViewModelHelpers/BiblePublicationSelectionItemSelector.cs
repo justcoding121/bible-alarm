@@ -65,9 +65,6 @@ public sealed class BiblePublicationSelectionItemSelector
     {
         Log.Debug("GetSectionAndTrackForPublicationAsync: Starting for publication={PublicationCode}, language={LanguageCode}",
             publication.Code, language.Code);
-
-        // Show progress while fetching
-        progress?.UpdateProgress(0.1);
         
         // Each list item carries whether it has a language FK (LanguageId != null) or not.
         // Use that to decide the DB query path (no extra DB probing here).
@@ -76,6 +73,7 @@ public sealed class BiblePublicationSelectionItemSelector
         // First, try to get sections from the database
         // IMPORTANT: Prefer direct DB query to avoid triggering background "ensure all sections" work.
         // Section presence is enough to determine sectioned vs non-sectioned for cascade defaults.
+        // Progress will be set by fetch methods (e.g., FetchSectionTracksAsync) if a fetch is needed.
         SortedDictionary<string, BiblePublicationSection> sections;
         if (publicationWithoutLanguage)
         {
@@ -90,14 +88,12 @@ public sealed class BiblePublicationSelectionItemSelector
                 : await mediaService.GetBiblePublicationSections(language.Code, publication.Code);
         }
 
-        progress?.UpdateProgress(0.3);
-
         // If publication has sections, use sectioned flow
         if (sections != null && sections.Count > 0)
         {
             Log.Debug("GetSectionAndTrackForPublicationAsync: Found {SectionCount} sections, using sectioned flow",
                 sections.Count);
-            progress?.UpdateProgress(0.5);
+            // Progress will be set by GetFirstSectionAndTrackFromSectionsAsync if a fetch is needed
             var sectionedResult = await sectionTrackResolver.GetFirstSectionAndTrackFromSectionsAsync(
                 publicationWithoutLanguage ? null : language.Code,
                 publication.Code,
@@ -143,8 +139,7 @@ public sealed class BiblePublicationSelectionItemSelector
     {
         Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Starting for language={LanguageCode}", language.Code);
 
-        progress?.UpdateProgress(0.0);
-
+        // Progress will be set by EnsurePublicationExistsAsync only when a fetch actually happens.
         // Step 1: Pick the first viable publication for this language/category and ensure ONLY that publication exists.
         // IMPORTANT: This is a cascade path; it must NOT "download all publications".
         var stateValue = state.Value;
@@ -182,6 +177,8 @@ public sealed class BiblePublicationSelectionItemSelector
                 // Progress is reported by EnsurePublicationExistsAsync: 50% (pub+section saved), 100% (tracks saved)
                 if (languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
                 {
+                    // Set progress to 0% immediately when we know a fetch will happen
+                    progress?.UpdateProgress(0.0);
                     try
                     {
                         var ensured = await languageContentService.EnsurePublicationExistsAsync(
