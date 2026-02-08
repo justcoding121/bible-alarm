@@ -33,7 +33,6 @@ public static class BootstrapHelper
     /// </summary>
     public static void InitializePlatformBootstrap(IServiceProvider services, bool isForeground = false)
     {
-        // Log caller information to help debug which code path is calling bootstrap
         var caller = new StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.Name ?? "Unknown";
         Log.Logger.Information("InitializePlatformBootstrap called from {Caller} with isForeground={IsForeground}, BootstrapCompleted={BootstrapCompleted}",
             caller, isForeground, bootstrapCompleted);

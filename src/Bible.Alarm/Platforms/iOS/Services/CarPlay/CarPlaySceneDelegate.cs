@@ -16,6 +16,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.CarPlay;
 /// Without the entitlement, this delegate will never be called (CarPlay won't connect to the app).
 /// </summary>
 [Register("CarPlaySceneDelegate")]
+[Preserve(AllMembers = true)]
 public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDelegate
 {
     private static readonly ILogger logger = Log.ForContext<CarPlaySceneDelegate>();

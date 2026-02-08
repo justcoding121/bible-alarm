@@ -104,16 +104,16 @@ public static class CarPlayScheduleHelper
         }
 
         // Fallback: if no title found, use schedule name or music icon
-        var scheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
+        var fallbackScheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
             ? scheduleItem.Name
             : string.Empty;
         
-        if (string.IsNullOrWhiteSpace(scheduleName))
+        if (string.IsNullOrWhiteSpace(fallbackScheduleName))
         {
             return scheduleItem.MusicEnabled ? "🎵" : "Unnamed schedule";
         }
         
-        return scheduleItem.MusicEnabled ? scheduleName + " 🎵" : scheduleName;
+        return scheduleItem.MusicEnabled ? fallbackScheduleName + " 🎵" : fallbackScheduleName;
     }
 
     /// <summary>

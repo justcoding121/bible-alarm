@@ -9,10 +9,12 @@ namespace Bible.Alarm.Platforms.iOS;
 
 /// <summary>
 /// Scene Delegate for the main app window.
-/// Inherits from MauiUISceneDelegate to properly integrate with MAUI's window creation.
-/// This is required when using iOS 13+ scene-based architecture with CarPlay support.
+/// Inherits from MauiUISceneDelegate so MAUI creates the window when
+/// the scene configuration name is __MAUI_DEFAULT_SCENE_CONFIGURATION__.
+/// Required for scene-based lifecycle (needed to support CarPlay as a second scene).
 /// </summary>
 [Register("SceneDelegate")]
+[Preserve(AllMembers = true)]
 public class SceneDelegate : MauiUISceneDelegate
 {
     private static readonly ILogger logger = Log.ForContext<SceneDelegate>();
@@ -21,13 +23,15 @@ public class SceneDelegate : MauiUISceneDelegate
     {
         try
         {
-            logger.Debug("[SceneDelegate] Scene will connect to session: {SessionRole}", session.Role);
-            // Call base to let MAUI create the window properly
+            // Let MAUI create the window. MauiUISceneDelegate.WillConnect checks that
+            // session.Configuration.Name == "__MAUI_DEFAULT_SCENE_CONFIGURATION__" and
+            // then calls CreatePlatformWindow, which invokes Application.CreateWindow.
             base.WillConnect(scene, session, connectionOptions);
+            logger.Information("[SceneDelegate] Scene connected, config: {ConfigName}", session.Configuration.Name);
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "[SceneDelegate] Error in WillConnect");
+            logger.Error(ex, "[SceneDelegate] Error in WillConnect");
         }
     }
 
@@ -41,32 +45,6 @@ public class SceneDelegate : MauiUISceneDelegate
         catch (Exception ex)
         {
             logger.Warning(ex, "[SceneDelegate] Error in DidDisconnect");
-        }
-    }
-
-    [Export("sceneDidBecomeActive:")]
-    public void DidBecomeActive(UIScene scene)
-    {
-        try
-        {
-            logger.Debug("[SceneDelegate] Scene did become active");
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "[SceneDelegate] Error in DidBecomeActive");
-        }
-    }
-
-    [Export("sceneWillResignActive:")]
-    public void WillResignActive(UIScene scene)
-    {
-        try
-        {
-            logger.Debug("[SceneDelegate] Scene will resign active");
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "[SceneDelegate] Error in WillResignActive");
         }
     }
 
@@ -89,7 +67,6 @@ public class SceneDelegate : MauiUISceneDelegate
         {
             logger.Debug("[SceneDelegate] Scene did enter background");
             // Ensure the scheduler refresh BG task is (re)scheduled while we still have foreground execution time.
-            // iOS decides the actual run time; this keeps the request active.
             iOSBackgroundTaskScheduler.ScheduleSchedulerRefresh();
             base.DidEnterBackground(scene);
         }

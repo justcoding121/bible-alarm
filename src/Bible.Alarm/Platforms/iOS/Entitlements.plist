@@ -20,9 +20,8 @@
     However, Now Playing (Lock Screen, Control Center, AirPods) will work immediately.
     -->
     
-    <!-- Uncomment after MFi approval:
+    <!-- CarPlay Audio Entitlement (MFi approved) -->
     <key>com.apple.developer.carplay-audio</key>
     <true/>
-    -->
 </dict>
 </plist>

@@ -43,8 +43,8 @@
 		<IosSdkVersion Condition="'$(IosSdkVersion)' == ''">latest</IosSdkVersion>
 		<!-- iOS Entitlements: Different entitlements for Simulator, Device Debug, and Release -->
 		<!-- Simulator: CarPlay enabled (no MFi approval needed) -->
-		<!-- Device Debug: CarPlay disabled (requires provisioning profile with CarPlay) -->
-		<!-- Release: CarPlay disabled (requires MFi approval) -->
+		<!-- Device Debug: CarPlay enabled (MFi approved) -->
+		<!-- Release: CarPlay enabled (MFi approved) -->
 		<!-- Set property to detect simulator builds -->
 		<_IsSimulatorBuild Condition="'$(RuntimeIdentifier)' == 'iossimulator-arm64' OR '$(RuntimeIdentifier)' == 'iossimulator-x64' OR '$(RuntimeIdentifier)' == 'iossimulator-arm64-sim' OR '$(RuntimeIdentifier)' == 'iossimulator-x64-sim'">true</_IsSimulatorBuild>
 		<!-- Use simulator entitlements (with CarPlay) for simulator builds -->
@@ -303,10 +303,14 @@
 	</ItemGroup>
 
 	<!-- CarPlay Support Notes:
-	     The CarPlay C# code (CarPlaySceneDelegate.cs, SceneDelegate.cs) is always compiled but NOT activated.
-	     Once Apple approves CarPlay entitlement:
-	     1. Add UIApplicationSceneManifest to Info.plist with both main app and CarPlay scenes
-	     2. Add [Preserve] attribute to SceneDelegate and CarPlaySceneDelegate classes to prevent linker removal
-	     3. Test on simulator using I/O > External Displays > CarPlay
+	     CarPlay is now ACTIVATED:
+	     ✅ CarPlay entitlement enabled in Entitlements.plist and Entitlements.debug.plist
+	     ✅ UIApplicationSceneManifest added to Info.plist with both main app and CarPlay scenes
+	     ✅ [Preserve] attributes added to SceneDelegate and CarPlaySceneDelegate classes
+	     ✅ Provisioning profiles regenerated with CarPlay capability
+	     
+	     To test:
+	     - Device: Connect iPhone to CarPlay-enabled vehicle or CarPlay adapter
+	     - Simulator: I/O > External Displays > CarPlay
 	-->
 </Project>

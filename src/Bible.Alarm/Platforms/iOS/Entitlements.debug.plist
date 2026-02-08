@@ -22,9 +22,8 @@
     <CodesignEntitlements Condition="'$(Configuration)' == 'Release'">Platforms\iOS\Entitlements.plist</CodesignEntitlements>
     -->
     
-    <!-- CarPlay Audio Entitlement (requires MFi approval for App Store distribution) -->
-    <!-- Disabled for device builds - use Entitlements.simulator.plist for Simulator builds -->
-    <!-- <key>com.apple.developer.carplay-audio</key>
-    <true/> -->
+    <!-- CarPlay Audio Entitlement (MFi approved - enabled for device builds) -->
+    <key>com.apple.developer.carplay-audio</key>
+    <true/>
 </dict>
 </plist>

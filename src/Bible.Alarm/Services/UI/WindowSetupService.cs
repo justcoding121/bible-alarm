@@ -29,9 +29,7 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
     public Window CreateWindow(IActivationState? activationState)
     {
         var navigationPage = serviceProvider.GetRequiredService<NavigationPage>();
-
         Initialize(navigationPage);
-
         var window = new Window(navigationPage);
 
 #if WINDOWS

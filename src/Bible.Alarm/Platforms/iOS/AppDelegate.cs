@@ -54,9 +54,32 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         }
     }
 
+    /// <summary>
+    /// Returns the scene configuration for connecting scene sessions.
+    /// For the main app window, delegates to MAUI's base implementation which returns
+    /// the __MAUI_DEFAULT_SCENE_CONFIGURATION__ config that MauiUISceneDelegate expects.
+    /// For CarPlay, returns a custom config pointing to CarPlaySceneDelegate.
+    /// </summary>
+    public override UISceneConfiguration GetConfiguration(UIApplication application, UISceneSession connectingSceneSession, UISceneConnectionOptions options)
+    {
+        // CarPlay scene: return a config with our CarPlaySceneDelegate
+        if (connectingSceneSession.Role.ToString().Contains("CPTemplate"))
+        {
+            logger.Information("[AppDelegate] Returning CarPlay scene configuration");
+            var carPlayConfig = new UISceneConfiguration("CarPlayConfiguration", connectingSceneSession.Role);
+            carPlayConfig.DelegateClass = new ObjCRuntime.Class(typeof(Services.CarPlay.CarPlaySceneDelegate));
+            return carPlayConfig;
+        }
+
+        // Main app window: let MAUI handle it (returns __MAUI_DEFAULT_SCENE_CONFIGURATION__)
+        return base.GetConfiguration(application, connectingSceneSession, options);
+    }
+
     public override bool FinishedLaunching(UIApplication app, NSDictionary? launchOptions)
     {
-        // Call base.FinishedLaunching FIRST - this creates the Application instance and window
+        // With UIApplicationSceneManifest in Info.plist, MAUI's base.FinishedLaunching
+        // will NOT create a window here. Window creation is handled by
+        // SceneDelegate.WillConnect (via MauiUISceneDelegate) when iOS creates the scene.
         bool result;
         try
         {
@@ -68,19 +91,15 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
             throw;
         }
 
-        // Now that the window is created, do custom initialization
         try
         {
-            // Initialize bootstrap for foreground launch (after window is created)
             MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: true);
-
             SetupBackgroundTasks();
             SetupNotifications();
         }
         catch (Exception e)
         {
             logger.Error(e, "iOS application custom initialization failed.");
-            // Don't throw - window is already created, just log the error
         }
 
         return result;
