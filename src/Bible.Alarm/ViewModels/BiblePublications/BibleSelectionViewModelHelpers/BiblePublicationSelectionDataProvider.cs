@@ -144,29 +144,49 @@ public sealed class BiblePublicationSelectionDataProvider
             // For non-English languages, publications need to be fetched, so we retry with increasing delays
             if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
             {
-                // Up to 10 retries
-                const int maxRetries = 10;
-                // Start with 1 second
-                var retryDelay = 1000;
-                // Total max wait time of 60 seconds
-                var maxWaitTime = TimeSpan.FromSeconds(60);
-                var startTime = DateTime.UtcNow;
-                var allHarvested = false;
-                var attempt = 0;
-                
-                Log.Information("PopulatePublicationsAsync: Starting fetch with retries for language={LanguageCode}, category={CategoryName}",
-                    languageCode, currentCategoryName);
-                
-                // Show progress overlay at the start of retry loop and keep it visible throughout all retries
-                progress?.SetIsVisible(true);
-                progress?.UpdateProgress(0.0);
-                
                 // Get cancellation token from progress tracker (same CTS from modal)
                 var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
+
+                // First, check if publications are already harvested (without showing progress)
+                // This prevents progress bar from flashing at 0% when data is already available
+                var initialPublications = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
                 
-                try
+                // Check if ALL publications are already harvested (not placeholders)
+                var allHarvestedInitially = initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p => 
+                    !string.IsNullOrEmpty(p.Name) && 
+                    p.Name != p.PublicationCode && 
+                    p.Id > 0);
+
+                if (allHarvestedInitially)
                 {
-                    while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
+                    // Publications are already harvested - use the initial query result, no need to show progress
+                    Log.Debug("PopulatePublicationsAsync: All publications already harvested for language={LanguageCode}, category={CategoryName}, skipping fetch",
+                        languageCode, currentCategoryName);
+                    publicationsData = initialPublications;
+                }
+                else
+                {
+                    // Publications are not fully harvested - show progress and retry fetching
+                    // Up to 10 retries
+                    const int maxRetries = 10;
+                    // Start with 1 second
+                    var retryDelay = 1000;
+                    // Total max wait time of 60 seconds
+                    var maxWaitTime = TimeSpan.FromSeconds(60);
+                    var startTime = DateTime.UtcNow;
+                    var allHarvested = false;
+                    var attempt = 0;
+                    
+                    Log.Information("PopulatePublicationsAsync: Starting fetch with retries for language={LanguageCode}, category={CategoryName}",
+                        languageCode, currentCategoryName);
+                    
+                    // Show progress overlay at the start of retry loop and keep it visible throughout all retries
+                    progress?.SetIsVisible(true);
+                    progress?.UpdateProgress(0.0);
+                    
+                    try
+                    {
+                        while (!allHarvested && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
                     {
                         // Check for cancellation before each attempt
                         cancellationToken.ThrowIfCancellationRequested();
@@ -263,30 +283,31 @@ public sealed class BiblePublicationSelectionDataProvider
                             await Task.Delay(delay, cancellationToken);
                         }
                     }
-                }
-                finally
-                {
-                    // Hide progress overlay when retry loop completes (success, timeout, or cancellation)
-                    progress?.SetIsVisible(false);
-                }
-                
-                if (!allHarvested)
-                {
-                    Log.Warning("PopulatePublicationsAsync: Timeout after {Attempts} attempts waiting for all publications to be harvested for language {LanguageCode}. Some may still be placeholders.",
-                        attempt, languageCode);
-                    
-                    // Use the last fetched data even if not all are harvested
-                    if (publicationsData == null || publicationsData.Count == 0)
+                    }
+                    finally
                     {
-                        // Final attempt to get at least some data
-                        try
+                        // Hide progress overlay when retry loop completes (success, timeout, or cancellation)
+                        progress?.SetIsVisible(false);
+                    }
+                    
+                    if (!allHarvested)
+                    {
+                        Log.Warning("PopulatePublicationsAsync: Timeout after {Attempts} attempts waiting for all publications to be harvested for language {LanguageCode}. Some may still be placeholders.",
+                            attempt, languageCode);
+                        
+                        // Use the last fetched data even if not all are harvested
+                        if (publicationsData == null || publicationsData.Count == 0)
                         {
-                            publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, progress);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex, "PopulatePublicationsAsync: Final fetch attempt failed for language={LanguageCode}",
-                                languageCode);
+                            // Final attempt to get at least some data
+                            try
+                            {
+                                publicationsData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, progress);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(ex, "PopulatePublicationsAsync: Final fetch attempt failed for language={LanguageCode}",
+                                    languageCode);
+                            }
                         }
                     }
                 }

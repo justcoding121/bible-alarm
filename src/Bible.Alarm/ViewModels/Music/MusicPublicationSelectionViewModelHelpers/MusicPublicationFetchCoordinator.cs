@@ -73,6 +73,25 @@ internal sealed class MusicPublicationFetchCoordinator
         IFetchProgress? progress,
         CancellationToken cancellationToken)
     {
+        // First, check if publications are already harvested (without showing progress)
+        // This prevents progress bar from flashing at 0% when data is already available
+        var initialPublications = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, null);
+        
+        // Check if ALL publications are already harvested (not placeholders)
+        var allHarvestedInitially = initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p => 
+            !string.IsNullOrEmpty(p.Name) && 
+            p.Name != p.PublicationCode && 
+            p.Id > 0);
+
+        if (allHarvestedInitially)
+        {
+            // Publications are already harvested - use the initial query result, no need to show progress
+            Serilog.Log.Debug("PopulateSongPublications: All publications already harvested for language={LanguageCode}, category=Music, skipping fetch",
+                languageCode);
+            return initialPublications;
+        }
+
+        // Publications are not fully harvested - show progress and retry fetching
         // Up to 10 retries
         const int maxRetries = 10;
         // Start with 1 second

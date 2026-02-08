@@ -26,10 +26,6 @@ internal sealed class SectionListLoader
         string? selectedSectionCode,
         IFetchProgress? progress = null)
     {
-        // Show progress while fetching
-        progress?.SetIsVisible(true);
-        progress?.UpdateProgress(0.1);
-        
         // Get cancellation token from progress tracker (same CTS from modal)
         var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;
         
@@ -39,7 +35,28 @@ internal sealed class SectionListLoader
         // For non-English languages, sections need to be fetched, so we retry with increasing delays
         if (!string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
         {
-            sectionsFromDb = await RetryFetchUntilHarvestedAsync(languageCode, publicationCode, progress, cancellationToken);
+            // First, check if sections are already harvested (without showing progress)
+            // This prevents progress bar from flashing at 0% when data is already available
+            var initialSections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
+            
+            // Check if ALL sections are already harvested (not placeholders)
+            var allHarvestedInitially = initialSections != null && initialSections.Values.Count > 0 && initialSections.Values.All(s =>
+                !string.IsNullOrEmpty(s.Name) &&
+                s.Name != s.SectionCode &&
+                s.Id > 0);
+
+            if (allHarvestedInitially)
+            {
+                // Sections are already harvested - use the initial query result, no need to show progress
+                logger.Debug("SectionListLoader: All sections already harvested for publication={PublicationCode}, language={LanguageCode}, skipping fetch",
+                    publicationCode, languageCode);
+                sectionsFromDb = initialSections;
+            }
+            else
+            {
+                // Sections are not fully harvested - show progress and retry fetching
+                sectionsFromDb = await RetryFetchUntilHarvestedAsync(languageCode, publicationCode, progress, cancellationToken);
+            }
         }
         else
         {
