@@ -1,7 +1,10 @@
 #nullable enable
+
+using System;
 using System.ComponentModel;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.Views.Schedule.MusicSelectionContainerHelpers;
+using Syncfusion.Maui.Core;
 using Serilog;
 
 namespace Bible.Alarm.Views.Schedule;
@@ -15,11 +18,7 @@ public partial class BibleSelectionContainer : ContentView
     public BibleSelectionContainer()
     {
         InitializeComponent();
-    }
-
-    public BibleSelectionContainer(BiblePublicationSelectionContainerViewModel viewModel) : this()
-    {
-        BindingContext = viewModel;
+        WireUpTapGestureHandlers();
     }
 
     protected override void OnHandlerChanged()
@@ -30,6 +29,100 @@ public partial class BibleSelectionContainer : ContentView
         {
             scrollManager = new ScrollManager(this);
         }
+
+        // Wire up handlers after visual tree is ready
+        if (Handler != null)
+        {
+            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), () =>
+            {
+                WireUpTapGestureHandlers();
+            });
+        }
+    }
+
+    private void WireUpTapGestureHandlers()
+    {
+        // Start traversal from Content property, not the ContentView itself
+        if (Content is View content)
+        {
+            FindAndWireTapGestures(content);
+        }
+    }
+
+    private void FindAndWireTapGestures(View view)
+    {
+        if (view == null)
+        {
+            return;
+        }
+
+        // Check gesture recognizers on this view
+        foreach (var gesture in view.GestureRecognizers)
+        {
+            if (gesture is TapGestureRecognizer tapGesture)
+            {
+                tapGesture.Tapped -= OnTapGestureTapped; // Remove first to avoid duplicates
+                tapGesture.Tapped += OnTapGestureTapped;
+            }
+        }
+        
+        // Handle SfEffectsView which also has GestureRecognizers
+        if (view is SfEffectsView sfEffectsView)
+        {
+            foreach (var gesture in sfEffectsView.GestureRecognizers)
+            {
+                if (gesture is TapGestureRecognizer tapGesture)
+                {
+                    tapGesture.Tapped -= OnTapGestureTapped; // Remove first to avoid duplicates
+                    tapGesture.Tapped += OnTapGestureTapped;
+                }
+            }
+        }
+        
+        // Recursively check children
+        if (view is Layout layout)
+        {
+            foreach (var child in layout.Children)
+            {
+                if (child is View childView)
+                {
+                    FindAndWireTapGestures(childView);
+                }
+            }
+        }
+        else if (view is ContentView contentView && contentView.Content is View content)
+        {
+            FindAndWireTapGestures(content);
+        }
+        else if (view is SfEffectsView sfView && sfView.Content is View sfContent)
+        {
+            FindAndWireTapGestures(sfContent);
+        }
+    }
+
+    private void OnTapGestureTapped(object? sender, TappedEventArgs e)
+    {
+        UnfocusScheduleNameEntry();
+    }
+
+    private void UnfocusScheduleNameEntry()
+    {
+        // Find parent ScheduleContent and call its unfocus method
+        var parent = Parent;
+        while (parent != null)
+        {
+            if (parent is ScheduleContent scheduleContent)
+            {
+                scheduleContent.UnfocusScheduleNameEntry();
+                break;
+            }
+            parent = parent.Parent;
+        }
+    }
+
+    public BibleSelectionContainer(BiblePublicationSelectionContainerViewModel viewModel) : this()
+    {
+        BindingContext = viewModel;
     }
 
     protected override void OnBindingContextChanged()

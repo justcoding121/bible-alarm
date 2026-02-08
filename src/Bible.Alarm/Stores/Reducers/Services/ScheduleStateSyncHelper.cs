@@ -34,7 +34,12 @@ public static class ScheduleStateSyncHelper
             // Category can only be changed via CategorySelectionAction
             DisplayNamePreservationHelper.PreserveDisplayNamesFromExisting(actionSchedule, state.CurrentSchedule);
             
-            return actionSchedule.DeepClone();
+            // Preserve basic schedule properties if action has invalid values but existing has valid values
+            // This prevents cascade handlers or other updates from clearing DaysOfWeek, time, etc.
+            var clonedSchedule = actionSchedule.DeepClone();
+            PreserveBasicScheduleProperties(clonedSchedule, state.CurrentSchedule);
+            
+            return clonedSchedule;
         }
 
         Log.Debug("ApplicationReducer: OnUpdateScheduleFromViewModel - CurrentSchedule ID ({CurrentScheduleId}) doesn't match action Schedule ID ({ActionScheduleId}), not updating CurrentSchedule",
@@ -205,6 +210,38 @@ public static class ScheduleStateSyncHelper
             PublicationName = updatedCurrentSchedule.MusicPublicationName,
             TrackName = updatedCurrentSchedule.MusicTrackName
         };
+    }
+
+    /// <summary>
+    /// Preserves basic schedule properties (DaysOfWeek, time, etc.) if action has invalid values but existing has valid values.
+    /// This prevents cascade handlers or other updates from clearing essential schedule properties.
+    /// </summary>
+    private static void PreserveBasicScheduleProperties(ScheduleStateItem actionSchedule, ScheduleStateItem existingSchedule)
+    {
+        // Preserve DaysOfWeek if action has it as 0 but existing has a valid value
+        if (actionSchedule.DaysOfWeek == 0 && existingSchedule.DaysOfWeek != 0)
+        {
+            Log.Warning("ScheduleStateSyncHelper: Preserving DaysOfWeek from existing schedule. Action had DaysOfWeek=0, existing has {ExistingDaysOfWeek}",
+                existingSchedule.DaysOfWeek);
+            actionSchedule.DaysOfWeek = existingSchedule.DaysOfWeek;
+        }
+
+        // Preserve time if action has invalid values but existing has valid values
+        if (actionSchedule.Hour == 0 && actionSchedule.Minute == 0 && 
+            (existingSchedule.Hour != 0 || existingSchedule.Minute != 0))
+        {
+            // Only preserve if action time is truly invalid (midnight) and existing is not
+            // But be careful - midnight (0:00) is a valid time, so only preserve if both hour and minute are 0
+            // and existing has a different time
+            if (existingSchedule.Hour != 0 || existingSchedule.Minute != 0)
+            {
+                Log.Debug("ScheduleStateSyncHelper: Preserving time from existing schedule. Action had Hour={ActionHour}, Minute={ActionMinute}, existing has Hour={ExistingHour}, Minute={ExistingMinute}",
+                    actionSchedule.Hour, actionSchedule.Minute, existingSchedule.Hour, existingSchedule.Minute);
+                actionSchedule.Hour = existingSchedule.Hour;
+                actionSchedule.Minute = existingSchedule.Minute;
+                actionSchedule.Second = existingSchedule.Second;
+            }
+        }
     }
 }
 

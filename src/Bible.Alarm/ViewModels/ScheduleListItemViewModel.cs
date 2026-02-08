@@ -182,7 +182,17 @@ public sealed class ScheduleListItemViewModel(
         {
             if (Schedule != null)
             {
-                IsEnabled = !IsEnabled;
+                // Validate DaysOfWeek before toggling - if empty, cannot enable
+                if (Schedule.DaysOfWeek == 0)
+                {
+                    // Show error message to user
+                    WeakReferenceMessenger.Default.Send(new ShowToastMessage("Select at least one day"));
+                    return;
+                }
+
+                // Read current value from Schedule to ensure we're toggling the actual state
+                var currentValue = Schedule.IsEnabled;
+                IsEnabled = !currentValue;
             }
         });
 

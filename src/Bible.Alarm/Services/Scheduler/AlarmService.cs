@@ -19,8 +19,8 @@ public sealed class AlarmService(
     /// </summary>
     public async Task Create(AlarmSchedule schedule)
     {
-        // Only schedule OS notification if alarm is enabled and notifications are available
-        if (schedule.IsEnabled && await notificationService.CanScheduleAsync())
+        // Only schedule OS notification if alarm is enabled, has at least one day selected, and notifications are available
+        if (schedule.IsEnabled && schedule.DaysOfWeek != 0 && await notificationService.CanScheduleAsync())
         {
             await ScheduleNotification(schedule);
         }
@@ -38,8 +38,8 @@ public sealed class AlarmService(
             await RemoveNotification(schedule.Id);
         }
 
-        // Schedule new notification only if alarm is enabled
-        if (schedule.IsEnabled && await notificationService.CanScheduleAsync())
+        // Schedule new notification only if alarm is enabled and has at least one day selected
+        if (schedule.IsEnabled && schedule.DaysOfWeek != 0 && await notificationService.CanScheduleAsync())
         {
             await ScheduleNotification(schedule);
         }

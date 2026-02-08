@@ -1,5 +1,7 @@
 #nullable enable
+
 using System.Linq;
+using Bible.Alarm.Common.Helpers;
 
 namespace Bible.Alarm.Views.Schedule;
 
@@ -13,6 +15,77 @@ public partial class ScheduleContent : ContentView
         // Apply platform-specific styling in code-behind for better performance
         // This avoids expensive OnPlatform markup extension evaluation at runtime
         ApplyPlatformSpecificStyling();
+        
+        // Wire up button handlers to unfocus entry
+        WireUpButtonHandlers();
+        
+        // Wire up scroll handler to dismiss keyboard when scrolling
+        if (ScheduleScrollView != null)
+        {
+            ScheduleScrollView.Scrolled += OnScrollViewScrolled;
+        }
+    }
+
+    private void WireUpButtonHandlers()
+    {
+        // Wire up handlers after content is loaded
+        Loaded += (s, e) =>
+        {
+            WireUpButtons();
+        };
+        
+        // Also try immediately in case Loaded already fired
+        Dispatcher.Dispatch(() =>
+        {
+            WireUpButtons();
+        });
+    }
+
+    private void WireUpButtons()
+    {
+        // Wire up Cancel button handlers
+        if (CancelButtonNoEffects != null)
+        {
+            foreach (var gesture in CancelButtonNoEffects.GestureRecognizers)
+            {
+                if (gesture is TapGestureRecognizer tapGesture)
+                {
+                    tapGesture.Tapped -= OnButtonTapped;
+                    tapGesture.Tapped += OnButtonTapped;
+                }
+            }
+        }
+
+        // Wire up Save button handlers
+        if (SaveButtonNoEffects != null)
+        {
+            foreach (var gesture in SaveButtonNoEffects.GestureRecognizers)
+            {
+                if (gesture is TapGestureRecognizer tapGesture)
+                {
+                    tapGesture.Tapped -= OnButtonTapped;
+                    tapGesture.Tapped += OnButtonTapped;
+                }
+            }
+        }
+
+        // Wire up Delete button handlers
+        if (DeleteButtonNoEffectsBorder != null)
+        {
+            foreach (var gesture in DeleteButtonNoEffectsBorder.GestureRecognizers)
+            {
+                if (gesture is TapGestureRecognizer tapGesture)
+                {
+                    tapGesture.Tapped -= OnButtonTapped;
+                    tapGesture.Tapped += OnButtonTapped;
+                }
+            }
+        }
+    }
+
+    private void OnButtonTapped(object? sender, TappedEventArgs e)
+    {
+        UnfocusAnyFocusedEntry();
     }
 
     private void ApplyPlatformSpecificStyling()
@@ -160,6 +233,16 @@ public partial class ScheduleContent : ContentView
         UnfocusAnyFocusedEntry();
     }
 
+    private void OnScrollContentTapped(object? sender, TappedEventArgs e)
+    {
+        UnfocusAnyFocusedEntry();
+    }
+
+    private void OnScrollViewScrolled(object? sender, ScrolledEventArgs e)
+    {
+        UnfocusAnyFocusedEntry();
+    }
+
     private void UnfocusAnyFocusedEntry()
     {
         if (ScrollContentGrid == null)
@@ -174,8 +257,16 @@ public partial class ScheduleContent : ContentView
         var entry = scheduleDetailsContainer?.GetScheduleNameEntry();
         if (entry?.IsFocused == true)
         {
-            entry.Unfocus();
+            KeyboardHelper.HideKeyboard(entry);
         }
+    }
+
+    /// <summary>
+    /// Public method to unfocus the schedule name entry. Called by child containers when buttons/switches are interacted with.
+    /// </summary>
+    public void UnfocusScheduleNameEntry()
+    {
+        UnfocusAnyFocusedEntry();
     }
 }
 

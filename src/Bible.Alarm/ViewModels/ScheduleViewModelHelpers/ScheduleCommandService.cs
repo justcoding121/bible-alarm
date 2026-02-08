@@ -147,6 +147,14 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             return false;
         }
 
+        // Validate DaysOfWeek before saving
+        if (currentSchedule.DaysOfWeek == 0)
+        {
+            logger.Warning("SaveCommand: Cannot save schedule - DaysOfWeek is empty (0)");
+            await toastService.ShowMessage("Select at least one day", 5);
+            return false;
+        }
+
         // Check notification permission if NotificationEnabled is true (Android 13+)
         if (currentSchedule.NotificationEnabled)
         {

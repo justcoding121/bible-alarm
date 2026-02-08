@@ -52,10 +52,19 @@ public static class ScheduleEntityUpdater
     /// </summary>
     public static void UpdateBasicScheduleProperties(AlarmSchedule existing, AlarmSchedule dbSchedule)
     {
+        // Preserve DaysOfWeek if dbSchedule has it as 0 (shouldn't happen, but protect against data loss)
+        if (dbSchedule.DaysOfWeek == 0 && existing.DaysOfWeek != 0)
+        {
+            // Don't update DaysOfWeek - keep the existing value
+        }
+        else
+        {
+            existing.DaysOfWeek = dbSchedule.DaysOfWeek;
+        }
+
         existing.Hour = dbSchedule.Hour;
         existing.Minute = dbSchedule.Minute;
         existing.Second = dbSchedule.Second;
-        existing.DaysOfWeek = dbSchedule.DaysOfWeek;
         existing.IsEnabled = dbSchedule.IsEnabled;
         existing.MusicEnabled = dbSchedule.MusicEnabled;
         existing.NotificationEnabled = dbSchedule.NotificationEnabled;

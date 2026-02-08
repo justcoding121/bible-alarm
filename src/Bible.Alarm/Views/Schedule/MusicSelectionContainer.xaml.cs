@@ -22,6 +22,90 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
     public MusicSelectionContainer()
     {
         InitializeComponent();
+        WireUpSwitchAndButtonHandlers();
+    }
+
+    private void WireUpSwitchAndButtonHandlers()
+    {
+        // Start traversal from Content property, not the ContentView itself
+        if (Content is View content)
+        {
+            FindAndWireSwitchesAndButtons(content);
+        }
+    }
+
+    private void FindAndWireSwitchesAndButtons(View view)
+    {
+        if (view == null)
+        {
+            return;
+        }
+
+        if (view is Shared.PlatformSwitch platformSwitch)
+        {
+            platformSwitch.PropertyChanged -= OnSwitchPropertyChanged; // Remove first to avoid duplicates
+            platformSwitch.PropertyChanged += OnSwitchPropertyChanged;
+            return;
+        }
+
+        if (view is Button button)
+        {
+            button.Clicked -= OnButtonClicked; // Remove first to avoid duplicates
+            button.Clicked += OnButtonClicked;
+            return;
+        }
+
+        // Handle different container types
+        if (view is Layout layout)
+        {
+            foreach (var child in layout.Children)
+            {
+                if (child is View childView)
+                {
+                    FindAndWireSwitchesAndButtons(childView);
+                }
+            }
+        }
+        else if (view is ContentView contentView && contentView.Content is View content)
+        {
+            FindAndWireSwitchesAndButtons(content);
+        }
+        else if (view is Border border && border.Content is View borderContent)
+        {
+            FindAndWireSwitchesAndButtons(borderContent);
+        }
+        else if (view is Syncfusion.Maui.Core.SfEffectsView sfEffectsView && sfEffectsView.Content is View sfContent)
+        {
+            FindAndWireSwitchesAndButtons(sfContent);
+        }
+    }
+
+    private void OnSwitchPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(Shared.PlatformSwitch.IsToggled))
+        {
+            UnfocusScheduleNameEntry();
+        }
+    }
+
+    private void OnButtonClicked(object? sender, EventArgs e)
+    {
+        UnfocusScheduleNameEntry();
+    }
+
+    private void UnfocusScheduleNameEntry()
+    {
+        // Find parent ScheduleContent and call its unfocus method
+        var parent = Parent;
+        while (parent != null)
+        {
+            if (parent is ScheduleContent scheduleContent)
+            {
+                scheduleContent.UnfocusScheduleNameEntry();
+                break;
+            }
+            parent = parent.Parent;
+        }
     }
 
     public MusicSelectionContainer(MusicSelectionContainerViewModel viewModel) : this()
@@ -256,6 +340,12 @@ public partial class MusicSelectionContainer : ContentView, IDisposable
         {
             return;
         }
+
+        // Wire up handlers after visual tree is ready
+        Dispatcher.Dispatch(() =>
+        {
+            WireUpSwitchAndButtonHandlers();
+        });
 
         // Initialize helpers if not already initialized
         if (animationManager == null)

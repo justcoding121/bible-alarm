@@ -347,6 +347,9 @@
                                                   JustifyContent="Start"
                                                   AlignItems="Center"
                                                   Margin="{DynamicResource MarginThickness0}">
+                                                <FlexLayout.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding ToggleEnabledCommand}" />
+                                                </FlexLayout.GestureRecognizers>
                                                 <Border Margin="{DynamicResource MarginThickness0_5}"
                                                         Padding="{DynamicResource PaddingThickness4_2}"
                                                         BackgroundColor="{Binding This, Converter={StaticResource dayBackgroundColorConverter}, ConverterParameter='Sunday'}"

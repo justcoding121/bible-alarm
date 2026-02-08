@@ -183,7 +183,17 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
                     time = new TimeSpan(currentSchedule.Hour, currentSchedule.Minute, currentSchedule.Second);
                     OnPropertyChanged(nameof(Time));
                 }
-                if (daysOfWeek != currentSchedule.DaysOfWeek)
+                // Preserve DaysOfWeek if state has it as 0 but local has a valid value
+                // This prevents state updates from clearing DaysOfWeek after page load
+                if (currentSchedule.DaysOfWeek == 0 && daysOfWeek != 0)
+                {
+                    // State has invalid DaysOfWeek, preserve local value
+                    // Dispatch update to fix state (but don't save)
+                    logger.Warning("ScheduleDetailsContainerViewModel: State has DaysOfWeek=0 but local has {LocalDaysOfWeek}. Preserving local value and fixing state.",
+                        daysOfWeek);
+                    DispatchScheduleUpdate(s => s.DaysOfWeek = daysOfWeek);
+                }
+                else if (daysOfWeek != currentSchedule.DaysOfWeek)
                 {
                     daysOfWeek = currentSchedule.DaysOfWeek;
                     OnPropertyChanged(nameof(DaysOfWeek));

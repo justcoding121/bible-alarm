@@ -1,5 +1,7 @@
 #nullable enable
+using System;
 using System.Linq;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.ViewModels.Interfaces;
@@ -30,6 +32,44 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
         navigationService = services.GetRequiredService<INavigationService>();
         toastService = services.GetRequiredService<IToastService>();
         Appearing += OnAppearing;
+        WireUpSearchBarHandlers();
+    }
+
+    protected override void OnHandlerChanged()
+    {
+        base.OnHandlerChanged();
+        
+        // Wire up handlers after visual tree is ready
+        if (Handler != null)
+        {
+            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), () =>
+            {
+                WireUpSearchBarHandlers();
+            });
+        }
+    }
+
+    private void WireUpSearchBarHandlers()
+    {
+        if (LanguageSearchBarIOS != null)
+        {
+            LanguageSearchBarIOS.Unfocused -= OnSearchBarUnfocused;
+            LanguageSearchBarIOS.Unfocused += OnSearchBarUnfocused;
+        }
+        
+        if (LanguageSearchBarNonIOS != null)
+        {
+            LanguageSearchBarNonIOS.Unfocused -= OnSearchBarUnfocused;
+            LanguageSearchBarNonIOS.Unfocused += OnSearchBarUnfocused;
+        }
+    }
+
+    private void OnSearchBarUnfocused(object? sender, FocusEventArgs e)
+    {
+        if (sender is SearchBar searchBar && !searchBar.IsFocused)
+        {
+            KeyboardHelper.HideKeyboard(searchBar);
+        }
     }
 
     private void OnGridTapped(object? sender, TappedEventArgs e)
@@ -41,16 +81,19 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
     {
         if (LanguageSearchBarIOS?.IsFocused == true)
         {
-            LanguageSearchBarIOS.Unfocus();
+            KeyboardHelper.HideKeyboard(LanguageSearchBarIOS);
         }
         else if (LanguageSearchBarNonIOS?.IsFocused == true)
         {
-            LanguageSearchBarNonIOS.Unfocus();
+            KeyboardHelper.HideKeyboard(LanguageSearchBarNonIOS);
         }
     }
 
     private async void OnLanguageItemTapped(object? sender, TappedEventArgs e)
     {
+        // Hide keyboard when list item is tapped
+        UnfocusAnyFocusedSearchBar();
+
         try { cancellationTokenSource.Cancel(); } catch { }
 
         if (isSelectingLanguage)

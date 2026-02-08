@@ -239,12 +239,12 @@
         <ScrollView x:Name="ScheduleScrollView"
                     Grid.Row="1"
                     Margin="0,0,0,0">
-            <ScrollView.GestureRecognizers>
-                <TapGestureRecognizer Tapped="OnScrollViewTapped" />
-            </ScrollView.GestureRecognizers>
             <Grid x:Name="ScrollContentGrid"
                   HorizontalOptions="Fill"
                   RowSpacing="{DynamicResource SpacingStandard}">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnScrollContentTapped" />
+                </Grid.GestureRecognizers>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
