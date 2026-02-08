@@ -318,8 +318,9 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     }
 
     /// <summary>
-    /// Checks if the alarm settings modal should be shown on first app launch.
+    /// Checks alarm settings permissions and updates UI visibility on first app launch.
     /// This is called once when the home page loads for the first time.
+    /// The modal is no longer shown automatically - users must tap the warning icon button to open it.
     /// </summary>
     public async Task CheckAndShowAlarmSettingsOnFirstLaunchAsync()
     {
@@ -330,38 +331,13 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
 
         try
         {
-            var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
-            if (batteryService == null)
-            {
-                return;
-            }
-
-            // Check if this is the first launch and modal hasn't been shown yet
-            // Uses the same database check as ShouldShowModalAsync (saved to GeneralSettings table)
-            if (await batteryService.ShouldShowModalAsync())
-            {
-                // Create a view model for the battery optimization modal
-                var batteryViewModel = new BatteryOptimizationViewModel(
-                    logger,
-                    navigationService,
-                    serviceProvider);
-
-                if (batteryService.CanShowOptimizeActivity())
-                {
-                    batteryViewModel.CanOptimizeBattery = true;
-                }
-
-                // Start permission check timer when opening battery optimization modal
-                batteryViewModel.StartPermissionCheckTimer();
-                await navigationService.OpenBatteryOptimizationModalAsync(batteryViewModel);
-            }
-
-            // Update floating button visibility after checking permissions
+            // Update floating button visibility based on current permission status
+            // The modal will only be shown when user taps the warning icon button
             UpdateFloatingButtonVisibility();
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error checking and showing alarm settings on first launch");
+            logger.Error(ex, "Error checking alarm settings on first launch");
         }
     }
 
