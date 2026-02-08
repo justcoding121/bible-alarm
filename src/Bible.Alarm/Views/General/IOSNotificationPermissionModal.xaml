@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<views:BaseContentPage
+    x:Class="Bible.Alarm.Views.General.IOSNotificationPermissionModal"
+    xmlns:views="clr-namespace:Bible.Alarm.Views;assembly=Bible.Alarm"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:d="http://schemas.microsoft.com/dotnet/2021/maui/design"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Bible.Alarm.ViewModels.General;assembly=Bible.Alarm"
+    xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
+    xmlns:fn="clr-namespace:Bible.Alarm.Views"
+    xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
+    x:DataType="vm:IOSNotificationPermissionViewModel"
+    mc:Ignorable="d">
+    <ContentPage.Resources>
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
+        <!-- Theme-aware colors are inherited from BaseContentPage -->
+    </ContentPage.Resources>
+    <ContentPage.Content>
+        <ScrollView HorizontalOptions="Fill" VerticalOptions="Fill">
+            <Grid BackgroundColor="{DynamicResource BackgroundColor}" Padding="20,20,20,20" HorizontalOptions="Fill" VerticalOptions="Fill">
+                <Border
+                    BackgroundColor="{DynamicResource CardBackgroundColor}"
+                    StrokeThickness="0"
+                    Padding="24">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                Offset="0,8"
+                                Opacity="0.15"
+                                Radius="16" />
+                    </Border.Shadow>
+                    <Grid
+                        AutomationId="IOSNotificationPermissionModal"
+                        HorizontalOptions="Fill"
+                        RowSpacing="20"
+                        VerticalOptions="Start">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Warning Icon -->
+                    <Label Grid.Row="0"
+                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                        FontSize="{DynamicResource IconLargeFontSize}"
+                        HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"
+                        Margin="0,0,0,0"
+                        Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
+                        TextColor="{DynamicResource PrimaryTextColor}"
+                        VerticalOptions="Start" />
+                    
+                    <!-- Main Message -->
+                    <Label Grid.Row="1"
+                        FontSize="{DynamicResource LargeFontSize}"
+                        HorizontalOptions="Fill"
+                        HorizontalTextAlignment="Center"
+                        LineBreakMode="WordWrap"
+                        Text="Notification permission is required for alarms to work on iOS. Please enable notifications to allow the app to play alarms at scheduled times."
+                        TextColor="{DynamicResource TextPrimaryColor}"
+                        VerticalOptions="Start"
+                        VerticalTextAlignment="Start" />
+                    
+                    <!-- Instructions -->
+                    <Label Grid.Row="2"
+                        IsVisible="{Binding IsInstructionsVisible}"
+                        FontSize="{DynamicResource MediumFontSize}"
+                        HorizontalOptions="Fill"
+                        HorizontalTextAlignment="Center"
+                        LineBreakMode="WordWrap"
+                        Text="After clicking the button below, tap 'Allow' in the system permission dialog to enable notifications."
+                        TextColor="{DynamicResource TextSecondaryColor}"
+                        VerticalOptions="Start"
+                        VerticalTextAlignment="Start" />
+                    
+                    <!-- Action Buttons -->
+                    <Grid Grid.Row="3"
+                          RowSpacing="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Button Grid.Row="0"
+                            IsVisible="{Binding IsRequestButtonVisible}"
+                            BackgroundColor="{StaticResource PrimaryColor}"
+                            BorderWidth="0"
+                            BorderColor="Transparent"
+                            Command="{Binding RequestNotificationPermissionCommand}"
+                            CornerRadius="12"
+                            FontSize="{DynamicResource LargeFontSize}"
+                            FontAttributes="Bold"
+                            HorizontalOptions="Fill"
+                            Padding="20,12"
+                            Text="{Binding RequestButtonText}"
+                            TextColor="White"
+                            VerticalOptions="Fill">
+                            <Button.Shadow>
+                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                        Offset="0,4"
+                                        Opacity="0.2"
+                                        Radius="8" />
+                            </Button.Shadow>
+                        </Button>
+                        
+                        <Border Grid.Row="1"
+                            AutomationId="IOSNotificationPermissionDismissButton"
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                            HorizontalOptions="Fill"
+                            Padding="20,12"
+                            VerticalOptions="Fill">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding DismissCommand}" />
+                            </Border.GestureRecognizers>
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                                        Offset="0,2"
+                                        Opacity="0.1"
+                                        Radius="4" />
+                            </Border.Shadow>
+                            <HorizontalStackLayout Spacing="4" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Label Text="{x:Static fn:GlyphNames.Xmark}" 
+                                       FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
+                                       FontSize="{DynamicResource ButtonFontSize}"
+                                       TextColor="{DynamicResource PrimaryTextColor}"
+                                       VerticalOptions="Center" />
+                                <Label Text="CLOSE"
+                                       FontSize="{DynamicResource ButtonFontSize}"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource PrimaryTextColor}"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+        </ScrollView>
+    </ContentPage.Content>
+</views:BaseContentPage>

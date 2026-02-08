@@ -1,0 +1,172 @@
+# iOS Deployment to Connected Device
+
+## Prerequisites
+
+- iPhone/iPad connected via USB
+- Device unlocked
+- Device trusted (may prompt "Trust This Computer" on first connection)
+- Development provisioning profile installed (for Debug builds)
+- Xcode command-line tools installed (`xcode-select --install`)
+
+## Deploy to Connected USB iPhone
+
+### Step 1: List the connected device
+
+From the repo root:
+
+```bash
+xcrun devicectl list devices
+```
+
+Use the **Name** column (e.g. `iPhone 13 Pro`) for the deploy and log-copy commands below. Device must be **connected** and **unlocked**.
+
+### Step 2: Build and run on the device
+
+```bash
+# From repo root: build and deploy to the connected iPhone
+~/.dotnet/dotnet msbuild src/Bible.Alarm/Bible.Alarm.csproj \
+  -t:Run \
+  -p:TargetFramework=net10.0-ios \
+  -p:RuntimeIdentifier=ios-arm64 \
+  -p:Configuration=Debug \
+  -p:_DeviceName="iPhone 13 Pro"
+```
+
+Replace `"iPhone 13 Pro"` with the exact device name from Step 1. The app will build, install, and launch on the device.
+
+**Alternative**: You can also build and run from the IDE (e.g. Run to iPhone) if RID-specific restore or build fails from the command line.
+
+### Build Only (No Deploy)
+
+```bash
+~/.dotnet/dotnet msbuild src/Bible.Alarm/Bible.Alarm.csproj \
+  -t:Build \
+  -p:TargetFramework=net10.0-ios \
+  -p:RuntimeIdentifier=ios-arm64 \
+  -p:Configuration=Debug \
+  -p:BuildIpa=false \
+  -p:_IsSimulatorBuild=false
+```
+
+## Common Issues and Solutions
+
+### Device Not Found
+
+**Error**: `A device must be specified using --devname`
+
+**Solution**: 
+1. List devices: `xcrun devicectl list devices`
+2. Use exact device name (including spaces/capitalization) in `-p:_DeviceName="..."`
+
+### Device Locked
+
+**Error**: `The device was not, or could not be, unlocked`
+
+**Solution**: Unlock the iPhone/iPad and try again
+
+### Scene Configuration Not Working (Blank Screen)
+
+**Symptom**: App launches but shows blank screen after splash
+
+**Cause**: iOS caches scene configuration from previous installations
+
+**Solution**: 
+1. **Uninstall the app** from the device (long press icon → Remove App → Delete App)
+2. Clean build output: `rm -rf src/Bible.Alarm/bin/Debug/net10.0-ios src/Bible.Alarm/obj/Debug/net10.0-ios`
+3. Rebuild and redeploy
+
+**Why**: When `UIApplicationSceneManifest` is added/modified in `Info.plist`, iOS must see it on a fresh install. Cached scene configurations from previous installs prevent the new scene delegate from being called.
+
+### Build Cache Issues
+
+If Info.plist changes aren't reflected in the built app:
+
+1. Clean build output:
+   ```bash
+   rm -rf src/Bible.Alarm/bin/Debug/net10.0-ios src/Bible.Alarm/obj/Debug/net10.0-ios
+   ```
+
+2. Rebuild from scratch
+
+3. Verify built Info.plist:
+   ```bash
+   plutil -convert xml1 -o - src/Bible.Alarm/bin/Debug/net10.0-ios/ios-arm64/Bible.Alarm.app/Info.plist | grep -A 30 "UIApplicationSceneManifest"
+   ```
+
+## Scene-Based Lifecycle (CarPlay Support)
+
+When `UIApplicationSceneManifest` is present in `Info.plist`:
+
+- **MAUI's `FinishedLaunching`** skips window creation (deferred to scene delegate)
+- **SceneDelegate.WillConnect** creates the window when iOS creates the scene
+- **AppDelegate.GetConfiguration** must return the correct scene configuration:
+  - Main window: Call `base.GetConfiguration()` (returns `__MAUI_DEFAULT_SCENE_CONFIGURATION__`)
+  - CarPlay: Return custom config with `CarPlaySceneDelegate`
+
+**Critical**: Info.plist must use:
+- Config name: `__MAUI_DEFAULT_SCENE_CONFIGURATION__` (not `Default Configuration`)
+- Delegate class: `SceneDelegate` (Obj-C registered name, not C# namespace)
+
+## Viewing Logs (Debugging)
+
+The **only** supported method to access the app’s Serilog logs from a connected iPhone/iPad is to **copy the log file from the device to the Mac** with `devicectl`, then read or filter it locally. Debug and Release both use an async file sink, so a log file is written as soon as the app runs.
+
+### Prerequisites
+
+- Device connected via USB and trusted (same as deploy)
+- App has been run at least once so the log file exists
+- App bundle identifier: `com.jthomas.info.Bible.Alarm`
+
+### Step 1: List the device name
+
+```bash
+xcrun devicectl list devices
+```
+
+Use the **Name** column (e.g. `iPhone 13 Pro`) in the copy command. Use the same name as for deployment.
+
+### Step 2: Copy the app’s log file to the Mac
+
+On device, the log file lives under the app container. Use **today’s date** in the filename: `bible-alarm-YYYYMMDD.txt` (e.g. `20260208` for 2026-02-08).
+
+**Try this path first** (typical on device):
+
+```bash
+# Replace "iPhone 13 Pro" with your device name from Step 1.
+# Replace YYYYMMDD with today's date (e.g. date +%Y%m%d).
+xcrun devicectl device copy from \
+  --device "iPhone 13 Pro" \
+  --domain-type appDataContainer \
+  --domain-identifier com.jthomas.info.Bible.Alarm \
+  --source "Library/Caches/logs/bible-alarm-YYYYMMDD.txt" \
+  --destination /tmp/bible-alarm-log.txt
+```
+
+If that fails with a “file node” error, try the alternate path:
+
+```bash
+# Fallback: some setups use Documents/logs
+--source "Documents/logs/bible-alarm-YYYYMMDD.txt"
+```
+
+### Step 3: View or filter the log on the Mac
+
+```bash
+# Line count and last 150 lines
+wc -l /tmp/bible-alarm-log.txt && tail -150 /tmp/bible-alarm-log.txt
+
+# Last 200 or 300 lines
+tail -200 /tmp/bible-alarm-log.txt
+tail -300 /tmp/bible-alarm-log.txt
+
+# Full file
+cat /tmp/bible-alarm-log.txt
+
+# Filter for bootstrap, navigation, errors
+grep -E "BOOTSTRAP|NavigateTo|Error|Exception" /tmp/bible-alarm-log.txt
+```
+
+### Notes
+
+- Use this copy-from-device flow for reproducible log inspection. Do **not** rely on deployment-time console streaming or other channels as the canonical way to access logs.
+- Log file path on device: **Library/Caches/logs/** (primary) or **Documents/logs/** (fallback), with rolling daily files and 7-day retention.

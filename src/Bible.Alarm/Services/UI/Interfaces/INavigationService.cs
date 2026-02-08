@@ -28,6 +28,7 @@ public interface INavigationService : IDisposable
     /// </summary>
     Task OpenPlaybackModalAsync(bool revealHomeBehindModalOnLoad);
     Task OpenBatteryOptimizationModalAsync(object bindingContext);
+    Task OpenIOSNotificationPermissionModalAsync(object bindingContext);
     Task PopModalAsync();
     Task PopAsync();
 

@@ -15,6 +15,8 @@ using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Services.Helpers;
+#elif IOS
+using Bible.Alarm.Platforms.iOS.Services.Helpers;
 #endif
 
 namespace Bible.Alarm.ViewModels.Schedule;
@@ -38,6 +40,11 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     private bool isSyncingFromState;
     private bool isWaitingForPermissionResponse;
     private NotificationPermissionService? permissionService;
+#elif IOS
+    private bool isUpdatingFromPermissionCheck;
+    private bool isSyncingFromState;
+    private bool isWaitingForPermissionResponse;
+    private IOSNotificationPermissionService? permissionService;
 #else
 #pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
     private bool isUpdatingFromPermissionCheck;
@@ -74,7 +81,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();
-#if ANDROID
+#if ANDROID || IOS
         InitializePermissionService();
         InitializeFromState();
 #else
@@ -91,6 +98,18 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         permissionService.PermissionGranted += OnPermissionGranted;
         permissionService.PermissionDenied += OnPermissionDenied;
     }
+#elif IOS
+    private void InitializePermissionService()
+    {
+        permissionService = IOSNotificationPermissionService.Instance;
+        
+        // Subscribe to permission events
+        permissionService.PermissionGranted += OnPermissionGranted;
+        permissionService.PermissionDenied += OnPermissionDenied;
+    }
+#endif
+
+#if ANDROID || IOS
 
     private void OnPermissionGranted(object? sender, EventArgs e)
     {
@@ -145,7 +164,11 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                 var toastService = serviceProvider.GetService<IToastService>();
                 if (toastService != null)
                 {
+#if ANDROID
                     _ = toastService.ShowMessage("Notification permission is denied by Android", 5);
+#elif IOS
+                    _ = toastService.ShowMessage("Notification permission is denied by iOS", 5);
+#endif
                 }
             }
             finally
@@ -216,6 +239,16 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 #if ANDROID
             // If NotificationEnabled is true in state but permission is not granted, sync it to OFF silently
             // This handles the case where user revoked permission via Android settings
+            // Don't request permission here - just sync the local property to match actual permission status
+            // State will be synced in OnStateChanged to avoid interfering with container readiness signaling
+            if (notificationEnabled && permissionService != null && !permissionService.IsGranted)
+            {
+                logger.Information("InitializeFromState: NotificationEnabled is true in state but permission is not granted - setting local property to OFF");
+                notificationEnabled = false;
+            }
+#elif IOS
+            // If NotificationEnabled is true in state but permission is not granted, sync it to OFF silently
+            // This handles the case where user revoked permission via iOS settings
             // Don't request permission here - just sync the local property to match actual permission status
             // State will be synced in OnStateChanged to avoid interfering with container readiness signaling
             if (notificationEnabled && permissionService != null && !permissionService.IsGranted)
@@ -294,6 +327,16 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 #if ANDROID
                         // If state has NotificationEnabled=true but permission is not granted, sync to OFF
                         // This handles the case where user revoked permission via Android settings
+                        if (newValue && permissionService != null && !permissionService.IsGranted)
+                        {
+                            logger.Information("OnStateChanged: NotificationEnabled is true in state but permission is not granted - syncing to OFF");
+                            newValue = false;
+                            // Update state to reflect actual permission status
+                            DispatchScheduleUpdate(s => s.NotificationEnabled = false);
+                        }
+#elif IOS
+                        // If state has NotificationEnabled=true but permission is not granted, sync to OFF
+                        // This handles the case where user revoked permission via iOS settings
                         if (newValue && permissionService != null && !permissionService.IsGranted)
                         {
                             logger.Information("OnStateChanged: NotificationEnabled is true in state but permission is not granted - syncing to OFF");
@@ -610,8 +653,71 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                 logger.Debug("User toggled OFF - resetting permission wait flag");
                 isWaitingForPermissionResponse = false;
             }
+#elif IOS
+            // Only handle permission check if this is a genuine user action (not from state sync or internal update)
+            if (isUserAction && value)
+            {
+                logger.Debug("User toggled ON - checking iOS notification permission");
+                
+                // Check current permission status
+                if (permissionService != null && permissionService.IsGranted)
+                {
+                    // Permission already granted - allow toggle ON
+                    logger.Debug("iOS notification permission already granted - allowing toggle ON");
+                    if (SetProperty(ref notificationEnabled, true))
+                    {
+                        DispatchScheduleUpdate(s => s.NotificationEnabled = true);
+                    }
+                }
+                else
+                {
+                    // Permission not granted - toggle OFF immediately and request permission
+                    logger.Debug("iOS notification permission not granted - setting toggle to OFF and requesting permission");
+                    isWaitingForPermissionResponse = true;
+                    
+                    // Always set toggle to OFF immediately when permission is not granted
+                    // Force update even if value is already false to ensure UI reflects the state
+                    notificationEnabled = false;
+                    OnPropertyChanged(nameof(NotificationEnabled));
+                    DispatchScheduleUpdate(s => s.NotificationEnabled = false);
+                    logger.Debug("Set NotificationEnabled to false - permission not granted");
+                    
+                    // Request permission - will fire PermissionGranted or PermissionDenied event
+                    var requestInitiated = permissionService?.RequestPermissionIfNeeded() ?? false;
+                    
+                    if (!requestInitiated)
+                    {
+                        // Permission request was initiated - wait for event
+                        // Toggle stays OFF until PermissionGranted event fires
+                        logger.Debug("Permission request initiated - waiting for user response");
+                    }
+                    else
+                    {
+                        // Permission already granted (shouldn't happen due to check above, but handle it)
+                        logger.Debug("Permission already granted after check - allowing toggle ON");
+                        isWaitingForPermissionResponse = false;
+                        notificationEnabled = true;
+                        OnPropertyChanged(nameof(NotificationEnabled));
+                        DispatchScheduleUpdate(s => s.NotificationEnabled = true);
+                    }
+                }
+                return;
+            }
+            
+            // For all other cases (toggling OFF, or internal updates), update immediately
+            if (SetProperty(ref notificationEnabled, value))
+            {
+                DispatchScheduleUpdate(s => s.NotificationEnabled = value);
+            }
+
+            // Reset waiting flag if user toggles OFF
+            if (isUserAction && !value)
+            {
+                logger.Debug("User toggled OFF - resetting permission wait flag");
+                isWaitingForPermissionResponse = false;
+            }
 #else
-            // Non-Android platforms - update immediately
+            // Non-Android/iOS platforms - update immediately
             if (SetProperty(ref notificationEnabled, value))
             {
                 DispatchScheduleUpdate(s => s.NotificationEnabled = value);
@@ -620,7 +726,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         }
     }
 
-#if ANDROID
+#if ANDROID || IOS
     public void StopPermissionCheckTaskIfRunning()
     {
         // Reset waiting flag if task was running

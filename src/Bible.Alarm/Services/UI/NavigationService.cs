@@ -217,6 +217,12 @@ public sealed class NavigationService(
         await modalHandler.OpenBatteryOptimizationModalAsync(navigation, bindingContext);
     }
 
+    public async Task OpenIOSNotificationPermissionModalAsync(object bindingContext)
+    {
+        var navigation = GetNavigation();
+        await modalHandler.OpenIOSNotificationPermissionModalAsync(navigation, bindingContext);
+    }
+
     public async Task PopModalAsync()
     {
         await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>

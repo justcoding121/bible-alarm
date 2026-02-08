@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Linq;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Battery.Interfaces;
@@ -143,41 +144,59 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
             () => progressBarManager.ShowTemporarily(),
             async () => await progressBarManager.HideTemporarilyAsync());
 
-        // Command to open alarm settings modal (Android only)
+        // Command to open alarm settings modal (Android) or iOS notification permission modal (iOS)
         OpenAlarmSettingsCommand = new AsyncRelayCommand(async () =>
         {
-            if (DeviceInfo.Platform != DevicePlatform.Android)
+            if (DeviceInfo.Platform == DevicePlatform.Android)
             {
-                return;
-            }
-
-            try
-            {
-                var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
-                if (batteryService == null)
+                try
                 {
-                    logger.Warning("IBatteryOptimizationService not available");
-                    return;
+                    var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
+                    if (batteryService == null)
+                    {
+                        logger.Warning("IBatteryOptimizationService not available");
+                        return;
+                    }
+
+                    // Create a view model for the battery optimization modal
+                    var batteryViewModel = new BatteryOptimizationViewModel(
+                        logger,
+                        navigationService,
+                        serviceProvider);
+
+                    if (batteryService.CanShowOptimizeActivity())
+                    {
+                        batteryViewModel.CanOptimizeBattery = true;
+                    }
+
+                    // Start permission check timer when opening battery optimization modal
+                    batteryViewModel.StartPermissionCheckTimer();
+                    await navigationService.OpenBatteryOptimizationModalAsync(batteryViewModel);
                 }
-
-                // Create a view model for the battery optimization modal
-                var batteryViewModel = new BatteryOptimizationViewModel(
-                    logger,
-                    navigationService,
-                    serviceProvider);
-
-                if (batteryService.CanShowOptimizeActivity())
+                catch (Exception ex)
                 {
-                    batteryViewModel.CanOptimizeBattery = true;
+                    logger.Error(ex, "Error opening alarm settings modal from floating button");
                 }
-
-                // Start permission check timer when opening battery optimization modal
-                batteryViewModel.StartPermissionCheckTimer();
-                await navigationService.OpenBatteryOptimizationModalAsync(batteryViewModel);
             }
-            catch (Exception ex)
+            else if (DeviceInfo.Platform == DevicePlatform.iOS)
             {
-                logger.Error(ex, "Error opening alarm settings modal from floating button");
+                try
+                {
+#if IOS
+                    // Create a view model for the iOS notification permission modal
+                    var iosNotificationViewModel = new IOSNotificationPermissionViewModel(
+                        logger,
+                        navigationService);
+
+                    // Start permission check timer when opening iOS notification permission modal
+                    iosNotificationViewModel.StartPermissionCheckTimer();
+                    await navigationService.OpenIOSNotificationPermissionModalAsync(iosNotificationViewModel);
+#endif
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Error opening iOS notification permission modal from floating button");
+                }
             }
         });
 
@@ -279,41 +298,74 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
 
     /// <summary>
     /// Updates the floating button visibility based on permission status.
-    /// Hides button if both battery optimization and DND permissions are granted.
+    /// Android: Hides button if both battery optimization and DND permissions are granted.
+    /// iOS: Shows button if notification permission is not granted and any schedule has NotificationEnabled=true.
     /// </summary>
     public void UpdateFloatingButtonVisibility()
     {
-        if (DeviceInfo.Platform != DevicePlatform.Android)
+        if (DeviceInfo.Platform == DevicePlatform.Android)
         {
-            IsFloatingButtonVisible = false;
-            CollectionViewBottomMargin = 0;
-            return;
-        }
-
-        try
-        {
-            var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
-            if (batteryService != null)
+            try
             {
-                var isBatteryExcluded = batteryService.IsIgnoringBatteryOptimizations();
-                var isDndGranted = batteryService.IsNotificationPolicyAccessGranted();
+                var batteryService = serviceProvider.GetService<IBatteryOptimizationService>();
+                if (batteryService != null)
+                {
+                    var isBatteryExcluded = batteryService.IsIgnoringBatteryOptimizations();
+                    var isDndGranted = batteryService.IsNotificationPolicyAccessGranted();
 
-                // Hide button if both permissions are granted
-                var shouldShow = !(isBatteryExcluded && isDndGranted);
+                    // Hide button if both permissions are granted
+                    var shouldShow = !(isBatteryExcluded && isDndGranted);
+
+                    if (IsFloatingButtonVisible != shouldShow)
+                    {
+                        IsFloatingButtonVisible = shouldShow;
+                        CollectionViewBottomMargin = shouldShow ? 80 : 0; // 56 (button) + 24 (margin)
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error updating floating button visibility");
+                // Default to showing button if there's an error
+                IsFloatingButtonVisible = true;
+                CollectionViewBottomMargin = 80;
+            }
+        }
+        else if (DeviceInfo.Platform == DevicePlatform.iOS)
+        {
+            try
+            {
+#if IOS
+                var permissionService = Platforms.iOS.Services.Helpers.IOSNotificationPermissionService.Instance;
+                var isPermissionGranted = permissionService.IsGranted;
+
+                // Check if any schedule has NotificationEnabled=true
+                var hasReminderEnabled = state.Value.Schedules?.Any(s => s.NotificationEnabled) ?? false;
+
+                // Show button if permission is not granted AND any schedule has reminder enabled
+                var shouldShow = !isPermissionGranted && hasReminderEnabled;
 
                 if (IsFloatingButtonVisible != shouldShow)
                 {
                     IsFloatingButtonVisible = shouldShow;
                     CollectionViewBottomMargin = shouldShow ? 80 : 0; // 56 (button) + 24 (margin)
                 }
+#else
+                IsFloatingButtonVisible = false;
+                CollectionViewBottomMargin = 0;
+#endif
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error updating floating button visibility for iOS");
+                IsFloatingButtonVisible = false;
+                CollectionViewBottomMargin = 0;
             }
         }
-        catch (Exception ex)
+        else
         {
-            logger.Error(ex, "Error updating floating button visibility");
-            // Default to showing button if there's an error
-            IsFloatingButtonVisible = true;
-            CollectionViewBottomMargin = 80;
+            IsFloatingButtonVisible = false;
+            CollectionViewBottomMargin = 0;
         }
     }
 
@@ -324,11 +376,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
     /// </summary>
     public async Task CheckAndShowAlarmSettingsOnFirstLaunchAsync()
     {
-        if (DeviceInfo.Platform != DevicePlatform.Android)
-        {
-            return;
-        }
-
         try
         {
             // Update floating button visibility based on current permission status
@@ -367,6 +414,8 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         _ = MainThread.InvokeOnMainThreadAsync(async () =>
         {
             await stateChangeHandler.HandleStateChangedAsync(stateValue);
+            // Update floating button visibility when schedules change (e.g., NotificationEnabled changes)
+            UpdateFloatingButtonVisibility();
         });
     }
 
