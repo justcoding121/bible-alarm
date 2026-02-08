@@ -57,7 +57,7 @@ internal sealed class MusicDisplayNamePopulator
             {
                 scheduleStateItem.MusicLanguageName = music.LanguageCode;
                 // Default to LTR if language not found
-                scheduleStateItem.MusicLanguageDirection = "ltr";
+                scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
         }
 
@@ -118,7 +118,7 @@ internal sealed class MusicDisplayNamePopulator
         if (lookupData.VocalLanguages.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguage))
         {
             scheduleStateItem.MusicLanguageName = englishLanguage.Name;
-            scheduleStateItem.MusicLanguageDirection = englishLanguage.Direction ?? "ltr";
+            scheduleStateItem.MusicLanguageDirection = englishLanguage.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
             Log.Logger.Debug("Set MusicLanguageName '{MusicLanguageName}' for melody (no-language) in schedule {ScheduleId} (effective display: English)",
                 englishLanguage.Name, schedule.Id);
         }

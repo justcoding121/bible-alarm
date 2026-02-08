@@ -52,7 +52,7 @@ public sealed class BiblePublicationDisplayTextProvider
     public string GetLanguageDirection()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        return currentSchedule?.BiblePublicationLanguageDirection ?? "ltr";
+        return currentSchedule?.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight;
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ public sealed class BiblePublicationDisplayTextProvider
     public FlowDirection GetFlowDirection()
     {
         var direction = GetLanguageDirection();
-        return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+        return string.Equals(direction, AppConstants.Media.TextDirectionRightToLeft, StringComparison.OrdinalIgnoreCase)
             ? FlowDirection.RightToLeft
             : FlowDirection.LeftToRight;
     }

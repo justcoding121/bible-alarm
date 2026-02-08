@@ -134,7 +134,7 @@ public sealed class BiblePublicationCascadeHandler
                         {
                             LanguageCode = languageCode,
                             Name = currentSchedule.BiblePublicationLanguageName ?? languageCode,
-                            Direction = currentSchedule.BiblePublicationLanguageDirection ?? "ltr"
+                            Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
                         });
 
                         var publicationModel = new PublicationListViewItemModel(new Publication
@@ -375,7 +375,7 @@ public sealed class BiblePublicationCascadeHandler
             {
                 LanguageCode = languageCode,
                 Name = currentSchedule.BiblePublicationLanguageName ?? languageCode,
-                Direction = currentSchedule.BiblePublicationLanguageDirection ?? "ltr"
+                Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
             });
 
             var publicationModel = new PublicationListViewItemModel(new Publication
@@ -441,7 +441,7 @@ public sealed class BiblePublicationCascadeHandler
         {
             LanguageCode = languageCode,
             Name = currentSchedule.BiblePublicationLanguageName ?? languageCode,
-            Direction = currentSchedule.BiblePublicationLanguageDirection ?? "ltr"
+            Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
         });
 
         // Create a minimal publication model for the selector
@@ -617,7 +617,7 @@ public sealed class BiblePublicationCascadeHandler
         {
             updatedSchedule.BiblePublicationLanguageCode = AppConstants.Media.DefaultLanguageCode;
             updatedSchedule.BiblePublicationLanguageName = null;
-            updatedSchedule.BiblePublicationLanguageDirection = "ltr";
+            updatedSchedule.BiblePublicationLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             logger.Debug("BiblePublicationCascadeHandler: Setting language to English default for no-language publication={PublicationCode}",
                 publicationCode);
         }

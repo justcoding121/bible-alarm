@@ -1,3 +1,5 @@
+#nullable enable
+
 namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]

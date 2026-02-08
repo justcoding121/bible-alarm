@@ -6,6 +6,7 @@ using AutoMapper;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -298,8 +299,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     {
         get
         {
-            var direction = state.Value.CurrentSchedule?.BiblePublicationLanguageDirection ?? "ltr";
-            return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+            var direction = state.Value.CurrentSchedule?.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight;
+            return string.Equals(direction, AppConstants.Media.TextDirectionRightToLeft, StringComparison.OrdinalIgnoreCase)
                 ? FlowDirection.RightToLeft
                 : FlowDirection.LeftToRight;
         }

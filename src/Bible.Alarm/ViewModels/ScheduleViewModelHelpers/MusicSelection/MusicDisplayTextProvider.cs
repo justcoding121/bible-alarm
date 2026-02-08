@@ -321,8 +321,8 @@ public sealed class MusicDisplayTextProvider
     public FlowDirection GetFlowDirection()
     {
         var currentSchedule = state.Value.CurrentSchedule;
-        var direction = currentSchedule?.MusicLanguageDirection ?? "ltr";
-        return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+        var direction = currentSchedule?.MusicLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight;
+        return string.Equals(direction, AppConstants.Media.TextDirectionRightToLeft, StringComparison.OrdinalIgnoreCase)
             ? FlowDirection.RightToLeft
             : FlowDirection.LeftToRight;
     }

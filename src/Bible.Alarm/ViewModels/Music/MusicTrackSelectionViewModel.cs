@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Windows.Input;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Music.MusicTrackSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Interfaces;
@@ -156,8 +157,8 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
         get
         {
             var currentSchedule = state.Value.CurrentSchedule;
-            var direction = currentSchedule?.MusicLanguageDirection ?? "ltr";
-            return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+            var direction = currentSchedule?.MusicLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight;
+            return string.Equals(direction, AppConstants.Media.TextDirectionRightToLeft, StringComparison.OrdinalIgnoreCase)
                 ? FlowDirection.RightToLeft
                 : FlowDirection.LeftToRight;
         }

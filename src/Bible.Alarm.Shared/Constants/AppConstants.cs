@@ -211,6 +211,16 @@ public static class AppConstants
         /// Media file extension for cached files
         /// </summary>
         public const string MediaFileExtension = ".mp3";
+
+        /// <summary>
+        /// Text direction constant for left-to-right languages
+        /// </summary>
+        public const string TextDirectionLeftToRight = "ltr";
+
+        /// <summary>
+        /// Text direction constant for right-to-left languages
+        /// </summary>
+        public const string TextDirectionRightToLeft = "rtl";
     }
 
     /// <summary>

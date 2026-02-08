@@ -2,6 +2,7 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
@@ -177,7 +178,7 @@ public sealed class TrackSelectionSyncHandler
                     : updatedSchedule.BiblePublicationLanguageName ?? string.Empty;
                 updatedSchedule.BiblePublicationLanguageDirection = !string.IsNullOrEmpty(biblePub.LanguageDirection) 
                     ? biblePub.LanguageDirection 
-                    : updatedSchedule.BiblePublicationLanguageDirection ?? "ltr";
+                    : updatedSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight;
             }
             else
             {
@@ -401,18 +402,18 @@ public sealed class TrackSelectionSyncHandler
                     if (languages.TryGetValue(actionMusic.LanguageCode, out var language))
                     {
                         updatedSchedule.MusicLanguageName = language.Name;
-                        updatedSchedule.MusicLanguageDirection = language.Direction ?? "ltr";
+                        updatedSchedule.MusicLanguageDirection = language.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
                     }
                     else
                     {
                         updatedSchedule.MusicLanguageName = actionMusic.LanguageCode;
-                        updatedSchedule.MusicLanguageDirection = "ltr";
+                        updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
                     }
                 }
                 catch
                 {
                     updatedSchedule.MusicLanguageName = actionMusic.LanguageCode;
-                    updatedSchedule.MusicLanguageDirection = "ltr";
+                    updatedSchedule.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
                 }
             }
         }

@@ -397,7 +397,7 @@ public sealed class CategorySelectionAutoPopulateHandler
             {
                 updatedSchedule.BiblePublicationLanguageCode = AppConstants.Media.DefaultLanguageCode;
                 updatedSchedule.BiblePublicationLanguageName = null;
-                updatedSchedule.BiblePublicationLanguageDirection = "ltr";
+                updatedSchedule.BiblePublicationLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
                 logger.Debug("CategorySelectionAutoPopulateHandler: Setting language to English default for publication without LanguageId={PublicationCode}",
                     publicationCode);
             }
@@ -405,7 +405,7 @@ public sealed class CategorySelectionAutoPopulateHandler
             {
                 updatedSchedule.BiblePublicationLanguageCode = selectedLanguage.LanguageCode;
                 updatedSchedule.BiblePublicationLanguageName = selectedLanguage.Name;
-                updatedSchedule.BiblePublicationLanguageDirection = selectedLanguage.Direction ?? "ltr";
+                updatedSchedule.BiblePublicationLanguageDirection = selectedLanguage.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
             }
             
             updatedSchedule.BiblePublicationCode = publicationCode;

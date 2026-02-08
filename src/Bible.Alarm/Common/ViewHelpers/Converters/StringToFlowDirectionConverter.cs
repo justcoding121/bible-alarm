@@ -1,5 +1,6 @@
 #nullable enable
 using System.Globalization;
+using Bible.Alarm.Shared.Constants;
 
 namespace Bible.Alarm.Common.ViewHelpers.Converters;
 
@@ -13,7 +14,7 @@ public sealed class StringToFlowDirectionConverter : IValueConverter
     {
         if (value is string direction)
         {
-            return string.Equals(direction, "rtl", StringComparison.OrdinalIgnoreCase)
+            return string.Equals(direction, AppConstants.Media.TextDirectionRightToLeft, StringComparison.OrdinalIgnoreCase)
                 ? FlowDirection.RightToLeft
                 : FlowDirection.LeftToRight;
         }

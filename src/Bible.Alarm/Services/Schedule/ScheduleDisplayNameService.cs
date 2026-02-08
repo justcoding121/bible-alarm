@@ -67,14 +67,14 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 else
                 {
                     scheduleStateItem.BiblePublicationLanguageName = scheduleLanguageCode;
-                    scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
+                    scheduleStateItem.BiblePublicationLanguageDirection = AppConstants.Media.TextDirectionLeftToRight; // Default to LTR
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating BiblePublicationLanguageName");
                 scheduleStateItem.BiblePublicationLanguageName = scheduleLanguageCode;
-                scheduleStateItem.BiblePublicationLanguageDirection = "ltr"; // Default to LTR
+                scheduleStateItem.BiblePublicationLanguageDirection = AppConstants.Media.TextDirectionLeftToRight; // Default to LTR
             }
         }
 
@@ -410,13 +410,13 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 else
                 {
                     scheduleStateItem.MusicLanguageName = music.LanguageCode;
-                    scheduleStateItem.MusicLanguageDirection = "ltr";
+                    scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating MusicLanguageName");
-                scheduleStateItem.MusicLanguageDirection = "ltr";
+                scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
         }
         else if (isMelodyMusic)
@@ -428,19 +428,19 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
                 if (languagesDict.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguage))
                 {
                     scheduleStateItem.MusicLanguageName = englishLanguage.Name;
-                    scheduleStateItem.MusicLanguageDirection = englishLanguage.Direction ?? "ltr";
+                    scheduleStateItem.MusicLanguageDirection = englishLanguage.Direction ?? AppConstants.Media.TextDirectionLeftToRight;
                 }
                 else
                 {
                     scheduleStateItem.MusicLanguageName = "English";
-                    scheduleStateItem.MusicLanguageDirection = "ltr";
+                    scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
                 }
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "Error populating MusicLanguageName for melody");
                 scheduleStateItem.MusicLanguageName = "English";
-                scheduleStateItem.MusicLanguageDirection = "ltr";
+                scheduleStateItem.MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
         }
 

@@ -6,6 +6,7 @@ using AutoMapper;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores;
@@ -557,7 +558,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
     /// <summary>Gets the FlowDirection for content based on selected language direction.</summary>
     public FlowDirection ContentFlowDirection => ContentFlowDirectionHelper.GetContentFlowDirection(
-        state.Value.CurrentSchedule?.BiblePublicationLanguageDirection ?? "ltr");
+        state.Value.CurrentSchedule?.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight);
 
     private async Task Initialize(string languageCode, string publicationCode, Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress? progress = null) => await PopulateSections(languageCode, publicationCode, progress);
 

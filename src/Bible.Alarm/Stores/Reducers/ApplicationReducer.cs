@@ -376,7 +376,7 @@ public static class ApplicationReducer
                 // will show English publications + non-languaged publications.
                 updatedCurrentSchedule.BiblePublicationLanguageCode = AppConstants.Media.DefaultLanguageCode;
                 updatedCurrentSchedule.BiblePublicationLanguageName = null;
-                updatedCurrentSchedule.BiblePublicationLanguageDirection = "ltr";
+                updatedCurrentSchedule.BiblePublicationLanguageDirection = AppConstants.Media.TextDirectionLeftToRight;
             }
             else if (languageChanged)
             {
