@@ -136,6 +136,31 @@ public static class AppConstants
     }
 
     /// <summary>
+    /// Review request configuration constants
+    /// Based on industry best practices for production apps
+    /// </summary>
+    public static class ReviewSettings
+    {
+        /// <summary>
+        /// Minimum number of dismissals before requesting review
+        /// Increased from 6 to 10 to align with production app best practices
+        /// </summary>
+        public const int MinimumDismissals = 10;
+
+        /// <summary>
+        /// Minimum days since first dismissal before requesting review
+        /// Ensures users have had meaningful engagement with the app
+        /// </summary>
+        public const int MinimumDaysSinceFirstDismissal = 7;
+
+        /// <summary>
+        /// Minimum days since app install/first launch before requesting review
+        /// Prevents asking too early in the user journey
+        /// </summary>
+        public const int MinimumDaysSinceInstall = 7;
+    }
+
+    /// <summary>
     /// General settings keys used throughout the application
     /// </summary>
     public static class GeneralSettingsKeys
@@ -159,6 +184,16 @@ public static class AppConstants
         /// Key for dismiss count
         /// </summary>
         public const string DismissCount = "DismissCount";
+
+        /// <summary>
+        /// Key for first dismissal date (ISO 8601 format)
+        /// </summary>
+        public const string FirstDismissalDate = "FirstDismissalDate";
+
+        /// <summary>
+        /// Key for app install/first launch date (ISO 8601 format)
+        /// </summary>
+        public const string AppInstallDate = "AppInstallDate";
 
         /// <summary>
         /// Key for Android battery optimization exclusion prompt shown flag
