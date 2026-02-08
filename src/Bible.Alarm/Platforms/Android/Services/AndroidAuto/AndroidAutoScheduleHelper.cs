@@ -122,8 +122,9 @@ public static class AndroidAutoScheduleHelper
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: Schedule Name 🎵 (if music enabled) or Schedule Name • Publication Name • Section Name (if applicable) • Language Name
+    /// Format: Schedule Name 🎵 (if music enabled) • Language Name • Publication Name • Section Name (if applicable, excluding Bible category)
     /// If schedule name is empty and music is enabled, shows just 🎵
+    /// Bible category: Section names and track names are excluded since they're already shown in the title (e.g., "Leviticus 19").
     /// </summary>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
@@ -150,20 +151,25 @@ public static class AndroidAutoScheduleHelper
             subtitleParts.Add("🎵");
         }
 
+        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName))
+        {
+            subtitleParts.Add(scheduleItem.BiblePublicationLanguageName);
+        }
+
         if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
         {
             subtitleParts.Add(scheduleItem.BiblePublicationName);
         }
 
+        // Skip section name for Bible category since it's already shown in the title (e.g., "Leviticus 19")
+        var categoryName = scheduleItem.BiblePublicationCategoryName
+            ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
+        var isBibleCategory = string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase);
+        
         var hasSectionStructure = PublicationTypeHelper.HasSectionStructure(scheduleItem.BiblePublicationCode);
-        if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName))
+        if (hasSectionStructure && !string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationSectionName) && !isBibleCategory)
         {
             subtitleParts.Add(scheduleItem.BiblePublicationSectionName);
-        }
-
-        if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName))
-        {
-            subtitleParts.Add(scheduleItem.BiblePublicationLanguageName);
         }
 
         if (subtitleParts.Count > 0)
