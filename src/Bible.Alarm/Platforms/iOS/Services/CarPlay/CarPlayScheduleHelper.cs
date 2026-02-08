@@ -16,10 +16,6 @@ public static class CarPlayScheduleHelper
 {
     private static readonly ILogger logger = Log.ForContext(typeof(CarPlayScheduleHelper));
 
-    // Unicode directional control characters for RTL support
-    private const char RightToLeftMark = '\u200F';
-    private const char LeftToRightMark = '\u200E';
-
     /// <summary>
     /// Loads schedule state items from Fluxor ApplicationState.
     /// Returns empty list if state is not initialized or no schedules are available.
@@ -51,17 +47,26 @@ public static class CarPlayScheduleHelper
     /// <summary>
     /// Builds the display title for a schedule state item.
     /// Bible category: section name (e.g. "Hebrews 13"). Other categories: track name.
+    /// Appends 🎵 to schedule name if music is enabled (or shows just 🎵 if schedule name is empty).
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
         if (!scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            return !string.IsNullOrWhiteSpace(scheduleItem.Name)
+            var scheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
                 ? scheduleItem.Name
-                : "Unnamed schedule";
+                : string.Empty;
+            
+            // If schedule name is empty and music is enabled, return just the music icon
+            if (string.IsNullOrWhiteSpace(scheduleName))
+            {
+                return scheduleItem.MusicEnabled ? "🎵" : "Unnamed schedule";
+            }
+            
+            // Append music icon to schedule name if music is enabled
+            return scheduleItem.MusicEnabled ? scheduleName + " 🎵" : scheduleName;
         }
 
-        var isRtl = string.Equals(scheduleItem.BiblePublicationLanguageDirection, "rtl", StringComparison.OrdinalIgnoreCase);
         var categoryName = scheduleItem.BiblePublicationCategoryName
             ?? JwSourceHelper.GetCategoryName(scheduleItem.BiblePublicationCode ?? string.Empty);
         var isBibleCategory = string.Equals(categoryName, "Bible", StringComparison.OrdinalIgnoreCase);
@@ -95,15 +100,26 @@ public static class CarPlayScheduleHelper
 
         if (!string.IsNullOrWhiteSpace(title))
         {
-            return isRtl ? $"{RightToLeftMark}{title}" : title;
+            return title;
         }
 
-        return "Unnamed schedule";
+        // Fallback: if no title found, use schedule name or music icon
+        var scheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
+            ? scheduleItem.Name
+            : string.Empty;
+        
+        if (string.IsNullOrWhiteSpace(scheduleName))
+        {
+            return scheduleItem.MusicEnabled ? "🎵" : "Unnamed schedule";
+        }
+        
+        return scheduleItem.MusicEnabled ? scheduleName + " 🎵" : scheduleName;
     }
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: Schedule Name (if not empty) • Publication Name • Section Name (if applicable) • Language Name • 🎵 (if music enabled)
+    /// Format: Schedule Name 🎵 (if music enabled) or Schedule Name • Publication Name • Section Name (if applicable) • Language Name
+    /// If schedule name is empty and music is enabled, shows just 🎵
     /// </summary>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
@@ -115,11 +131,19 @@ public static class CarPlayScheduleHelper
         }
 
         var subtitleParts = new List<string>();
-        var isRtl = string.Equals(scheduleItem.BiblePublicationLanguageDirection, "rtl", StringComparison.OrdinalIgnoreCase);
 
         if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
         {
-            subtitleParts.Add(scheduleItem.Name);
+            // Append music icon to schedule name if music is enabled
+            var scheduleNameWithMusic = scheduleItem.MusicEnabled 
+                ? scheduleItem.Name + " 🎵" 
+                : scheduleItem.Name;
+            subtitleParts.Add(scheduleNameWithMusic);
+        }
+        else if (scheduleItem.MusicEnabled)
+        {
+            // If schedule name is empty but music is enabled, show just the music icon
+            subtitleParts.Add("🎵");
         }
 
         if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
@@ -135,19 +159,12 @@ public static class CarPlayScheduleHelper
 
         if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName))
         {
-            var languagePart = isRtl ? $"{RightToLeftMark}{scheduleItem.BiblePublicationLanguageName}" : scheduleItem.BiblePublicationLanguageName;
-            subtitleParts.Add(languagePart);
-        }
-
-        if (scheduleItem.MusicEnabled)
-        {
-            subtitleParts.Add("🎵");
+            subtitleParts.Add(scheduleItem.BiblePublicationLanguageName);
         }
 
         if (subtitleParts.Count > 0)
         {
-            var subtitle = string.Join(" • ", subtitleParts);
-            return isRtl ? $"{RightToLeftMark}{subtitle}" : subtitle;
+            return string.Join(" • ", subtitleParts);
         }
 
         var fallbackStatusText = scheduleItem.IsEnabled ? "Enabled" : "Disabled";

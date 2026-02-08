@@ -58,8 +58,9 @@ public static class BootstrapHelper
     /// <summary>
     /// Synchronously waits for bootstrap to complete before allowing database access.
     /// Use this method when you must wait synchronously (e.g., in framework override methods).
+    /// Does NOT throw on timeout — logs a warning and returns gracefully.
     /// </summary>
-    public static void WaitForBootstrap(int timeoutMs = 30000)
+    public static void WaitForBootstrap(int timeoutMs = 60000)
     {
         if (bootstrapCompleted)
         {
@@ -71,28 +72,23 @@ public static class BootstrapHelper
 
         // Use Task.Run to avoid deadlock issues when called from synchronization contexts
         // Task.Run executes on a thread pool thread (no synchronization context), so ConfigureAwait is not needed
+        // WaitForBootstrapAsync never throws (handles timeout/error internally), so waitTask won't fault
         var waitTask = Task.Run(async () => await WaitForBootstrapAsync(timeoutMs));
 
         // Wait for the task to complete with timeout to prevent indefinite blocking
         // Use a slightly longer timeout than the async version to account for Task.Run overhead
-        if (!waitTask.Wait(timeoutMs + 1000))
+        if (!waitTask.Wait(timeoutMs + 5000))
         {
             Log.Logger.Warning("WaitForBootstrap timed out after {TimeoutMs}ms - proceeding anyway", timeoutMs);
-            // Don't throw - allow code to proceed even if bootstrap wait timed out
-            // This prevents Android Auto from hanging indefinitely
-        }
-        else if (waitTask.IsFaulted)
-        {
-            Log.Logger.Warning(waitTask.Exception?.GetBaseException(), "WaitForBootstrap encountered an error - proceeding anyway");
-            // Don't throw - allow code to proceed even if bootstrap wait failed
         }
     }
 
     /// <summary>
     /// Waits for bootstrap to complete before allowing database access.
     /// This ensures database migrations are finished before services use the database.
+    /// Does NOT throw on timeout — logs a warning and returns gracefully so callers can proceed.
     /// </summary>
-    public static async Task WaitForBootstrapAsync(int timeoutMs = 30000)
+    public static async Task WaitForBootstrapAsync(int timeoutMs = 60000)
     {
         if (bootstrapCompleted)
         {
@@ -128,30 +124,29 @@ public static class BootstrapHelper
             waitTask = bootstrapCompletionSource.Task;
         }
 
-        // Wait for bootstrap completion with timeout
-        using var cts = new CancellationTokenSource(timeoutMs);
-        var timeoutTask = Task.Delay(timeoutMs, cts.Token).ContinueWith(_ =>
-        {
-            lock (bootstrapWaitLock)
-            {
-                if (bootstrapCompletionSource != null && !bootstrapCompletionSource.Task.IsCompleted)
-                {
-                    bootstrapCompletionSource.TrySetException(new TimeoutException($"Bootstrap did not complete within {timeoutMs}ms"));
-                }
-            }
-        }, TaskContinuationOptions.ExecuteSynchronously);
-
+        // Wait for bootstrap completion with timeout using Task.WaitAsync.
+        // Unlike the old approach (TrySetException on the shared TCS), this does NOT corrupt
+        // the TaskCompletionSource when the timeout fires. Other waiters and MarkBootstrapCompleted()
+        // can still signal through the same TCS after this caller's timeout expires.
         try
         {
-            await waitTask;
-            // Cancel timeout if bootstrap completed
-            await cts.CancelAsync();
+            using var timeoutCts = new CancellationTokenSource(timeoutMs);
+            await waitTask.WaitAsync(timeoutCts.Token);
             Log.Logger.Information("Bootstrap wait completed successfully");
+        }
+        catch (OperationCanceledException)
+        {
+            // Timeout — log warning and return gracefully (don't throw).
+            // During phone boot or heavy system load, bootstrap can take longer than expected.
+            // Callers should proceed anyway; most operations have their own fallback behavior.
+            Log.Logger.Warning(
+                "Bootstrap wait timed out after {TimeoutMs}ms - proceeding anyway (bootstrapCompleted={BootstrapCompleted})",
+                timeoutMs, bootstrapCompleted);
         }
         catch (Exception ex)
         {
-            Log.Logger.Error(ex, "Error waiting for bootstrap completion");
-            throw;
+            // TCS might have been faulted by a bootstrap error — just log and proceed.
+            Log.Logger.Warning(ex, "Error during bootstrap wait - proceeding anyway");
         }
     }
 

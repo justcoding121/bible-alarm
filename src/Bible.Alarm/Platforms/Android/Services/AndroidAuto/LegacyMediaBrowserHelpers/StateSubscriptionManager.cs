@@ -33,7 +33,7 @@ public sealed class StateSubscriptionManager(ILogger logger)
     {
         try
         {
-            await MauiProgram.WaitForBootstrapAsync(timeoutMs: 30000);
+            await MauiProgram.WaitForBootstrapAsync();
         }
         catch (Exception bootstrapEx)
         {

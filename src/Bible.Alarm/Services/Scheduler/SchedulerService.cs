@@ -36,7 +36,7 @@ public sealed class SchedulerService(
                 logger.Debug("Bootstrap not completed yet, waiting for bootstrap before running scheduler");
                 try
                 {
-                    await BootstrapHelper.WaitForBootstrapAsync(timeoutMs: 30000);
+                    await BootstrapHelper.WaitForBootstrapAsync();
                 }
                 catch (Exception ex)
                 {

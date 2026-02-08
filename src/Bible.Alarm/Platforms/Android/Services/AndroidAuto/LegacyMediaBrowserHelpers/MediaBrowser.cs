@@ -31,7 +31,7 @@ public sealed class MediaBrowser(ILogger logger)
         try
         {
             // Wait for bootstrap to complete
-            await MauiProgram.WaitForBootstrapAsync(timeoutMs: 30000);
+            await MauiProgram.WaitForBootstrapAsync();
             logger.Debug("Bootstrap completed, loading schedules from state for parent: {ParentId}", parentId);
         }
         catch (Exception bootstrapEx)

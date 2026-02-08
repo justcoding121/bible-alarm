@@ -78,6 +78,22 @@ public static class MainActivityFragmentStateHelper
             }
 
             var fragmentManager = fragmentActivity.SupportFragmentManager;
+
+            // Force any pending fragment transactions to complete so they appear in Fragments.
+            // MAUI's base.OnCreate() may add NavigationRootManager_ElementBasedFragment
+            // via an asynchronous transaction that hasn't been committed yet.
+            // Without this, fragmentManager.Fragments would be empty and we'd miss the issue.
+            try
+            {
+                fragmentManager.ExecutePendingTransactions();
+            }
+            catch (Exception pendingEx)
+            {
+                // If executing pending transactions itself fails, the fragments are broken
+                logger.Warning(pendingEx, "ExecutePendingTransactions failed - fragments are likely invalid");
+                return false;
+            }
+
             var fragments = fragmentManager.Fragments;
 
             if (fragments == null || fragments.Count == 0)
@@ -171,10 +187,22 @@ public static class MainActivityFragmentStateHelper
     /// <summary>
     /// Internal method to handle fragment restoration errors by scheduling a restart
     /// via AlarmManager and then killing the process immediately.
+    /// Limits consecutive restarts to prevent infinite crash loops.
     /// </summary>
     private static void HandleFragmentRestorationErrorWithProcessKillInternal(Activity activity, IllegalArgumentException ex)
     {
-        logger.Warning(ex, "Fragment restoration failed - scheduling restart and killing process");
+        logger.Warning(ex, "Fragment restoration failed - checking if restart is safe");
+
+        if (IsInRestartLoop(activity))
+        {
+            logger.Warning("Fragment crash restart loop detected - NOT restarting to break the loop. "
+                + "The app may need to be manually launched.");
+            // Don't kill the process — let Android handle the lifecycle naturally.
+            // The user can force-stop and reopen from the launcher.
+            return;
+        }
+
+        RecordCrashTimestamp(activity);
 
         try
         {
@@ -189,6 +217,81 @@ public static class MainActivityFragmentStateHelper
         // The AlarmManager will restart the app with a clean slate
         logger.Information("Killing process to recover from fragment restoration error");
         Java.Lang.JavaSystem.Exit(0);
+    }
+
+    private const string CrashTimestampPrefKey = "fragment_crash_timestamp";
+    private const string CrashCountPrefKey = "fragment_crash_count";
+    private const int MaxConsecutiveRestarts = 2;
+
+    // Crashes within this window are considered consecutive (part of a restart loop)
+    private const long CrashWindowMs = 30_000;
+
+    private static bool IsInRestartLoop(Activity activity)
+    {
+        try
+        {
+            var prefs = activity.GetSharedPreferences("fragment_crash", FileCreationMode.Private);
+            if (prefs == null)
+            {
+                return false;
+            }
+
+            var lastCrashTime = prefs.GetLong(CrashTimestampPrefKey, 0);
+            var crashCount = prefs.GetInt(CrashCountPrefKey, 0);
+            var now = Java.Lang.JavaSystem.CurrentTimeMillis();
+
+            // If the last crash was recent (within window), check counter
+            if (now - lastCrashTime < CrashWindowMs && crashCount >= MaxConsecutiveRestarts)
+            {
+                // Reset counter so next manual launch gets a fresh start
+                prefs.Edit()?.PutInt(CrashCountPrefKey, 0)?.Apply();
+                return true;
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error checking crash loop state");
+            return false;
+        }
+    }
+
+    private static void RecordCrashTimestamp(Activity activity)
+    {
+        try
+        {
+            var prefs = activity.GetSharedPreferences("fragment_crash", FileCreationMode.Private);
+            if (prefs == null)
+            {
+                return;
+            }
+
+            var lastCrashTime = prefs.GetLong(CrashTimestampPrefKey, 0);
+            var now = Java.Lang.JavaSystem.CurrentTimeMillis();
+
+            if (now - lastCrashTime < CrashWindowMs)
+            {
+                // Within the window — increment counter
+                var crashCount = prefs.GetInt(CrashCountPrefKey, 0);
+                prefs.Edit()
+                    ?.PutLong(CrashTimestampPrefKey, now)
+                    ?.PutInt(CrashCountPrefKey, crashCount + 1)
+                    ?.Apply();
+            }
+            else
+            {
+                // Outside the window — reset counter
+                prefs.Edit()
+                    ?.PutLong(CrashTimestampPrefKey, now)
+                    ?.PutInt(CrashCountPrefKey, 1)
+                    ?.Apply();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error recording crash timestamp");
+        }
     }
 
     /// <summary>

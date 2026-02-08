@@ -37,6 +37,11 @@ public class AlarmForegroundService : Service
 
     public override void OnCreate()
     {
+        // CRITICAL: Start foreground with a minimal notification immediately.
+        // The coordinator will replace this with a proper alarm notification later,
+        // but this ensures the OS doesn't kill the process in the meantime.
+        ForegroundServiceOperations.StartForegroundMinimal(this);
+
         base.OnCreate();
         lock (instanceLock)
         {

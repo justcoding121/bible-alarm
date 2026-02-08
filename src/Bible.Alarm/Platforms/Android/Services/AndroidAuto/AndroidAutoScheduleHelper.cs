@@ -51,14 +51,24 @@ public static class AndroidAutoScheduleHelper
     /// Builds the display title for a schedule state item.
     /// Bible category: section name (e.g. "Hebrews 13"). Other categories: track name.
     /// When this schedule is currently playing, uses PlaybackState.Title so Auto and phone list show the actual track.
+    /// Appends 🎵 to schedule name if music is enabled (or shows just 🎵 if schedule name is empty).
     /// </summary>
     public static string BuildScheduleTitle(ScheduleStateItem scheduleItem)
     {
         if (!scheduleItem.BiblePublicationScheduleId.HasValue)
         {
-            return !string.IsNullOrWhiteSpace(scheduleItem.Name)
+            var scheduleName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
                 ? scheduleItem.Name
-                : "Unnamed schedule";
+                : string.Empty;
+            
+            // If schedule name is empty and music is enabled, return just the music icon
+            if (string.IsNullOrWhiteSpace(scheduleName))
+            {
+                return scheduleItem.MusicEnabled ? "🎵" : "Unnamed schedule";
+            }
+            
+            // Append music icon to schedule name if music is enabled
+            return scheduleItem.MusicEnabled ? scheduleName + " 🎵" : scheduleName;
         }
 
         var playbackState = ServiceProviderManager.GetService<IState<PlaybackState>>()?.Value;
@@ -97,14 +107,23 @@ public static class AndroidAutoScheduleHelper
             return scheduleItem.BiblePublicationName;
         }
 
-        return !string.IsNullOrWhiteSpace(scheduleItem.Name)
+        var fallbackName = !string.IsNullOrWhiteSpace(scheduleItem.Name)
             ? scheduleItem.Name
             : "Unnamed schedule";
+        
+        // Append music icon to schedule name if music is enabled
+        if (scheduleItem.MusicEnabled)
+        {
+            return fallbackName + " 🎵";
+        }
+        
+        return fallbackName;
     }
 
     /// <summary>
     /// Builds the display subtitle for a ScheduleStateItem.
-    /// Format: Schedule Name (if not empty) • Publication Name • Section Name (if applicable) • Language Name • 🎵 (if music enabled)
+    /// Format: Schedule Name 🎵 (if music enabled) or Schedule Name • Publication Name • Section Name (if applicable) • Language Name
+    /// If schedule name is empty and music is enabled, shows just 🎵
     /// </summary>
     public static string BuildScheduleSubtitle(ScheduleStateItem scheduleItem)
     {
@@ -119,7 +138,16 @@ public static class AndroidAutoScheduleHelper
 
         if (!string.IsNullOrWhiteSpace(scheduleItem.Name))
         {
-            subtitleParts.Add(scheduleItem.Name);
+            // Append music icon to schedule name if music is enabled
+            var scheduleNameWithMusic = scheduleItem.MusicEnabled 
+                ? scheduleItem.Name + " 🎵" 
+                : scheduleItem.Name;
+            subtitleParts.Add(scheduleNameWithMusic);
+        }
+        else if (scheduleItem.MusicEnabled)
+        {
+            // If schedule name is empty but music is enabled, show just the music icon
+            subtitleParts.Add("🎵");
         }
 
         if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationName))
@@ -136,11 +164,6 @@ public static class AndroidAutoScheduleHelper
         if (!string.IsNullOrWhiteSpace(scheduleItem.BiblePublicationLanguageName))
         {
             subtitleParts.Add(scheduleItem.BiblePublicationLanguageName);
-        }
-
-        if (scheduleItem.MusicEnabled)
-        {
-            subtitleParts.Add("🎵");
         }
 
         if (subtitleParts.Count > 0)

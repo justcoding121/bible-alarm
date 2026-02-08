@@ -62,8 +62,8 @@ public class BootstrapReadyManager : IDisposable
             try
             {
                 // Wait for bootstrap to complete using the existing async mechanism
-                // This is more efficient than polling every 100ms
-                await BootstrapHelper.WaitForBootstrapAsync(timeoutMs: 30000);
+                // WaitForBootstrapAsync never throws (handles timeout/error internally)
+                await BootstrapHelper.WaitForBootstrapAsync();
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -74,21 +74,9 @@ public class BootstrapReadyManager : IDisposable
                     }
                 });
             }
-            catch (TimeoutException)
-            {
-                // Timeout reached - enable button anyway
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!IsBootstrapReady)
-                    {
-                        IsBootstrapReady = true;
-                        logger.Information("Bootstrap timeout reached - enabling Add button (bootstrap likely complete)");
-                    }
-                });
-            }
             catch (OperationCanceledException)
             {
-                // Expected when cancellation is requested
+                // Expected when cancellation is requested (Dispose called)
             }
             catch (Exception ex)
             {

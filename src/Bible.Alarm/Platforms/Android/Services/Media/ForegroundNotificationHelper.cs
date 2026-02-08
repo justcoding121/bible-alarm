@@ -63,6 +63,31 @@ internal static class ForegroundNotificationHelper
         }
     }
 
+    /// <summary>
+    /// Creates a minimal notification for immediate foreground service start.
+    /// No MediaSession, no PendingIntents, no artwork — just enough to satisfy Android's
+    /// startForeground() requirement and keep the process alive.
+    /// </summary>
+    public static Notification CreateMinimalNotification(Service service)
+    {
+        var context = service.ApplicationContext ?? Application.Context
+            ?? throw new InvalidOperationException("Context cannot be null");
+
+        var builder = new NotificationCompat.Builder(context, ForegroundChannelId);
+        builder.SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play);
+        builder.SetContentTitle("Bible Alarm");
+        builder.SetContentText("Starting...");
+        builder.SetOngoing(true);
+        builder.SetForegroundServiceBehavior(NotificationCompat.ForegroundServiceImmediate);
+        builder.SetVisibility(NotificationCompat.VisibilityPublic);
+        builder.SetPriority(NotificationCompat.PriorityLow);
+        builder.SetShowWhen(false);
+        builder.SetOnlyAlertOnce(true);
+        builder.SetSilent(true);
+
+        return builder.Build() ?? throw new InvalidOperationException("Failed to build minimal notification");
+    }
+
     public static Notification CreateNotification(Service service, MediaSessionCompat mediaSession, bool isAlarmNotification = false)
     {
         var context = service.ApplicationContext ?? Application.Context ?? throw new InvalidOperationException("Context cannot be null");

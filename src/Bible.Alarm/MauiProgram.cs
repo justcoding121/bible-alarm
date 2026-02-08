@@ -128,12 +128,14 @@ public static class MauiProgram
     /// <summary>
     /// Synchronously waits for bootstrap to complete before allowing database access.
     /// Use this method when you must wait synchronously (e.g., in framework override methods).
+    /// Does NOT throw on timeout — logs a warning and returns gracefully.
     /// </summary>
-    public static void WaitForBootstrap(int timeoutMs = 30000) => BootstrapHelper.WaitForBootstrap(timeoutMs);
+    public static void WaitForBootstrap(int timeoutMs = 60000) => BootstrapHelper.WaitForBootstrap(timeoutMs);
 
     /// <summary>
     /// Waits for bootstrap to complete before allowing database access.
     /// This ensures database migrations are finished before services use the database.
+    /// Does NOT throw on timeout — logs a warning and returns gracefully.
     /// </summary>
-    public static async Task WaitForBootstrapAsync(int timeoutMs = 30000) => await BootstrapHelper.WaitForBootstrapAsync(timeoutMs);
+    public static async Task WaitForBootstrapAsync(int timeoutMs = 60000) => await BootstrapHelper.WaitForBootstrapAsync(timeoutMs);
 }

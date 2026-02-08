@@ -15,6 +15,35 @@ internal static class ForegroundServiceOperations
 {
     private static readonly ILogger logger = Log.ForContext(typeof(ForegroundServiceOperations));
 
+    /// <summary>
+    /// Starts a minimal foreground service immediately with a bare notification.
+    /// Called as the very first thing in OnCreate() to prevent the OS from killing the process.
+    /// The notification will be replaced later with a proper MediaStyle notification.
+    /// </summary>
+    public static void StartForegroundMinimal(Service service)
+    {
+        try
+        {
+            ForegroundNotificationHelper.CreateNotificationChannel(service);
+            var notification = ForegroundNotificationHelper.CreateMinimalNotification(service);
+
+            if (OperatingSystem.IsAndroidVersionAtLeast(29))
+            {
+                service.StartForeground(ForegroundNotificationHelper.NotificationId, notification, ForegroundService.TypeMediaPlayback);
+            }
+            else
+            {
+                service.StartForeground(ForegroundNotificationHelper.NotificationId, notification);
+            }
+
+            logger.Information("Minimal foreground service started immediately (pre-bootstrap)");
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error starting minimal foreground service");
+        }
+    }
+
     public static void StartForeground(Service service, MediaSessionCompat mediaSession, bool isAlarmNotification = false)
     {
         try
