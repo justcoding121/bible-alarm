@@ -2,6 +2,7 @@
 
 using System.Threading;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -36,8 +37,8 @@ internal sealed class MusicPublicationFetchCoordinator
         {
             // When in melody mode, show BOTH melody (e.g. Kingdom Melodies) and vocal English (e.g. Original Songs)
             // so the user can switch without having to select "Vocal" and language first.
-            // GetBiblePublications("E", "Music") returns publications with language E and publications without language FK.
-            publicationsData = await mediaService.GetBiblePublications("E", "Music", downloadAll, progress);
+            // GetBiblePublications with default language code returns publications with default language and publications without language FK.
+            publicationsData = await mediaService.GetBiblePublications(AppConstants.Media.DefaultLanguageCode, "Music", downloadAll, progress);
         }
         else if (!string.IsNullOrEmpty(languageCode))
         {
@@ -54,7 +55,7 @@ internal sealed class MusicPublicationFetchCoordinator
 
         // Retry logic: If downloadAll=true and non-English, retry fetching until all publications are harvested
         // For non-English languages, publications need to be fetched, so we retry with increasing delays
-        if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             publicationsData = await RetryFetchUntilHarvestedAsync(languageCode, progress, cancellationToken);
         }

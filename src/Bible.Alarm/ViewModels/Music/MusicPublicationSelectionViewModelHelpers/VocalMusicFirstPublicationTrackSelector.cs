@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -131,7 +132,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         // Step 2: Download the first publication with its first section (if sectioned) and tracks
         // This happens when language is selected (cascade)
         // EnsurePublicationExistsAsync reports: 50% (pub+section saved), 100% (tracks saved)
-        if (languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+        if (languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             Serilog.Log.Information("Downloading first vocal music publication {PublicationCode} (by ID order) for language {LanguageCode} (cascade)",
                 firstPublicationCode, language.Code);

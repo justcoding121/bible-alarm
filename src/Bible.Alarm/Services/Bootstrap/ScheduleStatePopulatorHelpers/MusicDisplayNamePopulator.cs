@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Models;
 using Serilog;
@@ -114,7 +115,7 @@ internal sealed class MusicDisplayNamePopulator
     {
         // No-language (melody) music: show "English" in the language row, same as Bible container for no-language publications.
         // Effective language for display and for publication modal is "E" (English + no-language pubs together).
-        if (lookupData.VocalLanguages.TryGetValue("E", out var englishLanguage))
+        if (lookupData.VocalLanguages.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguage))
         {
             scheduleStateItem.MusicLanguageName = englishLanguage.Name;
             scheduleStateItem.MusicLanguageDirection = englishLanguage.Direction ?? "ltr";

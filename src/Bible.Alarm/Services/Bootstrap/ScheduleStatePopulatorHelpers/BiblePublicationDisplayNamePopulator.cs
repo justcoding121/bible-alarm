@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -119,8 +120,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
         }
 
         // For language-bound publications, or fallback for non-language if no-language lookup didn't find it.
-        // Use "E" as effective language code for non-language publications to match LookupKeys collection.
-        var effectiveLanguageCode = isNonLanguagePublication ? "E" : biblePublication.LanguageCode;
+        // Use default language code for non-language publications to match LookupKeys collection.
+        var effectiveLanguageCode = isNonLanguagePublication ? AppConstants.Media.DefaultLanguageCode : biblePublication.LanguageCode;
         var publicationKey = (effectiveLanguageCode, biblePublication.PublicationCode);
         if (lookupData.Publications.TryGetValue(publicationKey, out var publication))
         {
@@ -181,8 +182,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
         }
 
         // For language-bound publications, or fallback for non-language if no-language lookup didn't find it.
-        // Use "E" as effective language code for non-language publications to match LookupKeys collection.
-        var effectiveLanguageCode = isNonLanguagePublication ? "E" : biblePublication.LanguageCode;
+        // Use default language code for non-language publications to match LookupKeys collection.
+        var effectiveLanguageCode = isNonLanguagePublication ? AppConstants.Media.DefaultLanguageCode : biblePublication.LanguageCode;
         var sectionKey = (effectiveLanguageCode, biblePublication.PublicationCode, sectionCode);
         if (lookupData.Sections.TryGetValue(sectionKey, out var sectionName))
         {
@@ -221,8 +222,8 @@ internal sealed class BiblePublicationDisplayNamePopulator
         }
 
         // For language-bound publications, or fallback for non-language if no-language lookup didn't find it.
-        // Use "E" as effective language code for non-language publications to match LookupKeys collection.
-        var effectiveLanguageCode = isNonLanguagePublication ? "E" : biblePublication.LanguageCode;
+        // Use default language code for non-language publications to match LookupKeys collection.
+        var effectiveLanguageCode = isNonLanguagePublication ? AppConstants.Media.DefaultLanguageCode : biblePublication.LanguageCode;
         var publicationKey = (effectiveLanguageCode, biblePublication.PublicationCode);
         if (lookupData.Publications.TryGetValue(publicationKey, out var publication))
         {

@@ -5,6 +5,7 @@ using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -567,10 +568,10 @@ public class ScheduleEffects(
     /// </summary>
     private static async Task<int?> GetMusicPublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
     {
-        // When MusicLanguageCode is null (no explicit language selected), default to "E" (English)
-        // for display and cascade purposes - this shows publications for "E" + no-language publications.
+        // When MusicLanguageCode is null (no explicit language selected), default to English
+        // for display and cascade purposes - this shows publications for default language + no-language publications.
         var languageCode = schedule.MusicLanguageCode;
-        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? "E" : languageCode;
+        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? AppConstants.Media.DefaultLanguageCode : languageCode;
         var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
         
         var query = db.PublicationLanguages
@@ -598,10 +599,10 @@ public class ScheduleEffects(
             return 0;
         }
 
-        // When MusicLanguageCode is null (no explicit language selected), default to "E" (English).
-        // For sectioned publications like "iam", count sections for "E" + no-language sections.
+        // When MusicLanguageCode is null (no explicit language selected), default to English.
+        // For sectioned publications like "iam", count sections for default language + no-language sections.
         var languageCode = schedule.MusicLanguageCode;
-        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? "E" : languageCode;
+        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? AppConstants.Media.DefaultLanguageCode : languageCode;
         var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
         
         var query = db.SectionLanguages

@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Threading;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -142,7 +143,7 @@ public sealed class BiblePublicationSelectionDataProvider
             
             // Retry logic: If downloadAll=true and non-English, retry fetching until all publications are harvested
             // For non-English languages, publications need to be fetched, so we retry with increasing delays
-            if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+            if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
             {
                 // Get cancellation token from progress tracker (same CTS from modal)
                 var cancellationToken = progress?.CancellationToken ?? CancellationToken.None;

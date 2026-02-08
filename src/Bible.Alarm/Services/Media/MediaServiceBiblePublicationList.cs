@@ -1,5 +1,6 @@
 #nullable enable annotations
 
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
@@ -254,7 +255,7 @@ internal static class MediaServiceBiblePublicationList
         // Step 4: Download publications based on downloadAll flag
         // - If downloadAll=true (publication modal opened): download all publications with their first sections and tracks
         // - If downloadAll=false (language selected): don't download here (will be done in cascade)
-        if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             // Show progress if callback provided
             progress?.SetIsVisible(true);

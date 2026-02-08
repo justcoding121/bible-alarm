@@ -1,6 +1,7 @@
 #nullable enable
 using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Stores;
 using Fluxor;
@@ -116,8 +117,8 @@ public sealed class MusicDisplayTextProvider
                 _ = LoadDefaultLanguageNameAsync();
             }
 
-            // Return "E" as fallback while loading
-            return "E";
+            // Return default language code as fallback while loading
+            return AppConstants.Media.DefaultLanguageCode;
         }
 
         return string.Empty;

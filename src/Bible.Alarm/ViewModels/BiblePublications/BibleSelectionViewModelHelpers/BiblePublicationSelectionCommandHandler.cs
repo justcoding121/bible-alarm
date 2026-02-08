@@ -6,6 +6,7 @@ using AutoMapper;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -83,15 +84,15 @@ public sealed class BiblePublicationSelectionCommandHandler
             // The caller sets IsNavigating; progress will be set by FetchProgressTracker only when a fetch actually happens.
 
             // No DB probing: the tapped publication row already knows whether it has LanguageId or not.
-            // If it's a publication without language FK, use "E" (English default) for cascade consistency.
+            // If it's a publication without language FK, use default language code for cascade consistency.
             // This ensures the schedule's language is consistent with what the publication modal will show.
             // Otherwise, prefer the currently-selected language in the UI, then fall back to schedule language.
             var languageCode = x.IsPublicationWithoutLanguage
-                ? "E"
+                ? AppConstants.Media.DefaultLanguageCode
                 : (currentSchedule.BiblePublicationLanguageCode ??
                    getCurrentLanguage()?.Code ??
                    x.PublicationLanguageCode ??
-                   "E");
+                   AppConstants.Media.DefaultLanguageCode);
 
             // Get language from the languages collection
             // If languageCode is empty/null, create a minimal language item (for publications without language)

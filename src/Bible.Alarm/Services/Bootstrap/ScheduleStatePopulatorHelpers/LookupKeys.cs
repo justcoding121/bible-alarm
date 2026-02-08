@@ -1,6 +1,7 @@
 #nullable enable
-using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 
@@ -29,9 +30,9 @@ internal sealed class LookupDataCollector
                 var br = schedule.BiblePublicationSchedule;
                 if (!string.IsNullOrWhiteSpace(br.PublicationCode))
                 {
-                    // For non-language publications (LanguageCode is null in DB), use "E" as default during bootstrap
+                    // For non-language publications (LanguageCode is null in DB), use default language code during bootstrap
                     // This ensures display names are populated for publications like "iam" that have LanguageId == null
-                    var effectiveLanguageCode = string.IsNullOrWhiteSpace(br.LanguageCode) ? "E" : br.LanguageCode;
+                    var effectiveLanguageCode = string.IsNullOrWhiteSpace(br.LanguageCode) ? AppConstants.Media.DefaultLanguageCode : br.LanguageCode;
                     
                     publicationKeys.Add((effectiveLanguageCode, br.PublicationCode));
                     var normalizedSectionCode = SectionCodeHelper.Normalize(br.SectionCode);

@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Serilog;
 
@@ -22,7 +23,7 @@ public sealed class BiblePublicationNavigationService(
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             
-            var languageCode = schedule.LanguageCode ?? "E";
+            var languageCode = schedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
             var nextSection = await playlistService.GetPreviousBiblePublicationSection(
                 languageCode,
                 schedule.PublicationCode,
@@ -57,7 +58,7 @@ public sealed class BiblePublicationNavigationService(
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             
-            var languageCode = schedule.LanguageCode ?? "E";
+            var languageCode = schedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
             var nextSection = await playlistService.GetNextBiblePublicationSection(
                 languageCode,
                 schedule.PublicationCode,
@@ -92,7 +93,7 @@ public sealed class BiblePublicationNavigationService(
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             
-            var languageCode = schedule.LanguageCode ?? "E";
+            var languageCode = schedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
             var prevTrack = await playlistService.GetPreviousBiblePublicationTrack(
                 languageCode,
                 schedule.PublicationCode,
@@ -128,7 +129,7 @@ public sealed class BiblePublicationNavigationService(
             using var scope = scopeFactory.CreateScope();
             var playlistService = scope.ServiceProvider.GetRequiredService<IPlaylistService>();
             
-            var languageCode = schedule.LanguageCode ?? "E";
+            var languageCode = schedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
             var nextTrack = await playlistService.GetNextBiblePublicationTrack(
                 languageCode,
                 schedule.PublicationCode,

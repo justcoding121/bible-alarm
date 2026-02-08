@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Models;
@@ -43,7 +44,7 @@ internal sealed class TrackSelectionResolver
         // If no tracks found, check if section exists and harvest tracks if needed
         if ((tracks == null || tracks.Count == 0) &&
             !string.IsNullOrEmpty(languageCode) &&
-            !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+            !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             logger.Information(
                 "TrackSelectionResolver: No tracks found for section={SectionCode}, publication={PublicationCode}, language={LanguageCode}. Attempting to fetch tracks...",

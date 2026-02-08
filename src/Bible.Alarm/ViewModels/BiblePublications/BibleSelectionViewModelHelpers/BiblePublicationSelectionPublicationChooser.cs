@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Linq;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -58,7 +59,7 @@ internal sealed class BiblePublicationSelectionPublicationChooser
             }
 
             // Publication has LanguageId - check if already harvested, then harvest if needed
-            if (languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+            if (languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {

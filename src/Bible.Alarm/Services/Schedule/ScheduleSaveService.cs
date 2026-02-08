@@ -2,6 +2,7 @@
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Stores.Models;
@@ -316,7 +317,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         if (model.BiblePublicationSchedule != null && !string.IsNullOrEmpty(model.BiblePublicationSchedule.PublicationCode))
         {
             var isNoLanguage = await mediaService.IsPublicationWithoutLanguageAsync(model.BiblePublicationSchedule.PublicationCode);
-            if (isNoLanguage && model.BiblePublicationSchedule.LanguageCode == "E")
+            if (isNoLanguage && model.BiblePublicationSchedule.LanguageCode == AppConstants.Media.DefaultLanguageCode)
             {
                 logger.Information("NormalizeLanguageCodeForNoLanguagePublicationsAsync: Setting BiblePublicationSchedule.LanguageCode to null for no-language publication {PublicationCode}",
                     model.BiblePublicationSchedule.PublicationCode);
@@ -328,7 +329,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         if (model.Music != null && !string.IsNullOrEmpty(model.Music.PublicationCode))
         {
             var isNoLanguage = await mediaService.IsPublicationWithoutLanguageAsync(model.Music.PublicationCode);
-            if (isNoLanguage && model.Music.LanguageCode == "E")
+            if (isNoLanguage && model.Music.LanguageCode == AppConstants.Media.DefaultLanguageCode)
             {
                 logger.Information("NormalizeLanguageCodeForNoLanguagePublicationsAsync: Setting Music.LanguageCode to null for no-language publication {PublicationCode}",
                     model.Music.PublicationCode);

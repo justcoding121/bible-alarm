@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
 
@@ -33,7 +34,7 @@ internal sealed class SectionListLoader
         
         // Retry logic: If non-English language, retry fetching until all sections are harvested
         // For non-English languages, sections need to be fetched, so we retry with increasing delays
-        if (!string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             // First, check if sections are already harvested (without showing progress)
             // This prevents progress bar from flashing at 0% when data is already available

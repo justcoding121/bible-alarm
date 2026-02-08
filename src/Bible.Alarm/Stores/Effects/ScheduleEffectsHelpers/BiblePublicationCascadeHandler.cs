@@ -2,6 +2,7 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
@@ -614,7 +615,7 @@ public sealed class BiblePublicationCascadeHandler
         // - Otherwise, preserve language (language can only be changed via CategorySelectionAction or explicit user selection)
         if (publicationWithoutLanguage)
         {
-            updatedSchedule.BiblePublicationLanguageCode = "E";
+            updatedSchedule.BiblePublicationLanguageCode = AppConstants.Media.DefaultLanguageCode;
             updatedSchedule.BiblePublicationLanguageName = null;
             updatedSchedule.BiblePublicationLanguageDirection = "ltr";
             logger.Debug("BiblePublicationCascadeHandler: Setting language to English default for no-language publication={PublicationCode}",

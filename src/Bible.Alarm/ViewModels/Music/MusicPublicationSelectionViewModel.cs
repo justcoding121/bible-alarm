@@ -5,6 +5,7 @@ using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -329,8 +330,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         if (languageCode == null)
         {
             var languages = await mediaService.GetVocalMusicLanguages();
-            // Default to English ("E") for Vocals, fallback to first available if English not present
-            languageCode = languages.ContainsKey("E") ? "E" : languages.FirstOrDefault().Key;
+            // Default to English for Vocals, fallback to first available if English not present
+            languageCode = languages.ContainsKey(AppConstants.Media.DefaultLanguageCode) ? AppConstants.Media.DefaultLanguageCode : languages.FirstOrDefault().Key;
             if (string.IsNullOrEmpty(languageCode))
             {
                 return;
@@ -377,11 +378,11 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             var currentSchedule = state.Value.CurrentSchedule;
             var currentLanguageCode = currentSchedule?.MusicLanguageCode;
 
-            // For melody (MusicLanguageCode null), use effective language "E" so the language modal
+            // For melody (MusicLanguageCode null), use effective default language so the language modal
             // marks English as selected and scroll-to-selected works (same UX as Bible language modal).
             var effectiveLanguageCode = !string.IsNullOrEmpty(currentLanguageCode)
                 ? currentLanguageCode
-                : "E";
+                : AppConstants.Media.DefaultLanguageCode;
 
             var tempCurrent = new AlarmMusic { LanguageCode = effectiveLanguageCode };
 
@@ -525,7 +526,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
                 // If no language from schedule, default to English
                 if (languageToSelect == null)
                 {
-                    languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == "E")
+                    languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == AppConstants.Media.DefaultLanguageCode)
                         ?? propertyManager.Languages.FirstOrDefault();
                 }
 

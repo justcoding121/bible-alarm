@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.BiblePublications;
@@ -371,9 +372,9 @@ public static class ApplicationReducer
             if (isNoLanguagePublication)
             {
                 // No-language publication selected - reset language to English default.
-                // This ensures cascade consistency: the language row shows "E" and publications modal
+                // This ensures cascade consistency: the language row shows the default language and publications modal
                 // will show English publications + non-languaged publications.
-                updatedCurrentSchedule.BiblePublicationLanguageCode = "E";
+                updatedCurrentSchedule.BiblePublicationLanguageCode = AppConstants.Media.DefaultLanguageCode;
                 updatedCurrentSchedule.BiblePublicationLanguageName = null;
                 updatedCurrentSchedule.BiblePublicationLanguageDirection = "ltr";
             }

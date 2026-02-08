@@ -1,6 +1,7 @@
 #nullable enable
 using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Services.Media;
 using Bible.Alarm.Stores;
@@ -88,8 +89,10 @@ public sealed class BiblePublicationDisplayTextProvider
             return currentSchedule.BiblePublicationLanguageCode!;
         }
 
-        logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - LanguageName and LanguageCode are empty. Returning empty string.");
-        return string.Empty;
+        // When LanguageCode is null (non-language publications like "iam"), default to English for display
+        logger.Debug("BibleSelectionContainerViewModel: LanguageDisplayText getter - LanguageCode is null, defaulting to '{DefaultLanguage}' (English)",
+            AppConstants.Media.DefaultLanguageCode);
+        return AppConstants.Media.DefaultLanguageCode;
     }
 
     public string GetPublicationDisplayText()
@@ -214,37 +217,13 @@ public sealed class BiblePublicationDisplayTextProvider
 
     /// <summary>
     /// Determines if the language row should be visible.
-    /// Returns false when ALL publications in the category have LanguageId == null (no language FK).
-    /// This is data-driven - checks if PublicationLanguages table has any entries for this category.
-    /// If PublicationLanguages has entries, it means there are publications with languages.
-    /// If PublicationLanguages is empty for this category, it means all publications have LanguageId == null.
+    /// Language row is always visible. When LanguageCode is null (non-language publications like "iam"),
+    /// it defaults to "E" (English) for display purposes.
     /// </summary>
     public bool GetIsLanguageVisible()
     {
-        var currentSchedule = state.Value.CurrentSchedule;
-        if (currentSchedule == null)
-        {
-            // Default to visible
-            return true;
-        }
-
-        var categoryName = currentSchedule.BiblePublicationCategoryName;
-        if (string.IsNullOrWhiteSpace(categoryName))
-        {
-            // No category selected, show language row
-            return true;
-        }
-
-        // Avoid DB calls in a UI getter.
-        // Language row is hidden only for the special case where a specific publication is selected
-        // and it has no language (LanguageCode is empty) - typically instrumental music publications.
-        // Otherwise keep it visible; selectability is handled elsewhere.
-        if (string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
-        {
-            return true;
-        }
-
-        return !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode);
+        // Language row is always visible
+        return true;
     }
 
     /// <summary>

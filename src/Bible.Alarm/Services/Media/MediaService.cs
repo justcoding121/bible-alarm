@@ -1,5 +1,6 @@
 #nullable enable annotations
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
@@ -192,7 +193,7 @@ public sealed class MediaService(
         //
         // English sections are pre-harvested by the harvester.
         if (!string.IsNullOrEmpty(languageCode) &&
-            !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase) &&
+            !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase) &&
             progress != null)
         {
             Log.Information("Ensuring all sections are downloaded for publication {PublicationCode} in language {LanguageCode}", 
@@ -493,7 +494,7 @@ public sealed class MediaService(
         // Step 4: Download publications based on downloadAll flag
         // - If downloadAll=true (publication modal opened): download all publications with their first sections and tracks
         // - If downloadAll=false (language selected): don't download here (will be done in cascade)
-        if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals("E", StringComparison.OrdinalIgnoreCase))
+        if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
             // Fire and forget - don't block the UI
             _ = Task.Run(async () =>

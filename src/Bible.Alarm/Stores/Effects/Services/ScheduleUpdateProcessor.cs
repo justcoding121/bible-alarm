@@ -4,6 +4,7 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -204,7 +205,7 @@ public sealed class ScheduleUpdateProcessor
         if (model.Music != null && !string.IsNullOrEmpty(model.Music.PublicationCode))
         {
             var isNoLanguage = await mediaService.IsPublicationWithoutLanguageAsync(model.Music.PublicationCode);
-            if (isNoLanguage && model.Music.LanguageCode == "E")
+            if (isNoLanguage && model.Music.LanguageCode == AppConstants.Media.DefaultLanguageCode)
             {
                 Log.Information("NormalizeLanguageCodeForNoLanguagePublicationsAsync: Setting Music.LanguageCode to null for no-language publication {PublicationCode}",
                     model.Music.PublicationCode);

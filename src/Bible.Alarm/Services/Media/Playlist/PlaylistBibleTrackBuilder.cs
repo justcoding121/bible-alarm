@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -178,7 +179,7 @@ public class PlaylistBiblePublicationTrackBuilder
         logger.Debug("[PlaylistBuild] Sectioned schedule: PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}",
             biblePublicationSchedule.PublicationCode, biblePublicationSchedule.SectionCode, biblePublicationSchedule.TrackCode);
 
-        var languageCode = biblePublicationSchedule.LanguageCode ?? "E";
+        var languageCode = biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
         var tracks = await mediaService.GetBiblePublicationTracks(
             languageCode,
             biblePublicationSchedule.PublicationCode,
@@ -209,7 +210,7 @@ public class PlaylistBiblePublicationTrackBuilder
         // For no-language publications, we use "E" for both URL construction and API response parsing
         var isNoLanguagePublication = biblePublicationService != null &&
             await biblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
-        var effectiveLanguageCode = isNoLanguagePublication ? "E" : (biblePublicationSchedule.LanguageCode ?? "E");
+        var effectiveLanguageCode = isNoLanguagePublication ? AppConstants.Media.DefaultLanguageCode : (biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode);
 
         // Compute URL on-demand using TrackMetadata
         var trackMetadata = new TrackMetadata
@@ -286,7 +287,7 @@ public class PlaylistBiblePublicationTrackBuilder
             throw new InvalidOperationException("IBiblePublicationService is required for non-sectioned publications");
         }
 
-        var languageCode = biblePublicationSchedule.LanguageCode ?? "E";
+        var languageCode = biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
         var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(
             languageCode,
             biblePublicationSchedule.PublicationCode);
@@ -357,7 +358,7 @@ public class PlaylistBiblePublicationTrackBuilder
         // Check if this is a no-language publication (e.g., instrumental music)
         var isNoLanguagePublication = biblePublicationService != null &&
             await biblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
-        var effectiveLanguageCode = isNoLanguagePublication ? "E" : (biblePublicationSchedule.LanguageCode ?? "E");
+        var effectiveLanguageCode = isNoLanguagePublication ? AppConstants.Media.DefaultLanguageCode : (biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode);
 
         var trackMetadata = new TrackMetadata
         {
@@ -427,7 +428,7 @@ public class PlaylistBiblePublicationTrackBuilder
         string currentTrackCode,
         Func<string, string, string?, string, Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>>> getNextBiblePublicationTrackAsync)
     {
-        var languageCode = biblePublicationSchedule.LanguageCode ?? "E";
+        var languageCode = biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
         var next = await getNextBiblePublicationTrackAsync(
             languageCode,
             biblePublicationSchedule.PublicationCode,
@@ -446,7 +447,7 @@ public class PlaylistBiblePublicationTrackBuilder
         // Check if this is a no-language publication (e.g., instrumental music)
         var isNoLanguagePublication = biblePublicationService != null &&
             await biblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
-        var effectiveLanguageCode = isNoLanguagePublication ? "E" : (biblePublicationSchedule.LanguageCode ?? "E");
+        var effectiveLanguageCode = isNoLanguagePublication ? AppConstants.Media.DefaultLanguageCode : (biblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode);
 
         var trackMetadata = new TrackMetadata
         {

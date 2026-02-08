@@ -2,6 +2,7 @@
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -572,7 +573,7 @@ public sealed class MusicCascadeHandler
     private static async Task<int?> GetMusicPublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
     {
         var languageCode = schedule.MusicLanguageCode;
-        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? "E" : languageCode;
+        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? AppConstants.Media.DefaultLanguageCode : languageCode;
         var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
 
         var query = db.PublicationLanguages
@@ -602,7 +603,7 @@ public sealed class MusicCascadeHandler
         }
 
         var languageCode = schedule.MusicLanguageCode;
-        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? "E" : languageCode;
+        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? AppConstants.Media.DefaultLanguageCode : languageCode;
         var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
 
         var query = db.SectionLanguages

@@ -4,6 +4,7 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Playlist;
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
@@ -309,7 +310,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             return;
         }
 
-        var languageCode = schedule.BiblePublicationSchedule.LanguageCode ?? "E";
+        var languageCode = schedule.BiblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
         var next = await trackNavigator.GetNextBiblePublicationTrack(
             languageCode,
             schedule.BiblePublicationSchedule.PublicationCode,
@@ -332,7 +333,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             return;
         }
 
-        var languageCode = schedule.BiblePublicationSchedule.LanguageCode ?? "E";
+        var languageCode = schedule.BiblePublicationSchedule.LanguageCode ?? AppConstants.Media.DefaultLanguageCode;
         var previous = await trackNavigator.GetPreviousBiblePublicationTrack(
             languageCode,
             schedule.BiblePublicationSchedule.PublicationCode,

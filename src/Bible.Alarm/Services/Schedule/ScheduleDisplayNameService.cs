@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -424,7 +425,7 @@ public sealed class ScheduleDisplayNameService : IScheduleDisplayNameService
             try
             {
                 var languagesDict = await mediaService.GetVocalMusicLanguages();
-                if (languagesDict.TryGetValue("E", out var englishLanguage))
+                if (languagesDict.TryGetValue(AppConstants.Media.DefaultLanguageCode, out var englishLanguage))
                 {
                     scheduleStateItem.MusicLanguageName = englishLanguage.Name;
                     scheduleStateItem.MusicLanguageDirection = englishLanguage.Direction ?? "ltr";

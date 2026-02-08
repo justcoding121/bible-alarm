@@ -2,6 +2,7 @@
 using System.Linq;
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -175,7 +176,7 @@ public sealed class BiblePublicationSelectionItemSelector
             {
                 // For non-English languages, harvest ONLY this publication (first section + its tracks for sectioned publications).
                 // Progress is reported by EnsurePublicationExistsAsync: 50% (pub+section saved), 100% (tracks saved)
-                if (languageContentService != null && !language.Code.Equals("E", StringComparison.OrdinalIgnoreCase))
+                if (languageContentService != null && !language.Code.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
                 {
                     // Set progress to 0% immediately when we know a fetch will happen
                     progress?.UpdateProgress(0.0);
