@@ -314,7 +314,8 @@
                             Radius="4" 
                             Opacity="0.1" />
                 </Border.Shadow>
-                <Entry Margin="0"
+                <Entry x:Name="ScheduleNameEntry"
+                       Margin="0"
                        MaxLength="30"
                        HorizontalOptions="FillAndExpand"
                        Placeholder="Schedule Name"

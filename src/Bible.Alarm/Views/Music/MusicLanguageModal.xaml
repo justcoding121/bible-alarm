@@ -25,12 +25,16 @@
     </ContentPage.Resources>
     <ContentPage.Content>
         <Grid
+            x:Name="MainGrid"
             Margin="{OnPlatform Default='0', iOS='0,20,0,0', Android='0,24,0,0'}"
             BackgroundColor="{DynamicResource BackgroundColor}"
             ColumnSpacing="0"
             RowSpacing="0"
             HorizontalOptions="Fill"
             VerticalOptions="Fill">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnGridTapped" />
+            </Grid.GestureRecognizers>
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="auto" />
@@ -66,6 +70,7 @@
             <!-- Enhanced Search Bar -->
             <!-- iOS: SearchBar without Border wrapper to avoid double-border effect -->
             <SearchBar
+                x:Name="LanguageSearchBarIOS"
                 Grid.Row="1"
                 Margin="16,8,16,0"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
@@ -96,6 +101,7 @@
                             Radius="4" />
                 </Border.Shadow>
                 <SearchBar
+                    x:Name="LanguageSearchBarNonIOS"
                     Margin="8"
                     BackgroundColor="Transparent"
                     MinimumHeightRequest="50"

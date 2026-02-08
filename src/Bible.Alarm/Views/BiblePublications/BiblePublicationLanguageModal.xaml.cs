@@ -75,6 +75,23 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         }
     }
 
+    private void OnGridTapped(object? sender, TappedEventArgs e)
+    {
+        UnfocusAnyFocusedSearchBar();
+    }
+
+    private void UnfocusAnyFocusedSearchBar()
+    {
+        if (LanguageSearchBarIOS?.IsFocused == true)
+        {
+            LanguageSearchBarIOS.Unfocus();
+        }
+        else if (LanguageSearchBarNonIOS?.IsFocused == true)
+        {
+            LanguageSearchBarNonIOS.Unfocus();
+        }
+    }
+
     private async void OnLanguageItemTapped(object? sender, TappedEventArgs e)
     {
         // Cancel any ongoing scroll operation to prevent race conditions

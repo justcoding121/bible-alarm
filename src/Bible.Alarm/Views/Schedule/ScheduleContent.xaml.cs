@@ -1,4 +1,6 @@
 #nullable enable
+using System.Linq;
+
 namespace Bible.Alarm.Views.Schedule;
 
 [XamlCompilation(XamlCompilationOptions.Compile)]
@@ -150,6 +152,29 @@ public partial class ScheduleContent : ContentView
         if (DeleteButtonNoEffects != null && platform == DevicePlatform.WinUI)
         {
             DeleteButtonNoEffects.IsVisible = false;
+        }
+    }
+
+    private void OnScrollViewTapped(object? sender, TappedEventArgs e)
+    {
+        UnfocusAnyFocusedEntry();
+    }
+
+    private void UnfocusAnyFocusedEntry()
+    {
+        if (ScrollContentGrid == null)
+        {
+            return;
+        }
+
+        var scheduleDetailsContainer = ScrollContentGrid.Children
+            .OfType<ScheduleDetailsContainer>()
+            .FirstOrDefault();
+
+        var entry = scheduleDetailsContainer?.GetScheduleNameEntry();
+        if (entry?.IsFocused == true)
+        {
+            entry.Unfocus();
         }
     }
 }

@@ -30,6 +30,23 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
         Appearing += OnAppearing;
     }
 
+    private void OnGridTapped(object? sender, TappedEventArgs e)
+    {
+        UnfocusAnyFocusedSearchBar();
+    }
+
+    private void UnfocusAnyFocusedSearchBar()
+    {
+        if (LanguageSearchBarIOS?.IsFocused == true)
+        {
+            LanguageSearchBarIOS.Unfocus();
+        }
+        else if (LanguageSearchBarNonIOS?.IsFocused == true)
+        {
+            LanguageSearchBarNonIOS.Unfocus();
+        }
+    }
+
     private async void OnLanguageItemTapped(object? sender, TappedEventArgs e)
     {
         try { cancellationTokenSource.Cancel(); } catch { }

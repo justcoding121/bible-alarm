@@ -7,5 +7,7 @@ public partial class ScheduleDetailsContainer : ContentView
     {
         InitializeComponent();
     }
+
+    public Entry? GetScheduleNameEntry() => ScheduleNameEntry;
 }
 
