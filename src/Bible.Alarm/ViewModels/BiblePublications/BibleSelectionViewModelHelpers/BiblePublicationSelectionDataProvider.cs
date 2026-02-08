@@ -152,17 +152,22 @@ public sealed class BiblePublicationSelectionDataProvider
                 // This prevents progress bar from flashing at 0% when data is already available
                 var initialPublications = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
                 
-                // Check if ALL publications are already harvested (not placeholders)
-                var allHarvestedInitially = initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p => 
+                // Get expected publication count from PublicationLanguages discovery table
+                var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, currentCategoryName);
+                var actualPublicationCount = initialPublications?.Values.Count ?? 0;
+                
+                // Check if we have ALL expected publications AND they're all harvested (not placeholders)
+                var hasAllExpectedPublications = actualPublicationCount >= expectedPublicationCount;
+                var allPublicationsHarvested = hasAllExpectedPublications && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p => 
                     !string.IsNullOrEmpty(p.Name) && 
                     p.Name != p.PublicationCode && 
                     p.Id > 0);
 
-                if (allHarvestedInitially)
+                if (allPublicationsHarvested)
                 {
-                    // Publications are already harvested - use the initial query result, no need to show progress
-                    Log.Debug("PopulatePublicationsAsync: All publications already harvested for language={LanguageCode}, category={CategoryName}, skipping fetch",
-                        languageCode, currentCategoryName);
+                    // All expected publications are already harvested - use the initial query result, no need to show progress
+                    Log.Debug("PopulatePublicationsAsync: All {ExpectedCount} expected publications already harvested for language={LanguageCode}, category={CategoryName}, skipping fetch",
+                        expectedPublicationCount, languageCode, currentCategoryName);
                     publicationsData = initialPublications;
                 }
                 else
@@ -214,35 +219,47 @@ public sealed class BiblePublicationSelectionDataProvider
                             // Re-query to check if publications are now harvested (no progress needed for re-query)
                             var reQueriedData = await mediaService.GetBiblePublications(languageCode, currentCategoryName, downloadAll: false, null);
                             
-                            // Check if ALL publications are harvested (not placeholders)
+                            // Get expected publication count to verify we have all publications
+                            var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, currentCategoryName);
+                            var retryActualCount = reQueriedData?.Values.Count ?? 0;
+                            
+                            // Check if we have ALL expected publications AND they're all harvested (not placeholders)
                             // A publication is harvested if it has a name that's different from its code and has an ID > 0
-                            var hasPublications = reQueriedData.Values.Count > 0;
-                            var allHarvestedCheck = hasPublications && reQueriedData.Values.All(p => 
+                            var retryHasAllExpected = retryActualCount >= retryExpectedCount;
+                            var retryAllHarvested = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(p => 
                                 !string.IsNullOrEmpty(p.Name) && 
                                 p.Name != p.PublicationCode && 
                                 p.Id > 0);
                             
-                            if (allHarvestedCheck)
+                            if (retryAllHarvested)
                             {
                                 publicationsData = reQueriedData;
                                 allHarvested = true;
-                                Log.Information("PopulatePublicationsAsync: All {Count} publications harvested on attempt {Attempt} for language={LanguageCode}",
-                                    publicationsData.Count, attempt, languageCode);
+                                Log.Information("PopulatePublicationsAsync: All {ExpectedCount} expected publications harvested on attempt {Attempt} for language={LanguageCode}, category={CategoryName}",
+                                    retryExpectedCount, attempt, languageCode, currentCategoryName);
                             }
                             else
                             {
-                                // Log which publications are still placeholders for debugging
-                                var placeholders = reQueriedData.Values.Where(p => 
-                                    string.IsNullOrEmpty(p.Name) || 
-                                    p.Name == p.PublicationCode || 
-                                    p.Id == 0).Select(p => p.PublicationCode).ToList();
-                                
-                                if (placeholders.Count > 0)
+                                // Log which publications are still placeholders or missing for debugging
+                                if (reQueriedData != null)
                                 {
-                                    Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: Still waiting for {Count} publications to be harvested: {Placeholders}",
-                                        attempt, placeholders.Count, string.Join(", ", placeholders));
+                                    var placeholders = reQueriedData.Values.Where(p => 
+                                        string.IsNullOrEmpty(p.Name) || 
+                                        p.Name == p.PublicationCode || 
+                                        p.Id == 0).Select(p => p.PublicationCode).ToList();
+                                    
+                                    if (placeholders.Count > 0)
+                                    {
+                                        Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: Still waiting for {Count} publications to be harvested: {Placeholders}",
+                                            attempt, placeholders.Count, string.Join(", ", placeholders));
+                                    }
+                                    else if (!retryHasAllExpected)
+                                    {
+                                        Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} publications found, will retry",
+                                            attempt, retryActualCount, retryExpectedCount);
+                                    }
                                 }
-                                else if (!hasPublications)
+                                else
                                 {
                                     Log.Debug("PopulatePublicationsAsync: Attempt {Attempt}: No publications found yet, will retry",
                                         attempt);

@@ -598,4 +598,103 @@ public sealed class MediaService(
         // mediaIndexService (MediaIndexService) and IServiceScopeFactory are singletons
         // and should not be disposed here as they are managed by the DI container
     }
+
+    public async Task<int> GetExpectedSectionCountAsync(string languageCode, string publicationCode)
+    {
+        await mediaIndexService.Verify();
+        
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+        
+        var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
+        
+        var query = db.SectionLanguages
+            .AsNoTracking()
+            .Where(sl => sl.PublicationCode == publicationCode);
+        
+        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
+        {
+            // Count sections for the selected language + sections without language FK
+            query = query.Where(sl =>
+                (sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode) ||
+                sl.LanguageId == null);
+        }
+        else
+        {
+            query = query.Where(sl => sl.LanguageId == null);
+        }
+        
+        return await query
+            .Select(sl => sl.SectionCode)
+            .Distinct()
+            .CountAsync();
+    }
+
+    public async Task<int> GetExpectedPublicationCountAsync(string languageCode, string categoryName)
+    {
+        await mediaIndexService.Verify();
+        
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+        
+        var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
+        
+        var query = db.PublicationLanguages
+            .AsNoTracking()
+            .Where(pl => pl.Category != null && pl.Category.CategoryName == categoryName);
+        
+        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
+        {
+            // Count publications for the selected language + publications without language FK
+            query = query.Where(pl =>
+                (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||
+                pl.LanguageId == null);
+        }
+        else
+        {
+            query = query.Where(pl => pl.LanguageId == null);
+        }
+        
+        var publicationCodes = await query
+            .Select(pl => pl.PublicationCode)
+            .ToListAsync();
+        
+        if (publicationCodes.Count == 0)
+        {
+            return 0;
+        }
+        
+        // Deduplicate in-memory (including drama canonicalization)
+        var unique = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var code in publicationCodes)
+        {
+            var lower = code.ToLowerInvariant();
+            if (PublicationTypeHelper.IsDrama(lower))
+            {
+                unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? "Dramas" : "DramaticBibleReadings");
+            }
+            else
+            {
+                unique.Add(code);
+            }
+        }
+        
+        return unique.Count;
+    }
+
+    public async Task<int> GetExpectedSectionCountForNoLanguagePublicationAsync(string publicationCode)
+    {
+        await mediaIndexService.Verify();
+        
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+        
+        // For no-language publications, count sections where LanguageId == null
+        return await db.SectionLanguages
+            .AsNoTracking()
+            .Where(sl => sl.PublicationCode == publicationCode && sl.LanguageId == null)
+            .Select(sl => sl.SectionCode)
+            .Distinct()
+            .CountAsync();
+    }
 }

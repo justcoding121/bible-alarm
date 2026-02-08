@@ -17,11 +17,13 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
 internal sealed class BibleLanguageDiscoveryHarvester : BaseHarvester
 {
     private readonly IDataPersister? dataPersister;
+    private readonly SignLanguageChecker signLanguageChecker;
 
     public BibleLanguageDiscoveryHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister)
         : base(logger, downloadUtility)
     {
         this.dataPersister = dataPersister;
+        signLanguageChecker = new SignLanguageChecker(logger, downloadUtility);
     }
 
     /// <summary>
@@ -43,6 +45,15 @@ internal sealed class BibleLanguageDiscoveryHarvester : BaseHarvester
             if (allDiscoveredLanguages == null || allDiscoveredLanguages.Count == 0)
             {
                 Logger.Warning("No languages discovered for publication {PublicationCode}. Skipping.", publicationCode);
+                continue;
+            }
+
+            // Filter out sign languages
+            allDiscoveredLanguages = await signLanguageChecker.FilterSignLanguagesAsync(allDiscoveredLanguages);
+
+            if (allDiscoveredLanguages.Count == 0)
+            {
+                Logger.Warning("No non-sign languages discovered for publication {PublicationCode}. Skipping.", publicationCode);
                 continue;
             }
 
@@ -89,24 +100,30 @@ internal sealed class BibleLanguageDiscoveryHarvester : BaseHarvester
 
                 if (bookLanguages != null && bookLanguages.Count > 0)
                 {
-                    // Save section languages for this book
-                    // The alllangs=1 response already lists only available languages, so no verification needed
-                    if (dataPersister != null)
-                    {
-                        await dataPersister.SaveSectionLanguages(publicationCode, bookNum.ToString(), bookLanguages);
-                    }
+                    // Filter out sign languages
+                    bookLanguages = await signLanguageChecker.FilterSignLanguagesAsync(bookLanguages);
 
-                    // Merge languages into consolidated dictionary
-                    foreach (var lang in bookLanguages)
+                    if (bookLanguages.Count > 0)
                     {
-                        if (!allDiscoveredLanguages.ContainsKey(lang.Key))
+                        // Save section languages for this book
+                        // The alllangs=1 response already lists only available languages, so no verification needed
+                        if (dataPersister != null)
                         {
-                            allDiscoveredLanguages[lang.Key] = lang.Value;
+                            await dataPersister.SaveSectionLanguages(publicationCode, bookNum.ToString(), bookLanguages);
                         }
-                    }
 
-                    Logger.Debug("Book {BookNum}: Discovered {LanguageCount} languages (total unique: {TotalLanguages})",
-                        bookNum, bookLanguages.Count, allDiscoveredLanguages.Count);
+                        // Merge languages into consolidated dictionary
+                        foreach (var lang in bookLanguages)
+                        {
+                            if (!allDiscoveredLanguages.ContainsKey(lang.Key))
+                            {
+                                allDiscoveredLanguages[lang.Key] = lang.Value;
+                            }
+                        }
+
+                        Logger.Debug("Book {BookNum}: Discovered {LanguageCount} languages (total unique: {TotalLanguages})",
+                            bookNum, bookLanguages.Count, allDiscoveredLanguages.Count);
+                    }
                 }
             }
             catch (System.Net.Http.HttpRequestException ex) when (ex.Message.Contains("Response status code"))

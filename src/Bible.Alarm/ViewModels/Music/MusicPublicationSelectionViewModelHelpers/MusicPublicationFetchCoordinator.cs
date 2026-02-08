@@ -78,17 +78,22 @@ internal sealed class MusicPublicationFetchCoordinator
         // This prevents progress bar from flashing at 0% when data is already available
         var initialPublications = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, null);
         
-        // Check if ALL publications are already harvested (not placeholders)
-        var allHarvestedInitially = initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p => 
+        // Get expected publication count from PublicationLanguages discovery table
+        var expectedPublicationCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, "Music");
+        var actualPublicationCount = initialPublications?.Values.Count ?? 0;
+        
+        // Check if we have ALL expected publications AND they're all harvested (not placeholders)
+        var hasAllExpectedPublications = actualPublicationCount >= expectedPublicationCount;
+        var allPublicationsHarvested = hasAllExpectedPublications && initialPublications != null && initialPublications.Values.Count > 0 && initialPublications.Values.All(p => 
             !string.IsNullOrEmpty(p.Name) && 
             p.Name != p.PublicationCode && 
             p.Id > 0);
 
-        if (allHarvestedInitially)
+        if (allPublicationsHarvested)
         {
-            // Publications are already harvested - use the initial query result, no need to show progress
-            Serilog.Log.Debug("PopulateSongPublications: All publications already harvested for language={LanguageCode}, category=Music, skipping fetch",
-                languageCode);
+            // All expected publications are already harvested - use the initial query result, no need to show progress
+            Serilog.Log.Debug("PopulateSongPublications: All {ExpectedCount} expected publications already harvested for language={LanguageCode}, category=Music, skipping fetch",
+                expectedPublicationCount, languageCode);
             return initialPublications;
         }
 
@@ -134,24 +139,28 @@ internal sealed class MusicPublicationFetchCoordinator
                     // Re-query to check if publications are now harvested (no progress needed for re-query)
                     var reQueriedData = await mediaService.GetBiblePublications(languageCode, "Music", downloadAll: false, null);
 
-                    // Check if ALL publications are harvested (not placeholders)
+                    // Get expected publication count to verify we have all publications
+                    var retryExpectedCount = await mediaService.GetExpectedPublicationCountAsync(languageCode, "Music");
+                    var retryActualCount = reQueriedData?.Values.Count ?? 0;
+                    
+                    // Check if we have ALL expected publications AND they're all harvested (not placeholders)
                     // A publication is harvested if it has a name that's different from its code and has an ID > 0
-                    var hasPublications = reQueriedData != null && reQueriedData.Values.Count > 0;
-                    var allHarvestedCheck = hasPublications && reQueriedData!.Values.All(p =>
+                    var retryHasAllExpected = retryActualCount >= retryExpectedCount;
+                    var retryAllHarvested = retryHasAllExpected && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(p =>
                         !string.IsNullOrEmpty(p.Name) &&
                         p.Name != p.PublicationCode &&
                         p.Id > 0);
 
-                    if (allHarvestedCheck)
+                    if (retryAllHarvested)
                     {
                         publicationsData = reQueriedData;
                         allHarvested = true;
-                        Serilog.Log.Information("PopulateSongPublications: All {Count} publications harvested on attempt {Attempt} for language={LanguageCode}",
-                            publicationsData?.Count ?? 0, attempt, languageCode);
+                        Serilog.Log.Information("PopulateSongPublications: All {ExpectedCount} expected publications harvested on attempt {Attempt} for language={LanguageCode}",
+                            retryExpectedCount, attempt, languageCode);
                     }
                     else
                     {
-                        // Log which publications are still placeholders for debugging
+                        // Log which publications are still placeholders or missing for debugging
                         if (reQueriedData != null)
                         {
                             var placeholders = reQueriedData.Values.Where(p =>
@@ -164,11 +173,16 @@ internal sealed class MusicPublicationFetchCoordinator
                                 Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: Still waiting for {Count} publications to be harvested: {Placeholders}",
                                     attempt, placeholders.Count, string.Join(", ", placeholders));
                             }
-                            else if (!hasPublications)
+                            else if (!retryHasAllExpected)
                             {
-                                Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: No publications found yet, will retry",
-                                    attempt);
+                                Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} publications found, will retry",
+                                    attempt, retryActualCount, retryExpectedCount);
                             }
+                        }
+                        else
+                        {
+                            Serilog.Log.Debug("PopulateSongPublications: Attempt {Attempt}: No publications found yet, will retry",
+                                attempt);
                         }
 
                         // Re-show overlay after GetBiblePublications completes (it hides it in finally block)

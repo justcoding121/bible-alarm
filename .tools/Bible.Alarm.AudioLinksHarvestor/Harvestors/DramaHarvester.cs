@@ -21,11 +21,13 @@ internal class DramaHarvester : BaseHarvester
 {
     private const int MaxConcurrentSectionDownloads = 8;
     private readonly IDataPersister? dataPersister;
+    private readonly SignLanguageChecker signLanguageChecker;
 
     public DramaHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister = null)
         : base(logger, downloadUtility)
     {
         this.dataPersister = dataPersister;
+        signLanguageChecker = new SignLanguageChecker(logger, downloadUtility);
     }
 
     /// <summary>
@@ -91,8 +93,20 @@ internal class DramaHarvester : BaseHarvester
             return;
         }
 
+        // Filter out sign languages
+        languagesFromCategory = await signLanguageChecker.FilterSignLanguagesAsync(languagesFromCategory);
+
+        if (languagesFromCategory.Count == 0)
+        {
+            Logger.Warning("No non-sign languages found for publication {PublicationCode}. Skipping.", publicationCode);
+            return;
+        }
+
         // Extract language info from English category response
         var discoveredLanguages = DramaCategoryLanguageExtractor.ExtractLanguageInfoFromCategory(jsonString, languagesFromCategory, Logger);
+
+        // Filter out sign languages from discovered languages
+        discoveredLanguages = await signLanguageChecker.FilterSignLanguagesAsync(discoveredLanguages);
 
         // Save discovered languages for on-demand fetching (excluding English)
         // The category API already lists only available languages, so no verification needed

@@ -22,11 +22,20 @@ public sealed class MusicDisplayTextProvider
     private string? lastTrackLanguageCode;
     private string? cachedDefaultLanguageName;
     private bool isLoadingDefaultLanguageName;
+    private Action<string>? propertyChangeNotifier;
 
     public MusicDisplayTextProvider(IState<ApplicationState> state, IMediaService mediaService)
     {
         this.state = state;
         this.mediaService = mediaService;
+    }
+
+    /// <summary>
+    /// Sets a callback to notify when properties change (e.g., when language name loads asynchronously).
+    /// </summary>
+    public void SetPropertyChangeNotifier(Action<string>? notifier)
+    {
+        propertyChangeNotifier = notifier;
     }
 
     public void ClearCaches()
@@ -96,6 +105,30 @@ public sealed class MusicDisplayTextProvider
             return currentSchedule.MusicLanguageName;
         }
 
+        // When LanguageCode is "E" (default) but LanguageName is missing, load the name to show "English" instead of "E"
+        // This handles cases where instrumental music (non-language publications like "iam") has LanguageCode="E" but no name
+        if (!string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode) &&
+            currentSchedule.MusicLanguageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+        {
+            // Return cached value if available
+            if (!string.IsNullOrEmpty(cachedDefaultLanguageName))
+            {
+                return cachedDefaultLanguageName;
+            }
+
+            // Trigger async load if not already loading
+            if (!isLoadingDefaultLanguageName)
+            {
+                _ = LoadDefaultLanguageNameAsync(propertyChangeNotifier != null 
+                    ? (propName) => propertyChangeNotifier(propName) 
+                    : null);
+            }
+
+            // Return default language code as fallback while loading (will be replaced with "English" once loaded)
+            return AppConstants.Media.DefaultLanguageCode;
+        }
+
+        // For other language codes, return the code if name is not available
         if (!string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode))
         {
             return currentSchedule.MusicLanguageCode!;
@@ -114,7 +147,9 @@ public sealed class MusicDisplayTextProvider
             // Trigger async load if not already loading
             if (!isLoadingDefaultLanguageName)
             {
-                _ = LoadDefaultLanguageNameAsync();
+                _ = LoadDefaultLanguageNameAsync(propertyChangeNotifier != null 
+                    ? (propName) => propertyChangeNotifier(propName) 
+                    : null);
             }
 
             // Return default language code as fallback while loading

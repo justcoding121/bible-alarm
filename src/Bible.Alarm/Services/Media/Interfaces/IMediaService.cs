@@ -27,4 +27,7 @@ public interface IMediaService : IDisposable
     Task UpdateTrackUrlAsync(TrackMetadata trackMetadata, string url);
     void InvalidateBiblePublicationsCache(string languageCode, string? categoryName = null);
     Task<bool> IsPublicationWithoutLanguageAsync(string publicationCode);
+    Task<int> GetExpectedSectionCountAsync(string languageCode, string publicationCode);
+    Task<int> GetExpectedPublicationCountAsync(string languageCode, string categoryName);
+    Task<int> GetExpectedSectionCountForNoLanguagePublicationAsync(string publicationCode);
 }

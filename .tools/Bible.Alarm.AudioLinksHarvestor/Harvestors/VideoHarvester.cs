@@ -21,11 +21,13 @@ internal class VideoHarvester : BaseHarvester
 {
     private const string PreferredQuality = "240p"; // Use lowest quality for audio-only playback
     private readonly IDataPersister? dataPersister;
+    private readonly SignLanguageChecker signLanguageChecker;
 
     public VideoHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister = null)
         : base(logger, downloadUtility)
     {
         this.dataPersister = dataPersister;
+        signLanguageChecker = new SignLanguageChecker(logger, downloadUtility);
     }
 
     /// <summary>
@@ -66,6 +68,16 @@ internal class VideoHarvester : BaseHarvester
             if (languageEntries == null || languageEntries.Count == 0)
             {
                 Logger.Warning("No languages found for Video publication: {PublicationName} ({PublicationCode})", 
+                    publicationName, publicationCode);
+                continue;
+            }
+
+            // Filter out sign languages
+            languageEntries = await signLanguageChecker.FilterSignLanguagesAsync(languageEntries);
+
+            if (languageEntries.Count == 0)
+            {
+                Logger.Warning("No non-sign languages found for Video publication: {PublicationName} ({PublicationCode})", 
                     publicationName, publicationCode);
                 continue;
             }

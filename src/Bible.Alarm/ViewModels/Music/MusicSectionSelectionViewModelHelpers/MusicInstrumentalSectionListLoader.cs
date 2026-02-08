@@ -32,8 +32,13 @@ internal sealed class MusicInstrumentalSectionListLoader
         // First, check if sections are already harvested (without showing progress)
         var initialSections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
         
-        // Check if ALL sections are already harvested (not placeholders)
-        var allHarvested = initialSections != null && initialSections.Count > 0 && initialSections.Values.All(s =>
+        // Get expected section count for no-language publications from SectionLanguages discovery table
+        var expectedSectionCount = await mediaService.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
+        var actualSectionCount = initialSections?.Values.Count ?? 0;
+        
+        // Check if we have ALL expected sections AND they're all harvested (not placeholders)
+        var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
+        var allSectionsHarvested = hasAllExpectedSections && initialSections != null && initialSections.Count > 0 && initialSections.Values.All(s =>
             !string.IsNullOrEmpty(s.Name) &&
             s.Name != s.SectionCode &&
             s.Id > 0);
@@ -43,7 +48,7 @@ internal sealed class MusicInstrumentalSectionListLoader
         {
             SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsFromDb = null;
             
-            if (!allHarvested)
+            if (!allSectionsHarvested)
             {
                 // Sections are not fully harvested - show progress and retry fetching
                 // Retry logic: Retry fetching until all sections are harvested (for future support when sections may not be pre-harvested)
@@ -52,9 +57,9 @@ internal sealed class MusicInstrumentalSectionListLoader
             }
             else
             {
-                // Sections are already harvested - use the initial query result, no need to show progress
-                logger.Debug("MusicInstrumentalSectionListLoader: All sections already harvested for publication={PublicationCode}, skipping fetch",
-                    publicationCode);
+                // All expected sections are already harvested - use the initial query result, no need to show progress
+                logger.Debug("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections already harvested for publication={PublicationCode}, skipping fetch",
+                    expectedSectionCount, publicationCode);
                 sectionsFromDb = initialSections;
             }
 
@@ -86,7 +91,7 @@ internal sealed class MusicInstrumentalSectionListLoader
             vms.Sort();
 
             // Only update progress if we were fetching (progress was shown)
-            if (!allHarvested)
+            if (!allSectionsHarvested)
             {
                 progress?.UpdateProgress(0.9);
             }
@@ -95,7 +100,7 @@ internal sealed class MusicInstrumentalSectionListLoader
         });
 
         // Only update progress if we were fetching (progress was shown)
-        if (!allHarvested)
+        if (!allSectionsHarvested)
         {
             progress?.UpdateProgress(1.0);
             progress?.SetIsVisible(false);
@@ -150,24 +155,28 @@ internal sealed class MusicInstrumentalSectionListLoader
                     // Re-query to check if sections are now harvested (no progress needed for re-query)
                     var reQueriedData = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
 
-                    // Check if ALL sections are harvested (not placeholders)
+                    // Get expected section count to verify we have all sections
+                    var expectedSectionCount = await mediaService.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
+                    var actualSectionCount = reQueriedData?.Values.Count ?? 0;
+                    
+                    // Check if we have ALL expected sections AND they're all harvested (not placeholders)
                     // A section is harvested if it has a name that's different from its code and has an ID > 0
-                    var hasSections = reQueriedData != null && reQueriedData.Values.Count > 0;
-                    var allHarvestedCheck = hasSections && reQueriedData!.Values.All(s =>
+                    var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
+                    var allSectionsHarvested = hasAllExpectedSections && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(s =>
                         !string.IsNullOrEmpty(s.Name) &&
                         s.Name != s.SectionCode &&
                         s.Id > 0);
 
-                    if (allHarvestedCheck)
+                    if (allSectionsHarvested)
                     {
                         sectionsData = reQueriedData;
                         allHarvested = true;
-                        logger.Information("MusicInstrumentalSectionListLoader: All {Count} sections harvested on attempt {Attempt} for publication={PublicationCode}",
-                            sectionsData?.Count ?? 0, attempt, publicationCode);
+                        logger.Information("MusicInstrumentalSectionListLoader: All {ExpectedCount} expected sections harvested on attempt {Attempt} for publication={PublicationCode}",
+                            expectedSectionCount, attempt, publicationCode);
                     }
                     else
                     {
-                        // Log which sections are still placeholders for debugging
+                        // Log which sections are still placeholders or missing for debugging
                         if (reQueriedData != null)
                         {
                             var placeholders = reQueriedData.Values.Where(s =>
@@ -180,11 +189,16 @@ internal sealed class MusicInstrumentalSectionListLoader
                                 logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: Still waiting for {Count} sections to be harvested: {Placeholders}",
                                     attempt, placeholders.Count, string.Join(", ", placeholders));
                             }
-                            else if (!hasSections)
+                            else if (!hasAllExpectedSections)
                             {
-                                logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: No sections found yet, will retry",
-                                    attempt);
+                                logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} sections found, will retry",
+                                    attempt, actualSectionCount, expectedSectionCount);
                             }
+                        }
+                        else
+                        {
+                            logger.Debug("MusicInstrumentalSectionListLoader: Attempt {Attempt}: No sections found yet, will retry",
+                                attempt);
                         }
 
                         // Re-show overlay after GetSectionsForPublicationWithoutLanguage completes (it may hide it)

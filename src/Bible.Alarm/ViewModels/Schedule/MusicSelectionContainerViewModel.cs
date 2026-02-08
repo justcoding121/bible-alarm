@@ -102,6 +102,8 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
             logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider, toastService);
         displayTextProvider = new MusicDisplayTextProvider(state, mediaService);
         propertyNotifier = new MusicPropertyNotifier(propertyName => OnPropertyChanged(propertyName), displayTextProvider);
+        // Set property change notifier so display provider can notify when language name loads asynchronously
+        displayTextProvider.SetPropertyChangeNotifier(propertyName => OnPropertyChanged(propertyName));
         musicEnabledHandler = new MusicEnabledHandler(logger, dispatcher, serviceProvider, state);
         stateTracker = new MusicStateTracker();
         stateInitializer = new MusicStateInitializer(state, dispatcher, displayTextProvider, propertyNotifier);

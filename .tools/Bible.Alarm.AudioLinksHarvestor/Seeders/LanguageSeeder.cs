@@ -220,10 +220,11 @@ internal sealed class LanguageSeeder
     /// <summary>
     /// Seeds ALL languages from jw.org /en/languages API to the Languages table.
     /// This ensures all languages are available in the database, not just discovered ones.
+    /// Excludes sign languages.
     /// </summary>
     public async Task SeedAllLanguagesFromJwOrg(MediaDbContext db)
     {
-        logger.Information("=== Seeding all languages from jw.org /en/languages API ===");
+        logger.Information("=== Seeding all languages from jw.org /en/languages API (excluding sign languages) ===");
 
         try
         {
@@ -262,6 +263,7 @@ internal sealed class LanguageSeeder
 
             var languagesSeeded = 0;
             var languagesSkipped = 0;
+            var signLanguagesSkipped = 0;
 
             // Process all languages from the API response
             foreach (var langElement in languagesArray.EnumerateArray())
@@ -274,6 +276,20 @@ internal sealed class LanguageSeeder
                 var langcode = langcodeElement.GetString();
                 if (string.IsNullOrWhiteSpace(langcode))
                 {
+                    continue;
+                }
+
+                // Check if this is a sign language
+                var isSignLanguage = false;
+                if (langElement.TryGetProperty("isSignLanguage", out var isSignLanguageElement))
+                {
+                    isSignLanguage = isSignLanguageElement.GetBoolean();
+                }
+
+                if (isSignLanguage)
+                {
+                    signLanguagesSkipped++;
+                    logger.Debug("Skipping sign language: {LanguageCode}", langcode);
                     continue;
                 }
 
@@ -328,8 +344,8 @@ internal sealed class LanguageSeeder
 
             await db.SaveChangesAsync();
 
-            logger.Information("✓ Seeded {SeededCount} languages from jw.org API ({SkippedCount} already existed)",
-                languagesSeeded, languagesSkipped);
+            logger.Information("✓ Seeded {SeededCount} languages from jw.org API ({SkippedCount} already existed, {SignLanguagesSkipped} sign languages excluded)",
+                languagesSeeded, languagesSkipped, signLanguagesSkipped);
         }
         catch (Exception ex)
         {

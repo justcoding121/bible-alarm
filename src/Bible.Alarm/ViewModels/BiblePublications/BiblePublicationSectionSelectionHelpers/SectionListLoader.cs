@@ -40,22 +40,37 @@ internal sealed class SectionListLoader
             // This prevents progress bar from flashing at 0% when data is already available
             var initialSections = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
             
-            // Check if ALL sections are already harvested (not placeholders)
-            var allHarvestedInitially = initialSections != null && initialSections.Values.Count > 0 && initialSections.Values.All(s =>
+            // Get expected section count from SectionLanguages discovery table
+            var expectedSectionCount = await mediaService.GetExpectedSectionCountAsync(languageCode, publicationCode);
+            var actualSectionCount = initialSections?.Values.Count ?? 0;
+            
+            // Check if we have ALL expected sections AND they're all harvested (not placeholders)
+            var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
+            var allSectionsHarvested = hasAllExpectedSections && initialSections != null && initialSections.Values.Count > 0 && initialSections.Values.All(s =>
                 !string.IsNullOrEmpty(s.Name) &&
                 s.Name != s.SectionCode &&
                 s.Id > 0);
 
-            if (allHarvestedInitially)
+            if (allSectionsHarvested)
             {
-                // Sections are already harvested - use the initial query result, no need to show progress
-                logger.Debug("SectionListLoader: All sections already harvested for publication={PublicationCode}, language={LanguageCode}, skipping fetch",
-                    publicationCode, languageCode);
+                // All expected sections are already harvested - use the initial query result, no need to show progress
+                logger.Debug("SectionListLoader: All {ExpectedCount} expected sections already harvested for publication={PublicationCode}, language={LanguageCode}, skipping fetch",
+                    expectedSectionCount, publicationCode, languageCode);
                 sectionsFromDb = initialSections;
             }
             else
             {
-                // Sections are not fully harvested - show progress and retry fetching
+                // Not all sections are harvested - show progress and retry fetching
+                if (hasAllExpectedSections)
+                {
+                    logger.Debug("SectionListLoader: Have {ActualCount} sections but some are placeholders, fetching remaining sections for publication={PublicationCode}, language={LanguageCode}",
+                        actualSectionCount, publicationCode, languageCode);
+                }
+                else
+                {
+                    logger.Debug("SectionListLoader: Only {ActualCount}/{ExpectedCount} sections found, fetching remaining sections for publication={PublicationCode}, language={LanguageCode}",
+                        actualSectionCount, expectedSectionCount, publicationCode, languageCode);
+                }
                 sectionsFromDb = await RetryFetchUntilHarvestedAsync(languageCode, publicationCode, progress, cancellationToken);
             }
         }
@@ -152,24 +167,28 @@ internal sealed class SectionListLoader
                     // Re-query to check if sections are now harvested (no progress needed for re-query)
                     var reQueriedData = await mediaService.GetBiblePublicationSections(languageCode, publicationCode, null);
 
-                    // Check if ALL sections are harvested (not placeholders)
+                    // Get expected section count to verify we have all sections
+                    var expectedSectionCount = await mediaService.GetExpectedSectionCountAsync(languageCode, publicationCode);
+                    var actualSectionCount = reQueriedData?.Values.Count ?? 0;
+                    
+                    // Check if we have ALL expected sections AND they're all harvested (not placeholders)
                     // A section is harvested if it has a name that's different from its code and has an ID > 0
-                    var hasSections = reQueriedData != null && reQueriedData.Values.Count > 0;
-                    var allHarvestedCheck = hasSections && reQueriedData!.Values.All(s =>
+                    var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
+                    var allSectionsHarvested = hasAllExpectedSections && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(s =>
                         !string.IsNullOrEmpty(s.Name) &&
                         s.Name != s.SectionCode &&
                         s.Id > 0);
 
-                    if (allHarvestedCheck)
+                    if (allSectionsHarvested)
                     {
                         sectionsData = reQueriedData;
                         allHarvested = true;
-                        logger.Information("SectionListLoader: All {Count} sections harvested on attempt {Attempt} for publication={PublicationCode}, language={LanguageCode}",
-                            sectionsData?.Count ?? 0, attempt, publicationCode, languageCode);
+                        logger.Information("SectionListLoader: All {ExpectedCount} expected sections harvested on attempt {Attempt} for publication={PublicationCode}, language={LanguageCode}",
+                            expectedSectionCount, attempt, publicationCode, languageCode);
                     }
                     else
                     {
-                        // Log which sections are still placeholders for debugging
+                        // Log which sections are still placeholders or missing for debugging
                         if (reQueriedData != null)
                         {
                             var placeholders = reQueriedData.Values.Where(s =>
@@ -182,7 +201,12 @@ internal sealed class SectionListLoader
                                 logger.Debug("SectionListLoader: Attempt {Attempt}: Still waiting for {Count} sections to be harvested: {Placeholders}",
                                     attempt, placeholders.Count, string.Join(", ", placeholders));
                             }
-                            else if (!hasSections)
+                            else if (!hasAllExpectedSections)
+                            {
+                                logger.Debug("SectionListLoader: Attempt {Attempt}: Only {ActualCount}/{ExpectedCount} sections found, will retry",
+                                    attempt, actualSectionCount, expectedSectionCount);
+                            }
+                            else if (actualSectionCount == 0)
                             {
                                 logger.Debug("SectionListLoader: Attempt {Attempt}: No sections found yet, will retry",
                                     attempt);

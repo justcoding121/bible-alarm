@@ -11,5 +11,13 @@ public partial class ScheduleDetailsContainer : ContentView
     }
 
     public Entry? GetScheduleNameEntry() => ScheduleNameEntry;
+
+    private void OnGridTapped(object? sender, TappedEventArgs e)
+    {
+        if (ScheduleNameEntry?.IsFocused == true)
+        {
+            ScheduleNameEntry.Unfocus();
+        }
+    }
 }
 

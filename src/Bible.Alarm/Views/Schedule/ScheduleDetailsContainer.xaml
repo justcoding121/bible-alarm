@@ -19,6 +19,9 @@
         <x:String x:Key="Saturday">Saturday</x:String>
     </ContentView.Resources>
     <Grid RowSpacing="{DynamicResource SpacingStandard}">
+        <Grid.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnGridTapped" />
+        </Grid.GestureRecognizers>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />

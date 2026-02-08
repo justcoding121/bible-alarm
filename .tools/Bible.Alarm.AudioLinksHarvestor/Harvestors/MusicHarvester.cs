@@ -20,11 +20,13 @@ namespace Bible.Alarm.AudioLinksHarvestor.Harvestors;
 internal class MusicHarvester : BaseHarvester
 {
     private readonly IDataPersister? dataPersister;
+    private readonly SignLanguageChecker signLanguageChecker;
 
     public MusicHarvester(ILogger logger, DownloadUtility downloadUtility, IDataPersister? dataPersister = null)
         : base(logger, downloadUtility)
     {
         this.dataPersister = dataPersister;
+        signLanguageChecker = new SignLanguageChecker(logger, downloadUtility);
     }
 
 
@@ -54,6 +56,15 @@ internal class MusicHarvester : BaseHarvester
 
             Logger.Information("Found {Count} language(s) for Vocal Music publication: {PublicationCode}", 
                 languageEntries.Count, publicationCode);
+
+            // Filter out sign languages
+            languageEntries = await signLanguageChecker.FilterSignLanguagesAsync(languageEntries);
+
+            if (languageEntries.Count == 0)
+            {
+                Logger.Warning("No non-sign languages found for Vocal Music publication: {PublicationCode}", publicationCode);
+                continue;
+            }
 
             // Save discovered languages for on-demand fetching (excluding English)
             // The alllangs=1 response already lists only available languages, so no verification needed
