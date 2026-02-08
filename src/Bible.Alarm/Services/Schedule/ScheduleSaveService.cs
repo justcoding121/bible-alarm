@@ -1,5 +1,6 @@
 #nullable enable
 using AutoMapper;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -12,14 +13,16 @@ public sealed class ScheduleSaveService : IScheduleSaveService
 {
     private readonly ILogger logger;
     private readonly IMapper mapper;
+    private readonly IMediaService? mediaService;
 
-    public ScheduleSaveService(ILogger logger, IMapper mapper)
+    public ScheduleSaveService(ILogger logger, IMapper mapper, IMediaService? mediaService = null)
     {
         this.logger = logger;
         this.mapper = mapper;
+        this.mediaService = mediaService;
     }
 
-    public AlarmSchedule PrepareModelForSave(
+    public async Task<AlarmSchedule> PrepareModelForSaveAsync(
         ScheduleStateItem currentSchedule,
         bool isNewSchedule,
         bool musicUpdated)
@@ -40,6 +43,10 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         // (AutoMapper should handle this, but we explicitly set it to be safe)
         model.NumberOfTracksToPlay = currentSchedule?.NumberOfTracksToPlay ?? 0;
         model.AlwaysPlayFromStart = currentSchedule?.AlwaysPlayFromStart ?? false;
+        
+        // For no-language publications, set LanguageCode to null (not "E")
+        // "E" is only used in state/UI as a fallback, but should not be persisted to DB
+        await NormalizeLanguageCodeForNoLanguagePublicationsAsync(model);
         
         logger.Information("PrepareModelForSave: After mapping - model.NumberOfTracksToPlay={NumberOfTracksToPlay}, model.AlwaysPlayFromStart={AlwaysPlayFromStart}",
             model.NumberOfTracksToPlay, model.AlwaysPlayFromStart);
@@ -292,6 +299,42 @@ public sealed class ScheduleSaveService : IScheduleSaveService
             scheduleStateItem.MusicId?.ToString() ?? "null");
 
         return scheduleStateItem;
+    }
+
+    /// <summary>
+    /// Normalizes LanguageCode for no-language publications by setting it to null.
+    /// "E" is used in state/UI as a fallback but should not be persisted to DB.
+    /// </summary>
+    private async Task NormalizeLanguageCodeForNoLanguagePublicationsAsync(AlarmSchedule model)
+    {
+        if (mediaService == null)
+        {
+            return;
+        }
+
+        // Check Bible publication
+        if (model.BiblePublicationSchedule != null && !string.IsNullOrEmpty(model.BiblePublicationSchedule.PublicationCode))
+        {
+            var isNoLanguage = await mediaService.IsPublicationWithoutLanguageAsync(model.BiblePublicationSchedule.PublicationCode);
+            if (isNoLanguage && model.BiblePublicationSchedule.LanguageCode == "E")
+            {
+                logger.Information("NormalizeLanguageCodeForNoLanguagePublicationsAsync: Setting BiblePublicationSchedule.LanguageCode to null for no-language publication {PublicationCode}",
+                    model.BiblePublicationSchedule.PublicationCode);
+                model.BiblePublicationSchedule.LanguageCode = null;
+            }
+        }
+
+        // Check Music publication (instrumental music is no-language)
+        if (model.Music != null && !string.IsNullOrEmpty(model.Music.PublicationCode))
+        {
+            var isNoLanguage = await mediaService.IsPublicationWithoutLanguageAsync(model.Music.PublicationCode);
+            if (isNoLanguage && model.Music.LanguageCode == "E")
+            {
+                logger.Information("NormalizeLanguageCodeForNoLanguagePublicationsAsync: Setting Music.LanguageCode to null for no-language publication {PublicationCode}",
+                    model.Music.PublicationCode);
+                model.Music.LanguageCode = null;
+            }
+        }
     }
 }
 

@@ -144,7 +144,7 @@ public sealed class MediaService(
         biblePublicationsCache.TryRemove(key, out _);
     }
 
-    private async Task<bool> IsPublicationWithoutLanguageAsync(string publicationCode)
+    public async Task<bool> IsPublicationWithoutLanguageAsync(string publicationCode)
     {
         if (string.IsNullOrWhiteSpace(publicationCode))
         {

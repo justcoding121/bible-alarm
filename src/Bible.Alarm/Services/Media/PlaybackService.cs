@@ -735,8 +735,15 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             playlist.Insert(0, prevTrack);
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            logger.Warning(ex, 
+                "Failed to prepend previous track: ScheduleId={ScheduleId}, LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}",
+                stateManager.CurrentScheduleId,
+                playlist[currentIndex].PlayItem.Metadata.LanguageCode,
+                playlist[currentIndex].PlayItem.Metadata.PublicationCode,
+                playlist[currentIndex].PlayItem.Metadata.SectionCode,
+                playlist[currentIndex].PlayItem.Metadata.TrackCode);
             return false;
         }
     }

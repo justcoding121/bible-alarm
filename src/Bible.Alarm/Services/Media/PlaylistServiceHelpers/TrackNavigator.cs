@@ -363,7 +363,12 @@ public sealed class TrackNavigator
 
                 if (sections.TryGetValue(prevSectionCode, out prevSection))
                 {
-                    return new KeyValuePair<string, BiblePublicationSection>(prevSectionCode, prevSection);
+                    // Verify tracks exist after harvesting
+                    var tracks = await GetTracksCachedAsync(languageCode, publicationCode, prevSectionCode);
+                    if (tracks.Count > 0)
+                    {
+                        return new KeyValuePair<string, BiblePublicationSection>(prevSectionCode, prevSection);
+                    }
                 }
             }
 
@@ -441,7 +446,12 @@ public sealed class TrackNavigator
 
                 if (sections.TryGetValue(nextSectionCode, out nextSection))
                 {
-                    return new KeyValuePair<string, BiblePublicationSection>(nextSectionCode, nextSection);
+                    // Verify tracks exist after harvesting
+                    var tracks = await GetTracksCachedAsync(languageCode, publicationCode, nextSectionCode);
+                    if (tracks.Count > 0)
+                    {
+                        return new KeyValuePair<string, BiblePublicationSection>(nextSectionCode, nextSection);
+                    }
                 }
             }
 
@@ -455,9 +465,20 @@ public sealed class TrackNavigator
 
     /// <summary>
     /// Gets all discovered section codes for a publication+language from SectionLanguages table.
+    /// For no-language publications (LanguageId == null), queries sections directly from BiblePublicationSections.
     /// </summary>
     private async Task<List<string>> GetDiscoveredSectionCodesAsync(string languageCode, string publicationCode)
     {
+        // Check if this is a no-language publication (like iam)
+        // For no-language publications, query sections directly instead of using SectionLanguages
+        var isNoLanguagePublication = await IsPublicationWithoutLanguageAsync(publicationCode);
+        if (isNoLanguagePublication)
+        {
+            // For no-language publications, use harvested sections directly
+            var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+            return sections.Keys.ToList();
+        }
+
         if (scopeFactory == null)
         {
             // Fallback: use harvested sections only if we can't query discovered sections
@@ -511,11 +532,75 @@ public sealed class TrackNavigator
     }
 
     /// <summary>
+    /// Checks if a publication is a no-language publication (LanguageId == null).
+    /// </summary>
+    private async Task<bool> IsPublicationWithoutLanguageAsync(string publicationCode)
+    {
+        if (scopeFactory == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
+
+            var normalizedPublicationCode = publicationCode.ToLowerInvariant();
+            var isDrama = Bible.Alarm.Shared.Helpers.PublicationTypeHelper.IsDrama(normalizedPublicationCode);
+            string publicationCodeForDb;
+            if (isDrama)
+            {
+                publicationCodeForDb = normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                    ? "Dramas"
+                    : "DramaticBibleReadings";
+            }
+            else
+            {
+                publicationCodeForDb = normalizedPublicationCode;
+            }
+
+            // Check if publication has LanguageId == null
+            var isNoLanguage = await db.BiblePublications
+                .AsNoTracking()
+                .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb && bp.LanguageId == null);
+
+            if (isNoLanguage)
+            {
+                return true;
+            }
+
+            // Also check PublicationLanguages for entries with LanguageId == null
+            return await db.PublicationLanguages
+                .AsNoTracking()
+                .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null);
+        }
+        catch (Exception ex)
+        {
+            logger?.Warning(ex, "Failed to check if publication is no-language: publicationCode={PublicationCode}",
+                publicationCode);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Ensures a section is harvested. If it's not harvested but exists in discovered sections, harvests it.
     /// Returns true if section is available (harvested or successfully harvested), false otherwise.
     /// </summary>
     private async Task<bool> EnsureSectionHarvestedAsync(string languageCode, string publicationCode, string sectionCode)
     {
+        // No-language publications (like iam) cannot be ad-hoc harvested with a language code
+        // They should be pre-harvested by the harvester tool
+        var isNoLanguagePublication = await IsPublicationWithoutLanguageAsync(publicationCode);
+        if (isNoLanguagePublication)
+        {
+            logger?.Debug("Publication {PublicationCode} is a no-language publication, cannot ad-hoc harvest sections. Section should be pre-harvested.",
+                publicationCode);
+            // Just check if the section exists in harvested sections
+            var noLanguageSections = await GetSectionsCachedAsync(languageCode, publicationCode);
+            return noLanguageSections.ContainsKey(sectionCode);
+        }
+
         if (languageContentService == null || scopeFactory == null)
         {
             logger?.Warning("ILanguageContentService or IServiceScopeFactory not available, cannot harvest section: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",

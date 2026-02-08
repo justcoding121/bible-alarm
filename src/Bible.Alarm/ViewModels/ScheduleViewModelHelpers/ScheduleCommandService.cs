@@ -175,7 +175,7 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         logger.Information("ExecuteSaveAsync: Before PrepareModelForSave - currentSchedule.NumberOfTracksToPlay={NumberOfTracksToPlay}, currentSchedule.AlwaysPlayFromStart={AlwaysPlayFromStart}",
             currentSchedule.NumberOfTracksToPlay, currentSchedule.AlwaysPlayFromStart);
         
-        var model = scheduleSaveService.PrepareModelForSave(currentSchedule, isNewSchedule, musicUpdated);
+        var model = await scheduleSaveService.PrepareModelForSaveAsync(currentSchedule, isNewSchedule, musicUpdated);
         var scheduleStateItem = scheduleSaveService.PrepareScheduleStateItem(model, currentSchedule, musicUpdated);
 
         // IMPORTANT: Reset progress only on Save, and only if the saved track identity changed.

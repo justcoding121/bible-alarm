@@ -27,18 +27,22 @@ internal sealed class LookupDataCollector
             if (schedule.BiblePublicationSchedule != null)
             {
                 var br = schedule.BiblePublicationSchedule;
-                if (!string.IsNullOrWhiteSpace(br.LanguageCode) && !string.IsNullOrWhiteSpace(br.PublicationCode))
+                if (!string.IsNullOrWhiteSpace(br.PublicationCode))
                 {
-                    publicationKeys.Add((br.LanguageCode, br.PublicationCode));
+                    // For non-language publications (LanguageCode is null in DB), use "E" as default during bootstrap
+                    // This ensures display names are populated for publications like "iam" that have LanguageId == null
+                    var effectiveLanguageCode = string.IsNullOrWhiteSpace(br.LanguageCode) ? "E" : br.LanguageCode;
+                    
+                    publicationKeys.Add((effectiveLanguageCode, br.PublicationCode));
                     var normalizedSectionCode = SectionCodeHelper.Normalize(br.SectionCode);
                     if (!string.IsNullOrWhiteSpace(normalizedSectionCode))
                     {
-                        sectionKeys.Add((br.LanguageCode, br.PublicationCode, normalizedSectionCode));
+                        sectionKeys.Add((effectiveLanguageCode, br.PublicationCode, normalizedSectionCode));
                     }
 
                     if (!string.IsNullOrWhiteSpace(br.TrackCode))
                     {
-                        bibleTrackKeys.Add((br.LanguageCode, br.PublicationCode, normalizedSectionCode, br.TrackCode));
+                        bibleTrackKeys.Add((effectiveLanguageCode, br.PublicationCode, normalizedSectionCode, br.TrackCode));
                     }
                 }
             }

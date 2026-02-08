@@ -6,7 +6,7 @@ namespace Bible.Alarm.Services.Schedule.Interfaces;
 
 public interface IScheduleSaveService
 {
-    AlarmSchedule PrepareModelForSave(
+    Task<AlarmSchedule> PrepareModelForSaveAsync(
         ScheduleStateItem currentSchedule,
         bool isNewSchedule,
         bool musicUpdated);

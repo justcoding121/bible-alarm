@@ -82,6 +82,15 @@ internal sealed class ScheduleOverlayTimeoutController : IDisposable
             return;
         }
         
+        // CRITICAL: Never hide overlay during save operations, even if containers are ready
+        // This ensures the overlay stays visible when saving existing schedules
+        if (isSaving && currentOverlayVisibility)
+        {
+            logger.Debug("ScheduleOverlayTimeoutController: Overlay visible during save operation - keeping visible regardless of container readiness");
+            CancelOverlayTimeout();
+            return;
+        }
+        
         // Handle overlay visibility based on container readiness and content load state
         if (currentOverlayVisibility && !isSaving)
         {
