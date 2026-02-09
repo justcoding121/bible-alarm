@@ -51,10 +51,10 @@ public sealed class ScheduleStateService(
                         7);
                     
                     // Disable NotificationEnabled but continue to enable IsEnabled
-                    AlarmSchedule? updatedSchedule = null;
+                    AlarmSchedule? androidUpdatedSchedule = null;
                     try
                     {
-                        updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
+                        androidUpdatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
                             scheduleId,
                             s => 
                             {
@@ -72,9 +72,9 @@ public sealed class ScheduleStateService(
                         throw;
                     }
                     
-                    await alarmService.Update(updatedSchedule);
-                    UpdateFluxorStore(updatedSchedule);
-                    await ShowNotificationIfEnabledAsync(isEnabled, updatedSchedule);
+                    await alarmService.Update(androidUpdatedSchedule);
+                    UpdateFluxorStore(androidUpdatedSchedule);
+                    await ShowNotificationIfEnabledAsync(isEnabled, androidUpdatedSchedule);
                     return true;
                 }
             }

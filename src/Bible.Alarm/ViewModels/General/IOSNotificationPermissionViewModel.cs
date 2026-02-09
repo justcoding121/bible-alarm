@@ -2,11 +2,14 @@
 
 using System.Windows.Input;
 using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.Platforms.iOS.Services.Helpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Serilog;
 using Bible.Alarm.ViewModels;
+
+#if IOS
+using Bible.Alarm.Platforms.iOS.Services.Helpers;
+#endif
 
 namespace Bible.Alarm.ViewModels.General;
 
@@ -14,7 +17,13 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
+#if IOS
     private readonly IOSNotificationPermissionService permissionService;
+#else
+#pragma warning disable CS0649, CS0169 // Field is never assigned/used on non-iOS platforms
+    private readonly object? permissionService;
+#pragma warning restore CS0649, CS0169
+#endif
 
     private bool isNotificationPermissionGranted;
     private System.Timers.Timer? permissionCheckTimer;
@@ -25,7 +34,9 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
     {
         this.logger = logger;
         this.navigationService = navigationService;
+#if IOS
         permissionService = IOSNotificationPermissionService.Instance;
+#endif
 
         InitializeCommands();
         InitializePermissionStatus();
@@ -35,11 +46,13 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
     {
         RequestNotificationPermissionCommand = new AsyncRelayCommand(async () =>
         {
-            if (DeviceInfo.Platform == DevicePlatform.iOS)
+#if IOS
+            if (DeviceInfo.Platform == DevicePlatform.iOS && permissionService != null)
             {
                 // Request permission - will fire PermissionGranted or PermissionDenied event
                 permissionService.RequestPermissionIfNeeded();
             }
+#endif
         });
 
         DismissCommand = new AsyncRelayCommand(async () =>
@@ -52,17 +65,20 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
 
     private void InitializePermissionStatus()
     {
+#if IOS
         if (DeviceInfo.Platform != DevicePlatform.iOS)
         {
             return;
         }
 
         CheckPermissionStatus();
+#endif
     }
 
     private void CheckPermissionStatus()
     {
-        if (DeviceInfo.Platform != DevicePlatform.iOS)
+#if IOS
+        if (DeviceInfo.Platform != DevicePlatform.iOS || permissionService == null)
         {
             return;
         }
@@ -81,11 +97,13 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
         {
             logger.Error(ex, "Error checking iOS notification permission status");
         }
+#endif
     }
 
     public void StartPermissionCheckTimer()
     {
-        if (DeviceInfo.Platform != DevicePlatform.iOS)
+#if IOS
+        if (DeviceInfo.Platform != DevicePlatform.iOS || permissionService == null)
         {
             return;
         }
@@ -112,8 +130,10 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
         permissionCheckTimer.AutoReset = true;
         permissionCheckTimer.Start();
         logger.Debug("Permission check timer started successfully");
+#endif
     }
 
+#if IOS
     private void OnPermissionGranted(object? sender, EventArgs e)
     {
         logger.Information("iOS notification permission granted event received");
@@ -131,6 +151,7 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
             CheckPermissionStatus();
         });
     }
+#endif
 
     private void StopPermissionCheckTimer()
     {
@@ -141,13 +162,19 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
             permissionCheckTimer = null;
         }
 
+#if IOS
         // Unsubscribe from permission events
-        permissionService.PermissionGranted -= OnPermissionGranted;
-        permissionService.PermissionDenied -= OnPermissionDenied;
+        if (permissionService != null)
+        {
+            permissionService.PermissionGranted -= OnPermissionGranted;
+            permissionService.PermissionDenied -= OnPermissionDenied;
+        }
+#endif
     }
 
     private void UpdateHomePageButtonVisibility()
     {
+#if IOS
         try
         {
             if (DeviceInfo.Platform != DevicePlatform.iOS)
@@ -168,6 +195,7 @@ public sealed class IOSNotificationPermissionViewModel : ObservableObject, IDisp
         {
             logger.Warning(ex, "Error updating home page button visibility after modal close");
         }
+#endif
     }
 
     public bool IsNotificationPermissionGranted
