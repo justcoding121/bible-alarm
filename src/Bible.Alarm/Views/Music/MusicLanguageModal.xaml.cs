@@ -169,9 +169,6 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
         {
             return;
         }
-
-        // Focus the search bar after modal content is loaded for better UX
-        FocusSearchBar();
     }
 
     private void FocusSearchBar()

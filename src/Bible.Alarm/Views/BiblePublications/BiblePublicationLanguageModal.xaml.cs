@@ -115,9 +115,6 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         {
             return;
         }
-
-        // Focus the search bar after modal content is loaded for better UX
-        FocusSearchBar();
     }
 
     private void FocusSearchBar()
