@@ -145,7 +145,8 @@ public sealed class IOSNotificationPermissionService : IDisposable
     /// </summary>
     public bool RequestPermissionIfNeeded()
     {
-        // Check if already granted
+        // Check if already granted using synchronous check (cache should be up-to-date from events)
+        // This matches Android's behavior where IsGranted always checks actual status
         if (IsGranted)
         {
             logger.Information("IOSNotificationPermissionService: Permission already granted");
@@ -164,29 +165,72 @@ public sealed class IOSNotificationPermissionService : IDisposable
                 if (error != null)
                 {
                     logger.Error("IOSNotificationPermissionService: Error requesting permission: {Error}", error);
+                    // Update cache
+                    cachedPermissionResult = false;
+                    lastPermissionCheck = DateTime.Now;
                     PermissionDenied?.Invoke(this, EventArgs.Empty);
                     return;
                 }
 
                 logger.Information("IOSNotificationPermissionService: Permission result - Granted: {Granted}", granted);
 
-                if (granted)
+                // Update cache immediately when permission changes
+                // This ensures IsGranted property returns correct value immediately
+                cachedPermissionResult = granted;
+                lastPermissionCheck = DateTime.Now;
+                logger.Information("[NOTIFICATION-PERMISSION] Cache updated after permission request - Granted: {Granted}", granted);
+
+                // Fire events on main thread (like Android does)
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    PermissionGranted?.Invoke(this, EventArgs.Empty);
-                }
-                else
-                {
-                    PermissionDenied?.Invoke(this, EventArgs.Empty);
-                }
+                    try
+                    {
+                        if (granted)
+                        {
+                            PermissionGranted?.Invoke(this, EventArgs.Empty);
+                        }
+                        else
+                        {
+                            PermissionDenied?.Invoke(this, EventArgs.Empty);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "IOSNotificationPermissionService: Exception in permission event handler");
+                    }
+                });
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "IOSNotificationPermissionService: Exception requesting permission");
-                PermissionDenied?.Invoke(this, EventArgs.Empty);
+                // Update cache
+                cachedPermissionResult = false;
+                lastPermissionCheck = DateTime.Now;
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    try
+                    {
+                        PermissionDenied?.Invoke(this, EventArgs.Empty);
+                    }
+                    catch (Exception eventEx)
+                    {
+                        logger.Error(eventEx, "IOSNotificationPermissionService: Exception in PermissionDenied event handler");
+                    }
+                });
             }
         });
 
         return false;
+    }
+    
+    /// <summary>
+    /// Invalidates the permission cache, forcing a fresh check on next access.
+    /// </summary>
+    public void InvalidateCache()
+    {
+        cachedPermissionResult = null;
+        lastPermissionCheck = DateTime.MinValue;
+        logger.Debug("[NOTIFICATION-PERMISSION] Cache invalidated");
     }
 
     public void Dispose()

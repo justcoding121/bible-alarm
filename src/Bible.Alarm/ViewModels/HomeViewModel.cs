@@ -599,6 +599,25 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
                     // Use synchronous property which uses cached result or safe default
                     isPermissionGranted = permissionService.IsGranted;
                     logger.Information("[NOTIFICATION-BUTTON] Permission granted: {PermissionGranted}", isPermissionGranted);
+                    
+                    // Also trigger async check to update cache and refresh button if needed
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var asyncResult = await permissionService.IsGrantedAsync();
+                            logger.Information("[NOTIFICATION-BUTTON] Async permission check completed: {Result}", asyncResult);
+                            // Update button visibility again once we have the real result
+                            MainThread.BeginInvokeOnMainThread(() =>
+                            {
+                                UpdateNotificationPermissionButtonVisibility();
+                            });
+                        }
+                        catch (Exception asyncEx)
+                        {
+                            logger.Error(asyncEx, "[NOTIFICATION-BUTTON] Error in async permission check");
+                        }
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -623,25 +642,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
                 // Set margins for iOS - notification button on left bottom, 24px from edges
                 NotificationPermissionButtonBottomMargin = shouldShow ? 24 : 0;
                 CollectionViewBottomMargin = shouldShow ? 24 + 56 : 0;
-                
-                // Also trigger async check to update cache and refresh button if needed
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        var asyncResult = await permissionService.IsGrantedAsync();
-                        logger.Information("[NOTIFICATION-BUTTON] Async permission check completed: {Result}", asyncResult);
-                        // Update button visibility again once we have the real result
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            UpdateNotificationPermissionButtonVisibility();
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "[NOTIFICATION-BUTTON] Error in async permission check");
-                    }
-                });
             }
             else
             {

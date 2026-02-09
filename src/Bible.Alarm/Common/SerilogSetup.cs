@@ -74,10 +74,14 @@ public class SerilogSetup
             new AndroidLogcatSink(),
             Serilog.Events.LogEventLevel.Debug);
 #elif IOS
-        // iOS DEBUG: Debug sink for Visual Studio + async file sink (devicectl copy from device)
-        // Debug sink writes to System.Diagnostics.Debug (os_log) - view in Visual Studio Output window
-        loggerConfig.WriteTo.Debug(
-            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate);
+        // iOS DEBUG: Console sink for Visual Studio network debugging + Debug sink (os_log) + async file sink
+        // Console sink writes to stdout - captured by Visual Studio Output window when debugging over WiFi/USB
+        // Debug sink writes to System.Diagnostics.Debug (os_log) - may not be visible over network debugging
+        // Wrap Console in Async to ensure non-blocking writes and better reliability over WiFi debugging
+        loggerConfig.WriteTo.Async(a => a.Console(
+            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate));
+        loggerConfig.WriteTo.Async(a => a.Debug(
+            outputTemplate: AppConstants.Logging.ConsoleOutputTemplate));
 
         var iosLogDirectory = GetLogDirectory();
         if (!string.IsNullOrEmpty(iosLogDirectory))

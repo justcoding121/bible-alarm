@@ -50,6 +50,10 @@
 		<string>com.jthomas.info.Bible.Alarm.SchedulerRefresh</string>
 		<string>com.jthomas.info.Bible.Alarm.MediaIndexUpdate</string>
 	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Bible Alarm uses Bluetooth to connect to CarPlay-enabled vehicles so you can control your alarms and play Bible content while driving.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Bible Alarm uses your local network to discover and connect to CarPlay-enabled vehicles for safe in-car audio playback.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

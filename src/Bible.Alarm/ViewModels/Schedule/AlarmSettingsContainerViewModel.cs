@@ -515,11 +515,50 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
             // There is no separate "Tap to Play" toggle on iOS
             if (value && !isUpdatingFromPermissionCheck && !isSyncingFromState)
             {
+                // iOS: Check notification permission when enabling reminder
+                // iOS always uses notifications for alarms, so permission is required for the reminder itself
+                // There is no separate "Tap to Play" toggle on iOS
+                // Invalidate cache and use async check to get fresh status (user may have disabled permission)
                 bool isGranted = false;
                 try
                 {
                     if (permissionService != null)
                     {
+                        // Invalidate cache to force fresh check
+                        permissionService.InvalidateCache();
+                        // Use async check to get real-time status
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var result = await permissionService.IsGrantedAsync();
+                                MainThread.BeginInvokeOnMainThread(() =>
+                                {
+                                    // If permission was just granted and toggle is off, enable it
+                                    if (result && !isEnabled)
+                                    {
+                                        isUpdatingFromPermissionCheck = true;
+                                        try
+                                        {
+                                            isEnabled = true;
+                                            OnPropertyChanged(nameof(IsEnabled));
+                                            DispatchScheduleUpdate(s => s.IsEnabled = true);
+                                            logger.Information("IsEnabled setter (iOS): Permission granted - enabling reminder");
+                                        }
+                                        finally
+                                        {
+                                            isUpdatingFromPermissionCheck = false;
+                                        }
+                                    }
+                                });
+                            }
+                            catch (Exception asyncEx)
+                            {
+                                logger.Error(asyncEx, "IsEnabled setter (iOS): Exception in async permission check");
+                            }
+                        });
+                        
+                        // Use synchronous check for immediate decision (may use cache, but we invalidated it)
                         isGranted = permissionService.IsGranted;
                     }
                 }
@@ -531,11 +570,17 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
                 
                 if (!isGranted)
                 {
+                    // Permission not granted - toggle OFF immediately and request permission
                     logger.Debug("Cannot enable reminder on iOS - notification permission not granted");
                     isWaitingForPermissionResponse = true;
-                    // Set toggle back to OFF immediately
+                    
+                    // Always set toggle to OFF immediately when permission is not granted
+                    // Force update even if value is already false to ensure UI reflects the state
                     isEnabled = false;
                     OnPropertyChanged(nameof(IsEnabled));
+                    DispatchScheduleUpdate(s => s.IsEnabled = false);
+                    logger.Debug("Set IsEnabled to false - permission not granted");
+                    
                     // Request permission - will fire PermissionGranted or PermissionDenied event
                     permissionService.RequestPermissionIfNeeded();
                     // Show notification permission modal instead of toast

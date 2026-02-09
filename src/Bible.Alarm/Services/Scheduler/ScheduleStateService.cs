@@ -159,12 +159,25 @@ public sealed class ScheduleStateService(
                 bool isPermissionGranted = false;
                 try
                 {
-                    isPermissionGranted = permissionService.IsGranted;
+                    // Invalidate cache to force fresh check (user may have disabled permission)
+                    permissionService.InvalidateCache();
+                    // Use async check to get real-time status
+                    isPermissionGranted = await permissionService.IsGrantedAsync();
+                    logger.Debug("EnableScheduleAsync (iOS): Permission check result - Granted: {IsGranted}", isPermissionGranted);
                 }
                 catch (Exception ex)
                 {
                     logger.Error(ex, "EnableScheduleAsync (iOS): Exception checking permission - assuming not granted");
-                    isPermissionGranted = false;
+                    // Fallback to synchronous check if async fails
+                    try
+                    {
+                        isPermissionGranted = permissionService.IsGranted;
+                    }
+                    catch (Exception syncEx)
+                    {
+                        logger.Error(syncEx, "EnableScheduleAsync (iOS): Exception in fallback sync permission check");
+                        isPermissionGranted = false;
+                    }
                 }
 
                 if (!isPermissionGranted)

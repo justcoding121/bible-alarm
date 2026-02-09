@@ -1,4 +1,5 @@
 #if IOS
+#nullable enable
 using Bible.Alarm.Platforms.iOS.Logging;
 using Serilog;
 

@@ -161,6 +161,9 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 #elif IOS
             if (DeviceInfo.Platform == DevicePlatform.iOS && permissionService != null)
             {
+                // For iOS, use synchronous check which uses cache
+                // Cache is updated when PermissionGranted/PermissionDenied events fire
+                // This matches Android's behavior where IsGranted always checks actual status
                 IsNotificationPermissionGranted = permissionService.IsGranted;
             }
 #endif
@@ -198,13 +201,123 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 #endif
 
         // Check permissions every 1 second while modal is open
+        // Both Android and iOS: Use synchronous check (Android always checks actual status, iOS uses cache updated by events)
         permissionCheckTimer = new System.Timers.Timer(1000);
         permissionCheckTimer.Elapsed += (sender, e) =>
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 logger.Debug("Permission check timer elapsed - checking permissions");
+                var wasGranted = IsNotificationPermissionGranted;
+                
+#if IOS
+                // For iOS: Invalidate cache and use async check to get fresh status when user returns from settings
+                // This ensures we detect permission changes even if cache is stale
+                if (DeviceInfo.Platform == DevicePlatform.iOS && permissionService != null)
+                {
+                    // Run async check in background task
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            // Invalidate cache to force fresh check
+                            permissionService.InvalidateCache();
+                            // Use async check to get real-time status
+                            var result = await permissionService.IsGrantedAsync();
+                            MainThread.BeginInvokeOnMainThread(() =>
+                            {
+                                IsNotificationPermissionGranted = result;
+                                logger.Debug("Permission check (async) completed - Granted: {IsGranted} (was {WasGranted})",
+                                    IsNotificationPermissionGranted, wasGranted);
+                                
+                                // If permission was just granted, auto-dismiss modal
+                                if (!wasGranted && IsNotificationPermissionGranted)
+                                {
+                                    logger.Information("Permission granted detected by polling - auto-dismissing modal");
+                                    _ = Task.Run(async () =>
+                                    {
+                                        await Task.Delay(500); // Brief delay to show success state
+                                        if (DismissCommand is AsyncRelayCommand asyncCommand)
+                                        {
+                                            await asyncCommand.ExecuteAsync(null);
+                                        }
+                                        else
+                                        {
+                                            DismissCommand.Execute(null);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                        catch (Exception asyncEx)
+                        {
+                            logger.Error(asyncEx, "Error in async permission check from timer");
+                            // Fallback to synchronous check
+                            MainThread.BeginInvokeOnMainThread(() =>
+                            {
+                                CheckPermissionStatus();
+                                // If permission was just granted, auto-dismiss modal
+                                if (!wasGranted && IsNotificationPermissionGranted)
+                                {
+                                    logger.Information("Permission granted detected by polling (fallback) - auto-dismissing modal");
+                                    _ = Task.Run(async () =>
+                                    {
+                                        await Task.Delay(500);
+                                        if (DismissCommand is AsyncRelayCommand asyncCommand)
+                                        {
+                                            await asyncCommand.ExecuteAsync(null);
+                                        }
+                                        else
+                                        {
+                                            DismissCommand.Execute(null);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+                else
+                {
+                    CheckPermissionStatus();
+                    // If permission was just granted, auto-dismiss modal
+                    if (!wasGranted && IsNotificationPermissionGranted)
+                    {
+                        logger.Information("Permission granted detected by polling - auto-dismissing modal");
+                        _ = Task.Run(async () =>
+                        {
+                            await Task.Delay(500);
+                            if (DismissCommand is AsyncRelayCommand asyncCommand)
+                            {
+                                await asyncCommand.ExecuteAsync(null);
+                            }
+                            else
+                            {
+                                DismissCommand.Execute(null);
+                            }
+                        });
+                    }
+                }
+#else
                 CheckPermissionStatus();
+                // If permission was just granted, auto-dismiss modal
+                if (!wasGranted && IsNotificationPermissionGranted)
+                {
+                    logger.Information("Permission granted detected by polling - auto-dismissing modal");
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(500);
+                        if (DismissCommand is AsyncRelayCommand asyncCommand)
+                        {
+                            await asyncCommand.ExecuteAsync(null);
+                        }
+                        else
+                        {
+                            DismissCommand.Execute(null);
+                        }
+                    });
+                }
+#endif
             });
         };
         permissionCheckTimer.AutoReset = true;
@@ -215,9 +328,35 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
     private void OnPermissionGranted(object? sender, EventArgs e)
     {
         logger.Information("Notification permission granted event received");
-        MainThread.BeginInvokeOnMainThread(() =>
+        MainThread.BeginInvokeOnMainThread(async () =>
         {
+            // Update permission status immediately
+            // For iOS, the cache is already updated by IOSNotificationPermissionService when permission is granted
+            // For Android, IsGranted always checks actual permission status
             CheckPermissionStatus();
+            
+            // If permission is now granted, auto-dismiss the modal after a short delay
+            // This gives the UI time to update and show the success state
+            if (IsNotificationPermissionGranted)
+            {
+                logger.Information("Permission granted - auto-dismissing modal in 1 second");
+                await Task.Delay(1000);
+                
+                // Double-check permission status before dismissing
+                CheckPermissionStatus();
+                
+                if (IsNotificationPermissionGranted)
+                {
+                    if (DismissCommand is AsyncRelayCommand asyncCommand)
+                    {
+                        await asyncCommand.ExecuteAsync(null);
+                    }
+                    else
+                    {
+                        DismissCommand.Execute(null);
+                    }
+                }
+            }
         });
     }
 
