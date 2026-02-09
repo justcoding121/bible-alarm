@@ -159,13 +159,12 @@ public sealed class ScheduleCommandService : IScheduleCommandService
         if (currentSchedule.NotificationEnabled)
         {
 #if ANDROID
-            var granted = await NotificationPermissionHelper.RequestNotificationPermissionIfNeededAsync();
+            // Check permission status without waiting (non-blocking)
+            // Permission requests are handled by ViewModels via the modal
+            var granted = NotificationPermissionHelper.IsNotificationPermissionGranted();
             if (!granted)
             {
                 logger.Warning("Cannot save schedule with NotificationEnabled=true - notification permission denied");
-                await toastService.ShowMessage(
-                    "Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.",
-                    7);
                 return false;
             }
 #endif

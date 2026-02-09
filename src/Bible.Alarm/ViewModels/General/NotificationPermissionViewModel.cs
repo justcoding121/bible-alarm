@@ -11,6 +11,9 @@ using Bible.Alarm.ViewModels;
 
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Services.Helpers;
+using Android.Content;
+using Android.Provider;
+using AndroidApplication = Android.App.Application;
 #elif IOS
 using Bible.Alarm.Platforms.iOS.Services.Helpers;
 #endif
@@ -31,15 +34,18 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 
     private bool isNotificationPermissionGranted;
     private System.Timers.Timer? permissionCheckTimer;
+    private readonly Action<bool>? onModalDismissed;
 
     public NotificationPermissionViewModel(
         ILogger logger,
         INavigationService navigationService,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        Action<bool>? onModalDismissed = null)
     {
         this.logger = logger;
         this.navigationService = navigationService;
         this.serviceProvider = serviceProvider;
+        this.onModalDismissed = onModalDismissed;
 
 #if ANDROID
         permissionService = NotificationPermissionService.Instance;
@@ -75,8 +81,30 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 #if ANDROID
             if (DeviceInfo.Platform == DevicePlatform.Android)
             {
-                // Open Android app settings
-                await Launcher.OpenAsync(new Uri("app-settings:"));
+                // Open Android app settings using proper Intent
+                try
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        try
+                        {
+                            var intent = new Intent(Settings.ActionApplicationDetailsSettings);
+                            var uri = Android.Net.Uri.FromParts("package", AndroidApplication.Context.PackageName, null);
+                            intent.SetData(uri);
+                            intent.SetFlags(ActivityFlags.NewTask);
+                            AndroidApplication.Context.StartActivity(intent);
+                            logger.Information("Successfully opened Android app settings");
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(ex, "Failed to open Android app settings");
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Failed to open Android app settings");
+                }
             }
 #elif IOS
             if (DeviceInfo.Platform == DevicePlatform.iOS)
@@ -90,8 +118,26 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         DismissCommand = new AsyncRelayCommand(async () =>
         {
             StopPermissionCheckTimer();
+            
+            // Check permission status before closing modal
+            CheckPermissionStatus();
+            var wasGranted = IsNotificationPermissionGranted;
+            
             await navigationService.PopModalAsync();
             UpdateHomePageButtonVisibility();
+            
+            // Call callback if provided (e.g., from schedule page to update toggle)
+            if (onModalDismissed != null)
+            {
+                try
+                {
+                    onModalDismissed(wasGranted);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Error in onModalDismissed callback");
+                }
+            }
         });
     }
 

@@ -4,7 +4,12 @@ using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
+using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.ViewModels.General;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
+using Fluxor;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -23,7 +28,9 @@ public sealed class ScheduleStateService(
     IAlarmService alarmService,
     INotificationService notificationService,
     IToastService toastService,
-    IDispatcher dispatcher)
+    IDispatcher dispatcher,
+    INavigationService navigationService,
+    IServiceProvider serviceProvider)
     : IScheduleStateService, IDisposable
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
@@ -37,20 +44,20 @@ public sealed class ScheduleStateService(
         {
 #if ANDROID
             // Android: If NotificationEnabled is true but permission is denied,
-            // disable NotificationEnabled but still allow IsEnabled to be enabled
+            // enable IsEnabled but keep NotificationEnabled=true in DB and show permission modal
             // Android reminder can work without notification permission
             var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
             if (schedule != null && schedule.NotificationEnabled)
             {
-                var granted = await NotificationPermissionHelper.RequestNotificationPermissionIfNeededAsync();
+                // Check permission status without waiting (non-blocking)
+                // Permission requests are handled by ViewModels via the modal
+                var granted = NotificationPermissionHelper.IsNotificationPermissionGranted();
                 if (!granted)
                 {
-                    logger.Warning("Cannot enable NotificationEnabled for schedule {ScheduleId} - notification permission denied. Disabling NotificationEnabled but allowing reminder to be enabled.", scheduleId);
-                    await toastService.ShowMessage(
-                        "Notification permission is required for tap-to-play alarms. Tap-to-play has been disabled, but reminder is enabled.",
-                        7);
+                    logger.Information("Schedule {ScheduleId} has NotificationEnabled=true but permission not granted - enabling reminder and showing permission modal", scheduleId);
                     
-                    // Disable NotificationEnabled but continue to enable IsEnabled
+                    // Enable IsEnabled but keep NotificationEnabled=true in DB
+                    // Show permission modal - after dismissal, DB will be updated based on permission result
                     AlarmSchedule? androidUpdatedSchedule = null;
                     try
                     {
@@ -59,7 +66,7 @@ public sealed class ScheduleStateService(
                             s => 
                             {
                                 s.IsEnabled = isEnabled;
-                                s.NotificationEnabled = false;
+                                // Keep NotificationEnabled=true in DB - will be updated after modal dismissal
                             },
                             cancellationTokenSource.Token);
                     }
@@ -75,12 +82,203 @@ public sealed class ScheduleStateService(
                     await alarmService.Update(androidUpdatedSchedule);
                     UpdateFluxorStore(androidUpdatedSchedule);
                     await ShowNotificationIfEnabledAsync(isEnabled, androidUpdatedSchedule);
+                    
+                    // Show notification permission modal
+                    // Note: NotificationEnabled will only be updated in DB when user saves from schedule page
+                    // Here we only update state (not DB) based on permission result
+                    MainThread.BeginInvokeOnMainThread(async () =>
+                    {
+                        try
+                        {
+                            var notificationViewModel = new NotificationPermissionViewModel(
+                                logger,
+                                navigationService,
+                                serviceProvider,
+                                onModalDismissed: (permissionGranted) =>
+                                {
+                                    MainThread.BeginInvokeOnMainThread(() =>
+                                    {
+                                        try
+                                        {
+                                            // Update NotificationEnabled in state only (not DB)
+                                            // DB will be updated when user saves from schedule page
+                                            // We need to update both CurrentSchedule (if it matches) and the schedule in Schedules collection
+                                            var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
+                                            var schedules = state.Value.Schedules;
+                                            var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == scheduleId);
+                                            
+                                            if (scheduleToUpdate != null)
+                                            {
+                                                // Clone schedule and set NotificationEnabled based on permission
+                                                var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(scheduleToUpdate);
+                                                updatedSchedule.NotificationEnabled = permissionGranted;
+                                                
+                                                // Dispatch update action to set NotificationEnabled in state
+                                                // Use shouldSave: true to update Schedules collection (for warning button visibility)
+                                                // but the effect won't save to DB because NotificationEnabled change doesn't trigger DB save
+                                                // Actually, we need shouldSave: false to avoid DB save, but that only updates CurrentSchedule
+                                                // For now, use shouldSave: false - CurrentSchedule update will sync to Schedules via OnStateChanged
+                                                dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
+                                                
+                                                logger.Information("EnableScheduleAsync: Permission {PermissionStatus} from modal - set NotificationEnabled to {NotificationEnabled} in state for schedule {ScheduleId}. DB will be updated on save.", 
+                                                    permissionGranted ? "granted" : "denied", permissionGranted, scheduleId);
+                                            }
+                                            else
+                                            {
+                                                logger.Warning("EnableScheduleAsync: Schedule not found in Schedules collection when trying to set NotificationEnabled. ScheduleId={ScheduleId}", 
+                                                    scheduleId);
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            logger.Error(ex, "EnableScheduleAsync: Error updating NotificationEnabled in state after permission check");
+                                        }
+                                    });
+                                });
+                            
+                            notificationViewModel.StartPermissionCheckTimer();
+                            await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(ex, "EnableScheduleAsync: Error opening notification permission modal");
+                        }
+                    });
+                    
                     return true;
                 }
             }
             // Android: Permission granted or NotificationEnabled is false - proceed normally
+#elif IOS
+            // iOS: If IsEnabled is true but permission is denied,
+            // enable IsEnabled but keep it true in DB and show permission modal
+            // iOS reminder requires notification permission
+            try
+            {
+                var permissionService = IOSNotificationPermissionService.Instance;
+                bool isPermissionGranted = false;
+                try
+                {
+                    isPermissionGranted = permissionService.IsGranted;
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "EnableScheduleAsync (iOS): Exception checking permission - assuming not granted");
+                    isPermissionGranted = false;
+                }
+
+                if (!isPermissionGranted)
+                {
+                    logger.Information("Schedule {ScheduleId} has IsEnabled=true but permission not granted (iOS) - enabling reminder and showing permission modal", scheduleId);
+                    
+                    // Enable IsEnabled but keep it true in DB
+                    // Show permission modal - after dismissal, DB will be updated based on permission result
+                    AlarmSchedule? iosUpdatedSchedule = null;
+                    try
+                    {
+                        iosUpdatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
+                            scheduleId,
+                            s => 
+                            {
+                                s.IsEnabled = isEnabled;
+                                // Keep IsEnabled=true in DB - will be updated after modal dismissal
+                            },
+                            cancellationTokenSource.Token);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (IsSecurityException(ex))
+                        {
+                            return await HandleSecurityExceptionAsync(scheduleId, ex);
+                        }
+                        throw;
+                    }
+                    
+                    await alarmService.Update(iosUpdatedSchedule);
+                    UpdateFluxorStore(iosUpdatedSchedule);
+                    await ShowNotificationIfEnabledAsync(isEnabled, iosUpdatedSchedule);
+                    
+                    // Show notification permission modal
+                    // Note: IsEnabled will only be updated in DB when user saves from schedule page
+                    // Here we only update state (not DB) based on permission result
+                    MainThread.BeginInvokeOnMainThread(async () =>
+                    {
+                        try
+                        {
+                            var notificationViewModel = new NotificationPermissionViewModel(
+                                logger,
+                                navigationService,
+                                serviceProvider,
+                                onModalDismissed: (permissionGranted) =>
+                                {
+                                    MainThread.BeginInvokeOnMainThread(async () =>
+                                    {
+                                        try
+                                        {
+                                            // Update IsEnabled in DB (iOS: IsEnabled is updated in DB when toggling from home page)
+                                            // Both Android and iOS: IsEnabled is updated in DB when toggling from home page
+                                            // Android only: NotificationEnabled is only updated by schedule save
+                                            try
+                                            {
+                                                var dbUpdatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
+                                                    scheduleId,
+                                                    s => s.IsEnabled = permissionGranted,
+                                                    cancellationTokenSource.Token);
+                                                
+                                                // Update Fluxor store with DB value
+                                                UpdateFluxorStore(dbUpdatedSchedule);
+                                                
+                                                logger.Information("EnableScheduleAsync (iOS): Permission {PermissionStatus} from modal - set IsEnabled to {IsEnabled} in DB for schedule {ScheduleId}.", 
+                                                    permissionGranted ? "granted" : "denied", permissionGranted, scheduleId);
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                logger.Error(ex, "EnableScheduleAsync (iOS): Error updating IsEnabled in DB after permission check");
+                                                // Fallback: update state only if DB update fails
+                                                var state = serviceProvider.GetRequiredService<IState<ApplicationState>>();
+                                                var schedules = state.Value.Schedules;
+                                                var scheduleToUpdate = schedules?.FirstOrDefault(s => s.Id == scheduleId);
+                                                
+                                                if (scheduleToUpdate != null)
+                                                {
+                                                    var updatedSchedule = ScheduleStateHelper.CloneScheduleStateItem(scheduleToUpdate);
+                                                    updatedSchedule.IsEnabled = permissionGranted;
+                                                    dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, false, shouldSave: false));
+                                                }
+                                                else
+                                                {
+                                                    logger.Warning("EnableScheduleAsync (iOS): Schedule not found in Schedules collection when trying to set IsEnabled. ScheduleId={ScheduleId}", 
+                                                        scheduleId);
+                                                }
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            logger.Error(ex, "EnableScheduleAsync (iOS): Error updating IsEnabled after permission check");
+                                        }
+                                    });
+                                });
+                            
+                            notificationViewModel.StartPermissionCheckTimer();
+                            await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(ex, "EnableScheduleAsync (iOS): Error opening notification permission modal");
+                        }
+                    });
+                    
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "EnableScheduleAsync (iOS): Exception checking notification permission");
+                // If permission check fails, proceed normally (enable IsEnabled)
+            }
+            // iOS: Permission granted - proceed normally
 #else
-            // iOS and other platforms: Permission is required for IsEnabled
+            // Other platforms: Permission is required for IsEnabled
             if (!await CheckNotificationPermissionsAsync(scheduleId))
             {
                 return false;
@@ -123,13 +321,12 @@ public sealed class ScheduleStateService(
         if (schedule != null && schedule.NotificationEnabled)
         {
             logger.Information("Android: Schedule {ScheduleId} has NotificationEnabled=true, checking notification permission before enabling reminder", scheduleId);
-            var granted = await NotificationPermissionHelper.RequestNotificationPermissionIfNeededAsync();
+            // Check permission status without waiting (non-blocking)
+            // Permission requests are handled by ViewModels via the modal
+            var granted = NotificationPermissionHelper.IsNotificationPermissionGranted();
             if (!granted)
             {
                 logger.Warning("Cannot enable schedule {ScheduleId} with NotificationEnabled=true - notification permission denied", scheduleId);
-                await toastService.ShowMessage(
-                    "Notification permission is required for tap-to-play alarms. Please enable notifications in system settings.",
-                    7);
                 return false;
             }
             logger.Information("Android: Notification permission granted for schedule {ScheduleId}", scheduleId);

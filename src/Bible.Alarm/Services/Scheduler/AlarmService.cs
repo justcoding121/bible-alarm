@@ -1,6 +1,11 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
+#if ANDROID
+using Bible.Alarm.Platforms.Android.Services.Helpers;
+#elif IOS
+using Bible.Alarm.Platforms.iOS.Services.Helpers;
+#endif
 
 namespace Bible.Alarm.Services.Scheduler;
 
@@ -22,8 +27,84 @@ public sealed class AlarmService(
         // Only schedule OS notification if alarm is enabled, has at least one day selected, and notifications are available
         if (schedule.IsEnabled && schedule.DaysOfWeek != 0 && await notificationService.CanScheduleAsync())
         {
-            await ScheduleNotification(schedule);
+            // Check permission before scheduling
+            // Android: If NotificationEnabled=true but permission not granted, treat as NotificationEnabled=false
+            // iOS: If IsEnabled=true but permission not granted, don't schedule
+            if (ShouldScheduleNotification(schedule))
+            {
+                await ScheduleNotification(schedule);
+            }
         }
+    }
+
+    private bool ShouldScheduleNotification(AlarmSchedule schedule)
+    {
+#if ANDROID
+        // Android: If NotificationEnabled is true but permission is not granted, treat as NotificationEnabled = false
+        // The notification will still be scheduled, but it will behave as if tap-to-play is disabled
+        if (schedule.NotificationEnabled)
+        {
+            try
+            {
+                var permissionService = NotificationPermissionService.Instance;
+                bool isPermissionGranted = false;
+                try
+                {
+                    isPermissionGranted = permissionService.IsGranted;
+                }
+                catch (Exception)
+                {
+                    // If permission check fails, assume not granted
+                    isPermissionGranted = false;
+                }
+
+                if (!isPermissionGranted)
+                {
+                    // Permission not granted - treat NotificationEnabled as false for scheduling purposes
+                    return false;
+                }
+            }
+            catch (Exception)
+            {
+                // If permission service access fails, treat NotificationEnabled as false
+                return false;
+            }
+        }
+        // Android: Schedule notification if IsEnabled is true
+        return schedule.IsEnabled;
+#elif IOS
+        // iOS: Check IsEnabled (reminder enabled) + permission granted
+        // If IsEnabled is true but permission is not granted, don't schedule notification
+        if (schedule.IsEnabled)
+        {
+            try
+            {
+                var permissionService = IOSNotificationPermissionService.Instance;
+                bool isPermissionGranted = false;
+                try
+                {
+                    isPermissionGranted = permissionService.IsGranted;
+                }
+                catch (Exception)
+                {
+                    // If permission check fails, assume not granted
+                    isPermissionGranted = false;
+                }
+
+                // Only schedule if permission is granted
+                return isPermissionGranted;
+            }
+            catch (Exception)
+            {
+                // If permission service access fails, don't schedule
+                return false;
+            }
+        }
+        return false;
+#else
+        // Other platforms: Schedule if IsEnabled is true
+        return schedule.IsEnabled;
+#endif
     }
 
     /// <summary>
@@ -38,10 +119,16 @@ public sealed class AlarmService(
             await RemoveNotification(schedule.Id);
         }
 
-        // Schedule new notification only if alarm is enabled and has at least one day selected
+        // Schedule new notification only if alarm is enabled, has at least one day selected, and permission check passes
         if (schedule.IsEnabled && schedule.DaysOfWeek != 0 && await notificationService.CanScheduleAsync())
         {
-            await ScheduleNotification(schedule);
+            // Check permission before scheduling
+            // Android: If NotificationEnabled=true but permission not granted, treat as NotificationEnabled=false
+            // iOS: If IsEnabled=true but permission not granted, don't schedule
+            if (ShouldScheduleNotification(schedule))
+            {
+                await ScheduleNotification(schedule);
+            }
         }
     }
 
@@ -62,9 +149,65 @@ public sealed class AlarmService(
     {
         // Use schedule name if available, otherwise use empty string (not "Bible Alarm")
         var title = string.IsNullOrWhiteSpace(schedule.Name) ? string.Empty : schedule.Name;
+        
+#if ANDROID
+        // Android: If NotificationEnabled is true but permission is not granted, create a temporary schedule
+        // with NotificationEnabled=false so the notification behaves as if tap-to-play is disabled
+        AlarmSchedule scheduleToUse = schedule;
+        if (schedule.NotificationEnabled)
+        {
+            try
+            {
+                var permissionService = NotificationPermissionService.Instance;
+                bool isPermissionGranted = false;
+                try
+                {
+                    isPermissionGranted = permissionService.IsGranted;
+                }
+                catch (Exception)
+                {
+                    // If permission check fails, assume not granted
+                    isPermissionGranted = false;
+                }
+
+                if (!isPermissionGranted)
+                {
+                    // Create a temporary schedule with NotificationEnabled=false for scheduling purposes
+                    // This ensures the notification is scheduled but behaves as if tap-to-play is disabled
+                    scheduleToUse = new AlarmSchedule
+                    {
+                        Id = schedule.Id,
+                        Name = schedule.Name,
+                        IsEnabled = schedule.IsEnabled,
+                        Hour = schedule.Hour,
+                        Minute = schedule.Minute,
+                        Second = schedule.Second,
+                        DaysOfWeek = schedule.DaysOfWeek,
+                        NotificationEnabled = false, // Treat as false when permission not granted
+                        MusicEnabled = schedule.MusicEnabled,
+                        SnoozeMinutes = schedule.SnoozeMinutes,
+                        NumberOfTracksToPlay = schedule.NumberOfTracksToPlay,
+                        AlwaysPlayFromStart = schedule.AlwaysPlayFromStart,
+                        BiblePublicationSchedule = schedule.BiblePublicationSchedule,
+                        Music = schedule.Music
+                    };
+                }
+            }
+            catch (Exception)
+            {
+                // If permission service access fails, use schedule as-is
+                scheduleToUse = schedule;
+            }
+        }
+        
+        await notificationService.ScheduleNotificationAsync(scheduleToUse,
+            title,
+            "Press to start listening now.");
+#else
         await notificationService.ScheduleNotificationAsync(schedule,
             title,
             "Press to start listening now.");
+#endif
     }
 
     private async Task RemoveNotification(int scheduleId) => await notificationService.RemoveAsync(scheduleId);

@@ -647,7 +647,9 @@
                 </Button.Shadow>
             </Button>
         </core:SfEffectsView>
-        <!-- Notification Permission Warning Button (Android and iOS) - Above battery optimization button -->
+        <!-- Notification Permission Warning Button (Android and iOS) -->
+        <!-- Android: Left bottom corner -->
+        <!-- iOS: Right bottom corner -->
         <Button x:Name="NotificationPermissionFloatingButton"
             AutomationId="NotificationPermissionFloatingButton"
             BackgroundColor="{StaticResource PrimaryColor}"
@@ -657,14 +659,26 @@
             FontSize="{DynamicResource IconStandardFontSize}"
             HeightRequest="{DynamicResource IconLargeContainerSize}"
             WidthRequest="{DynamicResource IconLargeContainerSize}"
-            HorizontalOptions="End"
             Opacity="{Binding IsNotificationPermissionButtonVisible, Converter={StaticResource booleanToOpacityConverter}}"
             Padding="{DynamicResource PaddingThickness0}"
             Text="{x:Static fn:GlyphNames.ExclamationTriangle}"
             VerticalOptions="End"
             IsVisible="{Binding IsNotificationPermissionButtonVisible}"
             ZIndex="101">
-            Margin="{Binding NotificationPermissionButtonMargin}"
+            <Button.HorizontalOptions>
+                <OnPlatform x:TypeArguments="LayoutOptions">
+                    <On Platform="Android" Value="Start" />
+                    <On Platform="iOS" Value="End" />
+                    <On Platform="WinUI" Value="Start" />
+                </OnPlatform>
+            </Button.HorizontalOptions>
+            <Button.Margin>
+                <OnPlatform x:TypeArguments="Thickness">
+                    <On Platform="Android" Value="24,0,0,24" />
+                    <On Platform="iOS" Value="0,0,24,24" />
+                    <On Platform="WinUI" Value="24,0,0,24" />
+                </OnPlatform>
+            </Button.Margin>
             <Button.Shadow>
                 <Shadow Brush="#40000000" 
                         Offset="0,4" 
@@ -672,7 +686,7 @@
                         Opacity="0.4" />
             </Button.Shadow>
         </Button>
-        <!-- Battery Optimization Warning Button (Android only) - Below notification permission button -->
+        <!-- Battery Optimization Warning Button (Android only) - Right bottom corner -->
         <Button x:Name="AlarmSettingsFloatingButtonNoEffects"
             AutomationId="AlarmSettingsFloatingButton"
             BackgroundColor="{StaticResource PrimaryColor}"
@@ -691,9 +705,9 @@
             ZIndex="100">
             <Button.Margin>
                 <OnPlatform x:TypeArguments="Thickness">
-                    <On Platform="Android" Value="0,0,16,16" />
-                    <On Platform="iOS" Value="0,0,16,16" />
-                    <On Platform="WinUI" Value="0,0,16,16" />
+                    <On Platform="Android" Value="0,0,24,24" />
+                    <On Platform="iOS" Value="0,0,24,24" />
+                    <On Platform="WinUI" Value="0,0,24,24" />
                 </OnPlatform>
             </Button.Margin>
             <Button.Shadow>

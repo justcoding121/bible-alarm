@@ -71,14 +71,30 @@ public sealed class NotificationPermissionService : IDisposable
                     return false;
                 }
 
-                var result = ContextCompat.CheckSelfPermission(context, Manifest.Permission.PostNotifications);
-                var granted = result == Permission.Granted;
-                logger.Debug("NotificationPermissionService.IsGranted: {Granted}", granted);
-                return granted;
+                // Wrap permission check in additional try-catch to handle cases where
+                // context becomes invalid during app lifecycle transitions (e.g., when permission is revoked)
+                try
+                {
+                    var result = ContextCompat.CheckSelfPermission(context, Manifest.Permission.PostNotifications);
+                    var granted = result == Permission.Granted;
+                    logger.Debug("NotificationPermissionService.IsGranted: {Granted}", granted);
+                    return granted;
+                }
+                catch (Java.Lang.RuntimeException javaEx)
+                {
+                    // Handle Java exceptions that can occur when context is invalid
+                    logger.Error(javaEx, "NotificationPermissionService.IsGranted: Java exception checking permission (context may be invalid)");
+                    return false;
+                }
+                catch (System.Exception ex)
+                {
+                    logger.Error(ex, "NotificationPermissionService.IsGranted: Exception checking permission");
+                    return false;
+                }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "NotificationPermissionService.IsGranted: Exception checking permission");
+                logger.Error(ex, "NotificationPermissionService.IsGranted: Exception getting context or checking permission");
                 return false;
             }
         }

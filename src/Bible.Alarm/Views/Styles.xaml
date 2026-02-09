@@ -80,6 +80,7 @@
     <Color x:Key="PrimaryColor">#6A5ACD</Color>
     <Color x:Key="PrimaryColorDark">#512BD4</Color>
     <Color x:Key="ErrorColor">#FF3B30</Color>
+    <Color x:Key="WarningColor">#FF9500</Color>
     <Color x:Key="SuccessColor">#34C759</Color>
 
     <!-- Base Label Style - Applied globally to all Labels -->

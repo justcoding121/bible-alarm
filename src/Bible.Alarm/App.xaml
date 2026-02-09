@@ -19,6 +19,7 @@
             <Color x:Key="PrimaryColor">#6A5ACD</Color>
             <Color x:Key="PrimaryLightColor">#9370DB</Color>
             <Color x:Key="ErrorColor">#FF3B30</Color>
+            <Color x:Key="WarningColor">#FF9500</Color>
             <Color x:Key="SuccessColor">#34C759</Color>
             
             <!-- 

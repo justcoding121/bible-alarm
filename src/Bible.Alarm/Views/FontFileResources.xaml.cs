@@ -111,6 +111,8 @@ public sealed class GlyphNames
     public static string Retry = "\uf01e";
     // Font Awesome exclamation-triangle icon (for alarm settings)
     public static string ExclamationTriangle = "\uf071";
+    // Font Awesome triangle icon (simple triangle pointing up)
+    public static string Triangle = "\uf0d8";
     // Font Awesome checkmark icon
     public static string Check = "\uf00c";
     // Font Awesome section-bible icon (for Bible type selection)
