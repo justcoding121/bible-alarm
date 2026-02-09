@@ -600,18 +600,38 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
                     isPermissionGranted = permissionService.IsGranted;
                     logger.Information("[NOTIFICATION-BUTTON] Permission granted: {PermissionGranted}", isPermissionGranted);
                     
-                    // Also trigger async check to update cache and refresh button if needed
+                    // Trigger a one-shot async check to update cache and refresh button if needed.
+                    // The async result is applied directly without recursively calling this method,
+                    // to avoid an infinite loop of async checks.
                     _ = Task.Run(async () =>
                     {
                         try
                         {
                             var asyncResult = await permissionService.IsGrantedAsync();
                             logger.Information("[NOTIFICATION-BUTTON] Async permission check completed: {Result}", asyncResult);
-                            // Update button visibility again once we have the real result
-                            MainThread.BeginInvokeOnMainThread(() =>
+                            if (asyncResult != isPermissionGranted)
                             {
-                                UpdateNotificationPermissionButtonVisibility();
-                            });
+                                // Only update UI if the result differs from the sync check
+                                MainThread.BeginInvokeOnMainThread(() =>
+                                {
+                                    try
+                                    {
+                                        var hasReminderEnabledAsync = state.Value.Schedules?.Any(s => s.IsEnabled) ?? false;
+                                        var shouldShowAsync = !asyncResult && hasReminderEnabledAsync;
+                                        
+                                        IsNotificationPermissionButtonVisible = shouldShowAsync;
+                                        NotificationPermissionButtonBottomMargin = shouldShowAsync ? 24 : 0;
+                                        CollectionViewBottomMargin = shouldShowAsync ? 24 + 56 : 0;
+                                        OnPropertyChanged(nameof(NotificationPermissionButtonMargin));
+                                        
+                                        logger.Information("[NOTIFICATION-BUTTON] Updated button visibility from async check: {ShouldShow}", shouldShowAsync);
+                                    }
+                                    catch (Exception uiEx)
+                                    {
+                                        logger.Error(uiEx, "[NOTIFICATION-BUTTON] Error updating UI from async result");
+                                    }
+                                });
+                            }
                         }
                         catch (Exception asyncEx)
                         {

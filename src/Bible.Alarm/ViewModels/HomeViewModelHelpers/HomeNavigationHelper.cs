@@ -141,7 +141,11 @@ public class HomeNavigationHelper
                 bool isPermissionGranted = false;
                 try
                 {
-                    isPermissionGranted = permissionService.IsGranted;
+                    // Use async check to get accurate real-time status.
+                    // The sync IsGranted property can return false when cache is empty
+                    // (e.g., on first app launch before the async check completes),
+                    // which would unnecessarily show the permission modal.
+                    isPermissionGranted = await permissionService.IsGrantedAsync();
                 }
                 catch (Exception ex)
                 {

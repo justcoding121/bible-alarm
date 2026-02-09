@@ -50,8 +50,10 @@ public sealed class IOSNotificationPermissionService : IDisposable
 
     /// <summary>
     /// Gets whether notification permission is currently granted.
-    /// Uses cached result if available and recent, otherwise returns false (safe default).
-    /// The actual permission check happens asynchronously via IsGrantedAsync().
+    /// Uses cached result if available and recent.
+    /// When cache is expired but a previous result exists, returns the stale result
+    /// while refreshing in the background (avoids false negatives).
+    /// When no result exists at all, returns false and starts an async check.
     /// </summary>
     public bool IsGranted
     {
@@ -63,13 +65,13 @@ public sealed class IOSNotificationPermissionService : IDisposable
                 if (cachedPermissionResult.HasValue && 
                     DateTime.Now - lastPermissionCheck < permissionCacheTimeout)
                 {
-                logger.Information("[NOTIFICATION-PERMISSION] Using cached result: {Result}", cachedPermissionResult.Value);
+                    logger.Debug("[NOTIFICATION-PERMISSION] Using cached result: {Result}", cachedPermissionResult.Value);
                     return cachedPermissionResult.Value;
                 }
 
-                logger.Information("[NOTIFICATION-PERMISSION] No cached result, starting async check");
+                // Cache expired or missing - start async refresh
+                logger.Debug("[NOTIFICATION-PERMISSION] Cache expired or missing, starting async refresh");
 
-                // Start async check to update cache (fire and forget)
                 _ = Task.Run(async () =>
                 {
                     try
@@ -77,17 +79,20 @@ public sealed class IOSNotificationPermissionService : IDisposable
                         var result = await IsGrantedAsync();
                         cachedPermissionResult = result;
                         lastPermissionCheck = DateTime.Now;
-                        logger.Information("[NOTIFICATION-PERMISSION] Cache updated with result: {Result}", result);
+                        logger.Debug("[NOTIFICATION-PERMISSION] Cache refreshed with result: {Result}", result);
                     }
                     catch (Exception ex)
                     {
-                        logger.Error(ex, "[NOTIFICATION-PERMISSION] Error updating permission cache");
+                        logger.Error(ex, "[NOTIFICATION-PERMISSION] Error refreshing permission cache");
                     }
                 });
 
-                // Return false as safe default until async check completes
-                logger.Information("[NOTIFICATION-PERMISSION] Returning false as safe default (no cache)");
-                return cachedPermissionResult ?? false;
+                // Return the previous cached value if available (even if expired),
+                // otherwise false as safe default for first-ever check.
+                // This prevents returning false when permission IS granted but cache just expired.
+                var fallback = cachedPermissionResult ?? false;
+                logger.Debug("[NOTIFICATION-PERMISSION] Returning fallback while refreshing: {Result}", fallback);
+                return fallback;
             }
             catch (Exception ex)
             {
@@ -104,18 +109,16 @@ public sealed class IOSNotificationPermissionService : IDisposable
     {
         try
         {
-            logger.Information("[NOTIFICATION-PERMISSION] IsGrantedAsync: Starting async check");
+            logger.Debug("[NOTIFICATION-PERMISSION] IsGrantedAsync: Starting async check");
             
             var result = await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 var taskCompletionSource = new TaskCompletionSource<bool>();
 
-                logger.Information("[NOTIFICATION-PERMISSION] IsGrantedAsync: Calling GetNotificationSettings");
-                
                 UNUserNotificationCenter.Current.GetNotificationSettings(settings =>
                 {
                     var isEnabled = settings.AlertSetting == UNNotificationSetting.Enabled;
-                    logger.Information("[NOTIFICATION-PERMISSION] IsGrantedAsync: Callback - AlertSetting={AlertSetting}, IsEnabled={IsEnabled}",
+                    logger.Debug("[NOTIFICATION-PERMISSION] IsGrantedAsync: AlertSetting={AlertSetting}, IsEnabled={IsEnabled}",
                         settings.AlertSetting, isEnabled);
                     taskCompletionSource.SetResult(isEnabled);
                 });
@@ -123,7 +126,7 @@ public sealed class IOSNotificationPermissionService : IDisposable
                 return taskCompletionSource.Task;
             });
             
-            logger.Information("[NOTIFICATION-PERMISSION] IsGrantedAsync: Final result={Result}", result);
+            logger.Debug("[NOTIFICATION-PERMISSION] IsGrantedAsync: Result={Result}", result);
             return result;
         }
         catch (Exception ex)
@@ -224,13 +227,16 @@ public sealed class IOSNotificationPermissionService : IDisposable
     }
     
     /// <summary>
-    /// Invalidates the permission cache, forcing a fresh check on next access.
+    /// Invalidates the permission cache timeout, forcing a fresh async check on next access.
+    /// Preserves the previous cached result so IsGranted can return it as a fallback
+    /// (avoids returning false when permission is actually granted).
     /// </summary>
     public void InvalidateCache()
     {
-        cachedPermissionResult = null;
+        // Only reset the timestamp, NOT the cached result.
+        // IsGranted will return the stale result while refreshing in the background.
         lastPermissionCheck = DateTime.MinValue;
-        logger.Debug("[NOTIFICATION-PERMISSION] Cache invalidated");
+        logger.Debug("[NOTIFICATION-PERMISSION] Cache timeout invalidated (previous result preserved as fallback)");
     }
 
     public void Dispose()
