@@ -45,7 +45,6 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private string progressText = "0%";
     private bool canCancelFetch = false;
     private bool hasFetchError = false;
-    private bool isRetryBusy = false;
     private bool isCancelBusy = false;
     private MusicSectionSelectionStateChangeHandler? stateChangeHandler;
     private CancellationTokenSource? fetchCts;
@@ -57,7 +56,6 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     public ICommand CloseModalCommand { get; set; }
     public ICommand TrackSelectionCommand { get; set; }
     public ICommand CancelFetchCommand { get; }
-    public ICommand RetryFetchCommand { get; }
 
     public MusicSectionSelectionViewModel(
         ILogger logger,
@@ -87,8 +85,6 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         });
 
         CancelFetchCommand = new AsyncRelayCommand(CancelFetchAsync);
-
-        RetryFetchCommand = new AsyncRelayCommand(RetryFetchAsync);
 
         TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async x =>
         {
@@ -156,7 +152,6 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             fetchCts?.Cancel();
             CanCancelFetch = false;
             ShowProgress = false;
-            HasFetchError = false;
             IsBusy = false;
             DeviceDisplay.Current.KeepScreenOn = false;
             await navigationService.PopModalAsync();
@@ -164,24 +159,6 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         finally
         {
             IsCancelBusy = false;
-        }
-    }
-
-    private async Task RetryFetchAsync()
-    {
-        IsRetryBusy = true;
-        await Task.Delay(50);
-
-        try
-        {
-            HasFetchError = false;
-            await RefreshFromState();
-            if (!HasFetchError)
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-        }
-        finally
-        {
-            IsRetryBusy = false;
         }
     }
 
@@ -326,9 +303,9 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                     if (!isDisposed && !isSelectingSection)
                     {
                         CanCancelFetch = true;
-                        HasFetchError = false;
-                        // Don't set ShowProgress here - let PopulateSections control it via progress tracker
-                        // This prevents progress from showing when no fetch is needed (e.g., English language)
+                        ShowProgress = true;
+                        ProgressText = "0%";
+                        ProgressPercent = 0;
                     }
                 });
                 
@@ -390,20 +367,17 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             }
             catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
             {
-                // Network error - show error state instead of closing modal
                 logger.Warning(ex, "[MusicSectionSelection] RefreshFromState - Network error during repopulation");
-                // Allow screen to turn off after error
                 MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
-                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     if (!isDisposed && !isSelectingSection)
                     {
                         CanCancelFetch = false;
                         ShowProgress = false;
-                        HasFetchError = true;
                     }
                 });
+                throw;
             }
             catch (Exception ex)
             {
@@ -415,9 +389,9 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                     {
                         CanCancelFetch = false;
                         ShowProgress = false;
-                        HasFetchError = true;
                     }
                 });
+                throw;
             }
         }
         else
@@ -556,20 +530,14 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         }
     }
 
-    public bool IsRetryBusy
-    {
-        get => isRetryBusy;
-        set => SetProperty(ref isRetryBusy, value);
-    }
-
     public bool IsCancelBusy
     {
         get => isCancelBusy;
         set => SetProperty(ref isCancelBusy, value);
     }
 
-    /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>
-    public bool ShowCancelButton => ShowProgress || HasFetchError;
+    /// <summary>Show cancel button in overlay during fetch.</summary>
+    public bool ShowCancelButton => ShowProgress;
 
     private ObservableCollection<BiblePublicationSectionListViewItemModel> sections = [];
 

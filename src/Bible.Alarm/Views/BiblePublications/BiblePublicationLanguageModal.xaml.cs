@@ -91,21 +91,26 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
             {
                 var languages = bibleViewModel?.Languages;
                 if (languages == null || languages.Count == 0)
-                {
-                    Serilog.Log.Debug("BiblePublicationLanguageModal: getSelectedItem - Languages is null or empty");
                     return null;
-                }
-                var selected = languages.FirstOrDefault(l => l.IsSelected);
-                Serilog.Log.Debug("BiblePublicationLanguageModal: getSelectedItem - Languages.Count={Count}, SelectedItem={SelectedCode}",
-                    languages.Count, selected?.Code ?? "(null)");
-                return selected;
+                return languages.FirstOrDefault(l => l.IsSelected);
             },
             refreshAction: bibleViewModel != null
                 ? async () => await bibleViewModel.RefreshLanguagesAsync()
                 : null,
             onFetchFailed: async (errorMessage) =>
             {
-                await navigationService.PopModalAsync();
+                await this.Dispatcher.DispatchAsync(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(500);
+                        await navigationService.PopModalAsync();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Modal may already be closed or platform stack out of sync.
+                    }
+                });
                 await toastService.ShowMessage(errorMessage);
             },
             cancellationToken: cancellationTokenSource.Token);
@@ -187,7 +192,7 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
             }
             catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
             {
-                // Fetch failed when user tapped - close modal and show toast
+                await Task.Delay(500);
                 await navigationService.PopModalAsync();
                 await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
             }

@@ -86,6 +86,42 @@ public partial class Schedule : BaseContentPage, IDisposable
         // This method is kept for compatibility but no longer manipulates IsVisible directly
     }
 
+    /// <summary>
+    /// Call after a modal is closed (e.g. section modal on fetch failure). WinUI can leave the underlying
+    /// page with a blank or stale visual; force content visible, input enabled, and layout refresh.
+    /// </summary>
+    public void EnsureContentVisibleAfterModalClosed()
+    {
+        InputTransparent = false;
+        if (Content != null)
+            Content.InputTransparent = false;
+        if (contentContainer != null)
+        {
+            contentContainer.Opacity = 1;
+            contentContainer.InputTransparent = false;
+        }
+
+#if WINDOWS
+        // MAUI's InvalidateMeasure() doesn't reliably propagate on WinUI (issue #17367).
+        // Force a native layout pass on the WinUI window content.
+        try
+        {
+            var nativeWindow = Application.Current?.Windows?.FirstOrDefault()
+                ?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
+            if (nativeWindow?.Content is Microsoft.UI.Xaml.FrameworkElement rootElement)
+            {
+                rootElement.UpdateLayout();
+            }
+        }
+        catch (Exception)
+        {
+            // Best-effort; ignore.
+        }
+#else
+        InvalidateMeasure();
+#endif
+    }
+
     private async Task LoadScheduleContentAsync()
     {
 #if DEBUG
@@ -169,8 +205,11 @@ public partial class Schedule : BaseContentPage, IDisposable
         // In this case, skip full reinitialization to avoid showing the spinner unnecessarily
         if (contentContainer?.Content != null && isContentLoaded)
         {
-            // Just returning from a modal - sync overlay state and return
             SyncOverlayWithState();
+#if WINDOWS
+            // WinUI can leave the page blank after modal pop; force content visible and layout refresh
+            EnsureContentVisibleAfterModalClosed();
+#endif
             return;
         }
 

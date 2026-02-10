@@ -62,6 +62,24 @@ public sealed class NavigationService(
     }
 
     /// <summary>
+    /// Gets the top page of the navigation stack (visible when no modal is shown).
+    /// </summary>
+    public Page? GetCurrentPage()
+    {
+        try
+        {
+            var navigation = GetNavigation(shouldRetry: false);
+            return navigation.NavigationStack.Count > 0
+                ? navigation.NavigationStack[^1]
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Sets Home page visibility based on playback state.
     /// If playback is active, hides Home to prevent visual flash before alarm modal appears.
     /// </summary>

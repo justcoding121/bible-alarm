@@ -16,8 +16,6 @@
     <ContentView.Resources>
         <converters:BoolToOpacityConverter x:Key="boolToOpacityConverter" />
         <converters:DefaultTextConverter x:Key="defaultTextConverter" />
-        <converters:MultiBoolOrConverter x:Key="multiBoolOrConverter" />
-        <converters:SpinnerVisibleConverter x:Key="spinnerVisibleConverter" />
     </ContentView.Resources>
     <Grid x:Name="overlayGrid"
           IsVisible="True"
@@ -52,7 +50,7 @@
                     <RowDefinition Height="{DynamicResource IconStandardContainerSize}" />
                 </Grid.RowDefinitions>
 
-                <!-- Progress state (hidden when HasFetchError) -->
+                <!-- Progress state -->
                 <Label
                     Grid.Row="0"
                     HeightRequest="30"
@@ -74,72 +72,25 @@
                     VerticalOptions="Center"
                     Progress="{Binding Source={x:Reference busyOverlay}, Path=ProgressPercent}"
                     ProgressColor="{StaticResource PrimaryColor}" />
-                <!-- Spinner hidden when HasFetchError (opacity 0); visible and running only when no error -->
                 <core:SfBusyIndicator
                     Grid.Row="2"
                     x:Name="busyIndicator"
                     IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsSpinnerRunning}"
                     IsVisible="True"
+                    Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
                     AnimationType="DoubleCircle"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     HeightRequest="{DynamicResource IconStandardContainerSize}"
                     WidthRequest="{DynamicResource IconStandardContainerSize}"
-                    IndicatorColor="{StaticResource PrimaryColor}">
-                    <core:SfBusyIndicator.Opacity>
-                        <MultiBinding Converter="{StaticResource spinnerVisibleConverter}" Mode="OneWay">
-                            <Binding Path="IsVisible" Source="{x:Reference busyOverlay}" />
-                            <Binding Path="HasFetchError" Source="{x:Reference busyOverlay}" />
-                        </MultiBinding>
-                    </core:SfBusyIndicator.Opacity>
-                </core:SfBusyIndicator>
+                    IndicatorColor="{StaticResource PrimaryColor}" />
 
-                <!-- Error state message (shown when HasFetchError) -->
-                <Label
-                    Grid.Row="0"
-                    Grid.RowSpan="3"
-                    IsVisible="{Binding Source={x:Reference busyOverlay}, Path=HasFetchError, Mode=OneWay}"
-                    Text="Network error. Please check your internet connection."
-                    FontSize="{DynamicResource MediumFontSize}"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"
-                    HorizontalTextAlignment="Center"
-                    VerticalTextAlignment="Center"
-                    TextColor="#FF6B6B"
-                    LineBreakMode="WordWrap" />
-
-                <!-- Row 3: Retry (left) + Cancel (right) when HasFetchError; Cancel only when ShowProgress -->
+                <!-- Row 3: Cancel (when ShowProgress) -->
                 <HorizontalStackLayout
                     Grid.Row="3"
                     HorizontalOptions="Center"
                     Spacing="24">
-                    <!-- Retry Button (shown when HasFetchError, same size as Cancel) -->
-                    <Border
-                        IsVisible="{Binding Source={x:Reference busyOverlay}, Path=HasFetchError, Mode=OneWay}"
-                        BackgroundColor="{StaticResource PrimaryColor}"
-                        HeightRequest="{DynamicResource IconStandardContainerSize}"
-                        WidthRequest="{DynamicResource IconStandardContainerSize}"
-                        StrokeThickness="0"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="100" />
-                        </Border.StrokeShape>
-                        <Border.Shadow>
-                            <Shadow Brush="#6A5ACD" Offset="0,4" Opacity="0.4" Radius="12" />
-                        </Border.Shadow>
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={x:Reference busyOverlay}, Path=RetryCommand}" />
-                        </Border.GestureRecognizers>
-                        <Label
-                            Text="{x:Static fn:GlyphNames.Retry}"
-                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="{DynamicResource IconStandardFontSize}"
-                            TextColor="White"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center" />
-                    </Border>
-                    <!-- Cancel Button (visible when ShowProgress OR HasFetchError) -->
+                    <!-- Cancel Button -->
                     <Border
                         Opacity="{Binding Source={x:Reference busyOverlay}, Path=ShowCancelButton, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
                         BackgroundColor="{DynamicResource ControlBackgroundColor}"

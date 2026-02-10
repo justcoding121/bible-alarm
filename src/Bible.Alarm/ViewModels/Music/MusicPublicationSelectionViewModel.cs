@@ -159,7 +159,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         });
 
         CancelFetchCommand = new AsyncRelayCommand(CancelFetchAsync);
-        RetryFetchCommand = new AsyncRelayCommand(RetryFetchAsync);
     }
 
     private void OnMusicChanged(object? sender, EventArgs e)
@@ -194,7 +193,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
     public ICommand CancelFetchCommand { get; }
-    public ICommand RetryFetchCommand { get; }
 
     private async Task CancelFetchAsync()
     {
@@ -207,7 +205,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             fetchCts?.Cancel();
             propertyManager.CanCancelFetch = false;
             propertyManager.ShowProgress = false;
-            propertyManager.HasFetchError = false;
             propertyManager.IsBusy = false;
             DeviceDisplay.Current.KeepScreenOn = false;
             await navigationService.PopModalAsync();
@@ -215,24 +212,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         finally
         {
             propertyManager.IsCancelBusy = false;
-        }
-    }
-
-    private async Task RetryFetchAsync()
-    {
-        propertyManager.IsRetryBusy = true;
-        await Task.Delay(50);
-
-        try
-        {
-            propertyManager.HasFetchError = false;
-            await RefreshFromState();
-            if (!propertyManager.HasFetchError)
-                await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
-        }
-        finally
-        {
-            propertyManager.IsRetryBusy = false;
         }
     }
 
@@ -316,11 +295,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         set => propertyManager.HasFetchError = value;
     }
 
-    public bool IsRetryBusy
-    {
-        get => propertyManager.IsRetryBusy;
-        set => propertyManager.IsRetryBusy = value;
-    }
 
     public bool IsCancelBusy
     {
@@ -328,8 +302,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         set => propertyManager.IsCancelBusy = value;
     }
 
-    /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>
-    public bool ShowCancelButton => ShowProgress || HasFetchError;
+    /// <summary>Show cancel button in overlay during fetch.</summary>
+    public bool ShowCancelButton => ShowProgress;
 
     /// <summary>
     /// Initialize is called via Task.Run from HandleMusicInitialized.
@@ -479,7 +453,9 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         {
             propertyManager.IsBusy = true;
             propertyManager.CanCancelFetch = true;
-            propertyManager.HasFetchError = false;
+            propertyManager.ShowProgress = true;
+            propertyManager.ProgressText = "0%";
+            propertyManager.ProgressPercent = 0;
             // Keep screen on during download to prevent Android from restricting network access
             DeviceDisplay.Current.KeepScreenOn = true;
         });
@@ -593,9 +569,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
             // Opening the publications modal is the ONLY time we download ALL publications for a language.
             // Always use downloadAll=true here so placeholders can be hydrated into localized names.
-            // Don't set ShowProgress here - let PopulateSongPublications control it via progress tracker
-            // This prevents progress from showing when no fetch is needed (e.g., English language)
-            
             var progressReporter = new ModalOverlayFetchProgressReporter("MusicPublication", fetchCts.Token);
 
             // For instrumental music (no language), populate publications directly
@@ -629,20 +602,14 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
         {
             Serilog.Log.Warning(ex, "MusicPublicationSelectionViewModel: Fetch failed with network error");
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                propertyManager.ShowProgress = false;
-                propertyManager.HasFetchError = true;
-            });
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
+            throw;
         }
         catch (Exception ex)
         {
             Serilog.Log.Error(ex, "MusicPublicationSelectionViewModel: Fetch failed during refresh");
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                propertyManager.ShowProgress = false;
-                propertyManager.HasFetchError = true;
-            });
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
+            throw;
         }
         finally
         {
@@ -780,11 +747,6 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
                 return;
             }
 
-            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.IsRetryBusy))
-            {
-                OnPropertyChanged(nameof(IsRetryBusy));
-                return;
-            }
 
             if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.IsCancelBusy))
             {

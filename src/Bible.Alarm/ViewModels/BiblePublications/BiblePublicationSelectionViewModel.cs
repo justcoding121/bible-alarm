@@ -47,7 +47,6 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     public ICommand CloseModalCommand { get; set; }
     public ICommand SelectLanguageCommand { get; set; }
     public ICommand CancelFetchCommand { get; }
-    public ICommand RetryFetchCommand { get; }
 
     public BiblePublicationSelectionViewModel(
         IMediaService mediaService,
@@ -132,8 +131,6 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
         // Cancel and retry fetch commands
         CancelFetchCommand = new AsyncRelayCommand(CancelFetchAsync);
-        RetryFetchCommand = new AsyncRelayCommand(RetryFetchAsync);
-
         // Always trigger initialization, even if CurrentBiblePublicationSchedule is null
         // This ensures languages are populated for the language modal use case
         OnBiblePublicationInitialized(null, EventArgs.Empty);
@@ -150,7 +147,6 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             fetchCts?.Cancel();
             propertyManager.CanCancelFetch = false;
             propertyManager.ShowProgress = false;
-            propertyManager.HasFetchError = false;
             propertyManager.IsBusy = false;
             DeviceDisplay.Current.KeepScreenOn = false;
             await navigationService.PopModalAsync();
@@ -158,24 +154,6 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         finally
         {
             propertyManager.IsCancelBusy = false;
-        }
-    }
-
-    private async Task RetryFetchAsync()
-    {
-        propertyManager.IsRetryBusy = true;
-        await Task.Delay(50);
-
-        try
-        {
-            propertyManager.HasFetchError = false;
-            await RefreshFromState();
-            if (!propertyManager.HasFetchError)
-                await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
-        }
-        finally
-        {
-            propertyManager.IsRetryBusy = false;
         }
     }
 
@@ -216,7 +194,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     /// Refreshes the ViewModel from the latest state when the modal appears.
     /// This ensures publications are populated and current is initialized from CurrentSchedule.
     /// NOTE: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper.
-    /// On fetch error, sets HasFetchError = true instead of closing the modal.
+    /// On fetch error, rethrows so ModalScrollHelper can close modal and show toast; state is retained.
     /// Uses a semaphore to serialize concurrent calls.
     /// </summary>
     public async Task RefreshFromState()
@@ -239,9 +217,9 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         fetchCts?.Cancel();
         fetchCts = new CancellationTokenSource();
         propertyManager.CanCancelFetch = true;
-        propertyManager.HasFetchError = false;
-        // Don't set ShowProgress here - let PopulatePublicationsAsync control it via progress tracker
-        // This prevents progress from showing when no fetch is needed (e.g., English language)
+        propertyManager.ShowProgress = true;
+        propertyManager.ProgressText = "0%";
+        propertyManager.ProgressPercent = 0;
         
         // Keep screen on during download to prevent Android from restricting network access
         DeviceDisplay.Current.KeepScreenOn = true;
@@ -270,13 +248,13 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         {
             Serilog.Log.Warning(ex, "BiblePublicationSelectionViewModel: Fetch failed with network error");
             propertyManager.ShowProgress = false;
-            propertyManager.HasFetchError = true;
+            throw;
         }
         catch (Exception ex)
         {
             Serilog.Log.Error(ex, "BiblePublicationSelectionViewModel: Fetch failed during refresh");
             propertyManager.ShowProgress = false;
-            propertyManager.HasFetchError = true;
+            throw;
         }
         finally
         {
@@ -315,11 +293,10 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     public string ProgressText { get => propertyManager.ProgressText; set => propertyManager.ProgressText = value; }
     public bool CanCancelFetch { get => propertyManager.CanCancelFetch; set => propertyManager.CanCancelFetch = value; }
     public bool HasFetchError { get => propertyManager.HasFetchError; set => propertyManager.HasFetchError = value; }
-    public bool IsRetryBusy { get => propertyManager.IsRetryBusy; set => propertyManager.IsRetryBusy = value; }
     public bool IsCancelBusy { get => propertyManager.IsCancelBusy; set => propertyManager.IsCancelBusy = value; }
 
-    /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>
-    public bool ShowCancelButton => ShowProgress || HasFetchError;
+    /// <summary>Show cancel button in overlay during fetch.</summary>
+    public bool ShowCancelButton => ShowProgress;
 
     /// <summary>
     /// Gets the FlowDirection for content based on the selected language direction.
@@ -439,11 +416,6 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
                 return;
             }
 
-            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.IsRetryBusy))
-            {
-                OnPropertyChanged(nameof(IsRetryBusy));
-                return;
-            }
 
             if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.IsCancelBusy))
             {

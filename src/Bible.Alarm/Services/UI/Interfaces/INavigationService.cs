@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Views;
+using Microsoft.Maui.Controls;
 
 namespace Bible.Alarm.Services.UI.Interfaces;
 
@@ -42,6 +43,11 @@ public interface INavigationService : IDisposable
     /// Gets the current Home page from the navigation stack, if available.
     /// </summary>
     Home? GetCurrentHomePage();
+
+    /// <summary>
+    /// Gets the top page of the navigation stack (visible when no modal is shown).
+    /// </summary>
+    Page? GetCurrentPage();
 
     /// <summary>
     /// Sets Home page visibility based on playback state.

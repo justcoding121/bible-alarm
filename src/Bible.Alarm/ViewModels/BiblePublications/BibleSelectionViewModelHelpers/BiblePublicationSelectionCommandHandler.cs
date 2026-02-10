@@ -148,15 +148,14 @@ public sealed class BiblePublicationSelectionCommandHandler
             }
                 catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
                 {
-                    // List item click failure: show toast and close modal (retain state)
                     Log.Warning(ex, "CreateSectionSelectionCommand: Network error for publication={PublicationCode}", x.Code);
-                // Reset progress on error (only if it was set during fetch)
-                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
-                var toastService = ServiceProviderManager.GetService<IToastService>();
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage("Please check your internet connection.");
-                return;
-            }
+                    await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
+                    var toastService = ServiceProviderManager.GetService<IToastService>();
+                    await Task.Delay(500);
+                    await navigationService.PopModalAsync();
+                    await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+                    return;
+                }
             var (sectionCode, trackCode, sectionName, trackTitle) = result;
 
             Log.Debug("CreateSectionSelectionCommand: Result sectionCode={SectionCode}, trackCode={TrackCode}, sectionName={SectionName}, trackTitle={TrackTitle}",
@@ -263,15 +262,12 @@ public sealed class BiblePublicationSelectionCommandHandler
                 }
                 catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
                 {
-                    // List item click failure: show toast and close modal (retain state)
                     Log.Warning(ex, "BibleSelectionCommandHandler: Network error during language selection for {LanguageCode}", x.Code);
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        x.DownloadProgress = 0.0;
-                    });
+                    await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                     var toastService = ServiceProviderManager.GetService<IToastService>();
+                    await Task.Delay(500);
                     await navigationService.PopModalAsync();
-                    await toastService.ShowMessage("Please check your internet connection.");
+                    await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
                     return;
                 }
                 var (publicationCode, sectionCode, trackCode, sectionName, publicationName, trackTitle) = result;

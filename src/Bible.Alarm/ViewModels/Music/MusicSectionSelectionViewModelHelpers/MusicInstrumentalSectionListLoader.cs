@@ -51,7 +51,10 @@ internal sealed class MusicInstrumentalSectionListLoader
             
             if (!allSectionsHarvested)
             {
-                // Sections are not fully harvested - show progress and retry fetching
+                // Sections are not fully harvested - show progress and cancel as soon as fetch is decided, then retry fetching
+                progress?.SetIsVisible(true);
+                progress?.UpdateProgress(0.0);
+
                 // Retry logic: Retry fetching until all sections are harvested (for future support when sections may not be pre-harvested)
                 sectionsFromDb = await RetryFetchUntilHarvestedAsync(publicationCode, progress, cancellationToken);
                 progress?.UpdateProgress(0.7);

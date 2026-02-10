@@ -1,14 +1,17 @@
 #nullable enable
 
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Messages;
 using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -45,7 +48,6 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     private string progressText = "0%";
     private bool canCancelFetch = false;
     private bool hasFetchError = false;
-    private bool isRetryBusy = false;
     private bool isCancelBusy = false;
     private bool isDisposed = false;
     private bool isSelectingSection;
@@ -63,9 +65,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     public ICommand CloseModalCommand { get; set; }
     public ICommand TrackSelectionCommand { get; set; }
     public ICommand CancelFetchCommand { get; }
-    public ICommand RetryFetchCommand { get; }
 
-    public BiblePublicationSectionSelectionViewModel(ILogger logger, IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper)
+    public BiblePublicationSectionSelectionViewModel(ILogger logger, IMediaService mediaService, IState<ApplicationState> state, IDispatcher dispatcher, INavigationService navigationService, IMapper mapper, IInternetConnectivityChecker? internetChecker = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
@@ -73,7 +74,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
         this.mapper = mapper;
-        sectionListLoader = new SectionListLoader(logger, mediaService);
+        sectionListLoader = new SectionListLoader(logger, mediaService, internetChecker);
         trackSelectionResolver = new TrackSelectionResolver(logger, mediaService);
 
         // Don't initialize here - let OnBiblePublicationInitialized handle it
@@ -91,8 +92,6 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         });
 
         CancelFetchCommand = new AsyncRelayCommand(CancelFetchAsync);
-
-        RetryFetchCommand = new AsyncRelayCommand(RetryFetchAsync);
 
         TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async (x) =>
         {
@@ -157,16 +156,18 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 logger.Warning(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Network error selecting section");
                 await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
+                await Task.Delay(500);
                 await navigationService.PopModalAsync();
-                await toastService.ShowMessage("Please check your internet connection.");
+                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Error selecting section");
                 await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
+                await Task.Delay(500);
                 await navigationService.PopModalAsync();
-                await toastService.ShowMessage("An error occurred. Please try again.");
+                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
             }
             finally
             {
@@ -185,7 +186,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             () => initComplete,
             (b) => IsBusy = b,
             () => Sections,
-            (lang, pub) => _ = Initialize(lang, pub),
+            (lang, pub) => ObserveFaultedTask(Initialize(lang, pub), "Section list Initialize from state change"),
             SetSelectedSection);
 
         // Only subscribe OnBiblePublicationChanged to state changes
@@ -221,7 +222,6 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             fetchCts?.Cancel();
             CanCancelFetch = false;
             ShowProgress = false;
-            HasFetchError = false;
             IsBusy = false;
             DeviceDisplay.Current.KeepScreenOn = false;
             await navigationService.PopModalAsync();
@@ -229,24 +229,6 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         finally
         {
             IsCancelBusy = false;
-        }
-    }
-
-    private async Task RetryFetchAsync()
-    {
-        IsRetryBusy = true;
-        await Task.Delay(50);
-
-        try
-        {
-            HasFetchError = false;
-            await RefreshFromState();
-            if (!HasFetchError)
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-        }
-        finally
-        {
-            IsRetryBusy = false;
         }
     }
 
@@ -259,9 +241,20 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             return;
         }
 
-        // Always read the latest state when initializing
-        // Fire-and-forget: initialization happens asynchronously, errors are handled within RefreshFromState
-        _ = RefreshFromState();
+        // Fire-and-forget: ModalScrollHelper will also call RefreshFromState when modal appears; observe so faults are logged
+        ObserveFaultedTask(RefreshFromState(), "RefreshFromState from OnBiblePublicationInitialized");
+    }
+
+    private static void ObserveFaultedTask(Task task, string context)
+    {
+        if (task == null) return;
+        task.ContinueWith(
+            t =>
+            {
+                if (t.IsFaulted && t.Exception != null)
+                    Log.Warning(t.Exception, "BiblePublicationSectionSelectionViewModel: {Context}", context);
+            },
+            TaskContinuationOptions.OnlyOnFaulted);
     }
 
     /// <summary>
@@ -372,9 +365,9 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     if (!isDisposed && !isSelectingSection)
                     {
                         CanCancelFetch = true;
-                        HasFetchError = false;
-                        // Don't set ShowProgress here - let Initialize/PopulateSections control it via progress tracker
-                        // This prevents progress from showing when no fetch is needed (e.g., English language)
+                        ShowProgress = true;
+                        ProgressText = "0%";
+                        ProgressPercent = 0;
                     }
                 });
                 
@@ -437,23 +430,22 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             }
             catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
             {
-                // Network error - show error state instead of closing modal
+                initComplete = false;
                 logger.Warning(ex, "BiblePublicationSectionSelectionViewModel: Fetch failed with network error");
-                // Allow screen to turn off after error
                 MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
-                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     if (!isDisposed && !isSelectingSection)
                     {
                         CanCancelFetch = false;
                         ShowProgress = false;
-                        HasFetchError = true;
                     }
                 });
+                throw;
             }
             catch (Exception ex)
             {
+                initComplete = false;
                 logger.Error(ex, "BiblePublicationSectionSelectionViewModel: RefreshFromStateInternal - Error during repopulation");
                 MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -462,9 +454,9 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     {
                         CanCancelFetch = false;
                         ShowProgress = false;
-                        HasFetchError = true;
                     }
                 });
+                throw;
             }
         }
         else
@@ -583,20 +575,14 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         }
     }
 
-    public bool IsRetryBusy
-    {
-        get => isRetryBusy;
-        set => SetProperty(ref isRetryBusy, value);
-    }
-
     public bool IsCancelBusy
     {
         get => isCancelBusy;
         set => SetProperty(ref isCancelBusy, value);
     }
 
-    /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>
-    public bool ShowCancelButton => ShowProgress || HasFetchError;
+    /// <summary>Show cancel button in overlay during fetch.</summary>
+    public bool ShowCancelButton => ShowProgress;
 
     private ObservableCollection<BiblePublicationSectionListViewItemModel> sections = [];
 

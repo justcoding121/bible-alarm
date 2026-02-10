@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
@@ -15,11 +16,13 @@ internal sealed class SectionListLoader
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
+    private readonly IInternetConnectivityChecker? internetChecker;
 
-    public SectionListLoader(ILogger logger, IMediaService mediaService)
+    public SectionListLoader(ILogger logger, IMediaService mediaService, IInternetConnectivityChecker? internetChecker = null)
     {
         this.logger = logger;
         this.mediaService = mediaService;
+        this.internetChecker = internetChecker;
     }
 
     internal async Task<(List<BiblePublicationSectionListViewItemModel> Items, Dictionary<string, BiblePublicationSectionListViewItemModel> Mapping)> LoadAsync(
@@ -61,7 +64,10 @@ internal sealed class SectionListLoader
             }
             else
             {
-                // Not all sections are harvested - show progress and retry fetching
+                // Not all sections are harvested - show progress and cancel as soon as fetch is decided, then retry fetching
+                progress?.SetIsVisible(true);
+                progress?.UpdateProgress(0.0);
+
                 if (hasAllExpectedSections)
                 {
                     logger.Debug("SectionListLoader: Have {ActualCount} sections but some are placeholders, fetching remaining sections for publication={PublicationCode}, language={LanguageCode}",
@@ -143,6 +149,8 @@ internal sealed class SectionListLoader
         // Show progress overlay at the start of retry loop and keep it visible throughout all retries
         progress?.SetIsVisible(true);
         progress?.UpdateProgress(0.0);
+
+        await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetChecker);
 
         SortedDictionary<string, Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationSection>? sectionsData = null;
 

@@ -224,22 +224,22 @@ public sealed class MusicPublicationSelectionCommandHandler(
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
         {
-            // List item click failure: show toast and close modal (retain state)
             Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during publication selection for {PublicationCode}", songPublication.Code);
             await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
             var toastService = ServiceProviderManager.GetService<IToastService>();
+            await Task.Delay(500);
             await navigationService.PopModalAsync();
-            await toastService.ShowMessage("Please check your internet connection.");
+            await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
             return;
         }
         catch (Exception ex)
         {
-            // List item click failure: show toast and close modal (retain state)
             Log.Error(ex, "MusicPublicationSelectionCommandHandler: Error during publication selection for {PublicationCode}", songPublication.Code);
             await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
             var toastService = ServiceProviderManager.GetService<IToastService>();
+            await Task.Delay(500);
             await navigationService.PopModalAsync();
-            await toastService.ShowMessage("An error occurred. Please try again.");
+            await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
             return;
         }
         
@@ -281,12 +281,12 @@ public sealed class MusicPublicationSelectionCommandHandler(
             }
             catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
             {
-                // List item click failure: show toast and close modal (retain state)
                 Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during language selection for {LanguageCode}", language.Code);
                 await MainThread.InvokeOnMainThreadAsync(() => language.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<IToastService>();
+                await Task.Delay(500);
                 await navigationService.PopModalAsync();
-                await toastService.ShowMessage("Please check your internet connection.");
+                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
                 return;
             }
             var (publicationCode, trackCode, trackName, publicationName) = result;

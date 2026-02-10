@@ -23,7 +23,6 @@ public sealed class MusicPublicationSelectionPropertyManager : ObservableObject
     private string progressText = "0%";
     private bool canCancelFetch = false;
     private bool hasFetchError = false;
-    private bool isRetryBusy = false;
     private bool isCancelBusy = false;
 
     public bool IsBusy
@@ -92,12 +91,6 @@ public sealed class MusicPublicationSelectionPropertyManager : ObservableObject
     {
         get => hasFetchError;
         set => SetProperty(ref hasFetchError, value);
-    }
-
-    public bool IsRetryBusy
-    {
-        get => isRetryBusy;
-        set => SetProperty(ref isRetryBusy, value);
     }
 
     public bool IsCancelBusy

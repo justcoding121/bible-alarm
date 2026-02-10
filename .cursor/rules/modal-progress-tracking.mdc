@@ -48,72 +48,58 @@ All progress tracking uses WeakReferenceMessenger. Implementations send messages
 - Always show numeric percentage (0% to 100%), never text like "Loading..."
 - Track modals don't need progress (data already in local DB)
 
-## Retry, Cancel, and Error Handling (All Modals)
+## Cancel and Error Handling (Schedule Page Modals)
 
-All modals (Bible Publication, Music Publication, Bible Section, Music Section) follow consistent patterns:
+Publication and Section modals (Bible Publication, Music Publication, Bible Section, Music Section) use **close + toast** on fetch error. **No retry button** in these modals.
 
 ### Cancel Button Pattern
-All modals have `CancelFetchCommand` that:
-- Cancels `CancellationTokenSource` (`fetchCts?.Cancel()`)
-- Resets `CanCancelFetch = false`, `ShowProgress = false`, `HasFetchError = false`
-- Closes modal via `navigationService.PopModalAsync()`
+- `CancelFetchCommand` cancels `CancellationTokenSource` (`fetchCts?.Cancel()`), resets `CanCancelFetch = false`, `ShowProgress = false`, `IsBusy = false`, and closes modal via `navigationService.PopModalAsync()`.
 
 ### Progress Initialization
-- **Always explicitly set `ShowProgress = true`** before creating `FetchProgressTracker` to ensure cancel button appears immediately
-- Set `CanCancelFetch = true` and `HasFetchError = false` at fetch start
+- Set `CanCancelFetch = true` at fetch start. Do **not** set `ShowProgress` in the ViewModel before the fetch—let the progress reporter (e.g. `ModalOverlayFetchProgressReporter`) control it so progress is only shown after a fetch decision is made.
 
-### Retry Logic Pattern (for non-English languages)
-- **Location**: 
-  - Bible Publication: `BiblePublicationSelectionDataProvider.PopulatePublicationsAsync`
-  - Music Publication: `MusicPublicationFetchCoordinator.RetryFetchUntilHarvestedAsync`
-  - Bible Section: `SectionListLoader.RetryFetchUntilHarvestedAsync`
-  - Music Section: `MusicInstrumentalSectionListLoader.RetryFetchUntilHarvestedAsync`
-- **Strategy**: Up to 10 retries, increasing delays (1s, 2s, 3s... up to 5s max), max 60 seconds
-- **Validation**: Checks if items are harvested (not placeholders: `Name != Code` and `Id > 0`)
-- **Progress Management**: 
-  - Show overlay at start (`progress?.SetIsVisible(true)`)
-  - Re-show after fetch operations (they hide in finally blocks)
-  - Hide in finally block when retry loop completes
+### Modal Open Fetch Error (Publication/Section modals)
+- **On network/fetch failure**: Reset overlay state (`CanCancelFetch = false`, `ShowProgress = false`) on main thread, then **rethrow** the exception.
+- **ModalScrollHelper** catches the exception and calls **onFetchFailed** (passed from modal code-behind). That callback must **close the modal** and **show a toast** (e.g. "Please check your internet connection."). **Do not** dispatch any state changes—retain Bible/Music container rows.
+- **ProgressIndicator** and **BusyOverlay** for these modals show only **spinner + progress bar + Cancel**. No Retry button, no error message label.
 
-### Error Handling Pattern
+### List Item Tap Error (Category, Language, Publication, Section)
+- On network failure: show toast "Please check your internet connection.", **close modal**, retain state. Applies to: Category, Bible Language, Music Language, Bible Publication, Bible Section, Music Publication, Music Section. Close modal **before** showing toast so the toast does not block the UI.
 
-**Modal open progress (ModalOverlayFetchProgressReporter)**: On network failure, set `HasFetchError = true` and keep modal open. BusyOverlay shows Retry (left) + Cancel (right). Do NOT dispatch any state changes - retain Bible/Music container rows.
+### Playback Modal (separate from schedule modals)
+- **Playback modal keeps Retry**: When download fails before playback or next/prev fails, show error inside the playback modal with **Retry** and use `HandlePlaybackFailureAsync` / `ResetAndRetryAsync`. Retry button uses 50ms delay and spinner feedback. This is **unrelated** to schedule page modal progress/error handling.
 
-**List item tap progress (DownloadProgress / CategoryFetchProgress)**: On network failure, show toast "Please check your internet connection.", close modal, retain state. Applies to: Category, Bible Language, Music Language, Bible Publication, Bible Section, Music Publication, Music Section.
+### Internal Retry Logic (for non-English harvest)
+- **Location**: Bible Publication: `BiblePublicationSelectionDataProvider.PopulatePublicationsAsync`; Music Publication: `MusicPublicationFetchCoordinator.RetryFetchUntilHarvestedAsync`; Bible Section: `SectionListLoader.RetryFetchUntilHarvestedAsync`; Music Section: `MusicInstrumentalSectionListLoader.RetryFetchUntilHarvestedAsync`.
+- **Strategy**: Up to 10 retries, increasing delays (1s, 2s, … up to 5s max), max 60 seconds. Validation: items harvested (not placeholders). Progress: show overlay at start, re-show after fetch ops, hide in finally when loop completes.
+- If all retries fail, the exception propagates; ViewModel rethrows → ModalScrollHelper → onFetchFailed → close modal + toast.
 
-**Consistency**: Internet check fail and actual network failure during the operation must produce the same behaviour (toast, UI message, or silent+log). Ensure both paths trigger identical handling.
+### Consistency and When UI Waits for Network
+- Internet check fail and actual network failure during the operation must produce the **same behaviour** (toast + close, or same message). Ensure both paths trigger identical handling.
+- **When UI may wait for network**: (1) UI action directly triggers API fetch (e.g. open publication modal, tap section, select language that requires harvest). (2) Playback waiting for download. In (1), schedule modals: close + toast. In (2), playback modal: error in modal with Retry.
+- **All other network work** (cache setup, pre-download, URL refresh, etc.): fire-and-forget. Do **not** show toast on failure; log only.
 
-**When UI may wait for network**: Only in these two cases:
-1. **UI action directly triggers API fetch** (e.g. user opens publication modal, taps section, selects language that requires harvest).
-2. **Playback waiting for download** (no cached file; user initiated play and is waiting for the track).
+### Internet Check When Fetch Is Decided
+- **Shared fetchers**: `IInternetConnectivityChecker` via `NetworkExceptionHelper.ThrowIfNoInternetAsync(checker)` in LanguageContentPublicationTracksFetcher, LanguageContentPublicationSectionsFetcher, LanguageContentSectionTracksFetcher, LanguageContentFirstSectionFetcher.
+- **TrackNavigator**: `INetworkStatusService.IsInternetAvailable()` in EnsureSectionHarvestedAsync before EnsurePublicationExistsAsync.
+- **Media downloads**: `INetworkStatusService.IsInternetAvailable()` in MediaCacheService.GetOrDownloadTrackUriWithProgressAsync (before download) and ProcessPlaylistAsync (before each download). Playback modal shows error via HandlePlaybackFailureAsync; background task skips with logging.
+- **Do NOT check internet upfront** for: list item taps (English pre-packaged; would block switching back when offline), MediaCacheService.SetupAlarmCacheAsync (only download when not cached).
 
-In both cases, errors must be gracefully handled: appropriate toast, UI message with retry option (e.g. BusyOverlay Retry button, HandlePlaybackFailureAsync flow).
-
-**All other network work** (cache setup, pre-download, URL refresh for background playlist build, etc.) must run as fire-and-forget background jobs. Never block UI for these.
-
-**Fire-and-forget / background tasks**: Do NOT show toast on failure. Log only. The user is not waiting for the result; a toast would appear out of context. Examples: SchedulerService cache setup, PlaybackService PreDownloadNextTrackAsync, opportunistic append download, ScheduleMediaCacheService.SetupMediaCache, PreparePlaybackService background pre-download.
-
-**Internet check when fetch is decided**: Add check once section/metadata fetch or media download is decided, before the call:
-- **Shared fetchers** (publication/section metadata): `IInternetConnectivityChecker` via `NetworkExceptionHelper.ThrowIfNoInternetAsync(checker)` in LanguageContentPublicationTracksFetcher, LanguageContentPublicationSectionsFetcher, LanguageContentSectionTracksFetcher, LanguageContentFirstSectionFetcher.
-- **TrackNavigator** (prev/next section harvest): `INetworkStatusService.IsInternetAvailable()` in EnsureSectionHarvestedAsync, right before calling EnsurePublicationExistsAsync.
-- **Media downloads**: `INetworkStatusService.IsInternetAvailable()` in MediaCacheService.GetOrDownloadTrackUriWithProgressAsync (before download) and ProcessPlaylistAsync (in loop before each download). Playback modal shows error via HandlePlaybackFailureAsync; background task skips with logging.
-
-**Do NOT check internet upfront** in these scenarios:
-- **List item taps**: English is pre-packaged; melody music and cached publications need no fetch. If a fetch is needed and network is down, the selector will throw and we catch above. Upfront checks would incorrectly block switching back to English when offline.
-- **MediaCacheService.SetupAlarmCacheAsync**: ProcessPlaylistAsync skips cached files; only downloads when ExistsAsync returns false. DownloadAndCacheTrackAsync will fail if offline. Upfront check would block pre-cache when all media is already cached.
-
+### Example: Modal Open Fetch Catch (Publication/Section ViewModels)
 ```csharp
-catch (OperationCanceledException)
-{
-    // Log and preserve data, reset UI state
-    logger.Debug("Fetch cancelled by user");
-    // Reset CanCancelFetch, ShowProgress on main thread
-}
 catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
 {
-    // Show error state instead of closing modal (modal open progress only)
-    ShowProgress = false;
-    HasFetchError = true;  // Shows retry button to left of cancel in BusyOverlay
+    logger.Warning(ex, "Fetch failed with network error");
+    MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
+    await MainThread.InvokeOnMainThreadAsync(() =>
+    {
+        if (!isDisposed && !isSelectingSection)
+        {
+            CanCancelFetch = false;
+            ShowProgress = false;
+        }
+    });
+    throw;  // ModalScrollHelper catches and calls onFetchFailed → close modal + toast
 }
 finally
 {
@@ -123,17 +109,13 @@ finally
 ```
 
 ### Cancellation Token Propagation
-1. ViewModel creates `CancellationTokenSource` → passes to `ModalOverlayFetchProgressReporter`
-2. `ModalOverlayFetchProgressReporter` exposes `CancellationToken` property
-3. Data Provider/Coordinator/Loader extracts `progress?.CancellationToken ?? CancellationToken.None`
-4. Retry loops check `cancellationToken.ThrowIfCancellationRequested()` before each attempt
-5. All `Task.Delay` calls use `await Task.Delay(delay, cancellationToken)`
+1. ViewModel creates `CancellationTokenSource` → passes to `ModalOverlayFetchProgressReporter`.
+2. Reporter exposes `CancellationToken`. Data Provider/Coordinator/Loader use `progress?.CancellationToken ?? CancellationToken.None`.
+3. Retry loops check `cancellationToken.ThrowIfCancellationRequested()` before each attempt; all `Task.Delay` use `await Task.Delay(delay, cancellationToken)`.
 
 ### UI Components
-- **Publication Modals**: Use `ProgressIndicator` for progress/error UI
-- **Section Modals**: Use both `ProgressIndicator` (progress/error) and `BusyOverlay` (cancel button)
+- **Publication/Section modals**: Use `ProgressIndicator` for overlay (spinner + progress bar + Cancel only). No Retry, no error message in overlay.
+- **ShowCancelButton** in these ViewModels is `ShowProgress` only (Cancel visible during fetch).
 
 ### Notes
-- Music sections are currently pre-harvested, but retry logic is implemented for future support
-- Bible sections for English are pre-harvested, retry logic only triggers for non-English languages
-- All retry logic validates harvested state (not placeholders) before considering success
+- Music sections are currently pre-harvested; retry logic is in place for future support. Bible sections for English are pre-harvested; retry logic only runs for non-English. All retry logic validates harvested state before considering success.

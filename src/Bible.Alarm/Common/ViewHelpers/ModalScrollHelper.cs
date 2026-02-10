@@ -91,83 +91,53 @@ public static class ModalScrollHelper
             {
                 try
                 {
-                    Log.Debug("ModalScrollHelper: Starting refreshAction");
                     await refreshAction();
-                    Log.Debug("ModalScrollHelper: refreshAction completed");
                 }
                 catch (Exception ex) when (IsFetchFailure(ex))
                 {
                     Log.Warning(ex, "Fetch failed during modal appearing");
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        viewModel.IsBusy = false;
-                    });
                     if (onFetchFailed != null)
                     {
-                        await onFetchFailed(GetFetchErrorMessage(ex));
+                        var msg = GetFetchErrorMessage(ex);
+                        await onFetchFailed(msg);
                     }
                     return ModalAppearingResult.FetchFailed;
                 }
 
-                if (viewModel is IHasFetchErrorListViewModel fetchErrorVm && fetchErrorVm.HasFetchError)
-                {
-                    Log.Debug("ModalScrollHelper: ViewModel has HasFetchError - keeping modal open for retry");
-                    if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
-                        await MainThread.InvokeOnMainThreadAsync(() => collectionView.Opacity = 1);
-                    return ModalAppearingResult.Success;
-                }
             }
 
             // Wait for CollectionView to have items in its ItemsSource
             if (collectionView != null)
             {
-                Log.Debug("ModalScrollHelper: Waiting for items in source");
                 var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken);
                 if (!hasItems)
                 {
                     Log.Warning("No items loaded into CollectionView after refresh");
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        viewModel.IsBusy = false;
-                    });
                     if (onFetchFailed != null)
                     {
                         await onFetchFailed(DefaultFetchErrorMessage);
                     }
                     return ModalAppearingResult.FetchFailed;
                 }
-                Log.Debug("ModalScrollHelper: Items found in source");
             }
 
-            // Wait for CollectionView to actually render items BEFORE scrolling
             if (collectionView != null)
             {
-                Log.Debug("ModalScrollHelper: Waiting for items to render");
                 await WaitForItemsRenderedAsync(collectionView, cancellationToken);
-                Log.Debug("ModalScrollHelper: Items rendered");
             }
 
-            // Scroll to selected item AFTER items are rendered
             var selectedItem = getSelectedItem?.Invoke();
             if (selectedItem != null && collectionView != null)
             {
-                Log.Debug("ModalScrollHelper: Scrolling to selected item: {ItemType}", selectedItem.GetType().Name);
                 await CollectionViewHelper.ScrollToWhenReadyAsync(
                     collectionView,
                     selectedItem,
                     animated: false,
                     cancellationToken: cancellationToken);
                 await Task.Delay(PostScrollDelayMs, cancellationToken);
-                Log.Debug("ModalScrollHelper: Scroll completed");
-            }
-            else
-            {
-                Log.Debug("ModalScrollHelper: No selected item to scroll to (selectedItem={HasItem}, collectionView={HasCV})",
-                    selectedItem != null, collectionView != null);
             }
 
-            // Now reveal: show list first, then hide spinner
-            Log.Debug("ModalScrollHelper: Revealing list and hiding spinner");
+            // Reveal list and hide spinner
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
@@ -187,13 +157,10 @@ public static class ModalScrollHelper
         catch (Exception ex) when (IsFetchFailure(ex))
         {
             Log.Warning(ex, "Fetch failed during modal appearing");
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                viewModel.IsBusy = false;
-            });
             if (onFetchFailed != null)
             {
-                await onFetchFailed(GetFetchErrorMessage(ex));
+                var msg = GetFetchErrorMessage(ex);
+                await onFetchFailed(msg);
             }
             return ModalAppearingResult.FetchFailed;
         }
@@ -232,74 +199,53 @@ public static class ModalScrollHelper
             {
                 try
                 {
-                    Log.Debug("ModalScrollHelper (alt): Starting refreshAction");
                     await refreshAction();
-                    Log.Debug("ModalScrollHelper (alt): refreshAction completed");
                 }
                 catch (Exception ex) when (IsFetchFailure(ex))
                 {
                     Log.Warning(ex, "Fetch failed during modal appearing");
-                    ForceHideBusyOverlay(busyOverlay);
                     if (onFetchFailed != null)
                     {
-                        await onFetchFailed(GetFetchErrorMessage(ex));
+                        var msg = GetFetchErrorMessage(ex);
+                        await onFetchFailed(msg);
                     }
                     return ModalAppearingResult.FetchFailed;
                 }
             }
 
-            // Wait for IsBusy to become false (data loaded)
-            Log.Debug("ModalScrollHelper (alt): Waiting for IsBusy=false");
             await CollectionViewHelper.WaitForNotBusyAsync(isBusyGetter, cancellationToken: cancellationToken);
-            Log.Debug("ModalScrollHelper (alt): IsBusy is now false");
 
-            // Wait for items in source
             if (collectionView != null)
             {
-                Log.Debug("ModalScrollHelper (alt): Waiting for items in source");
                 var hasItems = await WaitForItemsInSourceAsync(collectionView, cancellationToken);
                 if (!hasItems)
                 {
                     Log.Warning("No items loaded into CollectionView after refresh");
-                    ForceHideBusyOverlay(busyOverlay);
                     if (onFetchFailed != null)
                     {
                         await onFetchFailed(DefaultFetchErrorMessage);
                     }
                     return ModalAppearingResult.FetchFailed;
                 }
-                Log.Debug("ModalScrollHelper (alt): Items found in source");
             }
 
-            // Wait for items to render BEFORE scrolling
             if (collectionView != null)
             {
-                Log.Debug("ModalScrollHelper (alt): Waiting for items to render");
                 await WaitForItemsRenderedAsync(collectionView, cancellationToken);
-                Log.Debug("ModalScrollHelper (alt): Items rendered");
             }
 
-            // Scroll to selected item AFTER items are rendered
             var selectedItem = getSelectedItem?.Invoke();
             if (selectedItem != null && collectionView != null)
             {
-                Log.Debug("ModalScrollHelper (alt): Scrolling to selected item: {ItemType}", selectedItem.GetType().Name);
                 await CollectionViewHelper.ScrollToWhenReadyAsync(
                     collectionView,
                     selectedItem,
                     animated: false,
                     cancellationToken: cancellationToken);
                 await Task.Delay(PostScrollDelayMs, cancellationToken);
-                Log.Debug("ModalScrollHelper (alt): Scroll completed");
-            }
-            else
-            {
-                Log.Debug("ModalScrollHelper (alt): No selected item to scroll to (selectedItem={HasItem}, collectionView={HasCV})",
-                    selectedItem != null, collectionView != null);
             }
 
             // Reveal
-            Log.Debug("ModalScrollHelper (alt): Revealing list and hiding spinner");
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
@@ -323,10 +269,10 @@ public static class ModalScrollHelper
         catch (Exception ex) when (IsFetchFailure(ex))
         {
             Log.Warning(ex, "Fetch failed during modal appearing");
-            ForceHideBusyOverlay(busyOverlay);
             if (onFetchFailed != null)
             {
-                await onFetchFailed(GetFetchErrorMessage(ex));
+                var msg = GetFetchErrorMessage(ex);
+                await onFetchFailed(msg);
             }
             return ModalAppearingResult.FetchFailed;
         }
@@ -357,17 +303,19 @@ public static class ModalScrollHelper
     /// </summary>
     public static string GetFetchErrorMessage(Exception ex)
     {
-        if (ex is HttpRequestException httpEx)
+        if (ex is HttpRequestException httpEx && httpEx.StatusCode.HasValue)
         {
-            if (httpEx.StatusCode.HasValue)
-            {
-                return $"Server error ({(int)httpEx.StatusCode}). Please try again later.";
-            }
+            var code = (int)httpEx.StatusCode;
+            if (code >= 500)
+                return "The server is temporarily unavailable. Please try again later.";
+            if (code == 404)
+                return "Content not found. Please try again later.";
+            return "Something went wrong. Please try again later.";
         }
 
         if (ex is TaskCanceledException || ex is TimeoutException)
         {
-            return "Request timed out. Please check your internet connection.";
+            return "The connection took too long. Please check your internet connection and try again.";
         }
 
         return DefaultFetchErrorMessage;
@@ -405,7 +353,6 @@ public static class ModalScrollHelper
             await Task.Delay(50, cancellationToken);
         }
 
-        Log.Debug("WaitForItemsInSourceAsync: Timeout waiting for items in ItemsSource");
         return false;
     }
 
@@ -484,7 +431,6 @@ public static class ModalScrollHelper
 
         if (!tcs.Task.IsCompleted)
         {
-            Log.Debug("WaitForItemsRenderedAsync: Timeout waiting for items to render");
             // Don't throw - just continue. Better to show potentially empty list than hang forever.
         }
 

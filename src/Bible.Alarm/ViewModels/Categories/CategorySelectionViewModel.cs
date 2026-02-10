@@ -149,10 +149,10 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         {
             try
             {
+                await Task.Delay(500);
                 await navigationService.PopModalAsync();
                 var toastService = ServiceProviderManager.GetService<IToastService>();
                 await (toastService?.ShowMessage("Please check your internet connection.") ?? Task.CompletedTask);
-                Serilog.Log.Debug("CategorySelectionViewModel: Modal closed after fetch error for category={CategoryName}", category.Name);
             }
             catch (Exception ex)
             {
@@ -164,7 +164,6 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
             try
             {
                 await navigationService.PopModalAsync();
-                Serilog.Log.Debug("CategorySelectionViewModel: Modal closed successfully for category={CategoryName}", category.Name);
             }
             catch (Exception ex)
             {

@@ -10,21 +10,18 @@
     ZIndex="1000">
     <ContentView.Resources>
         <converters:MultiBoolOrConverter x:Key="multiBoolOrConverter" />
-        <converters:SpinnerVisibleConverter x:Key="spinnerVisibleConverter" />
     </ContentView.Resources>
     <ContentView.InputTransparent>
         <MultiBinding Converter="{StaticResource multiBoolOrConverter}" ConverterParameter="Inverse" Mode="OneWay">
             <Binding Path="ShowProgress" FallbackValue="False" />
-            <Binding Path="HasFetchError" FallbackValue="False" />
             <Binding Path="IsBusy" FallbackValue="False" />
         </MultiBinding>
     </ContentView.InputTransparent>
-    <!-- Outer Grid visible when ShowProgress, HasFetchError, or IsBusy is true -->
+    <!-- Outer Grid visible when ShowProgress or IsBusy is true -->
     <Grid>
         <Grid.IsVisible>
             <MultiBinding Converter="{StaticResource multiBoolOrConverter}" Mode="OneWay">
                 <Binding Path="ShowProgress" FallbackValue="False" />
-                <Binding Path="HasFetchError" FallbackValue="False" />
                 <Binding Path="IsBusy" FallbackValue="False" />
             </MultiBinding>
         </Grid.IsVisible>
@@ -32,7 +29,7 @@
         <BoxView BackgroundColor="{DynamicResource BackgroundColor}"
                  Opacity="1"
                  InputTransparent="False" />
-        <!-- Single card: progress (percent, bar, spinner, Cancel) or error (message, Retry, Cancel) -->
+        <!-- Single card: progress (percent, bar, spinner, Cancel) -->
         <Border
             HorizontalOptions="Center"
             VerticalOptions="Center"
@@ -55,7 +52,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <!-- Row 0: Progress percent (only when fetch in progress) OR error message (on failure) -->
+                <!-- Row 0: Progress percent - only when fetch was decided (ShowProgress), not for DB-only load -->
                 <Label Grid.Row="0"
                     FontSize="{DynamicResource LargeFontSize}"
                     FontAttributes="Bold"
@@ -65,15 +62,7 @@
                     TextColor="{DynamicResource TextPrimaryColor}"
                     MinimumHeightRequest="{DynamicResource IconStandardContainerSize}"
                     IsVisible="{Binding ShowProgress, FallbackValue=False}" />
-                <Label Grid.Row="0"
-                    FontSize="{DynamicResource MediumFontSize}"
-                    HorizontalOptions="Center"
-                    HorizontalTextAlignment="Center"
-                    TextColor="#FF6B6B"
-                    Text="Network error. Please check your internet connection."
-                    LineBreakMode="WordWrap"
-                    IsVisible="{Binding HasFetchError, FallbackValue=False}" />
-                <!-- Row 1: Progress bar (hidden when error) -->
+                <!-- Row 1: Progress bar - only when fetch was decided (ShowProgress), not for DB-only load -->
                 <ProgressBar Grid.Row="1"
                     Margin="{DynamicResource MarginThickness10_5}"
                     WidthRequest="{DynamicResource ContentWidthSmall}"
@@ -81,7 +70,7 @@
                     Progress="{Binding ProgressPercent}"
                     ProgressColor="{StaticResource PrimaryColor}"
                     IsVisible="{Binding ShowProgress, FallbackValue=False}" />
-                <!-- Row 2: Spinner (hidden when error) - visible when (ShowProgress OR IsBusy) AND !HasFetchError -->
+                <!-- Row 2: Spinner - visible when ShowProgress OR IsBusy -->
                 <Grid Grid.Row="2"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
@@ -89,10 +78,9 @@
                     WidthRequest="{DynamicResource IconStandardContainerSize}"
                     Margin="0,8,0,0">
                     <Grid.IsVisible>
-                        <MultiBinding Converter="{StaticResource spinnerVisibleConverter}" Mode="OneWay">
+                        <MultiBinding Converter="{StaticResource multiBoolOrConverter}" Mode="OneWay">
                             <Binding Path="ShowProgress" FallbackValue="False" />
                             <Binding Path="IsBusy" FallbackValue="False" />
-                            <Binding Path="HasFetchError" FallbackValue="False" />
                         </MultiBinding>
                     </Grid.IsVisible>
                     <core:SfBusyIndicator
@@ -103,65 +91,19 @@
                         WidthRequest="{DynamicResource IconStandardContainerSize}"
                         IndicatorColor="{StaticResource PrimaryColor}">
                         <core:SfBusyIndicator.IsRunning>
-                            <MultiBinding Converter="{StaticResource spinnerVisibleConverter}" Mode="OneWay">
+                            <MultiBinding Converter="{StaticResource multiBoolOrConverter}" Mode="OneWay">
                                 <Binding Path="ShowProgress" FallbackValue="False" />
                                 <Binding Path="IsBusy" FallbackValue="False" />
-                                <Binding Path="HasFetchError" FallbackValue="False" />
                             </MultiBinding>
                         </core:SfBusyIndicator.IsRunning>
                     </core:SfBusyIndicator>
                 </Grid>
-                <!-- Row 3: Retry (when error) + Cancel (when progress or error) -->
+                <!-- Row 3: Cancel (when progress) -->
                 <HorizontalStackLayout Grid.Row="3"
                     HorizontalOptions="Center"
                     Spacing="24"
                     Margin="0,12,0,0">
-                    <!-- Retry Button (left of Cancel, only when HasFetchError; same size as Cancel) -->
-                    <Grid
-                        IsVisible="{Binding HasFetchError, FallbackValue=False}"
-                        HeightRequest="{DynamicResource IconStandardContainerSize}"
-                        WidthRequest="{DynamicResource IconStandardContainerSize}"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center">
-                        <Border
-                            BackgroundColor="{StaticResource PrimaryColor}"
-                            HeightRequest="{DynamicResource IconStandardContainerSize}"
-                            WidthRequest="{DynamicResource IconStandardContainerSize}"
-                            StrokeThickness="0"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="100" />
-                            </Border.StrokeShape>
-                            <Border.Shadow>
-                                <Shadow Brush="#6A5ACD"
-                                        Offset="0,4"
-                                        Opacity="0.4"
-                                        Radius="12" />
-                            </Border.Shadow>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding RetryFetchCommand}" />
-                            </Border.GestureRecognizers>
-                            <Label
-                                Text="{x:Static fn:GlyphNames.Retry}"
-                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                FontSize="{DynamicResource IconStandardFontSize}"
-                                TextColor="White"
-                                HorizontalOptions="Center"
-                                VerticalOptions="Center"
-                                IsVisible="{Binding IsRetryBusy, Converter={StaticResource negateBooleanConverter}, FallbackValue=True}" />
-                        </Border>
-                        <ActivityIndicator
-                            IsRunning="{Binding IsRetryBusy, FallbackValue=False}"
-                            IsVisible="{Binding IsRetryBusy, FallbackValue=False}"
-                            Color="White"
-                            WidthRequest="{DynamicResource IconStandardFontSize}"
-                            HeightRequest="{DynamicResource IconStandardFontSize}"
-                            VerticalOptions="Center"
-                            HorizontalOptions="Center"
-                            Opacity="0.95" />
-                    </Grid>
-                    <!-- Cancel Button (ShowProgress with CanCancelFetch OR HasFetchError) -->
+                    <!-- Cancel Button (when ShowProgress with CanCancelFetch) -->
                     <Grid
                         IsVisible="{Binding ShowCancelButton, FallbackValue=False}"
                         HeightRequest="{DynamicResource IconStandardContainerSize}"

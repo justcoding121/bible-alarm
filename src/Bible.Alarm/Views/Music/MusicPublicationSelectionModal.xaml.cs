@@ -42,7 +42,18 @@ public partial class MusicPublicationSelectionModal : BaseContentPage, IDisposab
                 : null,
             onFetchFailed: async (errorMessage) =>
             {
-                await navigationService.PopModalAsync();
+                await this.Dispatcher.DispatchAsync(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(500);
+                        await navigationService.PopModalAsync();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Modal may already be closed or platform stack out of sync.
+                    }
+                });
                 await toastService.ShowMessage(errorMessage);
             },
             cancellationToken: cancellationTokenSource.Token);
@@ -94,6 +105,7 @@ public partial class MusicPublicationSelectionModal : BaseContentPage, IDisposab
             }
             catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
             {
+                await Task.Delay(500);
                 await navigationService.PopModalAsync();
                 await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
             }
