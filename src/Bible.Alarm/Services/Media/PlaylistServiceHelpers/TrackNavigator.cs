@@ -39,7 +39,10 @@ public sealed class TrackNavigator
         this.languageContentService = languageContentService;
         this.scopeFactory = scopeFactory;
         this.logger = logger;
+        NonSectionedHelper = new TrackNavigatorNonSectionedHelper(biblePublicationService);
     }
+
+    private TrackNavigatorNonSectionedHelper NonSectionedHelper { get; }
 
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
 
@@ -117,17 +120,16 @@ public sealed class TrackNavigator
         sectionFetchProgress?.UpdateProgress(0.0);
         try
         {
-            // Handle non-sectioned publications (dramas, videos)
             if (string.IsNullOrWhiteSpace(sectionCode))
             {
-                return await GetNextNonSectionedTrack(languageCode, publicationCode, trackCode);
+                return await NonSectionedHelper.GetNextAsync(languageCode, publicationCode, trackCode);
             }
 
             // Sectioned publication: circle within the whole publication (all sections), not within a section.
             var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
             if (string.IsNullOrEmpty(normalizedSectionCode))
             {
-                return await GetNextNonSectionedTrack(languageCode, publicationCode, trackCode);
+                return await NonSectionedHelper.GetNextAsync(languageCode, publicationCode, trackCode);
             }
 
             var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
@@ -199,17 +201,16 @@ public sealed class TrackNavigator
         sectionFetchProgress?.UpdateProgress(0.0);
         try
         {
-            // Handle non-sectioned publications (dramas, videos)
             if (string.IsNullOrWhiteSpace(sectionCode))
             {
-                return await GetPreviousNonSectionedTrack(languageCode, publicationCode, trackCode);
+                return await NonSectionedHelper.GetPreviousAsync(languageCode, publicationCode, trackCode);
             }
 
             // Sectioned publication: circle within the whole publication (all sections), not within a section.
             var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
             if (string.IsNullOrEmpty(normalizedSectionCode))
             {
-                return await GetPreviousNonSectionedTrack(languageCode, publicationCode, trackCode);
+                return await NonSectionedHelper.GetPreviousAsync(languageCode, publicationCode, trackCode);
             }
 
             var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
@@ -249,72 +250,6 @@ public sealed class TrackNavigator
         {
             sectionFetchProgress?.UpdateProgress(1.0);
         }
-    }
-
-    /// <summary>
-    /// Gets the next track for a non-sectioned publication (dramas, videos).
-    /// Wraps around to the first track when at the end.
-    /// </summary>
-    private async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetNextNonSectionedTrack(
-        string languageCode,
-        string publicationCode,
-        string trackCode)
-    {
-        var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode)
-            ?? throw new InvalidOperationException($"Publication not found: languageCode={languageCode}, publicationCode={publicationCode}");
-
-        if (publication.Tracks == null || publication.Tracks.Count == 0)
-        {
-            throw new InvalidOperationException($"No tracks found for non-sectioned publication: languageCode={languageCode}, publicationCode={publicationCode}");
-        }
-
-        var orderedTracks = publication.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
-        var tracksDict = new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
-        var currentKey = ResolveTrackCodeToKey(tracksDict, trackCode);
-
-        // Find the next track using TrackCodeComparer (tracks dictionary is already sorted correctly)
-        var nextTrack = orderedTracks.FirstOrDefault(t => TrackCodeComparer.Comparer.Compare(t.TrackCode, currentKey) > 0);
-
-        if (nextTrack != null)
-        {
-            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, nextTrack);
-        }
-
-        // Wrap around to the first track
-        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, orderedTracks.First());
-    }
-
-    /// <summary>
-    /// Gets the previous track for a non-sectioned publication (dramas, videos).
-    /// Wraps around to the last track when at the beginning.
-    /// </summary>
-    private async Task<KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>> GetPreviousNonSectionedTrack(
-        string languageCode,
-        string publicationCode,
-        string trackCode)
-    {
-        var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode)
-            ?? throw new InvalidOperationException($"Publication not found: languageCode={languageCode}, publicationCode={publicationCode}");
-
-        if (publication.Tracks == null || publication.Tracks.Count == 0)
-        {
-            throw new InvalidOperationException($"No tracks found for non-sectioned publication: languageCode={languageCode}, publicationCode={publicationCode}");
-        }
-
-        var orderedTracks = publication.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
-        var tracksDict = new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
-        var currentKey = ResolveTrackCodeToKey(tracksDict, trackCode);
-
-        // Find the previous track using TrackCodeComparer (tracks dictionary is already sorted correctly)
-        var previousTrack = orderedTracks.LastOrDefault(t => TrackCodeComparer.Comparer.Compare(t.TrackCode, currentKey) < 0);
-
-        if (previousTrack != null)
-        {
-            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, previousTrack);
-        }
-
-        // Wrap around to the last track.
-        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(null, orderedTracks.Last());
     }
 
     /// <summary>
