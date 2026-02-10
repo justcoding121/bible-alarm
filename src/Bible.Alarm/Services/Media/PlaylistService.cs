@@ -46,6 +46,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     private readonly TrackChangeDetector trackChangeDetector;
     private readonly TrackNavigator trackNavigator;
     private readonly ScheduleUpdater scheduleUpdater;
+    private readonly PlaylistScheduleDisplayRefresher? scheduleDisplayRefresher;
 
     private readonly IMediaUrlRefreshService urlRefreshService;
     private readonly IUrlConstructionService urlConstructionService;
@@ -84,6 +85,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         trackChangeDetector = new TrackChangeDetector(alarmScheduleService, cancellationTokenSource.Token);
         trackNavigator = new TrackNavigator(mediaService, BiblePublicationService, languageContentService, scopeFactory, logger);
         scheduleUpdater = new ScheduleUpdater(alarmScheduleService, cancellationTokenSource.Token);
+        scheduleDisplayRefresher = scheduleDisplayNameService != null && alarmScheduleService != null
+            ? new PlaylistScheduleDisplayRefresher(alarmScheduleService, scheduleDisplayNameService, dispatcher, logger)
+            : null;
     }
 
     public async Task<int> GetRelevantScheduleToPlay()
@@ -259,7 +263,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         trackMetadata.LookUpPath = lookUpPath;
 
         // So alarm modal shows full track title for disc-style melody (e.g. iam): DisplayMetadataService needs DownloadCode/OriginalTrackCode.
-        TryApplyDiscStyleDownloadCode(trackMetadata);
+        PlaylistMetadataHelper.TryApplyDiscStyleDownloadCode(trackMetadata);
 
         return new PlayItem(trackMetadata, trackInfo.Url);
     }
@@ -621,9 +625,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         // Check if section changed - if so, refresh schedule display names
         var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, nextSectionCode, StringComparison.OrdinalIgnoreCase);
-        if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayNameService != null)
+        if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayRefresher != null)
         {
-            await RefreshScheduleDisplayNamesAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, currentTrackMetadata.PublicationCode, nextSectionCode);
+            await scheduleDisplayRefresher.RefreshAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, currentTrackMetadata.PublicationCode, nextSectionCode, cancellationTokenSource.Token);
         }
 
         var metadata = new TrackMetadata
@@ -636,7 +640,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             TrackCode = nextTrackCode,
             IsLastTrack = false
         };
-        TryApplyDiscStyleDownloadCode(metadata);
+        PlaylistMetadataHelper.TryApplyDiscStyleDownloadCode(metadata);
 
         var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
             metadata.PublicationCode,
@@ -712,9 +716,9 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         // Check if section changed - if so, refresh schedule display names
         var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, prevSectionCode, StringComparison.OrdinalIgnoreCase);
-        if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayNameService != null)
+        if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayRefresher != null)
         {
-            await RefreshScheduleDisplayNamesAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, currentTrackMetadata.PublicationCode, prevSectionCode);
+            await scheduleDisplayRefresher.RefreshAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, currentTrackMetadata.PublicationCode, prevSectionCode, cancellationTokenSource.Token);
         }
 
         var metadata = new TrackMetadata
@@ -727,7 +731,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             TrackCode = prevTrackCode,
             IsLastTrack = false
         };
-        TryApplyDiscStyleDownloadCode(metadata);
+        PlaylistMetadataHelper.TryApplyDiscStyleDownloadCode(metadata);
 
         var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
             metadata.PublicationCode,
@@ -748,122 +752,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         }
 
         return new PlayItem(metadata, url);
-    }
-
-    /// <summary>
-    /// Refreshes schedule display names after navigating to a newly harvested section.
-    /// Creates a temporary schedule entity with the new section code to populate display names.
-    /// </summary>
-    private async Task RefreshScheduleDisplayNamesAsync(int scheduleId, string languageCode, string publicationCode, string? sectionCode)
-    {
-        if (scheduleDisplayNameService == null || alarmScheduleService == null)
-        {
-            return;
-        }
-
-        try
-        {
-            // Get the schedule from database
-            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
-                scheduleId,
-                includeMusic: false,
-                includeBiblePublication: true,
-                cancellationTokenSource.Token);
-
-            if (schedule?.BiblePublicationSchedule == null)
-            {
-                return;
-            }
-
-            // Create a temporary schedule entity with the new section code for display name population
-            // We don't update the database schedule here - that happens when the track is played
-            var tempSchedule = new AlarmSchedule
-            {
-                Id = schedule.Id,
-                Name = schedule.Name,
-                IsEnabled = schedule.IsEnabled,
-                Hour = schedule.Hour,
-                Minute = schedule.Minute,
-                Second = schedule.Second,
-                DaysOfWeek = schedule.DaysOfWeek,
-                NotificationEnabled = schedule.NotificationEnabled,
-                MusicEnabled = schedule.MusicEnabled,
-                SnoozeMinutes = schedule.SnoozeMinutes,
-                NumberOfTracksToPlay = schedule.NumberOfTracksToPlay,
-                AlwaysPlayFromStart = schedule.AlwaysPlayFromStart,
-                BiblePublicationSchedule = new BiblePublicationSchedule
-                {
-                    LanguageCode = schedule.BiblePublicationSchedule.LanguageCode ?? languageCode,
-                    PublicationCode = schedule.BiblePublicationSchedule.PublicationCode ?? publicationCode,
-                    SectionCode = sectionCode,
-                    TrackCode = schedule.BiblePublicationSchedule.TrackCode
-                }
-            };
-
-            // Create a temporary ScheduleStateItem to populate display names
-            var scheduleStateItem = new ScheduleStateItem
-            {
-                Id = schedule.Id,
-                BiblePublicationLanguageCode = tempSchedule.BiblePublicationSchedule.LanguageCode,
-                BiblePublicationCode = tempSchedule.BiblePublicationSchedule.PublicationCode,
-                BiblePublicationSectionCode = tempSchedule.BiblePublicationSchedule.SectionCode,
-                BiblePublicationTrackCode = tempSchedule.BiblePublicationSchedule.TrackCode
-            };
-
-            // Populate display names from database (this will read the newly harvested section name)
-            await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, tempSchedule);
-
-            // Dispatch update to refresh schedule state with new display names (without saving to DB)
-            dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(scheduleStateItem, false, false, shouldSave: false));
-
-            logger.Debug("Refreshed schedule display names after section harvest: ScheduleId={ScheduleId}, SectionCode={SectionCode}, SectionName={SectionName}",
-                scheduleId, sectionCode, scheduleStateItem.BiblePublicationSectionName);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Failed to refresh schedule display names after section harvest: ScheduleId={ScheduleId}, SectionCode={SectionCode}",
-                scheduleId, sectionCode);
-        }
-    }
-
-    private static void TryApplyDiscStyleDownloadCode(TrackMetadata metadata)
-    {
-        // Example: publicationCode="iam", sectionCode="iam-1"
-        var sectionCode = SectionCodeHelper.Normalize(metadata.SectionCode);
-        if (string.IsNullOrWhiteSpace(sectionCode))
-        {
-            return;
-        }
-
-        if (!sectionCode.Contains('-'))
-        {
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(metadata.PublicationCode) ||
-            !sectionCode.StartsWith(metadata.PublicationCode + "-", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        // Validate suffix is a non-zero digit sequence.
-        var parts = sectionCode.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length < 2)
-        {
-            return;
-        }
-
-        var suffix = parts[^1];
-        if (string.IsNullOrEmpty(suffix) || !suffix.All(char.IsDigit) || suffix.All(c => c == '0'))
-        {
-            return;
-        }
-
-        metadata.DownloadCode = sectionCode;
-        if (int.TryParse(metadata.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedTrackNum))
-        {
-            metadata.OriginalTrackCode = parsedTrackNum;
-        }
     }
 
     public void Dispose()
