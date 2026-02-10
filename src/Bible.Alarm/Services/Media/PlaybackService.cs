@@ -7,6 +7,7 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Media.Playback;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -39,8 +40,9 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly PlaybackNavigationHandler navigationHandler;
     private readonly PlaybackStopHandler stopHandler;
     private readonly TrackPlaybackHandler trackPlaybackHandler;
-    private readonly SystemControlsHandler systemControlsHandler;
+        private readonly SystemControlsHandler systemControlsHandler;
     private readonly TrackMarker trackMarker;
+    private readonly PlaybackIndefiniteResolver indefiniteResolver;
     private readonly IState<PlaybackState> playbackState;
 
     public PlaybackService(
@@ -80,6 +82,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         trackPlaybackHandler = new TrackPlaybackHandler(audioPlayer, logger, trackPreparationHandler, progressTracker);
         systemControlsHandler = new SystemControlsHandler(logger);
         trackMarker = new TrackMarker(playlistService, logger);
+        indefiniteResolver = new PlaybackIndefiniteResolver(playlistService, logger);
 
         progressTracker.SetSaveProgressCallback(() => progressTracker.SaveProgressAsync(
             stateManager.Playlist, stateManager.CurrentTrackIndex));
@@ -538,38 +541,10 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         });
     }
 
-    /// <summary>
-    /// Sends section fetch progress (0.0 to 1.0) for API metadata fetch phase.
-    /// Uses track-based progress so the bar shows 0-100% before track download starts.
-    /// </summary>
-    private static void SendSectionFetchPreparationProgress(double progress)
-    {
-        var clampedProgress = Math.Max(0.0, Math.Min(1.0, progress));
-        WeakReferenceMessenger.Default.Send(new PlaybackPreparationProgressMessage
-        {
-            LoadedTracks = 0,
-            TotalTracks = 1,
-            CurrentTrackProgress = clampedProgress,
-            BytesDownloaded = 0,
-            TotalBytes = null,
-            TotalBytesDownloaded = 0,
-            TotalBytesExpected = null
-        });
-    }
-
-    private Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress CreateSectionFetchProgressReporter()
+    private IFetchProgress CreateSectionFetchProgressReporter()
     {
         var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
         return new SectionFetchProgressReporter(token);
-    }
-
-    private sealed class SectionFetchProgressReporter : Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress
-    {
-        public CancellationToken CancellationToken { get; }
-        public SectionFetchProgressReporter(CancellationToken cancellationToken) => CancellationToken = cancellationToken;
-        public void UpdateProgress(double progress) => SendSectionFetchPreparationProgress(progress);
-        public void UpdateProgressText(string _) { }
-        public void SetIsVisible(bool _) { }
     }
 
     private async Task PreDownloadNextTrackAsync()
@@ -778,65 +753,27 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
     }
 
-    private bool HasMusicInjection =>
-        stateManager.SessionMusicPlayItem != null &&
-        stateManager.AnchorBibleMetadata != null &&
-        stateManager.PreAnchorBibleMetadata != null;
-
-    private static bool IsSameBibleTrack(TrackMetadata a, TrackMetadata b)
-    {
-        return a.PlayType == PlayType.Bible &&
-               b.PlayType == PlayType.Bible &&
-               a.LanguageCode == b.LanguageCode &&
-               a.PublicationCode == b.PublicationCode &&
-               a.SectionCode == b.SectionCode &&
-               a.TrackCode == b.TrackCode;
-    }
-
     private async Task<PlayItem> ResolveNextPlayItemForSessionAsync(TrackMetadata currentMetadata, bool reportSectionFetchProgress = true)
     {
         var sectionProgress = reportSectionFetchProgress ? CreateSectionFetchProgressReporter() : null;
-
-        if (HasMusicInjection)
-        {
-            // If we are right before the anchor Bible track, inject the (single) music track.
-            if (currentMetadata.PlayType == PlayType.Bible && IsSameBibleTrack(currentMetadata, stateManager.PreAnchorBibleMetadata!))
-            {
-                return stateManager.SessionMusicPlayItem!;
-            }
-
-            // If we're on the injected music track, next should be the anchor Bible track.
-            if (currentMetadata.PlayType == PlayType.Music)
-            {
-                return await playlistService.GetNextPlayItemAsync(stateManager.PreAnchorBibleMetadata!, sectionProgress);
-            }
-        }
-
-        return await playlistService.GetNextPlayItemAsync(currentMetadata, sectionProgress);
+        return await indefiniteResolver.ResolveNextPlayItemAsync(
+            currentMetadata,
+            stateManager.SessionMusicPlayItem,
+            stateManager.AnchorBibleMetadata,
+            stateManager.PreAnchorBibleMetadata,
+            sectionProgress);
     }
 
     private async Task<PlayItem> ResolvePreviousPlayItemForSessionAsync(TrackMetadata currentMetadata, bool reportSectionFetchProgress = true)
     {
         var sectionProgress = reportSectionFetchProgress ? CreateSectionFetchProgressReporter() : null;
-
-        if (HasMusicInjection)
-        {
-            // If we're on the anchor Bible track, previous should be the (single) music track.
-            if (currentMetadata.PlayType == PlayType.Bible && IsSameBibleTrack(currentMetadata, stateManager.AnchorBibleMetadata!))
-            {
-                return stateManager.SessionMusicPlayItem!;
-            }
-
-            // If we're on the music track, previous should be the Bible track right before the anchor.
-            if (currentMetadata.PlayType == PlayType.Music)
-            {
-                return await playlistService.GetPreviousPlayItemAsync(stateManager.AnchorBibleMetadata!, sectionProgress);
-            }
-        }
-
-        return await playlistService.GetPreviousPlayItemAsync(currentMetadata, sectionProgress);
+        return await indefiniteResolver.ResolvePreviousPlayItemAsync(
+            currentMetadata,
+            stateManager.SessionMusicPlayItem,
+            stateManager.AnchorBibleMetadata,
+            stateManager.PreAnchorBibleMetadata,
+            sectionProgress);
     }
-
 
     private async Task HandlePlaybackFailureAsync()
     {
