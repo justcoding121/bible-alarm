@@ -9,6 +9,7 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.General;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
+using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainerViewModelHelpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -56,6 +57,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 #pragma warning restore CS0649
 #endif
     private readonly ContainerReadySignaler containerReadySignaler;
+    private readonly NumberOfTracksListPopulator listPopulator;
 
     private ObservableCollection<NumberOfTracksListViewItemModel> numberOfTracksList = new();
     private NumberOfTracksListViewItemModel? currentNumberOfTracks;
@@ -80,6 +82,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         this.state = state;
         this.dispatcher = dispatcher;
         containerReadySignaler = new ContainerReadySignaler(state, dispatcher, "NumberOfTrack", s => s.ContainerReadiness.NumberOfTrack);
+        listPopulator = new NumberOfTracksListPopulator(logger, serviceProvider.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationService>());
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();
@@ -522,50 +525,14 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     /// </summary>
     public string CurrentNumberOfTracksText => CurrentNumberOfTracks?.Text ?? string.Empty;
 
-    private enum TracksUnit
-    {
-        Chapter,
-        Episode,
-        Track
-    }
+    private TracksUnitTextProvider.TracksUnit GetTracksUnit() =>
+        TracksUnitTextProvider.GetTracksUnit(state.Value.CurrentSchedule?.BiblePublicationCategoryName);
 
-    private TracksUnit GetTracksUnit()
-    {
-        var categoryName = state.Value.CurrentSchedule?.BiblePublicationCategoryName;
+    private (string Singular, string Plural) GetUnitTextTitleCase() =>
+        TracksUnitTextProvider.GetUnitTextTitleCase(state.Value.CurrentSchedule?.BiblePublicationCategoryName);
 
-        if (string.Equals(categoryName, "Music", StringComparison.OrdinalIgnoreCase))
-        {
-            return TracksUnit.Track;
-        }
-
-        if (string.Equals(categoryName, "Dramas", StringComparison.OrdinalIgnoreCase))
-        {
-            return TracksUnit.Episode;
-        }
-
-        // Default wording matches the Bible category (and any future categories that behave like Bible).
-        return TracksUnit.Chapter;
-    }
-
-    private (string Singular, string Plural) GetUnitTextTitleCase()
-    {
-        return GetTracksUnit() switch
-        {
-            TracksUnit.Track => ("Track", "Tracks"),
-            TracksUnit.Episode => ("Episode", "Episodes"),
-            _ => ("Chapter", "Chapters")
-        };
-    }
-
-    private (string Singular, string Plural) GetUnitTextLowerCase()
-    {
-        return GetTracksUnit() switch
-        {
-            TracksUnit.Track => ("track", "tracks"),
-            TracksUnit.Episode => ("episode", "episodes"),
-            _ => ("chapter", "chapters")
-        };
-    }
+    private (string Singular, string Plural) GetUnitTextLowerCase() =>
+        TracksUnitTextProvider.GetUnitTextLowerCase(state.Value.CurrentSchedule?.BiblePublicationCategoryName);
 
     /// <summary>
     /// Gets the label text for the tracks selection row.
@@ -913,78 +880,20 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     /// </summary>
     public async Task PopulateNumberOfTracksListViewAsync(int? forceSelection = null)
     {
-        // Preserve the current selection if user has made one, or use forced selection
         var preservedSelection = forceSelection ?? CurrentNumberOfTracks?.Value;
         var currentSchedule = state.Value.CurrentSchedule;
-        var (unitSingularLower, unitPluralLower) = GetUnitTextLowerCase();
 
-        // Default selection is always 1 (chapters/episodes).
-        const int defaultTracks = 1;
-        var numberOfTracksFromSchedule = currentSchedule?.NumberOfTracksToPlay ?? defaultTracks;
-        if (numberOfTracksFromSchedule <= 0)
-        {
-            // Indefinite mode stores 0; keep a valid default selected for when user disables indefinite later.
-            numberOfTracksFromSchedule = defaultTracks;
-        }
-        var numberOfTracks = preservedSelection ?? numberOfTracksFromSchedule;
+        var result = await listPopulator.PopulateAsync(
+            currentSchedule,
+            preservedSelection,
+            CurrentNumberOfTracks?.Value);
 
-        // Determine maximum number of tracks to show
-        // Must match AlarmSchedule.NumberOfTracksToPlay validation range and modal max
-        const int maxTracksCap = 21;
-        int maxTracks = maxTracksCap;
-        
-        // For dramas, get the actual number of episodes (cap to 21).
-        if (GetTracksUnit() == TracksUnit.Episode && currentSchedule != null)
+        NumberOfTracksList = result.List;
+        if (result.SelectedItem != null)
         {
-            try
-            {
-                var biblePublicationService = serviceProvider.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationService>();
-                if (biblePublicationService != null && 
-                    !string.IsNullOrEmpty(currentSchedule.BiblePublicationLanguageCode) &&
-                    !string.IsNullOrEmpty(currentSchedule.BiblePublicationCode))
-                {
-                    var publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(
-                        currentSchedule.BiblePublicationLanguageCode,
-                        currentSchedule.BiblePublicationCode);
-                    
-                    if (publication?.Tracks != null && publication.Tracks.Count > 0)
-                    {
-                        // Cap to avoid allowing selections the model can't save/validate.
-                        maxTracks = Math.Min(publication.Tracks.Count, maxTracksCap);
-                        logger.Debug("PopulateNumberOfTracksListView: Non-sectioned publication has {TrackCount} episodes, setting max to {MaxTracks}",
-                            publication.Tracks.Count, maxTracks);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "PopulateNumberOfTracksListView: Failed to get track count for non-sectioned publication, using default max of 21");
-            }
+            CurrentNumberOfTracks = result.SelectedItem;
         }
 
-        var trackVMs = new ObservableCollection<NumberOfTracksListViewItemModel>();
-
-        for (var i = 1; i <= maxTracks; i++)
-        {
-            var tracksVm = new NumberOfTracksListViewItemModel(i, unitSingularLower, unitPluralLower);
-
-            // If user has made a selection, use that; otherwise use the state's value
-            var shouldSelect = preservedSelection.HasValue
-                ? preservedSelection.Value == i
-                : numberOfTracks == i;
-
-            if (shouldSelect)
-            {
-                tracksVm.IsSelected = true;
-                CurrentNumberOfTracks = tracksVm;
-            }
-
-            trackVMs.Add(tracksVm);
-        }
-
-        NumberOfTracksList = trackVMs;
-        
-        // Notify that the list has been updated (in case selection needs to be reapplied)
         OnPropertyChanged(nameof(NumberOfTracksList));
     }
 
