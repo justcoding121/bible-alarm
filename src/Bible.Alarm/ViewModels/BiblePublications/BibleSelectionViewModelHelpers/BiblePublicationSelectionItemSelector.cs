@@ -194,6 +194,11 @@ public sealed class BiblePublicationSelectionItemSelector
                     }
                     catch (Exception ex)
                     {
+                        if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                        {
+                            throw;
+                        }
+
                         Log.Debug(ex,
                             "GetPublicationSectionAndTrackForLanguageAsync: Failed to harvest publication={PublicationCode} for language={LanguageCode}, trying next",
                             pl.PublicationCode,
@@ -283,6 +288,11 @@ public sealed class BiblePublicationSelectionItemSelector
             }
             catch (Exception ex)
             {
+                if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                {
+                    throw;
+                }
+
                 Log.Warning(ex, "GetPublicationSectionAndTrackForLanguageAsync: Failed to ensure publication {PublicationCode} exists, continuing anyway",
                     publicationCode);
             }

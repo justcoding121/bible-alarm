@@ -4,7 +4,9 @@ using System.Net.Http;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media;
@@ -129,26 +131,32 @@ public sealed class BiblePublicationSelectionCommandHandler
 
             Log.Debug("CreateSectionSelectionCommand: Calling GetSectionAndTrackForPublicationAsync for publication={PublicationCode}, language={LanguageCode}",
                 x.Code, currentLanguage.Code);
-            
+
+            var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
+            if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
+            {
+                var toastService = ServiceProviderManager.GetService<IToastService>();
+                if (toastService != null)
+                    await toastService.ShowMessage("Please check your internet connection.");
+                await navigationService.PopModalAsync();
+                return;
+            }
+
             var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
             var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
             var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
             
-            // Create progress tracker for per-row percent updates (no modal progress card / busy overlay).
-            var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                progress => _ = MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = progress),
-                _ => { },
-                _ => { });
-            
+            var progressReporter = new Bible.Alarm.Common.Helpers.ListItemFetchProgressReporter("BiblePublication", x.Code);
+
             (string? sectionCode, string trackCode, string sectionName, string trackTitle) result;
             try
             {
-                result = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressTracker);
+                    result = await itemSelector.GetSectionAndTrackForPublicationAsync(x, currentLanguage, progressReporter);
             }
-            catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
-            {
-                // List item click failure: show toast and close modal (retain state)
-                Log.Warning(ex, "CreateSectionSelectionCommand: Network error for publication={PublicationCode}", x.Code);
+                catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
+                {
+                    // List item click failure: show toast and close modal (retain state)
+                    Log.Warning(ex, "CreateSectionSelectionCommand: Network error for publication={PublicationCode}", x.Code);
                 // Reset progress on error (only if it was set during fetch)
                 await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<IToastService>();
@@ -241,6 +249,16 @@ public sealed class BiblePublicationSelectionCommandHandler
                 return;
             }
 
+            var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
+            if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
+            {
+                var toastService = ServiceProviderManager.GetService<IToastService>();
+                if (toastService != null)
+                    await toastService.ShowMessage("Please check your internet connection.");
+                await navigationService.PopModalAsync();
+                return;
+            }
+
             // Track if progress was set (fetch happened) - only show completion if fetch occurred
             bool fetchOccurred = false;
             try
@@ -248,23 +266,16 @@ public sealed class BiblePublicationSelectionCommandHandler
                 var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
                 var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
                 var itemSelector = new BiblePublicationSelectionItemSelector(mediaService, state, biblePublicationService, biblePublicationSectionService, languageContentService, scopeFactory);
-                
-                // Create progress tracker - updates only the list item progress
-                var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                    progress => _ = MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        x.DownloadProgress = progress;
-                        fetchOccurred = true; // Mark that fetch occurred when progress is set
-                    }),
-                    text => { }, // No text updates for list item progress
-                    isVisible => { }); // No visibility updates for list item progress
-                
+
+                var progressReporter = new Bible.Alarm.Common.Helpers.ListItemFetchProgressReporter(
+                    "BibleLanguage", x.Code, default, () => fetchOccurred = true);
+
                 (string? publicationCode, string? sectionCode, string trackCode, string sectionName, string publicationName, string trackTitle) result;
                 try
                 {
-                    result = await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x, progressTracker);
+                    result = await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(x, progressReporter);
                 }
-                catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+                catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
                 {
                     // List item click failure: show toast and close modal (retain state)
                     Log.Warning(ex, "BibleSelectionCommandHandler: Network error during language selection for {LanguageCode}", x.Code);

@@ -489,6 +489,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         if (!string.IsNullOrEmpty(track.Uri))
         {
+            SendSingleTrackPreparationProgress(loadedTracks: 1, totalTracks: 1, bytesDownloaded: 1, totalBytes: 1);
             return true;
         }
 
@@ -587,7 +588,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             // Indefinite playback: pre-extend and pre-download the next track if possible.
             if (stateManager.IsIndefinitePlayback)
             {
-                var appended = await TryAppendNextTrackAsync();
+                var appended = await TryAppendNextTrackAsync(reportSectionFetchProgress: false);
                 if (!appended)
                 {
                     return;
@@ -677,7 +678,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
     }
 
-    private async Task<bool> TryAppendNextTrackAsync()
+    private async Task<bool> TryAppendNextTrackAsync(bool reportSectionFetchProgress = true)
     {
         var playlist = stateManager.Playlist;
         if (playlist == null || playlist.Count == 0)
@@ -694,7 +695,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         try
         {
             var currentMetadata = playlist[currentIndex].PlayItem.Metadata;
-            var nextPlayItem = await ResolveNextPlayItemForSessionAsync(currentMetadata);
+            var nextPlayItem = await ResolveNextPlayItemForSessionAsync(currentMetadata, reportSectionFetchProgress);
 
             // Append placeholder; Uri will be downloaded on-demand (or in background).
             var nextTrack = new AudioPlayerTrack
@@ -792,8 +793,10 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                a.TrackCode == b.TrackCode;
     }
 
-    private async Task<PlayItem> ResolveNextPlayItemForSessionAsync(TrackMetadata currentMetadata)
+    private async Task<PlayItem> ResolveNextPlayItemForSessionAsync(TrackMetadata currentMetadata, bool reportSectionFetchProgress = true)
     {
+        var sectionProgress = reportSectionFetchProgress ? CreateSectionFetchProgressReporter() : null;
+
         if (HasMusicInjection)
         {
             // If we are right before the anchor Bible track, inject the (single) music track.
@@ -805,17 +808,17 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             // If we're on the injected music track, next should be the anchor Bible track.
             if (currentMetadata.PlayType == PlayType.Music)
             {
-                var sectionProgress = CreateSectionFetchProgressReporter();
                 return await playlistService.GetNextPlayItemAsync(stateManager.PreAnchorBibleMetadata!, sectionProgress);
             }
         }
 
-        var progress = CreateSectionFetchProgressReporter();
-        return await playlistService.GetNextPlayItemAsync(currentMetadata, progress);
+        return await playlistService.GetNextPlayItemAsync(currentMetadata, sectionProgress);
     }
 
-    private async Task<PlayItem> ResolvePreviousPlayItemForSessionAsync(TrackMetadata currentMetadata)
+    private async Task<PlayItem> ResolvePreviousPlayItemForSessionAsync(TrackMetadata currentMetadata, bool reportSectionFetchProgress = true)
     {
+        var sectionProgress = reportSectionFetchProgress ? CreateSectionFetchProgressReporter() : null;
+
         if (HasMusicInjection)
         {
             // If we're on the anchor Bible track, previous should be the (single) music track.
@@ -827,13 +830,11 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             // If we're on the music track, previous should be the Bible track right before the anchor.
             if (currentMetadata.PlayType == PlayType.Music)
             {
-                var sectionProgress = CreateSectionFetchProgressReporter();
                 return await playlistService.GetPreviousPlayItemAsync(stateManager.AnchorBibleMetadata!, sectionProgress);
             }
         }
 
-        var progress = CreateSectionFetchProgressReporter();
-        return await playlistService.GetPreviousPlayItemAsync(currentMetadata, progress);
+        return await playlistService.GetPreviousPlayItemAsync(currentMetadata, sectionProgress);
     }
 
 

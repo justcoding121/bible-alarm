@@ -1,7 +1,9 @@
 #nullable enable
 using System.Net.Http;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -56,14 +58,20 @@ public sealed class MusicPublicationSelectionCommandHandler(
         }
 
         var currentSchedule = state.Value.CurrentSchedule;
-        
+
+        var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
+        if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
+        {
+            var toastService = ServiceProviderManager.GetService<IToastService>();
+            if (toastService != null)
+                await toastService.ShowMessage("Please check your internet connection.");
+            await navigationService.PopModalAsync();
+            return;
+        }
+
         try
         {
-            // Create progress tracker for per-row percent updates (no modal progress card / busy overlay).
-            var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                progress => _ = MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = progress),
-                _ => { },
-                _ => { });
+            var progressReporter = new Bible.Alarm.Common.Helpers.ListItemFetchProgressReporter("MusicPublication", songPublication.Code);
             
             // Get track based on music type
             string trackCode;
@@ -164,8 +172,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
             else
             {
                 // For vocal music, use existing logic
-                progressTracker.UpdateProgress(0.3);
-                var result = await dataProvider.GetTrackForSongPublicationAsync(songPublication, languageCode, currentSchedule, progressTracker);
+                progressReporter.UpdateProgress(0.3);
+                var result = await dataProvider.GetTrackForSongPublicationAsync(songPublication, languageCode, currentSchedule, progressReporter);
                 if (string.IsNullOrWhiteSpace(result.TrackCode))
                 {
                     await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
@@ -175,7 +183,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 trackName = result.TrackName;
             }
 
-            progressTracker.UpdateProgress(0.7);
+            progressReporter.UpdateProgress(0.7);
 
             // For vocal music when currentLanguage is null (e.g. tapped osg from merged list in melody mode),
             // resolve language name/direction so the reducer can set them and the UI shows "English" not "E".
@@ -221,7 +229,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 await Task.Delay(delayMs);
             }
         }
-        catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+        catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
         {
             // List item click failure: show toast and close modal (retain state)
             Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during publication selection for {PublicationCode}", songPublication.Code);
@@ -261,28 +269,31 @@ public sealed class MusicPublicationSelectionCommandHandler(
             return;
         }
 
+        var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
+        if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
+        {
+            var toastService = ServiceProviderManager.GetService<IToastService>();
+            if (toastService != null)
+                await toastService.ShowMessage("Please check your internet connection.");
+            await navigationService.PopModalAsync();
+            return;
+        }
+
         // Track if progress was set (fetch happened) - only show completion if fetch occurred
         bool fetchOccurred = false;
         try
         {
             var currentSchedule = state.Value.CurrentSchedule;
-            
-            // Create progress tracker - updates only the list item progress
-            var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                progress => _ = MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    language.DownloadProgress = progress;
-                    fetchOccurred = true; // Mark that fetch occurred when progress is set
-                }),
-                text => { }, // No text updates for list item progress
-                isVisible => { }); // No visibility updates for list item progress
-            
+
+            var progressReporter = new Bible.Alarm.Common.Helpers.ListItemFetchProgressReporter(
+                "MusicLanguage", language.Code, default, () => fetchOccurred = true);
+
             (string? publicationCode, string trackCode, string trackName, string publicationName) result;
             try
             {
-                result = await dataProvider.GetFirstSongPublicationAndTrackForLanguageAsync(language, currentSchedule, progressTracker);
+                result = await dataProvider.GetFirstSongPublicationAndTrackForLanguageAsync(language, currentSchedule, progressReporter);
             }
-            catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+            catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
             {
                 // List item click failure: show toast and close modal (retain state)
                 Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during language selection for {LanguageCode}", language.Code);

@@ -5,6 +5,8 @@ using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Stores.Messages;
+using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -20,7 +22,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IDisposable
+public sealed class BiblePublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IDisposable
 {
     private readonly IState<ApplicationState> state;
     private readonly IMapper mapper;
@@ -101,6 +103,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         // Set up event handlers
         state.StateChanged += OnBiblePublicationInitialized;
         state.StateChanged += OnBiblePublicationChanged;
+
+        WeakReferenceMessenger.Default.Register<ListItemFetchProgressMessage>(this);
 
         // Initialize commands
         SectionSelectionCommand = commandHandler.CreateSectionSelectionCommand(
@@ -318,8 +322,29 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
 
 
+    public void Receive(ListItemFetchProgressMessage message)
+    {
+        var p = message.Value;
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (p.Context == "BibleLanguage")
+            {
+                var lang = propertyManager.Languages?.FirstOrDefault(l => l.Code == p.ItemId);
+                if (lang != null)
+                    lang.DownloadProgress = p.Progress;
+            }
+            else if (p.Context == "BiblePublication")
+            {
+                var pub = propertyManager.Publications?.FirstOrDefault(pr => pr.Code == p.ItemId);
+                if (pub != null)
+                    pub.DownloadProgress = p.Progress;
+            }
+        });
+    }
+
     public void Dispose()
     {
+        WeakReferenceMessenger.Default.Unregister<ListItemFetchProgressMessage>(this);
         state.StateChanged -= OnBiblePublicationInitialized;
         state.StateChanged -= OnBiblePublicationChanged;
 

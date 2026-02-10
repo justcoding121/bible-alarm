@@ -1,0 +1,36 @@
+#nullable enable
+using CommunityToolkit.Mvvm.Messaging.Messages;
+
+namespace Bible.Alarm.Stores.Messages;
+
+/// <summary>
+/// Message sent when a list item (language, publication, section) reports fetch progress.
+/// ViewModels register and update the matching item's DownloadProgress.
+/// </summary>
+public sealed class ListItemFetchProgressMessage : ValueChangedMessage<ListItemFetchProgress>
+{
+    public ListItemFetchProgressMessage(ListItemFetchProgress value) : base(value)
+    {
+    }
+}
+
+/// <summary>
+/// Progress data for list item fetch (language row, publication row, section row).
+/// </summary>
+public sealed class ListItemFetchProgress
+{
+    /// <summary>
+    /// Context: BibleLanguage, BiblePublication, BibleSection, MusicLanguage, MusicPublication, MusicSection.
+    /// </summary>
+    public string Context { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Item identifier (language code, publication code, section code).
+    /// </summary>
+    public string ItemId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Progress value between 0.0 and 1.0.
+    /// </summary>
+    public double Progress { get; init; }
+}

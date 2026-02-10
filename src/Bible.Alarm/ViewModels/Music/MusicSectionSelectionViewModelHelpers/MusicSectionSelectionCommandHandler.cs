@@ -1,8 +1,9 @@
 #nullable enable
 
-using System.Net.Http;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Stores;
@@ -41,6 +42,16 @@ internal sealed class MusicSectionSelectionCommandHandler
         BiblePublicationSectionListViewItemModel selectedSection,
         Func<bool> isDisposed)
     {
+        var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
+        if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
+        {
+            var toastService = ServiceProviderManager.GetService<IToastService>();
+            if (toastService != null)
+                await toastService.ShowMessage("Please check your internet connection.");
+            await navigationService.PopModalAsync();
+            return;
+        }
+
         // Progress will only be set if a fetch actually happens (not for DB-only queries)
         try
         {
@@ -98,7 +109,7 @@ internal sealed class MusicSectionSelectionCommandHandler
 
             await navigationService.PopModalAsync();
         }
-        catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+        catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
         {
             logger.Warning(ex, "[MusicSectionSelection] TrackSelectionCommand - Network error selecting section");
             await MainThread.InvokeOnMainThreadAsync(() =>

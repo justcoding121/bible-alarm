@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
@@ -158,6 +159,11 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
             }
             catch (Exception ex)
             {
+                if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                {
+                    throw;
+                }
+
                 Serilog.Log.Warning(ex, "Error downloading first vocal music publication {PublicationCode} for language {LanguageCode}",
                     firstPublicationCode, language.Code);
             }

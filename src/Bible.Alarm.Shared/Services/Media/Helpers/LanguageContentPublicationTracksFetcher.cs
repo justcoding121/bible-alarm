@@ -156,6 +156,11 @@ internal sealed class LanguageContentPublicationTracksFetcher
         }
         catch (Exception ex)
         {
+            if (NetworkExceptionHelper.IsNetworkFailure(ex))
+            {
+                throw;
+            }
+
             logger.Error(ex, "Error fetching publication tracks for {PublicationCode} in language {LanguageCode}",
                 publicationCode, languageCode);
             return false;

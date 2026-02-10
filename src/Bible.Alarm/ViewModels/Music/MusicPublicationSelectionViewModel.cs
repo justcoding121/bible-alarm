@@ -1,9 +1,12 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Stores.Messages;
+using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -19,7 +22,7 @@ using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IDisposable
+public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -71,6 +74,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
         state.StateChanged += OnMusicInitialized;
         state.StateChanged += OnMusicChanged;
+
+        WeakReferenceMessenger.Default.Register<ListItemFetchProgressMessage>(this);
 
         // Check current state immediately in case state is already set
         // Use CurrentSchedule as source of truth
@@ -650,8 +655,29 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         propertyManager.CurrentLanguage!.IsSelected = true;
     }
 
+    public void Receive(ListItemFetchProgressMessage message)
+    {
+        var p = message.Value;
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (p.Context == "MusicLanguage")
+            {
+                var lang = propertyManager.Languages?.FirstOrDefault(l => l.Code == p.ItemId);
+                if (lang != null)
+                    lang.DownloadProgress = p.Progress;
+            }
+            else if (p.Context == "MusicPublication")
+            {
+                var pub = propertyManager.SongPublications?.FirstOrDefault(pr => pr.Code == p.ItemId);
+                if (pub != null)
+                    pub.DownloadProgress = p.Progress;
+            }
+        });
+    }
+
     public void Dispose()
     {
+        WeakReferenceMessenger.Default.Unregister<ListItemFetchProgressMessage>(this);
         state.StateChanged -= OnMusicInitialized;
         state.StateChanged -= OnMusicChanged;
         propertyManager.RemoveLanguageSearchHandler();

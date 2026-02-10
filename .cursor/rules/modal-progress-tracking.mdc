@@ -24,31 +24,22 @@ alwaysApply: true
 | Music Section | MusicSectionModal | FetchProgressTracker | `section.DownloadProgress` |
 | Music Track | MusicTrackModal | N/A (local DB) | N/A |
 
-## When to Use Each Approach
+## Progress: Always Use Messages
 
-### FetchProgressTracker (Direct Callbacks)
-Use when ViewModel directly calls the service method:
-```csharp
-var progressTracker = new FetchProgressTracker(
-    progress => ProgressPercent = progress,
-    text => ProgressText = text,
-    isVisible => ShowProgress = isVisible,
-    cancellationToken);
-await service.FetchAsync(progressTracker);
-```
+All progress tracking uses WeakReferenceMessenger. Implementations send messages; ViewModels register and receive.
 
-### WeakReferenceMessenger (Pub/Sub)
-Use when fetch is triggered by a Fluxor effect (can't pass callbacks through actions):
-```csharp
-// In Effect:
-WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
-    new CategoryFetchProgress { CategoryId = id, Progress = 0.5 }));
+### List Item Progress (Language, Publication, Section)
+- Reporter: `ListItemFetchProgressReporter(context, itemId)` implements IFetchProgress, sends `ListItemFetchProgressMessage`
+- Context: BibleLanguage, BiblePublication, BibleSection, MusicLanguage, MusicPublication, MusicSection
+- ViewModel: implements `IRecipient<ListItemFetchProgressMessage>`, finds item by ItemId, sets DownloadProgress
 
-// In ViewModel:
-public void Receive(CategoryFetchProgressMessage msg) {
-    category.DownloadProgress = msg.Value.Progress;
-}
-```
+### Category List Item Progress
+- Reporter: `CategoryFetchProgressReporter(categoryId)` implements IFetchProgress, sends `CategoryFetchProgressMessage`
+- Effect creates reporter, passes to EnsurePublicationExistsAsync
+
+### Modal Overlay Progress (Publication/Section modals)
+- Reporter: `ModalOverlayFetchProgressReporter(modalType, cts.Token)` for overlay spinner + progress bar
+- ModalType: BiblePublication, BibleSection, MusicPublication, MusicSection
 
 ## Progress Display Rules
 

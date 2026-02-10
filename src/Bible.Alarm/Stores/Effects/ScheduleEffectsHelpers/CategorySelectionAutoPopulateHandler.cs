@@ -179,19 +179,12 @@ public sealed class CategorySelectionAutoPopulateHandler
                     if (!isAlreadyHarvested)
                     {
                         // Try to harvest the publication (EnsurePublicationExistsAsync checks if it exists first)
-                        // Progress will be reported by the progress tracker when fetch actually happens
-                        // Create a progress tracker that maps internal progress to overall progress
-                        var harvestProgressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                            internalProgress =>
-                            {
-                                // Map 0-1 to 0.0-1.0 (progress tracker will set it when fetch starts)
-                                ReportProgress(internalProgress);
-                            },
-                            _ => { },
-                            _ => { });
-                        
+                        // Progress will be reported via CategoryFetchProgressMessage when fetch actually happens
+                        var harvestProgressReporter = new Bible.Alarm.Common.Helpers.CategoryFetchProgressReporter(
+                            action.CategoryId, default);
+
                         var isHarvested = await languageContentService.EnsurePublicationExistsAsync(
-                            pl.PublicationCode, selectedLanguage.LanguageCode, default, harvestProgressTracker);
+                            pl.PublicationCode, selectedLanguage.LanguageCode, default, harvestProgressReporter);
                         
                         if (!isHarvested)
                         {

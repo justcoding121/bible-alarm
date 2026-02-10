@@ -113,6 +113,16 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 return;
             }
 
+            var networkStatusService = ServiceProviderManager.GetService<Bible.Alarm.Services.Network.Interfaces.INetworkStatusService>();
+            if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
+            {
+                var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
+                if (toastService != null)
+                    await toastService.ShowMessage("Please check your internet connection.");
+                await navigationService.PopModalAsync();
+                return;
+            }
+
             // Set flag to prevent RefreshFromState from resetting IsBusy
             isSelectingSection = true;
 
@@ -161,7 +171,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 // Navigate back to schedule page
                 await navigationService.PopModalAsync();
             }
-            catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
+            catch (Exception ex) when (Bible.Alarm.Common.ViewHelpers.ModalScrollHelper.IsFetchFailure(ex))
             {
                 logger.Warning(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Network error selecting section");
                 await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
