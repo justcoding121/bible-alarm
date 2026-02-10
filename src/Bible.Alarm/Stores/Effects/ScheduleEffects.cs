@@ -384,13 +384,20 @@ public class ScheduleEffects(
     {
         try
         {
-            var updatedSchedule = await TryPopulateModalCountsAsync(currentSchedule);
+            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
+            if (scopeFactory == null)
+            {
+                Log.Warning("ScheduleEffects: Cannot populate modal counts - IServiceScopeFactory not available. ScheduleId={ScheduleId}", currentSchedule.Id);
+                return;
+            }
+
+            var updatedSchedule = await ScheduleEffectsModalCountPopulator.TryPopulateModalCountsAsync(currentSchedule, scopeFactory, Log.Logger);
             if (updatedSchedule == null)
             {
                 return;
             }
 
-            if (AreModalCountsEquivalent(currentSchedule, updatedSchedule))
+            if (ScheduleEffectsModalCountPopulator.AreModalCountsEquivalent(currentSchedule, updatedSchedule))
             {
                 return;
             }
@@ -410,216 +417,6 @@ public class ScheduleEffects(
             Log.Error(ex, "ScheduleEffects: Error updating modal counts. Reason={Reason}, ScheduleId={ScheduleId}",
                 reason, currentSchedule.Id);
         }
-    }
-
-    private static bool AreModalCountsEquivalent(ScheduleStateItem a, ScheduleStateItem b)
-    {
-        return a.BiblePublicationModalItemCount == b.BiblePublicationModalItemCount &&
-               a.BiblePublicationSectionModalItemCount == b.BiblePublicationSectionModalItemCount &&
-               a.MusicPublicationModalItemCount == b.MusicPublicationModalItemCount &&
-               a.MusicSectionModalItemCount == b.MusicSectionModalItemCount;
-    }
-
-
-    private async Task<ScheduleStateItem?> TryPopulateModalCountsAsync(ScheduleStateItem currentSchedule)
-    {
-        try
-        {
-            var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
-            if (scopeFactory == null)
-            {
-                Log.Warning("ScheduleEffects: Cannot populate modal counts - IServiceScopeFactory not available. ScheduleId={ScheduleId}", currentSchedule.Id);
-                return null;
-            }
-
-            using var scope = scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-            var updated = currentSchedule.DeepClone();
-
-            updated.BiblePublicationModalItemCount = await GetBiblePublicationModalItemCountAsync(db, updated);
-            updated.BiblePublicationSectionModalItemCount = await GetBiblePublicationSectionModalItemCountAsync(db, updated);
-
-            if (updated.MusicEnabled && HasMusicConfigured(updated))
-            {
-                updated.MusicPublicationModalItemCount = await GetMusicPublicationModalItemCountAsync(db, updated);
-                updated.MusicSectionModalItemCount = await GetMusicSectionModalItemCountAsync(db, updated);
-            }
-            else
-            {
-                // Keep existing values if any; don't force nulls while Music is disabled/uninitialized.
-                updated.MusicPublicationModalItemCount ??= currentSchedule.MusicPublicationModalItemCount;
-                updated.MusicSectionModalItemCount ??= currentSchedule.MusicSectionModalItemCount;
-            }
-
-            return updated;
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "ScheduleEffects: Error populating modal counts. ScheduleId={ScheduleId}", currentSchedule.Id);
-            return null;
-        }
-    }
-
-    private static bool HasMusicConfigured(ScheduleStateItem schedule)
-    {
-        return !string.IsNullOrWhiteSpace(schedule.MusicPublicationCode);
-    }
-
-    /// <summary>
-    /// Publication modal count for Bible row. Uses category from schedule (Bible/Dramas/etc.).
-    /// Music row uses the same query shape with category fixed to "Music" (see GetMusicPublicationModalItemCountAsync in ScheduleEffects and MusicCascadeHandler).
-    /// </summary>
-    private static async Task<int?> GetBiblePublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
-    {
-        var categoryName = schedule.BiblePublicationCategoryName;
-        if (string.IsNullOrWhiteSpace(categoryName))
-        {
-            return null;
-        }
-
-        var languageCode = schedule.BiblePublicationLanguageCode;
-        var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
-
-        var query = db.PublicationLanguages
-            .AsNoTracking()
-            .Where(pl => pl.Category != null && pl.Category.CategoryName == categoryName);
-
-        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
-        {
-            // Bible container publication modal shows both:
-            // - publications in the selected language
-            // - publications without a language FK (LanguageId == null)
-            query = query.Where(pl =>
-                (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||
-                pl.LanguageId == null);
-        }
-        else
-        {
-            // If language isn't set yet, only count no-language publications for this category.
-            query = query.Where(pl => pl.LanguageId == null);
-        }
-
-        var publicationCodes = await query
-            .Select(pl => pl.PublicationCode)
-            .ToListAsync();
-
-        if (publicationCodes.Count == 0)
-        {
-            return 0;
-        }
-
-        // Deduplicate in-memory (including drama canonicalization).
-        var unique = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var code in publicationCodes)
-        {
-            var lower = code.ToLowerInvariant();
-            if (PublicationTypeHelper.IsDrama(lower))
-            {
-                unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? "Dramas" : "DramaticBibleReadings");
-            }
-            else
-            {
-                unique.Add(code);
-            }
-        }
-
-        return unique.Count;
-    }
-
-    private static async Task<int?> GetBiblePublicationSectionModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
-    {
-        var publicationCode = schedule.BiblePublicationCode;
-        if (string.IsNullOrWhiteSpace(publicationCode) || !PublicationTypeHelper.HasSectionStructure(publicationCode))
-        {
-            return 0;
-        }
-
-        var languageCode = schedule.BiblePublicationLanguageCode;
-        var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
-
-        var query = db.SectionLanguages
-            .AsNoTracking()
-            .Where(sl => sl.PublicationCode == publicationCode);
-
-        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
-        {
-            // Section modal shows both:
-            // - sections in the selected language
-            // - sections without a language FK (LanguageId == null)
-            query = query.Where(sl =>
-                (sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode) ||
-                sl.LanguageId == null);
-        }
-        else
-        {
-            query = query.Where(sl => sl.LanguageId == null);
-        }
-
-        return await query
-            .Select(sl => sl.SectionCode)
-            .Distinct()
-            .CountAsync();
-    }
-
-    /// <summary>
-    /// Publication modal count for Music row. Category is always "Music" (harmony with Bible row which uses category from schedule).
-    /// When MusicLanguageCode is null (melody), effective language "E" so modal shows E + no-language publications.
-    /// </summary>
-    private static async Task<int?> GetMusicPublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
-    {
-        // When MusicLanguageCode is null (no explicit language selected), default to English
-        // for display and cascade purposes - this shows publications for default language + no-language publications.
-        var languageCode = schedule.MusicLanguageCode;
-        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? AppConstants.Media.DefaultLanguageCode : languageCode;
-        var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
-        
-        var query = db.PublicationLanguages
-            .AsNoTracking()
-            .Where(pl => pl.Category != null && pl.Category.CategoryName == "Music");
-
-        // Music publication modal shows both:
-        // - publications in the selected language (or default "E" when null)
-        // - publications without a language FK (LanguageId == null)
-        query = query.Where(pl =>
-            (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||
-            pl.LanguageId == null);
-
-        return await query
-            .Select(pl => pl.PublicationCode)
-            .Distinct()
-            .CountAsync();
-    }
-
-    private static async Task<int?> GetMusicSectionModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
-    {
-        var publicationCode = schedule.MusicPublicationCode;
-        if (string.IsNullOrWhiteSpace(publicationCode) || !PublicationTypeHelper.HasSectionStructure(publicationCode))
-        {
-            return 0;
-        }
-
-        // When MusicLanguageCode is null (no explicit language selected), default to English.
-        // For sectioned publications like "iam", count sections for default language + no-language sections.
-        var languageCode = schedule.MusicLanguageCode;
-        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? AppConstants.Media.DefaultLanguageCode : languageCode;
-        var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
-        
-        var query = db.SectionLanguages
-            .AsNoTracking()
-            .Where(sl => sl.PublicationCode == publicationCode);
-
-        // Section modal shows both:
-        // - sections in the selected language (or default "E" when null)
-        // - sections without a language FK (LanguageId == null)
-        query = query.Where(sl =>
-            (sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode) ||
-            sl.LanguageId == null);
-
-        return await query
-            .Select(sl => sl.SectionCode)
-            .Distinct()
-            .CountAsync();
     }
 
     /// <summary>
