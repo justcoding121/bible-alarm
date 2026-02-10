@@ -251,6 +251,11 @@ internal sealed class SectionFetcher
             }
             catch (Exception ex)
             {
+                if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                {
+                    throw;
+                }
+
                 logger.Warning(ex, "Failed to fetch section {SectionCode} for publication {PublicationCode} in language {LanguageCode}",
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode);
                 completedSections++;

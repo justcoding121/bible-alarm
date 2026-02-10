@@ -53,7 +53,17 @@ public sealed class ScheduleMediaCacheService : IScheduleMediaCacheService
         }
         else
         {
-            _ = mediaCacheSetupService.SetupAlarmCacheAsync(scheduleId);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await mediaCacheSetupService.SetupAlarmCacheAsync(scheduleId);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Error setting up media cache for schedule {ScheduleId}", scheduleId);
+                }
+            });
         }
     }
 }

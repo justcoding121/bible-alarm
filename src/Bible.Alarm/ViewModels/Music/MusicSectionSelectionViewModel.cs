@@ -2,6 +2,9 @@
 
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using Bible.Alarm.Common.Helpers;
+using Bible.Alarm.Stores.Messages;
+using CommunityToolkit.Mvvm.Messaging;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -21,7 +24,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicSectionSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IDisposable
+public sealed class MusicSectionSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -42,6 +45,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private string progressText = "0%";
     private bool canCancelFetch = false;
     private bool hasFetchError = false;
+    private bool isRetryBusy = false;
+    private bool isCancelBusy = false;
     private MusicSectionSelectionStateChangeHandler? stateChangeHandler;
     private CancellationTokenSource? fetchCts;
     
@@ -81,26 +86,9 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             await navigationService.PopModalAsync();
         });
 
-        CancelFetchCommand = new AsyncRelayCommand(async () =>
-        {
-            logger.Information("MusicSectionSelectionViewModel: CancelFetchCommand - User cancelled fetch");
-            fetchCts?.Cancel();
-            CanCancelFetch = false;
-            ShowProgress = false;
-            HasFetchError = false;
-            IsBusy = false;
-            // Allow screen to turn off when user cancels
-            DeviceDisplay.Current.KeepScreenOn = false;
-            await navigationService.PopModalAsync();
-        });
+        CancelFetchCommand = new AsyncRelayCommand(CancelFetchAsync);
 
-        RetryFetchCommand = new AsyncRelayCommand(async () =>
-        {
-            HasFetchError = false;
-            await RefreshFromState();
-            if (!HasFetchError)
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-        });
+        RetryFetchCommand = new AsyncRelayCommand(RetryFetchAsync);
 
         TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async x =>
         {
@@ -139,6 +127,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         // Only subscribe OnMusicSectionChanged to state changes
         // OnMusicSectionInitialized will only be called once manually in the constructor
         state.StateChanged += OnMusicSectionChanged;
+        WeakReferenceMessenger.Default.Register<ModalOverlayFetchProgressMessage>(this);
 
         // Always trigger initialization immediately to ensure we read the latest state
         // This is especially important when the modal opens after a publication change
@@ -154,6 +143,46 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             return;
         }
         stateChangeHandler.HandleStateChanged(state.Value);
+    }
+
+    private async Task CancelFetchAsync()
+    {
+        IsCancelBusy = true;
+        await Task.Delay(50);
+
+        try
+        {
+            logger.Information("MusicSectionSelectionViewModel: CancelFetchCommand - User cancelled fetch");
+            fetchCts?.Cancel();
+            CanCancelFetch = false;
+            ShowProgress = false;
+            HasFetchError = false;
+            IsBusy = false;
+            DeviceDisplay.Current.KeepScreenOn = false;
+            await navigationService.PopModalAsync();
+        }
+        finally
+        {
+            IsCancelBusy = false;
+        }
+    }
+
+    private async Task RetryFetchAsync()
+    {
+        IsRetryBusy = true;
+        await Task.Delay(50);
+
+        try
+        {
+            HasFetchError = false;
+            await RefreshFromState();
+            if (!HasFetchError)
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+        }
+        finally
+        {
+            IsRetryBusy = false;
+        }
     }
 
     private void OnMusicSectionInitialized(object? o, EventArgs eventArgs)
@@ -184,33 +213,9 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         fetchCts?.Cancel();
         fetchCts?.Dispose();
         fetchCts = new CancellationTokenSource();
-        
-        // Create progress tracker for state change handler (when publication/music type changes)
-        var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-            progress => _ = MainThread.InvokeOnMainThreadAsync(() => 
-            {
-                if (!isDisposed)
-                {
-                    ProgressPercent = progress;
-                }
-            }),
-            text => _ = MainThread.InvokeOnMainThreadAsync(() => 
-            {
-                if (!isDisposed)
-                {
-                    ProgressText = text;
-                }
-            }),
-            isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => 
-            {
-                if (!isDisposed)
-                {
-                    ShowProgress = isVisible;
-                }
-            }),
-            fetchCts.Token);
-        
-        await PopulateSections(publicationCode, progressTracker);
+
+        var progressReporter = new ModalOverlayFetchProgressReporter("MusicSection", fetchCts.Token);
+        await PopulateSections(publicationCode, progressReporter);
     }
 
     /// <summary>
@@ -327,34 +332,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
                     }
                 });
                 
-                // Create progress tracker for modal open with async UI updates (fire-and-forget tasks to avoid blocking)
-                // The progress tracker will set ShowProgress = true when a fetch actually starts
-                var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                    progress => _ = MainThread.InvokeOnMainThreadAsync(() => 
-                    {
-                        if (!isDisposed && !isSelectingSection)
-                        {
-                            ProgressPercent = progress;
-                        }
-                    }),
-                    text => _ = MainThread.InvokeOnMainThreadAsync(() => 
-                    {
-                        if (!isDisposed && !isSelectingSection)
-                        {
-                            ProgressText = text;
-                        }
-                    }),
-                    isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => 
-                    {
-                        if (!isDisposed && !isSelectingSection)
-                        {
-                            ShowProgress = isVisible;
-                        }
-                    }),
-                    fetchCts.Token);
-                
-                // Use the latest state values, not cached ones
-                await PopulateSections(publicationCode, progressTracker);
+                var progressReporter = new ModalOverlayFetchProgressReporter("MusicSection", fetchCts.Token);
+                await PopulateSections(publicationCode, progressReporter);
 
                 // Check again if we're selecting a section (may have changed during async operation)
                 if (isSelectingSection)
@@ -458,14 +437,31 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         }
     }
 
+    public void Receive(ModalOverlayFetchProgressMessage message)
+    {
+        var p = message.Value;
+        if (p.ModalType != "MusicSection")
+            return;
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (!isDisposed && !isSelectingSection)
+            {
+                ProgressPercent = p.Progress;
+                ProgressText = p.ProgressText;
+                ShowProgress = p.IsVisible;
+            }
+        });
+    }
+
     public void Dispose()
     {
         if (isDisposed)
         {
             return;
         }
-        
+
         isDisposed = true;
+        WeakReferenceMessenger.Default.Unregister<ModalOverlayFetchProgressMessage>(this);
         state.StateChanged -= OnMusicSectionChanged;
         fetchCts?.Cancel();
         fetchCts?.Dispose();
@@ -558,6 +554,18 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             if (SetProperty(ref hasFetchError, value))
                 OnPropertyChanged(nameof(ShowCancelButton));
         }
+    }
+
+    public bool IsRetryBusy
+    {
+        get => isRetryBusy;
+        set => SetProperty(ref isRetryBusy, value);
+    }
+
+    public bool IsCancelBusy
+    {
+        get => isCancelBusy;
+        set => SetProperty(ref isCancelBusy, value);
     }
 
     /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>

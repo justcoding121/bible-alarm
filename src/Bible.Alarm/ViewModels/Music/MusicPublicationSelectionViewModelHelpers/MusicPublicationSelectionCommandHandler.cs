@@ -40,7 +40,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             return;
         }
 
-        // Progress will be set by FetchProgressTracker only when a fetch actually happens.
+        // Progress will be set by ModalOverlayFetchProgressReporter only when a fetch actually happens.
         // No DB probing: the tapped row already knows if it has LanguageId or not.
         // Publications without language FK (LanguageId == null) are melody/instrumental.
         var isMelodyMusic = songPublication.IsPublicationWithoutLanguage;
@@ -59,15 +59,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
 
         var currentSchedule = state.Value.CurrentSchedule;
 
-        var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
-        if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
-        {
-            var toastService = ServiceProviderManager.GetService<IToastService>();
-            if (toastService != null)
-                await toastService.ShowMessage("Please check your internet connection.");
-            await navigationService.PopModalAsync();
-            return;
-        }
+        // Do NOT check internet upfront - melody/instrumental and English vocal are often local.
+        // If a fetch is needed and network is down, the fetch will throw and we catch below.
 
         try
         {
@@ -235,8 +228,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
             Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during publication selection for {PublicationCode}", songPublication.Code);
             await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
             var toastService = ServiceProviderManager.GetService<IToastService>();
-            await toastService.ShowMessage("Please check your internet connection.");
             await navigationService.PopModalAsync();
+            await toastService.ShowMessage("Please check your internet connection.");
             return;
         }
         catch (Exception ex)
@@ -245,8 +238,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
             Log.Error(ex, "MusicPublicationSelectionCommandHandler: Error during publication selection for {PublicationCode}", songPublication.Code);
             await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
             var toastService = ServiceProviderManager.GetService<IToastService>();
-            await toastService.ShowMessage("An error occurred. Please try again.");
             await navigationService.PopModalAsync();
+            await toastService.ShowMessage("An error occurred. Please try again.");
             return;
         }
         
@@ -269,15 +262,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
             return;
         }
 
-        var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
-        if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
-        {
-            var toastService = ServiceProviderManager.GetService<IToastService>();
-            if (toastService != null)
-                await toastService.ShowMessage("Please check your internet connection.");
-            await navigationService.PopModalAsync();
-            return;
-        }
+        // Do NOT check internet upfront - English is pre-packaged and needs no fetch.
+        // If a fetch is needed and network is down, the selector will throw and we catch below.
 
         // Track if progress was set (fetch happened) - only show completion if fetch occurred
         bool fetchOccurred = false;
@@ -299,8 +285,8 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during language selection for {LanguageCode}", language.Code);
                 await MainThread.InvokeOnMainThreadAsync(() => language.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<IToastService>();
-                await toastService.ShowMessage("Please check your internet connection.");
                 await navigationService.PopModalAsync();
+                await toastService.ShowMessage("Please check your internet connection.");
                 return;
             }
             var (publicationCode, trackCode, trackName, publicationName) = result;

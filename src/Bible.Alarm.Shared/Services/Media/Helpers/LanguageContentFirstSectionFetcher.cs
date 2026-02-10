@@ -20,17 +20,20 @@ internal sealed class LanguageContentFirstSectionFetcher
     private readonly ILogger logger;
     private readonly ILanguageContentService languageContentService;
     private readonly SectionFetcher sectionFetcher;
+    private readonly IInternetConnectivityChecker? internetConnectivityChecker;
 
     public LanguageContentFirstSectionFetcher(
         IServiceScopeFactory scopeFactory,
         ILogger logger,
         ILanguageContentService languageContentService,
-        SectionFetcher sectionFetcher)
+        SectionFetcher sectionFetcher,
+        IInternetConnectivityChecker? internetConnectivityChecker = null)
     {
         this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         this.languageContentService = languageContentService ?? throw new ArgumentNullException(nameof(languageContentService));
         this.sectionFetcher = sectionFetcher ?? throw new ArgumentNullException(nameof(sectionFetcher));
+        this.internetConnectivityChecker = internetConnectivityChecker;
     }
 
     public async Task<bool> FetchFirstSectionOnlyAsync(
@@ -124,8 +127,11 @@ internal sealed class LanguageContentFirstSectionFetcher
                 // TODO: Optimize to add only the first section to existing publication
                 logger.Debug("Publication {PublicationCode} exists but first section doesn't, fetching all sections",
                     publicationCode);
+                await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);
                 return await languageContentService.FetchPublicationSectionsAsync(publicationCode, languageCode, cancellationToken);
             }
+
+            await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);
 
             // Fetch only the first section - pass only firstSectionCode to section fetcher
             var sectionCodes = new List<string> { firstSectionCode };
@@ -135,6 +141,8 @@ internal sealed class LanguageContentFirstSectionFetcher
         }
         catch (Exception ex)
         {
+            if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                throw;
             logger.Error(ex, "Error fetching first section only for {PublicationCode} in language {LanguageCode}",
                 publicationCode, languageCode);
             return false;

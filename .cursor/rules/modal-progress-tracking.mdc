@@ -1,5 +1,5 @@
 ---
-description: Modal progress tracking patterns - when to use FetchProgressTracker vs WeakReferenceMessenger
+description: Modal progress tracking patterns - message-based progress (WeakReferenceMessenger)
 alwaysApply: true
 ---
 
@@ -16,12 +16,12 @@ alwaysApply: true
 |--------|-------|---------------------|------------------------|
 | Category | CategoryModal | N/A (cache) | WeakReferenceMessenger |
 | Language | BibleLanguageModal | N/A (cache) | `x.DownloadProgress` |
-| Publication | BiblePublicationModal | FetchProgressTracker | N/A (opens section) |
-| Section | BibleSectionModal | FetchProgressTracker | `x.DownloadProgress` |
+| Publication | BiblePublicationModal | ModalOverlayFetchProgressReporter | N/A (opens section) |
+| Section | BibleSectionModal | ModalOverlayFetchProgressReporter | `x.DownloadProgress` |
 | Track | BibleTrackModal | N/A (local DB) | N/A |
 | Music Language | MusicLanguageModal | N/A (cache) | `language.DownloadProgress` |
-| Music Publication | MusicPublicationModal | FetchProgressTracker | N/A (opens section) |
-| Music Section | MusicSectionModal | FetchProgressTracker | `section.DownloadProgress` |
+| Music Publication | MusicPublicationModal | ModalOverlayFetchProgressReporter | N/A (opens section) |
+| Music Section | MusicSectionModal | ModalOverlayFetchProgressReporter | `section.DownloadProgress` |
 | Music Track | MusicTrackModal | N/A (local DB) | N/A |
 
 ## Progress: Always Use Messages
@@ -77,9 +77,30 @@ All modals have `CancelFetchCommand` that:
 
 ### Error Handling Pattern
 
-**Modal open progress (FetchProgressTracker)**: On network failure, set `HasFetchError = true` and keep modal open. BusyOverlay shows Retry (left) + Cancel (right). Do NOT dispatch any state changes - retain Bible/Music container rows.
+**Modal open progress (ModalOverlayFetchProgressReporter)**: On network failure, set `HasFetchError = true` and keep modal open. BusyOverlay shows Retry (left) + Cancel (right). Do NOT dispatch any state changes - retain Bible/Music container rows.
 
 **List item tap progress (DownloadProgress / CategoryFetchProgress)**: On network failure, show toast "Please check your internet connection.", close modal, retain state. Applies to: Category, Bible Language, Music Language, Bible Publication, Bible Section, Music Publication, Music Section.
+
+**Consistency**: Internet check fail and actual network failure during the operation must produce the same behaviour (toast, UI message, or silent+log). Ensure both paths trigger identical handling.
+
+**When UI may wait for network**: Only in these two cases:
+1. **UI action directly triggers API fetch** (e.g. user opens publication modal, taps section, selects language that requires harvest).
+2. **Playback waiting for download** (no cached file; user initiated play and is waiting for the track).
+
+In both cases, errors must be gracefully handled: appropriate toast, UI message with retry option (e.g. BusyOverlay Retry button, HandlePlaybackFailureAsync flow).
+
+**All other network work** (cache setup, pre-download, URL refresh for background playlist build, etc.) must run as fire-and-forget background jobs. Never block UI for these.
+
+**Fire-and-forget / background tasks**: Do NOT show toast on failure. Log only. The user is not waiting for the result; a toast would appear out of context. Examples: SchedulerService cache setup, PlaybackService PreDownloadNextTrackAsync, opportunistic append download, ScheduleMediaCacheService.SetupMediaCache, PreparePlaybackService background pre-download.
+
+**Internet check when fetch is decided**: Add check once section/metadata fetch or media download is decided, before the call:
+- **Shared fetchers** (publication/section metadata): `IInternetConnectivityChecker` via `NetworkExceptionHelper.ThrowIfNoInternetAsync(checker)` in LanguageContentPublicationTracksFetcher, LanguageContentPublicationSectionsFetcher, LanguageContentSectionTracksFetcher, LanguageContentFirstSectionFetcher.
+- **TrackNavigator** (prev/next section harvest): `INetworkStatusService.IsInternetAvailable()` in EnsureSectionHarvestedAsync, right before calling EnsurePublicationExistsAsync.
+- **Media downloads**: `INetworkStatusService.IsInternetAvailable()` in MediaCacheService.GetOrDownloadTrackUriWithProgressAsync (before download) and ProcessPlaylistAsync (in loop before each download). Playback modal shows error via HandlePlaybackFailureAsync; background task skips with logging.
+
+**Do NOT check internet upfront** in these scenarios:
+- **List item taps**: English is pre-packaged; melody music and cached publications need no fetch. If a fetch is needed and network is down, the selector will throw and we catch above. Upfront checks would incorrectly block switching back to English when offline.
+- **MediaCacheService.SetupAlarmCacheAsync**: ProcessPlaylistAsync skips cached files; only downloads when ExistsAsync returns false. DownloadAndCacheTrackAsync will fail if offline. Upfront check would block pre-cache when all media is already cached.
 
 ```csharp
 catch (OperationCanceledException)
@@ -102,8 +123,8 @@ finally
 ```
 
 ### Cancellation Token Propagation
-1. ViewModel creates `CancellationTokenSource` → passes to `FetchProgressTracker`
-2. `FetchProgressTracker` exposes `CancellationToken` property
+1. ViewModel creates `CancellationTokenSource` → passes to `ModalOverlayFetchProgressReporter`
+2. `ModalOverlayFetchProgressReporter` exposes `CancellationToken` property
 3. Data Provider/Coordinator/Loader extracts `progress?.CancellationToken ?? CancellationToken.None`
 4. Retry loops check `cancellationToken.ThrowIfCancellationRequested()` before each attempt
 5. All `Task.Delay` calls use `await Task.Delay(delay, cancellationToken)`

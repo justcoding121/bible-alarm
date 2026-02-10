@@ -39,7 +39,8 @@ public sealed class PlaybackEventHandler
         bool isIndefinitePlayback,
         Func<Task<bool>> tryAppendNextTrackAsync,
         Func<bool, Task> playCurrentTrackAsync,
-        Func<bool, Task> stopAsyncInternal)
+        Func<bool, Task> stopAsyncInternal,
+        Func<Task> handlePlaybackFailureAsync)
     {
         var currentTrackIndex = getCurrentTrackIndex();
 
@@ -89,9 +90,14 @@ public sealed class PlaybackEventHandler
                     await playCurrentTrackAsync(false);
                     return;
                 }
+
+                // Append failed (harvest/download error) - show error in modal with retry
+                logger.Warning("HandleMediaEndedAsync: Failed to extend playlist for indefinite playback. Showing error in modal.");
+                await handlePlaybackFailureAsync();
+                return;
             }
 
-            // Finite playback (or failed to extend): stop/dismiss.
+            // Finite playback: stop/dismiss.
             // Skip MarkCurrentTrackAsPlayedAsync in StopAsync because MarkTrackAsFinished already updated the database correctly.
             await stopAsyncInternal(true);
         }

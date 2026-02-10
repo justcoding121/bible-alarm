@@ -385,6 +385,8 @@ public class MediaSessionEffect(
 
     /// <summary>
     /// Handles playback position updates to keep Android Auto progress bar synchronized.
+    /// Uses duration from message when available so both position and total time are updated together,
+    /// avoiding progress bar stuck at 0 when Fluxor state lags behind.
     /// </summary>
     public void Receive(PlaybackPositionChangedMessage message)
     {
@@ -403,7 +405,8 @@ public class MediaSessionEffect(
                 return;
             }
 
-            UpdatePlaybackPosition(session, message.CurrentPosition.Value);
+            var duration = message.Duration ?? playbackState.Value.Duration;
+            UpdatePlaybackPosition(session, message.CurrentPosition.Value, duration);
         }
         catch (Exception ex)
         {
@@ -411,10 +414,9 @@ public class MediaSessionEffect(
         }
     }
 
-    private void UpdatePlaybackPosition(MediaSessionCompat session, TimeSpan currentPosition)
+    private void UpdatePlaybackPosition(MediaSessionCompat session, TimeSpan currentPosition, TimeSpan duration)
     {
         var currentState = playbackState.Value;
-        var duration = currentState.Duration;
         var canPlayNext = currentState.CanPlayNext;
 
         // Always enable previous button for Android Auto (even on first track - will restart current track)

@@ -38,6 +38,7 @@ using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Network;
 using Bible.Alarm.Services.Network.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Services.Scheduler;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Schedule;
@@ -155,7 +156,13 @@ public static class ServiceRegistrationHelper
             new UrlConstructionService(sp.GetRequiredService<IServiceScopeFactory>()));
         services.AddSingleton<IMelodyMusicService, MelodyMusicService>();
         services.AddSingleton<IVocalMusicService, VocalMusicService>();
-        services.AddSingleton<ILanguageContentService, LanguageContentService>();
+        services.AddSingleton<IInternetConnectivityChecker>(sp =>
+            new Bible.Alarm.Services.Network.InternetConnectivityCheckerAdapter(sp.GetRequiredService<INetworkStatusService>()));
+        services.AddSingleton<ILanguageContentService>(sp => new Bible.Alarm.Shared.Services.Media.LanguageContentService(
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetRequiredService<ILogger>(),
+            sp.GetRequiredService<System.Net.Http.HttpClient>(),
+            sp.GetService<IInternetConnectivityChecker>()));
         services.AddSingleton<IBiblePublicationNavigationService, BiblePublicationNavigationService>();
         services.AddSingleton<IMediaCacheSetupService, MediaCacheSetupService>();
         services.AddSingleton<INavigationService, NavigationService>();

@@ -86,6 +86,11 @@ internal sealed class BiblePublicationSelectionPublicationChooser
                 }
                 catch (Exception ex)
                 {
+                    if (Bible.Alarm.Shared.Helpers.NetworkExceptionHelper.IsNetworkFailure(ex))
+                    {
+                        throw;
+                    }
+
                     Log.Debug(ex, "ChooseAsync: Failed to harvest publication={PublicationCode} for language={LanguageCode}, trying next",
                         pubCode,
                         language.Code);

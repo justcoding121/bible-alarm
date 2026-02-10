@@ -4,7 +4,10 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using AutoMapper;
 using Bible.Alarm.Common;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Stores.Messages;
+using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -23,7 +26,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IDisposable
+public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private BiblePublicationSchedule? current;
 
@@ -42,6 +45,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     private string progressText = "0%";
     private bool canCancelFetch = false;
     private bool hasFetchError = false;
+    private bool isRetryBusy = false;
+    private bool isCancelBusy = false;
     private bool isDisposed = false;
     private bool isSelectingSection;
     private CancellationTokenSource? fetchCts;
@@ -85,43 +90,19 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             await navigationService.PopModalAsync();
         });
 
-        CancelFetchCommand = new AsyncRelayCommand(async () =>
-        {
-            logger.Information("BiblePublicationSectionSelectionViewModel: CancelFetchCommand - User cancelled fetch");
-            fetchCts?.Cancel();
-            CanCancelFetch = false;
-            ShowProgress = false;
-            HasFetchError = false;
-            IsBusy = false;
-            // Allow screen to turn off when user cancels
-            DeviceDisplay.Current.KeepScreenOn = false;
-            await navigationService.PopModalAsync();
-        });
+        CancelFetchCommand = new AsyncRelayCommand(CancelFetchAsync);
 
-        RetryFetchCommand = new AsyncRelayCommand(async () =>
-        {
-            HasFetchError = false;
-            await RefreshFromState();
-            if (!HasFetchError)
-                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
-        });
+        RetryFetchCommand = new AsyncRelayCommand(RetryFetchAsync);
 
-        TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async x =>
+        TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async (x) =>
         {
             if (x == null)
             {
                 return;
             }
 
-            var networkStatusService = ServiceProviderManager.GetService<Bible.Alarm.Services.Network.Interfaces.INetworkStatusService>();
-            if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
-            {
-                var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
-                if (toastService != null)
-                    await toastService.ShowMessage("Please check your internet connection.");
-                await navigationService.PopModalAsync();
-                return;
-            }
+            // Do NOT check internet upfront - English sections are pre-packaged; others may be cached.
+            // If a fetch is needed and network is down, the resolver will throw and we catch below.
 
             // Set flag to prevent RefreshFromState from resetting IsBusy
             isSelectingSection = true;
@@ -176,16 +157,16 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 logger.Warning(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Network error selecting section");
                 await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
-                await toastService.ShowMessage("Please check your internet connection.");
                 await navigationService.PopModalAsync();
+                await toastService.ShowMessage("Please check your internet connection.");
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Error selecting section");
                 await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
-                await toastService.ShowMessage("An error occurred. Please try again.");
                 await navigationService.PopModalAsync();
+                await toastService.ShowMessage("An error occurred. Please try again.");
             }
             finally
             {
@@ -211,6 +192,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         // OnBiblePublicationInitialized will only be called once manually in the constructor
         state.StateChanged += OnBiblePublicationChanged;
 
+        WeakReferenceMessenger.Default.Register<ModalOverlayFetchProgressMessage>(this);
+
         // Always trigger initialization immediately to ensure we read the latest state
         // This is especially important when the modal opens after a language change
         // This should only run once, not on every state change
@@ -225,6 +208,46 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             return;
         }
         stateChangeHandler.HandleStateChanged(state.Value);
+    }
+
+    private async Task CancelFetchAsync()
+    {
+        IsCancelBusy = true;
+        await Task.Delay(50);
+
+        try
+        {
+            logger.Information("BiblePublicationSectionSelectionViewModel: CancelFetchCommand - User cancelled fetch");
+            fetchCts?.Cancel();
+            CanCancelFetch = false;
+            ShowProgress = false;
+            HasFetchError = false;
+            IsBusy = false;
+            DeviceDisplay.Current.KeepScreenOn = false;
+            await navigationService.PopModalAsync();
+        }
+        finally
+        {
+            IsCancelBusy = false;
+        }
+    }
+
+    private async Task RetryFetchAsync()
+    {
+        IsRetryBusy = true;
+        await Task.Delay(50);
+
+        try
+        {
+            HasFetchError = false;
+            await RefreshFromState();
+            if (!HasFetchError)
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+        }
+        finally
+        {
+            IsRetryBusy = false;
+        }
     }
 
     private void OnBiblePublicationInitialized(object? o, EventArgs eventArgs)
@@ -355,34 +378,10 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     }
                 });
                 
-                // Create progress tracker for modal open with async UI updates (fire-and-forget tasks to avoid blocking)
-                // The progress tracker will set ShowProgress = true when a fetch actually starts
-                var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                    progress => _ = MainThread.InvokeOnMainThreadAsync(() => 
-                    {
-                        if (!isDisposed && !isSelectingSection)
-                        {
-                            ProgressPercent = progress;
-                        }
-                    }),
-                    text => _ = MainThread.InvokeOnMainThreadAsync(() => 
-                    {
-                        if (!isDisposed && !isSelectingSection)
-                        {
-                            ProgressText = text;
-                        }
-                    }),
-                    isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => 
-                    {
-                        if (!isDisposed && !isSelectingSection)
-                        {
-                            ShowProgress = isVisible;
-                        }
-                    }),
-                    fetchCts.Token);
-                
+                var progressReporter = new ModalOverlayFetchProgressReporter("BibleSection", fetchCts.Token);
+
                 // Use the latest state values, not cached ones
-                await Initialize(newLanguageCode, newPublicationCode, progressTracker);
+                await Initialize(newLanguageCode, newPublicationCode, progressReporter);
 
                 // Check again if we're selecting a section (may have changed during async operation)
                 if (isSelectingSection)
@@ -482,14 +481,31 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         }
     }
 
+    public void Receive(ModalOverlayFetchProgressMessage message)
+    {
+        var p = message.Value;
+        if (p.ModalType != "BibleSection")
+            return;
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (!isDisposed && !isSelectingSection)
+            {
+                ProgressPercent = p.Progress;
+                ProgressText = p.ProgressText;
+                ShowProgress = p.IsVisible;
+            }
+        });
+    }
+
     public void Dispose()
     {
         if (isDisposed)
         {
             return;
         }
-        
+
         isDisposed = true;
+        WeakReferenceMessenger.Default.Unregister<ModalOverlayFetchProgressMessage>(this);
         state.StateChanged -= OnBiblePublicationChanged;
         fetchCts?.Cancel();
         fetchCts?.Dispose();
@@ -565,6 +581,18 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             if (SetProperty(ref hasFetchError, value))
                 OnPropertyChanged(nameof(ShowCancelButton));
         }
+    }
+
+    public bool IsRetryBusy
+    {
+        get => isRetryBusy;
+        set => SetProperty(ref isRetryBusy, value);
+    }
+
+    public bool IsCancelBusy
+    {
+        get => isCancelBusy;
+        set => SetProperty(ref isCancelBusy, value);
     }
 
     /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>

@@ -130,7 +130,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         ForwardCommand = commandInitializer.CreateForwardCommand();
         BackwardCommand = commandInitializer.CreateBackwardCommand();
         SeekCommand = commandInitializer.CreateSeekCommand();
-        RetryCommand = commandInitializer.CreateRetryCommand(() => playbackState.Value.CurrentScheduleId, () => HasError);
+        RetryCommand = commandInitializer.CreateRetryCommand(() => playbackState.Value.CurrentScheduleId, () => HasError, busy => IsRetryBusy = busy);
         sliderHandler.SetSeekCommand(SeekCommand);
 
         // Initialize from current state
@@ -614,6 +614,14 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     }
 
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+
+    private bool isRetryBusy;
+
+    public bool IsRetryBusy
+    {
+        get => isRetryBusy;
+        set => SetProperty(ref isRetryBusy, value);
+    }
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e) => UpdateFromState();
 

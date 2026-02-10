@@ -238,23 +238,10 @@
                        VerticalOptions="Center" />
             </Border>
             
-            <!-- Progress indicator when fetching -->
-            <sharedViews:ProgressIndicator Grid.Row="0"
-                                           Grid.RowSpan="3" />
-            
-            <!-- Busy Overlay with progress and error/retry support -->
-            <sharedViews:BusyOverlay x:Name="BusyOverlay"
-                                Grid.Row="0"
-                                Grid.RowSpan="3"
-                                HardTimeoutMs="0"
-                                IsVisible="{Binding IsBusy}"
-                                ShowProgress="{Binding ShowProgress}"
-                                ProgressPercent="{Binding ProgressPercent}"
-                                ProgressText="{Binding ProgressText}"
-                                ShowCancelButton="{Binding ShowCancelButton}"
-                                HasFetchError="{Binding HasFetchError}"
-                                RetryCommand="{Binding RetryFetchCommand}"
-                                CancelCommand="{Binding CancelFetchCommand}" />
+            <!-- Progress and error overlay (spinner + progress bar + Retry/Cancel) -->
+            <sharedViews:ProgressIndicator x:Name="BusyOverlay"
+                                          Grid.Row="0"
+                                          Grid.RowSpan="3" />
         </Grid>
     </ContentPage.Content>
 </views:BaseContentPage>

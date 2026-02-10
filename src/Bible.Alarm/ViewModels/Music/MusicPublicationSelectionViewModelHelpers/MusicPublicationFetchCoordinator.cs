@@ -3,6 +3,7 @@
 using System.Threading;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -204,8 +205,21 @@ internal sealed class MusicPublicationFetchCoordinator
                         attempt, languageCode);
                     throw;
                 }
+                catch (System.Net.Http.HttpRequestException)
+                {
+                    throw;
+                }
+                catch (System.Net.Sockets.SocketException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
+                    if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                    {
+                        throw;
+                    }
+
                     Serilog.Log.Warning(ex, "PopulateSongPublications: Attempt {Attempt} failed for language={LanguageCode}, will retry",
                         attempt, languageCode);
 

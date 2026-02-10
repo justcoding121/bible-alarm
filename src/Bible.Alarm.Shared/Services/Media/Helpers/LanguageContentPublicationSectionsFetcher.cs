@@ -17,15 +17,18 @@ internal sealed class LanguageContentPublicationSectionsFetcher
     private readonly IServiceScopeFactory scopeFactory;
     private readonly ILogger logger;
     private readonly SectionFetcher sectionFetcher;
+    private readonly IInternetConnectivityChecker? internetConnectivityChecker;
 
     public LanguageContentPublicationSectionsFetcher(
         IServiceScopeFactory scopeFactory,
         ILogger logger,
-        SectionFetcher sectionFetcher)
+        SectionFetcher sectionFetcher,
+        IInternetConnectivityChecker? internetConnectivityChecker = null)
     {
         this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         this.sectionFetcher = sectionFetcher ?? throw new ArgumentNullException(nameof(sectionFetcher));
+        this.internetConnectivityChecker = internetConnectivityChecker;
     }
 
     public async Task<bool> FetchPublicationSectionsAsync(
@@ -123,6 +126,8 @@ internal sealed class LanguageContentPublicationSectionsFetcher
                 return false;
             }
 
+            await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);
+
             // DO NOT delete existing publication - SectionFetcher handles incremental section fetching
             // This preserves partial downloads and allows proper resume on retry
             // Progress is reported per-section (divided equally among sections)
@@ -132,6 +137,8 @@ internal sealed class LanguageContentPublicationSectionsFetcher
         }
         catch (Exception ex)
         {
+            if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                throw;
             logger.Error(ex, "Error fetching publication sections for {PublicationCode} in language {LanguageCode}",
                 publicationCode, languageCode);
             return false;

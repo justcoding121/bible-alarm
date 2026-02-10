@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
@@ -341,6 +342,11 @@ internal sealed class FlatPublicationFetcher
             }
             catch (Exception ex)
             {
+                if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                {
+                    throw;
+                }
+
                 logger.Warning(ex, "Failed to fetch track {TrackCode} for publication {PublicationCode} in language {LanguageCode}",
                     trackCode, normalizedPublicationCode, normalizedLanguageCode);
                 consecutiveFailures++;

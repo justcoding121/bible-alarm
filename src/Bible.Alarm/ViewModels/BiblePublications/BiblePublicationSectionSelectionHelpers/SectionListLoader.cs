@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Serilog;
 
@@ -232,8 +233,21 @@ internal sealed class SectionListLoader
                         attempt, publicationCode, languageCode);
                     throw;
                 }
+                catch (System.Net.Http.HttpRequestException)
+                {
+                    throw;
+                }
+                catch (System.Net.Sockets.SocketException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
+                    if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                    {
+                        throw;
+                    }
+
                     logger.Warning(ex, "SectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, language={LanguageCode}, will retry",
                         attempt, publicationCode, languageCode);
 

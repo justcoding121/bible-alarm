@@ -36,6 +36,7 @@
             <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" x:Shared="True" />
             <converters:ItemTappedEventArgsConverter x:Key="itemTappedConverter" x:Shared="True" />
             <converters:NegateBooleanConverter x:Key="negateBooleanConverter" x:Shared="True" />
+            <converters:MultiBoolOrConverter x:Key="multiBoolOrConverter" x:Shared="True" />
             <converters:IsStringNotEmptyConverter x:Key="isStringNotEmptyConverter" x:Shared="True" />
             <converters:BoolToOpacityConverter x:Key="booleanToOpacityConverter" x:Shared="True" />
             <converters:DoubleToBottomThicknessConverter x:Key="doubleToBottomThicknessConverter" x:Shared="True" />

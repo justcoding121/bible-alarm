@@ -165,47 +165,50 @@
                                 Text="{Binding ErrorMessage}"
                                 LineBreakMode="WordWrap" />
                             <!-- Retry Button -->
-                            <Border Grid.Row="1"
-                                BackgroundColor="{StaticResource PrimaryColor}"
+                            <Grid Grid.Row="1"
                                 HeightRequest="{DynamicResource IconLargeContainerSize}"
                                 WidthRequest="{DynamicResource IconLargeContainerSize}"
-                                StrokeThickness="0"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center"
                                 Margin="0,8,0,0">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="100" />
-                                </Border.StrokeShape>
-                                <Border.Shadow>
-                                    <Shadow Brush="#6A5ACD"
-                                            Offset="0,4"
-                                            Opacity="0.4"
-                                            Radius="12" />
-                                </Border.Shadow>
-                                <Button
-                                    Padding="0"
-                                    BackgroundColor="Transparent"
-                                    BorderWidth="0"
-                                    BorderColor="Transparent"
-                                    Command="{Binding RetryCommand}"
-                                    IsEnabled="{Binding HasError}"
-                                    InputTransparent="False"
-                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                                    FontSize="{DynamicResource IconLargeFontSize}"
-                                    HorizontalOptions="Fill"
-                                    Text="{x:Static fn:GlyphNames.Retry}"
-                                    TextColor="White"
-                                    VerticalOptions="Fill">
-                                    <Button.Triggers>
-                                        <Trigger TargetType="Button" Property="IsEnabled" Value="False">
-                                            <Setter Property="TextColor" Value="{DynamicResource DisabledTextColor}" />
-                                        </Trigger>
-                                        <Trigger TargetType="Button" Property="IsEnabled" Value="True">
-                                            <Setter Property="TextColor" Value="{StaticResource WhiteColor}" />
-                                        </Trigger>
-                                    </Button.Triggers>
-                                </Button>
-                            </Border>
+                                <Border
+                                    BackgroundColor="{StaticResource PrimaryColor}"
+                                    HeightRequest="{DynamicResource IconLargeContainerSize}"
+                                    WidthRequest="{DynamicResource IconLargeContainerSize}"
+                                    StrokeThickness="0"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="100" />
+                                    </Border.StrokeShape>
+                                    <Border.Shadow>
+                                        <Shadow Brush="#6A5ACD"
+                                                Offset="0,4"
+                                                Opacity="0.4"
+                                                Radius="12" />
+                                    </Border.Shadow>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding RetryCommand}" />
+                                    </Border.GestureRecognizers>
+                                    <Label
+                                        Text="{x:Static fn:GlyphNames.Retry}"
+                                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                        FontSize="{DynamicResource IconLargeFontSize}"
+                                        TextColor="White"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center"
+                                        IsVisible="{Binding IsRetryBusy, Converter={StaticResource negateBooleanConverter}}" />
+                                </Border>
+                                <ActivityIndicator
+                                    IsRunning="{Binding IsRetryBusy}"
+                                    IsVisible="{Binding IsRetryBusy}"
+                                    Color="White"
+                                    WidthRequest="{DynamicResource IconStandardFontSize}"
+                                    HeightRequest="{DynamicResource IconStandardFontSize}"
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Center"
+                                    Opacity="0.95" />
+                            </Grid>
                         </Grid>
                     </Border>
                     

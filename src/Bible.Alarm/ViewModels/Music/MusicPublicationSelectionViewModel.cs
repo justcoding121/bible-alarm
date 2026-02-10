@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows.Input;
 using AutoMapper;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Messages;
 using CommunityToolkit.Mvvm.Messaging;
@@ -22,7 +23,7 @@ using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IDisposable
+public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -197,24 +198,42 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
     private async Task CancelFetchAsync()
     {
-        Serilog.Log.Information("MusicPublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch");
-        fetchCts?.Cancel();
-        propertyManager.CanCancelFetch = false;
-        propertyManager.ShowProgress = false;
-        propertyManager.HasFetchError = false;
-        propertyManager.IsBusy = false;
-        // Allow screen to turn off when user cancels
-        DeviceDisplay.Current.KeepScreenOn = false;
-        // Close the modal after canceling the fetch
-        await navigationService.PopModalAsync();
+        propertyManager.IsCancelBusy = true;
+        await Task.Delay(50);
+
+        try
+        {
+            Serilog.Log.Information("MusicPublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch");
+            fetchCts?.Cancel();
+            propertyManager.CanCancelFetch = false;
+            propertyManager.ShowProgress = false;
+            propertyManager.HasFetchError = false;
+            propertyManager.IsBusy = false;
+            DeviceDisplay.Current.KeepScreenOn = false;
+            await navigationService.PopModalAsync();
+        }
+        finally
+        {
+            propertyManager.IsCancelBusy = false;
+        }
     }
 
     private async Task RetryFetchAsync()
     {
-        propertyManager.HasFetchError = false;
-        await RefreshFromState();
-        if (!propertyManager.HasFetchError)
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+        propertyManager.IsRetryBusy = true;
+        await Task.Delay(50);
+
+        try
+        {
+            propertyManager.HasFetchError = false;
+            await RefreshFromState();
+            if (!propertyManager.HasFetchError)
+                await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+        }
+        finally
+        {
+            propertyManager.IsRetryBusy = false;
+        }
     }
 
     public FlowDirection ContentFlowDirection
@@ -295,6 +314,18 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     {
         get => propertyManager.HasFetchError;
         set => propertyManager.HasFetchError = value;
+    }
+
+    public bool IsRetryBusy
+    {
+        get => propertyManager.IsRetryBusy;
+        set => propertyManager.IsRetryBusy = value;
+    }
+
+    public bool IsCancelBusy
+    {
+        get => propertyManager.IsCancelBusy;
+        set => propertyManager.IsCancelBusy = value;
     }
 
     /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>
@@ -565,24 +596,18 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             // Don't set ShowProgress here - let PopulateSongPublications control it via progress tracker
             // This prevents progress from showing when no fetch is needed (e.g., English language)
             
-            // Create progress tracker with cancellation support
-            // The progress tracker will set ShowProgress = true when a fetch actually starts
-            var progressTracker = new Bible.Alarm.Common.Helpers.FetchProgressTracker(
-                progress => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressPercent = progress),
-                text => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ProgressText = text),
-                isVisible => _ = MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = isVisible),
-                fetchCts.Token);
+            var progressReporter = new ModalOverlayFetchProgressReporter("MusicPublication", fetchCts.Token);
 
             // For instrumental music (no language), populate publications directly
             if (isMelodyMusic)
             {
                 // null language code for instrumental music
-                await PopulateSongPublications(null, downloadAll: true, progressTracker, fetchCts.Token);
+                await PopulateSongPublications(null, downloadAll: true, progressReporter, fetchCts.Token);
             }
             // For vocal music, always fetch ALL publications when the modal opens (downloadAll=true).
             else if (!string.IsNullOrEmpty(languageCodeToUse))
             {
-                await PopulateSongPublications(languageCodeToUse, downloadAll: true, progressTracker, fetchCts.Token);
+                await PopulateSongPublications(languageCodeToUse, downloadAll: true, progressReporter, fetchCts.Token);
             }
             else
             {
@@ -675,8 +700,22 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         });
     }
 
+    public void Receive(ModalOverlayFetchProgressMessage message)
+    {
+        var p = message.Value;
+        if (p.ModalType != "MusicPublication")
+            return;
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            propertyManager.ProgressPercent = p.Progress;
+            propertyManager.ProgressText = p.ProgressText;
+            propertyManager.ShowProgress = p.IsVisible;
+        });
+    }
+
     public void Dispose()
     {
+        WeakReferenceMessenger.Default.Unregister<ModalOverlayFetchProgressMessage>(this);
         WeakReferenceMessenger.Default.Unregister<ListItemFetchProgressMessage>(this);
         state.StateChanged -= OnMusicInitialized;
         state.StateChanged -= OnMusicChanged;
@@ -738,6 +777,19 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             {
                 OnPropertyChanged(nameof(HasFetchError));
                 OnPropertyChanged(nameof(ShowCancelButton));
+                return;
+            }
+
+            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.IsRetryBusy))
+            {
+                OnPropertyChanged(nameof(IsRetryBusy));
+                return;
+            }
+
+            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.IsCancelBusy))
+            {
+                OnPropertyChanged(nameof(IsCancelBusy));
+                return;
             }
         };
 

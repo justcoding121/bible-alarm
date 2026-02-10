@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Polly;
 using Polly.Retry;
 using Serilog;
@@ -27,6 +28,14 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                     return false;
                 }
 
+                // Don't retry on network connectivity failures (no internet, DNS failure)
+                // Retrying won't help and causes UI to hang during delays (2s, 4s, etc.)
+                if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                {
+                    logger.Debug("Skipping retry for network connectivity failure: {Message}", ex.Message);
+                    return false;
+                }
+
                 // Don't retry on HTTP errors like 403, 404 (permanent failures)
                 if (ex is not HttpRequestException httpEx)
                 {
@@ -44,9 +53,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                 }
 
                 logger.Debug("Skipping retry for permanent HTTP error: {Message}", message);
-                // Don't handle/retry this exception
                 return false;
-                // Handle/retry other exceptions
             })
             .WaitAndRetryAsync(
                 retryCount: AppConstants.CacheSettings.DownloadRetryAttempts,
@@ -63,9 +70,9 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                         exceptionMessage);
                 });
 
-    // Polly retry policy for file existence checks
+    // Polly retry policy for file existence checks (HEAD/GET requests)
     private readonly AsyncRetryPolicy fileExistsRetryPolicy = Policy
-        .Handle<Exception>()
+        .Handle<Exception>(ex => NetworkExceptionHelper.IsRetryableForNetworkOperation(ex))
         .WaitAndRetryAsync(
             retryCount: AppConstants.CacheSettings.FileExistsCheckRetryAttempts,
             sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)),

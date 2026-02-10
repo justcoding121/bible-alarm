@@ -262,9 +262,10 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
             }
 
             var currentState = playbackState.Value;
+            var duration = message.Duration ?? currentState.Duration;
             nowPlayingManager.UpdatePlaybackPosition(
                 message.CurrentPosition.Value,
-                currentState.Duration,
+                duration,
                 currentState.Status);
         }
         catch (Exception ex)

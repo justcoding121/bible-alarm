@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
@@ -87,6 +88,11 @@ internal sealed class DramaTrackFetcher
             }
             catch (Exception ex)
             {
+                if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                {
+                    throw;
+                }
+
                 failedSections++;
                 logger.Warning(ex, "DramaTrackFetcher: Failed to fetch section {SectionCode} for drama {PublicationCode} in language {LanguageCode}",
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode);

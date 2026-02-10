@@ -66,6 +66,8 @@ public sealed class CategorySelectionAutoPopulateHandler
                 }));
         }
 
+        var fetchOccurred = false;
+
         try
         {
             logger.Information("CategorySelectionAutoPopulateHandler: Starting auto-population for category={CategoryName}",
@@ -178,6 +180,8 @@ public sealed class CategorySelectionAutoPopulateHandler
                     
                     if (!isAlreadyHarvested)
                     {
+                        fetchOccurred = true;
+
                         // Try to harvest the publication (EnsurePublicationExistsAsync checks if it exists first)
                         // Progress will be reported via CategoryFetchProgressMessage when fetch actually happens
                         var harvestProgressReporter = new Bible.Alarm.Common.Helpers.CategoryFetchProgressReporter(
@@ -413,7 +417,16 @@ public sealed class CategorySelectionAutoPopulateHandler
 
             // Dispatch action to update the schedule
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
-            ReportProgress(1.0, isComplete: true);
+
+            if (fetchOccurred)
+            {
+                ReportProgress(1.0, isComplete: true);
+            }
+            else
+            {
+                WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
+                    new CategoryFetchProgress { CategoryId = action.CategoryId, Progress = -1, IsComplete = true, HasError = false }));
+            }
         }
         catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
         {
@@ -421,6 +434,12 @@ public sealed class CategorySelectionAutoPopulateHandler
                 action.CategoryName);
             WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
                 new CategoryFetchProgress { CategoryId = action.CategoryId, Progress = 0, IsComplete = true, HasError = true }));
+
+            if (action.PreviousScheduleSnapshot != null)
+            {
+                logger.Information("CategorySelectionAutoPopulateHandler: Reverting to previous schedule state after network error");
+                dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(action.PreviousScheduleSnapshot, true, true, shouldSave: false));
+            }
         }
         catch (Exception ex)
         {
@@ -428,6 +447,12 @@ public sealed class CategorySelectionAutoPopulateHandler
                 action.CategoryName);
             WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
                 new CategoryFetchProgress { CategoryId = action.CategoryId, Progress = 0, IsComplete = true, HasError = true }));
+
+            if (action.PreviousScheduleSnapshot != null)
+            {
+                logger.Information("CategorySelectionAutoPopulateHandler: Reverting to previous schedule state after error");
+                dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(action.PreviousScheduleSnapshot, true, true, shouldSave: false));
+            }
         }
     }
 

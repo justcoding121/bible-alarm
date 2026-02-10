@@ -2,6 +2,8 @@
 
 using System;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
@@ -134,6 +136,16 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
         catch (OperationCanceledException)
         {
             // Hide progress bar on cancellation
+            progress?.SetIsVisible(false);
+            throw;
+        }
+        catch (HttpRequestException)
+        {
+            progress?.SetIsVisible(false);
+            throw;
+        }
+        catch (SocketException)
+        {
             progress?.SetIsVisible(false);
             throw;
         }

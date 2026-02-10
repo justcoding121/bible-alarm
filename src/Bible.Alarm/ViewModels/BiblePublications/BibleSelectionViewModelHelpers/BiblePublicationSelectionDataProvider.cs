@@ -284,8 +284,21 @@ public sealed class BiblePublicationSelectionDataProvider
                                 attempt, languageCode);
                             throw;
                         }
+                        catch (System.Net.Http.HttpRequestException)
+                        {
+                            throw;
+                        }
+                        catch (System.Net.Sockets.SocketException)
+                        {
+                            throw;
+                        }
                         catch (Exception ex)
                         {
+                            if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                            {
+                                throw;
+                            }
+
                             Log.Warning(ex, "PopulatePublicationsAsync: Attempt {Attempt} failed for language={LanguageCode}, will retry",
                                 attempt, languageCode);
                             

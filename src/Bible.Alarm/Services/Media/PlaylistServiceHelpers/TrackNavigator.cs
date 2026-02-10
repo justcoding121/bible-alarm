@@ -3,7 +3,9 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+using Bible.Alarm.Common;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Network.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -652,6 +654,14 @@ public sealed class TrackNavigator
         // Section not harvested or missing tracks, harvest it
         // Note: FetchSectionTracksAsync requires the section entity to exist first.
         // We need to create the section entity if it doesn't exist.
+        var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
+        if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
+        {
+            logger?.Warning("No internet - cannot harvest section for navigation: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",
+                languageCode, publicationCode, sectionCode);
+            return false;
+        }
+
         try
         {
             logger?.Information("Harvesting section for navigation: languageCode={LanguageCode}, publicationCode={PublicationCode}, sectionCode={SectionCode}",

@@ -57,10 +57,11 @@ public class AudioPlayerPositionTracker
 
         lastPositionUpdateTime = now;
 
-        // Send position update via MVVM messaging
+        // Send position update via MVVM messaging (include duration for Android Auto progress bar)
         WeakReferenceMessenger.Default.Send(new PlaybackPositionChangedMessage
         {
-            CurrentPosition = currentPosition
+            CurrentPosition = currentPosition,
+            Duration = duration > TimeSpan.Zero ? duration : null
         });
 
         // Check if duration changed

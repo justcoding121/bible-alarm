@@ -87,10 +87,8 @@ public sealed class MediaCacheService(
         {
             try
             {
-                if (!await networkStatusService.IsInternetAvailable())
-                {
-                    return;
-                }
+                // Do NOT check internet upfront - ProcessPlaylistAsync skips cached files.
+                // Only downloads when ExistsAsync returns false; DownloadAndCacheTrackAsync will fail if offline.
 
                 var playlist = await mediaPlayService.NextTracks(alarmScheduleId);
                 downloaded = await ProcessPlaylistAsync(playlist, alarmScheduleId);
@@ -123,6 +121,12 @@ public sealed class MediaCacheService(
             }
 
             downloaded = true;
+
+            if (!await networkStatusService.IsInternetAvailable())
+            {
+                logger.Warning("No internet - skipping download for track: LookUpPath={LookUpPath}", lookUpPath);
+                continue;
+            }
 
             // Download with individual error handling - don't let one failure stop others
             try

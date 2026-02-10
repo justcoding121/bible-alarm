@@ -44,7 +44,8 @@ public sealed class LanguageContentService : ILanguageContentService
     public LanguageContentService(
         IServiceScopeFactory scopeFactory,
         ILogger logger,
-        HttpClient httpClient)
+        HttpClient httpClient,
+        IInternetConnectivityChecker? internetConnectivityChecker = null)
     {
         this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -55,10 +56,10 @@ public sealed class LanguageContentService : ILanguageContentService
         this.sectionFetcher = new SectionFetcher(httpClient, logger);
         this.englishContentSeeder = new EnglishContentSeeder(scopeFactory, httpClient, logger, dramaFetcher, flatPublicationFetcher);
         this.publicationEnsurer = new PublicationEnsurer(scopeFactory, logger, this);
-        this.publicationTracksFetcher = new LanguageContentPublicationTracksFetcher(scopeFactory, logger, dramaFetcher, flatPublicationFetcher);
-        this.publicationSectionsFetcher = new LanguageContentPublicationSectionsFetcher(scopeFactory, logger, sectionFetcher);
-        this.sectionTracksFetcher = new LanguageContentSectionTracksFetcher(scopeFactory, logger, sectionFetcher);
-        this.firstSectionFetcher = new LanguageContentFirstSectionFetcher(scopeFactory, logger, this, sectionFetcher);
+        this.publicationTracksFetcher = new LanguageContentPublicationTracksFetcher(scopeFactory, logger, dramaFetcher, flatPublicationFetcher, internetConnectivityChecker);
+        this.publicationSectionsFetcher = new LanguageContentPublicationSectionsFetcher(scopeFactory, logger, sectionFetcher, internetConnectivityChecker);
+        this.sectionTracksFetcher = new LanguageContentSectionTracksFetcher(scopeFactory, logger, sectionFetcher, internetConnectivityChecker);
+        this.firstSectionFetcher = new LanguageContentFirstSectionFetcher(scopeFactory, logger, this, sectionFetcher, internetConnectivityChecker);
     }
 
     public async Task<bool> FetchPublicationTracksAsync(

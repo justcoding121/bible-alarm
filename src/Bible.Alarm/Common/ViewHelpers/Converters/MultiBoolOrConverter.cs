@@ -19,11 +19,21 @@ public class MultiBoolOrConverter : IMultiValueConverter
         {
             if (value is bool boolValue && boolValue)
             {
-                return true;
+                var result = true;
+                if (parameter is "Inverse" or "Negate")
+                {
+                    result = false;
+                }
+                return result;
             }
         }
 
-        return false;
+        var defaultValue = false;
+        if (parameter is "Inverse" or "Negate")
+        {
+            defaultValue = true;
+        }
+        return defaultValue;
     }
 
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)

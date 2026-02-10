@@ -132,17 +132,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             {
                 logger.Information("Track preparation cancelled or failed for schedule {ScheduleId}", scheduleId);
 
-                // Keep modal open and show error with retry option for both alarm and non-alarm
-                // For alarms, show message about playing default alarm sound
                 var errorMessage = isAlarm
                     ? "Download failed. Playing default alarm sound."
                     : "Media download failed. Check your internet connection.";
 
-                dispatcher.Dispatch(new PlaybackErrorAction
-                {
-                    ErrorMessage = errorMessage
-                });
+                dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = errorMessage });
                 dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage(errorMessage));
 
                 if (isAlarm)
                 {
@@ -156,17 +152,13 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             {
                 logger.Warning("No tracks prepared for schedule {ScheduleId}", scheduleId);
 
-                // Keep modal open and show error with retry option for both alarm and non-alarm
-                // For alarms, show message about playing default alarm sound
                 var errorMessage = isAlarm
                     ? "Download failed. Playing default alarm sound."
                     : "Media download failed. Check your internet connection.";
 
-                dispatcher.Dispatch(new PlaybackErrorAction
-                {
-                    ErrorMessage = errorMessage
-                });
+                dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = errorMessage });
                 dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
+                WeakReferenceMessenger.Default.Send(new ShowToastMessage(errorMessage));
 
                 if (isAlarm)
                 {
@@ -224,7 +216,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             stateManager.ManuallyVisitedTrackIndices,
             idx => trackMarker.MarkTrackAsPlayedAsync(stateManager.Playlist, idx),
             startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
-            stopPlaybackAsync: () => StopAsyncInternal(skipMarkAsPlayed: true));
+            stopPlaybackAsync: () => StopAsyncInternal(skipMarkAsPlayed: true),
+            handlePlaybackFailureAsync: () => HandlePlaybackFailureAsync());
     }
 
     public async Task PlayPreviousAsync()
@@ -240,7 +233,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             () => TryPrependPreviousTrackAsync(),
             stateManager.ManuallyVisitedTrackIndices,
             idx => trackMarker.MarkTrackAsPlayedAsync(stateManager.Playlist, idx),
-            startFromBeginning => PlayCurrentTrackAsync(startFromBeginning));
+            startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
+            handlePlaybackFailureAsync: () => HandlePlaybackFailureAsync());
     }
 
     private async Task InitializeSessionNavigationContextAsync()
@@ -566,11 +560,16 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress CreateSectionFetchProgressReporter()
     {
         var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
-        return new FetchProgressTracker(
-            SendSectionFetchPreparationProgress,
-            _ => { },
-            _ => { },
-            token);
+        return new SectionFetchProgressReporter(token);
+    }
+
+    private sealed class SectionFetchProgressReporter : Bible.Alarm.Shared.Services.Media.Interfaces.IFetchProgress
+    {
+        public CancellationToken CancellationToken { get; }
+        public SectionFetchProgressReporter(CancellationToken cancellationToken) => CancellationToken = cancellationToken;
+        public void UpdateProgress(double progress) => SendSectionFetchPreparationProgress(progress);
+        public void UpdateProgressText(string _) { }
+        public void SetIsVisible(bool _) { }
     }
 
     private async Task PreDownloadNextTrackAsync()
@@ -645,7 +644,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
                 stateManager.IsIndefinitePlayback,
                 () => TryAppendNextTrackAsync(),
                 startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
-                skipMarkAsPlayed => StopAsyncInternal(skipMarkAsPlayed, false));
+                skipMarkAsPlayed => StopAsyncInternal(skipMarkAsPlayed, false),
+                handlePlaybackFailureAsync: () => HandlePlaybackFailureAsync());
         }
         catch (Exception ex)
         {

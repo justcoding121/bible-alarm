@@ -83,7 +83,7 @@ public sealed class BiblePublicationSelectionCommandHandler
             }
 
             // For item-click fetches, we show per-row progress (spinner + percent) instead of modal overlays.
-            // The caller sets IsNavigating; progress will be set by FetchProgressTracker only when a fetch actually happens.
+            // The caller sets IsNavigating; progress will be set by ModalOverlayFetchProgressReporter only when a fetch actually happens.
 
             // No DB probing: the tapped publication row already knows whether it has LanguageId or not.
             // If it's a publication without language FK, use default language code for cascade consistency.
@@ -132,15 +132,8 @@ public sealed class BiblePublicationSelectionCommandHandler
             Log.Debug("CreateSectionSelectionCommand: Calling GetSectionAndTrackForPublicationAsync for publication={PublicationCode}, language={LanguageCode}",
                 x.Code, currentLanguage.Code);
 
-            var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
-            if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
-            {
-                var toastService = ServiceProviderManager.GetService<IToastService>();
-                if (toastService != null)
-                    await toastService.ShowMessage("Please check your internet connection.");
-                await navigationService.PopModalAsync();
-                return;
-            }
+            // Do NOT check internet upfront - English publications are pre-packaged; others may be cached.
+            // If a fetch is needed and network is down, the selector will throw and we catch below.
 
             var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
             var biblePublicationSectionService = ServiceProviderManager.GetService<IBiblePublicationSectionService>();
@@ -160,8 +153,8 @@ public sealed class BiblePublicationSelectionCommandHandler
                 // Reset progress on error (only if it was set during fetch)
                 await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<IToastService>();
-                await toastService.ShowMessage("Please check your internet connection.");
                 await navigationService.PopModalAsync();
+                await toastService.ShowMessage("Please check your internet connection.");
                 return;
             }
             var (sectionCode, trackCode, sectionName, trackTitle) = result;
@@ -249,15 +242,8 @@ public sealed class BiblePublicationSelectionCommandHandler
                 return;
             }
 
-            var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
-            if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
-            {
-                var toastService = ServiceProviderManager.GetService<IToastService>();
-                if (toastService != null)
-                    await toastService.ShowMessage("Please check your internet connection.");
-                await navigationService.PopModalAsync();
-                return;
-            }
+            // Do NOT check internet upfront - English is pre-packaged and needs no fetch.
+            // If a fetch is needed and network is down, the selector will throw and we catch below.
 
             // Track if progress was set (fetch happened) - only show completion if fetch occurred
             bool fetchOccurred = false;
@@ -284,8 +270,8 @@ public sealed class BiblePublicationSelectionCommandHandler
                         x.DownloadProgress = 0.0;
                     });
                     var toastService = ServiceProviderManager.GetService<IToastService>();
-                    await toastService.ShowMessage("Please check your internet connection.");
                     await navigationService.PopModalAsync();
+                    await toastService.ShowMessage("Please check your internet connection.");
                     return;
                 }
                 var (publicationCode, sectionCode, trackCode, sectionName, publicationName, trackTitle) = result;

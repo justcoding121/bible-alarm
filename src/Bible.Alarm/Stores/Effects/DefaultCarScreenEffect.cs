@@ -18,33 +18,35 @@ public class DefaultCarScreenEffect(
     private static readonly ILogger logger = Log.ForContext<DefaultCarScreenEffect>();
 
     [EffectMethod]
-    public async Task HandleSetCarPlayScreen(SetCarPlayScreenAction action, FluxorDispatcher dispatcher)
+    public Task HandleSetCarPlayScreen(SetCarPlayScreenAction action, FluxorDispatcher dispatcher)
     {
-        try
+        logger.Debug("SetCarPlayScreenAction received - fetching default schedule metadata in background");
+
+        _ = Task.Run(async () =>
         {
-            logger.Debug("SetCarPlayScreenAction received - fetching default schedule metadata");
-
-            // Fetch metadata on background thread to avoid blocking UI
-            var metadata = await Task.Run(async () =>
-                await defaultScheduleService.GetNextScheduleTrackMetaDataAsync());
-
-            logger.Information("SetCarPlayScreenAction: Fetched default schedule metadata - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
-                metadata.ScheduleId, metadata.Title, metadata.Artist);
-
-            // Dispatch metadata to state
-            dispatcher.Dispatch(new SetDefaultScheduleMetadataAction
+            try
             {
-                ScheduleId = metadata.ScheduleId,
-                Title = metadata.Title,
-                Artist = metadata.Artist,
-                Album = metadata.Album,
-                ArtworkUrl = metadata.ArtworkUrl
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error handling SetCarPlayScreenAction");
-        }
+                var metadata = await defaultScheduleService.GetNextScheduleTrackMetaDataAsync();
+
+                logger.Information("SetCarPlayScreenAction: Fetched default schedule metadata - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
+                    metadata.ScheduleId, metadata.Title, metadata.Artist);
+
+                dispatcher.Dispatch(new SetDefaultScheduleMetadataAction
+                {
+                    ScheduleId = metadata.ScheduleId,
+                    Title = metadata.Title,
+                    Artist = metadata.Artist,
+                    Album = metadata.Album,
+                    ArtworkUrl = metadata.ArtworkUrl
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error handling SetCarPlayScreenAction (background)");
+            }
+        });
+
+        return Task.CompletedTask;
     }
 }
 

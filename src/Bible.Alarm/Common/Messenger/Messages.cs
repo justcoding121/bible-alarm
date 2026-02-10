@@ -18,10 +18,17 @@ public class ShowToastMessage(string value)
 /// <summary>
 /// Message sent when media playback position changes.
 /// Used for high-frequency position updates instead of Fluxor state.
+/// Duration is included so Android Auto can show both start and end time without relying on Fluxor timing.
 /// </summary>
 public class PlaybackPositionChangedMessage
 {
     public TimeSpan? CurrentPosition { get; init; }
+
+    /// <summary>
+    /// Total duration of the current track.
+    /// When > 0, Android Auto uses this with position to show progress bar correctly.
+    /// </summary>
+    public TimeSpan? Duration { get; init; }
 }
 
 /// <summary>

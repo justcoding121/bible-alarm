@@ -3,6 +3,7 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.Scheduler.Models;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -23,7 +24,8 @@ public sealed class DefaultScheduleService(
     IAlarmScheduleService alarmScheduleService,
     IPlaylistService playlistService,
     IPreparePlaybackService preparePlaybackService,
-    IDisplayMetadataService displayMetadataService) : IDefaultScheduleService, IDisposable
+    IDisplayMetadataService displayMetadataService,
+    IInternetConnectivityChecker? internetConnectivityChecker = null) : IDefaultScheduleService, IDisposable
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool isDisposed;
@@ -117,6 +119,12 @@ public sealed class DefaultScheduleService(
     {
         // Get the first track from the schedule
         var firstPlayItem = await playlistService.NextTrack(scheduleId);
+
+        if (internetConnectivityChecker != null && !await internetConnectivityChecker.IsInternetAvailableAsync())
+        {
+            logger.Debug("GetTrackMetadataForScheduleAsync: No internet - returning fallback metadata for schedule {ScheduleId} without network call", scheduleId);
+            return CreateFallbackMetadata(scheduleId, firstPlayItem);
+        }
 
         // Prepare the first track using PreparePlaybackService (downloads and creates AudioPlayerTrack)
         var audioPlayerTrack = await preparePlaybackService.PrepareSingleTrackAsync(firstPlayItem);

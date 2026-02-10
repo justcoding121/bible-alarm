@@ -27,6 +27,8 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
     private string progressText = "0%";
     private bool canCancelFetch = false;
     private bool hasFetchError = false;
+    private bool isRetryBusy = false;
+    private bool isCancelBusy = false;
 
     private PropertyChangedEventHandler? propertyChangedHandler;
 
@@ -105,6 +107,18 @@ public sealed class BiblePublicationSelectionPropertyManager : ObservableObject
     {
         get => hasFetchError;
         set => SetProperty(ref hasFetchError, value);
+    }
+
+    public bool IsRetryBusy
+    {
+        get => isRetryBusy;
+        set => SetProperty(ref isRetryBusy, value);
+    }
+
+    public bool IsCancelBusy
+    {
+        get => isCancelBusy;
+        set => SetProperty(ref isCancelBusy, value);
     }
 
     public string PublicationCode

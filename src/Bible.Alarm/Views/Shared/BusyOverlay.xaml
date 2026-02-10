@@ -17,6 +17,7 @@
         <converters:BoolToOpacityConverter x:Key="boolToOpacityConverter" />
         <converters:DefaultTextConverter x:Key="defaultTextConverter" />
         <converters:MultiBoolOrConverter x:Key="multiBoolOrConverter" />
+        <converters:SpinnerVisibleConverter x:Key="spinnerVisibleConverter" />
     </ContentView.Resources>
     <Grid x:Name="overlayGrid"
           IsVisible="True"
@@ -73,18 +74,25 @@
                     VerticalOptions="Center"
                     Progress="{Binding Source={x:Reference busyOverlay}, Path=ProgressPercent}"
                     ProgressColor="{StaticResource PrimaryColor}" />
+                <!-- Spinner hidden when HasFetchError (opacity 0); visible and running only when no error -->
                 <core:SfBusyIndicator
                     Grid.Row="2"
                     x:Name="busyIndicator"
                     IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsSpinnerRunning}"
                     IsVisible="True"
-                    Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
                     AnimationType="DoubleCircle"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    HeightRequest="{DynamicResource IconLargeContainerSize}"
-                    WidthRequest="{DynamicResource IconLargeContainerSize}"
-                    IndicatorColor="{StaticResource PrimaryColor}" />
+                    HeightRequest="{DynamicResource IconStandardContainerSize}"
+                    WidthRequest="{DynamicResource IconStandardContainerSize}"
+                    IndicatorColor="{StaticResource PrimaryColor}">
+                    <core:SfBusyIndicator.Opacity>
+                        <MultiBinding Converter="{StaticResource spinnerVisibleConverter}" Mode="OneWay">
+                            <Binding Path="IsVisible" Source="{x:Reference busyOverlay}" />
+                            <Binding Path="HasFetchError" Source="{x:Reference busyOverlay}" />
+                        </MultiBinding>
+                    </core:SfBusyIndicator.Opacity>
+                </core:SfBusyIndicator>
 
                 <!-- Error state message (shown when HasFetchError) -->
                 <Label
@@ -105,12 +113,12 @@
                     Grid.Row="3"
                     HorizontalOptions="Center"
                     Spacing="24">
-                    <!-- Retry Button (shown when HasFetchError, to the left of Cancel) -->
+                    <!-- Retry Button (shown when HasFetchError, same size as Cancel) -->
                     <Border
                         IsVisible="{Binding Source={x:Reference busyOverlay}, Path=HasFetchError, Mode=OneWay}"
                         BackgroundColor="{StaticResource PrimaryColor}"
-                        HeightRequest="{DynamicResource IconLargeContainerSize}"
-                        WidthRequest="{DynamicResource IconLargeContainerSize}"
+                        HeightRequest="{DynamicResource IconStandardContainerSize}"
+                        WidthRequest="{DynamicResource IconStandardContainerSize}"
                         StrokeThickness="0"
                         HorizontalOptions="Center"
                         VerticalOptions="Center">
@@ -126,7 +134,7 @@
                         <Label
                             Text="{x:Static fn:GlyphNames.Retry}"
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="{DynamicResource IconLargeFontSize}"
+                            FontSize="{DynamicResource IconStandardFontSize}"
                             TextColor="White"
                             HorizontalOptions="Center"
                             VerticalOptions="Center" />

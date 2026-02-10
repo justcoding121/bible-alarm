@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Serilog;
@@ -220,8 +221,21 @@ internal sealed class MusicInstrumentalSectionListLoader
                         attempt, publicationCode);
                     throw;
                 }
+                catch (System.Net.Http.HttpRequestException)
+                {
+                    throw;
+                }
+                catch (System.Net.Sockets.SocketException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
+                    if (NetworkExceptionHelper.IsNetworkFailure(ex))
+                    {
+                        throw;
+                    }
+
                     logger.Warning(ex, "MusicInstrumentalSectionListLoader: Attempt {Attempt} failed for publication={PublicationCode}, will retry",
                         attempt, publicationCode);
 

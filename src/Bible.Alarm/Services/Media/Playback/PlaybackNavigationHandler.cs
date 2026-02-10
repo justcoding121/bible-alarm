@@ -43,7 +43,8 @@ public sealed class PlaybackNavigationHandler
         HashSet<int> manuallyVisitedTrackIndices,
         Func<int, Task> markCurrentTrackAsPlayedAsync,
         Func<bool, Task> playCurrentTrackAsync,
-        Func<Task> stopPlaybackAsync)
+        Func<Task> stopPlaybackAsync,
+        Func<Task> handlePlaybackFailureAsync)
     {
         if (playlist is null || playlist.Count == 0)
         {
@@ -106,6 +107,11 @@ public sealed class PlaybackNavigationHandler
                 await playCurrentTrackAsync(true);
                 return;
             }
+
+            // Append failed (harvest/download error) - show error in modal with retry
+            logger.Warning("PlayNextAsync: Failed to extend playlist for indefinite playback. Showing error in modal.");
+            await handlePlaybackFailureAsync();
+            return;
         }
 
         // Finite playback: stop and dismiss when user tries to go past the end.
@@ -121,7 +127,8 @@ public sealed class PlaybackNavigationHandler
         Func<Task<bool>> tryPrependPreviousTrackAsync,
         HashSet<int> manuallyVisitedTrackIndices,
         Func<int, Task> markCurrentTrackAsPlayedAsync,
-        Func<bool, Task> playCurrentTrackAsync)
+        Func<bool, Task> playCurrentTrackAsync,
+        Func<Task> handlePlaybackFailureAsync)
     {
         if (playlist is null || playlist.Count == 0)
         {
@@ -174,10 +181,9 @@ public sealed class PlaybackNavigationHandler
                 return;
             }
 
-            // Fallback: restart current track from beginning.
-            manuallyVisitedTrackIndices.Add(currentTrackIndex);
-            await playCurrentTrackAsync(true);
-            // Don't call NotifyNavigationChanged() - we're still on the same track
+            // Prepend failed (harvest/download error) - show error in modal with retry
+            logger.Warning("PlayPreviousAsync: Failed to extend playlist backward. Showing error in modal.");
+            await handlePlaybackFailureAsync();
         }
     }
 }

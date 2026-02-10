@@ -18,17 +18,20 @@ internal sealed class LanguageContentPublicationTracksFetcher
     private readonly ILogger logger;
     private readonly DramaFetcher dramaFetcher;
     private readonly FlatPublicationFetcher flatPublicationFetcher;
+    private readonly IInternetConnectivityChecker? internetConnectivityChecker;
 
     public LanguageContentPublicationTracksFetcher(
         IServiceScopeFactory scopeFactory,
         ILogger logger,
         DramaFetcher dramaFetcher,
-        FlatPublicationFetcher flatPublicationFetcher)
+        FlatPublicationFetcher flatPublicationFetcher,
+        IInternetConnectivityChecker? internetConnectivityChecker = null)
     {
         this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         this.dramaFetcher = dramaFetcher ?? throw new ArgumentNullException(nameof(dramaFetcher));
         this.flatPublicationFetcher = flatPublicationFetcher ?? throw new ArgumentNullException(nameof(flatPublicationFetcher));
+        this.internetConnectivityChecker = internetConnectivityChecker;
     }
 
     public async Task<bool> FetchPublicationTracksAsync(
@@ -130,6 +133,8 @@ internal sealed class LanguageContentPublicationTracksFetcher
                          PublicationTypeHelper.IsVideo(lowerCode);
 
             var harvestType = publicationLanguage.HarvestType ?? PublicationTypeHelper.GetHarvestType(lowerCode);
+            await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);
+
             switch (harvestType)
             {
                 case Models.Enums.HarvestType.MediatorSectioned:

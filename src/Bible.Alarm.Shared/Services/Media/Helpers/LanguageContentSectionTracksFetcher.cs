@@ -17,15 +17,18 @@ internal sealed class LanguageContentSectionTracksFetcher
     private readonly IServiceScopeFactory scopeFactory;
     private readonly ILogger logger;
     private readonly SectionFetcher sectionFetcher;
+    private readonly IInternetConnectivityChecker? internetConnectivityChecker;
 
     public LanguageContentSectionTracksFetcher(
         IServiceScopeFactory scopeFactory,
         ILogger logger,
-        SectionFetcher sectionFetcher)
+        SectionFetcher sectionFetcher,
+        IInternetConnectivityChecker? internetConnectivityChecker = null)
     {
         this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         this.sectionFetcher = sectionFetcher ?? throw new ArgumentNullException(nameof(sectionFetcher));
+        this.internetConnectivityChecker = internetConnectivityChecker;
     }
 
     public async Task<bool> FetchSectionTracksAsync(
@@ -128,6 +131,8 @@ internal sealed class LanguageContentSectionTracksFetcher
                 await db.SaveChangesAsync(cancellationToken);
                 section.Tracks.Clear();
             }
+
+            await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);
 
             return await sectionFetcher.FetchSectionTracksAsync(
                 db, normalizedPublicationCode, normalizedSectionCode, normalizedLanguageCode,

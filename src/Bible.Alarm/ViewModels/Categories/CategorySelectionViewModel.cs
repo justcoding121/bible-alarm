@@ -6,6 +6,7 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Messages;
 using Bible.Alarm.ViewModels.Interfaces;
@@ -31,6 +32,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
     private CategoryListViewItemModel? selectedCategory;
     private CategoryListViewItemModel? currentFetchingCategory;
     private volatile bool fetchErrorReceived;
+    private volatile bool categorySelectionSucceededReceived;
 
     public CategorySelectionViewModel(
         ICategoryService categoryService,
@@ -54,24 +56,30 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
     {
         var progress = message.Value;
 
-        if (progress.HasError && currentFetchingCategory != null && currentFetchingCategory.Id == progress.CategoryId)
+        // Capture local reference - the field may be nulled by the polling loop's finally block.
+        var fetchingCategory = currentFetchingCategory;
+
+        if (progress.HasError && fetchingCategory != null && fetchingCategory.Id == progress.CategoryId)
         {
             fetchErrorReceived = true;
-            MainThread.BeginInvokeOnMainThread(async () =>
+            MainThread.BeginInvokeOnMainThread(() =>
             {
-                currentFetchingCategory.DownloadProgress = 0;
-                var toastService = ServiceProviderManager.GetService<IToastService>();
-                await (toastService?.ShowMessage("Please check your internet connection.") ?? Task.CompletedTask);
-                await navigationService.PopModalAsync();
+                fetchingCategory.DownloadProgress = 0;
             });
             return;
         }
 
-        if (currentFetchingCategory != null && currentFetchingCategory.Id == progress.CategoryId)
+        if (progress.IsComplete && !progress.HasError)
+        {
+            categorySelectionSucceededReceived = true;
+        }
+
+        if (fetchingCategory != null && fetchingCategory.Id == progress.CategoryId &&
+            progress.Progress >= 0.0 && progress.Progress <= 1.0)
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                currentFetchingCategory.DownloadProgress = progress.Progress;
+                fetchingCategory.DownloadProgress = progress.Progress;
             });
         }
     }
@@ -90,6 +98,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         var previousPublicationCode = currentSchedule?.BiblePublicationCode;
 
         fetchErrorReceived = false;
+        categorySelectionSucceededReceived = false;
         currentFetchingCategory = category;
 
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -99,13 +108,14 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
 
         try
         {
-            dispatcher.Dispatch(new CategorySelectionAction(category.Id, category.Name, previousLanguageCode));
+            var previousScheduleSnapshot = currentSchedule?.DeepClone();
+            dispatcher.Dispatch(new CategorySelectionAction(category.Id, category.Name, previousLanguageCode, previousScheduleSnapshot));
 
             const int maxWaitAttempts = 60;
             const int delayMs = 200;
             for (int i = 0; i < maxWaitAttempts; i++)
             {
-                if (fetchErrorReceived)
+                if (fetchErrorReceived || categorySelectionSucceededReceived)
                     break;
 
                 var currentState = state.Value.CurrentSchedule;
@@ -135,7 +145,21 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
             currentFetchingCategory = null;
         }
 
-        if (!fetchErrorReceived)
+        if (fetchErrorReceived)
+        {
+            try
+            {
+                await navigationService.PopModalAsync();
+                var toastService = ServiceProviderManager.GetService<IToastService>();
+                await (toastService?.ShowMessage("Please check your internet connection.") ?? Task.CompletedTask);
+                Serilog.Log.Debug("CategorySelectionViewModel: Modal closed after fetch error for category={CategoryName}", category.Name);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "CategorySelectionViewModel: Error closing modal after fetch error for category={CategoryName}", category.Name);
+            }
+        }
+        else
         {
             try
             {

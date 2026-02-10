@@ -1,6 +1,8 @@
 #nullable enable
 using System;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
@@ -148,6 +150,18 @@ internal sealed class PublicationEnsurer
                 return result;
             }
         }
+        catch (HttpRequestException)
+        {
+            throw;
+        }
+        catch (SocketException)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.Error(ex, "Error ensuring publication exists for {PublicationCode} in language {LanguageCode}",
@@ -276,6 +290,18 @@ internal sealed class PublicationEnsurer
             logger.Warning("Failed to fetch any publication for language {LanguageCode}",
                 languageCode);
             return false;
+        }
+        catch (HttpRequestException)
+        {
+            throw;
+        }
+        catch (SocketException)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -408,6 +434,18 @@ internal sealed class PublicationEnsurer
 
                 return false;
             }
+        }
+        catch (HttpRequestException)
+        {
+            throw;
+        }
+        catch (SocketException)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

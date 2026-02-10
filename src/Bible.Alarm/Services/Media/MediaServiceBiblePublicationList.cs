@@ -1,5 +1,7 @@
 #nullable enable annotations
 
+using System.Net.Http;
+using System.Net.Sockets;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
@@ -289,6 +291,18 @@ internal static class MediaServiceBiblePublicationList
                     refreshedDownloadedPublications.Count,
                     languageCode,
                     categoryName ?? "all");
+            }
+            catch (HttpRequestException)
+            {
+                throw;
+            }
+            catch (SocketException)
+            {
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

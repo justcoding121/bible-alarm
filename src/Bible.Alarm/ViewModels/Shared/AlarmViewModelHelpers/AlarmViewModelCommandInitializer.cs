@@ -123,10 +123,14 @@ public class AlarmViewModelCommandInitializer
         });
     }
 
-    public ICommand CreateRetryCommand(Func<int?> getCurrentScheduleId, Func<bool> hasError)
+    public ICommand CreateRetryCommand(Func<int?> getCurrentScheduleId, Func<bool> hasError, Action<bool> setIsRetryBusy)
     {
         return new AsyncRelayCommand(async () =>
         {
+            // Show spinner immediately to indicate tap was received
+            setIsRetryBusy(true);
+            await Task.Delay(50);
+
             var scheduleId = getCurrentScheduleId();
             if (scheduleId.HasValue)
             {
@@ -152,6 +156,8 @@ public class AlarmViewModelCommandInitializer
             {
                 logger.Warning("RetryCommand executed but no current schedule ID available");
             }
+
+            setIsRetryBusy(false);
         }, () => hasError() && getCurrentScheduleId().HasValue);
     }
 }

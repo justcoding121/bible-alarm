@@ -22,7 +22,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IDisposable
+public sealed class BiblePublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IRecipient<ListItemFetchProgressMessage>, IRecipient<ModalOverlayFetchProgressMessage>, IDisposable
 {
     private readonly IState<ApplicationState> state;
     private readonly IMapper mapper;
@@ -105,6 +105,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         state.StateChanged += OnBiblePublicationChanged;
 
         WeakReferenceMessenger.Default.Register<ListItemFetchProgressMessage>(this);
+        WeakReferenceMessenger.Default.Register<ModalOverlayFetchProgressMessage>(this);
 
         // Initialize commands
         SectionSelectionCommand = commandHandler.CreateSectionSelectionCommand(
@@ -140,24 +141,42 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
 
     private async Task CancelFetchAsync()
     {
-        Serilog.Log.Information("BiblePublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch");
-        fetchCts?.Cancel();
-        propertyManager.CanCancelFetch = false;
-        propertyManager.ShowProgress = false;
-        propertyManager.HasFetchError = false;
-        propertyManager.IsBusy = false;
-        // Allow screen to turn off when user cancels
-        DeviceDisplay.Current.KeepScreenOn = false;
-        // Close the modal after canceling the fetch
-        await navigationService.PopModalAsync();
+        propertyManager.IsCancelBusy = true;
+        await Task.Delay(50);
+
+        try
+        {
+            Serilog.Log.Information("BiblePublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch");
+            fetchCts?.Cancel();
+            propertyManager.CanCancelFetch = false;
+            propertyManager.ShowProgress = false;
+            propertyManager.HasFetchError = false;
+            propertyManager.IsBusy = false;
+            DeviceDisplay.Current.KeepScreenOn = false;
+            await navigationService.PopModalAsync();
+        }
+        finally
+        {
+            propertyManager.IsCancelBusy = false;
+        }
     }
 
     private async Task RetryFetchAsync()
     {
-        propertyManager.HasFetchError = false;
-        await RefreshFromState();
-        if (!propertyManager.HasFetchError)
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+        propertyManager.IsRetryBusy = true;
+        await Task.Delay(50);
+
+        try
+        {
+            propertyManager.HasFetchError = false;
+            await RefreshFromState();
+            if (!propertyManager.HasFetchError)
+                await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
+        }
+        finally
+        {
+            propertyManager.IsRetryBusy = false;
+        }
     }
 
     private async void OnBiblePublicationInitialized(object? o, EventArgs eventArgs)
@@ -227,13 +246,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         // Keep screen on during download to prevent Android from restricting network access
         DeviceDisplay.Current.KeepScreenOn = true;
 
-        // Create progress tracker with cancellation support
-        // The progress tracker will set ShowProgress = true when a fetch actually starts
-        var progressTracker = new FetchProgressTracker(
-            progress => propertyManager.ProgressPercent = progress,
-            text => propertyManager.ProgressText = text,
-            isVisible => propertyManager.ShowProgress = isVisible,
-            fetchCts.Token);
+        var progressReporter = new ModalOverlayFetchProgressReporter("BiblePublication", fetchCts.Token);
 
         try
         {
@@ -241,7 +254,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             await stateHandler.RefreshFromStateAsync(
                 busy => propertyManager.IsBusy = busy,
                 propertyManager.Publications,
-                progressTracker);
+                progressReporter);
             
             // Set the selected publication after population so scroll-to-selected works
             propertyManager.SetSelectedPublication();
@@ -302,6 +315,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     public string ProgressText { get => propertyManager.ProgressText; set => propertyManager.ProgressText = value; }
     public bool CanCancelFetch { get => propertyManager.CanCancelFetch; set => propertyManager.CanCancelFetch = value; }
     public bool HasFetchError { get => propertyManager.HasFetchError; set => propertyManager.HasFetchError = value; }
+    public bool IsRetryBusy { get => propertyManager.IsRetryBusy; set => propertyManager.IsRetryBusy = value; }
+    public bool IsCancelBusy { get => propertyManager.IsCancelBusy; set => propertyManager.IsCancelBusy = value; }
 
     /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>
     public bool ShowCancelButton => ShowProgress || HasFetchError;
@@ -342,8 +357,22 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         });
     }
 
+    public void Receive(ModalOverlayFetchProgressMessage message)
+    {
+        var p = message.Value;
+        if (p.ModalType != "BiblePublication")
+            return;
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            propertyManager.ProgressPercent = p.Progress;
+            propertyManager.ProgressText = p.ProgressText;
+            propertyManager.ShowProgress = p.IsVisible;
+        });
+    }
+
     public void Dispose()
     {
+        WeakReferenceMessenger.Default.Unregister<ModalOverlayFetchProgressMessage>(this);
         WeakReferenceMessenger.Default.Unregister<ListItemFetchProgressMessage>(this);
         state.StateChanged -= OnBiblePublicationInitialized;
         state.StateChanged -= OnBiblePublicationChanged;
@@ -407,6 +436,19 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             {
                 OnPropertyChanged(nameof(HasFetchError));
                 OnPropertyChanged(nameof(ShowCancelButton));
+                return;
+            }
+
+            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.IsRetryBusy))
+            {
+                OnPropertyChanged(nameof(IsRetryBusy));
+                return;
+            }
+
+            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.IsCancelBusy))
+            {
+                OnPropertyChanged(nameof(IsCancelBusy));
+                return;
             }
         };
 

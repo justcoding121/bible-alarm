@@ -143,32 +143,44 @@
                            TextColor="#FF6B6B"
                            Text="{Binding ErrorMessage}"
                            LineBreakMode="WordWrap" />
-                    <Border Grid.Row="1"
+                    <Grid Grid.Row="1"
+                          HeightRequest="{DynamicResource IconLargeContainerSize}"
+                          WidthRequest="{DynamicResource IconLargeContainerSize}"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center"
+                          Margin="0,8,0,0">
+                        <Border
                             BackgroundColor="{StaticResource PrimaryColor}"
                             HeightRequest="{DynamicResource IconLargeContainerSize}"
                             WidthRequest="{DynamicResource IconLargeContainerSize}"
                             StrokeThickness="0"
                             HorizontalOptions="Center"
+                            VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="100" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding RetryCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label
+                                Text="{x:Static fn:GlyphNames.Retry}"
+                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                FontSize="{DynamicResource IconLargeFontSize}"
+                                TextColor="White"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                IsVisible="{Binding IsRetryBusy, Converter={StaticResource negateBooleanConverter}}" />
+                        </Border>
+                        <ActivityIndicator
+                            IsRunning="{Binding IsRetryBusy}"
+                            IsVisible="{Binding IsRetryBusy}"
+                            Color="White"
+                            WidthRequest="{DynamicResource IconStandardFontSize}"
+                            HeightRequest="{DynamicResource IconStandardFontSize}"
                             VerticalOptions="Center"
-                            Margin="0,8,0,0">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="100" />
-                        </Border.StrokeShape>
-                        <Button
-                            Padding="0"
-                            BackgroundColor="Transparent"
-                            BorderWidth="0"
-                            BorderColor="Transparent"
-                            Command="{Binding RetryCommand}"
-                            IsEnabled="{Binding HasError}"
-                            InputTransparent="False"
-                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="{DynamicResource IconLargeFontSize}"
-                            HorizontalOptions="Fill"
-                            Text="{x:Static fn:GlyphNames.Retry}"
-                            TextColor="White"
-                            VerticalOptions="Fill" />
-                    </Border>
+                            HorizontalOptions="Center"
+                            Opacity="0.95" />
+                    </Grid>
                 </Grid>
             </Border>
 

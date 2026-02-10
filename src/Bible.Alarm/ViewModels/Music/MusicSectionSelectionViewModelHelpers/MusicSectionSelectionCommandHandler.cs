@@ -42,15 +42,7 @@ internal sealed class MusicSectionSelectionCommandHandler
         BiblePublicationSectionListViewItemModel selectedSection,
         Func<bool> isDisposed)
     {
-        var networkStatusService = ServiceProviderManager.GetService<INetworkStatusService>();
-        if (networkStatusService != null && !await networkStatusService.IsInternetAvailable())
-        {
-            var toastService = ServiceProviderManager.GetService<IToastService>();
-            if (toastService != null)
-                await toastService.ShowMessage("Please check your internet connection.");
-            await navigationService.PopModalAsync();
-            return;
-        }
+        // Do NOT check internet upfront - music sections are pre-harvested (DB query only, no fetch).
 
         // Progress will only be set if a fetch actually happens (not for DB-only queries)
         try
@@ -118,8 +110,8 @@ internal sealed class MusicSectionSelectionCommandHandler
                 selectedSection.DownloadProgress = 0.0;
             });
             var toastService = ServiceProviderManager.GetService<IToastService>();
-            await toastService.ShowMessage("Please check your internet connection.");
             await navigationService.PopModalAsync();
+            await toastService.ShowMessage("Please check your internet connection.");
         }
         catch (Exception ex)
         {
@@ -130,8 +122,8 @@ internal sealed class MusicSectionSelectionCommandHandler
                 selectedSection.DownloadProgress = 0.0;
             });
             var toastService = ServiceProviderManager.GetService<IToastService>();
-            await toastService.ShowMessage("An error occurred. Please try again.");
             await navigationService.PopModalAsync();
+            await toastService.ShowMessage("An error occurred. Please try again.");
         }
     }
 }

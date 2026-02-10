@@ -215,6 +215,18 @@ public sealed class MediaService(
                         sections.Count, versionCode, languageCode);
                 }
             }
+            catch (System.Net.Http.HttpRequestException)
+            {
+                throw;
+            }
+            catch (System.Net.Sockets.SocketException)
+            {
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 Log.Warning(ex, "Failed to ensure all sections for publication {PublicationCode} in language {LanguageCode}", 
