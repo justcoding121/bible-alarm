@@ -152,7 +152,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                 // Reset progress on error (only if it was set during fetch)
                 await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<IToastService>();
-                await toastService.ShowMessage("Unable to load. Please check your connection.");
+                await toastService.ShowMessage("Please check your internet connection.");
                 await navigationService.PopModalAsync();
                 return;
             }
@@ -273,7 +273,7 @@ public sealed class BiblePublicationSelectionCommandHandler
                         x.DownloadProgress = 0.0;
                     });
                     var toastService = ServiceProviderManager.GetService<IToastService>();
-                    await toastService.ShowMessage("Unable to load. Please check your connection.");
+                    await toastService.ShowMessage("Please check your internet connection.");
                     await navigationService.PopModalAsync();
                     return;
                 }

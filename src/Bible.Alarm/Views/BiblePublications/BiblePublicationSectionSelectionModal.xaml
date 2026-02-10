@@ -240,7 +240,7 @@
             <sharedViews:ProgressIndicator Grid.Row="0"
                                            Grid.RowSpan="3" />
             
-            <!-- Busy Overlay with progress support -->
+            <!-- Busy Overlay with progress and error/retry support -->
             <shared:BusyOverlay x:Name="BusyOverlay"
                                 Grid.Row="0"
                                 Grid.RowSpan="3"
@@ -249,7 +249,9 @@
                                 ShowProgress="{Binding ShowProgress}"
                                 ProgressPercent="{Binding ProgressPercent}"
                                 ProgressText="{Binding ProgressText}"
-                                ShowCancelButton="{Binding ShowProgress}"
+                                ShowCancelButton="{Binding ShowCancelButton}"
+                                HasFetchError="{Binding HasFetchError}"
+                                RetryCommand="{Binding RetryFetchCommand}"
                                 CancelCommand="{Binding CancelFetchCommand}" />
         </Grid>
     </ContentPage.Content>

@@ -69,6 +69,75 @@ public partial class BusyOverlay : ContentView
     }
 
     /// <summary>
+    /// Whether a fetch error occurred; shows retry button to the left of cancel.
+    /// </summary>
+    public static readonly BindableProperty HasFetchErrorProperty = BindableProperty.Create(
+        nameof(HasFetchError),
+        typeof(bool),
+        typeof(BusyOverlay),
+        false,
+        BindingMode.OneWay,
+        propertyChanged: OnHasFetchErrorChanged);
+
+    /// <summary>
+    /// Whether a fetch error occurred; shows retry button to the left of cancel.
+    /// </summary>
+    public bool HasFetchError
+    {
+        get => (bool)GetValue(HasFetchErrorProperty);
+        set => SetValue(HasFetchErrorProperty, value);
+    }
+
+    /// <summary>
+    /// True when overlay is visible and not in error state (spinner runs only during progress).
+    /// </summary>
+    public static readonly BindableProperty IsSpinnerRunningProperty = BindableProperty.Create(
+        nameof(IsSpinnerRunning),
+        typeof(bool),
+        typeof(BusyOverlay),
+        false,
+        BindingMode.OneWay);
+
+    /// <summary>
+    /// True when overlay is visible and not in error state (spinner runs only during progress).
+    /// </summary>
+    public bool IsSpinnerRunning
+    {
+        get => (bool)GetValue(IsSpinnerRunningProperty);
+        set => SetValue(IsSpinnerRunningProperty, value);
+    }
+
+    private static void OnHasFetchErrorChanged(BindableObject bindable, object oldValue, object newValue)
+    {
+        if (bindable is BusyOverlay overlay)
+            overlay.UpdateIsSpinnerRunning();
+    }
+
+    private void UpdateIsSpinnerRunning()
+    {
+        IsSpinnerRunning = IsVisible && !HasFetchError;
+    }
+
+    /// <summary>
+    /// Command to execute when the retry button is tapped.
+    /// </summary>
+    public static readonly BindableProperty RetryCommandProperty = BindableProperty.Create(
+        nameof(RetryCommand),
+        typeof(ICommand),
+        typeof(BusyOverlay),
+        null,
+        BindingMode.OneWay);
+
+    /// <summary>
+    /// Command to execute when the retry button is tapped.
+    /// </summary>
+    public ICommand? RetryCommand
+    {
+        get => (ICommand?)GetValue(RetryCommandProperty);
+        set => SetValue(RetryCommandProperty, value);
+    }
+
+    /// <summary>
     /// Whether to show the progress bar section (progress text + progress bar).
     /// </summary>
     public static readonly BindableProperty ShowProgressProperty = BindableProperty.Create(
@@ -256,12 +325,14 @@ public partial class BusyOverlay : ContentView
                     logger.Debug("BusyOverlay.OnIsVisibleChanged: Set ContentView.InputTransparent to {InputTransparent}, overlayGrid.Opacity to {Opacity}, overlayGrid.InputTransparent to {InputTransparent}", inputTransparent, opacity, inputTransparent);
                 }
 
+                overlay.UpdateIsSpinnerRunning();
+
                 // Handle spinner and hard timeout based on visibility change
                 if (newBoolValue)
                 {
-                    // Cancel any pending spinner stop (in case overlay was quickly hidden then shown again)
                     overlay.CancelSpinnerStop();
-                    overlay.StartSpinnerImmediately();
+                    if (overlay.IsSpinnerRunning)
+                        overlay.StartSpinnerImmediately();
                     overlay.StartHardTimeout();
                 }
                 else
@@ -413,20 +484,17 @@ public partial class BusyOverlay : ContentView
 
     private void OnBusyOverlayLoaded(object? sender, EventArgs e)
     {
-        // OnIsVisibleChanged may not be called if IsVisible is set to true in XAML before binding
-        // So we need to handle the case where the overlay is already visible when loaded
+        UpdateIsSpinnerRunning();
         if (IsVisible)
         {
-            if (busyIndicator != null)
+            if (IsSpinnerRunning && busyIndicator != null)
             {
                 logger.Debug("BusyOverlay: Loaded and visible, starting spinner immediately");
                 busyIndicator.IsRunning = true;
             }
-            // Start hard timeout for initially visible overlays
             StartHardTimeout();
         }
 
-        // Unsubscribe after first load
         Loaded -= OnBusyOverlayLoaded;
     }
 }

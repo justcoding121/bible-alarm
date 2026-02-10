@@ -21,7 +21,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicSectionSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed class MusicSectionSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -98,6 +98,8 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         {
             HasFetchError = false;
             await RefreshFromState();
+            if (!HasFetchError)
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });
 
         TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async x =>
@@ -426,16 +428,15 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             }
             catch (Exception ex)
             {
-                // Log error but don't throw - allow modal to continue functioning
                 logger.Error(ex, "[MusicSectionSelection] RefreshFromState - Error during repopulation");
-                // Allow screen to turn off after error
                 MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
-                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     if (!isDisposed && !isSelectingSection)
                     {
+                        CanCancelFetch = false;
                         ShowProgress = false;
+                        HasFetchError = true;
                     }
                 });
             }
@@ -524,7 +525,11 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     public bool ShowProgress
     {
         get => showProgress;
-        set => SetProperty(ref showProgress, value);
+        set
+        {
+            if (SetProperty(ref showProgress, value))
+                OnPropertyChanged(nameof(ShowCancelButton));
+        }
     }
 
     public double ProgressPercent
@@ -548,8 +553,15 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     public bool HasFetchError
     {
         get => hasFetchError;
-        set => SetProperty(ref hasFetchError, value);
+        set
+        {
+            if (SetProperty(ref hasFetchError, value))
+                OnPropertyChanged(nameof(ShowCancelButton));
+        }
     }
+
+    /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>
+    public bool ShowCancelButton => ShowProgress || HasFetchError;
 
     private ObservableCollection<BiblePublicationSectionListViewItemModel> sections = [];
 

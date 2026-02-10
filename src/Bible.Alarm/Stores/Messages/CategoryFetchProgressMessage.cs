@@ -33,4 +33,9 @@ public sealed class CategoryFetchProgress
     /// Whether the fetch has completed (success or failure).
     /// </summary>
     public bool IsComplete { get; init; }
+
+    /// <summary>
+    /// True when fetch failed (e.g. network error); ViewModel should show toast and close modal.
+    /// </summary>
+    public bool HasError { get; init; }
 }

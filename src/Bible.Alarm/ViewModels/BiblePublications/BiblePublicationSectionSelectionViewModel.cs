@@ -23,7 +23,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IDisposable
 {
     private BiblePublicationSchedule? current;
 
@@ -102,6 +102,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         {
             HasFetchError = false;
             await RefreshFromState();
+            if (!HasFetchError)
+                await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
         });
 
         TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async x =>
@@ -164,7 +166,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 logger.Warning(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Network error selecting section");
                 await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
-                await toastService.ShowMessage("Unable to load. Please check your connection.");
+                await toastService.ShowMessage("Please check your internet connection.");
+                await navigationService.PopModalAsync();
             }
             catch (Exception ex)
             {
@@ -172,6 +175,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                 await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
                 await toastService.ShowMessage("An error occurred. Please try again.");
+                await navigationService.PopModalAsync();
             }
             finally
             {
@@ -395,14 +399,13 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
                     }
                 });
 
-                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
+                // Do NOT set IsBusy = false here - ModalScrollHelper does it after reveal (initial load)
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     if (!isDisposed && !isSelectingSection)
                     {
                         CanCancelFetch = false;
                         ShowProgress = false;
-                        // Allow screen to turn off after download completes
                         DeviceDisplay.Current.KeepScreenOn = false;
                     }
                 });
@@ -442,17 +445,15 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             }
             catch (Exception ex)
             {
-                // Log error but don't throw - allow modal to continue functioning
                 logger.Error(ex, "BiblePublicationSectionSelectionViewModel: RefreshFromStateInternal - Error during repopulation");
-                // Allow screen to turn off after error
                 MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
-                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     if (!isDisposed && !isSelectingSection)
                     {
                         CanCancelFetch = false;
                         ShowProgress = false;
+                        HasFetchError = true;
                     }
                 });
             }
@@ -521,7 +522,11 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     public bool ShowProgress
     {
         get => showProgress;
-        set => SetProperty(ref showProgress, value);
+        set
+        {
+            if (SetProperty(ref showProgress, value))
+                OnPropertyChanged(nameof(ShowCancelButton));
+        }
     }
 
     public double ProgressPercent
@@ -545,8 +550,15 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     public bool HasFetchError
     {
         get => hasFetchError;
-        set => SetProperty(ref hasFetchError, value);
+        set
+        {
+            if (SetProperty(ref hasFetchError, value))
+                OnPropertyChanged(nameof(ShowCancelButton));
+        }
     }
+
+    /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>
+    public bool ShowCancelButton => ShowProgress || HasFetchError;
 
     private ObservableCollection<BiblePublicationSectionListViewItemModel> sections = [];
 

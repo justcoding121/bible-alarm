@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 
 namespace Bible.Alarm.Services.Media.Interfaces;
 
@@ -33,11 +34,13 @@ public interface IPlaylistService : IDisposable
     /// Resolves the next track to play based on the currently playing track metadata.
     /// Used for indefinite playback and dynamic playlist extension.
     /// </summary>
-    Task<PlayItem> GetNextPlayItemAsync(TrackMetadata currentTrackMetadata);
+    /// <param name="sectionFetchProgress">Optional progress reporter for ad-hoc API section fetch (0-100%).</param>
+    Task<PlayItem> GetNextPlayItemAsync(TrackMetadata currentTrackMetadata, IFetchProgress? sectionFetchProgress = null);
 
     /// <summary>
     /// Resolves the previous track to play based on the currently playing track metadata.
     /// </summary>
-    Task<PlayItem> GetPreviousPlayItemAsync(TrackMetadata currentTrackMetadata);
+    /// <param name="sectionFetchProgress">Optional progress reporter for ad-hoc API section fetch (0-100%).</param>
+    Task<PlayItem> GetPreviousPlayItemAsync(TrackMetadata currentTrackMetadata, IFetchProgress? sectionFetchProgress = null);
 }
 

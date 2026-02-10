@@ -227,7 +227,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during publication selection for {PublicationCode}", songPublication.Code);
             await MainThread.InvokeOnMainThreadAsync(() => songPublication.DownloadProgress = 0.0);
             var toastService = ServiceProviderManager.GetService<IToastService>();
-            await toastService.ShowMessage("Unable to load. Please check your connection.");
+            await toastService.ShowMessage("Please check your internet connection.");
             await navigationService.PopModalAsync();
             return;
         }
@@ -288,7 +288,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
                 Log.Warning(ex, "MusicPublicationSelectionCommandHandler: Network error during language selection for {LanguageCode}", language.Code);
                 await MainThread.InvokeOnMainThreadAsync(() => language.DownloadProgress = 0.0);
                 var toastService = ServiceProviderManager.GetService<IToastService>();
-                await toastService.ShowMessage("Unable to load. Please check your connection.");
+                await toastService.ShowMessage("Please check your internet connection.");
                 await navigationService.PopModalAsync();
                 return;
             }

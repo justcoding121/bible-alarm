@@ -574,7 +574,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         return !schedule.AlwaysPlayFromStart;
     }
 
-    public async Task<PlayItem> GetNextPlayItemAsync(TrackMetadata currentTrackMetadata)
+    public async Task<PlayItem> GetNextPlayItemAsync(TrackMetadata currentTrackMetadata, IFetchProgress? sectionFetchProgress = null)
     {
         ArgumentNullException.ThrowIfNull(currentTrackMetadata);
 
@@ -608,7 +608,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             currentTrackMetadata.LanguageCode,
             currentTrackMetadata.PublicationCode,
             currentTrackMetadata.SectionCode,
-            currentTrackMetadata.TrackCode);
+            currentTrackMetadata.TrackCode,
+            sectionFetchProgress);
 
         if (next.Value == null)
         {
@@ -658,31 +659,39 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         return new PlayItem(metadata, url);
     }
 
-    public async Task<PlayItem> GetPreviousPlayItemAsync(TrackMetadata currentTrackMetadata)
+    public async Task<PlayItem> GetPreviousPlayItemAsync(TrackMetadata currentTrackMetadata, IFetchProgress? sectionFetchProgress = null)
     {
         ArgumentNullException.ThrowIfNull(currentTrackMetadata);
 
         if (currentTrackMetadata.PlayType == PlayType.Music)
         {
-            if (currentTrackMetadata.ScheduleId <= 0)
+            sectionFetchProgress?.UpdateProgress(0.0);
+            try
             {
-                throw new InvalidOperationException("Invalid schedule ID in current track metadata");
+                if (currentTrackMetadata.ScheduleId <= 0)
+                {
+                    throw new InvalidOperationException("Invalid schedule ID in current track metadata");
+                }
+
+                var scheduleId = (int)currentTrackMetadata.ScheduleId;
+                var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+                    scheduleId,
+                    includeMusic: true,
+                    includeBiblePublication: false,
+                    cancellationTokenSource.Token) ?? throw new InvalidOperationException($"Schedule not found: {scheduleId}");
+
+                if (schedule.Music == null)
+                {
+                    throw new InvalidOperationException($"Schedule {scheduleId} has no music configured");
+                }
+
+                schedule.Music.TrackCode = currentTrackMetadata.TrackCode;
+                return await musicTrackBuilder.PreviousMusicUrlToPlay(schedule);
             }
-
-            var scheduleId = (int)currentTrackMetadata.ScheduleId;
-            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
-                scheduleId,
-                includeMusic: true,
-                includeBiblePublication: false,
-                cancellationTokenSource.Token) ?? throw new InvalidOperationException($"Schedule not found: {scheduleId}");
-
-            if (schedule.Music == null)
+            finally
             {
-                throw new InvalidOperationException($"Schedule {scheduleId} has no music configured");
+                sectionFetchProgress?.UpdateProgress(1.0);
             }
-
-            schedule.Music.TrackCode = currentTrackMetadata.TrackCode;
-            return await musicTrackBuilder.PreviousMusicUrlToPlay(schedule);
         }
 
         // Bible content
@@ -690,7 +699,8 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             currentTrackMetadata.LanguageCode,
             currentTrackMetadata.PublicationCode,
             currentTrackMetadata.SectionCode,
-            currentTrackMetadata.TrackCode);
+            currentTrackMetadata.TrackCode,
+            sectionFetchProgress);
 
         if (previous.Value == null)
         {

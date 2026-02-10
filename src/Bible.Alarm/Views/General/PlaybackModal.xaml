@@ -285,10 +285,12 @@
                         </Grid>
                         
                         <!-- Track Metadata - fixed height, truncated text -->
-                        <Grid Grid.Row="1"
+                        <Grid x:Name="MetadataGrid"
+                            Grid.Row="1"
                             RowSpacing="{DynamicResource SpacingSmall}"
                             Padding="{DynamicResource PaddingThickness16_8_16_0}"
-                            HorizontalOptions="Fill">
+                            HorizontalOptions="Fill"
+                            MinimumHeightRequest="60">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -302,7 +304,8 @@
                                 Text="{Binding Title}"
                                 TextColor="{DynamicResource TextPrimaryColor}"
                                 LineBreakMode="TailTruncation"
-                                MaxLines="2" />
+                                MaxLines="2"
+                                MinimumHeightRequest="20" />
                             <Label Grid.Row="1"
                                 FontSize="{DynamicResource LargeFontSize}"
                                 HorizontalOptions="Fill"
@@ -310,7 +313,8 @@
                                 Text="{Binding SubTitle}"
                                 TextColor="{DynamicResource TextSecondaryColor}"
                                 LineBreakMode="TailTruncation"
-                                MaxLines="2" />
+                                MaxLines="2"
+                                MinimumHeightRequest="18" />
                             <Label Grid.Row="2"
                                 FontSize="{DynamicResource MediumFontSize}"
                                 HorizontalOptions="Fill"
@@ -318,7 +322,8 @@
                                 Text="{Binding Description}"
                                 TextColor="{DynamicResource TextSecondaryColor}"
                                 LineBreakMode="TailTruncation"
-                                MaxLines="1" />
+                                MaxLines="1"
+                                MinimumHeightRequest="16" />
                         </Grid>
                     </Grid>
             </Grid>

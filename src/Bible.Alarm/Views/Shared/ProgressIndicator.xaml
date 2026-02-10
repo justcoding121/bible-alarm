@@ -134,35 +134,13 @@
                     HorizontalOptions="Center"
                     HorizontalTextAlignment="Center"
                     TextColor="#FF6B6B"
-                    Text="Unable to load data. Please check your connection."
+                    Text="Network error. Please check your internet connection."
                     LineBreakMode="WordWrap" />
-                <!-- Retry and Cancel buttons -->
+                <!-- Retry (left) and Cancel (right) buttons -->
                 <HorizontalStackLayout Grid.Row="1"
                     HorizontalOptions="Center"
                     Spacing="24">
-                    <!-- Cancel Button -->
-                    <Border
-                        BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                        HeightRequest="{DynamicResource IconLargeContainerSize}"
-                        WidthRequest="{DynamicResource IconLargeContainerSize}"
-                        StrokeThickness="0"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="100" />
-                        </Border.StrokeShape>
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding CancelFetchCommand}" />
-                        </Border.GestureRecognizers>
-                        <Label
-                            Text="{x:Static fn:GlyphNames.Xmark}"
-                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="{DynamicResource IconLargeFontSize}"
-                            TextColor="{DynamicResource TextSecondaryColor}"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center" />
-                    </Border>
-                    <!-- Retry Button -->
+                    <!-- Retry Button (left of Cancel) -->
                     <Border
                         BackgroundColor="{StaticResource PrimaryColor}"
                         HeightRequest="{DynamicResource IconLargeContainerSize}"
@@ -187,6 +165,28 @@
                             FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                             FontSize="{DynamicResource IconLargeFontSize}"
                             TextColor="White"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center" />
+                    </Border>
+                    <!-- Cancel Button -->
+                    <Border
+                        BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                        HeightRequest="{DynamicResource IconLargeContainerSize}"
+                        WidthRequest="{DynamicResource IconLargeContainerSize}"
+                        StrokeThickness="0"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="100" />
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding CancelFetchCommand}" />
+                        </Border.GestureRecognizers>
+                        <Label
+                            Text="{x:Static fn:GlyphNames.Xmark}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="{DynamicResource IconLargeFontSize}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
                             HorizontalOptions="Center"
                             VerticalOptions="Center" />
                     </Border>

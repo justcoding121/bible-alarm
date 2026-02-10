@@ -107,7 +107,8 @@ internal sealed class MusicSectionSelectionCommandHandler
                 selectedSection.DownloadProgress = 0.0;
             });
             var toastService = ServiceProviderManager.GetService<IToastService>();
-            await toastService.ShowMessage("Unable to load. Please check your connection.");
+            await toastService.ShowMessage("Please check your internet connection.");
+            await navigationService.PopModalAsync();
         }
         catch (Exception ex)
         {
@@ -119,6 +120,7 @@ internal sealed class MusicSectionSelectionCommandHandler
             });
             var toastService = ServiceProviderManager.GetService<IToastService>();
             await toastService.ShowMessage("An error occurred. Please try again.");
+            await navigationService.PopModalAsync();
         }
     }
 }

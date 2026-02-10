@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using Bible.Alarm.Common;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -29,6 +30,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
     private string progressText = "0%";
     private CategoryListViewItemModel? selectedCategory;
     private CategoryListViewItemModel? currentFetchingCategory;
+    private volatile bool fetchErrorReceived;
 
     public CategorySelectionViewModel(
         ICategoryService categoryService,
@@ -51,8 +53,20 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
     public void Receive(CategoryFetchProgressMessage message)
     {
         var progress = message.Value;
-        
-        // Only update if we're tracking a category with matching ID
+
+        if (progress.HasError && currentFetchingCategory != null && currentFetchingCategory.Id == progress.CategoryId)
+        {
+            fetchErrorReceived = true;
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                currentFetchingCategory.DownloadProgress = 0;
+                var toastService = ServiceProviderManager.GetService<IToastService>();
+                await (toastService?.ShowMessage("Please check your internet connection.") ?? Task.CompletedTask);
+                await navigationService.PopModalAsync();
+            });
+            return;
+        }
+
         if (currentFetchingCategory != null && currentFetchingCategory.Id == progress.CategoryId)
         {
             MainThread.BeginInvokeOnMainThread(() =>
@@ -75,11 +89,9 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         var previousCategoryName = currentSchedule?.BiblePublicationCategoryName;
         var previousPublicationCode = currentSchedule?.BiblePublicationCode;
 
-        // Track the category being fetched so we can update its progress from messages
+        fetchErrorReceived = false;
         currentFetchingCategory = category;
 
-        // Show progress on the list item itself (not as overlay)
-        // Progress will be set by effect handler via WeakReferenceMessenger only when a fetch actually happens
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             category.IsNavigating = true;
@@ -87,29 +99,26 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
 
         try
         {
-            // Dispatch action to update state - the effect handler will send progress messages
             dispatcher.Dispatch(new CategorySelectionAction(category.Id, category.Name, previousLanguageCode));
-            
-            // Wait for state to be updated (cascade effect)
-            // Check that category matches AND publication has actually changed from the old value.
-            // Without the publication-change check, the loop exits immediately when the category
-            // is updated but the old publication/track codes are still present from the previous category.
+
             const int maxWaitAttempts = 60;
             const int delayMs = 200;
             for (int i = 0; i < maxWaitAttempts; i++)
             {
+                if (fetchErrorReceived)
+                    break;
+
                 var currentState = state.Value.CurrentSchedule;
-                if (currentState != null && 
+                if (currentState != null &&
                     currentState.BiblePublicationCategoryName == category.Name &&
                     !string.IsNullOrEmpty(currentState.BiblePublicationCode) &&
                     !string.IsNullOrWhiteSpace(currentState.BiblePublicationTrackCode) &&
-                    // Ensure the publication actually changed (not stale from previous category)
                     (currentState.BiblePublicationCategoryName != previousCategoryName ||
                      currentState.BiblePublicationCode != previousPublicationCode))
                 {
                     break;
                 }
-                
+
                 await Task.Delay(delayMs);
             }
         }
@@ -122,20 +131,21 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 category.IsNavigating = false;
-                // Progress completion will be set by effect handler via WeakReferenceMessenger if a fetch happened
             });
             currentFetchingCategory = null;
         }
-        
-        // Close modal after fetch completes (or timeout/error)
-        try
+
+        if (!fetchErrorReceived)
         {
-            await navigationService.PopModalAsync();
-            Serilog.Log.Debug("CategorySelectionViewModel: Modal closed successfully for category={CategoryName}", category.Name);
-        }
-        catch (Exception ex)
-        {
-            Serilog.Log.Error(ex, "CategorySelectionViewModel: Error closing modal for category={CategoryName}", category.Name);
+            try
+            {
+                await navigationService.PopModalAsync();
+                Serilog.Log.Debug("CategorySelectionViewModel: Modal closed successfully for category={CategoryName}", category.Name);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "CategorySelectionViewModel: Error closing modal for category={CategoryName}", category.Name);
+            }
         }
     });
 

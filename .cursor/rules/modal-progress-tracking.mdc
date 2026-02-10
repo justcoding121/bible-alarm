@@ -85,6 +85,11 @@ All modals have `CancelFetchCommand` that:
   - Hide in finally block when retry loop completes
 
 ### Error Handling Pattern
+
+**Modal open progress (FetchProgressTracker)**: On network failure, set `HasFetchError = true` and keep modal open. BusyOverlay shows Retry (left) + Cancel (right). Do NOT dispatch any state changes - retain Bible/Music container rows.
+
+**List item tap progress (DownloadProgress / CategoryFetchProgress)**: On network failure, show toast "Please check your internet connection.", close modal, retain state. Applies to: Category, Bible Language, Music Language, Bible Publication, Bible Section, Music Publication, Music Section.
+
 ```csharp
 catch (OperationCanceledException)
 {
@@ -94,9 +99,9 @@ catch (OperationCanceledException)
 }
 catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
 {
-    // Show error state instead of closing modal
+    // Show error state instead of closing modal (modal open progress only)
     ShowProgress = false;
-    HasFetchError = true;  // Shows retry button
+    HasFetchError = true;  // Shows retry button to left of cancel in BusyOverlay
 }
 finally
 {

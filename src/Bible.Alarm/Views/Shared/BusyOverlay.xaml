@@ -16,6 +16,7 @@
     <ContentView.Resources>
         <converters:BoolToOpacityConverter x:Key="boolToOpacityConverter" />
         <converters:DefaultTextConverter x:Key="defaultTextConverter" />
+        <converters:MultiBoolOrConverter x:Key="multiBoolOrConverter" />
     </ContentView.Resources>
     <Grid x:Name="overlayGrid"
           IsVisible="True"
@@ -26,18 +27,13 @@
           HorizontalOptions="Fill"
           VerticalOptions="Fill">
         <!-- Card container for all overlay content -->
-        <!-- Set explicit HeightRequest to prevent any resizing when content visibility changes -->
-        <!-- Height calculation: 30 (text) + 8 (progress) + IconLargeContainerSize (spinner) + IconStandardContainerSize (button) + 48 (3*16 spacing) + 40 (20*2 padding) -->
-        <!-- Using a fixed height ensures Border never resizes regardless of content visibility -->
-        <!-- VerticalOptions="Center" with fixed height ensures consistent positioning -->
         <Border
             HorizontalOptions="Center"
             VerticalOptions="Center"
             BackgroundColor="{DynamicResource CardBackgroundColor}"
             StrokeThickness="0"
             Padding="24,20"
-            MinimumWidthRequest="{DynamicResource ContentWidthLarge}"
-            HeightRequest="230">
+            MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
             <Border.StrokeShape>
                 <RoundRectangle CornerRadius="16" />
             </Border.StrokeShape>
@@ -47,28 +43,15 @@
                         Opacity="0.15"
                         Radius="12" />
             </Border.Shadow>
-            <!-- Grid with fixed height to prevent measurement changes that cause Border repositioning -->
-            <!-- Height: 30 (text) + 8 (progress) + 56 (spinner) + 48 (button) + 48 (3*16 spacing) = 190 -->
-            <Grid
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                RowSpacing="16"
-                HeightRequest="190">
+            <Grid HorizontalOptions="Center" VerticalOptions="Center" RowSpacing="16">
                 <Grid.RowDefinitions>
-                    <!-- Row 0: Progress Text - fixed height -->
                     <RowDefinition Height="30" />
-                    <!-- Row 1: Progress Bar - fixed height -->
                     <RowDefinition Height="8" />
-                    <!-- Row 2: Busy Indicator - fixed height based on IconLargeContainerSize (56 base) -->
                     <RowDefinition Height="{DynamicResource IconLargeContainerSize}" />
-                    <!-- Row 3: Cancel Button - fixed height based on IconStandardContainerSize (48 base) -->
                     <RowDefinition Height="{DynamicResource IconStandardContainerSize}" />
                 </Grid.RowDefinitions>
-                
-                <!-- Row 0: Progress Text (shown when ShowProgress is true) -->
-                <!-- Reserve space by using Opacity instead of IsVisible -->
-                <!-- Use DefaultTextConverter to ensure Label always has content for consistent measurement -->
-                <!-- Set explicit HeightRequest to match Grid row height for consistent measurement -->
+
+                <!-- Progress state (hidden when HasFetchError) -->
                 <Label
                     Grid.Row="0"
                     HeightRequest="30"
@@ -81,9 +64,6 @@
                     VerticalOptions="Center"
                     HorizontalTextAlignment="Center"
                     VerticalTextAlignment="Center" />
-                
-                <!-- Row 1: Progress Bar (shown when ShowProgress is true) -->
-                <!-- Reserve space by using Opacity instead of IsVisible -->
                 <ProgressBar
                     Grid.Row="1"
                     Opacity="{Binding Source={x:Reference busyOverlay}, Path=ShowProgress, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
@@ -93,12 +73,10 @@
                     VerticalOptions="Center"
                     Progress="{Binding Source={x:Reference busyOverlay}, Path=ProgressPercent}"
                     ProgressColor="{StaticResource PrimaryColor}" />
-                
-                <!-- Row 2: Busy Indicator -->
                 <core:SfBusyIndicator
                     Grid.Row="2"
                     x:Name="busyIndicator"
-                    IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsVisible}"
+                    IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsSpinnerRunning}"
                     IsVisible="True"
                     Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
                     AnimationType="DoubleCircle"
@@ -107,34 +85,76 @@
                     HeightRequest="{DynamicResource IconLargeContainerSize}"
                     WidthRequest="{DynamicResource IconLargeContainerSize}"
                     IndicatorColor="{StaticResource PrimaryColor}" />
-                
-                <!-- Row 3: Cancel Button (visible when ShowCancelButton is true) -->
-                <!-- Reserve space by using Opacity instead of IsVisible -->
-                <!-- Note: MAUI handles Opacity 0 elements correctly - they don't intercept touches -->
-                <Border
-                    Grid.Row="3"
-                    x:Name="cancelButtonBorder"
-                    Opacity="{Binding Source={x:Reference busyOverlay}, Path=ShowCancelButton, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
-                    BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                    HeightRequest="{DynamicResource IconStandardContainerSize}"
-                    WidthRequest="{DynamicResource IconStandardContainerSize}"
-                    StrokeThickness="0"
+
+                <!-- Error state message (shown when HasFetchError) -->
+                <Label
+                    Grid.Row="0"
+                    Grid.RowSpan="3"
+                    IsVisible="{Binding Source={x:Reference busyOverlay}, Path=HasFetchError, Mode=OneWay}"
+                    Text="Network error. Please check your internet connection."
+                    FontSize="{DynamicResource MediumFontSize}"
                     HorizontalOptions="Center"
-                    VerticalOptions="Center">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="100" />
-                    </Border.StrokeShape>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding Source={x:Reference busyOverlay}, Path=CancelCommand}" />
-                    </Border.GestureRecognizers>
-                    <Label
-                        Text="{x:Static fn:GlyphNames.Xmark}"
-                        FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{DynamicResource IconStandardFontSize}"
-                        TextColor="{DynamicResource TextSecondaryColor}"
+                    VerticalOptions="Center"
+                    HorizontalTextAlignment="Center"
+                    VerticalTextAlignment="Center"
+                    TextColor="#FF6B6B"
+                    LineBreakMode="WordWrap" />
+
+                <!-- Row 3: Retry (left) + Cancel (right) when HasFetchError; Cancel only when ShowProgress -->
+                <HorizontalStackLayout
+                    Grid.Row="3"
+                    HorizontalOptions="Center"
+                    Spacing="24">
+                    <!-- Retry Button (shown when HasFetchError, to the left of Cancel) -->
+                    <Border
+                        IsVisible="{Binding Source={x:Reference busyOverlay}, Path=HasFetchError, Mode=OneWay}"
+                        BackgroundColor="{StaticResource PrimaryColor}"
+                        HeightRequest="{DynamicResource IconLargeContainerSize}"
+                        WidthRequest="{DynamicResource IconLargeContainerSize}"
+                        StrokeThickness="0"
                         HorizontalOptions="Center"
-                        VerticalOptions="Center" />
-                </Border>
+                        VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="100" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="#6A5ACD" Offset="0,4" Opacity="0.4" Radius="12" />
+                        </Border.Shadow>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={x:Reference busyOverlay}, Path=RetryCommand}" />
+                        </Border.GestureRecognizers>
+                        <Label
+                            Text="{x:Static fn:GlyphNames.Retry}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="{DynamicResource IconLargeFontSize}"
+                            TextColor="White"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center" />
+                    </Border>
+                    <!-- Cancel Button (visible when ShowProgress OR HasFetchError) -->
+                    <Border
+                        Opacity="{Binding Source={x:Reference busyOverlay}, Path=ShowCancelButton, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
+                        BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                        HeightRequest="{DynamicResource IconStandardContainerSize}"
+                        WidthRequest="{DynamicResource IconStandardContainerSize}"
+                        StrokeThickness="0"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="100" />
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={x:Reference busyOverlay}, Path=CancelCommand}" />
+                        </Border.GestureRecognizers>
+                        <Label
+                            Text="{x:Static fn:GlyphNames.Xmark}"
+                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                            FontSize="{DynamicResource IconStandardFontSize}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center" />
+                    </Border>
+                </HorizontalStackLayout>
             </Grid>
         </Border>
     </Grid>

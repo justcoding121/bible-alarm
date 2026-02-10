@@ -1,4 +1,6 @@
 #nullable enable
+using System.Net.Http;
+using System.Net.Sockets;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -420,11 +422,19 @@ public sealed class CategorySelectionAutoPopulateHandler
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, false, true, shouldSave: false));
             ReportProgress(1.0, isComplete: true);
         }
+        catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
+        {
+            logger.Warning(ex, "CategorySelectionAutoPopulateHandler: Network error during auto-population for category={CategoryName}",
+                action.CategoryName);
+            WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
+                new CategoryFetchProgress { CategoryId = action.CategoryId, Progress = 0, IsComplete = true, HasError = true }));
+        }
         catch (Exception ex)
         {
             logger.Error(ex, "CategorySelectionAutoPopulateHandler: Error during auto-population for category={CategoryName}",
                 action.CategoryName);
-            ReportProgress(1.0, isComplete: true);
+            WeakReferenceMessenger.Default.Send(new CategoryFetchProgressMessage(
+                new CategoryFetchProgress { CategoryId = action.CategoryId, Progress = 0, IsComplete = true, HasError = true }));
         }
     }
 

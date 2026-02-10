@@ -20,7 +20,7 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 
-public sealed class BiblePublicationSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed class BiblePublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IDisposable
 {
     private readonly IState<ApplicationState> state;
     private readonly IMapper mapper;
@@ -152,6 +152,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     {
         propertyManager.HasFetchError = false;
         await RefreshFromState();
+        if (!propertyManager.HasFetchError)
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
     }
 
     private async void OnBiblePublicationInitialized(object? o, EventArgs eventArgs)
@@ -249,8 +251,13 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
         {
-            // Network error - show error state instead of closing modal
             Serilog.Log.Warning(ex, "BiblePublicationSelectionViewModel: Fetch failed with network error");
+            propertyManager.ShowProgress = false;
+            propertyManager.HasFetchError = true;
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "BiblePublicationSelectionViewModel: Fetch failed during refresh");
             propertyManager.ShowProgress = false;
             propertyManager.HasFetchError = true;
         }
@@ -291,6 +298,9 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     public string ProgressText { get => propertyManager.ProgressText; set => propertyManager.ProgressText = value; }
     public bool CanCancelFetch { get => propertyManager.CanCancelFetch; set => propertyManager.CanCancelFetch = value; }
     public bool HasFetchError { get => propertyManager.HasFetchError; set => propertyManager.HasFetchError = value; }
+
+    /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>
+    public bool ShowCancelButton => ShowProgress || HasFetchError;
 
     /// <summary>
     /// Gets the FlowDirection for content based on the selected language direction.
@@ -346,6 +356,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.ShowProgress))
             {
                 OnPropertyChanged(nameof(ShowProgress));
+                OnPropertyChanged(nameof(ShowCancelButton));
                 return;
             }
 
@@ -370,6 +381,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.HasFetchError))
             {
                 OnPropertyChanged(nameof(HasFetchError));
+                OnPropertyChanged(nameof(ShowCancelButton));
             }
         };
 

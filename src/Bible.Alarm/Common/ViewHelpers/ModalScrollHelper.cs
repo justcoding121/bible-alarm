@@ -44,7 +44,7 @@ public static class ModalScrollHelper
     /// <summary>
     /// Default error message for fetch failures.
     /// </summary>
-    public const string DefaultFetchErrorMessage = "Unable to load data. Please check your internet connection.";
+    public const string DefaultFetchErrorMessage = "Please check your internet connection.";
 
     /// <summary>
     /// Handles the standard modal appearing workflow.
@@ -107,6 +107,14 @@ public static class ModalScrollHelper
                         await onFetchFailed(GetFetchErrorMessage(ex));
                     }
                     return ModalAppearingResult.FetchFailed;
+                }
+
+                if (viewModel is IHasFetchErrorListViewModel fetchErrorVm && fetchErrorVm.HasFetchError)
+                {
+                    Log.Debug("ModalScrollHelper: ViewModel has HasFetchError - keeping modal open for retry");
+                    if (collectionView != null && DeviceInfo.Platform != DevicePlatform.WinUI)
+                        await MainThread.InvokeOnMainThreadAsync(() => collectionView.Opacity = 1);
+                    return ModalAppearingResult.Success;
                 }
             }
 

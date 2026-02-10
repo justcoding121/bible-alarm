@@ -70,6 +70,10 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
 #if IOS
         // On iOS, Slider doesn't support tap-to-seek natively, so add TapGestureRecognizer
         SetupIOSTapToSeek();
+        
+        // Force layout measurement on iOS to ensure metadata Grid is properly measured
+        // This fixes an issue where metadata labels don't appear initially in portrait mode
+        ForceIOSLayoutMeasurement();
 #endif
 
         // Reveal Home behind the modal only when desired.
@@ -140,6 +144,70 @@ public partial class PlaybackModal : BaseContentPage, IDisposable
             tapGesture.Tapped += OnSliderTapped;
             landscapeSlider.GestureRecognizers.Add(tapGesture);
         }
+    }
+
+    private void ForceIOSLayoutMeasurement()
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (isDisposed)
+            {
+                return;
+            }
+
+            // Force layout measurement by invalidating the metadata grid and parent containers
+            // This ensures iOS properly measures the Auto-height row containing metadata labels
+            if (MetadataGrid != null)
+            {
+                MetadataGrid.InvalidateMeasure();
+            }
+
+            if (MainContentArea != null)
+            {
+                MainContentArea.InvalidateMeasure();
+            }
+            
+            // Force a second layout update after a short delay to ensure it happens after render
+            Task.Delay(100).ContinueWith(_ =>
+            {
+                if (isDisposed)
+                {
+                    return;
+                }
+
+                try
+                {
+                    Dispatcher.Dispatch(() =>
+                    {
+                        if (!isDisposed)
+                        {
+                            if (MetadataGrid != null)
+                            {
+                                MetadataGrid.InvalidateMeasure();
+                            }
+
+                            if (MainContentArea != null)
+                            {
+                                MainContentArea.InvalidateMeasure();
+                            }
+                        }
+                    });
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Modal was disposed, ignore
+                }
+                catch (InvalidOperationException)
+                {
+                    // Dispatcher is no longer available, ignore
+                }
+            });
+        });
     }
 #endif
 

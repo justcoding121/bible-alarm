@@ -19,7 +19,7 @@ using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.ViewModels.Music;
 
-public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IDisposable
+public sealed class MusicPublicationSelectionViewModel : ObservableObject, IListViewModel, IHasFetchErrorListViewModel, IDisposable
 {
     private readonly ILogger logger;
     private readonly IMediaService mediaService;
@@ -208,6 +208,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     {
         propertyManager.HasFetchError = false;
         await RefreshFromState();
+        if (!propertyManager.HasFetchError)
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.IsBusy = false);
     }
 
     public FlowDirection ContentFlowDirection
@@ -289,6 +291,9 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         get => propertyManager.HasFetchError;
         set => propertyManager.HasFetchError = value;
     }
+
+    /// <summary>Show cancel (and retry when HasFetchError) button in overlay.</summary>
+    public bool ShowCancelButton => ShowProgress || HasFetchError;
 
     /// <summary>
     /// Initialize is called via Task.Run from HandleMusicInitialized.
@@ -593,8 +598,16 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
         {
-            // Network error - show error state instead of closing modal
             Serilog.Log.Warning(ex, "MusicPublicationSelectionViewModel: Fetch failed with network error");
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                propertyManager.ShowProgress = false;
+                propertyManager.HasFetchError = true;
+            });
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "MusicPublicationSelectionViewModel: Fetch failed during refresh");
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 propertyManager.ShowProgress = false;
@@ -673,6 +686,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.ShowProgress))
             {
                 OnPropertyChanged(nameof(ShowProgress));
+                OnPropertyChanged(nameof(ShowCancelButton));
                 return;
             }
 
@@ -697,6 +711,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.HasFetchError))
             {
                 OnPropertyChanged(nameof(HasFetchError));
+                OnPropertyChanged(nameof(ShowCancelButton));
             }
         };
 
