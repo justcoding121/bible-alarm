@@ -373,17 +373,9 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             return;
         }
 
-        // Determine if this is the first or last track
-        var isFirstTrack = stateManager.CurrentTrackIndex == 0;
-        var isLastTrack = !stateManager.IsIndefinitePlayback &&
-                          stateManager.Playlist != null &&
-                          stateManager.CurrentTrackIndex == stateManager.Playlist.Count - 1;
-
         var success = await trackPlaybackHandler.PlayTrackAsync(
             track,
             stateManager.CurrentTrackIndex,
-            isFirstTrack,
-            isLastTrack,
             startFromBeginning,
             stateManager.CurrentScheduleId,
             () => stateManager.IsPreparingOrPlaying(audioPlayer),

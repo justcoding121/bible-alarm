@@ -26,11 +26,11 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     /// <summary>
     /// Sets a multi-item queue via ExoPlayer using SetMediaSources to enable both Next and Previous buttons.
     /// Uses distinct MediaItems (dummy previous, current, dummy next) with different MediaIds and URI fragments pointing to the same file.
-    /// This creates a proper multi-item timeline that MediaSessionConnector recognizes,
-    /// unlike duplicate MediaItems which ExoPlayer may deduplicate.
-    /// Only creates dummy items when needed (previous dummy only if not first track, next dummy only if not last track).
+    /// Always includes both dummy items so HasPreviousMediaItem and HasNextMediaItem are true,
+    /// enabling lock screen notification Previous/Next buttons regardless of track position.
+    /// Queue layout: [previous_dummy, current, next_dummy].
     /// </summary>
-    public void SetSourceWithDummyQueue(MediaElement mediaElement, string uri, bool isFirstTrack = false, bool isLastTrack = false)
+    public void SetSourceWithDummyQueue(MediaElement mediaElement, string uri)
     {
         try
         {
@@ -48,14 +48,14 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
                 return;
             }
 
-            var sources = mediaSourceBuilder.BuildMediaSources(dataSourceFactory, androidUri, isFirstTrack, isLastTrack);
+            var sources = mediaSourceBuilder.BuildMediaSources(dataSourceFactory, androidUri);
             if (sources == null)
             {
                 return;
             }
 
-            playerManager.ConfigurePlayerWithSources(player, sources, isFirstTrack);
-            notificationLogger.LogQueueConfiguration(sources.Count, isFirstTrack, isLastTrack);
+            playerManager.ConfigurePlayerWithSources(player, sources);
+            notificationLogger.LogQueueConfiguration(sources.Count);
             playerManager.VerifyPlayerCapabilities(player);
             notificationLogger.LogFinalConfirmation(sources.Count);
         }

@@ -11,9 +11,9 @@ public interface IAndroidPlayerNotificationService : IDisposable
 {
     /// <summary>
     /// Sets a multi-item queue via ExoPlayer to enable the Next and Previous buttons in system controls.
-    /// Uses SetMediaSources with dummy items to create a proper multi-item timeline.
+    /// Always uses three items: [previous_dummy, current, next_dummy].
     /// </summary>
-    void SetSourceWithDummyQueue(MediaElement mediaElement, string uri, bool isFirstTrack = false, bool isLastTrack = false);
+    void SetSourceWithDummyQueue(MediaElement mediaElement, string uri);
 
     /// <summary>
     /// Releases the MediaSession to hide the media notification.

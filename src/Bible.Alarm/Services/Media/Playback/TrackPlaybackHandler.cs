@@ -32,8 +32,6 @@ public sealed class TrackPlaybackHandler
     public async Task<bool> PlayTrackAsync(
         AudioPlayerTrack track,
         int currentTrackIndex,
-        bool isFirstTrack,
-        bool isLastTrack,
         bool startFromBeginning,
         int? currentScheduleId,
         Func<bool> isPreparingOrPlaying,
@@ -64,7 +62,7 @@ public sealed class TrackPlaybackHandler
         setIsPreparingTrack(true);
         try
         {
-            await audioPlayer.PrepareAsync(track, isFirstTrack, isLastTrack);
+            await audioPlayer.PrepareAsync(track);
 
             // On Android with queue (SetSourceWithDummyQueue), MediaOpened may not fire when changing tracks,
             // so MediaSession/Android Auto keeps the previous track's title. Sync metadata now so Now Playing shows the correct track.

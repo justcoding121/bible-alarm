@@ -62,8 +62,9 @@ public sealed class PlayerManager(ILogger logger)
 
     /// <summary>
     /// Configures the player with the provided media sources and sets up the listener.
+    /// Queue layout is always [previous_dummy, current, next_dummy], so current is at index 1.
     /// </summary>
-    public void ConfigurePlayerWithSources(IExoPlayer player, List<IMediaSource> sources, bool isFirstTrack)
+    public void ConfigurePlayerWithSources(IExoPlayer player, List<IMediaSource> sources)
     {
         // Set media sources directly on the player
         player.SetMediaSources([.. sources]);
@@ -72,10 +73,8 @@ public sealed class PlayerManager(ILogger logger)
         // This is what makes MediaSessionConnector see HasNextMediaItem and HasPreviousMediaItem = true
         player.Prepare();
 
-        // Seek to the current item index
-        // If previous dummy exists, current is at index 1, otherwise at index 0
-        var currentItemIndex = isFirstTrack ? 0 : 1;
-        player.SeekTo(currentItemIndex, 0);
+        // Current item is always at index 1 (previous dummy is always at index 0).
+        player.SeekTo(1, 0);
 
         // Set up the ExoPlayer listener
         SetupExoPlayerListener(player);

@@ -6,7 +6,7 @@ namespace Bible.Alarm.Services.Media.Interfaces;
 
 public interface IAudioPlayer : IDisposable
 {
-    Task PrepareAsync(AudioPlayerTrack track, bool isFirstTrack = false, bool isLastTrack = false);
+    Task PrepareAsync(AudioPlayerTrack track);
 
     Task PlayAsync();
 

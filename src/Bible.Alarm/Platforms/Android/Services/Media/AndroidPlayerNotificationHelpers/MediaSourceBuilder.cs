@@ -14,8 +14,11 @@ public sealed class MediaSourceBuilder(ILogger logger)
 {
     /// <summary>
     /// Builds media sources for the player queue including dummy items for navigation buttons.
+    /// Always includes previous and next dummy items so ExoPlayer's HasPreviousMediaItem /
+    /// HasNextMediaItem are true, enabling lock screen notification Previous/Next buttons.
+    /// Queue layout: [previous_dummy, current, next_dummy].
     /// </summary>
-    public List<IMediaSource>? BuildMediaSources(DefaultDataSource.Factory dataSourceFactory, Uri androidUri, bool isFirstTrack, bool isLastTrack)
+    public List<IMediaSource>? BuildMediaSources(DefaultDataSource.Factory dataSourceFactory, Uri androidUri)
     {
         var sources = new List<IMediaSource>();
         var currentSource = CreateCurrentMediaSource(dataSourceFactory, androidUri);
@@ -24,30 +27,24 @@ public sealed class MediaSourceBuilder(ILogger logger)
             return null;
         }
 
-        // Add previous dummy only if not first track
-        if (!isFirstTrack)
+        // Always add previous dummy so HasPreviousMediaItem is true.
+        var previousSource = CreateDummyMediaSource("bible_alarm_previous_dummy", dataSourceFactory);
+        if (previousSource == null)
         {
-            var previousSource = CreateDummyMediaSource("bible_alarm_previous_dummy", dataSourceFactory);
-            if (previousSource == null)
-            {
-                return null;
-            }
-            sources.Add(previousSource);
+            return null;
         }
+        sources.Add(previousSource);
 
-        // Add current item
+        // Add current item (always at index 1).
         sources.Add(currentSource);
 
-        // Add next dummy only if not last track
-        if (!isLastTrack)
+        // Always add next dummy so HasNextMediaItem is true.
+        var nextSource = CreateDummyMediaSource("bible_alarm_next_dummy", dataSourceFactory);
+        if (nextSource == null)
         {
-            var nextSource = CreateDummyMediaSource("bible_alarm_next_dummy", dataSourceFactory);
-            if (nextSource == null)
-            {
-                return null;
-            }
-            sources.Add(nextSource);
+            return null;
         }
+        sources.Add(nextSource);
 
         return sources;
     }

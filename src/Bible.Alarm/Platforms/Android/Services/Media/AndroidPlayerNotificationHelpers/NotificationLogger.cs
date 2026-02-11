@@ -11,14 +11,9 @@ public sealed class NotificationLogger(ILogger logger)
     /// <summary>
     /// Logs the queue configuration details.
     /// </summary>
-    public void LogQueueConfiguration(int itemCount, bool isFirstTrack, bool isLastTrack)
+    public void LogQueueConfiguration(int itemCount)
     {
-        var itemsDescription = isFirstTrack && isLastTrack ? "current only" :
-                               isFirstTrack ? "current + next dummy" :
-                               isLastTrack ? "previous dummy + current" :
-                               "previous dummy + current + next dummy";
-        logger.Information("Set media queue with {ItemCount} items ({ItemsDescription}) — Next and Previous buttons will appear conditionally.",
-            itemCount, itemsDescription);
+        logger.Information("Set media queue with {ItemCount} items (previous dummy + current + next dummy).", itemCount);
     }
 
     /// <summary>

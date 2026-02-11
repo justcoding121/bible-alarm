@@ -248,13 +248,13 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
         {
             Serilog.Log.Warning(ex, "BiblePublicationSelectionViewModel: Fetch failed with network error");
-            propertyManager.ShowProgress = false;
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
             throw;
         }
         catch (Exception ex)
         {
             Serilog.Log.Error(ex, "BiblePublicationSelectionViewModel: Fetch failed during refresh");
-            propertyManager.ShowProgress = false;
+            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
             throw;
         }
         finally

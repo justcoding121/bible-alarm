@@ -128,7 +128,7 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
         // MediaElement is now created on-demand - no early initialization needed
     }
 
-    public async Task PrepareAsync(AudioPlayerTrack track, bool isFirstTrack = false, bool isLastTrack = false)
+    public async Task PrepareAsync(AudioPlayerTrack track)
     {
         ArgumentNullException.ThrowIfNull(track);
         if (string.IsNullOrEmpty(track.Uri))
@@ -140,7 +140,7 @@ public sealed class AudioPlayer : IAudioPlayer, IDisposable
         mediaOpenedCompletionSource = new TaskCompletionSource<bool>();
 
         // Prepare MediaElement using manager
-        mediaElement = await mediaElementManager.PrepareAsync(mediaElement, track, isFirstTrack, isLastTrack);
+        mediaElement = await mediaElementManager.PrepareAsync(mediaElement, track);
 
         // Wait for media to open (with timeout)
         // 5 second timeout

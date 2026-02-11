@@ -58,9 +58,7 @@ public class MediaElementManager
 
     public async Task<MediaElement> PrepareAsync(
         MediaElement? currentMediaElement,
-        AudioPlayerTrack track,
-        bool isFirstTrack = false,
-        bool isLastTrack = false)
+        AudioPlayerTrack track)
     {
         ArgumentNullException.ThrowIfNull(track);
         if (string.IsNullOrEmpty(track.Uri))
@@ -107,9 +105,9 @@ public class MediaElementManager
             // Otherwise, MediaElement stays in State.None forever.
             newMediaElement.Source = MediaSource.FromUri(track.Uri);
 
-            // Now set the real (multi-item) queue via ExoPlayer to enable Next button
-            // Pass MediaElement to the service with flags indicating track position
-            androidPlayerNotificationService?.SetSourceWithDummyQueue(newMediaElement, track.Uri, isFirstTrack, isLastTrack);
+            // Now set the real (multi-item) queue via ExoPlayer to enable Next/Previous buttons.
+            // Always includes both dummy items so HasPreviousMediaItem/HasNextMediaItem are true.
+            androidPlayerNotificationService?.SetSourceWithDummyQueue(newMediaElement, track.Uri);
 #else
             newMediaElement.Source = track.Uri;
 #endif
