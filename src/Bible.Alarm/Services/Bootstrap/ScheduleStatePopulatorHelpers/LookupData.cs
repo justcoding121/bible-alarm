@@ -402,16 +402,5 @@ internal sealed class LookupDataLoader
         Dictionary<string, MelodyMusic> MelodyReleases);
 
     public sealed record NoLanguagePublicationMeta(string Name, int CategoryId, string CategoryName);
-
-    private sealed record NoLanguageLookupData(
-        Dictionary<string, NoLanguagePublicationMeta> Publications,
-        Dictionary<(string PublicationCode, string SectionCode), string> Sections,
-        Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string> TrackTitles)
-    {
-        public static readonly NoLanguageLookupData Empty =
-            new(new Dictionary<string, NoLanguagePublicationMeta>(StringComparer.OrdinalIgnoreCase),
-                new Dictionary<(string PublicationCode, string SectionCode), string>(),
-                new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>());
-    }
 }
 

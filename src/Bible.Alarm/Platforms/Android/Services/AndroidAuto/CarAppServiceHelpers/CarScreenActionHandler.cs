@@ -3,7 +3,6 @@ using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
 using Serilog;
 using Action = AndroidX.Car.App.Model.Action;
-using Object = Java.Lang.Object;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers;
 
@@ -82,41 +81,5 @@ public sealed class CarScreenActionHandler(ILogger logger)
             .SetIcon(CarIcon.AppIcon)?
             .SetOnClickListener(new PauseActionCallback(screen, this))?
             .Build() ?? throw new InvalidOperationException("Failed to build pause action");
-    }
-}
-
-/// <summary>
-/// Callback for refresh action.
-/// </summary>
-internal class RefreshActionCallback(Screen screen, CarScreenActionHandler handler) : Object, IOnClickListener
-{
-    public void OnClick()
-    {
-        handler.HandleRefresh();
-        screen?.Invalidate();
-    }
-}
-
-/// <summary>
-/// Callback for play action.
-/// </summary>
-internal class PlayActionCallback(Screen screen, CarScreenActionHandler handler) : Object, IOnClickListener
-{
-    public void OnClick()
-    {
-        handler.HandlePlay();
-        screen?.Invalidate();
-    }
-}
-
-/// <summary>
-/// Callback for pause action.
-/// </summary>
-internal class PauseActionCallback(Screen screen, CarScreenActionHandler handler) : Object, IOnClickListener
-{
-    public void OnClick()
-    {
-        handler.HandlePause();
-        screen?.Invalidate();
     }
 }

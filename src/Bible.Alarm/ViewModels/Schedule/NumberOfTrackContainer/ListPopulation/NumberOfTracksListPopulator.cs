@@ -6,7 +6,7 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.Shared;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
+namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer.ListPopulation;
 
 /// <summary>
 /// Populates the number of tracks list view for the schedule editor.
@@ -102,7 +102,3 @@ public sealed class NumberOfTracksListPopulator
         }
     }
 }
-
-public sealed record NumberOfTracksListPopulatorResult(
-    ObservableCollection<NumberOfTracksListViewItemModel> List,
-    NumberOfTracksListViewItemModel? SelectedItem);

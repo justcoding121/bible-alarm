@@ -4,20 +4,13 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
+namespace Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer.StateInitialization;
 
 /// <summary>
 /// Initializes NumberOfTrackContainerViewModel from ApplicationState. Extracted for LOC compliance.
 /// </summary>
 public static class NumberOfTrackStateInitializer
 {
-    public sealed record InitResult(
-        int ScheduleId,
-        bool NotificationEnabled,
-        bool AlwaysPlayFromStart,
-        bool PlayIndefinitely,
-        string? LastCategoryName);
-
     public static InitResult? TryInitialize(
         ScheduleStateItem? currentSchedule,
         Func<bool> getIsGranted,

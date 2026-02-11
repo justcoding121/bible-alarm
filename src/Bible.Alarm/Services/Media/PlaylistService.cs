@@ -219,7 +219,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             PlaylistTrackUpdater.UpdateBiblePublicationTrackForFinished(schedule, trackMetadata, nextTrackInfo.NextTrack);
         }
     }
-    private record NextTrackInfo(string? NextTrackCode, KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>? NextTrack);
 
     public async Task<PlayItem> NextTrack(int scheduleId)
     {

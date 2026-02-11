@@ -4,7 +4,6 @@ using AndroidX.Car.App.Model;
 using Bible.Alarm.Stores.Models;
 using Serilog;
 using Action = AndroidX.Car.App.Model.Action;
-using Object = Java.Lang.Object;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers;
 
@@ -138,26 +137,5 @@ public sealed class CarScreenTemplateBuilder(ILogger logger)
             .SetTitle("Pause")?
             .SetIcon(CarIcon.AppIcon)?
             .Build() ?? throw new InvalidOperationException("Failed to build play/pause action");
-    }
-}
-
-/// <summary>
-/// Click callback for schedule items in the Car App list.
-/// </summary>
-internal class ScheduleRowClickCallback(MainCarScreen screen, int scheduleId) : Object, IOnClickListener
-{
-    private static readonly ILogger logger = Log.ForContext<ScheduleRowClickCallback>();
-
-    public void OnClick()
-    {
-        try
-        {
-            logger.Information("Schedule {ScheduleId} clicked - starting playback", scheduleId);
-            screen.OnScheduleItemClicked(scheduleId);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error handling schedule click for schedule {ScheduleId}", scheduleId);
-        }
     }
 }
