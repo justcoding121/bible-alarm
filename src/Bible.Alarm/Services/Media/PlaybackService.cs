@@ -45,6 +45,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly TrackOnDemandPreparer trackOnDemandPreparer;
     private readonly PlaybackSessionContextInitializer sessionContextInitializer;
     private readonly PlaybackModeResolver modeResolver;
+    private readonly PlaybackResetExecutor resetExecutor;
+    private readonly PlaybackMediaEventAdapter mediaEventAdapter;
     private readonly IState<PlaybackState> playbackState;
 
     public PlaybackService(
@@ -89,6 +91,18 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         trackOnDemandPreparer = new TrackOnDemandPreparer(preparePlaybackService, logger);
         sessionContextInitializer = new PlaybackSessionContextInitializer(playlistService);
         modeResolver = new PlaybackModeResolver(alarmScheduleService, logger);
+        resetExecutor = new PlaybackResetExecutor(progressTracker, audioPlayer, stateManager, dispatcher, logger);
+        mediaEventAdapter = new PlaybackMediaEventAdapter(
+            eventHandler, progressTracker, logger,
+            () => stateManager.Playlist,
+            () => stateManager.CurrentTrackIndex,
+            idx => stateManager.CurrentTrackIndex = idx,
+            () => stateManager.CurrentScheduleId,
+            () => stateManager.IsIndefinitePlayback,
+            () => TryAppendNextTrackAsync(),
+            startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
+            skipMarkAsPlayed => StopAsyncInternal(skipMarkAsPlayed, false),
+            () => HandlePlaybackFailureAsync());
 
         progressTracker.SetSaveProgressCallback(() => progressTracker.SaveProgressAsync(
             stateManager.Playlist, stateManager.CurrentTrackIndex));
@@ -100,8 +114,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         WeakReferenceMessenger.Default.Register<SeekForwardButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Register<SeekBackwardButtonPressedMessage>(this);
 
-        this.audioPlayer.MediaEnded += OnMediaEnded;
-        this.audioPlayer.MediaFailed += OnMediaFailed;
+        this.audioPlayer.MediaEnded += mediaEventAdapter.OnMediaEnded;
+        this.audioPlayer.MediaFailed += mediaEventAdapter.OnMediaFailed;
     }
 
     public async Task PrepareAndPlayAsync(int scheduleId, bool isAlarm)
@@ -308,38 +322,12 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             () => progressTracker.Stop());
     }
 
-    private async Task ResetAsync()
-    {
-        progressTracker.Stop();
-        await audioPlayer.ResetAsync();
-
-        stateManager.Reset();
-
-        dispatcher.Dispatch(new PlaybackStoppedAction());
-
-#if ANDROID || IOS
-        dispatcher.Dispatch(new SetCarPlayScreenAction());
-        logger.Debug("SetCarPlayScreenAction dispatched after playback reset");
-#endif
-
-        logger.Debug("Playback reset completed. Status: {Status}, ScheduleId: {ScheduleId}",
-            audioPlayer.Status,
-            stateManager.CurrentScheduleId);
-    }
+    private async Task ResetAsync() => await resetExecutor.ResetAsync();
 
     public async Task ResetAndRetryAsync(int scheduleId)
     {
         logger.Information("ResetAndRetryAsync - resetting and retrying schedule {ScheduleId}", scheduleId);
-
-        // Clear error message first
-        dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = null });
-
-        // Reset internal state without dispatching PlaybackStoppedAction (keeps modal open)
-        progressTracker.Stop();
-        await audioPlayer.ResetAsync();
-        stateManager.Reset();
-
-        // Immediately prepare and play again with isAlarm=false (regular playback) - modal will update automatically as state changes
+        await resetExecutor.ResetStateForRetryAsync();
         await PrepareAndPlayAsync(scheduleId, isAlarm: false);
     }
 
@@ -416,54 +404,6 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         return new SectionFetchProgressReporter(token);
     }
 
-    private async void OnMediaEnded(object? sender, EventArgs e)
-    {
-        try
-        {
-            progressTracker.Stop();
-
-            await eventHandler.HandleMediaEndedAsync(
-                stateManager.Playlist,
-                () => stateManager.CurrentTrackIndex,
-                idx => stateManager.CurrentTrackIndex = idx,
-                stateManager.CurrentScheduleId,
-                stateManager.IsIndefinitePlayback,
-                () => TryAppendNextTrackAsync(),
-                startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
-                skipMarkAsPlayed => StopAsyncInternal(skipMarkAsPlayed, false),
-                handlePlaybackFailureAsync: () => HandlePlaybackFailureAsync());
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error handling media ended event");
-        }
-    }
-
-    private async void OnMediaFailed(object? sender, EventArgs e)
-    {
-        try
-        {
-            var trackUri = stateManager.Playlist?[stateManager.CurrentTrackIndex]?.Uri ?? "Unknown";
-            var trackUrl = stateManager.Playlist?[stateManager.CurrentTrackIndex]?.PlayItem?.Url ?? "Unknown";
-
-            await eventHandler.HandleMediaFailedAsync(
-                stateManager.Playlist,
-                () => stateManager.CurrentTrackIndex,
-                idx => stateManager.CurrentTrackIndex = idx,
-                stateManager.CurrentScheduleId,
-                stateManager.IsIndefinitePlayback,
-                () => TryAppendNextTrackAsync(),
-                trackUri,
-                trackUrl,
-                startFromBeginning => PlayCurrentTrackAsync(startFromBeginning),
-                () => HandlePlaybackFailureAsync());
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error handling media failed event");
-        }
-    }
-
     private Task<bool> TryAppendNextTrackAsync(bool reportSectionFetchProgress = true)
     {
         var playlist = stateManager.Playlist;
@@ -529,9 +469,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     {
         progressTracker.Dispose();
 
-        // Unsubscribe from AudioPlayer events
-        audioPlayer.MediaEnded -= OnMediaEnded;
-        audioPlayer.MediaFailed -= OnMediaFailed;
+        audioPlayer.MediaEnded -= mediaEventAdapter.OnMediaEnded;
+        audioPlayer.MediaFailed -= mediaEventAdapter.OnMediaFailed;
 
         // Unregister from messages
         WeakReferenceMessenger.Default.Unregister<NextButtonPressedMessage>(this);

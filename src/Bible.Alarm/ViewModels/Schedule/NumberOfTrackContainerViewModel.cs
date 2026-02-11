@@ -59,6 +59,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     private readonly ContainerReadySignaler containerReadySignaler;
     private readonly NumberOfTracksListPopulator listPopulator;
     private readonly NumberOfTrackStateChangeHandler stateChangeHandler;
+    private readonly NumberOfTrackStateChangeOrchestrator stateChangeOrchestrator;
 
     private ObservableCollection<NumberOfTracksListViewItemModel> numberOfTracksList = new();
     private NumberOfTracksListViewItemModel? currentNumberOfTracks;
@@ -85,6 +86,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         containerReadySignaler = new ContainerReadySignaler(state, dispatcher, "NumberOfTrack", s => s.ContainerReadiness.NumberOfTrack);
         listPopulator = new NumberOfTracksListPopulator(logger, serviceProvider.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationService>());
         stateChangeHandler = new NumberOfTrackStateChangeHandler(logger);
+        stateChangeOrchestrator = new NumberOfTrackStateChangeOrchestrator(containerReadySignaler);
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();
@@ -100,8 +102,6 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     private void InitializePermissionService()
     {
         permissionService = NotificationPermissionService.Instance;
-        
-        // Subscribe to permission events
         permissionService.PermissionGranted += OnPermissionGranted;
         permissionService.PermissionDenied += OnPermissionDenied;
     }
@@ -109,8 +109,6 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     private void InitializePermissionService()
     {
         permissionService = IOSNotificationPermissionService.Instance;
-        
-        // Subscribe to permission events
         permissionService.PermissionGranted += OnPermissionGranted;
         permissionService.PermissionDenied += OnPermissionDenied;
     }
@@ -118,153 +116,89 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 
 #if ANDROID || IOS
 
-    private void OnPermissionGranted(object? sender, EventArgs e)
-    {
-        logger.Information("NotificationPermissionService: Permission granted event received. isWaitingForPermissionResponse={IsWaiting}, currentNotificationEnabled={Current}", 
-            isWaitingForPermissionResponse, notificationEnabled);
-        
-        // Only update if we're waiting for permission response
-        if (isWaitingForPermissionResponse)
-        {
-            isUpdatingFromPermissionCheck = true;
-            try
+    private void OnPermissionGranted(object? sender, EventArgs e) =>
+        NumberOfTrackPermissionHandlers.HandlePermissionGranted(
+            isWaitingForPermissionResponse,
+            logger,
+            () =>
             {
-                // Always set toggle to ON when permission is granted
-                // Force update to ensure UI reflects the ON state
-                var oldValue = notificationEnabled;
                 notificationEnabled = true;
                 OnPropertyChanged(nameof(NotificationEnabled));
                 DispatchScheduleUpdate(s => s.NotificationEnabled = true);
-                logger.Information("Set NotificationEnabled to true after permission granted. Old value: {OldValue}, New value: {NewValue}", 
-                    oldValue, notificationEnabled);
-            }
-            finally
-            {
-                isUpdatingFromPermissionCheck = false;
-                isWaitingForPermissionResponse = false;
-            }
-        }
-        else
-        {
-            logger.Debug("Permission granted event received but not waiting for response - ignoring");
-        }
-    }
+                logger.Information("Set NotificationEnabled to true after permission granted");
+            },
+            x => isUpdatingFromPermissionCheck = x,
+            x => isWaitingForPermissionResponse = x);
 
-    private void OnPermissionDenied(object? sender, EventArgs e)
-    {
-        logger.Information("NotificationPermissionService: Permission denied event received");
-        
-        // Only show toast if we're waiting for permission response
-        if (isWaitingForPermissionResponse)
-        {
-            isUpdatingFromPermissionCheck = true;
-            try
+    private void OnPermissionDenied(object? sender, EventArgs e) =>
+        NumberOfTrackPermissionHandlers.HandlePermissionDenied(
+            isWaitingForPermissionResponse,
+            logger,
+            navigationService,
+            serviceProvider,
+            () =>
             {
                 notificationEnabled = false;
                 OnPropertyChanged(nameof(NotificationEnabled));
                 DispatchScheduleUpdate(s => s.NotificationEnabled = false);
-                logger.Debug("Set NotificationEnabled to false after permission denied");
-
-                MainThread.BeginInvokeOnMainThread(async () =>
-                {
-                    await NotificationPermissionDeniedModalHelper.ShowAsync(
-                        logger, navigationService, serviceProvider,
-                        onPermissionGranted: () =>
-                        {
-                            isUpdatingFromPermissionCheck = true;
-                            try
-                            {
-                                notificationEnabled = true;
-                                OnPropertyChanged(nameof(NotificationEnabled));
-                                DispatchScheduleUpdate(s => s.NotificationEnabled = true);
-                                logger.Information("Set NotificationEnabled to true after permission granted from modal");
-                            }
-                            finally
-                            {
-                                isUpdatingFromPermissionCheck = false;
-                            }
-                        });
-                });
-            }
-            finally
+            },
+            () =>
             {
-                isUpdatingFromPermissionCheck = false;
-                isWaitingForPermissionResponse = false;
-            }
-        }
-    }
+                notificationEnabled = true;
+                OnPropertyChanged(nameof(NotificationEnabled));
+                DispatchScheduleUpdate(s => s.NotificationEnabled = true);
+                logger.Information("Set NotificationEnabled to true after permission granted from modal");
+            },
+            x => isUpdatingFromPermissionCheck = x,
+            x => isWaitingForPermissionResponse = x);
 #endif
 
     private void InitializeCommands()
     {
-        OpenModalCommand = new AsyncRelayCommand(async () =>
-        {
-            await navigationService.OpenNumberOfTracksModalAsync(this);
-        });
-
-        SelectNumberOfTracksCommand = new AsyncRelayCommand<NumberOfTracksListViewItemModel>(async x =>
-        {
-            if (CurrentNumberOfTracks != null)
-            {
-                CurrentNumberOfTracks.IsSelected = false;
-            }
-
-            CurrentNumberOfTracks = x;
-            if (CurrentNumberOfTracks != null)
-            {
-                CurrentNumberOfTracks.IsSelected = true;
-            }
-
-            // Dispatch update to state
-            if (CurrentNumberOfTracks != null)
-            {
-                DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = CurrentNumberOfTracks.Value);
-            }
-
-            // Explicitly notify property changes to ensure UI binding updates
-            OnPropertyChanged(nameof(CurrentNumberOfTracks));
-            OnPropertyChanged(nameof(CurrentNumberOfTracksText));
-
-            await navigationService.PopModalAsync();
-        });
-
+        OpenModalCommand = new AsyncRelayCommand(async () => await navigationService.OpenNumberOfTracksModalAsync(this));
+        SelectNumberOfTracksCommand = new AsyncRelayCommand<NumberOfTracksListViewItemModel>(OnSelectNumberOfTracksAsync);
         ToggleAlwaysPlayFromStartCommand = new RelayCommand(() => AlwaysPlayFromStart = !AlwaysPlayFromStart);
-
         TogglePlayIndefinitelyCommand = new RelayCommand(() => PlayIndefinitely = !PlayIndefinitely);
-
         NotificationEnabledCommand = new RelayCommand(() => { NotificationEnabled = !NotificationEnabled; });
+        CloseModalCommand = new AsyncRelayCommand(async () => await navigationService.PopModalAsync());
+    }
 
-        CloseModalCommand = new AsyncRelayCommand(async () =>
-        {
-            await navigationService.PopModalAsync();
-        });
+    private async Task OnSelectNumberOfTracksAsync(NumberOfTracksListViewItemModel? x)
+    {
+        if (CurrentNumberOfTracks != null) CurrentNumberOfTracks.IsSelected = false;
+        CurrentNumberOfTracks = x;
+        if (CurrentNumberOfTracks != null) CurrentNumberOfTracks.IsSelected = true;
+        if (CurrentNumberOfTracks != null) DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = CurrentNumberOfTracks!.Value);
+        OnPropertyChanged(nameof(CurrentNumberOfTracks));
+        OnPropertyChanged(nameof(CurrentNumberOfTracksText));
+        await navigationService.PopModalAsync();
     }
 
     private void InitializeFromState()
     {
         try
         {
-            var currentSchedule = state.Value.CurrentSchedule;
-            if (currentSchedule != null)
-            {
-                scheduleId = currentSchedule.Id;
-                notificationEnabled = currentSchedule.NotificationEnabled;
-                alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
-                playIndefinitely = currentSchedule.NumberOfTracksToPlay <= 0;
-                lastCategoryName = currentSchedule.BiblePublicationCategoryName;
-
+            var result = NumberOfTrackStateInitializer.TryInitialize(
+                state.Value.CurrentSchedule,
 #if ANDROID || IOS
-                notificationEnabled = NotificationPermissionSyncHelper.SyncValueWithPermission(
-                    notificationEnabled,
-                    () => permissionService != null && permissionService.IsGranted,
-                    logger,
-                    "InitializeFromState: NotificationEnabled is true in state but permission is not granted - setting local property to OFF",
-                    "InitializeFromState: Exception checking notification permission",
-                    () => { });
+                () => permissionService != null && permissionService.IsGranted,
+#else
+                () => true,
 #endif
+                logger);
+
+            if (result == null)
+            {
+                return;
+            }
+
+            scheduleId = result.ScheduleId;
+            notificationEnabled = result.NotificationEnabled;
+            alwaysPlayFromStart = result.AlwaysPlayFromStart;
+            playIndefinitely = result.PlayIndefinitely;
+            lastCategoryName = result.LastCategoryName;
 
             _ = PopulateNumberOfTracksListViewAsync();
-
             OnPropertyChanged(nameof(NotificationEnabled));
             OnPropertyChanged(nameof(AlwaysPlayFromStart));
             OnPropertyChanged(nameof(PlayIndefinitely));
@@ -273,21 +207,16 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             OnPropertyChanged(nameof(ModalHeaderText));
             OnPropertyChanged(nameof(RestartLabelText));
             OnPropertyChanged(nameof(SelectedTracksText));
-
-                // Signal that this container is ready (initialized from CurrentSchedule)
-                containerReadySignaler.TrySignalReady();
-            }
+            containerReadySignaler.TrySignalReady();
         }
         catch (Exception ex)
         {
             logger.Error(ex, "InitializeFromState: Exception initializing from state");
-            // Don't rethrow - allow app to continue even if initialization fails
         }
     }
 
     private void OnStateChanged(object? sender, EventArgs e)
     {
-        // Prevent re-entrant calls to avoid cycles
         if (isProcessingStateChange)
         {
             return;
@@ -298,32 +227,19 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         {
             var stateValue = state.Value;
             var currentSchedule = stateValue.CurrentSchedule;
+            var (shouldReset, shouldReinit) = stateChangeOrchestrator.GetReinitDecision(stateValue, scheduleId);
 
-            // If ContainerReadiness was reset to NotReady but we've already signaled ready, reset our flag
-            // This handles the case where ViewScheduleAction resets ContainerReadiness after containers signaled ready
-            if (containerReadySignaler.HasSignaledReady && !stateValue.ContainerReadiness.NumberOfTrack && currentSchedule != null)
+            if (shouldReinit)
             {
-                containerReadySignaler.Reset();
-                // Re-initialize and signal ready again
+                if (shouldReset)
+                {
+                    containerReadySignaler.Reset();
+                }
                 InitializeFromState();
                 return;
             }
 
-            // If we don't have a scheduleId yet (initial state), initialize when CurrentSchedule is set
-            // But only if we haven't already signaled ready (prevents infinite loop for new schedules with Id=0)
-            if (scheduleId == 0 && currentSchedule != null && !containerReadySignaler.HasSignaledReady)
-            {
-                InitializeFromState();
-                return;
-            }
-
-            // Initialize if schedule ID changed to a different positive ID (existing schedule opened)
-            if (currentSchedule != null && currentSchedule.Id != scheduleId && currentSchedule.Id > 0)
-            {
-                containerReadySignaler.Reset();
-                InitializeFromState();
-            }
-            else if (currentSchedule != null)
+            if (currentSchedule != null)
             {
                 isSyncingFromState = true;
                 try
@@ -398,10 +314,6 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         }
     }
 
-    /// <summary>
-    /// Computed property for binding to the number of tracks text in the UI.
-    /// This ensures the UI updates when CurrentNumberOfTracks changes.
-    /// </summary>
     public string CurrentNumberOfTracksText => CurrentNumberOfTracks?.Text ?? string.Empty;
 
     private string? CategoryName => state.Value.CurrentSchedule?.BiblePublicationCategoryName;
@@ -428,7 +340,6 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         get => notificationEnabled;
         set
         {
-            // Prevent re-entrancy - if we're already processing, ignore
             if (isUpdatingFromPermissionCheck || isSyncingFromState)
             {
                 logger.Debug("NotificationEnabled setter called during update/sync - ignoring. isUpdatingFromPermissionCheck={IsUpdating}, isSyncingFromState={IsSyncing}, value={Value}", 
@@ -473,7 +384,6 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                 isWaitingForPermissionResponse = false;
             }
 #else
-            // Non-Android/iOS platforms - update immediately
             if (SetProperty(ref notificationEnabled, value))
             {
                 DispatchScheduleUpdate(s => s.NotificationEnabled = value);
@@ -483,11 +393,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     }
 
 #if ANDROID || IOS
-    public void StopPermissionCheckTaskIfRunning()
-    {
-        // Reset waiting flag if task was running
-        isWaitingForPermissionResponse = false;
-    }
+    public void StopPermissionCheckTaskIfRunning() => isWaitingForPermissionResponse = false;
 #endif
 
     public bool AlwaysPlayFromStart
@@ -502,10 +408,6 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         }
     }
 
-    /// <summary>
-    /// When enabled, the schedule plays indefinitely (NumberOfTracksToPlay is stored as 0).
-    /// When disabled, the user selects a finite number of chapters/episodes to play.
-    /// </summary>
     public bool PlayIndefinitely
     {
         get => playIndefinitely;
@@ -540,15 +442,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         }
     }
 
-    /// <summary>
-    /// True when the finite number-of-tracks row should be shown.
-    /// </summary>
     public bool IsNumberOfTracksSelectionVisible => !PlayIndefinitely;
 
-    /// <summary>
-    /// Populates the number of tracks list view.
-    /// This method is async because it may need to fetch publication data for dramas.
-    /// </summary>
     public async Task PopulateNumberOfTracksListViewAsync(int? forceSelection = null)
     {
         var preservedSelection = forceSelection ?? CurrentNumberOfTracks?.Value;
@@ -568,14 +463,6 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         OnPropertyChanged(nameof(NumberOfTracksList));
     }
 
-    /// <summary>
-    /// Private wrapper for backward compatibility with fire-and-forget calls.
-    /// </summary>
-    private async void PopulateNumberOfTracksListView(int? forceSelection = null)
-    {
-        await PopulateNumberOfTracksListViewAsync(forceSelection);
-    }
-
     private void DispatchScheduleUpdate(Action<ScheduleStateItem> updateAction)
     {
         var currentSchedule = state.Value.CurrentSchedule;
@@ -593,7 +480,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     public void Dispose()
     {
         state.StateChanged -= OnStateChanged;
-#if ANDROID
+#if ANDROID || IOS
         if (permissionService != null)
         {
             permissionService.PermissionGranted -= OnPermissionGranted;
