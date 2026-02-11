@@ -1,11 +1,9 @@
 #nullable enable
-using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Services.Media.Playback;
-using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
@@ -44,6 +42,9 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly TrackMarker trackMarker;
     private readonly PlaybackIndefiniteResolver indefiniteResolver;
     private readonly PlaybackPlaylistExtender playlistExtender;
+    private readonly TrackOnDemandPreparer trackOnDemandPreparer;
+    private readonly PlaybackSessionContextInitializer sessionContextInitializer;
+    private readonly PlaybackModeResolver modeResolver;
     private readonly IState<PlaybackState> playbackState;
 
     public PlaybackService(
@@ -85,6 +86,9 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         trackMarker = new TrackMarker(playlistService, logger);
         indefiniteResolver = new PlaybackIndefiniteResolver(playlistService, logger);
         playlistExtender = new PlaybackPlaylistExtender(playlistService, preparePlaybackService, indefiniteResolver, logger);
+        trackOnDemandPreparer = new TrackOnDemandPreparer(preparePlaybackService, logger);
+        sessionContextInitializer = new PlaybackSessionContextInitializer(playlistService);
+        modeResolver = new PlaybackModeResolver(alarmScheduleService, logger);
 
         progressTracker.SetSaveProgressCallback(() => progressTracker.SaveProgressAsync(
             stateManager.Playlist, stateManager.CurrentTrackIndex));
@@ -129,54 +133,34 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             var cancellationToken = stateManager.PreparationCancellationTokenSource.Token;
 
             // Capture playback mode once for this session.
-            stateManager.IsIndefinitePlayback = await IsIndefinitePlaybackAsync(scheduleId, cancellationToken);
+            stateManager.IsIndefinitePlayback = await modeResolver.IsIndefinitePlaybackAsync(scheduleId, cancellationToken);
 
             stateManager.Playlist = await initializer.PrepareTracksAsync(scheduleId, cancellationToken);
 
             if (stateManager.Playlist is null)
             {
-                logger.Information("Track preparation cancelled or failed for schedule {ScheduleId}", scheduleId);
-
-                var errorMessage = isAlarm
-                    ? "Download failed. Playing default alarm sound."
-                    : "Media download failed. Check your internet connection.";
-
-                dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = errorMessage });
-                dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
-                WeakReferenceMessenger.Default.Send(new ShowToastMessage(errorMessage));
-
-                if (isAlarm)
-                {
-                    await TryPlayFallbackAlarmSoundAsync(scheduleId, keepErrorMessage: true);
-                }
-
+                await PlaybackPreparationFailureHandler.HandleAsync(
+                    scheduleId, isAlarm, "Track preparation cancelled or failed for schedule {ScheduleId}",
+                    dispatcher, logger, TryPlayFallbackAlarmSoundAsync);
                 return;
             }
 
             if (stateManager.Playlist.Count == 0)
             {
-                logger.Warning("No tracks prepared for schedule {ScheduleId}", scheduleId);
-
-                var errorMessage = isAlarm
-                    ? "Download failed. Playing default alarm sound."
-                    : "Media download failed. Check your internet connection.";
-
-                dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = errorMessage });
-                dispatcher.Dispatch(new PlaybackStatusChangedAction(PlayStatus.Failed));
-                WeakReferenceMessenger.Default.Send(new ShowToastMessage(errorMessage));
-
-                if (isAlarm)
-                {
-                    await TryPlayFallbackAlarmSoundAsync(scheduleId, keepErrorMessage: true);
-                }
-
+                await PlaybackPreparationFailureHandler.HandleAsync(
+                    scheduleId, isAlarm, "No tracks prepared for schedule {ScheduleId}",
+                    dispatcher, logger, TryPlayFallbackAlarmSoundAsync);
                 return;
             }
 
             stateManager.CurrentTrackIndex = 0;
             stateManager.ManuallyVisitedTrackIndices.Clear();
 
-            await InitializeSessionNavigationContextAsync();
+            await sessionContextInitializer.InitializeAsync(
+                stateManager.Playlist,
+                p => stateManager.SessionMusicPlayItem = p,
+                m => stateManager.AnchorBibleMetadata = m,
+                m => stateManager.PreAnchorBibleMetadata = m);
 
             navigationManager.NotifyNavigationChanged(stateManager.Playlist, stateManager.CurrentTrackIndex);
 
@@ -242,39 +226,6 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             handlePlaybackFailureAsync: () => HandlePlaybackFailureAsync());
     }
 
-    private async Task InitializeSessionNavigationContextAsync()
-    {
-        var playlist = stateManager.Playlist;
-        if (playlist == null || playlist.Count == 0)
-        {
-            stateManager.AnchorBibleMetadata = null;
-            stateManager.PreAnchorBibleMetadata = null;
-            stateManager.SessionMusicPlayItem = null;
-            return;
-        }
-
-        stateManager.SessionMusicPlayItem = playlist.FirstOrDefault(t => t.PlayItem.Metadata.PlayType == PlayType.Music)?.PlayItem;
-        stateManager.AnchorBibleMetadata = playlist.FirstOrDefault(t => t.PlayItem.Metadata.PlayType == PlayType.Bible)?.PlayItem.Metadata;
-
-        if (stateManager.AnchorBibleMetadata != null)
-        {
-            try
-            {
-                // Pre-anchor is the Bible track immediately before the anchor (wrap-around enabled).
-                var preAnchor = await playlistService.GetPreviousPlayItemAsync(stateManager.AnchorBibleMetadata);
-                stateManager.PreAnchorBibleMetadata = preAnchor.Metadata;
-            }
-            catch
-            {
-                stateManager.PreAnchorBibleMetadata = null;
-            }
-        }
-        else
-        {
-            stateManager.PreAnchorBibleMetadata = null;
-        }
-    }
-
     public void Receive(NextButtonPressedMessage message)
     {
         systemControlsHandler.HandleNextButton(() => PlayNextAsync());
@@ -292,21 +243,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             if (!stateManager.IsPreparingOrPlaying(audioPlayer) &&
                 (stateManager.Playlist == null || stateManager.Playlist.Count == 0 || !stateManager.CurrentScheduleId.HasValue))
             {
-                var defaultScheduleId = playbackState.Value.DefaultScheduleId;
-
-                // Fluxor state may not have DefaultScheduleId yet during cold start
-                // (SetCarPlayScreenAction is deferred 2s after bootstrap for UI responsiveness).
-                // Fall back to the schedule ID saved in Preferences from the last playback session.
-                if (!defaultScheduleId.HasValue || defaultScheduleId.Value <= 0)
-                {
-                    var lastPlayed = LastPlayedMetadataHelper.GetLastPlayedMetadata();
-                    if (lastPlayed?.ScheduleId is > 0)
-                    {
-                        defaultScheduleId = lastPlayed.Value.ScheduleId;
-                        logger.Information("DefaultScheduleId not in Fluxor state, using Preferences fallback: {ScheduleId}", defaultScheduleId.Value);
-                    }
-                }
-
+                var defaultScheduleId = PlaybackDefaultScheduleResolver.Resolve(playbackState, logger);
                 if (defaultScheduleId.HasValue && defaultScheduleId.Value > 0)
                 {
                     logger.Information("Play button pressed with no active playback - starting default schedule {ScheduleId}", defaultScheduleId.Value);
@@ -419,7 +356,8 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         var track = stateManager.Playlist[stateManager.CurrentTrackIndex];
 
         // Ensure the track is downloaded/prepared before attempting to play.
-        var prepared = await EnsureTrackPreparedAsync(track);
+        var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
+        var prepared = await trackOnDemandPreparer.EnsureTrackPreparedAsync(track, token);
         if (!prepared)
         {
             await HandlePlaybackFailureAsync();
@@ -452,11 +390,18 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
 
         // Background: always try to download the next track while this track is playing.
+        var playlist = stateManager.Playlist;
+        var currentIndex = stateManager.CurrentTrackIndex;
+        var tryAppend = () => TryAppendNextTrackAsync(reportSectionFetchProgress: false);
         _ = Task.Run(async () =>
         {
             try
             {
-                await PreDownloadNextTrackAsync();
+                if (playlist != null)
+                {
+                    await trackOnDemandPreparer.PreDownloadNextTrackAsync(
+                        playlist, currentIndex, stateManager.IsIndefinitePlayback, tryAppend, token);
+                }
             }
             catch
             {
@@ -465,146 +410,10 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         });
     }
 
-    private async Task<bool> IsIndefinitePlaybackAsync(int scheduleId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
-                scheduleId,
-                includeMusic: false,
-                includeBiblePublication: false,
-                cancellationToken);
-
-            return schedule != null && schedule.NumberOfTracksToPlay <= 0;
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Failed to load schedule {ScheduleId} to determine indefinite playback; defaulting to finite", scheduleId);
-            return false;
-        }
-    }
-
-    private async Task<bool> EnsureTrackPreparedAsync(AudioPlayerTrack track)
-    {
-        if (!string.IsNullOrEmpty(track.Uri))
-        {
-            SendSingleTrackPreparationProgress(loadedTracks: 1, totalTracks: 1, bytesDownloaded: 1, totalBytes: 1);
-            return true;
-        }
-
-        var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
-
-        try
-        {
-            // Show progress in the alarm modal while downloading a single track on-demand.
-            SendSingleTrackPreparationProgress(loadedTracks: 0, totalTracks: 1, bytesDownloaded: 0, totalBytes: null);
-
-            var prepared = await preparePlaybackService.PrepareSingleTrackWithProgressAsync(
-                track.PlayItem,
-                (bytesDownloaded, totalBytes) =>
-                {
-                    SendSingleTrackPreparationProgress(loadedTracks: 0, totalTracks: 1, bytesDownloaded: bytesDownloaded, totalBytes: totalBytes);
-                },
-                token);
-
-            if (prepared == null || string.IsNullOrEmpty(prepared.Uri))
-            {
-                return false;
-            }
-
-            track.Uri = prepared.Uri;
-
-            // Mark preparation complete (1/1)
-            SendSingleTrackPreparationProgress(loadedTracks: 1, totalTracks: 1, bytesDownloaded: 1, totalBytes: 1);
-            return true;
-        }
-        catch (OperationCanceledException)
-        {
-            return false;
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Failed to prepare track on-demand: {Url}", track.PlayItem?.Url ?? "Unknown");
-            return false;
-        }
-    }
-
-    private static void SendSingleTrackPreparationProgress(int loadedTracks, int totalTracks, long bytesDownloaded, long? totalBytes)
-    {
-        WeakReferenceMessenger.Default.Send(new PlaybackPreparationProgressMessage
-        {
-            LoadedTracks = loadedTracks,
-            TotalTracks = totalTracks,
-            CurrentTrackProgress = 0.0,
-            BytesDownloaded = bytesDownloaded,
-            TotalBytes = totalBytes,
-            TotalBytesDownloaded = bytesDownloaded,
-            TotalBytesExpected = totalBytes
-        });
-    }
-
     private IFetchProgress CreateSectionFetchProgressReporter()
     {
         var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
         return new SectionFetchProgressReporter(token);
-    }
-
-    private async Task PreDownloadNextTrackAsync()
-    {
-        var playlist = stateManager.Playlist;
-        if (playlist == null || playlist.Count == 0)
-        {
-            return;
-        }
-
-        var currentIndex = stateManager.CurrentTrackIndex;
-        var nextIndex = currentIndex + 1;
-        if (nextIndex < 0 || nextIndex >= playlist.Count)
-        {
-            // Indefinite playback: pre-extend and pre-download the next track if possible.
-            if (stateManager.IsIndefinitePlayback)
-            {
-                var appended = await TryAppendNextTrackAsync(reportSectionFetchProgress: false);
-                if (!appended)
-                {
-                    return;
-                }
-
-                nextIndex = currentIndex + 1;
-                if (nextIndex < 0 || nextIndex >= playlist.Count)
-                {
-                    return;
-                }
-            }
-            else
-            {
-                return;
-            }
-        }
-
-        var nextTrack = playlist[nextIndex];
-        if (!string.IsNullOrEmpty(nextTrack.Uri))
-        {
-            return;
-        }
-
-        var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
-        try
-        {
-            var prepared = await preparePlaybackService.PrepareSingleTrackAsync(nextTrack.PlayItem, token);
-            if (prepared != null && !string.IsNullOrEmpty(prepared.Uri))
-            {
-                nextTrack.Uri = prepared.Uri;
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Ignore.
-        }
-        catch (Exception ex)
-        {
-            logger.Debug(ex, "Background pre-download for next track failed");
-        }
     }
 
     private async void OnMediaEnded(object? sender, EventArgs e)
@@ -689,28 +498,6 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             playlist,
             stateManager.CurrentTrackIndex,
             stateManager.CurrentScheduleId,
-            stateManager.SessionMusicPlayItem,
-            stateManager.AnchorBibleMetadata,
-            stateManager.PreAnchorBibleMetadata,
-            sectionProgress);
-    }
-
-    private async Task<PlayItem> ResolveNextPlayItemForSessionAsync(TrackMetadata currentMetadata, bool reportSectionFetchProgress = true)
-    {
-        var sectionProgress = reportSectionFetchProgress ? CreateSectionFetchProgressReporter() : null;
-        return await indefiniteResolver.ResolveNextPlayItemAsync(
-            currentMetadata,
-            stateManager.SessionMusicPlayItem,
-            stateManager.AnchorBibleMetadata,
-            stateManager.PreAnchorBibleMetadata,
-            sectionProgress);
-    }
-
-    private async Task<PlayItem> ResolvePreviousPlayItemForSessionAsync(TrackMetadata currentMetadata, bool reportSectionFetchProgress = true)
-    {
-        var sectionProgress = reportSectionFetchProgress ? CreateSectionFetchProgressReporter() : null;
-        return await indefiniteResolver.ResolvePreviousPlayItemAsync(
-            currentMetadata,
             stateManager.SessionMusicPlayItem,
             stateManager.AnchorBibleMetadata,
             stateManager.PreAnchorBibleMetadata,
