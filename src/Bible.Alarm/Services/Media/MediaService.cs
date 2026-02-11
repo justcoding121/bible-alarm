@@ -1,5 +1,6 @@
 #nullable enable annotations
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.MediaServiceHelpers;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
@@ -282,66 +283,13 @@ public sealed class MediaService(
         return await biblePublicationTrackService.GetTracksBySectionAsync(languageCode, versionCode, sectionCode, cancellationTokenSource.Token);
     }
     
-    private async Task<SortedDictionary<string, BiblePublicationTrack>> GetTracksForPublicationWithoutLanguage(
-        string publicationCode, string? sectionCode)
-    {
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        var publicationId = await db.BiblePublications
-            .AsNoTracking()
-            .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
-            .Select(x => x.Id)
-            .FirstOrDefaultAsync(cancellationTokenSource.Token);
-
-        if (publicationId <= 0)
-        {
-            return new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
-        }
-
-        // Non-sectioned publications store tracks with BiblePublicationSectionId == null.
-        if (string.IsNullOrWhiteSpace(sectionCode))
-        {
-            var flatTracks = await db.BiblePublicationTracks
-                .AsNoTracking()
-                .Where(t => t.BiblePublicationId == publicationId && t.BiblePublicationSectionId == null)
-                .ToListAsync(cancellationTokenSource.Token);
-
-            if (flatTracks.Count == 0)
-            {
-                return new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
-            }
-
-            var orderedTracks = flatTracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
-            return new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
-        }
-
-        // Sectioned publications resolve by exact SectionCode string.
-        var sectionId = await db.BiblePublicationSections
-            .AsNoTracking()
-            .Where(s => s.BiblePublicationId == publicationId && s.SectionCode == sectionCode)
-            .Select(s => s.Id)
-            .FirstOrDefaultAsync(cancellationTokenSource.Token);
-
-        if (sectionId <= 0)
-        {
-            return new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
-        }
-
-        var tracksList = await db.BiblePublicationTracks
-            .AsNoTracking()
-            .Where(t => t.BiblePublicationId == publicationId && t.BiblePublicationSectionId == sectionId)
-            .ToListAsync(cancellationTokenSource.Token);
-
-        if (tracksList.Count == 0)
-        {
-            return new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
-        }
-
-        var orderedTracksList = tracksList.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
-        return new SortedDictionary<string, BiblePublicationTrack>(
-            orderedTracksList.ToDictionary(t => t.TrackCode, t => t), TrackCodeComparer.Comparer);
-    }
+    private Task<SortedDictionary<string, BiblePublicationTrack>> GetTracksForPublicationWithoutLanguage(
+        string publicationCode, string? sectionCode) =>
+        MediaServiceTracksForNoLanguageHelper.GetTracksAsync(
+            scopeFactory,
+            publicationCode,
+            sectionCode,
+            cancellationTokenSource.Token);
 
     public async Task<BiblePublicationTrack?> GetBiblePublicationTrack(string languageCode,
         string versionCode, string? sectionCode, string trackCode)
@@ -396,119 +344,14 @@ public sealed class MediaService(
     public async Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode, bool downloadAll = false)
     {
         await mediaIndexService.Verify();
-        
-        // Step 1: Get all available publication codes from PublicationLanguages for Music category (discovery table)
-        // This shows all vocal music publications that are available for this language, even if not yet downloaded
-        var availablePublicationCodes = await BiblePublicationService.GetAvailablePublicationCodesAsync(
-            languageCode, "Music", cancellationTokenSource.Token);
-        
-        Log.Debug("GetVocalMusicReleases: Found {Count} available publication codes from PublicationLanguages for language={LanguageCode}",
-            availablePublicationCodes.Count, languageCode);
-        
-        // Step 2: Get downloaded vocal music releases from BiblePublications table (with language)
-        var downloadedReleases = await vocalMusicService.GetByLanguageCodeAsync(languageCode, cancellationTokenSource.Token);
-        
-        // Also get publications without language FK (LanguageId == null) for Music category
-        // This is data-driven - works for any category that has publications without language
-        Dictionary<string, BiblePublication> publicationsWithoutLanguage = new();
-        using (var scope = scopeFactory.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-            var pubsWithoutLang = await db.BiblePublications
-                .AsNoTracking()
-                .Include(x => x.Category)
-                .Where(x => x.Category != null && 
-                           x.Category.CategoryName == "Music" &&
-                           x.LanguageId == null)
-                .ToListAsync(cancellationTokenSource.Token);
-            
-            foreach (var pub in pubsWithoutLang)
-            {
-                publicationsWithoutLanguage[pub.PublicationCode] = pub;
-            }
-        }
-        
-        Log.Debug("GetVocalMusicReleases: Found {Count} downloaded vocal music releases for language={LanguageCode}, and {CountWithoutLang} publications without language FK",
-            downloadedReleases.Count, languageCode, publicationsWithoutLanguage.Count);
-        
-        // Step 3: Merge - use downloaded releases where available, create placeholders for others
-        var result = new Dictionary<string, VocalMusic>();
-        
-        // Add downloaded releases with language
-        foreach (var downloadedRelease in downloadedReleases.Values)
-        {
-            result[downloadedRelease.Code] = downloadedRelease;
-        }
-        
-        // Add downloaded publications without language FK (data-driven, not hard-coded)
-        // Convert BiblePublication to VocalMusic for consistency
-        foreach (var pubWithoutLang in publicationsWithoutLanguage.Values)
-        {
-            // Only add if not already in result (avoid duplicates)
-            if (!result.ContainsKey(pubWithoutLang.PublicationCode))
-            {
-                var vocalMusic = new VocalMusic { Publication = pubWithoutLang };
-                result[vocalMusic.Code] = vocalMusic;
-            }
-        }
-        
-        // Create placeholders for publications that are available but not yet downloaded
-        using var scope2 = scopeFactory.CreateScope();
-        var dbContext = scope2.ServiceProvider.GetRequiredService<MediaDbContext>();
-        
-        var normalizedLanguageCode = languageCode.ToUpperInvariant();
-        var missingPublicationCodes = availablePublicationCodes
-            .Where(code => !result.ContainsKey(code))
-            .ToList();
-        
-        if (missingPublicationCodes.Count > 0)
-        {
-            Log.Debug("GetVocalMusicReleases: Creating placeholders for {Count} vocal music releases not yet downloaded", missingPublicationCodes.Count);
-            
-            // Get Category and Language info from PublicationLanguages for missing publications
-            var publicationLanguageInfo = await dbContext.PublicationLanguages
-                .AsNoTracking()
-                .Include(pl => pl.Category)
-                .Include(pl => pl.Language)
-                .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode &&
-                             pl.Category != null && pl.Category.CategoryName == "Music" &&
-                             missingPublicationCodes.Contains(pl.PublicationCode))
-                .ToListAsync(cancellationTokenSource.Token);
-            
-            foreach (var plInfo in publicationLanguageInfo)
-            {
-                if (plInfo.Category == null || plInfo.Language == null)
-                    continue;
-                
-                // Create placeholder BiblePublication for vocal music
-                var placeholderPublication = new BiblePublication
-                {
-                    Id = 0, // Not saved yet
-                    PublicationCode = plInfo.PublicationCode,
-                    Name = plInfo.PublicationCode, // Placeholder name - will be updated when downloaded
-                    CategoryId = plInfo.CategoryId,
-                    Category = plInfo.Category,
-                    LanguageId = plInfo.LanguageId,
-                    Language = plInfo.Language,
-                    Sections = new List<BiblePublicationSection>(),
-                    Tracks = new List<BiblePublicationTrack>(),
-                    IsVideo = false
-                };
-                
-                var placeholder = new VocalMusic { Publication = placeholderPublication };
-                result[placeholder.Code] = placeholder;
-            }
-        }
-        
-        Log.Information("GetVocalMusicReleases: Returning {TotalCount} vocal music releases ({DownloadedCount} downloaded, {PlaceholderCount} placeholders) for language={LanguageCode}",
-            result.Count, downloadedReleases.Count, result.Count - downloadedReleases.Count, languageCode);
-        
-        // Step 4: Download publications based on downloadAll flag
-        // - If downloadAll=true (publication modal opened): download all publications with their first sections and tracks
-        // - If downloadAll=false (language selected): don't download here (will be done in cascade)
+        var result = await MediaServiceVocalMusicHelper.GetReleasesAsync(
+            BiblePublicationService,
+            vocalMusicService,
+            scopeFactory,
+            languageCode,
+            cancellationTokenSource.Token);
         if (downloadAll && !string.IsNullOrEmpty(languageCode) && !languageCode.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
         {
-            // Fire and forget - don't block the UI
             _ = Task.Run(async () =>
             {
                 try
@@ -523,7 +366,6 @@ public sealed class MediaService(
                 }
             });
         }
-        
         return result;
     }
 
@@ -614,99 +456,29 @@ public sealed class MediaService(
     public async Task<int> GetExpectedSectionCountAsync(string languageCode, string publicationCode)
     {
         await mediaIndexService.Verify();
-        
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-        
-        var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
-        
-        var query = db.SectionLanguages
-            .AsNoTracking()
-            .Where(sl => sl.PublicationCode == publicationCode);
-        
-        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
-        {
-            // Count sections for the selected language + sections without language FK
-            query = query.Where(sl =>
-                (sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode) ||
-                sl.LanguageId == null);
-        }
-        else
-        {
-            query = query.Where(sl => sl.LanguageId == null);
-        }
-        
-        return await query
-            .Select(sl => sl.SectionCode)
-            .Distinct()
-            .CountAsync();
+        return await MediaServiceExpectedCountHelper.GetExpectedSectionCountAsync(
+            scopeFactory,
+            languageCode,
+            publicationCode,
+            cancellationTokenSource.Token);
     }
 
     public async Task<int> GetExpectedPublicationCountAsync(string languageCode, string categoryName)
     {
         await mediaIndexService.Verify();
-        
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-        
-        var normalizedLanguageCode = string.IsNullOrWhiteSpace(languageCode) ? null : languageCode.ToUpperInvariant();
-        
-        var query = db.PublicationLanguages
-            .AsNoTracking()
-            .Where(pl => pl.Category != null && pl.Category.CategoryName == categoryName);
-        
-        if (!string.IsNullOrWhiteSpace(normalizedLanguageCode))
-        {
-            // Count publications for the selected language + publications without language FK
-            query = query.Where(pl =>
-                (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||
-                pl.LanguageId == null);
-        }
-        else
-        {
-            query = query.Where(pl => pl.LanguageId == null);
-        }
-        
-        var publicationCodes = await query
-            .Select(pl => pl.PublicationCode)
-            .ToListAsync();
-        
-        if (publicationCodes.Count == 0)
-        {
-            return 0;
-        }
-        
-        // Deduplicate in-memory (including drama canonicalization)
-        var unique = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var code in publicationCodes)
-        {
-            var lower = code.ToLowerInvariant();
-            if (PublicationTypeHelper.IsDrama(lower))
-            {
-                unique.Add(lower.Equals("dramas", StringComparison.OrdinalIgnoreCase) ? "Dramas" : "DramaticBibleReadings");
-            }
-            else
-            {
-                unique.Add(code);
-            }
-        }
-        
-        return unique.Count;
+        return await MediaServiceExpectedCountHelper.GetExpectedPublicationCountAsync(
+            scopeFactory,
+            languageCode,
+            categoryName,
+            cancellationTokenSource.Token);
     }
 
     public async Task<int> GetExpectedSectionCountForNoLanguagePublicationAsync(string publicationCode)
     {
         await mediaIndexService.Verify();
-        
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-        
-        // For no-language publications, count sections where LanguageId == null
-        return await db.SectionLanguages
-            .AsNoTracking()
-            .Where(sl => sl.PublicationCode == publicationCode && sl.LanguageId == null)
-            .Select(sl => sl.SectionCode)
-            .Distinct()
-            .CountAsync();
+        return await MediaServiceExpectedCountHelper.GetExpectedSectionCountForNoLanguagePublicationAsync(
+            scopeFactory,
+            publicationCode,
+            cancellationTokenSource.Token);
     }
 }

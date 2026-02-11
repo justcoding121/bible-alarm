@@ -16,8 +16,6 @@ namespace Bible.Alarm.ViewModels.Shared;
 
 public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipient<PlaybackPositionChangedMessage>, IRecipient<PlaybackPreparationProgressMessage>
 {
-    private const int LandscapeControlsAutoHideMs = 3000;
-
     private readonly ILogger logger;
     private readonly IPlaybackService playbackService;
     private readonly IState<PlaybackState> playbackState;
@@ -30,7 +28,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     private bool isStopping;
     private bool isLandscape;
     private bool areLandscapeOverlayControlsVisible = true;
-    private CancellationTokenSource? landscapeAutoHideCts;
 
     // Helper classes
     private readonly AlarmViewModelCommandInitializer commandInitializer;
@@ -41,6 +38,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     private readonly ArtworkManager artworkManager;
     private readonly PositionManager positionManager;
     private readonly MessageHandler messageHandler;
+    private readonly PlaybackViewModelLandscapeHandler landscapeHandler;
 
     public bool IsUserInteracting => sliderHandler.IsUserInteracting;
 
@@ -78,8 +76,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             logger,
             playbackService,
             reviewHandler.HandleReviewRequestAsync,
-            BeginStoppingUi,
-            ResetProgressUi);
+            () => PlaybackViewModelStoppingHandler.BeginStoppingUi(ApplyBeginStopping),
+            () => PlaybackViewModelStoppingHandler.ResetProgressUi(() => IsUserInteracting, ApplyResetProgress));
         stateUpdater = new AlarmViewModalStateUpdater(
             logger,
             (t) => Title = t,
@@ -113,6 +111,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         artworkManager = new ArtworkManager(logger);
         positionManager = new PositionManager();
         messageHandler = new MessageHandler(positionManager);
+        landscapeHandler = new PlaybackViewModelLandscapeHandler();
 
         // Subscribe to Fluxor state changes for reactive updates
         playbackState.StateChanged += OnPlaybackStateChanged;
@@ -140,10 +139,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
     public bool IsLandscape => isLandscape;
 
-    /// <summary>
-    /// In landscape, playback controls auto-hide after a short delay and reappear on tap.
-    /// This property controls the overlay controls visibility (progress/time + transport buttons).
-    /// </summary>
+    /// <summary>Landscape overlay controls visibility (progress/time + transport buttons).</summary>
     public bool AreLandscapeOverlayControlsVisible => areLandscapeOverlayControlsVisible;
 
     public bool ShowPortraitLayout => !IsLandscape;
@@ -168,8 +164,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         OnPropertyChanged(nameof(ShowLandscapeLayout));
         OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
 
-        // Entering landscape: show controls briefly then auto-hide.
-        // Leaving landscape: keep controls visible.
         if (isLandscape)
         {
             SetLandscapeOverlayControlsVisible(true);
@@ -189,7 +183,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             return;
         }
 
-        // Toggle visibility: if visible, hide immediately; if hidden, show and schedule auto-hide
         if (areLandscapeOverlayControlsVisible)
         {
             CancelLandscapeAutoHide();
@@ -214,114 +207,34 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
     }
 
-    private void CancelLandscapeAutoHide()
+    private void CancelLandscapeAutoHide() => landscapeHandler.CancelAutoHide();
+
+    private void ScheduleLandscapeAutoHide() =>
+        landscapeHandler.ScheduleAutoHide(
+            () => IsLandscape,
+            () => IsStopping || IsPreparing || HasError,
+            () => SetLandscapeOverlayControlsVisible(false));
+
+    public void BeginStoppingUi() => PlaybackViewModelStoppingHandler.BeginStoppingUi(ApplyBeginStopping);
+
+    public void ResetProgressUi() => PlaybackViewModelStoppingHandler.ResetProgressUi(() => IsUserInteracting, ApplyResetProgress);
+
+    private void ApplyBeginStopping()
     {
-        try
+        if (SetProperty(ref isStopping, true, nameof(IsStopping)))
         {
-            landscapeAutoHideCts?.Cancel();
-            landscapeAutoHideCts?.Dispose();
-        }
-        catch
-        {
-            // ignore
-        }
-        finally
-        {
-            landscapeAutoHideCts = null;
+            OnPropertyChanged(nameof(ShowPreparingProgress));
+            OnPropertyChanged(nameof(ShowPlaybackControls));
+            OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
+            OnPropertyChanged(nameof(AreControlsEnabled));
+            OnPropertyChanged(nameof(IsStopButtonEnabled));
         }
     }
 
-    private void ScheduleLandscapeAutoHide()
+    private void ApplyResetProgress()
     {
-        CancelLandscapeAutoHide();
-
-        if (!IsLandscape)
-        {
-            return;
-        }
-
-        var cts = new CancellationTokenSource();
-        landscapeAutoHideCts = cts;
-        var token = cts.Token;
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(LandscapeControlsAutoHideMs, token);
-            }
-            catch
-            {
-                return;
-            }
-
-            if (token.IsCancellationRequested)
-            {
-                return;
-            }
-
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                if (!IsLandscape || IsStopping || IsPreparing || HasError)
-                {
-                    return;
-                }
-
-                SetLandscapeOverlayControlsVisible(false);
-            });
-        }, token);
-    }
-
-    /// <summary>
-    /// Called when the user dismisses/stops playback.
-    /// This is purely UI state so controls are disabled immediately while stop completes.
-    /// Playback controls/progress remain visible (disabled); only the stop button swaps to a busy indicator.
-    /// </summary>
-    public void BeginStoppingUi()
-    {
-        void Apply()
-        {
-            if (SetProperty(ref isStopping, true, nameof(IsStopping)))
-            {
-                OnPropertyChanged(nameof(ShowPreparingProgress));
-                OnPropertyChanged(nameof(ShowPlaybackControls));
-                OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
-                OnPropertyChanged(nameof(AreControlsEnabled));
-                OnPropertyChanged(nameof(IsStopButtonEnabled));
-            }
-        }
-
-        // Important: if we're already on the UI thread, apply immediately so the spinner can render
-        // before StopAsync potentially stops playback (and closes the modal).
-        if (MainThread.IsMainThread)
-        {
-            Apply();
-            return;
-        }
-
-        MainThread.BeginInvokeOnMainThread(Apply);
-    }
-
-    public void ResetProgressUi()
-    {
-        if (IsUserInteracting)
-        {
-            return;
-        }
-
-        void Apply()
-        {
-            CurrentTime = "00:00";
-            SetProgressDirectly(0.0);
-        }
-
-        if (MainThread.IsMainThread)
-        {
-            Apply();
-            return;
-        }
-
-        MainThread.BeginInvokeOnMainThread(Apply);
+        CurrentTime = "00:00";
+        SetProgressDirectly(0.0);
     }
 
     public bool IsStopping => isStopping;
@@ -364,7 +277,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         {
             if (SetProperty(ref artworkSource, value))
             {
-                // Update loading state when artwork source changes
                 IsArtworkLoading = false;
                 OnPropertyChanged(nameof(HasArtwork));
             }
@@ -422,11 +334,9 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         get => progress;
         set
         {
-            // Only update if user is not interacting (to prevent feedback loops)
             if (!sliderHandler.IsUserInteracting)
             {
-                // Only update if value actually changed (reduces unnecessary UI work)
-                if (Math.Abs(progress - value) > 0.0001) // Small threshold to avoid floating point noise
+                if (Math.Abs(progress - value) > 0.0001)
                 {
                     SetProperty(ref progress, value);
                 }
@@ -436,10 +346,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
     public TimeSpan Duration => currentDuration;
 
-    /// <summary>
-    /// Sets the progress value directly without checking isUserInteracting
-    /// Used during drag operations to provide immediate visual feedback
-    /// </summary>
+    /// <summary>Sets progress directly (e.g. during drag) without isUserInteracting check.</summary>
     public void SetProgressDirectly(double value)
     {
         var clampedValue = Math.Max(0.0, Math.Min(1.0, value));
@@ -450,33 +357,25 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         }
     }
 
-    /// <summary>
-    /// Called when user taps on the slider
-    /// </summary>
+    /// <summary>Called when user taps the slider.</summary>
     public void OnSliderTapped(double targetValue)
     {
-        // Treat as an interaction so controls remain visible briefly in landscape.
         NotifyLandscapeInteraction();
         sliderHandler.OnSliderTapped(targetValue);
     }
 
-    /// <summary>
-    /// Called when user starts dragging the slider
-    /// </summary>
+    /// <summary>Called when user starts dragging the slider.</summary>
     public void OnSliderDragStarted()
     {
         if (IsLandscape)
         {
-            // Keep controls visible while dragging; don't auto-hide mid-drag.
             CancelLandscapeAutoHide();
             SetLandscapeOverlayControlsVisible(true);
         }
         sliderHandler.OnSliderDragStarted();
     }
 
-    /// <summary>
-    /// Called when user releases the slider after dragging
-    /// </summary>
+    /// <summary>Called when user releases the slider after dragging.</summary>
     public void OnSliderDragCompleted(double finalValue)
     {
         sliderHandler.OnSliderDragCompleted(finalValue);
@@ -537,25 +436,15 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         }
     }
 
-    /// <summary>
-    /// Show preparing progress when preparing tracks.
-    /// </summary>
+    /// <summary>Show preparing progress when preparing tracks.</summary>
     public bool ShowPreparingProgress => IsPreparing && !HasError;
 
-    /// <summary>
-    /// Show main music player content when not preparing and there's no error.
-    /// Bell fallback shows immediately if no artwork; actual artwork shows when loaded.
-    /// </summary>
+    /// <summary>Show main player content when not preparing and no error.</summary>
     public bool ShowMainPlayerContent => !IsPreparing && !HasError;
 
-    /// <summary>
-    /// Controls row visibility (progress + transport buttons).
-    /// </summary>
     public bool ShowPlaybackControls => true;
 
-    /// <summary>
-    /// Controls are enabled when initial state has been received, not preparing tracks, there's no error, and not busy (dismissing)
-    /// </summary>
+    /// <summary>Controls enabled when state received, not preparing, no error, not busy.</summary>
     public bool AreControlsEnabled =>
         stateUpdater.HasReceivedInitialState &&
         !IsPreparing &&
@@ -564,30 +453,10 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         !IsBusy &&
         playbackState.Value.Status != PlayStatus.Loading;
 
-    /// <summary>
-    /// Stop button is always enabled so users can cancel downloads at any time
-    /// </summary>
+    /// <summary>Stop button always enabled so users can cancel downloads.</summary>
     public bool IsStopButtonEnabled => !IsStopping;
 
-    public string ProgressText
-    {
-        get
-        {
-            if (loadedTracks < totalTracks)
-            {
-                // Still downloading/preparing - show percentage
-                if (totalBytesDownloaded > 0 && totalBytesExpected.HasValue && totalBytesExpected.Value > 0)
-                {
-                    var percentage = (totalBytesDownloaded * 100.0) / totalBytesExpected.Value;
-                    return $"{percentage:F0}%";
-                }
-                return "0%";
-            }
-
-            // All tracks prepared
-            return "100%";
-        }
-    }
+    public string ProgressText => PlaybackViewModelProgressTextHelper.GetProgressText(loadedTracks, totalTracks, totalBytesDownloaded, totalBytesExpected);
 
     public double PreparationProgress { get; private set; }
 
@@ -604,7 +473,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
                 OnPropertyChanged(nameof(AreControlsEnabled));
                 OnPropertyChanged(nameof(ShowPreparingProgress));
                 OnPropertyChanged(nameof(ShowMainPlayerContent));
-                // Notify retry command that CanExecute may have changed
                 if (RetryCommand is CommunityToolkit.Mvvm.Input.AsyncRelayCommand asyncCommand)
                 {
                     asyncCommand.NotifyCanExecuteChanged();
@@ -655,11 +523,8 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
     public void Receive(PlaybackPreparationProgressMessage message)
     {
-        // Handle high-frequency preparation progress updates via messaging
-        // Use BeginInvokeOnMainThread to queue on UI thread without blocking
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            // Update download progress fields
             totalBytesDownloaded = message.TotalBytesDownloaded;
             totalBytesExpected = message.TotalBytesExpected;
 
@@ -670,10 +535,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
                     loadedTracks = loaded;
                     totalTracks = total;
                     PreparationProgress = progress;
-                    
-                    // When preparation is about to finish, set artwork loading to true
-                    // This ensures the loading indicator shows instead of the bell placeholder
-                    // until actual artwork or metadata arrives
                     if (isPreparing && !preparing)
                     {
                         IsArtworkLoading = true;
@@ -683,7 +544,6 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
                 },
                 () =>
                 {
-                    // Notify property changes
                     OnPropertyChanged(nameof(ProgressText));
                     OnPropertyChanged(nameof(PreparationProgress));
                 });
@@ -700,23 +560,17 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     }
 
 
-    /// <summary>
-    /// Shows the Home page (sets opacity to 1.0). Called when the Playback Modal is fully rendered and visible.
-    /// This ensures the Home page is visible behind the modal, preventing visual issues when the modal is dismissed.
-    /// </summary>
+    /// <summary>Shows Home page (opacity=1). Called when Playback Modal is fully rendered.</summary>
     public void HideHomePageOverlay() => navigationService.SetHomePageVisibility(isPlaybackActive: false);
 
-    /// <summary>
-    /// When true, PlaybackModal will reveal Home (opacity=1) behind the modal after it renders.
-    /// When false (e.g., cold/warm start foregrounding into active playback), Home stays hidden behind the modal.
-    /// </summary>
+    /// <summary>When true, reveal Home behind modal after render; when false, Home stays hidden.</summary>
     public bool RevealHomeBehindModalOnLoad { get; set; } = true;
 
     public void Dispose()
     {
         if (!isDisposed)
         {
-            CancelLandscapeAutoHide();
+            landscapeHandler.CancelAutoHide();
             playbackState.StateChanged -= OnPlaybackStateChanged;
             messageHandler.UnregisterHandlers(this, this);
 
