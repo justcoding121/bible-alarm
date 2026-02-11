@@ -54,22 +54,14 @@ public class MainActivity : MauiAppCompatActivity
     private void PerformOnCreateInitialization(Bundle? savedInstanceState)
     {
         InitializeMauiApp();
-        var safeSavedInstanceState = MainActivityFragmentStateHelper.GetSafeSavedInstanceState(savedInstanceState);
 
+        // Always pass null to prevent Android from restoring stale fragment state.
+        // This app rebuilds all state from databases/Fluxor during bootstrap,
+        // so Android's saved instance state is never needed.
+        // Lifecycle guards in OnStart/OnResume/OnPostResume catch any real fragment errors.
         Logger.Debug("MainActivity: Calling base.OnCreate()");
-        base.OnCreate(safeSavedInstanceState);
+        base.OnCreate(null);
         Logger.Debug("MainActivity: base.OnCreate() completed");
-
-        // Validate that MAUI's fragment view containers are properly set up.
-        // On some Android versions (especially Android 16+), fragments may reference
-        // views that don't exist yet, causing crashes in OnStart().
-        if (!MainActivityFragmentStateHelper.ValidateFragmentViewContainers(this))
-        {
-            Logger.Warning("MainActivity: Fragment view containers are invalid - triggering recovery");
-            MainActivityFragmentStateHelper.HandleFragmentRestorationErrorWithProcessKill(
-                this,
-                new Java.Lang.IllegalArgumentException("Fragment view container validation failed"));
-        }
     }
 
     private static void InitializeMauiApp()

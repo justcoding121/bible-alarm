@@ -18,30 +18,6 @@ public static class MainActivityFragmentStateHelper
     private static readonly ILogger logger = Log.ForContext(typeof(MainActivityFragmentStateHelper));
 
     /// <summary>
-    /// Gets a safe savedInstanceState by completely ignoring any saved state on fresh launch.
-    /// MAUI apps should always start with a clean slate to avoid NavigationRootManager crashes
-    /// caused by stale fragment state that references views that don't exist yet.
-    /// </summary>
-    public static Bundle? GetSafeSavedInstanceState(Bundle? savedInstanceState)
-    {
-        if (savedInstanceState == null)
-        {
-            return null;
-        }
-
-        // ALWAYS return null for MAUI apps to prevent fragment restoration crashes.
-        // The NavigationRootManager_ElementBasedFragment crash occurs when Android's
-        // FragmentManager tries to restore a fragment to a view ID ("legacy") that
-        // doesn't exist because MAUI hasn't set up the view hierarchy yet.
-        //
-        // This is the ROOT CAUSE fix: by returning null, we tell Android not to
-        // restore any state, which prevents the fragment manager from attempting
-        // to restore fragments to non-existent views.
-        logger.Information("Ignoring savedInstanceState to prevent NavigationRootManager fragment restoration crash");
-        return null;
-    }
-
-    /// <summary>
     /// Clears all state from the outState bundle to prevent fragment restoration crashes.
     /// MAUI apps should not rely on Android's instance state restoration.
     /// </summary>
@@ -60,78 +36,6 @@ public static class MainActivityFragmentStateHelper
         catch (Exception ex)
         {
             logger.Warning(ex, "Failed to clear saved instance state");
-        }
-    }
-
-    /// <summary>
-    /// Checks if MAUI's navigation fragments have valid view containers.
-    /// Call this after base.OnCreate() to detect potential issues before OnStart() runs.
-    /// Returns true if fragments appear healthy, false if there may be issues.
-    /// </summary>
-    public static bool ValidateFragmentViewContainers(Activity activity)
-    {
-        try
-        {
-            if (activity is not AndroidX.Fragment.App.FragmentActivity fragmentActivity)
-            {
-                return true;
-            }
-
-            var fragmentManager = fragmentActivity.SupportFragmentManager;
-
-            // Force any pending fragment transactions to complete so they appear in Fragments.
-            // MAUI's base.OnCreate() may add NavigationRootManager_ElementBasedFragment
-            // via an asynchronous transaction that hasn't been committed yet.
-            // Without this, fragmentManager.Fragments would be empty and we'd miss the issue.
-            try
-            {
-                fragmentManager.ExecutePendingTransactions();
-            }
-            catch (Exception pendingEx)
-            {
-                // If executing pending transactions itself fails, the fragments are broken
-                logger.Warning(pendingEx, "ExecutePendingTransactions failed - fragments are likely invalid");
-                return false;
-            }
-
-            var fragments = fragmentManager.Fragments;
-
-            if (fragments == null || fragments.Count == 0)
-            {
-                return true;
-            }
-
-            foreach (var fragment in fragments)
-            {
-                if (fragment == null)
-                {
-                    continue;
-                }
-
-                var containerId = fragment.Id;
-                if (containerId == 0 || containerId == global::Android.Views.View.NoId)
-                {
-                    continue;
-                }
-
-                // Check if the container view exists
-                var containerView = activity.FindViewById(containerId);
-                if (containerView == null)
-                {
-                    logger.Warning(
-                        "Fragment {FragmentType} references view ID 0x{ViewId:X} which doesn't exist",
-                        fragment.GetType().Name,
-                        containerId);
-                    return false;
-                }
-            }
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Error validating fragment view containers");
-            return true;
         }
     }
 
