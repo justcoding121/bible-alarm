@@ -87,7 +87,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         systemControlsHandler = new SystemControlsHandler(logger);
         trackMarker = new TrackMarker(playlistService, logger);
         indefiniteResolver = new PlaybackIndefiniteResolver(playlistService, logger);
-        playlistExtender = new PlaybackPlaylistExtender(playlistService, preparePlaybackService, indefiniteResolver, logger);
+        playlistExtender = new PlaybackPlaylistExtender(indefiniteResolver, logger);
         trackOnDemandPreparer = new TrackOnDemandPreparer(preparePlaybackService, logger);
         sessionContextInitializer = new PlaybackSessionContextInitializer(playlistService);
         modeResolver = new PlaybackModeResolver(alarmScheduleService, logger);
@@ -361,7 +361,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
         var track = stateManager.Playlist[stateManager.CurrentTrackIndex];
 
-        // Ensure the track is downloaded/prepared before attempting to play.
+        // Ensure the track has a playable URI (cached file or CDN URL for streaming).
         var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
         var prepared = await trackOnDemandPreparer.EnsureTrackPreparedAsync(track, token);
         if (!prepared)
@@ -392,28 +392,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             // Track playback failed - handle failure
             await HandlePlaybackFailureAsync();
-            return;
         }
-
-        // Background: always try to download the next track while this track is playing.
-        var playlist = stateManager.Playlist;
-        var currentIndex = stateManager.CurrentTrackIndex;
-        var tryAppend = () => TryAppendNextTrackAsync(reportSectionFetchProgress: false);
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                if (playlist != null)
-                {
-                    await trackOnDemandPreparer.PreDownloadNextTrackAsync(
-                        playlist, currentIndex, stateManager.IsIndefinitePlayback, tryAppend, token);
-                }
-            }
-            catch
-            {
-                // Ignore background failures; on-demand download will still happen when needed.
-            }
-        });
     }
 
     private IFetchProgress CreateSectionFetchProgressReporter()

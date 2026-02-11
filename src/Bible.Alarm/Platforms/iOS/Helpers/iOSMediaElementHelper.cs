@@ -11,15 +11,22 @@ namespace Bible.Alarm.Platforms.iOS.Helpers;
 public static class IosMediaElementHelper
 {
     /// <summary>
-    /// Processes a URI for iOS MediaElement by normalizing paths.
-    /// On iOS, MediaElement works better with plain file paths instead of file:// URIs.
-    /// Note: MediaCacheService always returns cached file paths, never HTTP/HTTPS URLs.
+    /// Processes a URI for iOS MediaElement.
+    /// HTTPS URLs (CDN streaming) are passed through unchanged.
+    /// Local file paths and file:// URIs are normalized to plain paths (iOS MediaElement works better with plain paths).
     /// </summary>
     public static string ProcessUriForMediaElement(string uri, ILogger logger)
     {
         logger.Debug("Original track URI: {Uri}", uri);
 
-        // If it's already a file:// URI, convert it back to a plain path
+        // HTTPS URLs are CDN streaming links -- pass through unchanged
+        if (uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.Debug("HTTPS URL detected, passing through for streaming: {Uri}", uri);
+            return uri;
+        }
+
+        // If it's a file:// URI, convert it back to a plain path
         if (uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
         {
             try
@@ -164,7 +171,7 @@ public static class IosMediaElementHelper
 
     /// <summary>
     /// Sets the MediaElement source and volume for iOS.
-    /// The processedUri should already be a plain file path (not a file:// URI).
+    /// The processedUri should be either a plain file path (for cached files) or an HTTPS URL (for CDN streaming).
     /// </summary>
     public static void SetSourceAndVolume(MediaElement mediaElement, string processedUri, ILogger logger)
     {

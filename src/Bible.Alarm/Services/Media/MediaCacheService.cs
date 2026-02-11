@@ -150,17 +150,10 @@ public sealed class MediaCacheService(
         return downloaded;
     }
 
-    public async Task<string?> GetOrDownloadTrackUriAsync(PlayItem playItem, CancellationToken cancellationToken = default)
+    public async Task<string?> ResolveTrackUriAsync(PlayItem playItem, CancellationToken cancellationToken = default)
     {
-        return await GetOrDownloadTrackUriWithProgressAsync(playItem, null, cancellationToken);
-    }
-
-    public async Task<string?> GetOrDownloadTrackUriWithProgressAsync(PlayItem playItem, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
-    {
-        // Check for cancellation
         cancellationToken.ThrowIfCancellationRequested();
-        
-        // Get schedule ID from playItem metadata
+
         var scheduleId = (int)playItem.Metadata.ScheduleId;
         if (scheduleId <= 0)
         {
@@ -168,17 +161,14 @@ public sealed class MediaCacheService(
             return null;
         }
 
-        // Use lookup path (stable) instead of CDN URL (dynamic) for cache filename
         var lookUpPath = playItem.Metadata.LookUpPath;
 
-        // Check if file exists in schedule's cache folder using lookup path
+        // Check if the file is already cached locally
         if (await ExistsAsync(lookUpPath, scheduleId))
         {
             var cachedFilePath = GetCacheFilePath(lookUpPath, scheduleId);
-            logger.Debug("Using cached file for track: LookUpPath={LookUpPath}, URL={Url}, Path={CachedPath}", 
+            logger.Debug("Using cached file for track: LookUpPath={LookUpPath}, URL={Url}, Path={CachedPath}",
                 lookUpPath, playItem.Url, cachedFilePath);
-            // Report as complete for cached files
-            progressCallback?.Invoke(1, 1);
             // On iOS, MediaElement needs the file path directly instead of file:// URI
             if (DeviceInfo.Platform == DevicePlatform.iOS)
             {
@@ -187,40 +177,19 @@ public sealed class MediaCacheService(
             return new Uri(cachedFilePath).AbsoluteUri;
         }
 
-        // Check internet connectivity before attempting download
+        // Not cached -- stream from CDN if internet is available
         if (!await networkStatusService.IsInternetAvailable())
         {
-            logger.Warning("No internet connection available. Cannot download track: LookUpPath={LookUpPath}, URL={Url}", 
+            logger.Warning("Track not cached and no internet. Cannot play track: LookUpPath={LookUpPath}, URL={Url}",
                 lookUpPath, playItem.Url);
             return null;
         }
 
-        // Download and cache the file with progress reporting
-        logger.Information("Downloading track (not in cache): LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
-        var cachedUrl = await DownloadAndCacheTrackWithProgressAsync(playItem, scheduleId, progressCallback, cancellationToken);
-        if (cachedUrl == null)
-        {
-            logger.Error("Failed to download and cache track: LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
-            return null;
-        }
-
-        var downloadedFilePath = GetCacheFilePath(lookUpPath, scheduleId);
-        logger.Information("Successfully downloaded and cached track: LookUpPath={LookUpPath}, URL={Url}, Path={CachedPath}", 
-            lookUpPath, playItem.Url, downloadedFilePath);
-        // On iOS, MediaElement may need the file path directly instead of file:// URI
-        if (DeviceInfo.Platform == DevicePlatform.iOS)
-        {
-            return downloadedFilePath;
-        }
-        return new Uri(downloadedFilePath).AbsoluteUri;
+        logger.Information("Streaming track from CDN (not cached): LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
+        return playItem.Url;
     }
 
     private async Task<string?> DownloadAndCacheTrackAsync(PlayItem playItem, int scheduleId, CancellationToken cancellationToken = default)
-    {
-        return await DownloadAndCacheTrackWithProgressAsync(playItem, scheduleId, null, cancellationToken);
-    }
-
-    private async Task<string?> DownloadAndCacheTrackWithProgressAsync(PlayItem playItem, int scheduleId, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
     {
         return await MediaCacheDownloadCoordinator.DownloadAndCacheTrackWithProgressAsync(
             logger,
@@ -233,7 +202,7 @@ public sealed class MediaCacheService(
             GetCacheFileName,
             playItem,
             scheduleId,
-            progressCallback,
+            null,
             cancellationToken);
     }
 

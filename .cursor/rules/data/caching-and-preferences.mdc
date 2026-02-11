@@ -6,12 +6,12 @@ alwaysApply: false
 
 ## Cache taxonomy (important distinction)
 
-This app uses multiple “caches”, each with different goals and lifetimes:
+This app uses multiple "caches", each with different goals and lifetimes:
 
 - **Disk cache (Preferences-backed JSON)**: small-ish structured data for fast startup (especially the Home schedule list).
-- **Media cache (files on disk)**: downloaded audio files for offline and to avoid repeated downloads.
+- **Media cache (files on disk)**: downloaded audio files for offline playback and faster starts. Populated only by background jobs, not during playback.
 - **Media index extraction**: the shipped `index.zip` is extracted into `mediaIndex.db` (effectively a local catalog cache).
-- **In-memory caches**: view model reuse on Home (to avoid recreating list items) and “in-progress download” tracking.
+- **In-memory caches**: view model reuse on Home (to avoid recreating list items) and "in-progress download" tracking.
 
 ---
 
@@ -30,7 +30,7 @@ Note:
 
 ---
 
-## Preferences — how/why they’re used
+## Preferences — how/why they're used
 
 ### Thread-safe Preferences wrapper (why it exists)
 
@@ -61,11 +61,11 @@ Why:
 3) **Disk cache payloads** (JSON blobs)
    - (No `ScheduleList` payload; schedule list is not cached to Preferences)
 
-### Preferences vs Schedule DB “GeneralSettings”
+### Preferences vs Schedule DB "GeneralSettings"
 
 Do not conflate these:
 - **Preferences**: device-local key/value (fast, accessible very early; used for version markers and last-played metadata).
-- **Schedule DB `GeneralSettings`**: durable app settings stored in SQLite (migratable with the app’s DB, queried by services).
+- **Schedule DB `GeneralSettings`**: durable app settings stored in SQLite (migratable with the app's DB, queried by services).
 
 General settings live in:
 - `src/Bible.Alarm.Shared/Services/Schedule/GeneralSettingsService.cs`
@@ -86,15 +86,31 @@ Location:
   - directory name from `AppConstants.FilePaths.MediaCacheDirectoryName`
 
 Why:
-- enable offline playback and fast starts
-- prevent repeated downloads for schedules used daily
-- stable “what to download next” behavior for alarms
+- enable offline playback and faster starts when cached
+- prevent repeated streaming for schedules used daily
+- stable "what to download next" behavior for alarms
+
+### Cache-or-stream strategy (playback)
+
+Playback uses a **cache-or-stream** strategy via `IMediaCacheService.ResolveTrackUriAsync`:
+- checks if the track is already cached locally (using stable lookup path)
+- if cached: returns the local file URI for playback
+- if not cached + internet available: returns the CDN URL for HTTP streaming
+- if not cached + no internet: returns null (triggers fallback alarm sound or error)
+
+Media cache is populated **only** by background jobs:
+- **periodic scheduler job** (`SchedulerService` → `MediaCacheService.SetupAlarmCacheAsync`)
+- **schedule save** (`ScheduleMediaCacheService.SetupMediaCache`)
+
+Playback does **not** download files. It either plays from cache or streams from CDN.
+
+### Cache file naming
 
 Key design decision:
 - cache file names are derived from a **stable lookup path** (`TrackMetadata.LookUpPath`) rather than the CDN URL (which can change).
 
 Concurrency control:
-- `inProgressDownloads` dictionary (lookupPath-based) deduplicates concurrent requests for the same file.
+- `inProgressDownloads` dictionary (lookupPath-based) deduplicates concurrent requests for the same file during background caching.
 
 Cleanup:
 - periodic cleanup deletes unused files and orphaned folders (folders for schedules that no longer exist)
@@ -104,5 +120,5 @@ Cleanup:
 ## Where caching touches UX directly
 
 - **Home list** is driven by Fluxor state populated from Schedule DB during bootstrap (no disk cache).
-- **Android Auto shows something immediately** on process start because MediaSession is pre-populated from Preferences “last played metadata”.
-
+- **Android Auto shows something immediately** on process start because MediaSession is pre-populated from Preferences "last played metadata".
+- **Playback start** is fast regardless of cache state: cached files play locally, uncached files stream immediately from CDN.

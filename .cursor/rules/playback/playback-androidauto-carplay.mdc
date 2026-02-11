@@ -15,12 +15,19 @@ alwaysApply: false
     - Media index DB (publication/section/track structure)
   - advances schedule pointers when tracks are played/finished
 
-- **Preparation (downloads/caching)**
-  - `IPreparePlaybackService` + `IDownloadService` + cache services
+- **Preparation (cache-or-stream URI resolution)**
+  - `IPreparePlaybackService` + `IMediaCacheService`
+  - Uses a **cache-or-stream** strategy:
+    - checks if the track file is already cached locally (via lookup path)
+    - if cached: plays the local file
+    - if not cached: plays directly from the CDN URL (HTTP streaming)
+    - if not cached and no internet: returns null (triggers fallback/error)
   - `PlaybackService` will:
-    - prepare an initial playlist
-    - lazily download a track on-demand if needed
-    - pre-download “next” track in the background while current track plays
+    - prepare an initial playlist and resolve URIs for all tracks
+    - no on-demand downloading or background pre-downloading during playback
+  - Pre-caching only happens via:
+    - periodic scheduler job (`SchedulerService` → `MediaCacheService.SetupAlarmCacheAsync`)
+    - schedule save (`ScheduleMediaCacheService.SetupMediaCache`)
 
 - **Player wrapper**
   - `src/Bible.Alarm/Services/Media/AudioPlayer.cs`
@@ -29,20 +36,30 @@ alwaysApply: false
     - MediaElement creation/lifecycle (lazy, on-demand)
     - event wiring (opened/ended/failed)
     - progress tracking + dispatch to Fluxor
+  - supports both local file URIs and HTTP/HTTPS URLs (for streaming)
 
 - **Orchestrator**
   - `src/Bible.Alarm/Services/Media/PlaybackService.cs`
-  - owns the “session”:
+  - owns the "session":
     - current schedule id
     - playlist
     - current track index
-    - “indefinite playback” rules
+    - "indefinite playback" rules
   - handles system control messages (next/prev/play/pause/seek) via `WeakReferenceMessenger`
 
-### Next/Prev behavior vs “Play indefinitely”
+### SeekTo with streaming
+
+SeekTo works reliably for both local files and HTTP-streamed MP3/MP4:
+- **Android** (ExoPlayer): excellent HTTP range-request support; seeking works smoothly
+- **Windows** (MediaPlayerElement): good support for progressive downloads; seeking works reliably
+- **iOS** (AVPlayer): generally good; the existing retry logic (`SeekWithRetryAsync`, 10 retries, 300ms delay) handles cases where seekable ranges aren't immediately available during buffering
+
+The existing `WaitForMediaReadyAsync` + retry pattern already covers the streaming case.
+
+### Next/Prev behavior vs "Play indefinitely"
 
 Schedule setting:
-- “Play indefinitely” is persisted as `AlarmSchedule.NumberOfTracksToPlay <= 0` (the schedule editor stores **0** for indefinite).
+- "Play indefinitely" is persisted as `AlarmSchedule.NumberOfTracksToPlay <= 0` (the schedule editor stores **0** for indefinite).
 
 Session behavior:
 - When a playback session starts, `PlaybackService.PrepareAndPlayAsync(...)` snapshots the mode once:
@@ -52,10 +69,10 @@ Session behavior:
 
 Playlist sizing:
 - Finite (`NumberOfTracksToPlay > 0`):
-  - initial in-memory playlist contains “begin-with-music” (0–1 track) + **N Bible tracks**
+  - initial in-memory playlist contains "begin-with-music" (0–1 track) + **N Bible tracks**
   - when the last track ends naturally, playback **stops/dismisses**
 - Indefinite (`NumberOfTracksToPlay == 0`):
-  - initial in-memory playlist contains “begin-with-music” (0–1 track) + **1 Bible track**
+  - initial in-memory playlist contains "begin-with-music" (0–1 track) + **1 Bible track**
   - when the last in-memory track ends, playback **extends the playlist dynamically** and continues
 
 Next button:
@@ -77,18 +94,18 @@ Where this logic lives:
 - `src/Bible.Alarm/Services/Media/Playback/PlaybackNavigationHandler.cs` (manual next/prev)
 - `src/Bible.Alarm/Services/Media/Playlist/PlaylistBibleTrackBuilder.cs` (finite vs indefinite initial Bible track list)
 
-### “Begin with music” vs “Music category schedules”
+### "Begin with music" vs "Music category schedules"
 
 Two distinct concepts:
 
 1) **Begin with music** (pre-roll)
-   - stored in Schedule DB as `AlarmMusic` (“MusicEnabled” + `AlarmMusic`)
+   - stored in Schedule DB as `AlarmMusic` ("MusicEnabled" + `AlarmMusic`)
    - `PlaylistService.NextTracks()` adds a music `PlayItem` first when enabled, then Bible content
 
 2) **Music category schedules**
    - category is `"Music"` in schedule state (not persisted in Schedule DB)
    - in this mode, the **BiblePublicationSchedule points at a Music publication** from the media index
-   - therefore “begin with music” is disabled/cleared during save/update
+   - therefore "begin with music" is disabled/cleared during save/update
 
 Enforced by:
 - `src/Bible.Alarm/Services/Schedule/ScheduleSaveService.cs`
@@ -97,6 +114,7 @@ Enforced by:
 ### TagLibSharp usage
 
 The app uses `TagLibSharp` to extract metadata/artwork from cached media files for display/system integration (Now Playing, notifications).
+Note: TagLibSharp only works with local cached files, not HTTP-streamed content.
 
 ---
 
@@ -122,23 +140,23 @@ Android can kill background-started processes quickly (especially after alarms, 
 
 Bible Alarm uses foreground services to:
 - survive long bootstrap/migration work
-- survive media download / preparation
+- survive media preparation
 - keep Android Auto connected/controllable
 
 ### Foreground service coordination (single-owner rule)
 
-Android only allows one foreground service “owner” to be active at a time for the app.
+Android only allows one foreground service "owner" to be active at a time for the app.
 
 Coordinator:
 - `src/Bible.Alarm/Platforms/Android/Services/Media/ForegroundServiceCoordinator.cs`
 
 Key ideas:
 - coordinates ownership between:
-  - MediaElement’s media controls service (notification ID 1)
+  - MediaElement's media controls service (notification ID 1)
   - Android Auto service (notification ID 2)
   - Alarm foreground service (notification ID 2)
-- starts Android Auto foreground with placeholder metadata if real metadata isn’t ready yet (prevents kill during bootstrap)
-- on alarm trigger, starts an “Alarm foreground service” immediately, then hands off to MediaElement when playback starts
+- starts Android Auto foreground with placeholder metadata if real metadata isn't ready yet (prevents kill during bootstrap)
+- on alarm trigger, starts an "Alarm foreground service" immediately, then hands off to MediaElement when playback starts
 
 Alarm entrypoint calls:
 - `ForegroundServiceCoordinator.OnAlarmTriggered(context, scheduleId)` from `AlarmRingerReceiver`
@@ -178,7 +196,7 @@ Key behaviors:
 ## Android Auto (two implementations)
 
 Bible Alarm supports both:
-- **Modern “Car App”** (AndroidX Car App Library)
+- **Modern "Car App"** (AndroidX Car App Library)
   - `src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/CarAppService.cs`
 - **Legacy MediaBrowserServiceCompat** (phone projection older stacks)
   - `src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/LegacyMediaBrowserService.cs`
@@ -213,7 +231,6 @@ Now Playing manager:
 
 Key behaviors:
 - updates `MPNowPlayingInfoCenter` for lock screen / control center / CarPlay
-- intentionally preserves artwork (never clears it) to avoid “empty lock screen” visuals
+- intentionally preserves artwork (never clears it) to avoid "empty lock screen" visuals
 
 The app also wires Remote Command Center to support play/pause/next/prev/seek from the system UI.
-

@@ -67,7 +67,8 @@ Publication and Section modals (Bible Publication, Music Publication, Bible Sect
 - On network failure: show toast "Please check your internet connection.", **close modal**, retain state. Applies to: Category, Bible Language, Music Language, Bible Publication, Bible Section, Music Publication, Music Section. Close modal **before** showing toast so the toast does not block the UI.
 
 ### Playback Modal (separate from schedule modals)
-- **Playback modal keeps Retry**: When download fails before playback or next/prev fails, show error inside the playback modal with **Retry** and use `HandlePlaybackFailureAsync` / `ResetAndRetryAsync`. Retry button uses 50ms delay and spinner feedback. This is **unrelated** to schedule page modal progress/error handling.
+- **Playback modal keeps Retry**: When streaming fails or track cannot be resolved (no cache + no internet), show error inside the playback modal with **Retry** and use `HandlePlaybackFailureAsync` / `ResetAndRetryAsync`. Retry button uses 50ms delay and spinner feedback. This is **unrelated** to schedule page modal progress/error handling.
+- **Playback preparation** is now instant (cache check + CDN URL fallback, no downloading). The preparation progress message is sent but completes immediately.
 
 ### Internal Retry Logic (for non-English harvest)
 - **Location**: Bible Publication: `BiblePublicationSelectionDataProvider.PopulatePublicationsAsync`; Music Publication: `MusicPublicationFetchCoordinator.RetryFetchUntilHarvestedAsync`; Bible Section: `SectionListLoader.RetryFetchUntilHarvestedAsync`; Music Section: `MusicInstrumentalSectionListLoader.RetryFetchUntilHarvestedAsync`.
@@ -76,13 +77,13 @@ Publication and Section modals (Bible Publication, Music Publication, Bible Sect
 
 ### Consistency and When UI Waits for Network
 - Internet check fail and actual network failure during the operation must produce the **same behaviour** (toast + close, or same message). Ensure both paths trigger identical handling.
-- **When UI may wait for network**: (1) UI action directly triggers API fetch (e.g. open publication modal, tap section, select language that requires harvest). (2) Playback waiting for download. In (1), schedule modals: close + toast. In (2), playback modal: error in modal with Retry.
-- **All other network work** (cache setup, pre-download, URL refresh, etc.): fire-and-forget. Do **not** show toast on failure; log only.
+- **When UI may wait for network**: (1) UI action directly triggers API fetch (e.g. open publication modal, tap section, select language that requires harvest). (2) Playback streaming fails mid-play. In (1), schedule modals: close + toast. In (2), playback modal: error in modal with Retry.
+- **All other network work** (cache setup, pre-cache downloads, URL refresh, etc.): fire-and-forget. Do **not** show toast on failure; log only.
 
 ### Internet Check When Fetch Is Decided
 - **Shared fetchers**: `IInternetConnectivityChecker` via `NetworkExceptionHelper.ThrowIfNoInternetAsync(checker)` in LanguageContentPublicationTracksFetcher, LanguageContentPublicationSectionsFetcher, LanguageContentSectionTracksFetcher, LanguageContentFirstSectionFetcher.
 - **TrackNavigator**: `INetworkStatusService.IsInternetAvailable()` in EnsureSectionHarvestedAsync before EnsurePublicationExistsAsync.
-- **Media downloads**: `INetworkStatusService.IsInternetAvailable()` in MediaCacheService.GetOrDownloadTrackUriWithProgressAsync (before download) and ProcessPlaylistAsync (before each download). Playback modal shows error via HandlePlaybackFailureAsync; background task skips with logging.
+- **Media cache resolution**: `INetworkStatusService.IsInternetAvailable()` in MediaCacheService.ResolveTrackUriAsync (before returning CDN URL) and ProcessPlaylistAsync (before each download in background caching). Playback modal shows error via HandlePlaybackFailureAsync; background cache task skips with logging.
 - **Do NOT check internet upfront** for: list item taps (English pre-packaged; would block switching back when offline), MediaCacheService.SetupAlarmCacheAsync (only download when not cached).
 
 ### Example: Modal Open Fetch Catch (Publication/Section ViewModels)

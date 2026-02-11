@@ -2,30 +2,23 @@
 
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Services.Media.Models;
 using Serilog;
 
 namespace Bible.Alarm.Services.Media.Playback;
 
 /// <summary>
 /// Handles appending/prepending tracks for indefinite playback.
+/// Tracks are added with an empty URI; the URI is resolved on-demand when playback reaches them.
 /// </summary>
 public sealed class PlaybackPlaylistExtender
 {
-    private readonly IPlaylistService playlistService;
-    private readonly IPreparePlaybackService preparePlaybackService;
     private readonly PlaybackIndefiniteResolver indefiniteResolver;
     private readonly ILogger logger;
 
     public PlaybackPlaylistExtender(
-        IPlaylistService playlistService,
-        IPreparePlaybackService preparePlaybackService,
         PlaybackIndefiniteResolver indefiniteResolver,
         ILogger logger)
     {
-        this.playlistService = playlistService;
-        this.preparePlaybackService = preparePlaybackService;
         this.indefiniteResolver = indefiniteResolver;
         this.logger = logger;
     }
@@ -54,28 +47,13 @@ public sealed class PlaybackPlaylistExtender
                 preAnchorBibleMetadata,
                 sectionProgress);
 
+            // Add with empty URI; will be resolved on-demand when this track starts playing.
             var nextTrack = new AudioPlayerTrack
             {
                 PlayItem = nextPlayItem,
                 Uri = string.Empty
             };
             playlist.Add(nextTrack);
-
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var prepared = await preparePlaybackService.PrepareSingleTrackAsync(nextPlayItem, cancellationToken);
-                    if (prepared != null && !string.IsNullOrEmpty(prepared.Uri))
-                    {
-                        nextTrack.Uri = prepared.Uri;
-                    }
-                }
-                catch
-                {
-                    // Ignore background failures.
-                }
-            });
 
             return true;
         }
@@ -114,6 +92,7 @@ public sealed class PlaybackPlaylistExtender
                 preAnchorBibleMetadata,
                 sectionProgress);
 
+            // Add with empty URI; will be resolved on-demand when this track starts playing.
             var prevTrack = new AudioPlayerTrack
             {
                 PlayItem = prevPlayItem,

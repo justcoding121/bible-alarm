@@ -6,7 +6,7 @@ alwaysApply: false
 
 ## Mental model
 
-There are two layers of “scheduling” in this app:
+There are two layers of "scheduling" in this app:
 
 1) **App-level schedule definition** (what the user configures)
    - stored in Schedule DB: `AlarmSchedule` + `BiblePublicationSchedule` (+ optional `AlarmMusic`)
@@ -19,7 +19,7 @@ Quartz is used for **Cron parsing / next fire time** only (see `AlarmSchedule.Ne
 
 ---
 
-## When an alarm “fires”
+## When an alarm "fires"
 
 ### OS notification scheduling
 
@@ -41,7 +41,7 @@ Receiver:
 
 Flow:
 - creates `MediaSession` immediately (for Android Auto/system controls)
-- starts a **foreground service immediately** when it’s an alarm (prevents Android from killing the process mid-bootstrap/download)
+- starts a **foreground service immediately** when it's an alarm (prevents Android from killing the process mid-bootstrap)
   - `ForegroundServiceCoordinator.OnAlarmTriggered(context, scheduleId)`
 - creates DI container (`MauiAppHolder.CreateAndStore()`)
 - runs bootstrap in background (`MauiProgram.InitializePlatformBootstrap(..., isForeground: false)`)
@@ -53,16 +53,27 @@ Flow:
 Key reason for the foreground service:
 - alarms are time-sensitive and often occur while the app is not running; Android may kill a background-started process quickly unless it enters foreground service state.
 
+### Alarm playback: cache-or-stream
+
+When the alarm triggers playback:
+- if the track is pre-cached (from the periodic background job): plays the local cached file immediately
+- if the track is **not** pre-cached but internet is available: streams directly from the CDN URL
+- if the track is **not** pre-cached and no internet: plays the fallback OS alarm sound
+
+This means alarms start playback quickly even if the pre-cache job hasn't run yet, as long as internet is available.
+
 ---
 
-## Periodic background work (“maintenance job”)
+## Periodic background work ("maintenance job")
 
 ### Purpose
 
 The periodic job exists to:
 - clean old cached media
 - ensure OS notifications are still scheduled for enabled alarms
-- pre-download/prepare media cache for upcoming alarms
+- pre-download media files for upcoming alarms (this is the **only** path that downloads files to cache)
+
+**Important**: Playback itself does not download files. It uses a cache-or-stream strategy. The periodic job pre-caches so that alarm playback can use local files even when offline.
 
 ### Core implementation
 
@@ -71,10 +82,14 @@ Service:
 
 Important behaviors:
 - waits for bootstrap completion before running (avoids lock timeouts while DB init is running)
-- guarded by a semaphore so periodic runs can’t overlap
+- guarded by a semaphore so periodic runs can't overlap
 - for each enabled schedule:
   - if notification missing → schedule it (`alarmService.Create(schedule)`)
   - else → set up alarm cache (`mediaCacheService.SetupAlarmCacheAsync(schedule.Id)`)
+
+### Schedule save also triggers pre-caching
+
+When a schedule is saved, `ScheduleMediaCacheService.SetupMediaCache` runs in the background to pre-cache the tracks for that schedule. This ensures the cache is ready before the next alarm fires.
 
 ### Platform runners
 
@@ -86,4 +101,3 @@ Important behaviors:
   - `src/Bible.Alarm/Platforms/Windows/Helpers/WindowsPeriodicBackgroundTasks.cs`
 
 (iOS background behavior is constrained by iOS policy; the app primarily relies on notification triggers + background audio capabilities rather than long-running background jobs.)
-

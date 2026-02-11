@@ -10,7 +10,7 @@ using Serilog;
 namespace Bible.Alarm.Services.Media.Playback;
 
 /// <summary>
-/// Handles on-demand track preparation (ensure current track is ready) and background pre-download of next track.
+/// Handles on-demand track URI resolution (ensure current track has a playable URI).
 /// </summary>
 public sealed class TrackOnDemandPreparer
 {
@@ -27,17 +27,16 @@ public sealed class TrackOnDemandPreparer
     {
         if (!string.IsNullOrEmpty(track.Uri))
         {
-            SendProgress(loadedTracks: 1, totalTracks: 1, bytesDownloaded: 1, totalBytes: 1);
+            SendProgress(loadedTracks: 1, totalTracks: 1);
             return true;
         }
 
         try
         {
-            SendProgress(loadedTracks: 0, totalTracks: 1, bytesDownloaded: 0, totalBytes: null);
+            SendProgress(loadedTracks: 0, totalTracks: 1);
 
-            var prepared = await preparePlaybackService.PrepareSingleTrackWithProgressAsync(
+            var prepared = await preparePlaybackService.PrepareSingleTrackAsync(
                 track.PlayItem,
-                (bytesDownloaded, totalBytes) => SendProgress(loadedTracks: 0, totalTracks: 1, bytesDownloaded: bytesDownloaded, totalBytes: totalBytes),
                 cancellationToken);
 
             if (prepared == null || string.IsNullOrEmpty(prepared.Uri))
@@ -46,7 +45,7 @@ public sealed class TrackOnDemandPreparer
             }
 
             track.Uri = prepared.Uri;
-            SendProgress(loadedTracks: 1, totalTracks: 1, bytesDownloaded: 1, totalBytes: 1);
+            SendProgress(loadedTracks: 1, totalTracks: 1);
             return true;
         }
         catch (OperationCanceledException)
@@ -55,81 +54,22 @@ public sealed class TrackOnDemandPreparer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Failed to prepare track on-demand: {Url}", track.PlayItem?.Url ?? "Unknown");
+            logger.Error(ex, "Failed to resolve track URI on-demand: {Url}", track.PlayItem?.Url ?? "Unknown");
             return false;
         }
     }
 
-    public async Task PreDownloadNextTrackAsync(
-        IReadOnlyList<AudioPlayerTrack> playlist,
-        int currentIndex,
-        bool isIndefinitePlayback,
-        Func<Task<bool>> tryAppendNextTrack,
-        CancellationToken cancellationToken)
-    {
-        if (playlist.Count == 0)
-        {
-            return;
-        }
-
-        var nextIndex = currentIndex + 1;
-        if (nextIndex < 0 || nextIndex >= playlist.Count)
-        {
-            if (isIndefinitePlayback)
-            {
-                var appended = await tryAppendNextTrack();
-                if (!appended)
-                {
-                    return;
-                }
-
-                nextIndex = currentIndex + 1;
-                if (nextIndex < 0 || nextIndex >= playlist.Count)
-                {
-                    return;
-                }
-            }
-            else
-            {
-                return;
-            }
-        }
-
-        var nextTrack = playlist[nextIndex];
-        if (!string.IsNullOrEmpty(nextTrack.Uri))
-        {
-            return;
-        }
-
-        try
-        {
-            var prepared = await preparePlaybackService.PrepareSingleTrackAsync(nextTrack.PlayItem, cancellationToken);
-            if (prepared != null && !string.IsNullOrEmpty(prepared.Uri))
-            {
-                nextTrack.Uri = prepared.Uri;
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Ignore.
-        }
-        catch (Exception ex)
-        {
-            logger.Debug(ex, "Background pre-download for next track failed");
-        }
-    }
-
-    private static void SendProgress(int loadedTracks, int totalTracks, long bytesDownloaded, long? totalBytes)
+    private static void SendProgress(int loadedTracks, int totalTracks)
     {
         WeakReferenceMessenger.Default.Send(new PlaybackPreparationProgressMessage
         {
             LoadedTracks = loadedTracks,
             TotalTracks = totalTracks,
             CurrentTrackProgress = 0.0,
-            BytesDownloaded = bytesDownloaded,
-            TotalBytes = totalBytes,
-            TotalBytesDownloaded = bytesDownloaded,
-            TotalBytesExpected = totalBytes
+            BytesDownloaded = loadedTracks,
+            TotalBytes = totalTracks,
+            TotalBytesDownloaded = loadedTracks,
+            TotalBytesExpected = totalTracks
         });
     }
 }

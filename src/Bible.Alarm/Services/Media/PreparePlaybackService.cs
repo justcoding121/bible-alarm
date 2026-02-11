@@ -14,12 +14,8 @@ public sealed class PreparePlaybackService(
 {
     public async Task<List<AudioPlayerTrack>?> PrepareTracksAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
-        // Always ensure the *first* track that needs to play is downloaded before starting playback.
-        // Remaining tracks (finite mode) can be pre-downloaded in the background.
-
-        // Send initial progress message BEFORE media lookup so alarm modal shows "Preparing.." immediately.
-        // We always represent the blocking work as 1 track (the first one).
-        SendProgressMessage(0, 1, 0, 0, null, 0, null);
+        // Send initial progress message so alarm modal shows "Preparing.." immediately.
+        SendProgressMessage(0, 1);
 
         List<PlayItem> playItems;
         try
@@ -35,7 +31,7 @@ public sealed class PreparePlaybackService(
         if (playItems.Count == 0)
         {
             logger.Debug("[Playback] No play items for schedule {ScheduleId}", scheduleId);
-            SendProgressMessage(1, 1, 0, 1, 1, 1, 1);
+            SendProgressMessage(1, 1);
             return new List<AudioPlayerTrack>();
         }
 
@@ -45,99 +41,51 @@ public sealed class PreparePlaybackService(
                 scheduleId, firstMeta.PublicationCode, firstMeta.SectionCode ?? "(null)", firstMeta.TrackCode, firstMeta.LookUpPath);
         }
 
-        // Build playlist immediately; tracks will get their Uri filled as they download.
-        var tracks = playItems
-            .Select(pi => new AudioPlayerTrack { PlayItem = pi, Uri = string.Empty })
-            .ToList();
+        // Resolve URIs for all tracks (cache check + CDN URL fallback, no downloading).
+        var tracks = new List<AudioPlayerTrack>(playItems.Count);
+        foreach (var playItem in playItems)
+        {
+            var uri = await ResolveTrackUriAsync(playItem, cancellationToken);
+            tracks.Add(new AudioPlayerTrack { PlayItem = playItem, Uri = uri ?? string.Empty });
+        }
 
-        // Download/prepare the first track with progress.
-        AudioPlayerTrack? firstPrepared;
-        try
+        // The first track must have a valid URI to start playback.
+        if (string.IsNullOrEmpty(tracks[0].Uri))
         {
-            firstPrepared = await PrepareSingleTrackWithProgressAsync(
-                playItems[0],
-                (bytesDownloaded, totalBytes) =>
-                {
-                    // Byte-based progress for the single blocking track.
-                    SendProgressMessage(
-                        loadedTracks: 0,
-                        totalTracks: 1,
-                        currentTrackProgress: 0.0,
-                        bytesDownloaded: bytesDownloaded,
-                        totalBytes: totalBytes,
-                        totalBytesDownloaded: bytesDownloaded,
-                        totalBytesExpected: totalBytes);
-                },
-                cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            return null;
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Failed to prepare first track for schedule {ScheduleId}", scheduleId);
+            logger.Warning("Failed to resolve first track URI for schedule {ScheduleId}", scheduleId);
             return null;
         }
 
-        if (firstPrepared == null || string.IsNullOrEmpty(firstPrepared.Uri))
-        {
-            logger.Warning("Failed to download first track for schedule {ScheduleId}", scheduleId);
-            return null;
-        }
-
-        tracks[0].Uri = firstPrepared.Uri;
-
-        // Signal preparation complete (1/1) so the modal can transition out of preparing state.
-        SendProgressMessage(1, 1, 0.0, 1, 1, 1, 1);
-
-        // Background: pre-download remaining tracks through cache logic.
-        // This should not block playback.
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await PreDownloadRemainingTracksAsync(tracks, startIndex: 1, cancellationToken);
-            }
-            catch
-            {
-                // Swallow background errors - on-demand download will still work when the track is requested.
-            }
-        }, CancellationToken.None);
+        // Signal preparation complete so the modal can transition out of preparing state.
+        SendProgressMessage(1, 1);
 
         return tracks;
     }
 
-    private static void SendProgressMessage(int loadedTracks, int totalTracks, double currentTrackProgress, long bytesDownloaded, long? totalBytes, long totalBytesDownloaded, long? totalBytesExpected)
+    private static void SendProgressMessage(int loadedTracks, int totalTracks)
     {
         WeakReferenceMessenger.Default.Send(new PlaybackPreparationProgressMessage
         {
             LoadedTracks = loadedTracks,
             TotalTracks = totalTracks,
-            CurrentTrackProgress = currentTrackProgress,
-            BytesDownloaded = bytesDownloaded,
-            TotalBytes = totalBytes,
-            TotalBytesDownloaded = totalBytesDownloaded,
-            TotalBytesExpected = totalBytesExpected
+            CurrentTrackProgress = 0.0,
+            BytesDownloaded = loadedTracks,
+            TotalBytes = totalTracks,
+            TotalBytesDownloaded = loadedTracks,
+            TotalBytesExpected = totalTracks
         });
     }
 
     /// <summary>
-    /// Prepares a single track by downloading it and creating an AudioPlayerTrack.
-    /// Used for getting metadata for a single track without preparing the entire playlist.
+    /// Resolves the URI for a single track (cached file or CDN URL for streaming).
     /// </summary>
     public async Task<AudioPlayerTrack?> PrepareSingleTrackAsync(PlayItem playItem, CancellationToken cancellationToken = default)
     {
-        return await PrepareSingleTrackWithProgressAsync(playItem, null, cancellationToken);
-    }
-
-    public async Task<AudioPlayerTrack?> PrepareSingleTrackWithProgressAsync(PlayItem playItem, Action<long, long?>? progressCallback, CancellationToken cancellationToken = default)
-    {
-        var uri = await cacheService.GetOrDownloadTrackUriWithProgressAsync(playItem, progressCallback, cancellationToken);
+        var uri = await ResolveTrackUriAsync(playItem, cancellationToken);
 
         if (uri == null)
         {
-            logger.Warning("Failed to download track: {Url}", playItem.Url);
+            logger.Warning("Failed to resolve track URI: {Url}", playItem.Url);
             return null;
         }
 
@@ -148,54 +96,20 @@ public sealed class PreparePlaybackService(
         };
     }
 
-    private async Task PreDownloadRemainingTracksAsync(List<AudioPlayerTrack> tracks, int startIndex, CancellationToken cancellationToken)
+    private async Task<string?> ResolveTrackUriAsync(PlayItem playItem, CancellationToken cancellationToken)
     {
-        if (startIndex >= tracks.Count)
+        try
         {
-            return;
+            return await cacheService.ResolveTrackUriAsync(playItem, cancellationToken);
         }
-
-        const int maxConcurrent = 3;
-        using var semaphore = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-
-        var tasks = new List<Task>(Math.Max(0, tracks.Count - startIndex));
-        for (var i = startIndex; i < tracks.Count; i++)
+        catch (OperationCanceledException)
         {
-            var index = i;
-            tasks.Add(Task.Run(async () =>
-            {
-                await semaphore.WaitAsync(cancellationToken);
-                try
-                {
-                    if (!string.IsNullOrEmpty(tracks[index].Uri))
-                    {
-                        return;
-                    }
-
-                    var uri = await cacheService.GetOrDownloadTrackUriAsync(tracks[index].PlayItem, cancellationToken);
-                    if (!string.IsNullOrEmpty(uri))
-                    {
-                        tracks[index].Uri = uri;
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    // Ignore cancellation for background pre-download.
-                }
-                catch (Exception ex)
-                {
-                    logger.Debug(ex, "Background pre-download failed for track index {Index} (Url={Url})", index, tracks[index].PlayItem?.Url);
-                }
-                finally
-                {
-                    semaphore.Release();
-                }
-            }, CancellationToken.None));
+            return null;
         }
-
-        await Task.WhenAll(tasks);
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to resolve track URI: {Url}", playItem.Url);
+            return null;
+        }
     }
-
 }
-
-
