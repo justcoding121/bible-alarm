@@ -13,6 +13,15 @@ Every **non-static** class that is registered in DI must have a corresponding **
 - **Exemption**: Static classes do not need an interface (they are not instantiated or injected).
 - Name the interface after the implementation, e.g. `IFooService` for `FooService`.
 
+## Interface location
+
+Put each interface in a subfolder named **`Interfaces`** under the same folder where the implementing class resides.
+
+**Example layout**
+
+- `Services/Reports/ReportGenerator.cs` (implementation)
+- `Services/Reports/Interfaces/IReportGenerator.cs` (interface)
+
 ## DI: register and inject by interface
 
 - **Registration**: Register the concrete type against the interface (e.g. `services.AddSingleton<IFooService, FooService>()`).
@@ -44,5 +53,5 @@ Registration: `builder.Services.AddSingleton<IReportGenerator, ReportGenerator>(
 
 ## Summary
 
-- Non-static classes → define an interface; register and inject via that interface.
+- Non-static classes → define an interface in an `Interfaces` subfolder next to the implementation; register and inject via that interface.
 - Static classes → no interface required.

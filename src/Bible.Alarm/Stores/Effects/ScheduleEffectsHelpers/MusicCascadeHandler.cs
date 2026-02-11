@@ -1,13 +1,11 @@
 #nullable enable
-using Bible.Alarm.Common;
-using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers.MusicCascadeHandlerHelpers;
 using Bible.Alarm.Stores.Models;
 using Fluxor;
 using Microsoft.EntityFrameworkCore;
@@ -134,8 +132,8 @@ public sealed class MusicCascadeHandler
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            var publicationModalItemCount = await GetMusicPublicationModalItemCountAsync(db, currentSchedule);
-            var sectionModalItemCount = await GetMusicSectionModalItemCountAsync(db, currentSchedule);
+            var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, currentSchedule);
+            var sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(db, currentSchedule);
 
             logger.Debug("MusicCascadeHandler: RefreshModalCountsIfNeeded - Current: PublicationCount={CurrentPubCount}, SectionCount={CurrentSectionCount}, New: PublicationCount={NewPubCount}, SectionCount={NewSectionCount}",
                 currentSchedule.MusicPublicationModalItemCount, currentSchedule.MusicSectionModalItemCount,
@@ -209,10 +207,11 @@ public sealed class MusicCascadeHandler
         }
 
         // Align with Bible cascade: set modal counts so row badges match (category = "Music").
-        var publicationModalItemCount = await GetMusicPublicationModalItemCountAsync(db, currentSchedule);
+        var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, currentSchedule);
         var sectionModalItemCount = 0; // Flat publication has no sections.
 
-        UpdateSchedule(
+        MusicCascadeScheduleUpdater.UpdateSchedule(
+            logger,
             currentSchedule,
             publicationCode,
             currentSchedule.MusicPublicationName,
@@ -364,8 +363,8 @@ public sealed class MusicCascadeHandler
         var tempSchedule = currentSchedule.DeepClone();
         tempSchedule.MusicPublicationCode = publicationCode;
         tempSchedule.MusicLanguageCode = publicationWithoutLanguage ? null : languageCode;
-        var publicationModalItemCount = await GetMusicPublicationModalItemCountAsync(db, tempSchedule);
-        var sectionModalItemCount = await GetMusicSectionModalItemCountAsync(db, tempSchedule);
+        var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, tempSchedule);
+        var sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(db, tempSchedule);
 
         // If using a non-languaged publication, clear the language code from state
         if (publicationWithoutLanguage)
@@ -386,7 +385,7 @@ public sealed class MusicCascadeHandler
             return;
         }
 
-        UpdateSchedule(currentSchedule, publicationCode, publicationName, sectionCode, sectionName, trackCode, trackTitle, publicationModalItemCount, sectionModalItemCount, dispatcher);
+        MusicCascadeScheduleUpdater.UpdateSchedule(logger, currentSchedule, publicationCode, publicationName, sectionCode, sectionName, trackCode, trackTitle, publicationModalItemCount, sectionModalItemCount, dispatcher);
     }
 
     private async Task HandlePublicationCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
@@ -432,10 +431,10 @@ public sealed class MusicCascadeHandler
         }
 
         // Align with Bible cascade: set modal counts (category = "Music").
-        var publicationModalItemCount = await GetMusicPublicationModalItemCountAsync(db, currentSchedule);
-        var sectionModalItemCount = await GetMusicSectionModalItemCountAsync(db, currentSchedule);
+        var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, currentSchedule);
+        var sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(db, currentSchedule);
 
-        UpdateSchedule(currentSchedule, publicationCode, publication.Name, sectionCode, sectionName, trackCode, trackTitle, publicationModalItemCount, sectionModalItemCount, dispatcher);
+        MusicCascadeScheduleUpdater.UpdateSchedule(logger, currentSchedule, publicationCode, publication.Name, sectionCode, sectionName, trackCode, trackTitle, publicationModalItemCount, sectionModalItemCount, dispatcher);
     }
 
     private async Task HandleSectionCascadeAsync(ScheduleStateItem currentSchedule, IDispatcher dispatcher)
@@ -488,135 +487,9 @@ public sealed class MusicCascadeHandler
         var trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
 
         // Align with Bible cascade: set modal counts (category = "Music").
-        var publicationModalItemCount = await GetMusicPublicationModalItemCountAsync(db, currentSchedule);
-        var sectionModalItemCount = await GetMusicSectionModalItemCountAsync(db, currentSchedule);
+        var publicationModalItemCount = await MusicCascadeModalCountHelper.GetMusicPublicationModalItemCountAsync(db, currentSchedule);
+        var sectionModalItemCount = await MusicCascadeModalCountHelper.GetMusicSectionModalItemCountAsync(db, currentSchedule);
 
-        UpdateSchedule(currentSchedule, publicationCode, currentSchedule.MusicPublicationName, sectionCode, sectionName, trackCode, firstTrack.Title ?? string.Empty, publicationModalItemCount, sectionModalItemCount, dispatcher);
-    }
-
-    private void UpdateSchedule(ScheduleStateItem currentSchedule, string publicationCode, string? publicationName,
-        string? sectionCode, string sectionName, string trackCode, string trackTitle,
-        int? publicationModalItemCount, int? sectionModalItemCount, IDispatcher dispatcher)
-    {
-        // Check if values have actually changed to prevent cascade cycles (align with Bible cascade).
-        var currentSectionCode = currentSchedule.MusicSectionCode;
-        var currentTrackCode = currentSchedule.MusicTrackCode;
-        var currentTrackTitle = currentSchedule.MusicTrackName;
-        var currentPublicationCode = currentSchedule.MusicPublicationCode;
-        var currentPublicationModalItemCount = currentSchedule.MusicPublicationModalItemCount;
-        var currentSectionModalItemCount = currentSchedule.MusicSectionModalItemCount;
-
-        var publicationChanged = !string.Equals(currentPublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase);
-        var sectionChanged = !string.Equals(currentSectionCode, sectionCode, StringComparison.OrdinalIgnoreCase);
-        var trackChanged = currentTrackCode != trackCode;
-        var publicationModalCountChanged = currentPublicationModalItemCount != publicationModalItemCount;
-        var sectionModalCountChanged = currentSectionModalItemCount != sectionModalItemCount;
-
-        // If all values are already set correctly, don't dispatch to prevent infinite loop
-        if (currentSchedule.MusicPublicationCode == publicationCode &&
-            string.Equals(currentSectionCode, sectionCode, StringComparison.OrdinalIgnoreCase) &&
-            currentTrackCode == trackCode &&
-            currentTrackTitle == trackTitle &&
-            !publicationModalCountChanged &&
-            !sectionModalCountChanged)
-        {
-            logger.Debug("MusicCascadeHandler: Values unchanged, skipping dispatch to prevent cycle. publication={PublicationCode}, section={SectionCode}, track={TrackCode}",
-                publicationCode, sectionCode ?? "null", trackCode);
-            return;
-        }
-
-        var updatedSchedule = currentSchedule.DeepClone();
-        updatedSchedule.MusicPublicationCode = publicationCode;
-        if (publicationChanged)
-        {
-            updatedSchedule.MusicPublicationName = !string.IsNullOrWhiteSpace(publicationName)
-                ? publicationName
-                : publicationCode;
-        }
-        else if (!string.IsNullOrWhiteSpace(publicationName))
-        {
-            updatedSchedule.MusicPublicationName = publicationName;
-        }
-        updatedSchedule.MusicSectionCode = sectionCode;
-        if (publicationChanged || sectionChanged)
-        {
-            updatedSchedule.MusicSectionName = !string.IsNullOrWhiteSpace(sectionName)
-                ? sectionName
-                : null;
-        }
-        else if (!string.IsNullOrWhiteSpace(sectionName))
-        {
-            updatedSchedule.MusicSectionName = sectionName;
-        }
-        updatedSchedule.MusicTrackCode = trackCode;
-        if (publicationChanged || sectionChanged || trackChanged)
-        {
-            updatedSchedule.MusicTrackName = !string.IsNullOrWhiteSpace(trackTitle)
-                ? trackTitle
-                : null;
-        }
-        else if (!string.IsNullOrWhiteSpace(trackTitle))
-        {
-            updatedSchedule.MusicTrackName = trackTitle;
-        }
-
-        updatedSchedule.MusicPublicationModalItemCount = publicationModalItemCount;
-        updatedSchedule.MusicSectionModalItemCount = sectionModalItemCount;
-
-        dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(updatedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
-    }
-
-    /// <summary>
-    /// Mirror of ScheduleEffects.GetMusicPublicationModalItemCountAsync.
-    /// Category is always "Music"; when MusicLanguageCode is null, effective language is "E" (same as Bible row logic with category from schedule).
-    /// </summary>
-    private static async Task<int?> GetMusicPublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
-    {
-        var languageCode = schedule.MusicLanguageCode;
-        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? AppConstants.Media.DefaultLanguageCode : languageCode;
-        var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
-
-        var query = db.PublicationLanguages
-            .AsNoTracking()
-            .Where(pl => pl.Category != null && pl.Category.CategoryName == "Music");
-
-        query = query.Where(pl =>
-            (pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode) ||
-            pl.LanguageId == null);
-
-        return await query
-            .Select(pl => pl.PublicationCode)
-            .Distinct()
-            .CountAsync();
-    }
-
-    /// <summary>
-    /// Mirror of ScheduleEffects.GetMusicSectionModalItemCountAsync.
-    /// When MusicLanguageCode is null, effective language is "E".
-    /// </summary>
-    private static async Task<int?> GetMusicSectionModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
-    {
-        var publicationCode = schedule.MusicPublicationCode;
-        if (string.IsNullOrWhiteSpace(publicationCode) || !PublicationTypeHelper.HasSectionStructure(publicationCode))
-        {
-            return 0;
-        }
-
-        var languageCode = schedule.MusicLanguageCode;
-        var effectiveLanguageCode = string.IsNullOrEmpty(languageCode) ? AppConstants.Media.DefaultLanguageCode : languageCode;
-        var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
-
-        var query = db.SectionLanguages
-            .AsNoTracking()
-            .Where(sl => sl.PublicationCode == publicationCode);
-
-        query = query.Where(sl =>
-            (sl.Language != null && sl.Language.LanguageCode == normalizedLanguageCode) ||
-            sl.LanguageId == null);
-
-        return await query
-            .Select(sl => sl.SectionCode)
-            .Distinct()
-            .CountAsync();
+        MusicCascadeScheduleUpdater.UpdateSchedule(logger, currentSchedule, publicationCode, currentSchedule.MusicPublicationName, sectionCode, sectionName, trackCode, firstTrack.Title ?? string.Empty, publicationModalItemCount, sectionModalItemCount, dispatcher);
     }
 }

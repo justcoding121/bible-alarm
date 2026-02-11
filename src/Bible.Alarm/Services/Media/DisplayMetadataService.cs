@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Services.Media.DisplayMetadataServiceHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Enums;
@@ -23,6 +24,7 @@ public sealed class DisplayMetadataService(
     : IDisplayMetadataService
 {
     private readonly IVocalMusicService? vocalMusicService = vocalMusicService;
+    private readonly DisplayMetadataServiceMusicHelper musicHelper = new(logger, mediaService, vocalMusicService);
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
     {
@@ -157,78 +159,9 @@ public sealed class DisplayMetadataService(
         meta.Artist = "jw.org";
     }
 
-    private async Task SetMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri)
+    private Task SetMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta, string uri)
     {
-        if (string.IsNullOrEmpty(trackMetadata.LanguageCode))
-        {
-            await SetMelodyMusicMetadataAsync(trackMetadata, meta);
-        }
-        else
-        {
-            await SetVocalMusicMetadataAsync(trackMetadata, meta);
-        }
-
-        await TryExtractFileMetadataAsync(meta, uri);
-    }
-
-    private async Task SetMelodyMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta)
-    {
-        // Melody music (e.g. "iam")
-        // IMPORTANT: Sectioned melody publications (e.g., "iam") have duplicate track numbers across discs.
-        // TrackMetadata.DownloadCode holds the disc code (e.g. "iam-2"), so resolve title from that disc.
-        SortedDictionary<int, MusicTrack> tracks;
-        if (PublicationTypeHelper.HasSectionStructure(trackMetadata.PublicationCode) &&
-            !string.IsNullOrWhiteSpace(trackMetadata.DownloadCode))
-        {
-            tracks = await mediaService.GetMelodyMusicTracksBySection(trackMetadata.PublicationCode, trackMetadata.DownloadCode);
-        }
-        else
-        {
-            tracks = await mediaService.GetMelodyMusicTracks(trackMetadata.PublicationCode);
-        }
-
-        var trackCode = trackMetadata.OriginalTrackCode?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? trackMetadata.TrackCode;
-        if (!string.IsNullOrWhiteSpace(trackCode) &&
-            int.TryParse(trackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
-            tracks.TryGetValue(trackNum, out var melodyTrack))
-        {
-            meta.Title = NormalizeTitle(melodyTrack.Title);
-        }
-
-        // Prefer a stable publication name for subtitle.
-        try
-        {
-            var releases = await mediaService.GetMelodyMusicReleases();
-            if (releases.TryGetValue(trackMetadata.PublicationCode, out var release) &&
-                !string.IsNullOrWhiteSpace(release?.Name))
-            {
-                meta.Artist = $"{release.Name} (jw.org)";
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Debug(ex, "Failed to resolve melody release name for {PublicationCode}", trackMetadata.PublicationCode);
-        }
-
-        // For disc-style melody music, show the disc/section name as the album/description line.
-        if (PublicationTypeHelper.HasSectionStructure(trackMetadata.PublicationCode) &&
-            !string.IsNullOrWhiteSpace(trackMetadata.DownloadCode))
-        {
-            try
-            {
-                var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(trackMetadata.PublicationCode);
-                if (sections.TryGetValue(trackMetadata.DownloadCode, out var section) &&
-                    !string.IsNullOrWhiteSpace(section?.Name))
-                {
-                    meta.Album = section.Name;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Debug(ex, "Failed to resolve melody disc name for {PublicationCode}/{DiscCode}",
-                    trackMetadata.PublicationCode, trackMetadata.DownloadCode);
-            }
-        }
+        return musicHelper.SetMusicMetadataAsync(trackMetadata, meta, uri, () => TryExtractFileMetadataAsync(meta, uri));
     }
 
     private async Task<bool> TrySetDiscStyleMelodyMetadataAsync(TrackMetadata trackMetadata, MetaData meta)
@@ -307,47 +240,8 @@ public sealed class DisplayMetadataService(
     private static string? NormalizeTitle(string? rawTitle)
     {
         if (string.IsNullOrWhiteSpace(rawTitle))
-        {
             return null;
-        }
-
         return WebUtility.HtmlDecode(rawTitle).Replace('\u00A0', ' ').Trim();
-    }
-
-    private async Task SetVocalMusicMetadataAsync(TrackMetadata trackMetadata, MetaData meta)
-    {
-        // Vocal music
-        if (vocalMusicService != null)
-        {
-            // Avoid loading the full releases list just to get one name.
-            var release = await vocalMusicService.GetByLanguageAndCodeAsync(
-                trackMetadata.LanguageCode,
-                trackMetadata.PublicationCode);
-
-            if (release != null)
-            {
-                meta.Album = release.Name;
-            }
-        }
-        else
-        {
-            var releases = await mediaService.GetVocalMusicReleases(trackMetadata.LanguageCode);
-            if (releases.TryGetValue(trackMetadata.PublicationCode, out var vocalRelease))
-            {
-                // Description: Publication name
-                meta.Album = vocalRelease.Name;
-            }
-        }
-
-        var tracks = await mediaService.GetVocalMusicTracks(
-            trackMetadata.LanguageCode,
-            trackMetadata.PublicationCode);
-        if (!string.IsNullOrWhiteSpace(trackMetadata.TrackCode) &&
-            int.TryParse(trackMetadata.TrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var trackNum) &&
-            tracks.TryGetValue(trackNum, out var vocalTrack))
-        {
-            meta.Title = vocalTrack.Title;
-        }
     }
 
     private async Task TryExtractFileMetadataAsync(MetaData meta, string uri)

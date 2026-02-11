@@ -12,6 +12,8 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Actions.Schedule;
+using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers.BiblePublicationCascadeHandlerHelpers;
+using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers.CategorySelectionAutoPopulateHandlerHelpers;
 using Bible.Alarm.Stores.Messages.CategoryProgress;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
@@ -174,9 +176,8 @@ public sealed class CategorySelectionAutoPopulateHandler
                             : "DramaticBibleReadings")
                         : pl.PublicationCode;
 
-                    // Check if publication with first section and tracks is already harvested
-                    var isAlreadyHarvested = await CheckIfPublicationWithFirstSectionHarvestedAsync(
-                        db, pl.PublicationCode, normalizedLanguageCode);
+                    var isAlreadyHarvested = await CategorySelectionAutoPopulateHarvestCheck.CheckIfPublicationWithFirstSectionHarvestedAsync(
+                        logger, db, pl.PublicationCode, normalizedLanguageCode);
                     
                     if (!isAlreadyHarvested)
                     {
@@ -272,73 +273,13 @@ public sealed class CategorySelectionAutoPopulateHandler
 
             if (publicationWithoutLanguage)
             {
-                // For publications without LanguageId, query directly without a language
-                // Get publication name from database
-                using (var nameScope = scopeFactory.CreateScope())
-                {
-                    var nameDb = nameScope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                    var pub = await nameDb.BiblePublications
-                        .AsNoTracking()
-                        .Where(bp => bp.PublicationCode == publicationCode && bp.LanguageId == null)
-                        .FirstOrDefaultAsync();
-                    publicationName = pub?.Name ?? publicationCode;
-                }
-
-                // Get sections for music publications (Category=Music, LanguageId=null)
-                var sections = await mediaService.GetSectionsForPublicationWithoutLanguage(publicationCode);
-                
-                if (sections != null && sections.Count > 0)
-                {
-                    // Sectioned publication - get first section and track
-                    var firstSectionKvp = sections.First();
-                    var firstSection = firstSectionKvp.Value;
-                    sectionCode = firstSection.SectionCode;
-                    sectionName = firstSection.Name;
-
-                    // Get tracks for the first section - query directly from database
-                    using (var trackScope = scopeFactory.CreateScope())
-                    {
-                        var trackDb = trackScope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                        var pub = await trackDb.BiblePublications
-                            .AsNoTracking()
-                            .Include(x => x.Sections)
-                                .ThenInclude(s => s.Tracks)
-                            .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
-                            .FirstOrDefaultAsync();
-                        
-                        if (pub?.Sections != null)
-                        {
-                            var section = pub.Sections.FirstOrDefault(s => s.SectionCode == firstSection.SectionCode);
-                            if (section?.Tracks != null && section.Tracks.Count > 0)
-                            {
-                                var firstTrack = section.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
-                                trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
-                                trackTitle = firstTrack.Title ?? string.Empty;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // Non-sectioned publication - get first track directly
-                    // Query publication without LanguageId
-                    using (var trackScope = scopeFactory.CreateScope())
-                    {
-                        var trackDb = trackScope.ServiceProvider.GetRequiredService<MediaDbContext>();
-                        var pub = await trackDb.BiblePublications
-                            .AsNoTracking()
-                            .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
-                            .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
-                            .FirstOrDefaultAsync();
-                        
-                        if (pub?.Tracks != null && pub.Tracks.Count > 0)
-                        {
-                            var firstTrack = pub.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).First();
-                            trackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(firstTrack);
-                            trackTitle = firstTrack.Title ?? string.Empty;
-                        }
-                    }
-                }
+                var (secCode, trkCode, secName, trkTitle, pubName) = await BiblePublicationCascadeNoLanguageResolver.GetFirstSectionAndTrackAsync(
+                    mediaService, scopeFactory, publicationCode);
+                sectionCode = secCode;
+                trackCode = trkCode ?? string.Empty;
+                sectionName = secName;
+                trackTitle = trkTitle;
+                publicationName = pubName;
             }
             else
             {
@@ -453,101 +394,6 @@ public sealed class CategorySelectionAutoPopulateHandler
                 logger.Information("CategorySelectionAutoPopulateHandler: Reverting to previous schedule state after error");
                 dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(action.PreviousScheduleSnapshot, true, true, shouldSave: false));
             }
-        }
-    }
-
-    /// <summary>
-    /// Checks if a publication with its first section and tracks is already harvested.
-    /// </summary>
-    private async Task<bool> CheckIfPublicationWithFirstSectionHarvestedAsync(
-        MediaDbContext db,
-        string publicationCode,
-        string normalizedLanguageCode)
-    {
-        try
-        {
-            // For dramas, use case-sensitive publication codes
-            var lowerCode = publicationCode.ToLowerInvariant();
-            var isDrama = Bible.Alarm.Shared.Helpers.PublicationTypeHelper.IsDrama(lowerCode);
-            string publicationCodeForDb;
-            if (isDrama)
-            {
-                publicationCodeForDb = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                    ? "Dramas"
-                    : "DramaticBibleReadings";
-            }
-            else
-            {
-                publicationCodeForDb = publicationCode;
-            }
-
-            // Check if publication exists (fast path: just Id)
-            var publicationId = await db.BiblePublications
-                .AsNoTracking()
-                .Where(bp => bp.PublicationCode == publicationCodeForDb &&
-                             bp.Language != null &&
-                             bp.Language.LanguageCode == normalizedLanguageCode)
-                .Select(bp => bp.Id)
-                .FirstOrDefaultAsync();
-
-            if (publicationId <= 0)
-            {
-                return false;
-            }
-
-            // Get first section code from SectionLanguages
-            // IMPORTANT: SectionCodeHelper.SectionCodeComparer can't be translated to SQL.
-            // Load section codes first, then apply natural sort in-memory.
-            var sectionCodes = await db.SectionLanguages
-                .AsNoTracking()
-                .Where(sl => sl.PublicationCode == publicationCodeForDb &&
-                             sl.Language != null &&
-                             sl.Language.LanguageCode == normalizedLanguageCode)
-                .Select(sl => sl.SectionCode)
-                .ToListAsync();
-
-            var firstSectionCode = sectionCodes
-                .OrderBy(sc => sc, SectionCodeHelper.SectionCodeComparer)
-                .FirstOrDefault();
-
-            if (string.IsNullOrEmpty(firstSectionCode))
-            {
-                // No sections defined - check if it's a flat publication (has tracks directly)
-                var hasTracks = await db.BiblePublicationTracks
-                    .AsNoTracking()
-                    .AnyAsync(t => t.BiblePublicationId == publicationId &&
-                                   t.BiblePublicationSectionId == null);
-                return hasTracks;
-            }
-
-            // Check if the first section exists
-            // Load sections into memory first, then filter case-insensitively (EF Core can't translate ToUpper/Equals with StringComparison)
-            var sections = await db.BiblePublicationSections
-                .AsNoTracking()
-                .Where(s => s.BiblePublicationId == publicationId)
-                .Select(s => new { s.Id, s.SectionCode })
-                .ToListAsync();
-
-            var firstSection = sections.FirstOrDefault(s =>
-                string.Equals(s.SectionCode, firstSectionCode, StringComparison.OrdinalIgnoreCase));
-            var firstSectionId = firstSection?.Id ?? 0;
-
-            if (firstSectionId <= 0)
-            {
-                return false;
-            }
-
-            // Check if the first section has at least one track
-            return await db.BiblePublicationTracks
-                .AsNoTracking()
-                .AnyAsync(t => t.BiblePublicationId == publicationId &&
-                               t.BiblePublicationSectionId == firstSectionId);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "CategorySelectionAutoPopulateHandler: Error checking if publication {PublicationCode} is harvested",
-                publicationCode);
-            return false;
         }
     }
 }

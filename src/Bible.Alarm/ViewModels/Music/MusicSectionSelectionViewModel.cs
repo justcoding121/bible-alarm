@@ -48,8 +48,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private bool isCancelBusy = false;
     private MusicSectionSelectionStateChangeHandler? stateChangeHandler;
     private CancellationTokenSource? fetchCts;
-    
-    // Semaphore to serialize RefreshFromState calls - ensures second call waits for first to complete
+    private readonly MusicSectionSelectionRefreshHandler refreshHandler;
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
 
     public ICommand BackCommand { get; set; }
@@ -73,6 +72,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         this.mapper = mapper;
         sectionListLoader = new MusicInstrumentalSectionListLoader(logger, mediaService);
         commandHandler = new MusicSectionSelectionCommandHandler(logger, mediaService, state, dispatcher, navigationService);
+        refreshHandler = new MusicSectionSelectionRefreshHandler(logger);
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
@@ -272,141 +272,35 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
             initComplete = true;
         }
 
-        // Initialize or repopulate with the current publication
-        // Don't repopulate if we're currently selecting a section (to avoid conflicts)
         if (needsRepopulation && !isDisposed && !isSelectingSection)
         {
-            try
+            fetchCts?.Cancel();
+            fetchCts?.Dispose();
+            fetchCts = new CancellationTokenSource();
+            var progressReporter = new ModalOverlayFetchProgressReporter("MusicSection", fetchCts.Token);
+            var refreshContext = new MusicSectionSelectionRefreshContext
             {
-                await MainThread.InvokeOnMainThreadAsync(() => 
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        IsBusy = true;
-                        // Keep screen on during download to prevent Android from restricting network access
-                        DeviceDisplay.Current.KeepScreenOn = true;
-                    }
-                });
-                
-                if (isDisposed || isSelectingSection)
-                {
-                    return;
-                }
-                
-                // Cancel any previous fetch operation
-                fetchCts?.Cancel();
-                fetchCts?.Dispose();
-                fetchCts = new CancellationTokenSource();
-                
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        CanCancelFetch = true;
-                        ShowProgress = true;
-                        ProgressText = "0%";
-                        ProgressPercent = 0;
-                    }
-                });
-                
-                var progressReporter = new ModalOverlayFetchProgressReporter("MusicSection", fetchCts.Token);
-                await PopulateSections(publicationCode, progressReporter);
-
-                // Check again if we're selecting a section (may have changed during async operation)
-                if (isSelectingSection)
-                {
-                    // Ensure progress overlay is hidden before early return
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        if (!isDisposed)
-                        {
-                            CanCancelFetch = false;
-                            ShowProgress = false;
-                            DeviceDisplay.Current.KeepScreenOn = false;
-                        }
-                    });
-                    return;
-                }
-
-                // Set selected section after sections are populated (on main thread to ensure UI is ready)
-                await MainThread.InvokeOnMainThreadAsync(() => 
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        SetSelectedSection();
-                    }
-                });
-
-                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        CanCancelFetch = false;
-                        ShowProgress = false;
-                        // Allow screen to turn off after download completes
-                        DeviceDisplay.Current.KeepScreenOn = false;
-                    }
-                });
-            }
-            catch (OperationCanceledException)
-            {
-                // Fetch was cancelled - data saved so far is preserved
-                logger.Debug("[MusicSectionSelection] RefreshFromState - Fetch cancelled by user");
-                // Allow screen to turn off after cancellation
-                MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
-                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        CanCancelFetch = false;
-                        ShowProgress = false;
-                    }
-                });
-            }
-            catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
-            {
-                logger.Warning(ex, "[MusicSectionSelection] RefreshFromState - Network error during repopulation");
-                MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        CanCancelFetch = false;
-                        ShowProgress = false;
-                    }
-                });
-                throw;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "[MusicSectionSelection] RefreshFromState - Error during repopulation");
-                MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        CanCancelFetch = false;
-                        ShowProgress = false;
-                    }
-                });
-                throw;
-            }
+                IsDisposed = () => isDisposed,
+                IsSelectingSection = () => isSelectingSection,
+                SetIsBusy = (b) => IsBusy = b,
+                SetCanCancelFetch = (b) => CanCancelFetch = b,
+                SetShowProgress = (b) => ShowProgress = b,
+                SetProgressText = (s) => ProgressText = s,
+                SetProgressPercent = (d) => ProgressPercent = d,
+                SetScreenOn = (on) => DeviceDisplay.Current.KeepScreenOn = on,
+                PopulateSections = (pub, progress) => PopulateSections(pub, progress),
+                SetSelectedSection = SetSelectedSection
+            };
+            await refreshHandler.RunRepopulationAsync(refreshContext, publicationCode, progressReporter);
         }
         else
         {
-            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
-            await MainThread.InvokeOnMainThreadAsync(() => 
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (!isDisposed && !isSelectingSection)
-                {
                     ShowProgress = false;
-                }
                 if (!isDisposed)
-                {
                     SetSelectedSection();
-                }
             });
         }
     }
