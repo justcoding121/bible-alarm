@@ -110,8 +110,9 @@ jobs:
         dotnet publish src/Bible.Alarm/Bible.Alarm.csproj `
           --configuration Release `
           --framework net10.0-windows10.0.19041.0 `
+          -p:RuntimeIdentifierOverride=win-x64 `
           -p:WindowsPackageType=MSIX `
-          -p:RuntimeIdentifier=win-x64 `
+          -p:UseMonoRuntime=false `
           -p:AppxPackageSigningEnabled=true `
           -p:PackageCertificateThumbprint="$env:WINDOWS_CERTIFICATE_THUMBPRINT" `
           --output ./artifacts/windows

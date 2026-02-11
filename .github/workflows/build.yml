@@ -25,7 +25,7 @@ jobs:
       run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
         
     - name: Restore dependencies
-      run: dotnet restore src/Bible.Alarm.sln
+      run: dotnet restore src/Bible.Alarm.sln -p:RuntimeIdentifier=win-x64
       
     - name: Build solution
       run: dotnet build src/Bible.Alarm.sln --configuration Release --no-restore
