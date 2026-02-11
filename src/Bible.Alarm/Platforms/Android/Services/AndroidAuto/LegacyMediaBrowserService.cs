@@ -11,6 +11,7 @@ using AndroidX.Media.Session;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;
 using Bible.Alarm.Platforms.Android.Services.Media;
+using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Java.Util;
 using Serilog;
 
@@ -47,7 +48,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 
     // MediaSession references
     private MediaSessionCompat? session;
-    private Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager? mediaSessionManager;
+    private IMediaSessionManager? mediaSessionManager;
 
     public override void OnCreate()
     {
@@ -251,7 +252,7 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
         {
             try
             {
-                mediaSessionManager ??= ServiceProviderManager.GetService<Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager>();
+                mediaSessionManager ??= ServiceProviderManager.GetService<IMediaSessionManager>();
                 if (mediaSessionManager != null)
                 {
                     session ??= mediaSessionManager.GetOrCreate();

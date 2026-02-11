@@ -131,7 +131,7 @@ public sealed class TrackNavigatorSectionHarvester
         if (isNoLanguagePublication)
         {
             logger?.Debug("Publication {PublicationCode} is a no-language publication, cannot ad-hoc harvest sections.", publicationCode);
-            var noLanguageSections = await getSectionsCachedAsync(languageCode, publicationCode, null);
+            var noLanguageSections = await getSectionsCachedAsync(languageCode, publicationCode);
             return noLanguageSections.ContainsKey(sectionCode);
         }
 
@@ -148,7 +148,7 @@ public sealed class TrackNavigatorSectionHarvester
             return false;
         }
 
-        var sections = await getSectionsCachedAsync(languageCode, publicationCode, null);
+        var sections = await getSectionsCachedAsync(languageCode, publicationCode);
         if (sections.ContainsKey(sectionCode))
         {
             var tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionCode);

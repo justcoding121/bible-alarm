@@ -3,6 +3,7 @@ using Android.Graphics;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
+using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManagerHelpers;
@@ -104,7 +105,7 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
 
         try
         {
-            var artworkService = serviceProvider.GetService<AndroidArtworkService>();
+            var artworkService = serviceProvider.GetService<IAndroidArtworkService>();
             if (artworkService != null)
             {
                 var artworkBitmap = artworkService.LoadArtworkBitmap(artworkUrl);

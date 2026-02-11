@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.iOS.Services.Media;
+using Bible.Alarm.Platforms.iOS.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -24,16 +25,16 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
 {
     private static readonly ILogger logger = Log.ForContext<iOSMediaSessionEffect>();
 
-    private readonly iOSRemoteCommandCenterManager remoteCommandManager;
-    private readonly iOSNowPlayingInfoManager nowPlayingManager;
+    private readonly IiOSRemoteCommandCenterManager remoteCommandManager;
+    private readonly IiOSNowPlayingInfoManager nowPlayingManager;
     private readonly IState<PlaybackState> playbackState;
 
     // Track the last status to send correct toggle command
     private PlayStatus lastKnownStatus = PlayStatus.Stopped;
 
     public iOSMediaSessionEffect(
-        iOSRemoteCommandCenterManager remoteCommandManager,
-        iOSNowPlayingInfoManager nowPlayingManager,
+        IiOSRemoteCommandCenterManager remoteCommandManager,
+        IiOSNowPlayingInfoManager nowPlayingManager,
         IState<PlaybackState> playbackState)
     {
         this.remoteCommandManager = remoteCommandManager;

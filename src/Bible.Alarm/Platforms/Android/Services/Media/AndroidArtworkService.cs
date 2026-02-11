@@ -1,5 +1,6 @@
 #nullable enable
 using Android.Graphics;
+using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
@@ -8,7 +9,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 /// Service for loading and processing artwork bitmaps for Android platform.
 /// Used by Android Auto MediaSession and other Android-specific features.
 /// </summary>
-public class AndroidArtworkService
+public class AndroidArtworkService : IAndroidArtworkService
 {
     private static readonly ILogger logger = Log.ForContext<AndroidArtworkService>();
 

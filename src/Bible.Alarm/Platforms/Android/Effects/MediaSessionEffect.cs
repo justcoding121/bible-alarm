@@ -5,6 +5,7 @@ using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Media;
+using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -21,9 +22,9 @@ namespace Bible.Alarm.Platforms.Android.Effects;
 /// Audio focus management is handled by MediaSessionManager.
 /// </summary>
 public class MediaSessionEffect(
-    MediaSessionManager mediaSessionManager,
+    IMediaSessionManager mediaSessionManager,
     IState<PlaybackState> playbackState,
-    AndroidArtworkService artworkService) : IRecipient<PlaybackPositionChangedMessage>
+    IAndroidArtworkService artworkService) : IRecipient<PlaybackPositionChangedMessage>
 {
     private static readonly ILogger logger = Log.ForContext<MediaSessionEffect>();
 

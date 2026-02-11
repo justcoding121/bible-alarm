@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
 using Serilog;
@@ -26,7 +27,7 @@ public sealed class ScheduleStateManager
 
     public ScheduleStateManager(
         IScheduleInitializationService scheduleInitializationService,
-        ScheduleStateChangeHandler scheduleStateChangeHandler,
+        IScheduleStateChangeHandler scheduleStateChangeHandler,
         IDispatcher dispatcher,
         ILogger logger)
     {

@@ -12,6 +12,7 @@ using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Fluxor;
 using Serilog;
@@ -63,7 +64,7 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         IScheduleCommandService scheduleCommandService,
         IScheduleMediaCacheService scheduleMediaCacheService,
         IScheduleContainerService scheduleContainerService,
-        ScheduleStateChangeHandler scheduleStateChangeHandler)
+        IScheduleStateChangeHandler scheduleStateChangeHandler)
     {
 #if DEBUG
         var constructorStartTime = DateTime.UtcNow;

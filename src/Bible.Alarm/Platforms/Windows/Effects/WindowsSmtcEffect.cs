@@ -1,6 +1,6 @@
 #nullable enable
 
-using Bible.Alarm.Platforms.Windows.Services.Media;
+using Bible.Alarm.Platforms.Windows.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -14,7 +14,7 @@ namespace Bible.Alarm.Platforms.Windows.Effects;
 /// Fluxor effect that initializes Windows SMTC service and updates button states based on navigation changes.
 /// </summary>
 public class WindowsSmtcEffect(
-    WindowsSmtcService smtcService,
+    IWindowsSmtcService smtcService,
     IState<PlaybackState> playbackState) : IDisposable
 {
     private static readonly ILogger logger = Log.ForContext<WindowsSmtcEffect>();

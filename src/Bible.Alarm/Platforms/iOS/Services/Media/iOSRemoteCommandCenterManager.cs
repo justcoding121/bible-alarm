@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Platforms.iOS.Services.Media.Interfaces;
 using CommunityToolkit.Mvvm.Messaging;
 using MediaPlayer;
 using Serilog;
@@ -11,7 +12,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Media;
 /// Handles play/pause/next/previous/seek commands from Lock Screen, Control Center,
 /// AirPods, CarPlay, and other system media interfaces.
 /// </summary>
-public sealed class iOSRemoteCommandCenterManager : IDisposable
+public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManager
 {
     private static readonly ILogger logger = Log.ForContext<iOSRemoteCommandCenterManager>();
     private readonly MPRemoteCommandCenter commandCenter;

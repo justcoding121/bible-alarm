@@ -1,5 +1,5 @@
 #nullable enable
-using Bible.Alarm.Platforms.Android.Services.Audio;
+using Bible.Alarm.Platforms.Android.Services.Audio.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores.Actions.Playback;
 using Fluxor;
@@ -13,10 +13,10 @@ namespace Bible.Alarm.Platforms.Android.Effects;
 /// Requests audio focus when playback starts (Playing) and releases it when playback stops (Stopped/Ended).
 /// This is global and not specific to Android Auto.
 /// </summary>
-public class AudioFocusEffect(AudioFocusService audioFocusService)
+public class AudioFocusEffect(IAudioFocusService audioFocusService)
 {
     private static readonly ILogger logger = Log.ForContext<AudioFocusEffect>();
-    private readonly AudioFocusService audioFocusService = audioFocusService ?? throw new ArgumentNullException(nameof(audioFocusService));
+    private readonly IAudioFocusService audioFocusService = audioFocusService ?? throw new ArgumentNullException(nameof(audioFocusService));
 
     [EffectMethod]
     public Task HandlePlaybackStatusChanged(PlaybackStatusChangedAction action, FluxorDispatcher dispatcher)

@@ -1,6 +1,7 @@
 #nullable enable
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManagerHelpers;
 using Bible.Alarm.Services.Media.Models;
 using Serilog;
@@ -12,7 +13,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 /// Both Legacy and Modern Android Auto services must use the same MediaSessionCompat
 /// to ensure seamless playback continuity and proper control handling.
 /// </summary>
-public sealed class MediaSessionManager
+public sealed class MediaSessionManager : IMediaSessionManager
 {
     private MediaSessionCompat? mediaSession;
     private static readonly ILogger logger = Log.ForContext<MediaSessionManager>();

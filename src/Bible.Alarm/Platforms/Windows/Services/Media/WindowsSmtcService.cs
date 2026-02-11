@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Platforms.Windows.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Mvvm.Messaging;
@@ -13,7 +14,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Media;
 /// Windows-specific service that subscribes to System Media Transport Controls (SMTC) button events
 /// and dispatches messages that trigger Fluxor actions for playback control.
 /// </summary>
-public sealed class WindowsSmtcService : IDisposable
+public sealed class WindowsSmtcService : IWindowsSmtcService
 {
     private static readonly ILogger logger = Log.ForContext<WindowsSmtcService>();
     private readonly IMediaElementService mediaElementService;

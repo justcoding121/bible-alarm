@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Platforms.iOS.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Foundation;
 using MediaPlayer;
@@ -12,7 +13,7 @@ namespace Bible.Alarm.Platforms.iOS.Services.Media;
 /// Updates the Lock Screen, Control Center, CarPlay, and other system media interfaces
 /// with current track metadata and playback progress.
 /// </summary>
-public sealed class iOSNowPlayingInfoManager
+public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 {
     private static readonly ILogger logger = Log.ForContext<iOSNowPlayingInfoManager>();
 

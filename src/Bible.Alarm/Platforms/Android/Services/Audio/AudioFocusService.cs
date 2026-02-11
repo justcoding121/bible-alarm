@@ -1,6 +1,7 @@
 #nullable enable
 using Android.Content;
 using Android.Media;
+using Bible.Alarm.Platforms.Android.Services.Audio.Interfaces;
 using Serilog;
 using Application = Android.App.Application;
 
@@ -10,19 +11,19 @@ namespace Bible.Alarm.Platforms.Android.Services.Audio;
 /// Service that manages audio focus requests and releases.
 /// Centralizes audio focus management for use by AudioFocusEffect and MediaSessionManager.
 /// </summary>
-public sealed class AudioFocusService
+public sealed class AudioFocusService : IAudioFocusService
 {
     private static readonly ILogger logger = Log.ForContext<AudioFocusService>();
-    private readonly AudioFocusListener audioFocusListener;
+    private readonly IAudioFocusListener audioFocusListener;
     private readonly AudioManager audioManager;
     private AudioFocusRequestClass? audioFocusRequest;
 
     private readonly Lock @lock = new();
 
-    /// <summary>
-    /// Initializes the audio focus service with the global audio focus listener.
-    /// </summary>
-    public AudioFocusService(AudioFocusListener audioFocusListener)
+/// <summary>
+/// Initializes the audio focus service with the global audio focus listener.
+/// </summary>
+public AudioFocusService(IAudioFocusListener audioFocusListener)
     {
         this.audioFocusListener = audioFocusListener ?? throw new ArgumentNullException(nameof(audioFocusListener));
 
@@ -71,7 +72,7 @@ public sealed class AudioFocusService
 
                 audioFocusRequestBuilder.SetAudioAttributes(audioAttributes);
                 audioFocusRequestBuilder.SetAcceptsDelayedFocusGain(true);
-                audioFocusRequestBuilder.SetOnAudioFocusChangeListener(audioFocusListener);
+                audioFocusRequestBuilder.SetOnAudioFocusChangeListener((AudioManager.IOnAudioFocusChangeListener)audioFocusListener);
                 audioFocusRequest = audioFocusRequestBuilder.Build();
 
                 if (audioFocusRequest == null)

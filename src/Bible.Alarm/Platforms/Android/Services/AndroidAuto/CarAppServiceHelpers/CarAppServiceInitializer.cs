@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers;
@@ -31,7 +32,7 @@ public sealed class CarAppServiceInitializer(ILogger logger)
         try
         {
             MauiAppHolder.CreateAndStore();
-            var mediaSessionManager = ServiceProviderManager.GetService<Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager>();
+            var mediaSessionManager = ServiceProviderManager.GetService<IMediaSessionManager>();
             mediaSessionManager?.GetOrCreate();
         }
         catch (Exception ex)

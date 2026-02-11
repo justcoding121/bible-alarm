@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
@@ -9,7 +10,7 @@ namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 /// Handles schedule state changes for music properties.
 /// Music type is inferred from LanguageCode: NULL/empty = instrumental, otherwise = vocal.
 /// </summary>
-public class ScheduleStateChangeHandler
+public class ScheduleStateChangeHandler : IScheduleStateChangeHandler
 {
     private readonly ILogger logger;
     private readonly IDispatcher dispatcher;

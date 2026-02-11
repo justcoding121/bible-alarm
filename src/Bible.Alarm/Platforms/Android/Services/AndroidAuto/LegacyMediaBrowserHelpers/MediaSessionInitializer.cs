@@ -1,6 +1,7 @@
 #nullable enable
 using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserHelpers;
@@ -11,7 +12,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.LegacyMediaBrowserH
 public sealed class MediaSessionInitializer(ILogger logger)
 {
     private MediaSessionCompat? session;
-    private Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager? mediaSessionManager;
+    private IMediaSessionManager? mediaSessionManager;
 
     /// <summary>
     /// Initializes the MediaSession for the service.
@@ -36,7 +37,7 @@ public sealed class MediaSessionInitializer(ILogger logger)
     {
         // MediaSession is created here if needed (for SessionToken), but buffering state is set
         // centrally after bootstrap completes in CommonBootstrapHelper.InitializeSchedules().
-        mediaSessionManager = ServiceProviderManager.GetService<Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager>();
+        mediaSessionManager = ServiceProviderManager.GetService<IMediaSessionManager>();
         if (mediaSessionManager == null)
         {
             logger.Warning("MediaSessionManager is null - cannot create MediaSession");

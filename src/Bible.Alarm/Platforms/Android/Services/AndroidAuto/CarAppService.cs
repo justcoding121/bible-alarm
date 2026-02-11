@@ -9,6 +9,7 @@ using AndroidX.Car.App.Validation;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers;
 using Bible.Alarm.Platforms.Android.Services.Media;
+using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Fluxor;
 using Serilog;
@@ -114,9 +115,9 @@ public class ModernMediaSession : Session
 {
     private static readonly ILogger logger = Log.ForContext<ModernMediaSession>();
     private readonly MediaSessionCompat phoneSession;
-    private readonly MediaSessionManager mediaSessionManager;
+    private readonly IMediaSessionManager mediaSessionManager;
 
-    public ModernMediaSession(MediaSessionManager mediaSessionManager)
+    public ModernMediaSession(IMediaSessionManager mediaSessionManager)
     {
         this.mediaSessionManager = mediaSessionManager ?? throw new ArgumentNullException(nameof(mediaSessionManager));
         phoneSession = mediaSessionManager.GetOrCreate();
@@ -146,7 +147,7 @@ public class ModernMediaSession : Session
 public class MainCarScreen : Screen, IDisposable
 {
     private static readonly ILogger logger = Log.ForContext<MainCarScreen>();
-    private readonly MediaSessionManager mediaSessionManager;
+    private readonly IMediaSessionManager mediaSessionManager;
     private readonly CarScreenStateManager stateManager = new(logger);
     private readonly CarScreenTemplateBuilder templateBuilder = new(logger);
     private readonly CarScreenActionHandler actionHandler = new(logger);
@@ -155,7 +156,7 @@ public class MainCarScreen : Screen, IDisposable
     private AndroidAutoScheduleChangeTracker? scheduleChangeTracker;
     private bool disposed;
 
-    public MainCarScreen(CarContext carContext, MediaSessionManager mediaSessionManager) : base(carContext)
+    public MainCarScreen(CarContext carContext, IMediaSessionManager mediaSessionManager) : base(carContext)
     {
         this.mediaSessionManager = mediaSessionManager ?? throw new ArgumentNullException(nameof(mediaSessionManager));
         logger.Information("✅ MainCarScreen created");

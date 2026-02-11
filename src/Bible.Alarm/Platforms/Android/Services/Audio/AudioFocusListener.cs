@@ -1,5 +1,6 @@
 #nullable enable
 using Android.Media;
+using Bible.Alarm.Platforms.Android.Services.Audio.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Serilog;
 using Object = Java.Lang.Object;
@@ -10,7 +11,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Audio;
 /// Singleton global audio focus listener that handles audio focus changes system-wide.
 /// Pauses playback when audio focus is lost (e.g., phone call, other app starts playing).
 /// </summary>
-public sealed class AudioFocusListener : Object, AudioManager.IOnAudioFocusChangeListener
+public sealed class AudioFocusListener : Object, IAudioFocusListener, AudioManager.IOnAudioFocusChangeListener
 {
     private static readonly ILogger logger = Log.ForContext<AudioFocusListener>();
     private readonly IPlaybackService playbackService;

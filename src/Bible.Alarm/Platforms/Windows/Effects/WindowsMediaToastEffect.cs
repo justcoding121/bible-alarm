@@ -1,6 +1,6 @@
 #nullable enable
 
-using Bible.Alarm.Platforms.Windows.Services.UI;
+using Bible.Alarm.Platforms.Windows.Services.UI.Interfaces;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -15,7 +15,7 @@ namespace Bible.Alarm.Platforms.Windows.Effects;
 /// Shows artwork, title, subtitle (artist), and album information when track metadata changes.
 /// </summary>
 public class WindowsMediaToastEffect(
-    WindowsNotificationService notificationService,
+    IWindowsNotificationService notificationService,
     IState<PlaybackState> playbackState) : IDisposable
 {
     private static readonly ILogger logger = Log.ForContext<WindowsMediaToastEffect>();

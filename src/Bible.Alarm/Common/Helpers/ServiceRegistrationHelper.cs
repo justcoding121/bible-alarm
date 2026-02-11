@@ -2,6 +2,7 @@
 using Bible.Alarm.Platforms.iOS.Effects;
 using Bible.Alarm.Platforms.iOS.Services.Bootstrap;
 using Bible.Alarm.Platforms.iOS.Services.Media;
+using Bible.Alarm.Platforms.iOS.Services.Media.Interfaces;
 using Bible.Alarm.Platforms.iOS.Services.Storage;
 using Bible.Alarm.Platforms.iOS.Services.UI;
 using Bible.Alarm.Platforms.iOS.Services.Handlers;
@@ -14,10 +15,12 @@ using Bible.Alarm.Common.Interfaces.Battery;
 using Bible.Alarm.Platforms.Android.Effects;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Audio;
+using Bible.Alarm.Platforms.Android.Services.Audio.Interfaces;
 using Bible.Alarm.Platforms.Android.Services.Battery;
 using Bible.Alarm.Platforms.Android.Services.Bootstrap;
 using Bible.Alarm.Platforms.Android.Services.Handlers;
 using Bible.Alarm.Platforms.Android.Services.Media;
+using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Bible.Alarm.Platforms.Android.Services.Platform;
 using Bible.Alarm.Platforms.Android.Services.Storage;
 using Bible.Alarm.Platforms.Android.Services.UI;
@@ -69,10 +72,14 @@ using Fluxor;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
+using Bible.Alarm.ViewModels.ScheduleViewModelHelpers.Interfaces;
 using Bible.Alarm.ViewModels.BiblePublications;
 using Bible.Alarm.ViewModels.Categories;
 #if WINDOWS
+using Bible.Alarm.Platforms.Windows.Services.Media;
+using Bible.Alarm.Platforms.Windows.Services.Media.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.UI;
+using Bible.Alarm.Platforms.Windows.Services.UI.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.Handlers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.Storage;
@@ -204,7 +211,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IScheduleCommandService, ScheduleCommandService>();
         services.AddSingleton<IScheduleMediaCacheService, ScheduleMediaCacheService>();
         services.AddSingleton<IScheduleContainerService, ScheduleContainerService>();
-        services.AddSingleton<ScheduleStateChangeHandler>();
+        services.AddSingleton<IScheduleStateChangeHandler, ScheduleStateChangeHandler>();
 
         // Register bootstrap services
         services.AddSingleton<IDatabaseBootstrapService, DatabaseBootstrapService>();
@@ -240,18 +247,18 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IStorageService, AndroidStorageService>();
         services.AddSingleton<IBatteryOptimizationManager, AndroidBatteryOptimizationManager>();
         services.AddSingleton<IAndroidPlayerNotificationService, AndroidPlayerNotificationService>();
-        services.AddSingleton<AndroidArtworkService>();
+        services.AddSingleton<IAndroidArtworkService, AndroidArtworkService>();
         // Register global audio focus listener and service as singletons
-        services.AddSingleton<AudioFocusListener>();
-        services.AddSingleton<AudioFocusService>();
+        services.AddSingleton<IAudioFocusListener, AudioFocusListener>();
+        services.AddSingleton<IAudioFocusService, AudioFocusService>();
         // Register MediaSessionCompat using the global helper (thread-safe, prevents duplicates)
         // This ensures MediaSession is created as early as possible, even in background processes
         services.AddSingleton(sp => Platforms.Android.Services.Media.MediaSessionHelper.Create());
         // MediaSessionCallback is created lazily by MediaSessionManager to avoid startup dependency issues
-        services.AddSingleton<Platforms.Android.Services.Media.MediaSessionManager>();
+        services.AddSingleton<IMediaSessionManager, MediaSessionManager>();
         services.AddTransient(sp =>
             new ModernMediaSession(
-                sp.GetRequiredService<Platforms.Android.Services.Media.MediaSessionManager>()));
+                sp.GetRequiredService<IMediaSessionManager>()));
         // Register MediaSession effect for Android Auto
         services.AddSingleton<MediaSessionEffect>();
         // Register global audio focus effect that manages audio focus based on playback state
@@ -262,22 +269,21 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IStorageService, IOsStorageService>();
         services.AddSingleton<IIosAlarmHandler, IOsAlarmHandler>();
         // Register iOS Now Playing and Remote Command services for Lock Screen, Control Center, AirPods, and CarPlay
-        services.AddSingleton<iOSRemoteCommandCenterManager>();
-        services.AddSingleton<iOSNowPlayingInfoManager>();
+        services.AddSingleton<IiOSRemoteCommandCenterManager, iOSRemoteCommandCenterManager>();
+        services.AddSingleton<IiOSNowPlayingInfoManager, iOSNowPlayingInfoManager>();
         // Register iOS MediaSession effect for syncing playback state with system media controls
         services.AddSingleton<iOSMediaSessionEffect>();
 #elif WINDOWS
-        // Register WindowsNotificationService as both interface and concrete type
-        // (concrete type needed for WindowsMediaToastEffect which uses ShowMediaToast method)
-        services.AddSingleton<WindowsNotificationService>();
-        services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<WindowsNotificationService>());
+        // Register WindowsNotificationService by interface; INotificationService resolves to same instance
+        services.AddSingleton<IWindowsNotificationService, WindowsNotificationService>();
+        services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<IWindowsNotificationService>());
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
         services.AddSingleton<IWindowsAlarmHandler, WindowsAlarmHandler>();
         // Register Windows media toast effect for rich playback notifications
         services.AddSingleton<Platforms.Windows.Effects.WindowsMediaToastEffect>();
         // Register Windows SMTC service for handling system media transport controls
-        services.AddSingleton<Platforms.Windows.Services.Media.WindowsSmtcService>();
+        services.AddSingleton<IWindowsSmtcService, WindowsSmtcService>();
         // Register Windows SMTC effect for initializing and updating SMTC
         services.AddSingleton<Platforms.Windows.Effects.WindowsSmtcEffect>();
 #endif

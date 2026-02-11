@@ -3,13 +3,14 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Platforms.Windows.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
+using Bible.Alarm.Platforms.Windows.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
 using Serilog;
 using Windows.UI.Notifications;
 
 namespace Bible.Alarm.Platforms.Windows.Services.UI;
 
-public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider, ILogger logger) : INotificationService
+public sealed partial class WindowsNotificationService(IServiceProvider serviceProvider, ILogger logger) : IWindowsNotificationService
 {
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
