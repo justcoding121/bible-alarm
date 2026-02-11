@@ -22,6 +22,7 @@ public class HomeStateChangeHandler
     private readonly Func<bool> getIsBusy;
     private readonly Func<ObservableHashSet<ScheduleListItemViewModel>?> getSchedules;
     private readonly Action<ObservableHashSet<ScheduleListItemViewModel>> setSchedules;
+    private readonly Action? notifySchedulesChanged;
     private readonly Action updateProgressBarVisibility;
     private readonly Func<Task> fadeOutProgressBarAsync;
 
@@ -39,6 +40,7 @@ public class HomeStateChangeHandler
         Func<bool> getIsBusy,
         Func<ObservableHashSet<ScheduleListItemViewModel>?> getSchedules,
         Action<ObservableHashSet<ScheduleListItemViewModel>> setSchedules,
+        Action? notifySchedulesChanged,
         Action updateProgressBarVisibility,
         Func<Task> fadeOutProgressBarAsync)
     {
@@ -51,6 +53,7 @@ public class HomeStateChangeHandler
         this.getIsBusy = getIsBusy;
         this.getSchedules = getSchedules;
         this.setSchedules = setSchedules;
+        this.notifySchedulesChanged = notifySchedulesChanged;
         this.updateProgressBarVisibility = updateProgressBarVisibility;
         this.fadeOutProgressBarAsync = fadeOutProgressBarAsync;
     }
@@ -142,20 +145,16 @@ public class HomeStateChangeHandler
 
             if (isInitialLoad && hasSchedulesNow && newSchedules != null)
             {
-                logger.Debug("OnStateChanged: Initial load - setting {Count} schedules via property setter", newSchedules.Count);
+                logger.Debug("OnStateChanged: Initial load - setting {Count} schedules", newSchedules.Count);
 
-                // Hide progress bar and set IsBusy to false BEFORE setting schedules
-                // This ensures the SchedulesChanged event handler's call to UpdateVisibility
-                // will correctly hide the bar (since IsBusy will be false at that point)
-                // and prevents the progress bar from appearing "stuck" during heavy UI work
                 if (getIsBusy())
                 {
                     await fadeOutProgressBarAsync();
                     setIsBusy(false);
                 }
 
-                var schedulesCollection = BuildScheduleCollection(newSchedules, schedulesToRemove);
-                setSchedules(schedulesCollection);
+                SyncCollectionToNewSchedules(newSchedules);
+                notifySchedulesChanged?.Invoke();
                 logger.Debug("OnStateChanged: Initial load complete. Collection now has {Count} items", getSchedules()?.Count ?? 0);
             }
             else if (schedulesToAdd.Count > 0 || schedulesToRemove.Count > 0)
@@ -165,14 +164,13 @@ public class HomeStateChangeHandler
 
                 if (newSchedules != null)
                 {
-                    var updatedCollection = BuildScheduleCollection(newSchedules, schedulesToRemove);
-                    setSchedules(updatedCollection);
+                    SyncCollectionToNewSchedules(newSchedules);
+                    notifySchedulesChanged?.Invoke();
                     logger.Debug("OnStateChanged: Collection updated. Now has {Count} items", getSchedules()?.Count ?? 0);
                 }
 
                 if (schedulesToRemove.Count > 0)
                 {
-                    // Fade out first, then set IsBusy to false
                     await fadeOutProgressBarAsync();
                     setIsBusy(false);
                 }
@@ -221,32 +219,33 @@ public class HomeStateChangeHandler
     }
 
     /// <summary>
-    /// Builds a new schedule collection by keeping existing items (excluding those to remove) and adding new items.
+    /// Syncs the bound collection to match newSchedules by mutating in place (Clear + Add).
+    /// Mutating preserves the collection reference so CollectionView reliably refreshes on iOS
+    /// when schedules load after a long bootstrap (replacing ItemsSource can fail to refresh).
     /// </summary>
-    private ObservableHashSet<ScheduleListItemViewModel> BuildScheduleCollection(
-        ObservableHashSet<ScheduleListItemViewModel> newSchedules,
-        List<int> schedulesToRemove)
+    private void SyncCollectionToNewSchedules(ObservableHashSet<ScheduleListItemViewModel> newSchedules)
     {
-        var collection = new ObservableHashSet<ScheduleListItemViewModel>();
-
-        // Add all existing items that aren't being removed
-        foreach (var existingItem in getSchedules() ?? [])
+        var collection = getSchedules();
+        if (collection == null)
         {
-            if (!schedulesToRemove.Contains(existingItem.ScheduleId))
+            var newCollection = new ObservableHashSet<ScheduleListItemViewModel>();
+            foreach (var item in newSchedules)
             {
-                collection.Add(existingItem);
+                logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection",
+                    item.ScheduleId, item.Name);
+                newCollection.Add(item);
             }
+            setSchedules(newCollection);
+            return;
         }
 
-        // Add new items
+        collection.Clear();
         foreach (var item in newSchedules)
         {
             logger.Debug("OnStateChanged: Adding schedule {ScheduleId} ({Name}) to collection",
                 item.ScheduleId, item.Name);
             collection.Add(item);
         }
-
-        return collection;
     }
 }
 

@@ -160,6 +160,12 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
             () => propertyManager.IsBusy,
             () => propertyManager.Schedules,
             (schedules) => propertyManager.Schedules = schedules,
+            () =>
+            {
+                OnPropertyChanged(nameof(Schedules));
+                progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
+                bootstrapReadyManager.CheckSchedulesLoaded(propertyManager.Schedules);
+            },
             () => progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count),
             async () => await progressBarManager.FadeOutAsync());
 
@@ -293,9 +299,6 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         }
         catch (Exception ex)
         {
-            var errorMsg = $"[NOTIFICATION-BUTTON] Error in CheckAndShowAlarmSettingsOnFirstLaunchAsync: {ex.Message}";
-            System.Diagnostics.Debug.WriteLine(errorMsg);
-            Console.WriteLine(errorMsg);
             logger.Error(ex, "Error checking alarm settings on first launch");
         }
     }
@@ -400,9 +403,7 @@ public sealed class HomeViewModel : ObservableObject, IDisposable, IRecipient<Sh
         {
             var stateValue = state.Value;
             var scheduleCount = stateValue.Schedules?.Count ?? 0;
-            
-            // Log immediately at start - use Debug level to ensure it's captured
-            System.Diagnostics.Debug.WriteLine($"[STATE-CHANGE] OnStateChanged START - ScheduleCount={scheduleCount}");
+
             logger.Debug("[STATE-CHANGE] OnStateChanged called - ScheduleCount={Count}", scheduleCount);
             logger.Information("[STATE-CHANGE] OnStateChanged called - ScheduleCount={Count}", scheduleCount);
             

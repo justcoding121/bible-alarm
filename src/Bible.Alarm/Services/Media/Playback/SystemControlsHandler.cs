@@ -93,6 +93,20 @@ public sealed class SystemControlsHandler
     }
 
     /// <summary>
+    /// Handles Toggle Play/Pause button press (e.g. single button headphones, CarPlay).
+    /// Caller provides the toggle logic (pause if playing, play/start default otherwise).
+    /// </summary>
+    public void HandleTogglePlayPause(Func<Task> toggleAsync)
+    {
+        logger.Debug("Toggle play/pause pressed from system controls");
+        Task.Run(async () =>
+        {
+            await Task.Delay(150);
+            await MainThread.InvokeOnMainThreadAsync(toggleAsync);
+        });
+    }
+
+    /// <summary>
     /// Handles Fast Forward button press message from system media controls (notification/lockscreen).
     /// Calls the provided action on UI thread with a delay to let system controls finish processing.
     /// </summary>

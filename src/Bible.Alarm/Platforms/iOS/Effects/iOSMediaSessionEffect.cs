@@ -90,7 +90,8 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
             }
             else if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
             {
-                // No active schedule and stopped - keep play command enabled for default schedule
+                // No active schedule and stopped - show Play (hide Pause) so CarPlay/lock screen display correctly
+                remoteCommandManager.UpdateCommandAvailability(canPlayNext: true, canPlayPrevious: true, isPlaying: false);
                 // SetDefaultScheduleMetadataAction will be dispatched and will set up the metadata
                 // Commands should remain registered so play button works from lock screen
             }
@@ -209,6 +210,9 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
                 action.Album,
                 action.ArtworkUrl);
 
+            // Ensure Play is shown (Pause hidden) when displaying default schedule after stop
+            remoteCommandManager.UpdateCommandAvailability(canPlayNext: true, canPlayPrevious: true, isPlaying: false);
+
             // Register commands so play button works from lock screen
             // This allows users to start the default schedule from lock screen controls
             remoteCommandManager.RegisterCommands();
@@ -232,15 +236,17 @@ public class iOSMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
     {
         try
         {
-            logger.Information("[iOS MediaSession] Playback stopped - updating playback status to stopped");
+            logger.Information("[iOS MediaSession] Playback stopped - updating playback status and command availability");
 
             // Update playback status to stopped (rate = 0) but keep metadata
             // This shows the paused/stopped state on lock screen while keeping content visible
             nowPlayingManager.UpdatePlaybackStatus(PlayStatus.Stopped);
 
+            // Update command availability so CarPlay/lock screen show Play (not Pause) when stopped
+            remoteCommandManager.UpdateCommandAvailability(canPlayNext: true, canPlayPrevious: true, isPlaying: false);
+
             // Keep commands registered so play button works from lock screen
             // The play button will start the default schedule (handled by PlaybackService)
-            // Commands are already registered, no need to re-register
         }
         catch (Exception ex)
         {

@@ -325,11 +325,9 @@ public partial class BusyOverlay : ContentView
                     logger.Debug("BusyOverlay.OnIsVisibleChanged: Set ContentView.InputTransparent to {InputTransparent}, overlayGrid.Opacity to {Opacity}, overlayGrid.InputTransparent to {InputTransparent}", inputTransparent, opacity, inputTransparent);
                 }
 
-                overlay.UpdateIsSpinnerRunning();
-
-                // Handle spinner and hard timeout based on visibility change
                 if (newBoolValue)
                 {
+                    overlay.UpdateIsSpinnerRunning();
                     overlay.CancelSpinnerStop();
                     if (overlay.IsSpinnerRunning)
                         overlay.StartSpinnerImmediately();
@@ -337,8 +335,8 @@ public partial class BusyOverlay : ContentView
                 }
                 else
                 {
-                    // Don't stop spinner immediately - let it fade out with the card
-                    // Stop it after a short delay to allow the opacity fade to complete
+                    // Don't set IsSpinnerRunning to false yet - keep spinner animating so it fades out with the card.
+                    // StopSpinnerAfterDelay will stop it after the overlay has faded (card and spinner hide together).
                     overlay.CancelHardTimeout();
                     overlay.StopSpinnerAfterDelay();
                 }
@@ -438,15 +436,16 @@ public partial class BusyOverlay : ContentView
             {
                 await Task.Delay(300, token);
                 
-                if (!token.IsCancellationRequested && busyIndicator != null)
+                if (!token.IsCancellationRequested)
                 {
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
                         if (busyIndicator != null)
                         {
-                            logger.Debug("BusyOverlay: Stopping spinner after fade delay");
+                            logger.Debug("BusyOverlay: Stopping spinner after fade delay (card and spinner hide together)");
                             busyIndicator.IsRunning = false;
                         }
+                        UpdateIsSpinnerRunning();
                     });
                 }
             }

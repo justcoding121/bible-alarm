@@ -70,9 +70,10 @@ public class SerilogSetup
 #if ANDROID
         // Android DEBUG: Also write to logcat for adb logcat -s BibleAlarm
         // This allows viewing logs via adb even when not debugging in Visual Studio
-        loggerConfig.WriteTo.Sink(
+        // Wrap in Async to avoid blocking the calling thread during debug (logcat can block when buffer is full)
+        loggerConfig.WriteTo.Async(a => a.Sink(
             new AndroidLogcatSink(),
-            Serilog.Events.LogEventLevel.Debug);
+            Serilog.Events.LogEventLevel.Debug));
 #elif IOS
         // iOS DEBUG: Console sink for Visual Studio network debugging + Debug sink (os_log) + async file sink
         // Console sink writes to stdout - captured by Visual Studio Output window when debugging over WiFi/USB
@@ -150,9 +151,9 @@ public class SerilogSetup
 
 #if ANDROID
         // Android release: logcat only (no file sink). Use: adb logcat -s BibleAlarm
-        loggerConfig.WriteTo.Sink(
+        loggerConfig.WriteTo.Async(a => a.Sink(
             new AndroidLogcatSink(),
-            Serilog.Events.LogEventLevel.Error);
+            Serilog.Events.LogEventLevel.Error));
 #elif IOS
         // iOS release: Async file sink only, Error level and above
         var logDirectory = GetLogDirectory();

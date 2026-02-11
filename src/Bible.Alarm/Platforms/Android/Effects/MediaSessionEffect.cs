@@ -195,6 +195,16 @@ public class MediaSessionEffect(
                 return;
             }
 
+            // Default metadata and foreground notification should only appear when Android Auto is connected.
+            // Without Android Auto, updating MediaSession/starting foreground would show a notification
+            // after the user stops play (playback notification disappears, then default appears ~1s later).
+            // That is unwanted when not in the car.
+            if (!ForegroundServiceCoordinator.IsAndroidAutoConnected)
+            {
+                logger.Debug("HandleSetDefaultScheduleMetadata: Android Auto not connected, skipping (default metadata/notification only when Android Auto connected)");
+                return;
+            }
+
             var session = GetValidatedSession("cannot update default schedule metadata");
             if (session == null)
             {

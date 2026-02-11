@@ -98,6 +98,14 @@ public class PauseButtonPressedMessage
 }
 
 /// <summary>
+/// Message sent when the Toggle Play/Pause button is pressed (e.g. single button on headphones, CarPlay).
+/// PlaybackService will play if stopped/paused, or pause if playing.
+/// </summary>
+public class TogglePlayPauseMessage
+{
+}
+
+/// <summary>
 /// Message sent when the Fast Forward button is pressed in system media controls.
 /// </summary>
 public class SeekForwardButtonPressedMessage

@@ -100,13 +100,12 @@ Flow:
 
 ### Media DB runtime (shipped catalog)
 
-Two cooperating services:
-- `src/Bible.Alarm/Services/Media/MediaIndexService.cs`
-  - ensures `mediaIndex.db` exists by extracting embedded `index.zip`
-- `src/Bible.Alarm/Services/Database/MediaMigrationService.cs`
-  - applies migrations only when upgrading from an older app version
-  - skips migration check entirely when `IMediaIndexVersionService` says the bundled version is current
+Service: `src/Bible.Alarm/Services/Media/MediaIndexService.cs`
 
-Practical implication:
+The media index is bundled with the app in `index.zip`. The app **never** runs EF migrations on it:
+- **Fresh install**: media index not yet copied → extract from `index.zip` to `mediaIndex.db`, save version in Preferences
+- **Version change**: Preferences version ≠ current app version → force copy (replace `mediaIndex.db` with fresh extraction from `index.zip`), save new version
+
+The bundled database always has the latest schema; upgrades are handled by replacing the file, not migrating.
 - On most runs, **no migrations are applied** at runtime for the media index; it’s replaced by app update.
 

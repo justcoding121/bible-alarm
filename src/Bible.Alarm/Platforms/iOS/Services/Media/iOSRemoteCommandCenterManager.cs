@@ -155,9 +155,7 @@ public sealed class iOSRemoteCommandCenterManager : IiOSRemoteCommandCenterManag
     private MPRemoteCommandHandlerStatus HandleTogglePlayPauseCommand(MPRemoteCommandEvent evt)
     {
         logger.Debug("[iOS Media] Toggle play/pause command received");
-        // The PlaybackService will determine current state and toggle appropriately
-        // For now, we'll send play - the service handles the toggle logic
-        WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
+        WeakReferenceMessenger.Default.Send(new TogglePlayPauseMessage());
         return MPRemoteCommandHandlerStatus.Success;
     }
 

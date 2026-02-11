@@ -15,7 +15,7 @@ using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.Services.Media;
 
-public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>, IRecipient<PlayButtonPressedMessage>, IRecipient<PauseButtonPressedMessage>, IRecipient<SeekForwardButtonPressedMessage>, IRecipient<SeekBackwardButtonPressedMessage>, IDisposable
+public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPressedMessage>, IRecipient<PreviousButtonPressedMessage>, IRecipient<PlayButtonPressedMessage>, IRecipient<PauseButtonPressedMessage>, IRecipient<TogglePlayPauseMessage>, IRecipient<SeekForwardButtonPressedMessage>, IRecipient<SeekBackwardButtonPressedMessage>, IDisposable
 {
     private readonly ILogger logger;
     private readonly IAudioPlayer audioPlayer;
@@ -111,6 +111,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         WeakReferenceMessenger.Default.Register<PreviousButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Register<PlayButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Register<PauseButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Register<TogglePlayPauseMessage>(this);
         WeakReferenceMessenger.Default.Register<SeekForwardButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Register<SeekBackwardButtonPressedMessage>(this);
 
@@ -252,27 +253,44 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
 
     public void Receive(PlayButtonPressedMessage message)
     {
-        systemControlsHandler.HandlePlayButton(async () =>
-        {
-            if (!stateManager.IsPreparingOrPlaying(audioPlayer) &&
-                (stateManager.Playlist == null || stateManager.Playlist.Count == 0 || !stateManager.CurrentScheduleId.HasValue))
-            {
-                var defaultScheduleId = PlaybackDefaultScheduleResolver.Resolve(playbackState, logger);
-                if (defaultScheduleId.HasValue && defaultScheduleId.Value > 0)
-                {
-                    logger.Information("Play button pressed with no active playback - starting default schedule {ScheduleId}", defaultScheduleId.Value);
-                    await PrepareAndPlayAsync(defaultScheduleId.Value, isAlarm: false);
-                    return;
-                }
-            }
-
-            await PlayAsync();
-        });
+        systemControlsHandler.HandlePlayButton(PlayOrStartDefaultAsync);
     }
 
     public void Receive(PauseButtonPressedMessage message)
     {
         systemControlsHandler.HandlePauseButton(() => PauseAsync());
+    }
+
+    public void Receive(TogglePlayPauseMessage message)
+    {
+        systemControlsHandler.HandleTogglePlayPause(async () =>
+        {
+            if (playbackState.Value.Status == PlayStatus.Playing)
+            {
+                await PauseAsync();
+            }
+            else
+            {
+                await PlayOrStartDefaultAsync();
+            }
+        });
+    }
+
+    private async Task PlayOrStartDefaultAsync()
+    {
+        if (!stateManager.IsPreparingOrPlaying(audioPlayer) &&
+            (stateManager.Playlist == null || stateManager.Playlist.Count == 0 || !stateManager.CurrentScheduleId.HasValue))
+        {
+            var defaultScheduleId = PlaybackDefaultScheduleResolver.Resolve(playbackState, logger);
+            if (defaultScheduleId.HasValue && defaultScheduleId.Value > 0)
+            {
+                logger.Information("Play pressed with no active playback - starting default schedule {ScheduleId}", defaultScheduleId.Value);
+                await PrepareAndPlayAsync(defaultScheduleId.Value, isAlarm: false);
+                return;
+            }
+        }
+
+        await PlayAsync();
     }
 
     public void Receive(SeekForwardButtonPressedMessage message)
@@ -477,6 +495,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         WeakReferenceMessenger.Default.Unregister<PreviousButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PlayButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<PauseButtonPressedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<TogglePlayPauseMessage>(this);
         WeakReferenceMessenger.Default.Unregister<SeekForwardButtonPressedMessage>(this);
         WeakReferenceMessenger.Default.Unregister<SeekBackwardButtonPressedMessage>(this);
 

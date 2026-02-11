@@ -199,7 +199,6 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<ISchedulerService, SchedulerService>();
         services.AddSingleton<IDatabaseSeedService, DatabaseSeedService>();
         services.AddSingleton<IScheduleMigrationService, ScheduleMigrationService>();
-        services.AddSingleton<IMediaMigrationService, MediaMigrationService>();
         services.AddSingleton<IScheduleDatabaseVersionService, ScheduleDatabaseVersionService>();
         services.AddSingleton<IDiskCacheService, DiskCacheService>();
 

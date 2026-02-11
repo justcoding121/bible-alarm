@@ -91,10 +91,15 @@ sealed class Metadata
         MPNowPlayingInfoCenter.DefaultCenter.NowPlaying = NowPlayingInfo;
     }
 
-    static UIImage GetImage(string imageUri)
+    static UIImage GetImage(string? imageUri)
     {
         try
         {
+            if (string.IsNullOrEmpty(imageUri))
+            {
+                return defaultUiImage;
+            }
+
             if (imageUri.StartsWith(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
             {
                 return UIImage.LoadFromData(NSData.FromUrl(new NSUrl(imageUri))) ?? defaultUiImage;

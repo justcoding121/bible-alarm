@@ -287,13 +287,13 @@
                             </Border>
                         </Grid>
                         
-                        <!-- Track Metadata - fixed height, truncated text -->
+                        <!-- Track Metadata - truncated text with enough height to avoid clipping on iOS -->
                         <Grid x:Name="MetadataGrid"
                             Grid.Row="1"
                             RowSpacing="{DynamicResource SpacingSmall}"
                             Padding="{DynamicResource PaddingThickness16_8_16_0}"
                             HorizontalOptions="Fill"
-                            MinimumHeightRequest="60">
+                            MinimumHeightRequest="72">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -302,22 +302,24 @@
                             <Label Grid.Row="0"
                                 FontSize="{DynamicResource TitleFontSize}"
                                 FontAttributes="Bold"
+                                LineHeight="1.25"
                                 HorizontalOptions="Fill"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding Title}"
                                 TextColor="{DynamicResource TextPrimaryColor}"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="2"
-                                MinimumHeightRequest="20" />
+                                MinimumHeightRequest="44" />
                             <Label Grid.Row="1"
                                 FontSize="{DynamicResource LargeFontSize}"
+                                LineHeight="1.25"
                                 HorizontalOptions="Fill"
                                 HorizontalTextAlignment="Center"
                                 Text="{Binding SubTitle}"
                                 TextColor="{DynamicResource TextSecondaryColor}"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="2"
-                                MinimumHeightRequest="18" />
+                                MinimumHeightRequest="28" />
                             <Label Grid.Row="2"
                                 FontSize="{DynamicResource MediumFontSize}"
                                 HorizontalOptions="Fill"

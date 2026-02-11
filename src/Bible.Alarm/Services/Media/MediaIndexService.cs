@@ -59,17 +59,30 @@ public sealed class MediaIndexService(
     }
 
 
+    /// <summary>
+    /// Returns true if the media index should be replaced: fresh install, incomplete extraction,
+    /// or app version changed (Preferences version != current app version).
+    /// Same logic on all platforms (Android, iOS, Windows).
+    /// </summary>
     private async Task<bool> IndexDoNotExistOrIsOutdated()
     {
         var tmpIndexFilePath = Path.Combine(IndexRoot, "index.zip");
+        var mediaIndexDbPath = Path.Combine(IndexRoot, "mediaIndex.db");
 
-        var mediaIndexDbExists = await storageService.FileExists(Path.Combine(IndexRoot, "mediaIndex.db"))
-                                 //verify that any previous unzipping process was not incomplete
+        var mediaIndexDbExists = await storageService.FileExists(mediaIndexDbPath)
                                  && !await storageService.FileExists(tmpIndexFilePath);
 
-        // If index doesn't exist, copy from embedded resource
-        // Media index is now only updated via app updates, not downloaded from AWS
-        return !mediaIndexDbExists;
+        if (!mediaIndexDbExists)
+        {
+            return true;
+        }
+
+        if (!await versionService.IsVersionCurrentAsync())
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private async Task ClearCopyIndexFromResource()

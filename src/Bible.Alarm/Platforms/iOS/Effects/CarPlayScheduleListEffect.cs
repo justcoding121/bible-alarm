@@ -1,5 +1,6 @@
 #nullable enable
 using Bible.Alarm.Platforms.iOS.Services.CarPlay;
+using Bible.Alarm.Stores.Actions;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Fluxor;
 using Serilog;
@@ -11,11 +12,26 @@ namespace Bible.Alarm.Platforms.iOS.Effects;
 
 /// <summary>
 /// Fluxor effect that refreshes the CarPlay schedule list when schedules change.
-/// Listens for schedule create, update, delete, and track selection actions.
+/// Listens for schedule load (InitializeAction), create, update, delete, and track selection actions.
 /// </summary>
 public class CarPlayScheduleListEffect
 {
     private static readonly ILogger logger = Log.ForContext<CarPlayScheduleListEffect>();
+
+    /// <summary>
+    /// Handles InitializeAction - when bootstrap loads schedules into state.
+    /// Fixes "No schedules" when CarPlay connects before bootstrap completes.
+    /// </summary>
+    [EffectMethod]
+    public Task HandleInitialize(InitializeAction action, FluxorDispatcher dispatcher)
+    {
+        if (action.ScheduleList.Count > 0)
+        {
+            RefreshCarPlayScheduleList("Initialize");
+        }
+
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     /// Handles schedule creation success - refresh CarPlay list.

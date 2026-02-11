@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Platforms.iOS.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
+using CoreGraphics;
 using Foundation;
 using MediaPlayer;
 using Serilog;
@@ -406,8 +407,10 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
                 return null;
             }
 
-            // Use actual image size - iOS handles scaling automatically
-            return new MPMediaItemArtwork(image.Size, _ => image);
+            // CarPlay and other system UIs request specific sizes via the handler.
+            // We must return an image scaled to the requested size for artwork to display correctly.
+            var boundsSize = new CGSize(Math.Max(image.Size.Width, 600), Math.Max(image.Size.Height, 600));
+            return new MPMediaItemArtwork(boundsSize, requestedSize => ScaleImageToSize(image, requestedSize));
         }
         catch (Exception ex)
         {
@@ -415,6 +418,36 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Scales a UIImage to the requested size (aspect fit). CarPlay and lock screen require
+    /// artwork to be resized to the exact size passed to the MPMediaItemArtwork handler.
+    /// </summary>
+    private static UIImage ScaleImageToSize(UIImage image, CGSize requestedSize)
+    {
+        if (requestedSize.Width <= 0 || requestedSize.Height <= 0)
+        {
+            return image;
+        }
+
+        try
+        {
+            var scale = Math.Min(requestedSize.Width / image.Size.Width, requestedSize.Height / image.Size.Height);
+            var width = (nfloat)(image.Size.Width * scale);
+            var height = (nfloat)(image.Size.Height * scale);
+
+            UIGraphics.BeginImageContextWithOptions(new CGSize(width, height), false, 0);
+            image.Draw(new CGRect(0, 0, width, height));
+            var scaledImage = UIGraphics.GetImageFromCurrentImageContext();
+            UIGraphics.EndImageContext();
+
+            return scaledImage ?? image;
+        }
+        catch
+        {
+            return image;
+        }
     }
 
     private async Task<MPMediaItemArtwork?> LoadArtworkAsync(string artworkUrl)
@@ -436,7 +469,8 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
 
             if (image != null)
             {
-                return new MPMediaItemArtwork(image.Size, _ => image);
+                var boundsSize = new CGSize(Math.Max(image.Size.Width, 600), Math.Max(image.Size.Height, 600));
+                return new MPMediaItemArtwork(boundsSize, requestedSize => ScaleImageToSize(image, requestedSize));
             }
         }
         catch (Exception ex)

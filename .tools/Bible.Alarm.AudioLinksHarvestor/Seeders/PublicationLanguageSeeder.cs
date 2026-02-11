@@ -81,14 +81,12 @@ internal sealed class PublicationLanguageSeeder
 
         logger.Information("Seeding discovered languages for {Count} publication(s)", dataStore.PublicationLanguages.Count);
 
+        var addedInBatch = new HashSet<(string PublicationCode, int? LanguageId)>();
         foreach (var (publicationCode, languages) in dataStore.PublicationLanguages)
         {
-            // Pass the original publicationCode (from dataStore) so SeedLanguageForPublication can determine case-sensitive code
-            // Seed discovered languages (including E - it should be in the table)
-            // Note: We don't need English publication to exist yet - we're just populating the discovery table
             foreach (var (languageCode, languageInfo) in languages)
             {
-                await SeedLanguageForPublication(db, publicationCode, languageCode);
+                await SeedLanguageForPublication(db, publicationCode, languageCode, addedInBatch);
             }
         }
 
@@ -96,7 +94,7 @@ internal sealed class PublicationLanguageSeeder
         logger.Information("Seeded publication languages");
     }
 
-    private async Task SeedLanguageForPublication(MediaDbContext db, string publicationCode, string languageCode)
+    private async Task SeedLanguageForPublication(MediaDbContext db, string publicationCode, string languageCode, HashSet<(string PublicationCode, int? LanguageId)> addedInBatch)
     {
         var normalizedPublicationCode = publicationCode.ToLowerInvariant();
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
@@ -117,11 +115,17 @@ internal sealed class PublicationLanguageSeeder
 
         // Get or create language
         var language = await languageSeeder.GetOrCreateLanguageByCode(db, normalizedLanguageCode);
-        
+        var key = (publicationCodeForDb, (int?)language.Id);
+
+        if (addedInBatch.Contains(key))
+        {
+            return;
+        }
+
         // Determine harvest type and category based on publication code
         var harvestType = PublicationTypeHelper.GetHarvestType(normalizedPublicationCode);
         var categoryName = JwSourceHelper.GetCategoryName(normalizedPublicationCode);
-        
+
         if (string.IsNullOrEmpty(categoryName))
         {
             logger.Warning("Category not found for publication code {PublicationCode}, defaulting to 'Bible'", publicationCode);
@@ -134,8 +138,7 @@ internal sealed class PublicationLanguageSeeder
             logger.Warning("Category '{CategoryName}' not found in database for publication {PublicationCode}", categoryName, publicationCode);
             return;
         }
-        
-        // Check if already exists (use case-sensitive code for dramas)
+
         var exists = await db.PublicationLanguages
             .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == language.Id);
 
@@ -143,20 +146,20 @@ internal sealed class PublicationLanguageSeeder
         {
             var publicationLanguage = new PublicationLanguage
             {
-                PublicationCode = publicationCodeForDb, // Use case-sensitive code for dramas
+                PublicationCode = publicationCodeForDb,
                 Language = language,
                 HarvestType = harvestType,
                 Category = category,
                 CategoryId = category.Id
             };
             db.PublicationLanguages.Add(publicationLanguage);
+            addedInBatch.Add(key);
         }
         else
         {
-            // Update existing entry with harvest type and category if missing
             var existing = await db.PublicationLanguages
                 .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == language.Id);
-            
+
             if (existing != null)
             {
                 existing.HarvestType = harvestType;

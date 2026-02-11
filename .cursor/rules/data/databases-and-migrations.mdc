@@ -188,11 +188,12 @@ Flow:
 
 ### Media DB bootstrap strategy
 
-Two cooperating services:
-- `src/Bible.Alarm/Services/Media/MediaIndexService.cs`
-  - extracts embedded `index.zip` into `mediaIndex.db` if missing
-  - handles file-lock edge cases with Polly retries and explicit connection closing
-- `src/Bible.Alarm/Services/Database/MediaMigrationService.cs`
-  - applies EF migrations only when upgrading from an older app version
-  - skips migration check when `IMediaIndexVersionService` says the bundled DB version is current
+Service: `src/Bible.Alarm/Services/Media/MediaIndexService.cs`
+
+The media index is bundled in `index.zip`. The app **never** migrates it:
+
+- **Fresh install** (media index not yet copied): extract from `index.zip` to `mediaIndex.db`, save version in Preferences
+- **Version change** (Preferences version ≠ current app): force copy – replace `mediaIndex.db` with fresh extraction, save new version
+
+Handles file-lock edge cases with Polly retries and explicit connection closing.
 

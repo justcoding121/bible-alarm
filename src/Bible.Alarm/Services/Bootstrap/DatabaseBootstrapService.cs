@@ -17,18 +17,15 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
 {
     private readonly IServiceScopeFactory scopeFactory;
     private readonly IScheduleDatabaseVersionService scheduleVersionService;
-    private readonly IMediaMigrationService mediaMigrationService;
     private readonly IStorageService storageService;
 
     public DatabaseBootstrapService(
         IServiceScopeFactory scopeFactory,
         IScheduleDatabaseVersionService scheduleVersionService,
-        IMediaMigrationService mediaMigrationService,
         IStorageService storageService)
     {
         this.scopeFactory = scopeFactory;
         this.scheduleVersionService = scheduleVersionService;
-        this.mediaMigrationService = mediaMigrationService;
         this.storageService = storageService;
     }
 
@@ -202,11 +199,8 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
                 try { if (System.IO.File.Exists(walPath)) System.IO.File.Delete(walPath); } catch { }
                 try { if (System.IO.File.Exists(shmPath)) System.IO.File.Delete(shmPath); } catch { }
 
-                // Copy the bundled database as a fresh start using existing logic
-                // Create a temporary context just for the copy operation
-                var tempScheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
-                await CopyScheduleDatabaseFromResourceIfNeededAsync(scope, tempScheduleDb, dbPath);
-                await tempScheduleDb.DisposeAsync();
+                // Force overwrite with bundled database (no conditional - always copy)
+                await CopyScheduleDatabaseFromResourceForceAsync(dbPath);
 
                 // Verify the database was copied successfully
                 if (!System.IO.File.Exists(dbPath))
@@ -250,18 +244,6 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
 #if DEBUG
         var scheduleDbElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - scheduleDbStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
         Log.Logger.Information("[BOOTSTRAP] Schedule database migration completed in {ElapsedMs:F2}ms", scheduleDbElapsed);
-#endif
-
-        // Migrate Media database if it exists and is from a previous app version
-        // Note: App is packaged with latest media index database, so this primarily
-        // handles users upgrading from previous app versions
-#if DEBUG
-        var mediaDbStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
-#endif
-        await mediaMigrationService.MigrateIfNeededAsync();
-#if DEBUG
-        var mediaDbElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - mediaDbStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-        Log.Logger.Information("[BOOTSTRAP] Media database migration completed in {ElapsedMs:F2}ms", mediaDbElapsed);
 
         var dbInitElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - dbInitStartTime) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
         Log.Logger.Information("[BOOTSTRAP] Database initialization completed in {ElapsedMs:F2}ms", dbInitElapsed);
@@ -307,6 +289,28 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
                     "Failed to copy Schedule database from resource, will create with migrations instead");
             }
         }
+    }
+
+    /// <summary>
+    /// Force copies the bundled Schedule database to the target path, overwriting any existing file.
+    /// Used when migration fails to recover with a clean database from the app bundle.
+    /// </summary>
+    private async Task CopyScheduleDatabaseFromResourceForceAsync(string dbPath)
+    {
+        var scheduleDbResourceFile = AppConstants.Database.ScheduleDatabaseFileName;
+        var dbDirectory = System.IO.Path.GetDirectoryName(dbPath);
+
+        if (!string.IsNullOrEmpty(dbDirectory) && !System.IO.Directory.Exists(dbDirectory))
+        {
+            System.IO.Directory.CreateDirectory(dbDirectory);
+        }
+
+        await storageService.CopyResourceFile(
+            scheduleDbResourceFile,
+            dbDirectory ?? storageService.StorageRoot,
+            System.IO.Path.GetFileName(dbPath));
+
+        Log.Logger.Information("[BOOTSTRAP] Force copied Schedule database from bundled resource (recovery)");
     }
 
     /// <summary>
