@@ -3,6 +3,7 @@ using Bible.Alarm.Shared.DataStructures;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Models;
+using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
 namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
@@ -219,14 +220,15 @@ public class HomeStateChangeHandler
     }
 
     /// <summary>
-    /// Syncs the bound collection to match newSchedules by mutating in place (Clear + Add).
-    /// Mutating preserves the collection reference so CollectionView reliably refreshes on iOS
-    /// when schedules load after a long bootstrap (replacing ItemsSource can fail to refresh).
+    /// Syncs the bound collection to match newSchedules.
+    /// On WinUI we replace the collection so CollectionView refreshes (in-place Clear+Add often does not update the list).
+    /// On iOS we mutate in place so CollectionView reliably refreshes after a long bootstrap (replacing can fail there).
     /// </summary>
     private void SyncCollectionToNewSchedules(ObservableHashSet<ScheduleListItemViewModel> newSchedules)
     {
-        var collection = getSchedules();
-        if (collection == null)
+        var useReplaceStrategy = DeviceInfo.Platform == DevicePlatform.WinUI;
+
+        if (useReplaceStrategy || getSchedules() == null)
         {
             var newCollection = new ObservableHashSet<ScheduleListItemViewModel>();
             foreach (var item in newSchedules)
@@ -239,6 +241,7 @@ public class HomeStateChangeHandler
             return;
         }
 
+        var collection = getSchedules()!;
         collection.Clear();
         foreach (var item in newSchedules)
         {
