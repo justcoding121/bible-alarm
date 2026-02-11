@@ -56,10 +56,11 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     // Semaphore to serialize RefreshFromState calls - ensures second call waits for first to complete
     private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
 
-    // Helper class
     private readonly StateChangeHandler stateChangeHandler;
     private readonly SectionListLoader sectionListLoader;
     private readonly TrackSelectionResolver trackSelectionResolver;
+    private readonly BiblePublicationSectionSelectionTrackTapHandler trackTapHandler;
+    private readonly BiblePublicationSectionSelectionRefreshHandler refreshHandler;
 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
@@ -76,6 +77,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         this.mapper = mapper;
         sectionListLoader = new SectionListLoader(logger, mediaService, internetChecker);
         trackSelectionResolver = new TrackSelectionResolver(logger, mediaService);
+        trackTapHandler = new BiblePublicationSectionSelectionTrackTapHandler(logger, state, dispatcher, navigationService, trackSelectionResolver);
+        refreshHandler = new BiblePublicationSectionSelectionRefreshHandler(logger);
 
         // Don't initialize here - let OnBiblePublicationInitialized handle it
         // This ensures we always get the latest state when the modal opens
@@ -95,83 +98,14 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
         TrackSelectionCommand = new AsyncRelayCommand<BiblePublicationSectionListViewItemModel>(async (x) =>
         {
-            if (x == null)
-            {
-                return;
-            }
-
-            // Do NOT check internet upfront - English sections are pre-packaged; others may be cached.
-            // If a fetch is needed and network is down, the resolver will throw and we catch below.
-
-            // Set flag to prevent RefreshFromState from resetting IsBusy
+            if (x == null) return;
             isSelectingSection = true;
-
             try
             {
-                // Always use CurrentSchedule as the source of truth for language/publication codes
-                // This ensures we use the latest state, not stale data from 'current' field
-                var currentSchedule = state.Value.CurrentSchedule;
-                if (currentSchedule == null || string.IsNullOrEmpty(currentSchedule.BiblePublicationCode))
-                {
-                    logger.Warning("BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - CurrentSchedule is null or PublicationCode is empty");
-                    return;
-                }
-                
-                // Validate section code
-                if (string.IsNullOrWhiteSpace(x.Section.SectionCode))
-                {
-                    logger.Warning("BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Invalid section code for publication={PublicationCode}",
-                        currentSchedule.BiblePublicationCode);
-                    return;
-                }
-                
-                // Progress will be set by BuildSelectionAsync/fetch methods only when a fetch actually happens.
-                // Language code can be null/empty for publications without language (e.g., "iam")
-                // GetBiblePublicationTracks handles this case
-                var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
-
-                // Check if the selected section is the same as the current section (for debugging / future optimizations)
-                var currentSectionCode = currentSchedule.BiblePublicationSectionCode;
-                _ = string.Equals(currentSectionCode, x.Section.SectionCode, StringComparison.OrdinalIgnoreCase);
-
-                var biblePublicationItem = await trackSelectionResolver.BuildSelectionAsync(
-                    x,
-                    currentSchedule,
-                    () => ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>());
-
-                if (biblePublicationItem == null)
-                {
-                    return;
-                }
-
-                // Dispatch TrackSelectedAction to update CurrentBiblePublicationSchedule
-                // Effect will automatically sync to CurrentSchedule
-                dispatcher.Dispatch(new TrackSelectedAction(biblePublicationItem));
-                
-                // Navigate back to schedule page
-                await navigationService.PopModalAsync();
-            }
-            catch (Exception ex) when (Bible.Alarm.Common.ViewHelpers.ModalScrollHelper.IsFetchFailure(ex))
-            {
-                logger.Warning(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Network error selecting section");
-                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
-                var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
-                await Task.Delay(500);
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "BiblePublicationSectionSelectionViewModel: TrackSelectionCommand - Error selecting section");
-                await MainThread.InvokeOnMainThreadAsync(() => x.DownloadProgress = 0.0);
-                var toastService = ServiceProviderManager.GetService<Bible.Alarm.Services.UI.Interfaces.IToastService>();
-                await Task.Delay(500);
-                await navigationService.PopModalAsync();
-                await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+                await trackTapHandler.HandleSectionTapAsync(x);
             }
             finally
             {
-                // Reset flag after operation completes (whether success or error)
                 isSelectingSection = false;
             }
         });
@@ -335,140 +269,34 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
             initComplete = true;
         }
 
-        // Initialize or repopulate with the current language/publication
         if (needsRepopulation && !isDisposed && !isSelectingSection)
         {
-            try
+            fetchCts?.Cancel();
+            fetchCts?.Dispose();
+            fetchCts = new CancellationTokenSource();
+            var progressReporter = new ModalOverlayFetchProgressReporter("BibleSection", fetchCts.Token);
+            var refreshContext = new BiblePublicationSectionRefreshContext
             {
-                await MainThread.InvokeOnMainThreadAsync(() => 
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        IsBusy = true;
-                        // Keep screen on during download to prevent Android from restricting network access
-                        DeviceDisplay.Current.KeepScreenOn = true;
-                    }
-                });
-                
-                if (isDisposed || isSelectingSection)
-                {
-                    return;
-                }
-                
-                // Cancel any previous fetch operation
-                fetchCts?.Cancel();
-                fetchCts?.Dispose();
-                fetchCts = new CancellationTokenSource();
-                
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        CanCancelFetch = true;
-                        ShowProgress = true;
-                        ProgressText = "0%";
-                        ProgressPercent = 0;
-                    }
-                });
-                
-                var progressReporter = new ModalOverlayFetchProgressReporter("BibleSection", fetchCts.Token);
-
-                // Use the latest state values, not cached ones
-                await Initialize(newLanguageCode, newPublicationCode, progressReporter);
-
-                // Check again if we're selecting a section (may have changed during async operation)
-                if (isSelectingSection)
-                {
-                    // Ensure progress overlay is hidden before early return
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        if (!isDisposed)
-                        {
-                            CanCancelFetch = false;
-                            ShowProgress = false;
-                            DeviceDisplay.Current.KeepScreenOn = false;
-                        }
-                    });
-                    return;
-                }
-
-                // Set selected section after sections are populated (on main thread to ensure UI is ready)
-                await MainThread.InvokeOnMainThreadAsync(() => 
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        SetSelectedSection();
-                    }
-                });
-
-                // Do NOT set IsBusy = false here - ModalScrollHelper does it after reveal (initial load)
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        CanCancelFetch = false;
-                        ShowProgress = false;
-                        DeviceDisplay.Current.KeepScreenOn = false;
-                    }
-                });
-            }
-            catch (OperationCanceledException)
-            {
-                // Fetch was cancelled - data saved so far is preserved
-                logger.Debug("BiblePublicationSectionSelectionViewModel: Fetch cancelled by user");
-                // Allow screen to turn off after cancellation
-                MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
-                // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        CanCancelFetch = false;
-                        ShowProgress = false;
-                    }
-                });
-            }
-            catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
-            {
-                initComplete = false;
-                logger.Warning(ex, "BiblePublicationSectionSelectionViewModel: Fetch failed with network error");
-                MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        CanCancelFetch = false;
-                        ShowProgress = false;
-                    }
-                });
-                throw;
-            }
-            catch (Exception ex)
-            {
-                initComplete = false;
-                logger.Error(ex, "BiblePublicationSectionSelectionViewModel: RefreshFromStateInternal - Error during repopulation");
-                MainThread.BeginInvokeOnMainThread(() => DeviceDisplay.Current.KeepScreenOn = false);
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    if (!isDisposed && !isSelectingSection)
-                    {
-                        CanCancelFetch = false;
-                        ShowProgress = false;
-                    }
-                });
-                throw;
-            }
+                IsDisposed = () => isDisposed,
+                IsSelectingSection = () => isSelectingSection,
+                SetIsBusy = (b) => IsBusy = b,
+                SetCanCancelFetch = (b) => CanCancelFetch = b,
+                SetShowProgress = (b) => ShowProgress = b,
+                SetProgressText = (s) => ProgressText = s,
+                SetProgressPercent = (d) => ProgressPercent = d,
+                SetScreenOn = (on) => DeviceDisplay.Current.KeepScreenOn = on,
+                Initialize = (lang, pub, progress) => Initialize(lang, pub, progress),
+                SetSelectedSection = SetSelectedSection,
+                SetInitCompleteFalse = () => initComplete = false
+            };
+            await refreshHandler.RunRepopulationAsync(refreshContext, newLanguageCode, newPublicationCode, progressReporter);
         }
         else
         {
-            // Update selected section when state changes (e.g., after navigating back)
-            // Don't reset IsBusy or update selection if we're currently selecting a section
-            MainThread.BeginInvokeOnMainThread(() => 
+            MainThread.BeginInvokeOnMainThread(() =>
             {
                 if (!isDisposed && !isSelectingSection)
-                {
                     SetSelectedSection();
-                }
             });
         }
     }
