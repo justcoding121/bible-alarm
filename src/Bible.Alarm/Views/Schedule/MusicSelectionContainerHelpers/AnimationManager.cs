@@ -174,7 +174,8 @@ public class AnimationManager
                 currentHeight = collapsibleContent.Height;
             }
 
-            if (currentHeight <= 0)
+            var useCachedFallback = currentHeight <= 0;
+            if (useCachedFallback)
             {
                 currentHeight = cachedHeight ?? 200;
             }

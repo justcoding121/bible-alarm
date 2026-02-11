@@ -308,8 +308,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             for (int i = 0; i < maxWaitAttempts; i++)
             {
                 var currentState = state.Value.CurrentSchedule;
-                if (currentState != null &&
-                    currentState.MusicLanguageCode == language.Code &&
+                if (currentState?.MusicLanguageCode == language.Code &&
                     !string.IsNullOrEmpty(currentState.MusicPublicationCode) &&
                     !string.IsNullOrWhiteSpace(currentState.MusicTrackCode))
                 {

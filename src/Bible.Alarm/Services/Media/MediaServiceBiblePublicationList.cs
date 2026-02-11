@@ -85,11 +85,13 @@ internal static class MediaServiceBiblePublicationList
         // Add downloaded publications without language FK (data-driven, not hard-coded)
         foreach (var pubWithoutLang in publicationsWithoutLanguage.Values)
         {
-            // Only add if not already in result (avoid duplicates)
-            if (!result.ContainsKey(pubWithoutLang.PublicationCode))
+            var code = pubWithoutLang.PublicationCode;
+            if (result.ContainsKey(code))
             {
-                result[pubWithoutLang.PublicationCode] = pubWithoutLang;
+                continue;
             }
+
+            result[code] = pubWithoutLang;
         }
 
         // Create placeholders for publications that are available but not yet downloaded
@@ -174,34 +176,31 @@ internal static class MediaServiceBiblePublicationList
                 }
             }
 
-            if (publicationInfoByCode.Count > 0)
+            foreach (var kvp in publicationInfoByCode)
             {
-                foreach (var kvp in publicationInfoByCode)
+                var plInfo = kvp.Value;
+                var codeForDb = kvp.Key;
+
+                if (plInfo.Category == null)
                 {
-                    var plInfo = kvp.Value;
-                    var codeForDb = kvp.Key;
-
-                    if (plInfo.Category == null)
-                    {
-                        continue;
-                    }
-
-                    var placeholder = new BiblePublication
-                    {
-                        Id = 0,
-                        PublicationCode = codeForDb,
-                        Name = codeForDb,
-                        CategoryId = plInfo.CategoryId,
-                        Category = plInfo.Category,
-                        LanguageId = plInfo.LanguageId,
-                        Language = plInfo.Language,
-                        Sections = new List<BiblePublicationSection>(),
-                        Tracks = new List<BiblePublicationTrack>(),
-                        IsVideo = false
-                    };
-
-                    result[placeholder.PublicationCode] = placeholder;
+                    continue;
                 }
+
+                var placeholder = new BiblePublication
+                {
+                    Id = 0,
+                    PublicationCode = codeForDb,
+                    Name = codeForDb,
+                    CategoryId = plInfo.CategoryId,
+                    Category = plInfo.Category,
+                    LanguageId = plInfo.LanguageId,
+                    Language = plInfo.Language,
+                    Sections = new List<BiblePublicationSection>(),
+                    Tracks = new List<BiblePublicationTrack>(),
+                    IsVideo = false
+                };
+
+                result[placeholder.PublicationCode] = placeholder;
             }
         }
 
