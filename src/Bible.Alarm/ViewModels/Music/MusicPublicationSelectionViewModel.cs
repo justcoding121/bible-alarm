@@ -39,6 +39,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
     private readonly MusicPublicationSelectionDataProvider dataProvider;
     private readonly MusicPublicationSelectionCommandHandler commandHandler;
     private readonly MusicPublicationSelectionPropertyManager propertyManager;
+    private readonly MusicPublicationSelectionRefreshHandler refreshHandler;
+    private readonly MusicPublicationSelectionInitHandler initHandler;
     private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
 
     // Cancellation support for fetch operations
@@ -72,6 +74,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         dataProvider = new MusicPublicationSelectionDataProvider(mediaService, biblePublicationService, languageContentService, scopeFactory);
         commandHandler = new MusicPublicationSelectionCommandHandler(navigationService, state, dispatcher, mediaService);
         propertyManager = new MusicPublicationSelectionPropertyManager();
+        refreshHandler = new MusicPublicationSelectionRefreshHandler(state, stateManager, dataProvider, propertyManager, mapper);
+        initHandler = new MusicPublicationSelectionInitHandler(mediaService, stateManager, dataProvider, propertyManager);
         SetupPropertyManagerForwarding();
 
         state.StateChanged += OnMusicInitialized;
@@ -324,102 +328,17 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         }
     }
 
-    private async Task InitializeInternal()
-    {
-        var current = stateManager.Current;
-        if (current == null)
-        {
-            return;
-        }
+    private Task InitializeInternal() =>
+        initHandler.InitializeInternalAsync(state, PopulateLanguages, PopulateSongPublications, PopulateLanguages);
 
-        // Handle instrumental music (no language needed)
-        // Music type is inferred from LanguageCode: null = melody/instrumental
-        if (string.IsNullOrEmpty(current.LanguageCode))
-        {
-            await PopulateSongPublications(null); // null language code for instrumental music
-            return;
-        }
-
-        // Handle vocal music (requires language)
-        var languageCode = current.LanguageCode;
-
-        if (languageCode == null)
-        {
-            var languages = await mediaService.GetVocalMusicLanguages();
-            // Default to English for Vocals, fallback to first available if English not present
-            languageCode = languages.ContainsKey(AppConstants.Media.DefaultLanguageCode) ? AppConstants.Media.DefaultLanguageCode : languages.FirstOrDefault().Key;
-            if (string.IsNullOrEmpty(languageCode))
-            {
-                return;
-            }
-            current.LanguageCode = languageCode;
-        }
-
-        // Only populate languages if not already populated (avoids duplicate population during modal open)
-        if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
-        {
-            await PopulateLanguages();
-        }
-        
-        // When initializing, don't download all publications yet (only first publication in cascade)
-        await PopulateSongPublications(languageCode, downloadAll: false);
-
-        propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await PopulateLanguages(searchTerm));
-    }
-
-    private async Task PopulateLanguages(string? searchTerm = null)
-    {
-        // Use same effective current as RefreshLanguagesAsync so selection is correct for melody (E) and vocal.
-        var currentSchedule = state.Value.CurrentSchedule;
-        var currentLanguageCode = currentSchedule?.MusicLanguageCode;
-        var effectiveLanguageCode = !string.IsNullOrEmpty(currentLanguageCode) ? currentLanguageCode : "E";
-        var effectiveCurrent = new AlarmMusic { LanguageCode = effectiveLanguageCode };
-
-        await dataProvider.PopulateLanguages(
-            effectiveCurrent,
-            propertyManager.Languages,
-            lang => propertyManager.CurrentLanguage = lang,
-            searchTerm);
-    }
+    private Task PopulateLanguages(string? searchTerm = null) =>
+        initHandler.PopulateLanguagesAsync(state, lang => propertyManager.CurrentLanguage = lang, searchTerm);
 
     /// <summary>
     /// Refreshes only the languages list for the language selection modal.
-    /// This is a simpler refresh that only populates languages, not publications.
     /// </summary>
-    public async Task RefreshLanguagesAsync()
-    {
-        try
-        {
-            // Get current language code from state (more reliable than stateManager.Current)
-            var currentSchedule = state.Value.CurrentSchedule;
-            var currentLanguageCode = currentSchedule?.MusicLanguageCode;
-
-            // For melody (MusicLanguageCode null), use effective default language so the language modal
-            // marks English as selected and scroll-to-selected works (same UX as Bible language modal).
-            var effectiveLanguageCode = !string.IsNullOrEmpty(currentLanguageCode)
-                ? currentLanguageCode
-                : AppConstants.Media.DefaultLanguageCode;
-
-            var tempCurrent = new AlarmMusic { LanguageCode = effectiveLanguageCode };
-
-            Serilog.Log.Debug("MusicPublicationSelectionViewModel.RefreshLanguagesAsync: currentLanguageCode={LanguageCode}, effectiveLanguageCode={Effective}",
-                currentLanguageCode ?? "(null)", effectiveLanguageCode);
-
-            // Populate languages for the language modal
-            await dataProvider.PopulateLanguages(
-                tempCurrent,
-                propertyManager.Languages,
-                lang => propertyManager.CurrentLanguage = lang,
-                null);
-
-            // Attach search handler so typing in the Language modal filters the list (same as Bible language modal).
-            propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await PopulateLanguages(searchTerm));
-        }
-        catch (Exception ex)
-        {
-            Serilog.Log.Warning(ex, "MusicPublicationSelectionViewModel: Error refreshing languages");
-        }
-    }
+    public Task RefreshLanguagesAsync() =>
+        initHandler.RefreshLanguagesAsync(state, PopulateLanguages);
 
     /// <summary>
     /// Refreshes the ViewModel from the latest state when the modal appears.
@@ -446,183 +365,13 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
     private async Task RefreshFromStateInternal()
     {
-        // Cancel any previous fetch and create new cancellation token
         fetchCts?.Cancel();
         fetchCts = new CancellationTokenSource();
-        
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            propertyManager.IsBusy = true;
-            propertyManager.CanCancelFetch = true;
-            propertyManager.ShowProgress = true;
-            propertyManager.ProgressText = "0%";
-            propertyManager.ProgressPercent = 0;
-            // Keep screen on during download to prevent Android from restricting network access
-            DeviceDisplay.Current.KeepScreenOn = true;
-        });
-
-        // Wait for state to be updated (in case language was just changed)
-        // This handles the race condition where the modal opens before state is fully updated
-        // Use CurrentSchedule as primary source
-        const int maxWaitAttempts = 10;
-        const int delayMs = 100;
-        string? newLanguageCode = null;
-        bool isMelodyMusic = false; // inferred from LanguageCode being null
-
-        try
-        {
-            for (int i = 0; i < maxWaitAttempts; i++)
-            {
-                // Check for cancellation before each retry attempt
-                fetchCts.Token.ThrowIfCancellationRequested();
-                
-                var stateValue = state.Value;
-
-                // Use CurrentSchedule as the source of truth
-                if (stateValue.CurrentSchedule != null && !string.IsNullOrEmpty(stateValue.CurrentSchedule.MusicPublicationCode))
-                {
-                    newLanguageCode = stateValue.CurrentSchedule.MusicLanguageCode;
-                    isMelodyMusic = string.IsNullOrEmpty(newLanguageCode);
-                    
-                    // For Vocals, we need language code; for Melodies, it can be null
-                    if (!isMelodyMusic && !string.IsNullOrEmpty(newLanguageCode))
-                    {
-                        break;
-                    }
-                    else if (isMelodyMusic)
-                    {
-                        // For Melodies, language code is null, so we can proceed
-                        break;
-                    }
-                }
-
-                // Wait a bit and retry if language code is not set yet (for Vocals) - with cancellation support
-                await Task.Delay(delayMs, fetchCts.Token);
-            }
-
-            var finalStateValue = state.Value;
-            if (finalStateValue.CurrentSchedule == null)
-            {
-                return;
-            }
-
-            var current = stateManager.GetCurrentFromState(state, mapper);
-            if (current != null)
-            {
-                stateManager.EnsureCurrentIsSet(state, mapper);
-            }
-
-            // For vocal music (has language code), ensure languages are populated
-            if (!isMelodyMusic)
-            {
-                if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
-                {
-                    await PopulateLanguages();
-                }
-
-                // Ensure search handler is set up (in case it wasn't set up during initialization)
-                // This is important when RefreshFromState is called before OnMusicInitialized
-                propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await PopulateLanguages(searchTerm));
-            }
-
-            // For Vocals, if no language is selected but languages are available, select based on current schedule
-            string? languageCodeToUse = null;
-            if (!isMelodyMusic &&
-                propertyManager.CurrentLanguage == null &&
-                propertyManager.Languages != null &&
-                propertyManager.Languages.Count > 0)
-            {
-                // Try to select the language from current schedule state
-                var scheduleLanguageCode = finalStateValue.CurrentSchedule.MusicLanguageCode ?? newLanguageCode;
-                LanguageListViewItemModel? languageToSelect = null;
-
-                if (!string.IsNullOrEmpty(scheduleLanguageCode))
-                {
-                    languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == scheduleLanguageCode);
-                }
-
-                // If no language from schedule, default to English
-                if (languageToSelect == null)
-                {
-                    languageToSelect = propertyManager.Languages.FirstOrDefault(l => l.Code == AppConstants.Media.DefaultLanguageCode)
-                        ?? propertyManager.Languages.FirstOrDefault();
-                }
-
-                if (languageToSelect != null)
-                {
-                    propertyManager.CurrentLanguage = languageToSelect;
-                    languageToSelect.IsSelected = true;
-                    languageCodeToUse = languageToSelect.Code;
-                }
-            }
-            else if (propertyManager.CurrentLanguage != null)
-            {
-                languageCodeToUse = propertyManager.CurrentLanguage.Code;
-            }
-            else if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
-            {
-                languageCodeToUse = current.LanguageCode;
-            }
-            else if (!string.IsNullOrEmpty(newLanguageCode))
-            {
-                languageCodeToUse = newLanguageCode;
-            }
-
-            // Opening the publications modal is the ONLY time we download ALL publications for a language.
-            // Always use downloadAll=true here so placeholders can be hydrated into localized names.
-            var progressReporter = new ModalOverlayFetchProgressReporter("MusicPublication", fetchCts.Token);
-
-            // For instrumental music (no language), populate publications directly
-            if (isMelodyMusic)
-            {
-                // null language code for instrumental music
-                await PopulateSongPublications(null, downloadAll: true, progressReporter, fetchCts.Token);
-            }
-            // For vocal music, always fetch ALL publications when the modal opens (downloadAll=true).
-            else if (!string.IsNullOrEmpty(languageCodeToUse))
-            {
-                await PopulateSongPublications(languageCodeToUse, downloadAll: true, progressReporter, fetchCts.Token);
-            }
-            else
-            {
-                SetSelectedSongPublication();
-            }
-
-            SetSelectedSongPublication();
-        }
-        catch (OperationCanceledException)
-        {
-            // Fetch was cancelled - data saved so far is preserved
-            Serilog.Log.Debug("MusicPublicationSelectionViewModel: Fetch cancelled by user");
-            // Hide progress overlay when cancelled
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                propertyManager.ShowProgress = false;
-            });
-        }
-        catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
-        {
-            Serilog.Log.Warning(ex, "MusicPublicationSelectionViewModel: Fetch failed with network error");
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            Serilog.Log.Error(ex, "MusicPublicationSelectionViewModel: Fetch failed during refresh");
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
-            throw;
-        }
-        finally
-        {
-            // Note: Do NOT set IsBusy = false here - the modal controls this via ModalScrollHelper
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                propertyManager.CanCancelFetch = false;
-                propertyManager.ShowProgress = false;
-                // Allow screen to turn off after download completes or fails
-                DeviceDisplay.Current.KeepScreenOn = false;
-            });
-        }
+        await refreshHandler.RefreshAsync(
+            fetchCts,
+            PopulateLanguages,
+            PopulateSongPublications,
+            SetSelectedSongPublication);
     }
 
     private async Task PopulateSongPublications(string? languageCode, bool downloadAll = false, IFetchProgress? progress = null, CancellationToken cancellationToken = default)
@@ -637,16 +386,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
             cancellationToken);
     }
 
-    private void UpdateSelectedLanguage(LanguageListViewItemModel language)
-    {
-        if (propertyManager.CurrentLanguage != null)
-        {
-            propertyManager.CurrentLanguage.IsSelected = false;
-        }
-
-        propertyManager.CurrentLanguage = language;
-        propertyManager.CurrentLanguage!.IsSelected = true;
-    }
+    private void UpdateSelectedLanguage(LanguageListViewItemModel language) =>
+        initHandler.UpdateSelectedLanguage(language);
 
     public void Receive(ListItemFetchProgressMessage message)
     {
@@ -706,56 +447,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
     private void SetupPropertyManagerForwarding()
     {
-        // The view binds to THIS ViewModel (not the property manager).
-        // Forward property-manager changes so bindings update (busy overlay + modal progress indicator).
-        propertyManagerPropertyChangedHandler = (_, e) =>
-        {
-            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.IsBusy))
-            {
-                OnPropertyChanged(nameof(IsBusy));
-                return;
-            }
-
-            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.ShowProgress))
-            {
-                OnPropertyChanged(nameof(ShowProgress));
-                OnPropertyChanged(nameof(ShowCancelButton));
-                return;
-            }
-
-            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.ProgressPercent))
-            {
-                OnPropertyChanged(nameof(ProgressPercent));
-                return;
-            }
-
-            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.ProgressText))
-            {
-                OnPropertyChanged(nameof(ProgressText));
-                return;
-            }
-
-            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.CanCancelFetch))
-            {
-                OnPropertyChanged(nameof(CanCancelFetch));
-                return;
-            }
-
-            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.HasFetchError))
-            {
-                OnPropertyChanged(nameof(HasFetchError));
-                OnPropertyChanged(nameof(ShowCancelButton));
-                return;
-            }
-
-
-            if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.IsCancelBusy))
-            {
-                OnPropertyChanged(nameof(IsCancelBusy));
-                return;
-            }
-        };
-
+        propertyManagerPropertyChangedHandler = MusicPublicationSelectionPropertyForwarder.CreateHandler(OnPropertyChanged);
         propertyManager.PropertyChanged += propertyManagerPropertyChangedHandler;
     }
 }

@@ -108,7 +108,7 @@ public int Value { get; set; }
 
 **Structure Guidance**:
 - Split large classes into helper classes with clear responsibilities (avoid “misc” helpers).
-- Use folder structure to reflect dependency hierarchy:
+- Use folder structure to reflect dependency hierarchy. Place helpers in `{ClassName}Helpers/` subfolder (e.g. `MusicPublicationSelectionViewModelHelpers/`). Naming: `{ClassName}{Responsibility}Helper.cs` or `{ClassName}{Responsibility}Handler.cs`.
   - Higher-level orchestration/feature classes may depend on helpers in the same folder or subfolders (e.g. `Helpers/`, `Internal/`).
   - Helpers should not depend back on higher-level classes (avoid “upward” dependencies and cyclic relationships across folders).
 
@@ -128,4 +128,3 @@ public int Value { get; set; }
 - Use comments to explain "why", not "what"
 - Prefer self-documenting code over comments
 - When comments are needed, place them on the line above the code they describe
-
