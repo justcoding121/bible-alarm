@@ -1,0 +1,48 @@
+---
+description: "Every class has an interface; DI registers and injects by interface (except static classes)"
+globs: "**"
+alwaysApply: true
+---
+
+# Interfaces and dependency injection
+
+## One interface per class
+
+Every **non-static** class that is registered in DI must have a corresponding **interface**. This facilitates unit testing (mocking and substitution).
+
+- **Exemption**: Static classes do not need an interface (they are not instantiated or injected).
+- Name the interface after the implementation, e.g. `IFooService` for `FooService`.
+
+## DI: register and inject by interface
+
+- **Registration**: Register the concrete type against the interface (e.g. `services.AddSingleton<IFooService, FooService>()`).
+- **Injection**: Constructor (and other) injection must use the **interface** type, not the concrete class. Dependent classes should depend on `IFooService`, not `FooService`.
+
+**Example**
+
+```csharp
+// Interface
+public interface IReportGenerator
+{
+    Task<string> GenerateAsync(CancellationToken ct = default);
+}
+
+// Implementation
+public sealed class ReportGenerator : IReportGenerator
+{
+    public async Task<string> GenerateAsync(CancellationToken ct = default) => await Task.FromResult("Report");
+}
+
+// Consumer: inject interface
+public class ReportController
+{
+    public ReportController(IReportGenerator reportGenerator) { }
+}
+```
+
+Registration: `builder.Services.AddSingleton<IReportGenerator, ReportGenerator>();`
+
+## Summary
+
+- Non-static classes → define an interface; register and inject via that interface.
+- Static classes → no interface required.

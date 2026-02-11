@@ -1,0 +1,34 @@
+---
+description: "Folder hierarchy for dependent classes; folder names must not match class names"
+globs: "**"
+alwaysApply: true
+---
+
+# Folder hierarchy and naming
+
+## Dependent classes in a hierarchy
+
+Place **dependent** (child) classes in a **subfolder** next to the class they depend on. Name that subfolder with a **suffix** so it is clearly a container, not a single type.
+
+- If **Class B** and **Class C** are dependent on **Class A** (helpers, implementations, or children of A), put B and C in a subfolder **where Class A is located**, with a folder name like:
+  - `{ClassA}Helpers` (e.g. `BiblePublicationModalHelpers/`)
+  - or another descriptive suffix such as `Internal/`, `Implementations/`, etc., so the folder is not confused with a single class.
+
+**Example**
+
+- `FeatureX/FeatureXViewModel.cs` (Class A)
+- `FeatureX/FeatureXHelpers/HelperB.cs`, `FeatureX/FeatureXHelpers/HelperC.cs` (Classes B, C)
+
+Dependency direction: higher-level class (A) may reference helpers in the subfolder; helpers must not depend upward on the parent feature class.
+
+## No folder name = class name
+
+**No folder name in the solution may exactly match a class name** defined in the solution.
+
+- Use a suffix (e.g. `Helpers`, `Internal`, `Services`) so that folder names are distinct from type names.
+- This avoids ambiguity between "a folder named X" and "the class X" and keeps navigation and tooling clear.
+
+**Example**
+
+- ❌ Folder `BiblePublicationModal` (matches class `BiblePublicationModal`)
+- ✅ Folder `BiblePublicationModalHelpers` or `BiblePublicationModalInternal` (suffix makes the folder name distinct from the class name).
