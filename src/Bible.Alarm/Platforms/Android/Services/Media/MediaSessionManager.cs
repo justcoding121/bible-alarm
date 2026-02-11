@@ -297,6 +297,16 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
 
     /// <summary>
+    /// Resets the tracked duration so the next position update will re-apply duration to metadata.
+    /// Call after replacing metadata (e.g. HandlePlaybackMetadataChanged) to prevent the dedup
+    /// check from skipping a duration update when the new metadata lost its duration value.
+    /// </summary>
+    public void ResetTrackedDuration()
+    {
+        metadataManager.LastDurationMs = null;
+    }
+
+    /// <summary>
     /// Gets the SessionToken from the shared MediaSessionCompat.
     /// This token is used by both Legacy and Modern Android Auto services.
     /// </summary>

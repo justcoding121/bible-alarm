@@ -153,6 +153,11 @@ public class MediaSessionEffect(
                 if (metadata != null)
                 {
                     session.SetMetadata(metadata);
+
+                    // Reset tracked duration so position updates can re-apply duration if needed.
+                    // BuildMetadata includes duration from Fluxor state, but if that was stale/zero
+                    // (e.g. first track before duration is known), the next position update will correct it.
+                    mediaSessionManager.ResetTrackedDuration();
                 }
 
                 // Save metadata to Preferences when playback is active (Playing or Paused)
@@ -267,6 +272,15 @@ public class MediaSessionEffect(
             scheduleId);
 
         SetArtwork(metadataBuilder, action);
+
+        // Include duration from Fluxor state so metadata replacement doesn't wipe duration.
+        // Without this, a race between PlaybackMetadataChangedAction and PlaybackDurationChangedAction
+        // can cause the progress bar in Android Auto to lose the end time.
+        var duration = playbackState.Value?.Duration ?? TimeSpan.Zero;
+        if (duration > TimeSpan.Zero)
+        {
+            metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, (long)duration.TotalMilliseconds);
+        }
 
         return metadataBuilder.Build();
     }
