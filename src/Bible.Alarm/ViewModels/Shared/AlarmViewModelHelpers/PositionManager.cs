@@ -68,7 +68,16 @@ public sealed class PositionManager()
             message.LoadedTracks == 0 &&
             message.TotalBytesDownloaded == 0;
 
+        // Never throttle when byte progress has reached 100% (e.g. cached file reports complete).
+        // Otherwise, fast flows (cached or very quick download) drop the 100% update and the user
+        // only sees 0% then progress disappearing.
+        var isByteCompleteMessage =
+            message.TotalBytesExpected.HasValue &&
+            message.TotalBytesExpected.Value > 0 &&
+            message.TotalBytesDownloaded >= message.TotalBytesExpected.Value;
+
         if (!isStartPreparingMessage &&
+            !isByteCompleteMessage &&
             timeSinceLastUpdate < ProgressUpdateThrottleMs &&
             message.LoadedTracks < message.TotalTracks)
         {
