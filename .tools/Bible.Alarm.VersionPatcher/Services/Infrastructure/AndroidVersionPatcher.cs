@@ -10,6 +10,8 @@ namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 public class AndroidVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
     : IPlatformVersionPatcher
 {
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+
     public string PlatformName => "Android";
 
     public async Task PatchVersionAsync()
@@ -27,14 +29,15 @@ public class AndroidVersionPatcher(IVersionService versionService, IFileService 
         var content = await fileService.ReadFileAsync(csprojFile);
         
         // Update ApplicationVersion (version code)
-        var versionCodeMatch = Regex.Match(content, @"<ApplicationVersion>(\d+)</ApplicationVersion>");
+        var versionCodeMatch = Regex.Match(content, @"<ApplicationVersion>(\d+)</ApplicationVersion>", RegexOptions.None, RegexTimeout);
         if (versionCodeMatch.Success)
         {
             var currentVersionCode = versionCodeMatch.Groups[1].Value;
             var newVersionCode = versionService.IncrementVersionCode(currentVersionCode);
-            content = Regex.Replace(content, 
-                @"<ApplicationVersion>\d+</ApplicationVersion>", 
-                $"<ApplicationVersion>{newVersionCode}</ApplicationVersion>");
+            content = Regex.Replace(content,
+                @"<ApplicationVersion>\d+</ApplicationVersion>",
+                $"<ApplicationVersion>{newVersionCode}</ApplicationVersion>",
+                RegexOptions.None, RegexTimeout);
             Console.WriteLine($"Android ApplicationVersion updated: {currentVersionCode} -> {newVersionCode}");
         }
         else
@@ -43,14 +46,15 @@ public class AndroidVersionPatcher(IVersionService versionService, IFileService 
         }
 
         // Update ApplicationDisplayVersion (version name)
-        var versionNameMatch = Regex.Match(content, @"<ApplicationDisplayVersion>([\d.]+)</ApplicationDisplayVersion>");
+        var versionNameMatch = Regex.Match(content, @"<ApplicationDisplayVersion>([\d.]+)</ApplicationDisplayVersion>", RegexOptions.None, RegexTimeout);
         if (versionNameMatch.Success)
         {
             var currentVersionName = versionNameMatch.Groups[1].Value;
             var newVersionName = versionService.IncrementVersion(currentVersionName);
-            content = Regex.Replace(content, 
-                @"<ApplicationDisplayVersion>[\d.]+</ApplicationDisplayVersion>", 
-                $"<ApplicationDisplayVersion>{newVersionName}</ApplicationDisplayVersion>");
+            content = Regex.Replace(content,
+                @"<ApplicationDisplayVersion>[\d.]+</ApplicationDisplayVersion>",
+                $"<ApplicationDisplayVersion>{newVersionName}</ApplicationDisplayVersion>",
+                RegexOptions.None, RegexTimeout);
             Console.WriteLine($"Android ApplicationDisplayVersion updated: {currentVersionName} -> {newVersionName}");
         }
         else

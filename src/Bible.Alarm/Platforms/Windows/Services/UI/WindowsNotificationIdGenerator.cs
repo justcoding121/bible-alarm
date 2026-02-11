@@ -31,14 +31,13 @@ internal static class WindowsNotificationIdGenerator
     /// Generates a short hash (11 characters) from a DateTimeOffset for use in notification IDs.
     /// Windows notification IDs have a 16-character limit, so we need a compact representation.
     /// Format: ScheduleId (up to 4 digits) + "_" (1 char) + DateHash (11 chars) = 16 chars max
-    /// Uses MD5 hash of the date/time to ensure uniqueness while staying within the character limit.
+    /// Uses SHA256 (first 6 bytes) for uniqueness; not used in a cryptographic context.
     /// </summary>
     private static string GetShortDateHash(DateTimeOffset dateTime)
     {
-        // Create an MD5 hash of the date/time string to ensure uniqueness
         var dateStr = dateTime.ToString("yyyyMMddHHmmss");
         var bytes = Encoding.UTF8.GetBytes(dateStr);
-        var hashBytes = MD5.HashData(bytes);
+        var hashBytes = SHA256.HashData(bytes);
 
         // Convert hash to base36 (0-9, a-z) for a compact 11-character representation
         const string base36Chars = "0123456789abcdefghijklmnopqrstuvwxyz";

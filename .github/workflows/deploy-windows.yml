@@ -101,8 +101,11 @@ jobs:
             Write-Host "Updated Package.appxmanifest Version: $oldVersion -> $newVersion"
         }
 
-    # Build Windows release (MSIX package)
+    # Build Windows release (thumbprint via env to avoid expanding secret in run - S7636)
     - name: Build Windows Release
+      env:
+        WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
+      shell: powershell
       run: |
         dotnet publish src/Bible.Alarm/Bible.Alarm.csproj `
           --configuration Release `
@@ -110,9 +113,8 @@ jobs:
           -p:WindowsPackageType=MSIX `
           -p:RuntimeIdentifier=win-x64 `
           -p:AppxPackageSigningEnabled=true `
-          -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}" `
+          -p:PackageCertificateThumbprint="$env:WINDOWS_CERTIFICATE_THUMBPRINT" `
           --output ./artifacts/windows
-      shell: powershell
 
     # Upload to Microsoft Store using Partner Center API
     - name: Upload to Microsoft Store

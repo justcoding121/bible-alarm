@@ -28,7 +28,7 @@ jobs:
       run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
         
     - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+      uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
       
     - name: Setup Java
       uses: actions/setup-java@v4
@@ -36,12 +36,13 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    # Decode and setup the keystore for signing
+    # Decode and setup the keystore for signing (secret passed via env to avoid expanding in run - S7636)
     - name: Decode Keystore
+      env:
+        ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       run: |
-        # Use temp directory to ensure keystore is never committed
         KEYSTORE_PATH="${{ runner.temp }}/android-keystore.jks"
-        echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$KEYSTORE_PATH"
+        echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
         echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> $GITHUB_ENV
       
     - name: Restore dependencies
@@ -74,17 +75,21 @@ jobs:
         echo "Updated ApplicationVersion: $CURRENT_VERSION -> $NEW_VERSION"
         echo "Updated ApplicationDisplayVersion: $CURRENT_DISPLAY -> $NEW_DISPLAY"
 
-    # Build Android release
+    # Build Android release (signing secrets via env to avoid expanding in run - S7636)
     - name: Build Android Release
+      env:
+        ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       run: |
         dotnet publish src/Bible.Alarm/Bible.Alarm.csproj \
           --configuration Release \
           --framework net10.0-android \
           -p:AndroidKeyStore=true \
           -p:AndroidSigningKeyStore=${{ runner.temp }}/android-keystore.jks \
-          -p:AndroidSigningKeyAlias=${{ secrets.ANDROID_KEY_ALIAS }} \
-          -p:AndroidSigningKeyPass=${{ secrets.ANDROID_KEY_PASSWORD }} \
-          -p:AndroidSigningStorePass=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+          -p:AndroidSigningKeyAlias="$ANDROID_KEY_ALIAS" \
+          -p:AndroidSigningKeyPass="$ANDROID_KEY_PASSWORD" \
+          -p:AndroidSigningStorePass="$ANDROID_KEYSTORE_PASSWORD" \
           -p:AndroidPackageFormat=aab \
           --output ./artifacts/android
 

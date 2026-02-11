@@ -1,4 +1,5 @@
 #nullable enable
+using System.Security.Cryptography;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -85,11 +86,10 @@ internal sealed class DefaultMusicPopulator
                 return;
             }
 
-            // Apply to all schedules needing music
-            var random = new Random();
+            var trackCount = melodyMusic.Tracks.Count;
             foreach (var (schedule, stateItem) in schedulesNeedingMusic)
             {
-                var randomTrack = melodyMusic.Tracks[random.Next(melodyMusic.Tracks.Count)];
+                var randomTrack = melodyMusic.Tracks[RandomNumberGenerator.GetInt32(trackCount)];
 
                 stateItem.MusicPublicationCode = defaultPublicationCode;
                 stateItem.MusicPublicationName = defaultPublicationName;

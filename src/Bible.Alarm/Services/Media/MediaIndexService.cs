@@ -125,10 +125,53 @@ public sealed class MediaIndexService(
             });
         }
 
-        ZipFile.ExtractToDirectory(tmpIndexFilePath, IndexRoot);
+        await SafeExtractZipAsync(tmpIndexFilePath, IndexRoot);
 
         await storageService.DeleteFile(tmpIndexFilePath);
         await versionService.SaveCurrentVersionAsync();
+    }
+
+    /// <summary>
+    /// Extracts a zip archive with path and size limits to mitigate zip bombs and path traversal.
+    /// </summary>
+    private static async Task SafeExtractZipAsync(string zipPath, string destinationDir)
+    {
+        const long MaxTotalUncompressedBytes = 500 * 1024 * 1024; // 500 MB
+        const int MaxEntryCount = 100_000;
+
+        var destinationFullPath = Path.GetFullPath(destinationDir);
+        long totalUncompressed = 0;
+        var entryCount = 0;
+
+        await Task.Run(() =>
+        {
+            using var archive = ZipFile.OpenRead(zipPath);
+            foreach (var entry in archive.Entries)
+            {
+                entryCount++;
+                if (entryCount > MaxEntryCount)
+                {
+                    throw new InvalidOperationException($"Zip entry count exceeds limit ({MaxEntryCount}).");
+                }
+
+                var fullPath = Path.GetFullPath(Path.Combine(destinationFullPath, entry.FullName));
+                if (!fullPath.StartsWith(destinationFullPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException($"Zip entry path traversal detected: {entry.FullName}");
+                }
+
+                if (entry.Length >= 0)
+                {
+                    totalUncompressed += entry.Length;
+                    if (totalUncompressed > MaxTotalUncompressedBytes)
+                    {
+                        throw new InvalidOperationException($"Zip uncompressed size would exceed limit ({MaxTotalUncompressedBytes} bytes).");
+                    }
+                }
+            }
+
+            ZipFile.ExtractToDirectory(zipPath, destinationDir);
+        });
     }
 
     /// <summary>

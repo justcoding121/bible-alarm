@@ -95,15 +95,18 @@ jobs:
         echo "Updated ApplicationVersion: $CURRENT_VERSION -> $NEW_VERSION"
         echo "Updated CFBundleVersion: $CURRENT_BUNDLE_VERSION -> $NEW_BUNDLE_VERSION"
 
-    # Build iOS release
+    # Build iOS release (secrets via env to avoid expanding in run - S7636)
     - name: Build iOS Release
+      env:
+        APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+        IOS_PROVISIONING_PROFILE_NAME: ${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}
       run: |
         dotnet publish src/Bible.Alarm/Bible.Alarm.csproj \
           --configuration Release \
           --framework net10.0-ios \
           -p:ArchiveOnBuild=true \
-          -p:CodesignKey="${{ secrets.APPLE_CODESIGN_IDENTITY }}" \
-          -p:CodesignProvision="${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}" \
+          -p:CodesignKey="$APPLE_CODESIGN_IDENTITY" \
+          -p:CodesignProvision="$IOS_PROVISIONING_PROFILE_NAME" \
           --output ./artifacts/ios
 
     # Upload to App Store Connect using Transporter
