@@ -2,6 +2,7 @@
 using Bible.Alarm.Common.Interfaces.UI;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Stores.Actions.Playback;
 using CommunityToolkit.Mvvm.Messaging;
@@ -78,6 +79,52 @@ public sealed class PlaybackFailureHandler
 
             // Also show toast for immediate feedback
             WeakReferenceMessenger.Default.Send(new ShowToastMessage("Media download failed. Check your internet connection."));
+        }
+    }
+
+    public async Task TryPlayFallbackWhenPrepareFailedAsync(
+        int scheduleId,
+        bool keepErrorMessage,
+        Action<List<AudioPlayerTrack>> setPlaylist,
+        Action<int> setCurrentTrackIndex,
+        Action clearManuallyVisited,
+        Action<List<AudioPlayerTrack>, int> notifyNavigationChanged,
+        Func<bool, Task> playCurrentTrackAsync)
+    {
+        try
+        {
+            await notificationService.ShowNotificationAsync(scheduleId);
+
+            var fallbackTrack = await fallbackAlarmSoundService.GetFallbackAlarmTrackAsync();
+            if (fallbackTrack is null)
+            {
+                logger.Warning("Failed to get fallback alarm track");
+                dispatcher.Dispatch(new PlaybackErrorAction
+                {
+                    ErrorMessage = "Download failed. Check your internet connection."
+                });
+                return;
+            }
+
+            if (!keepErrorMessage)
+            {
+                dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = null });
+            }
+
+            var playlist = new List<AudioPlayerTrack> { fallbackTrack };
+            setPlaylist(playlist);
+            setCurrentTrackIndex(0);
+            clearManuallyVisited();
+            notifyNavigationChanged(playlist, 0);
+            await playCurrentTrackAsync(false);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error playing fallback alarm sound");
+            dispatcher.Dispatch(new PlaybackErrorAction
+            {
+                ErrorMessage = "Download failed. Check your internet connection."
+            });
         }
     }
 

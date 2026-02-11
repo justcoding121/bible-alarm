@@ -43,6 +43,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         private readonly SystemControlsHandler systemControlsHandler;
     private readonly TrackMarker trackMarker;
     private readonly PlaybackIndefiniteResolver indefiniteResolver;
+    private readonly PlaybackPlaylistExtender playlistExtender;
     private readonly IState<PlaybackState> playbackState;
 
     public PlaybackService(
@@ -83,6 +84,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         systemControlsHandler = new SystemControlsHandler(logger);
         trackMarker = new TrackMarker(playlistService, logger);
         indefiniteResolver = new PlaybackIndefiniteResolver(playlistService, logger);
+        playlistExtender = new PlaybackPlaylistExtender(playlistService, preparePlaybackService, indefiniteResolver, logger);
 
         progressTracker.SetSaveProgressCallback(() => progressTracker.SaveProgressAsync(
             stateManager.Playlist, stateManager.CurrentTrackIndex));
@@ -653,104 +655,44 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         }
     }
 
-    private async Task<bool> TryAppendNextTrackAsync(bool reportSectionFetchProgress = true)
+    private Task<bool> TryAppendNextTrackAsync(bool reportSectionFetchProgress = true)
     {
         var playlist = stateManager.Playlist;
         if (playlist == null || playlist.Count == 0)
         {
-            return false;
+            return Task.FromResult(false);
         }
 
-        var currentIndex = stateManager.CurrentTrackIndex;
-        if (currentIndex < 0 || currentIndex >= playlist.Count)
-        {
-            return false;
-        }
+        var sectionProgress = reportSectionFetchProgress ? CreateSectionFetchProgressReporter() : null;
+        var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
 
-        try
-        {
-            var currentMetadata = playlist[currentIndex].PlayItem.Metadata;
-            var nextPlayItem = await ResolveNextPlayItemForSessionAsync(currentMetadata, reportSectionFetchProgress);
-
-            // Append placeholder; Uri will be downloaded on-demand (or in background).
-            var nextTrack = new AudioPlayerTrack
-            {
-                PlayItem = nextPlayItem,
-                Uri = string.Empty
-            };
-            playlist.Add(nextTrack);
-
-            // Opportunistically download the appended track in the background.
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var token = stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None;
-                    var prepared = await preparePlaybackService.PrepareSingleTrackAsync(nextPlayItem, token);
-                    if (prepared != null && !string.IsNullOrEmpty(prepared.Uri))
-                    {
-                        nextTrack.Uri = prepared.Uri;
-                    }
-                }
-                catch
-                {
-                    // Ignore background failures.
-                }
-            });
-
-            return true;
-        }
-        catch (OperationCanceledException)
-        {
-            return false;
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Failed to append next track for indefinite playback");
-            return false;
-        }
+        return playlistExtender.TryAppendNextTrackAsync(
+            playlist,
+            stateManager.CurrentTrackIndex,
+            stateManager.SessionMusicPlayItem,
+            stateManager.AnchorBibleMetadata,
+            stateManager.PreAnchorBibleMetadata,
+            sectionProgress,
+            token);
     }
 
-    private async Task<bool> TryPrependPreviousTrackAsync()
+    private Task<bool> TryPrependPreviousTrackAsync()
     {
         var playlist = stateManager.Playlist;
         if (playlist == null || playlist.Count == 0)
         {
-            return false;
+            return Task.FromResult(false);
         }
 
-        var currentIndex = stateManager.CurrentTrackIndex;
-        if (currentIndex < 0 || currentIndex >= playlist.Count)
-        {
-            return false;
-        }
-
-        try
-        {
-            var currentMetadata = playlist[currentIndex].PlayItem.Metadata;
-            var prevPlayItem = await ResolvePreviousPlayItemForSessionAsync(currentMetadata);
-
-            // Prepend placeholder; Uri will be downloaded on-demand (or in background).
-            var prevTrack = new AudioPlayerTrack
-            {
-                PlayItem = prevPlayItem,
-                Uri = string.Empty
-            };
-
-            playlist.Insert(0, prevTrack);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, 
-                "Failed to prepend previous track: ScheduleId={ScheduleId}, LanguageCode={LanguageCode}, PublicationCode={PublicationCode}, SectionCode={SectionCode}, TrackCode={TrackCode}",
-                stateManager.CurrentScheduleId,
-                playlist[currentIndex].PlayItem.Metadata.LanguageCode,
-                playlist[currentIndex].PlayItem.Metadata.PublicationCode,
-                playlist[currentIndex].PlayItem.Metadata.SectionCode,
-                playlist[currentIndex].PlayItem.Metadata.TrackCode);
-            return false;
-        }
+        var sectionProgress = CreateSectionFetchProgressReporter();
+        return playlistExtender.TryPrependPreviousTrackAsync(
+            playlist,
+            stateManager.CurrentTrackIndex,
+            stateManager.CurrentScheduleId,
+            stateManager.SessionMusicPlayItem,
+            stateManager.AnchorBibleMetadata,
+            stateManager.PreAnchorBibleMetadata,
+            sectionProgress);
     }
 
     private async Task<PlayItem> ResolveNextPlayItemForSessionAsync(TrackMetadata currentMetadata, bool reportSectionFetchProgress = true)
@@ -786,49 +728,15 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
             startFromBeginning => PlayCurrentTrackAsync(startFromBeginning));
     }
 
-    private async Task TryPlayFallbackAlarmSoundAsync(int scheduleId, bool keepErrorMessage = false)
-    {
-        try
-        {
-            // Show alarm notification
-            await notificationService.ShowNotificationAsync(scheduleId);
-
-            // Try to get and play fallback alarm sound
-            var fallbackTrack = await fallbackAlarmSoundService.GetFallbackAlarmTrackAsync();
-            if (fallbackTrack is null)
-            {
-                logger.Warning("Failed to get fallback alarm track");
-                // Update error message if fallback also fails
-                dispatcher.Dispatch(new PlaybackErrorAction
-                {
-                    ErrorMessage = "Download failed. Check your internet connection."
-                });
-                return;
-            }
-
-            // Only clear error message if we're not keeping it (for alarm downloads, keep it visible)
-            if (!keepErrorMessage)
-            {
-                dispatcher.Dispatch(new PlaybackErrorAction { ErrorMessage = null });
-            }
-
-            // Set up fallback track and play it
-            stateManager.Playlist = [fallbackTrack];
-            stateManager.CurrentTrackIndex = 0;
-            stateManager.ManuallyVisitedTrackIndices.Clear();
-            navigationManager.NotifyNavigationChanged(stateManager.Playlist, stateManager.CurrentTrackIndex);
-            await PlayCurrentTrackAsync();
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error playing fallback alarm sound");
-            // Update error message if fallback fails
-            dispatcher.Dispatch(new PlaybackErrorAction
-            {
-                ErrorMessage = "Download failed. Check your internet connection."
-            });
-        }
-    }
+    private Task TryPlayFallbackAlarmSoundAsync(int scheduleId, bool keepErrorMessage = false) =>
+        failureHandler.TryPlayFallbackWhenPrepareFailedAsync(
+            scheduleId,
+            keepErrorMessage,
+            playlist => stateManager.Playlist = playlist,
+            idx => stateManager.CurrentTrackIndex = idx,
+            () => stateManager.ManuallyVisitedTrackIndices.Clear(),
+            (playlist, idx) => navigationManager.NotifyNavigationChanged(playlist, idx),
+            PlayCurrentTrackAsync);
 
     public void Dispose()
     {
