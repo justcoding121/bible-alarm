@@ -56,8 +56,11 @@ public static class ScheduleStateSyncHelper
         var currentSectionCode = current.BiblePublicationSectionCode;
         var actionSectionCode = action.BiblePublicationSectionCode;
 
-        // Compare key properties that would trigger state changes
+        // Compare key properties that would trigger state changes.
+        // Category must be included so that changing category (e.g. Music → Bible) is not treated as unchanged.
         return current.Id == action.Id &&
+               current.BiblePublicationCategoryId == action.BiblePublicationCategoryId &&
+               string.Equals(current.BiblePublicationCategoryName, action.BiblePublicationCategoryName, StringComparison.OrdinalIgnoreCase) &&
                current.MusicLanguageCode == action.MusicLanguageCode &&
                current.MusicPublicationCode == action.MusicPublicationCode &&
                current.MusicTrackCode == action.MusicTrackCode &&

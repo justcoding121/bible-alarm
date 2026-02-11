@@ -292,8 +292,9 @@ public sealed class CategorySelectionAutoPopulateHandler
 
                 var languageModel = new LanguageListViewItemModel(selectedLanguage);
                 // GetPublicationSectionAndTrackForLanguageAsync reads from DB and resolves names (no fetch, no progress)
+                // Pass action.CategoryName so the method filters by the new category (state hasn't been updated yet).
                 var (resultPublicationCode, resultSectionCode, resultTrackCode, resultSectionName, resultPublicationName, resultTrackTitle) =
-                    await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(languageModel);
+                    await itemSelector.GetPublicationSectionAndTrackForLanguageAsync(languageModel, categoryNameOverride: action.CategoryName);
 
                 if (string.IsNullOrEmpty(resultPublicationCode) || string.IsNullOrWhiteSpace(resultTrackCode))
                 {

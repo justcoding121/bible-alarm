@@ -136,7 +136,7 @@ public sealed class BiblePublicationSelectionItemSelector
     /// Progress milestones: 50% after publication+section saved, 100% after tracks saved.
     /// </summary>
     public async Task<(string? PublicationCode, string? SectionCode, string TrackCode, string SectionName, string PublicationName, string TrackTitle)>
-        GetPublicationSectionAndTrackForLanguageAsync(LanguageListViewItemModel language, IFetchProgress? progress = null)
+        GetPublicationSectionAndTrackForLanguageAsync(LanguageListViewItemModel language, IFetchProgress? progress = null, string? categoryNameOverride = null)
     {
         Log.Debug("GetPublicationSectionAndTrackForLanguageAsync: Starting for language={LanguageCode}", language.Code);
 
@@ -144,7 +144,8 @@ public sealed class BiblePublicationSelectionItemSelector
         // Step 1: Pick the first viable publication for this language/category and ensure ONLY that publication exists.
         // IMPORTANT: This is a cascade path; it must NOT "download all publications".
         var stateValue = state.Value;
-        var categoryName = stateValue.CurrentSchedule?.BiblePublicationCategoryName;
+        // Use the override when provided (e.g. during category change, state hasn't been updated yet).
+        var categoryName = categoryNameOverride ?? stateValue.CurrentSchedule?.BiblePublicationCategoryName;
 
         string? publicationCode = null;
         BiblePublication? publication = null;
