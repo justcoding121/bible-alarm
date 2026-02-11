@@ -19,12 +19,14 @@ namespace Bible.Alarm.Services.Media;
 public sealed class DisplayMetadataService(
     ILogger logger,
     IMediaService mediaService,
+    HttpMessageHandler httpHandler,
     IBiblePublicationService? biblePublicationService = null,
     IVocalMusicService? vocalMusicService = null)
     : IDisplayMetadataService
 {
     private readonly IVocalMusicService? vocalMusicService = vocalMusicService;
     private readonly DisplayMetadataServiceMusicHelper musicHelper = new(logger, mediaService, vocalMusicService);
+    private readonly RemoteId3ArtworkExtractor remoteArtworkExtractor = new(httpHandler, logger);
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
     {
@@ -316,6 +318,36 @@ public sealed class DisplayMetadataService(
 
     private async Task<MetaData> ExtractMetadataFromFileAsync(string uri)
     {
+        // Preferred path: extract from local cached file.
+        var localMeta = await TryExtractFromLocalFileAsync(uri);
+        if (localMeta != null)
+        {
+            return localMeta;
+        }
+
+        // Fallback: for HTTPS streaming URLs with no local file, use HTTP Range requests
+        // to fetch only the ID3v2 tag block (artwork + basic metadata) without downloading
+        // the entire audio file.
+        if (uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            var remoteMeta = await remoteArtworkExtractor.TryExtractMetadataAsync(uri);
+            if (remoteMeta != null)
+            {
+                return remoteMeta;
+            }
+        }
+
+        return CreateFallbackMetadata();
+    }
+
+    private async Task<MetaData?> TryExtractFromLocalFileAsync(string uri)
+    {
+        // HTTPS URLs are not local files -- skip the file system check entirely.
+        if (uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
         return await Task.Run(() =>
         {
             try
@@ -325,7 +357,7 @@ public sealed class DisplayMetadataService(
                 if (!System.IO.File.Exists(filePath))
                 {
                     logger.Debug("File does not exist for metadata extraction: {FilePath} (from URI: {Uri})", filePath, uri);
-                    return CreateFallbackMetadata();
+                    return null;
                 }
 
                 File? file = null;
@@ -344,13 +376,13 @@ public sealed class DisplayMetadataService(
                     catch
                     {
                         logger.Warning(ex, "Failed to extract metadata from {Uri}", uri);
-                        return CreateFallbackMetadata();
+                        return null;
                     }
                 }
 
                 if (file == null)
                 {
-                    return CreateFallbackMetadata();
+                    return null;
                 }
 
                 using (file)
@@ -363,8 +395,8 @@ public sealed class DisplayMetadataService(
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "Failed to extract metadata from {Uri}", uri);
-                return CreateFallbackMetadata();
+                logger.Warning(ex, "Failed to extract metadata from local file {Uri}", uri);
+                return null;
             }
         });
     }

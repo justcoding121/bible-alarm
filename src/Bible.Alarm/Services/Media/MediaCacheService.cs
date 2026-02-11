@@ -189,6 +189,38 @@ public sealed class MediaCacheService(
         return playItem.Url;
     }
 
+    public async Task<bool> CacheTrackAsync(PlayItem playItem, int scheduleId, CancellationToken cancellationToken = default)
+    {
+        var lookUpPath = playItem.Metadata.LookUpPath;
+
+        // Already cached -- nothing to do.
+        if (await ExistsAsync(lookUpPath, scheduleId))
+        {
+            return true;
+        }
+
+        if (!await networkStatusService.IsInternetAvailable())
+        {
+            logger.Debug("No internet - skipping background cache for track: LookUpPath={LookUpPath}", lookUpPath);
+            return false;
+        }
+
+        try
+        {
+            var result = await DownloadAndCacheTrackAsync(playItem, scheduleId, cancellationToken);
+            return result != null;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Background cache failed for track: LookUpPath={LookUpPath}, URL={Url}", lookUpPath, playItem.Url);
+            return false;
+        }
+    }
+
     private async Task<string?> DownloadAndCacheTrackAsync(PlayItem playItem, int scheduleId, CancellationToken cancellationToken = default)
     {
         return await MediaCacheDownloadCoordinator.DownloadAndCacheTrackWithProgressAsync(

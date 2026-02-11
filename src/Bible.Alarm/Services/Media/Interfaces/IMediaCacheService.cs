@@ -30,6 +30,13 @@ public interface IMediaCacheService : IDisposable
     /// </summary>
     Task<string?> ResolveTrackUriAsync(PlayItem playItem, CancellationToken cancellationToken = default);
     
+    /// <summary>
+    /// Downloads a single track to the local cache (fire-and-forget friendly).
+    /// Used for background pre-downloading of next/prev tracks during playback.
+    /// Returns true if the file was cached successfully, false otherwise.
+    /// </summary>
+    Task<bool> CacheTrackAsync(PlayItem playItem, int scheduleId, CancellationToken cancellationToken = default);
+
     Task DeleteScheduleCacheAsync(int scheduleId);
 }
 

@@ -24,8 +24,8 @@ alwaysApply: false
     - if not cached and no internet: returns null (triggers fallback/error)
   - `PlaybackService` will:
     - prepare an initial playlist and resolve URIs for all tracks
-    - no on-demand downloading or background pre-downloading during playback
-  - Pre-caching only happens via:
+    - after starting a track, fire-and-forget pre-download the **next** track in background (via `TrackOnDemandPreparer.PreDownloadNextTrackAsync` → `IMediaCacheService.CacheTrackAsync`) so it is cached for faster start, offline readiness, and artwork extraction
+  - Full pre-caching also happens via:
     - periodic scheduler job (`SchedulerService` → `MediaCacheService.SetupAlarmCacheAsync`)
     - schedule save (`ScheduleMediaCacheService.SetupMediaCache`)
 
@@ -111,10 +111,19 @@ Enforced by:
 - `src/Bible.Alarm/Services/Schedule/ScheduleSaveService.cs`
 - `src/Bible.Alarm/Stores/Effects/Services/ScheduleEntityUpdater.cs`
 
-### TagLibSharp usage
+### TagLibSharp usage and artwork extraction
 
-The app uses `TagLibSharp` to extract metadata/artwork from cached media files for display/system integration (Now Playing, notifications).
-Note: TagLibSharp only works with local cached files, not HTTP-streamed content.
+The app uses `TagLibSharp` to extract metadata/artwork from media files for display/system integration (Now Playing, notifications, playback modal).
+
+Two extraction paths exist in `DisplayMetadataService`:
+1. **Local file (preferred)**: TagLib reads the full cached file directly.
+2. **Remote URL (fallback)**: When the track is being streamed from CDN (no local cache), `RemoteId3ArtworkExtractor` uses HTTP Range requests to download only the ID3v2 tag block (typically 100–500 KB) from the beginning of the file, writes it to a temp file, and parses it with TagLib. This avoids downloading the entire audio file just for artwork.
+
+The two-step Range request approach:
+1. Fetch bytes 0–9 (ID3v2 header) → parse the syncsafe integer to determine tag size.
+2. Fetch bytes 0–{tagSize+9} (complete ID3v2 tag) → parse with TagLib → extract artwork.
+
+Note: This only works for MP3 files with ID3v2 tags at the start. MP4 metadata (`moov` atom) may be at the end of the file and is not supported by this approach. The notification/lock screen artwork for streaming is handled separately by the platform's native player (ExoPlayer/AVPlayer) which extracts metadata from the stream automatically.
 
 ---
 

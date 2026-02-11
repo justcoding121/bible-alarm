@@ -98,11 +98,12 @@ Playback uses a **cache-or-stream** strategy via `IMediaCacheService.ResolveTrac
 - if not cached + internet available: returns the CDN URL for HTTP streaming
 - if not cached + no internet: returns null (triggers fallback alarm sound or error)
 
-Media cache is populated **only** by background jobs:
-- **periodic scheduler job** (`SchedulerService` → `MediaCacheService.SetupAlarmCacheAsync`)
-- **schedule save** (`ScheduleMediaCacheService.SetupMediaCache`)
+Media cache is populated by:
+- **periodic scheduler job** (`SchedulerService` → `MediaCacheService.SetupAlarmCacheAsync`) — downloads all upcoming tracks
+- **schedule save** (`ScheduleMediaCacheService.SetupMediaCache`) — downloads tracks for the saved schedule
+- **playback pre-download** (`TrackOnDemandPreparer.PreDownloadNextTrackAsync` → `IMediaCacheService.CacheTrackAsync`) — fire-and-forget download of the next track while the current track is playing, for faster start, offline readiness, and artwork extraction
 
-Playback does **not** download files. It either plays from cache or streams from CDN.
+Playback itself streams from CDN when files are not cached (no blocking download before playback starts).
 
 ### Cache file naming
 

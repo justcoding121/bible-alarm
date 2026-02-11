@@ -26,6 +26,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
     private readonly IDisplayMetadataService displayMetadataService;
     private readonly IFallbackAlarmSoundService fallbackAlarmSoundService;
     private readonly INotificationService notificationService;
+    private readonly IMediaCacheService mediaCacheService;
 
     private readonly PlaybackStateManager stateManager;
     private readonly PlaybackNavigationManager navigationManager;
@@ -59,6 +60,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         IDispatcher dispatcher,
         INotificationService notificationService,
         IDisplayMetadataService displayMetadataService,
+        IMediaCacheService mediaCacheService,
         IState<PlaybackState> playbackState
         )
     {
@@ -71,6 +73,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         this.displayMetadataService = displayMetadataService;
         this.fallbackAlarmSoundService = fallbackAlarmSoundService;
         this.notificationService = notificationService;
+        this.mediaCacheService = mediaCacheService;
         this.playbackState = playbackState;
 
         stateManager = new PlaybackStateManager(logger);
@@ -88,7 +91,7 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         trackMarker = new TrackMarker(playlistService, logger);
         indefiniteResolver = new PlaybackIndefiniteResolver(playlistService, logger);
         playlistExtender = new PlaybackPlaylistExtender(indefiniteResolver, logger);
-        trackOnDemandPreparer = new TrackOnDemandPreparer(preparePlaybackService, logger);
+        trackOnDemandPreparer = new TrackOnDemandPreparer(preparePlaybackService, mediaCacheService, logger);
         sessionContextInitializer = new PlaybackSessionContextInitializer(playlistService);
         modeResolver = new PlaybackModeResolver(alarmScheduleService, logger);
         resetExecutor = new PlaybackResetExecutor(progressTracker, audioPlayer, stateManager, dispatcher, logger);
@@ -392,7 +395,24 @@ public sealed class PlaybackService : IPlaybackService, IRecipient<NextButtonPre
         {
             // Track playback failed - handle failure
             await HandlePlaybackFailureAsync();
+            return;
         }
+
+        // Fire-and-forget: pre-download the next track in background for caching + artwork.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await trackOnDemandPreparer.PreDownloadNextTrackAsync(
+                    stateManager.Playlist!,
+                    stateManager.CurrentTrackIndex,
+                    stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.Debug(ex, "Background pre-download of next track failed (non-critical)");
+            }
+        });
     }
 
     private IFetchProgress CreateSectionFetchProgressReporter()
