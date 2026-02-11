@@ -23,11 +23,6 @@ public static class AppConstants
         public const string JwOrgMediatorApiBaseUrl = "https://app.jw-cdn.org/apis/mediator/v1";
 
         /// <summary>
-        /// Media index download base URL
-        /// </summary>
-        public const string MediaIndexDownloadBaseUrl = "https://jthomas.info/bible-alarm/media-index";
-
-        /// <summary>
         /// Media index file name prefix for new format (v2+)
         /// Old format files don't have this prefix and will be preserved for backward compatibility
         /// </summary>
