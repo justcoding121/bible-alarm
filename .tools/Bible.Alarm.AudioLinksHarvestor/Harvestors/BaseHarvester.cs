@@ -64,37 +64,67 @@ internal abstract class BaseHarvester
 
         var languageEntries = new List<(string Code, string Name, string Direction)>();
 
-        foreach (var item in languages.EnumerateObject())
+        if (languages.ValueKind == JsonValueKind.Array)
         {
-            var languageCode = item.Name.ToUpperInvariant();
-
-            if (!item.Value.TryGetProperty("name", out var nameElement))
+            foreach (var element in languages.EnumerateArray())
             {
-                continue;
-            }
+                var languageCode = element.TryGetProperty("langcode", out var lc) ? lc.GetString()?.ToUpperInvariant()
+                    : element.TryGetProperty("symbol", out var sym) ? sym.GetString()?.ToUpperInvariant() : null;
+                if (string.IsNullOrEmpty(languageCode))
+                {
+                    continue;
+                }
 
-            var rawLanguage = nameElement.GetString();
-            var language = rawLanguage != null ? WebUtility.HtmlDecode(rawLanguage) : null;
-            if (string.IsNullOrEmpty(language))
+                if (!element.TryGetProperty("name", out var nameElement))
+                {
+                    continue;
+                }
+
+                var rawLanguage = nameElement.GetString();
+                var language = rawLanguage != null ? WebUtility.HtmlDecode(rawLanguage) : null;
+                if (string.IsNullOrEmpty(language))
+                {
+                    continue;
+                }
+
+                var direction = "ltr";
+                if (element.TryGetProperty("direction", out var directionElement))
+                {
+                    direction = directionElement.GetString() ?? "ltr";
+                }
+
+                languageEntries.Add((languageCode, language, direction));
+            }
+        }
+        else if (languages.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var item in languages.EnumerateObject())
             {
-                continue;
-            }
+                var languageCode = item.Name.ToUpperInvariant();
 
-            var direction = "ltr";
-            if (item.Value.TryGetProperty("direction", out var directionElement))
-            {
-                direction = directionElement.GetString() ?? "ltr";
-            }
+                if (!item.Value.TryGetProperty("name", out var nameElement))
+                {
+                    continue;
+                }
 
-            languageEntries.Add((languageCode, language, direction));
+                var rawLanguage = nameElement.GetString();
+                var language = rawLanguage != null ? WebUtility.HtmlDecode(rawLanguage) : null;
+                if (string.IsNullOrEmpty(language))
+                {
+                    continue;
+                }
+
+                var direction = "ltr";
+                if (item.Value.TryGetProperty("direction", out var directionElement))
+                {
+                    direction = directionElement.GetString() ?? "ltr";
+                }
+
+                languageEntries.Add((languageCode, language, direction));
+            }
         }
 
-        if (languageEntries.Count == 0)
-        {
-            return null;
-        }
-
-        return languageEntries;
+        return languageEntries.Count > 0 ? languageEntries : null;
     }
 
     /// <summary>

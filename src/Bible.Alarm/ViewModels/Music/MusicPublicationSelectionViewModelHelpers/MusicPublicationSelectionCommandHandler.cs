@@ -300,7 +300,7 @@ public sealed class MusicPublicationSelectionCommandHandler(
             // If fetching/harvesting fails, we must keep the previous language selection (and schedule state) unchanged.
             updateSelectedLanguage(language);
 
-            var trackSelectedItem = CreateMusicStateItemForLanguage(language, publicationCode ?? string.Empty, trackCode, trackName, publicationName, currentSchedule);
+            var trackSelectedItem = CreateMusicStateItemForLanguage(language, publicationCode, trackCode, trackName, publicationName, currentSchedule);
             dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
 
             const int maxWaitAttempts = 30;

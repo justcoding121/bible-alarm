@@ -132,7 +132,8 @@ public sealed class MediaIndexService(
     }
 
     /// <summary>
-    /// Extracts a zip archive with path and size limits to mitigate zip bombs and path traversal.
+    /// Extracts a zip archive with path and size limits to mitigate zip bombs and path traversal (S5042).
+    /// Extracts entry-by-entry to control resource consumption.
     /// </summary>
     private static async Task SafeExtractZipAsync(string zipPath, string destinationDir)
     {
@@ -140,12 +141,13 @@ public sealed class MediaIndexService(
         const int MaxEntryCount = 100_000;
 
         var destinationFullPath = Path.GetFullPath(destinationDir);
-        long totalUncompressed = 0;
-        var entryCount = 0;
 
         await Task.Run(() =>
         {
             using var archive = ZipFile.OpenRead(zipPath);
+            long totalExtracted = 0;
+            var entryCount = 0;
+
             foreach (var entry in archive.Entries)
             {
                 entryCount++;
@@ -160,17 +162,35 @@ public sealed class MediaIndexService(
                     throw new InvalidOperationException($"Zip entry path traversal detected: {entry.FullName}");
                 }
 
-                if (entry.Length >= 0)
+                if (entry.FullName.EndsWith('/'))
                 {
-                    totalUncompressed += entry.Length;
-                    if (totalUncompressed > MaxTotalUncompressedBytes)
+                    Directory.CreateDirectory(fullPath);
+                    continue;
+                }
+
+                var parentDir = Path.GetDirectoryName(fullPath);
+                if (!string.IsNullOrEmpty(parentDir))
+                {
+                    Directory.CreateDirectory(parentDir);
+                }
+
+                using (var entryStream = entry.Open())
+                using (var fileStream = File.Create(fullPath))
+                {
+                    var buffer = new byte[81920];
+                    int read;
+                    while ((read = entryStream.Read(buffer, 0, buffer.Length)) > 0)
                     {
-                        throw new InvalidOperationException($"Zip uncompressed size would exceed limit ({MaxTotalUncompressedBytes} bytes).");
+                        totalExtracted += read;
+                        if (totalExtracted > MaxTotalUncompressedBytes)
+                        {
+                            throw new InvalidOperationException($"Zip uncompressed size exceeds limit ({MaxTotalUncompressedBytes} bytes).");
+                        }
+
+                        fileStream.Write(buffer, 0, read);
                     }
                 }
             }
-
-            ZipFile.ExtractToDirectory(zipPath, destinationDir);
         });
     }
 

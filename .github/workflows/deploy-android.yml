@@ -95,7 +95,7 @@ jobs:
 
     # Upload to Google Play Store
     - name: Upload to Google Play
-      uses: r0adkll/upload-google-play@v1
+      uses: r0adkll/upload-google-play@935ef9c68bb393a8e6116b1575626a7f5be3a7fb
       with:
         serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         packageName: com.jthomas.info.Bible.Alarm

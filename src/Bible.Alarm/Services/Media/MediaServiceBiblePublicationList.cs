@@ -128,69 +128,21 @@ internal static class MediaServiceBiblePublicationList
                 .ToListAsync(cancellationToken);
 
             // Group by normalized publication code to handle duplicates (case-insensitive comparison, preserve case)
-            var publicationInfoByCode = new Dictionary<string, PublicationLanguage>(StringComparer.OrdinalIgnoreCase);
+            var seenCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // Add publications with LanguageId
-            foreach (var plInfo in publicationLanguageInfo)
+            void TryAddPlaceholder(PublicationLanguage plInfo, string codeForKey)
             {
-                // Normalize drama codes to case-sensitive format, preserve exact case for others
-                var codeForKey = plInfo.PublicationCode;
-                var lowerCode = codeForKey.ToLowerInvariant();
-                if (PublicationTypeHelper.IsDrama(lowerCode))
+                if (plInfo.Category == null || !missingPublicationCodes.Contains(codeForKey, StringComparer.OrdinalIgnoreCase) || seenCodes.Contains(codeForKey))
                 {
-                    codeForKey = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                        ? "Dramas"
-                        : "DramaticBibleReadings";
-                }
-                // For non-dramas (e.g., "gnj"), preserve original case
-
-                // Only add if it's in our missing codes list and we haven't seen this code yet
-                if (missingPublicationCodes.Contains(codeForKey, StringComparer.OrdinalIgnoreCase) &&
-                    !publicationInfoByCode.ContainsKey(codeForKey))
-                {
-                    publicationInfoByCode[codeForKey] = plInfo;
-                }
-            }
-
-            // Add publications without LanguageId (only if they're in missingPublicationCodes)
-            // This ensures we only create placeholders for publications that are actually available for this category
-            foreach (var plInfo in publicationLanguagesWithoutLanguage)
-            {
-                // Normalize drama codes to case-sensitive format, preserve exact case for others
-                var codeForKey = plInfo.PublicationCode;
-                var lowerCode = codeForKey.ToLowerInvariant();
-                if (PublicationTypeHelper.IsDrama(lowerCode))
-                {
-                    codeForKey = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
-                        ? "Dramas"
-                        : "DramaticBibleReadings";
+                    return;
                 }
 
-                // Only add if it's in missingPublicationCodes (meaning it's available for this category but not downloaded)
-                // and we haven't seen this code yet
-                if (missingPublicationCodes.Contains(codeForKey, StringComparer.OrdinalIgnoreCase) &&
-                    !result.ContainsKey(codeForKey) &&
-                    !publicationInfoByCode.ContainsKey(codeForKey))
-                {
-                    publicationInfoByCode[codeForKey] = plInfo;
-                }
-            }
-
-            foreach (var kvp in publicationInfoByCode)
-            {
-                var plInfo = kvp.Value;
-                var codeForDb = kvp.Key;
-
-                if (plInfo.Category == null)
-                {
-                    continue;
-                }
-
+                seenCodes.Add(codeForKey);
                 var placeholder = new BiblePublication
                 {
                     Id = 0,
-                    PublicationCode = codeForDb,
-                    Name = codeForDb,
+                    PublicationCode = codeForKey,
+                    Name = codeForKey,
                     CategoryId = plInfo.CategoryId,
                     Category = plInfo.Category,
                     LanguageId = plInfo.LanguageId,
@@ -199,8 +151,36 @@ internal static class MediaServiceBiblePublicationList
                     Tracks = new List<BiblePublicationTrack>(),
                     IsVideo = false
                 };
-
                 result[placeholder.PublicationCode] = placeholder;
+            }
+
+            foreach (var plInfo in publicationLanguageInfo)
+            {
+                var codeForKey = plInfo.PublicationCode;
+                var lowerCode = codeForKey.ToLowerInvariant();
+                if (PublicationTypeHelper.IsDrama(lowerCode))
+                {
+                    codeForKey = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                        ? "Dramas"
+                        : "DramaticBibleReadings";
+                }
+                TryAddPlaceholder(plInfo, codeForKey);
+            }
+
+            foreach (var plInfo in publicationLanguagesWithoutLanguage)
+            {
+                var codeForKey = plInfo.PublicationCode;
+                var lowerCode = codeForKey.ToLowerInvariant();
+                if (PublicationTypeHelper.IsDrama(lowerCode))
+                {
+                    codeForKey = lowerCode.Equals("dramas", StringComparison.OrdinalIgnoreCase)
+                        ? "Dramas"
+                        : "DramaticBibleReadings";
+                }
+                if (!result.ContainsKey(codeForKey))
+                {
+                    TryAddPlaceholder(plInfo, codeForKey);
+                }
             }
         }
 

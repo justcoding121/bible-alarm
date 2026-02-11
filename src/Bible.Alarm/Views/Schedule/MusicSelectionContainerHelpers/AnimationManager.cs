@@ -161,8 +161,6 @@ public class AnimationManager
 
     private async Task<double> GetStartHeightForCollapse()
     {
-        if (collapsibleContent == null) return 200;
-
         var currentHeight = collapsibleContent.Height;
 
         if (currentHeight <= 0)
