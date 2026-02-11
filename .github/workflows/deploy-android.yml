@@ -121,7 +121,7 @@ jobs:
 
     # Commit version changes (only specific version files)
     - name: Commit version changes
-      uses: EndBug/add-and-commit@v9
+      uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
       with:
         author_name: github-actions[bot]
         author_email: github-actions[bot]@users.noreply.github.com

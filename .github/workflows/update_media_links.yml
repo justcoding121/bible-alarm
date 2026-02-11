@@ -26,7 +26,7 @@ jobs:
       run: dotnet run --project .tools/Bible.Alarm.AudioLinksHarvestor/Bible.Alarm.AudioLinksHarvestor.csproj --configuration Release
      
     - name: Commit changes
-      uses: EndBug/add-and-commit@v7
+      uses: EndBug/add-and-commit@8c12ff729a98cfbcd3fe38b49f55eceb98a5ec02
       with:
           author_name: buildbot171
           author_email: buildbot171@gmail.com

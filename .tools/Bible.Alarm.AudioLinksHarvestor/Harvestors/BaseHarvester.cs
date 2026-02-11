@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Text.Json;
@@ -52,12 +53,18 @@ internal abstract class BaseHarvester
     /// </summary>
     /// <param name="jsonString">The JSON string to parse.</param>
     /// <returns>List of language entries with Code, Name, and Direction, or null if parsing fails.</returns>
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2583", Justification = "languageEntries can be populated from Array or Object JSON; both return branches are reachable.")]
     protected static List<(string Code, string Name, string Direction)>? ParseLanguageEntries(string jsonString)
     {
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("languages", out var languages))
+        {
+            return null;
+        }
+
+        if (languages.ValueKind != JsonValueKind.Array && languages.ValueKind != JsonValueKind.Object)
         {
             return null;
         }
@@ -124,7 +131,8 @@ internal abstract class BaseHarvester
             }
         }
 
-        return languageEntries.Count > 0 ? languageEntries : null;
+        var hasEntries = languageEntries.Count > 0;
+        return hasEntries ? languageEntries : null;
     }
 
     /// <summary>
