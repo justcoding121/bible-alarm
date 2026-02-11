@@ -195,17 +195,15 @@ public class MediaSessionEffect(
                 return;
             }
 
-            // Skip default metadata update when the app is in the foreground on the phone.
-            // When the user dismisses playback from the phone UI (at home or as passenger),
-            // App.IsInForeground is true — showing a default notification would be unwanted clutter.
-            // When playback stops from Android Auto controls (user interacts with car screen),
-            // App.IsInForeground is false — the default notification should appear so the car
-            // screen stays populated and the user can tap to play again.
-            // Note: Android Auto's MediaBrowserService can stay bound after physical disconnect
-            // (quick-reconnect), so checking IsAndroidAutoConnected alone is not reliable here.
-            if (App.IsInForeground)
+            // Only update MediaSession and show default notification when the car is actually connected.
+            // Uses the CarConnection content provider (hosted by Google's Android Auto app) which
+            // reflects real-time physical connection state. This is more reliable than:
+            // - ForegroundServiceCoordinator.IsAndroidAutoConnected: can stay stale true after
+            //   physical disconnect (MediaBrowserService delayed unbind / quick-reconnect).
+            // - App.IsInForeground: would break the passenger scenario (user on phone while in car).
+            if (!CarConnectionHelper.IsCarConnected())
             {
-                logger.Debug("HandleSetDefaultScheduleMetadata: App is in foreground on phone, skipping default metadata/notification");
+                logger.Debug("HandleSetDefaultScheduleMetadata: Car not connected (CarConnection provider), skipping default metadata/notification");
                 return;
             }
 
@@ -229,19 +227,20 @@ public class MediaSessionEffect(
             // Set to stopped state (idle, ready to play)
             mediaSessionManager.UpdatePlaybackStateForStop();
 
-            // Only start Android Auto foreground service if Android Auto is actually connected
-            if (ForegroundServiceCoordinator.IsAndroidAutoConnected)
+            // Only start Android Auto foreground service if the car is still connected.
+            // Re-check via the CarConnection content provider (not the stale binding flag)
+            // to handle race conditions where the user disconnected during metadata update.
+            if (ForegroundServiceCoordinator.IsAndroidAutoConnected && CarConnectionHelper.IsCarConnected())
             {
                 // Add a delay to ensure MediaElement's notification and foreground service are fully removed
                 // This ensures proper synchronization - MediaElement's notification is removed before
                 // Android Auto foreground service starts. Increased delay to ensure smooth transition.
                 await Task.Delay(300);
 
-                // Double-check that MediaElement is not active before starting Android Auto foreground
-                // This prevents race conditions where MediaElement might have started again
-                if (!ForegroundServiceCoordinator.IsAndroidAutoConnected)
+                // Double-check car is still connected after delay
+                if (!CarConnectionHelper.IsCarConnected())
                 {
-                    logger.Debug("Android Auto disconnected during delay - skipping foreground service start");
+                    logger.Debug("Car disconnected during delay - skipping foreground service start");
                     return;
                 }
 
@@ -252,7 +251,7 @@ public class MediaSessionEffect(
             }
             else
             {
-                logger.Debug("Skipping Android Auto foreground service - Android Auto is not connected");
+                logger.Debug("Skipping Android Auto foreground service - car not connected");
             }
         }
         catch (Exception ex)
