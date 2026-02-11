@@ -1,12 +1,13 @@
 #nullable enable
 
+using CommunityToolkit;
 using Windows.Foundation;
 using Windows.Media;
 using Windows.Media.Playback;
 using Windows.System.Display;
 using WindowsMediaElement = Windows.Media.Playback.MediaPlayer;
 
-namespace CommunityToolkit.Maui.Core.Views;
+namespace CommunityToolkit.Maui.Views;
 
 internal static class WindowsMediaManagerHeadlessInitializer
 {

@@ -1,6 +1,8 @@
 #nullable enable
 
-namespace CommunityToolkit.Maui.Core.Views;
+using CommunityToolkit;
+
+namespace CommunityToolkit.Maui.Views;
 
 internal static class PlaybackState
 {

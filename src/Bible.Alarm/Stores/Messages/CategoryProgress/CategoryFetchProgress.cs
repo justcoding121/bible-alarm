@@ -1,6 +1,8 @@
 #nullable enable
 
-namespace Bible.Alarm.Stores.Messages;
+using Bible;
+
+namespace Bible.Alarm.Stores.Messages.CategoryProgress;
 
 /// <summary>
 /// Progress data for category fetch operation.

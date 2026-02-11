@@ -3,7 +3,7 @@
 using Android.OS;
 using Microsoft.Maui.ApplicationModel;
 
-namespace CommunityToolkit.Maui.Core.Views;
+namespace CommunityToolkit.Maui.Views;
 
 internal static class AndroidMainThreadRunner
 {

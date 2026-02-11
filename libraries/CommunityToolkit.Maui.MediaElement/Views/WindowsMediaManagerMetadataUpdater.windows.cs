@@ -1,12 +1,13 @@
 #nullable enable
 
+using CommunityToolkit;
 using CommunityToolkit.Maui.Interfaces;
 using CommunityToolkit.Maui.Primitives;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Media;
 
-namespace CommunityToolkit.Maui.Core.Views;
+namespace CommunityToolkit.Maui.Views;
 
 internal static class WindowsMediaManagerMetadataUpdater
 {

@@ -1,8 +1,9 @@
 #nullable enable
 
+using Bible;
 using CommunityToolkit.Mvvm.Messaging.Messages;
 
-namespace Bible.Alarm.Stores.Messages;
+namespace Bible.Alarm.Stores.Messages.CategoryProgress;
 
 /// <summary>
 /// Message sent during category selection to report fetch progress.

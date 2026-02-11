@@ -1,6 +1,8 @@
 #nullable enable
 
-namespace Bible.Alarm.Stores.Messages;
+using Bible;
+
+namespace Bible.Alarm.Stores.Messages.ModalOverlay;
 
 /// <summary>
 /// Progress data for modal overlay (Publication/Section modals).

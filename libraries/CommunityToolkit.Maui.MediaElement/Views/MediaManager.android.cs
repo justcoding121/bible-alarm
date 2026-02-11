@@ -11,6 +11,7 @@ using CommunityToolkit.Maui.Interfaces;
 using CommunityToolkit.Maui.MediaSource;
 using CommunityToolkit.Maui.Primitives;
 using CommunityToolkit.Maui.Services;
+using CommunityToolkit.Maui.Views;
 using Java.Lang;
 using Microsoft.Extensions.Logging;
 using Application = Android.App.Application;

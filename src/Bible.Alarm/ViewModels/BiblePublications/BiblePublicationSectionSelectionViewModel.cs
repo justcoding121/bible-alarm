@@ -8,7 +8,6 @@ using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.ViewHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Stores.Messages;
 using CommunityToolkit.Mvvm.Messaging;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Helpers;
@@ -26,6 +25,7 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+using Bible.Alarm.Stores.Messages.ModalOverlay;
 
 namespace Bible.Alarm.ViewModels.BiblePublications;
 

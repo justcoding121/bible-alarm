@@ -1,6 +1,8 @@
 #nullable enable
 
-namespace Bible.Alarm.Stores.Messages;
+using Bible;
+
+namespace Bible.Alarm.Stores.Messages.ListItemProgress;
 
 /// <summary>
 /// Progress data for list item fetch (language row, publication row, section row).

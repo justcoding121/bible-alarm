@@ -5,7 +5,7 @@ using AndroidX.Car.App.Model;
 using Serilog;
 using Object = Java.Lang.Object;
 
-namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers;
+namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers.RowCallbacks;
 
 /// <summary>
 /// Click callback for schedule items in the Car App list.

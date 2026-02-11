@@ -1,8 +1,9 @@
 #nullable enable
 
+using Bible;
 using CommunityToolkit.Mvvm.Messaging.Messages;
 
-namespace Bible.Alarm.Stores.Messages;
+namespace Bible.Alarm.Stores.Messages.ModalOverlay;
 
 /// <summary>
 /// Message sent when modal open fetch reports progress (overlay spinner + progress bar).

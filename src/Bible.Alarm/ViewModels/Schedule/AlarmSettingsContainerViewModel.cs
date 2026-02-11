@@ -44,12 +44,12 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
     private bool isWaitingForPermissionResponse;
     private IOSNotificationPermissionService? permissionService;
 #else
-#pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
+#pragma warning disable CS0649, CS0169 // Stub for non-Android/iOS: fields not used on Windows
     private bool isUpdatingFromPermissionCheck;
     private bool isSyncingFromState;
     private bool isWaitingForPermissionResponse;
     private object? permissionService;
-#pragma warning restore CS0649
+#pragma warning restore CS0649, CS0169
 #endif
 
     private readonly INavigationService navigationService;

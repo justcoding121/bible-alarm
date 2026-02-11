@@ -8,7 +8,7 @@ using CommunityToolkit.Maui.Interfaces;
 using Microsoft.Maui;
 using Application = Android.App.Application;
 
-namespace CommunityToolkit.Maui.Core.Views;
+namespace CommunityToolkit.Maui.Views;
 
 internal static class AndroidGlobalExoPlayerFactory
 {

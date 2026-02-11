@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 
 namespace Bible.Alarm.AudioLinksHarvestor.Models.BiblePublications;

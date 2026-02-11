@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 using UIKit;
 using MediaSourceType = CommunityToolkit.Maui.MediaSource.MediaSource;
 
-namespace CommunityToolkit.Maui.Core.Views;
+namespace CommunityToolkit.Maui.Views;
 
 internal static class IosMediaManagerSourceUpdater
 {

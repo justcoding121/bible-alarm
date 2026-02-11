@@ -1,17 +1,19 @@
 #nullable enable
 
-namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
+using Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
+
+namespace Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers.LookupLoading;
 
 /// <summary>
 /// Internal result type for no-language lookup loading in LookupDataLoader.
 /// </summary>
 internal sealed record NoLanguageLookupData(
-    Dictionary<string, NoLanguagePublicationMeta> Publications,
+    Dictionary<string, LookupDataLoader.NoLanguagePublicationMeta> Publications,
     Dictionary<(string PublicationCode, string SectionCode), string> Sections,
     Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string> TrackTitles)
 {
     public static readonly NoLanguageLookupData Empty =
-        new(new Dictionary<string, NoLanguagePublicationMeta>(StringComparer.OrdinalIgnoreCase),
+        new(new Dictionary<string, LookupDataLoader.NoLanguagePublicationMeta>(StringComparer.OrdinalIgnoreCase),
             new Dictionary<(string PublicationCode, string SectionCode), string>(),
             new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>());
 }

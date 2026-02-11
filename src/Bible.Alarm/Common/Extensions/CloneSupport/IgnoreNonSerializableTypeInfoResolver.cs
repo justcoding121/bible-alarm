@@ -1,8 +1,11 @@
+#nullable enable
+
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using System.Windows.Input;
 
-namespace Bible.Alarm.Common.Extensions;
+namespace Bible.Alarm.Common.Extensions.CloneSupport;
 
 /// <summary>
 /// JsonTypeInfoResolver that ignores ICommand and interface properties during serialization.

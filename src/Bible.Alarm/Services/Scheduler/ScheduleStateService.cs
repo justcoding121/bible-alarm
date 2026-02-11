@@ -22,6 +22,7 @@ using Bible.Alarm.Platforms.iOS.Services.Helpers;
 
 namespace Bible.Alarm.Services.Scheduler;
 
+#pragma warning disable CS9113 // Parameters used in platform-specific (#if ANDROID/IOS) code paths only
 public sealed class ScheduleStateService(
     ILogger logger,
     IAlarmScheduleService alarmScheduleService,
@@ -31,6 +32,7 @@ public sealed class ScheduleStateService(
     IDispatcher dispatcher,
     INavigationService navigationService,
     IServiceProvider serviceProvider)
+#pragma warning restore CS9113
     : IScheduleStateService, IDisposable
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();

@@ -9,7 +9,7 @@ using Foundation;
 using MediaPlayer;
 using Microsoft.Extensions.Logging;
 
-namespace CommunityToolkit.Maui.Core.Views;
+namespace CommunityToolkit.Maui.Views;
 
 internal sealed class IosMediaManagerObserverCoordinator
 {

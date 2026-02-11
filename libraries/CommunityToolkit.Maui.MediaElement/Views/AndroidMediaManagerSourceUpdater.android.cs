@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 using MediaMetadata = AndroidX.Media3.Common.MediaMetadata;
 using Object = Java.Lang.Object;
 
-namespace CommunityToolkit.Maui.Core.Views;
+namespace CommunityToolkit.Maui.Views;
 
 internal static class AndroidMediaManagerSourceUpdater
 {

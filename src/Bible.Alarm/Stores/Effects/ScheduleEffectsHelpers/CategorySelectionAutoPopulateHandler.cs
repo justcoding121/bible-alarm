@@ -12,7 +12,7 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores.Actions.BiblePublications;
 using Bible.Alarm.Stores.Actions.Schedule;
-using Bible.Alarm.Stores.Messages;
+using Bible.Alarm.Stores.Messages.CategoryProgress;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Shared;

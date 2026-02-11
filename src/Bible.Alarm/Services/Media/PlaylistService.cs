@@ -2,6 +2,7 @@
 using System.Linq;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Playlist;
+using Bible.Alarm.Services.Media.PlaylistInternal;
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
 using Bible.Alarm.Services.Schedule.Interfaces;
 using Bible.Alarm.Shared.Constants;

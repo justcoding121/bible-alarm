@@ -1,8 +1,9 @@
 #nullable enable
 
+using Bible;
 using CommunityToolkit.Mvvm.Messaging.Messages;
 
-namespace Bible.Alarm.Stores.Messages;
+namespace Bible.Alarm.Stores.Messages.ListItemProgress;
 
 /// <summary>
 /// Message sent when a list item (language, publication, section) reports fetch progress.

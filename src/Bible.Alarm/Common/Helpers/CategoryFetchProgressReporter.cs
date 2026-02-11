@@ -1,7 +1,7 @@
 #nullable enable
 using System.Threading;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
-using Bible.Alarm.Stores.Messages;
+using Bible.Alarm.Stores.Messages.CategoryProgress;
 using CommunityToolkit.Mvvm.Messaging;
 
 namespace Bible.Alarm.Common.Helpers;

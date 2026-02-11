@@ -1,8 +1,12 @@
 #nullable enable
 
+using Bible;
+
+#nullable enable
+
 using Bible.Alarm.Common.Interfaces.Platform;
 
-namespace Bible.Alarm.Services.UI;
+namespace Bible.Alarm.Services.UI.FontCompat;
 
 /// <summary>
 /// Fallback implementation of IAccessibilityFontScaleService that returns default scale (1.0).

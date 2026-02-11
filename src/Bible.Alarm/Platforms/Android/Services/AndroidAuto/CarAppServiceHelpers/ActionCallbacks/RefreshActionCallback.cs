@@ -4,7 +4,7 @@ using AndroidX.Car.App;
 using AndroidX.Car.App.Model;
 using Object = Java.Lang.Object;
 
-namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers;
+namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto.CarAppServiceHelpers.ActionCallbacks;
 
 /// <summary>
 /// Callback for refresh action.

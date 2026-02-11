@@ -1,8 +1,9 @@
 #nullable enable
 
+using Bible;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 
-namespace Bible.Alarm.Services.Media;
+namespace Bible.Alarm.Services.Media.PlaylistInternal;
 
 /// <summary>
 /// Internal result type for next track resolution in PlaylistService.

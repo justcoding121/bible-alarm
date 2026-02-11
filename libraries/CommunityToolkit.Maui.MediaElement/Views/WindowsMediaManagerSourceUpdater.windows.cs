@@ -13,7 +13,7 @@ using Windows.Storage.Streams;
 using WinMediaSource = Windows.Media.Core.MediaSource;
 using WindowsMediaElement = Windows.Media.Playback.MediaPlayer;
 
-namespace CommunityToolkit.Maui.Core.Views;
+namespace CommunityToolkit.Maui.Views;
 
 internal static class WindowsMediaManagerSourceUpdater
 {

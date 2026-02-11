@@ -3,7 +3,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Bible.Alarm.Common.Helpers;
-using Bible.Alarm.Stores.Messages;
 using CommunityToolkit.Mvvm.Messaging;
 using AutoMapper;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -21,6 +20,7 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+using Bible.Alarm.Stores.Messages.ModalOverlay;
 
 namespace Bible.Alarm.ViewModels.Music;
 

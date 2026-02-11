@@ -1,4 +1,5 @@
 #nullable enable
+using Bible.Alarm.Services.UI.FontCompat;
 using Bible.Alarm.Services.UI.Interfaces;
 
 namespace Bible.Alarm.Services.UI;
