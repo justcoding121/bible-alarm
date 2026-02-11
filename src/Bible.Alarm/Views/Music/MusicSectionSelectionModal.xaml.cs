@@ -74,7 +74,7 @@ public partial class MusicSectionSelectionModal : BaseContentPage, IDisposable
     private async void OnSectionItemTapped(object? sender, TappedEventArgs e)
     {
         // Cancel any ongoing scroll operation to prevent race conditions
-        try { cancellationTokenSource.Cancel(); } catch { }
+        try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingSection)
         {

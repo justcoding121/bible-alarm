@@ -37,24 +37,21 @@ public sealed class DiskCacheService : IDiskCacheService
     public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, CancellationToken cancellationToken = default)
     {
         var cacheKey = GetCacheKey(key);
-        bool cacheHit = false;
 
         try
         {
-            // Try to get from cache first
             if (preferencesService.ContainsKey(cacheKey))
             {
-                var json = preferencesService.Get(cacheKey, "");
+                var json = await preferencesService.GetAsync(cacheKey, "", null, cancellationToken);
                 if (!string.IsNullOrEmpty(json))
                 {
                     try
                     {
                         var cached = JsonSerializer.Deserialize<T>(json, jsonOptions);
-                        if (cached != null && !IsDefaultValue(cached))
+                        if (!EqualityComparer<T>.Default.Equals(cached, default) && !IsDefaultValue(cached))
                         {
                             logger.Debug("Cache hit for key: {Key}", key);
-                            cacheHit = true;
-                            return cached;
+                            return cached!;
                         }
                     }
                     catch (Exception deserializeEx)
@@ -63,7 +60,7 @@ public sealed class DiskCacheService : IDiskCacheService
                         logger.Warning(deserializeEx, "Deserialization failed for key: {Key}, removing corrupted cache entry and calling factory", key);
                         try
                         {
-                            preferencesService.Remove(cacheKey);
+                            await preferencesService.RemoveAsync(cacheKey);
                         }
                         catch
                         {
@@ -79,32 +76,25 @@ public sealed class DiskCacheService : IDiskCacheService
         }
 
         // Cache miss, deserialization failure, or error - execute factory
-        if (!cacheHit)
+        logger.Debug("Cache miss for key: {Key}, executing factory", key);
+        var value = await factory();
+
+        try
         {
-            logger.Debug("Cache miss for key: {Key}, executing factory", key);
-            var value = await factory();
-
-            // Cache the result
-            try
-            {
-                await SetAsync(key, value, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "Error caching value for key: {Key}, value will not be cached", key);
-            }
-
-            return value;
+            await SetAsync(key, value, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error caching value for key: {Key}, value will not be cached", key);
         }
 
-        // This should never be reached, but compiler needs it
-        throw new InvalidOperationException("Unexpected state in GetOrSetAsync");
+        return value;
     }
 
     /// <summary>
     /// Gets a cached value by key, or returns default if not found.
     /// </summary>
-    public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
+    public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {
         var cacheKey = GetCacheKey(key);
 
@@ -112,31 +102,30 @@ public sealed class DiskCacheService : IDiskCacheService
         {
             if (!preferencesService.ContainsKey(cacheKey))
             {
-                return Task.FromResult<T?>(default);
+                return default;
             }
 
-            var json = preferencesService.Get(cacheKey, "");
+            var json = await preferencesService.GetAsync(cacheKey, "", null, cancellationToken);
             if (string.IsNullOrEmpty(json))
             {
-                return Task.FromResult<T?>(default);
+                return default;
             }
 
             var value = JsonSerializer.Deserialize<T>(json, jsonOptions);
-            return Task.FromResult(value);
+            return value;
         }
         catch (Exception ex)
         {
             logger.Warning(ex, "Error deserializing cached value for key: {Key}", key);
-            // Remove corrupted cache entry
             try
             {
-                preferencesService.Remove(cacheKey);
+                await preferencesService.RemoveAsync(cacheKey);
             }
             catch
             {
                 // Ignore removal errors
             }
-            return Task.FromResult<T?>(default);
+            return default;
         }
     }
 
@@ -222,7 +211,7 @@ public sealed class DiskCacheService : IDiskCacheService
 
     private static bool IsDefaultValue<T>(T value)
     {
-        if (value == null)
+        if (EqualityComparer<T>.Default.Equals(value, default))
         {
             return true;
         }

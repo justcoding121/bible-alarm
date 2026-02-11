@@ -154,7 +154,7 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
                 // Close and dispose the database connection before attempting to replace the file
                 // This ensures the file is not locked when we try to delete it
                 await scheduleDb.Database.CloseConnectionAsync();
-                scheduleDb.Dispose();
+                await scheduleDb.DisposeAsync();
                 scheduleDb = null!; // Clear reference to help GC
 
                 // Force garbage collection to ensure connection is fully released
@@ -206,7 +206,7 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
                 // Create a temporary context just for the copy operation
                 var tempScheduleDb = scope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
                 await CopyScheduleDatabaseFromResourceIfNeededAsync(scope, tempScheduleDb, dbPath);
-                tempScheduleDb.Dispose();
+                await tempScheduleDb.DisposeAsync();
 
                 // Verify the database was copied successfully
                 if (!System.IO.File.Exists(dbPath))

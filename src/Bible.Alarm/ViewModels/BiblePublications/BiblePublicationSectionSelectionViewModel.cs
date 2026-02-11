@@ -153,7 +153,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         try
         {
             logger.Information("BiblePublicationSectionSelectionViewModel: CancelFetchCommand - User cancelled fetch");
-            fetchCts?.Cancel();
+            fetchCts?.CancelAsync();
             CanCancelFetch = false;
             ShowProgress = false;
             IsBusy = false;
@@ -271,7 +271,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
 
         if (needsRepopulation && !isDisposed && !isSelectingSection)
         {
-            fetchCts?.Cancel();
+            fetchCts?.CancelAsync();
             fetchCts?.Dispose();
             fetchCts = new CancellationTokenSource();
             var progressReporter = new ModalOverlayFetchProgressReporter("BibleSection", fetchCts.Token);
@@ -327,7 +327,7 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         isDisposed = true;
         WeakReferenceMessenger.Default.Unregister<ModalOverlayFetchProgressMessage>(this);
         state.StateChanged -= OnBiblePublicationChanged;
-        fetchCts?.Cancel();
+        fetchCts?.CancelAsync();
         fetchCts?.Dispose();
         refreshSemaphore.Dispose();
     }

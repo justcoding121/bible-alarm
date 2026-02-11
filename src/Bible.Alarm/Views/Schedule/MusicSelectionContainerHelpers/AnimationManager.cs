@@ -171,10 +171,7 @@ public class AnimationManager
             {
                 collapsibleContent.HeightRequest = -1;
                 await Task.Delay(50);
-                if (collapsibleContent != null)
-                {
-                    currentHeight = collapsibleContent.Height;
-                }
+                currentHeight = collapsibleContent.Height;
             }
 
             if (currentHeight <= 0)

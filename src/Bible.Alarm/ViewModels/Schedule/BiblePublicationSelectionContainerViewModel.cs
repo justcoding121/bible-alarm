@@ -106,7 +106,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             lastProcessedLanguageCode = currentSchedule.BiblePublicationLanguageCode;
 
             // Update selectability flags on initial load
-            UpdateSelectabilityFlags();
+            _ = UpdateSelectabilityFlagsAsync();
             lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
             lastProcessedPublicationCode = currentSchedule.BiblePublicationCode;
             lastProcessedPublicationName = currentSchedule.BiblePublicationName;
@@ -218,12 +218,12 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
             if (isInitialLoad)
             {
                 InitializeFromState();
-                UpdateSelectabilityFlags();
+                _ = UpdateSelectabilityFlagsAsync();
                 return;
             }
 
             // Update selectability flags when state changes
-            UpdateSelectabilityFlags();
+            _ = UpdateSelectabilityFlagsAsync();
 
             // Early exit if we've already processed this exact state
             // Also check display names (language name, publication name, section name) to ensure display text updates when they change
@@ -375,7 +375,7 @@ public sealed class BiblePublicationSelectionContainerViewModel : ObservableObje
         set => SetProperty(ref shouldScrollToContainer, value);
     }
 
-    private async void UpdateSelectabilityFlags()
+    private async Task UpdateSelectabilityFlagsAsync()
     {
         try
         {

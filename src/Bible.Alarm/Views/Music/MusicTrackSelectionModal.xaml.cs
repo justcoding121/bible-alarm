@@ -61,7 +61,7 @@ public partial class MusicTrackSelectionModal : BaseContentPage, IDisposable
 
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
-        try { cancellationTokenSource.Cancel(); } catch { }
+        try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingTrack)
         {

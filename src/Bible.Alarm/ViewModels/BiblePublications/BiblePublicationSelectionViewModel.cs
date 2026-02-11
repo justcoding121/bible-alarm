@@ -145,7 +145,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         try
         {
             Serilog.Log.Information("BiblePublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch");
-            fetchCts?.Cancel();
+            fetchCts?.CancelAsync();
             propertyManager.CanCancelFetch = false;
             propertyManager.ShowProgress = false;
             propertyManager.IsBusy = false;
@@ -215,7 +215,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     private async Task RefreshFromStateInternal()
     {
         // Cancel any previous fetch and create new cancellation token
-        fetchCts?.Cancel();
+        fetchCts?.CancelAsync();
         fetchCts = new CancellationTokenSource();
         propertyManager.CanCancelFetch = true;
         propertyManager.ShowProgress = true;
@@ -356,7 +356,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         state.StateChanged -= OnBiblePublicationChanged;
 
         // Cancel any ongoing fetch
-        fetchCts?.Cancel();
+        fetchCts?.CancelAsync();
         fetchCts?.Dispose();
         fetchCts = null;
         

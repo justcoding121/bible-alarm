@@ -160,7 +160,7 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         UnfocusAnyFocusedSearchBar();
 
         // Cancel any ongoing scroll operation to prevent race conditions
-        try { cancellationTokenSource.Cancel(); } catch { }
+        try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingLanguage)
         {

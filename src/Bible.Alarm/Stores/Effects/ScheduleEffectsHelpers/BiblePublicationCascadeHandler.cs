@@ -358,7 +358,7 @@ public sealed class BiblePublicationCascadeHandler
             publicationName,
             sectionCode,
             sectionName,
-            trackCode ?? string.Empty,
+            trackCode,
             trackTitle,
             publicationModalItemCount,
             sectionModalCount,

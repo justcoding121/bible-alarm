@@ -1,4 +1,5 @@
 #nullable enable
+using System.Diagnostics.CodeAnalysis;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
@@ -74,6 +75,7 @@ public class HomeNavigationHelper
         return false;
     }
 
+    [SuppressMessage("SonarAnalyzer.CSharp", "S2583", Justification = "shouldShowPermissionModal is set in platform-specific #if ANDROID/#elif IOS blocks.")]
     public async Task ShowOverlayAndNavigateAsync(ScheduleListItemViewModel scheduleListItem)
     {
         if (scheduleListItem.Schedule == null)
@@ -171,7 +173,7 @@ public class HomeNavigationHelper
         // (If we set state here and wait for lock, Home.OnAppearing could clear it)
         await navigationService.NavigateToScheduleAsync(schedule.Id, shouldEnableReminder);
 
-        // Show notification permission modal after navigation if needed
+        // Show notification permission modal after navigation if needed (shouldShowPermissionModal set in #if ANDROID / #elif IOS).
         if (shouldShowPermissionModal)
         {
             // Wait longer for the schedule page to fully initialize and containers to signal ready

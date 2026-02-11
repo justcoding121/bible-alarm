@@ -56,7 +56,7 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
 
     private async void OnCategoryItemTapped(object? sender, TappedEventArgs e)
     {
-        try { cancellationTokenSource.Cancel(); } catch { }
+        try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingCategory)
         {

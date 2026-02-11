@@ -89,7 +89,12 @@ internal abstract class BaseHarvester
             languageEntries.Add((languageCode, language, direction));
         }
 
-        return languageEntries.Count > 0 ? languageEntries : null;
+        if (languageEntries.Count == 0)
+        {
+            return null;
+        }
+
+        return languageEntries;
     }
 
     /// <summary>

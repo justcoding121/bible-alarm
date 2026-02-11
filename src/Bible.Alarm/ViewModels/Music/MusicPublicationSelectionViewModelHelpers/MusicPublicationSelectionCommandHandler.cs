@@ -302,15 +302,13 @@ public sealed class MusicPublicationSelectionCommandHandler(
 
             var trackSelectedItem = CreateMusicStateItemForLanguage(language, publicationCode ?? string.Empty, trackCode, trackName, publicationName, currentSchedule);
             dispatcher.Dispatch(new TrackSelectedAction(trackSelectedItem));
-            
-            // Only update progress if fetch occurred
-            // Wait for cascade to complete - check for the SPECIFIC language we just dispatched
+
             const int maxWaitAttempts = 30;
             const int delayMs = 200;
             for (int i = 0; i < maxWaitAttempts; i++)
             {
                 var currentState = state.Value.CurrentSchedule;
-                if (currentState != null && 
+                if (currentState != null &&
                     currentState.MusicLanguageCode == language.Code &&
                     !string.IsNullOrEmpty(currentState.MusicPublicationCode) &&
                     !string.IsNullOrWhiteSpace(currentState.MusicTrackCode))
@@ -322,7 +320,6 @@ public sealed class MusicPublicationSelectionCommandHandler(
         }
         finally
         {
-            // Only set to 1.0 if a fetch actually occurred (progress was set during operation)
             if (fetchOccurred)
             {
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -332,14 +329,13 @@ public sealed class MusicPublicationSelectionCommandHandler(
             }
             else
             {
-                // No fetch occurred - reset progress to not-set state
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     language.DownloadProgress = -1.0;
                 });
             }
         }
-        
+
         await navigationService.PopModalAsync();
     }
 
@@ -355,7 +351,6 @@ public sealed class MusicPublicationSelectionCommandHandler(
         string? languageNameOverride = null,
         string? languageDirectionOverride = null)
     {
-        // Prefer currentLanguage (user selected a language row), then overrides (resolved when tapping vocal from merged list).
         var languageName = currentLanguage?.Name ?? languageNameOverride;
         var languageDirection = currentLanguage?.Direction ?? languageDirectionOverride;
         return new MusicStateItem
@@ -363,12 +358,12 @@ public sealed class MusicPublicationSelectionCommandHandler(
             Repeat = currentSchedule?.MusicRepeat ?? false,
             LanguageCode = languageCode,
             PublicationCode = songPublication.Code,
-            SectionCode = sectionCode, // Explicitly set SectionCode (null for non-sectioned publications)
+            SectionCode = sectionCode,
             TrackCode = trackCode,
             LanguageName = languageName,
             LanguageDirection = languageDirection,
             PublicationName = songPublication.Name,
-            SectionName = sectionName, // Explicitly set SectionName (null for non-sectioned publications)
+            SectionName = sectionName,
             TrackName = trackName
         };
     }
@@ -384,14 +379,14 @@ public sealed class MusicPublicationSelectionCommandHandler(
         return new MusicStateItem
         {
             Repeat = currentSchedule?.MusicRepeat ?? false,
-            LanguageCode = language.Code, // Vocal music always has a language code
+            LanguageCode = language.Code,
             PublicationCode = publicationCode,
-            SectionCode = null, // Clear section code when language changes (section belongs to old publication)
+            SectionCode = null,
             TrackCode = trackCode,
             LanguageName = language.Name,
             LanguageDirection = language.Direction,
             PublicationName = publicationName,
-            SectionName = null, // Clear section name when language changes
+            SectionName = null,
             TrackName = trackName
         };
     }

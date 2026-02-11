@@ -130,11 +130,6 @@ public static class AndroidAutoPlayScreenHelper
         long actions = 0)
     {
         var builder = new PlaybackStateCompat.Builder();
-        if (builder == null)
-        {
-            return null;
-        }
-
         builder.SetActions(actions);
         builder.SetState(state, position, playbackSpeed, SystemClock.ElapsedRealtime());
         return builder.Build();

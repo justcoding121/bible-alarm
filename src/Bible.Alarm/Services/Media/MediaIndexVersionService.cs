@@ -45,7 +45,7 @@ public sealed class MediaIndexVersionService(
         // Try Preferences first (new method)
         if (preferencesService.ContainsKey(VersionPreferenceKey))
         {
-            var version = preferencesService.Get(VersionPreferenceKey, "");
+            var version = await preferencesService.GetAsync(VersionPreferenceKey, "");
             if (!string.IsNullOrEmpty(version))
             {
                 return version;
@@ -93,7 +93,7 @@ public sealed class MediaIndexVersionService(
             var currentVersion = versionFinder.GetVersionName();
 
             // Save to Preferences (new method)
-            preferencesService.Set(VersionPreferenceKey, currentVersion);
+            await preferencesService.SetAsync(VersionPreferenceKey, currentVersion);
             logger.Debug("Saved current version {Version} to Preferences", currentVersion);
 
             // Also save to version.dat for backward compatibility during transition
@@ -126,7 +126,7 @@ public sealed class MediaIndexVersionService(
         {
             if (!preferencesService.ContainsKey(VersionPreferenceKey))
             {
-                preferencesService.Set(VersionPreferenceKey, version);
+                await preferencesService.SetAsync(VersionPreferenceKey, version);
                 logger.Debug("Migrated version {Version} from version.dat to Preferences", version);
             }
         }

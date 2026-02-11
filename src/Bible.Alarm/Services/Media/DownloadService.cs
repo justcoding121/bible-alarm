@@ -252,7 +252,7 @@ public sealed class DownloadService(HttpMessageHandler handler, ILogger logger) 
                 break; // End of stream
             }
 
-            memoryStream.Write(buffer, 0, bytesRead);
+            await memoryStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
             totalBytesRead += bytesRead;
 
             // Report progress with throttling to avoid flooding UI

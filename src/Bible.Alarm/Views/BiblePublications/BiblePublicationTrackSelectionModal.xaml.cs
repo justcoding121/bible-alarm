@@ -64,7 +64,7 @@ public partial class BiblePublicationTrackSelectionModal : BaseContentPage, IDis
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
         // Cancel any ongoing scroll operation to prevent race conditions
-        try { cancellationTokenSource.Cancel(); } catch { }
+        try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingTrack)
         {

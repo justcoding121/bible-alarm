@@ -8,6 +8,7 @@ namespace Bible.Alarm.ViewModels.HomeViewModelHelpers;
 /// </summary>
 public class ProgressBarManager : IDisposable
 {
+    private const double OpacityEpsilon = 1e-9;
     private bool shouldShowProgressBar = true;
     private double progressBarOpacity = 1.0;
 
@@ -34,7 +35,7 @@ public class ProgressBarManager : IDisposable
         }
     }
 
-    public bool IsProgressBarHidden => progressBarOpacity == 0;
+    public bool IsProgressBarHidden => Math.Abs(progressBarOpacity) < OpacityEpsilon;
 
     // These properties are kept for backwards compatibility but no longer used
     // Animation is now handled natively in AnimatedProgressBar control
@@ -63,8 +64,7 @@ public class ProgressBarManager : IDisposable
         // Prevent showing progress bar again
         shouldShowProgressBar = false;
 
-        // If already hidden, don't do anything
-        if (progressBarOpacity == 0)
+        if (Math.Abs(progressBarOpacity) < OpacityEpsilon)
         {
             return;
         }
@@ -86,8 +86,7 @@ public class ProgressBarManager : IDisposable
     /// </summary>
     public async Task HideTemporarilyAsync()
     {
-        // If already hidden, don't do anything
-        if (progressBarOpacity == 0)
+        if (Math.Abs(progressBarOpacity) < OpacityEpsilon)
         {
             return;
         }

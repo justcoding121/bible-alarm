@@ -76,7 +76,7 @@ public partial class BiblePublicationSelectionModal : BaseContentPage, IDisposab
     private async void OnPublicationItemTapped(object? sender, TappedEventArgs e)
     {
         // Cancel any ongoing scroll operation to prevent race conditions
-        try { cancellationTokenSource.Cancel(); } catch { }
+        try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingPublication)
         {

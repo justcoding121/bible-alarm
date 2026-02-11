@@ -207,7 +207,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         try
         {
             Serilog.Log.Information("MusicPublicationSelectionViewModel: CancelFetchCommand - User cancelled fetch");
-            fetchCts?.Cancel();
+            fetchCts?.CancelAsync();
             propertyManager.CanCancelFetch = false;
             propertyManager.ShowProgress = false;
             propertyManager.IsBusy = false;
@@ -365,7 +365,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
 
     private async Task RefreshFromStateInternal()
     {
-        fetchCts?.Cancel();
+        fetchCts?.CancelAsync();
         fetchCts = new CancellationTokenSource();
         await refreshHandler.RefreshAsync(
             fetchCts,
@@ -431,7 +431,7 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         propertyManager.RemoveLanguageSearchHandler();
 
         // Cancel any ongoing fetch
-        fetchCts?.Cancel();
+        fetchCts?.CancelAsync();
         fetchCts?.Dispose();
         fetchCts = null;
         

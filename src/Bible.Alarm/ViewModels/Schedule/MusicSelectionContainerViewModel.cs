@@ -122,7 +122,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
 
         InitializeCommands();
         InitializeFromState();
-        UpdateSelectabilityFlags();
+        _ = UpdateSelectabilityFlagsAsync();
     }
 
     private void InitializeFromState()
@@ -229,7 +229,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
                 (propertyName) => OnPropertyChanged(propertyName));
 
             // Update selectability flags when state changes
-            UpdateSelectabilityFlags();
+            _ = UpdateSelectabilityFlagsAsync();
         }
         finally
         {
@@ -237,7 +237,7 @@ public sealed class MusicSelectionContainerViewModel : ObservableObject, IDispos
         }
     }
 
-    private async void UpdateSelectabilityFlags()
+    private async Task UpdateSelectabilityFlagsAsync()
     {
         try
         {

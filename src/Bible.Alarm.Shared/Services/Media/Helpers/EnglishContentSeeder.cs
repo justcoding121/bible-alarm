@@ -247,25 +247,11 @@ internal sealed class EnglishContentSeeder
                 }
 
                 case Models.Enums.HarvestType.MediatorSectioned:
-                    // Drama publications use Mediator API
-                    if (language == null)
-                    {
-                        logger.Warning("Language is null for drama publication {PublicationCode}", publicationCode);
-                        return false;
-                    }
                     return await dramaFetcher.FetchEnglishDramaPublicationAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, language, category, cancellationToken);
 
                 case Models.Enums.HarvestType.Flat:
                 default:
-                    // Music and Video use flat-track fetching
-                    // Note: language is never null here since "iam" has sections (handled above)
-                    if (language == null)
-                    {
-                        logger.Warning("Language is null for publication {PublicationCode} which should have flat tracks", publicationCode);
-                        return false;
-                    }
-                    
                     return await FetchEnglishPublicationTracksAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, language, category, 
                         categoryName, isVideo, cancellationToken);

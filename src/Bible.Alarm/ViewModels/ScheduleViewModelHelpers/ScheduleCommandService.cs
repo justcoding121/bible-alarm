@@ -133,13 +133,6 @@ public sealed class ScheduleCommandService : IScheduleCommandService
             return false;
         }
 
-        if (currentSchedule == null)
-        {
-            logger.Error("SaveAsync: CurrentSchedule is null. Cannot save.");
-            await toastService.ShowMessage("Schedule data is missing. Please try again.");
-            return false;
-        }
-
         if (!isNewSchedule && scheduleId <= 0)
         {
             logger.Error("SaveAsync: Invalid ScheduleId for existing schedule. ScheduleId={ScheduleId}", scheduleId);

@@ -94,7 +94,7 @@ public partial class MusicLanguageModal : BaseContentPage, IDisposable
         // Hide keyboard when list item is tapped
         UnfocusAnyFocusedSearchBar();
 
-        try { cancellationTokenSource.Cancel(); } catch { }
+        try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (isSelectingLanguage)
         {

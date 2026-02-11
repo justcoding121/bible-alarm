@@ -149,7 +149,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         try
         {
             logger.Information("MusicSectionSelectionViewModel: CancelFetchCommand - User cancelled fetch");
-            fetchCts?.Cancel();
+            fetchCts?.CancelAsync();
             CanCancelFetch = false;
             ShowProgress = false;
             IsBusy = false;
@@ -187,7 +187,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
     private async Task Initialize(string publicationCode)
     {
         // Cancel any previous fetch operation
-        fetchCts?.Cancel();
+        fetchCts?.CancelAsync();
         fetchCts?.Dispose();
         fetchCts = new CancellationTokenSource();
 
@@ -274,7 +274,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
 
         if (needsRepopulation && !isDisposed && !isSelectingSection)
         {
-            fetchCts?.Cancel();
+            fetchCts?.CancelAsync();
             fetchCts?.Dispose();
             fetchCts = new CancellationTokenSource();
             var progressReporter = new ModalOverlayFetchProgressReporter("MusicSection", fetchCts.Token);
@@ -331,7 +331,7 @@ public sealed class MusicSectionSelectionViewModel : ObservableObject, IListView
         isDisposed = true;
         WeakReferenceMessenger.Default.Unregister<ModalOverlayFetchProgressMessage>(this);
         state.StateChanged -= OnMusicSectionChanged;
-        fetchCts?.Cancel();
+        fetchCts?.CancelAsync();
         fetchCts?.Dispose();
         refreshSemaphore.Dispose();
     }

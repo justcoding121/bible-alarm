@@ -174,33 +174,34 @@ internal static class MediaServiceBiblePublicationList
                 }
             }
 
-            foreach (var kvp in publicationInfoByCode)
+            if (publicationInfoByCode.Count > 0)
             {
-                var plInfo = kvp.Value;
-                // Already normalized to case-sensitive format
-                var codeForDb = kvp.Key;
-
-                if (plInfo.Category == null)
+                foreach (var kvp in publicationInfoByCode)
                 {
-                    continue;
+                    var plInfo = kvp.Value;
+                    var codeForDb = kvp.Key;
+
+                    if (plInfo.Category == null)
+                    {
+                        continue;
+                    }
+
+                    var placeholder = new BiblePublication
+                    {
+                        Id = 0,
+                        PublicationCode = codeForDb,
+                        Name = codeForDb,
+                        CategoryId = plInfo.CategoryId,
+                        Category = plInfo.Category,
+                        LanguageId = plInfo.LanguageId,
+                        Language = plInfo.Language,
+                        Sections = new List<BiblePublicationSection>(),
+                        Tracks = new List<BiblePublicationTrack>(),
+                        IsVideo = false
+                    };
+
+                    result[placeholder.PublicationCode] = placeholder;
                 }
-
-                // Create placeholder BiblePublication with case-sensitive code
-                var placeholder = new BiblePublication
-                {
-                    Id = 0, // Not saved yet
-                    PublicationCode = codeForDb, // Use case-sensitive code: "Dramas", "DramaticBibleReadings", "gnj"
-                    Name = codeForDb, // Placeholder name - will be updated when downloaded
-                    CategoryId = plInfo.CategoryId,
-                    Category = plInfo.Category,
-                    LanguageId = plInfo.LanguageId, // Can be null for publications without language
-                    Language = plInfo.Language, // Can be null for publications without language
-                    Sections = new List<BiblePublicationSection>(),
-                    Tracks = new List<BiblePublicationTrack>(),
-                    IsVideo = false // Will be set correctly when downloaded
-                };
-
-                result[placeholder.PublicationCode] = placeholder;
             }
         }
 

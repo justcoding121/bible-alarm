@@ -87,11 +87,6 @@ public sealed class StateSubscriptionManager(ILogger logger)
             else
             {
                 logger.Warning("OnApplicationStateChanged: MediaBrowserService is null, cannot notify Android Auto of changes");
-                // Fallback: try to notify without options
-                if (mediaBrowserService != null)
-                {
-                    mediaBrowserService.NotifyChildrenChanged(RootId);
-                }
             }
         }
         catch (Exception ex)

@@ -52,7 +52,7 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
     private async void OnTrackItemTapped(object? sender, TappedEventArgs e)
     {
         // Cancel any ongoing scroll operation to prevent race conditions
-        try { cancellationTokenSource.Cancel(); } catch { }
+        try { await cancellationTokenSource.CancelAsync(); } catch { }
 
         if (sender is View view && view.BindingContext is NumberOfTracksListViewItemModel trackItem)
         {

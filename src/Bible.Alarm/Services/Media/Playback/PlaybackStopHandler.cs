@@ -48,7 +48,7 @@ public sealed class PlaybackStopHandler
         // Cancel any ongoing preparation/downloads
         try
         {
-            preparationCancellationTokenSource?.Cancel();
+            preparationCancellationTokenSource?.CancelAsync();
             logger.Debug("Cancelled preparation cancellation token");
         }
         catch (Exception ex)
