@@ -9,7 +9,7 @@ using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.General;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
-using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainerViewModelHelpers;
+using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -58,6 +58,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
 #endif
     private readonly ContainerReadySignaler containerReadySignaler;
     private readonly NumberOfTracksListPopulator listPopulator;
+    private readonly NumberOfTrackStateChangeHandler stateChangeHandler;
 
     private ObservableCollection<NumberOfTracksListViewItemModel> numberOfTracksList = new();
     private NumberOfTracksListViewItemModel? currentNumberOfTracks;
@@ -83,6 +84,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         this.dispatcher = dispatcher;
         containerReadySignaler = new ContainerReadySignaler(state, dispatcher, "NumberOfTrack", s => s.ContainerReadiness.NumberOfTrack);
         listPopulator = new NumberOfTracksListPopulator(logger, serviceProvider.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.IBiblePublicationService>());
+        stateChangeHandler = new NumberOfTrackStateChangeHandler(logger);
 
         state.StateChanged += OnStateChanged;
         InitializeCommands();
@@ -158,52 +160,30 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             isUpdatingFromPermissionCheck = true;
             try
             {
-                // Always ensure toggle is OFF when permission is denied
-                // Force update to ensure UI reflects the OFF state
                 notificationEnabled = false;
                 OnPropertyChanged(nameof(NotificationEnabled));
                 DispatchScheduleUpdate(s => s.NotificationEnabled = false);
                 logger.Debug("Set NotificationEnabled to false after permission denied");
-                
-                // Show notification permission modal instead of toast
+
                 MainThread.BeginInvokeOnMainThread(async () =>
                 {
-                    try
-                    {
-                        var notificationViewModel = new NotificationPermissionViewModel(
-                            logger,
-                            navigationService,
-                            serviceProvider,
-                            onModalDismissed: (permissionGranted) =>
+                    await NotificationPermissionDeniedModalHelper.ShowAsync(
+                        logger, navigationService, serviceProvider,
+                        onPermissionGranted: () =>
+                        {
+                            isUpdatingFromPermissionCheck = true;
+                            try
                             {
-                                if (permissionGranted)
-                                {
-                                    MainThread.BeginInvokeOnMainThread(() =>
-                                    {
-                                        isUpdatingFromPermissionCheck = true;
-                                        try
-                                        {
-                                            // Set NotificationEnabled to ON when permission is granted
-                                            notificationEnabled = true;
-                                            OnPropertyChanged(nameof(NotificationEnabled));
-                                            DispatchScheduleUpdate(s => s.NotificationEnabled = true);
-                                            logger.Information("Set NotificationEnabled to true after permission granted from modal");
-                                        }
-                                        finally
-                                        {
-                                            isUpdatingFromPermissionCheck = false;
-                                        }
-                                    });
-                                }
-                            });
-                        
-                        notificationViewModel.StartPermissionCheckTimer();
-                        await navigationService.OpenNotificationPermissionModalAsync(notificationViewModel);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "Error opening notification permission modal after permission denied");
-                    }
+                                notificationEnabled = true;
+                                OnPropertyChanged(nameof(NotificationEnabled));
+                                DispatchScheduleUpdate(s => s.NotificationEnabled = true);
+                                logger.Information("Set NotificationEnabled to true after permission granted from modal");
+                            }
+                            finally
+                            {
+                                isUpdatingFromPermissionCheck = false;
+                            }
+                        });
                 });
             }
             finally
@@ -273,50 +253,14 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
                 playIndefinitely = currentSchedule.NumberOfTracksToPlay <= 0;
                 lastCategoryName = currentSchedule.BiblePublicationCategoryName;
 
-#if ANDROID
-                // If NotificationEnabled is true in state but permission is not granted, sync it to OFF silently
-                // This handles the case where user revoked permission via Android settings
-                // Don't request permission here - just sync the local property to match actual permission status
-                // State will be synced in OnStateChanged to avoid interfering with container readiness signaling
-                try
-                {
-                    if (notificationEnabled && permissionService != null && !permissionService.IsGranted)
-                    {
-                        logger.Information("InitializeFromState: NotificationEnabled is true in state but permission is not granted - setting local property to OFF");
-                        notificationEnabled = false;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "InitializeFromState: Exception checking notification permission - assuming not granted");
-                    // If permission check fails, assume not granted and sync to OFF
-                    if (notificationEnabled)
-                    {
-                        notificationEnabled = false;
-                    }
-                }
-#elif IOS
-                // If NotificationEnabled is true in state but permission is not granted, sync it to OFF silently
-                // This handles the case where user revoked permission via iOS settings
-                // Don't request permission here - just sync the local property to match actual permission status
-                // State will be synced in OnStateChanged to avoid interfering with container readiness signaling
-                try
-                {
-                    if (notificationEnabled && permissionService != null && !permissionService.IsGranted)
-                    {
-                        logger.Information("InitializeFromState: NotificationEnabled is true in state but permission is not granted - setting local property to OFF");
-                        notificationEnabled = false;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "InitializeFromState: Exception checking notification permission - assuming not granted");
-                    // If permission check fails, assume not granted and sync to OFF
-                    if (notificationEnabled)
-                    {
-                        notificationEnabled = false;
-                    }
-                }
+#if ANDROID || IOS
+                notificationEnabled = NotificationPermissionSyncHelper.SyncValueWithPermission(
+                    notificationEnabled,
+                    () => permissionService != null && permissionService.IsGranted,
+                    logger,
+                    "InitializeFromState: NotificationEnabled is true in state but permission is not granted - setting local property to OFF",
+                    "InitializeFromState: Exception checking notification permission",
+                    () => { });
 #endif
 
             _ = PopulateNumberOfTracksListViewAsync();
@@ -381,108 +325,43 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             }
             else if (currentSchedule != null)
             {
-                // Update properties if schedule changed
-                // Don't sync NotificationEnabled if permission check task is running
-                // This prevents OnStateChanged from overriding permission-based updates
-                if (!isWaitingForPermissionResponse && notificationEnabled != currentSchedule.NotificationEnabled)
+                isSyncingFromState = true;
+                try
                 {
-                    isSyncingFromState = true;
-                    try
-                    {
-                        var newValue = currentSchedule.NotificationEnabled;
-                        
-#if ANDROID
-                        // If state has NotificationEnabled=true but permission is not granted, sync to OFF
-                        // This handles the case where user revoked permission via Android settings
-                        try
-                        {
-                            if (newValue && permissionService != null && !permissionService.IsGranted)
-                            {
-                                logger.Information("OnStateChanged: NotificationEnabled is true in state but permission is not granted - syncing to OFF");
-                                newValue = false;
-                                // Update state to reflect actual permission status
-                                DispatchScheduleUpdate(s => s.NotificationEnabled = false);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Error(ex, "OnStateChanged: Exception checking notification permission - assuming not granted");
-                            // If permission check fails, assume not granted and sync to OFF
-                            if (newValue)
-                            {
-                                newValue = false;
-                                DispatchScheduleUpdate(s => s.NotificationEnabled = false);
-                            }
-                        }
-#elif IOS
-                        // If state has NotificationEnabled=true but permission is not granted, sync to OFF
-                        // This handles the case where user revoked permission via iOS settings
-                        try
-                        {
-                            if (newValue && permissionService != null && !permissionService.IsGranted)
-                            {
-                                logger.Information("OnStateChanged: NotificationEnabled is true in state but permission is not granted - syncing to OFF");
-                                newValue = false;
-                                // Update state to reflect actual permission status
-                                DispatchScheduleUpdate(s => s.NotificationEnabled = false);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Error(ex, "OnStateChanged: Exception checking notification permission - assuming not granted");
-                            // If permission check fails, assume not granted and sync to OFF
-                            if (newValue)
-                            {
-                                newValue = false;
-                                DispatchScheduleUpdate(s => s.NotificationEnabled = false);
-                            }
-                        }
+                    var categoryBefore = lastCategoryName;
+                    stateChangeHandler.ApplyPropertyChanges(
+                        currentSchedule,
+                        ref notificationEnabled,
+                        ref alwaysPlayFromStart,
+                        ref playIndefinitely,
+                        ref lastCategoryName,
+                        isWaitingForPermissionResponse,
+#if ANDROID || IOS
+                        () => permissionService != null && permissionService.IsGranted,
+#else
+                        () => true,
 #endif
-                        
-                        notificationEnabled = newValue;
-                        OnPropertyChanged(nameof(NotificationEnabled));
-                    }
-                    finally
-                    {
-                        isSyncingFromState = false;
-                    }
-                }
-                if (alwaysPlayFromStart != currentSchedule.AlwaysPlayFromStart)
-                {
-                    alwaysPlayFromStart = currentSchedule.AlwaysPlayFromStart;
+                        () => DispatchScheduleUpdate(s => s.NotificationEnabled = false),
+                        forceSelection => PopulateNumberOfTracksListViewAsync(forceSelection),
+                        () => DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = 1));
+
+                    OnPropertyChanged(nameof(NotificationEnabled));
                     OnPropertyChanged(nameof(AlwaysPlayFromStart));
-                }
-                var newPlayIndefinitely = currentSchedule.NumberOfTracksToPlay <= 0;
-                if (playIndefinitely != newPlayIndefinitely)
-                {
-                    playIndefinitely = newPlayIndefinitely;
                     OnPropertyChanged(nameof(PlayIndefinitely));
                     OnPropertyChanged(nameof(IsNumberOfTracksSelectionVisible));
-                }
-
-                // Check if category changed (Bible/Dramas/Music -> affects UI wording)
-                var newCategoryName = currentSchedule.BiblePublicationCategoryName;
-                if (!string.Equals(lastCategoryName, newCategoryName, StringComparison.OrdinalIgnoreCase))
-                {
-                    OnPropertyChanged(nameof(TrackLabelText));
-                    OnPropertyChanged(nameof(TracksLabelText));
-                    OnPropertyChanged(nameof(SelectedTracksText));
-                    OnPropertyChanged(nameof(ModalHeaderText));
-                    OnPropertyChanged(nameof(RestartLabelText));
-
-                    // Default selection is always 1 (tracks/episodes/chapters).
-                    const int newDefault = 1;
-
-                    // Repopulate the list (unit labels may have changed)
-                    _ = PopulateNumberOfTracksListViewAsync(newDefault);
-
-                    // Only update NumberOfTracksToPlay if we're in finite mode.
-                    if (!playIndefinitely)
+                    if (!string.Equals(categoryBefore, lastCategoryName, StringComparison.OrdinalIgnoreCase))
                     {
-                        DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = newDefault);
+                        OnPropertyChanged(nameof(TrackLabelText));
+                        OnPropertyChanged(nameof(TracksLabelText));
+                        OnPropertyChanged(nameof(SelectedTracksText));
+                        OnPropertyChanged(nameof(ModalHeaderText));
+                        OnPropertyChanged(nameof(RestartLabelText));
                     }
                 }
-                lastCategoryName = newCategoryName;
+                finally
+                {
+                    isSyncingFromState = false;
+                }
             }
         }
         finally
@@ -525,112 +404,24 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
     /// </summary>
     public string CurrentNumberOfTracksText => CurrentNumberOfTracks?.Text ?? string.Empty;
 
-    private TracksUnitTextProvider.TracksUnit GetTracksUnit() =>
-        TracksUnitTextProvider.GetTracksUnit(state.Value.CurrentSchedule?.BiblePublicationCategoryName);
+    private string? CategoryName => state.Value.CurrentSchedule?.BiblePublicationCategoryName;
 
-    private (string Singular, string Plural) GetUnitTextTitleCase() =>
-        TracksUnitTextProvider.GetUnitTextTitleCase(state.Value.CurrentSchedule?.BiblePublicationCategoryName);
+    public string TrackLabelText =>
+        TracksUnitTextProvider.GetTrackLabelText(CategoryName);
 
-    private (string Singular, string Plural) GetUnitTextLowerCase() =>
-        TracksUnitTextProvider.GetUnitTextLowerCase(state.Value.CurrentSchedule?.BiblePublicationCategoryName);
+    public string TracksLabelText =>
+        TracksUnitTextProvider.GetTracksLabelText(CategoryName);
 
-    /// <summary>
-    /// Gets the label text for the tracks selection row.
-    /// Uses category-based wording:
-    /// - Music => Tracks
-    /// - Dramas => Episodes
-    /// - Others => Chapters
-    /// </summary>
-    public string TrackLabelText
-    {
-        get
-        {
-            var (_, titlePlural) = GetUnitTextTitleCase();
-            return $"{titlePlural} to play each time";
-        }
-    }
+    public string SelectedTracksText =>
+        TracksUnitTextProvider.GetSelectedTracksText(CategoryName, CurrentNumberOfTracks?.Value ?? 0);
 
-    /// <summary>
-    /// Gets the static label text for the tracks selection row.
-    /// Uses category-based wording:
-    /// - Music => Tracks
-    /// - Dramas => Episodes
-    /// - Others => Chapters
-    /// </summary>
-    public string TracksLabelText
-    {
-        get
-        {
-            var (_, plural) = GetUnitTextLowerCase();
-            return $"Number of {plural} to play";
-        }
-    }
+    public string SelectedNumberText => (CurrentNumberOfTracks?.Value ?? 0).ToString();
 
-    /// <summary>
-    /// Gets the dynamic selected value text showing the number with proper singular/plural.
-    /// Returns format like "3 Chapters", "1 Chapter", "3 Episodes", "1 Episode", "3 Tracks", or "1 Track".
-    /// </summary>
-    public string SelectedTracksText
-    {
-        get
-        {
-            var number = CurrentNumberOfTracks?.Value ?? 0;
-            if (number == 0)
-            {
-                var (_, titlePlural) = GetUnitTextTitleCase();
-                return titlePlural;
-            }
+    public string ModalHeaderText =>
+        TracksUnitTextProvider.GetModalHeaderText(CategoryName);
 
-            var (titleSingular, titlePlural2) = GetUnitTextTitleCase();
-            var selectedUnit = number == 1 ? titleSingular : titlePlural2;
-            return $"{number} {selectedUnit}";
-        }
-    }
-
-    /// <summary>
-    /// Gets just the number value as a string for display in the container.
-    /// Returns format like "3" or "1".
-    /// </summary>
-    public string SelectedNumberText
-    {
-        get
-        {
-            var number = CurrentNumberOfTracks?.Value ?? 0;
-            return number.ToString();
-        }
-    }
-
-    /// <summary>
-    /// Gets the header text for the tracks selection modal.
-    /// Uses category-based wording:
-    /// - Music => Tracks
-    /// - Dramas => Episodes
-    /// - Others => Chapters
-    /// </summary>
-    public string ModalHeaderText
-    {
-        get
-        {
-            var (_, plural) = GetUnitTextTitleCase();
-            return $"Select Number of {plural}";
-        }
-    }
-
-    /// <summary>
-    /// Gets the label text for the "restart incomplete" toggle.
-    /// Uses category-based wording:
-    /// - Music => tracks
-    /// - Dramas => episodes
-    /// - Others => chapters
-    /// </summary>
-    public string RestartLabelText
-    {
-        get
-        {
-            var (_, plural) = GetUnitTextLowerCase();
-            return $"Restart incomplete {plural} from the beginning";
-        }
-    }
+    public string RestartLabelText =>
+        TracksUnitTextProvider.GetRestartLabelText(CategoryName);
 
     public bool NotificationEnabled
     {
@@ -646,159 +437,39 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
             }
             
             var isUserAction = !isSyncingFromState;
-            
-#if ANDROID
-            // Only handle permission check if this is a genuine user action (not from state sync or internal update)
-            if (isUserAction && value)
-            {
-                logger.Debug("User toggled ON - checking notification permission");
-                
-                // Check current permission status
-                bool isGranted = false;
-                try
-                {
-                    if (permissionService != null)
+
+#if ANDROID || IOS
+            if (isUserAction && value &&
+                NotificationEnabledToggleHandler.TryHandleToggleOnWhenNotGranted(
+                    value,
+                    () => permissionService != null && permissionService.IsGranted,
+                    () => permissionService?.RequestPermissionIfNeeded() ?? false,
+                    () =>
                     {
-                        isGranted = permissionService.IsGranted;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "NotificationEnabled setter: Exception checking permission - assuming not granted");
-                    isGranted = false;
-                }
-                
-                if (isGranted)
-                {
-                    // Permission already granted - allow toggle ON
-                    logger.Debug("Notification permission already granted - allowing toggle ON");
-                    if (SetProperty(ref notificationEnabled, true))
+                        notificationEnabled = false;
+                        OnPropertyChanged(nameof(NotificationEnabled));
+                        DispatchScheduleUpdate(s => s.NotificationEnabled = false);
+                    },
+                    () =>
                     {
-                        DispatchScheduleUpdate(s => s.NotificationEnabled = true);
-                    }
-                }
-                else
-                {
-                    // Permission not granted - toggle OFF immediately and request permission
-                    logger.Debug("Notification permission not granted - setting toggle to OFF and requesting permission");
-                    isWaitingForPermissionResponse = true;
-                    
-                    // Always set toggle to OFF immediately when permission is not granted
-                    // Force update even if value is already false to ensure UI reflects the state
-                    notificationEnabled = false;
-                    OnPropertyChanged(nameof(NotificationEnabled));
-                    DispatchScheduleUpdate(s => s.NotificationEnabled = false);
-                    logger.Debug("Set NotificationEnabled to false - permission not granted");
-                    
-                    // Request permission - will fire PermissionGranted or PermissionDenied event
-                    var requestInitiated = permissionService?.RequestPermissionIfNeeded() ?? false;
-                    
-                    if (!requestInitiated)
-                    {
-                        // Permission request was initiated - wait for event
-                        // Toggle stays OFF until PermissionGranted event fires
-                        logger.Debug("Permission request initiated - waiting for user response");
-                    }
-                    else
-                    {
-                        // Permission already granted (shouldn't happen due to check above, but handle it)
-                        logger.Debug("Permission already granted after check - allowing toggle ON");
-                        isWaitingForPermissionResponse = false;
                         notificationEnabled = true;
                         OnPropertyChanged(nameof(NotificationEnabled));
                         DispatchScheduleUpdate(s => s.NotificationEnabled = true);
-                    }
-                }
+                    },
+                    x => isWaitingForPermissionResponse = x,
+                    logger,
+                    "NotificationEnabled setter"))
+            {
                 return;
             }
-            
-            // For all other cases (toggling OFF, or internal updates), update immediately
+
             if (SetProperty(ref notificationEnabled, value))
             {
                 DispatchScheduleUpdate(s => s.NotificationEnabled = value);
             }
 
-            // Reset waiting flag if user toggles OFF
             if (isUserAction && !value)
             {
-                logger.Debug("User toggled OFF - resetting permission wait flag");
-                isWaitingForPermissionResponse = false;
-            }
-#elif IOS
-            // Only handle permission check if this is a genuine user action (not from state sync or internal update)
-            if (isUserAction && value)
-            {
-                logger.Debug("User toggled ON - checking iOS notification permission");
-                
-                // Check current permission status
-                bool isGranted = false;
-                try
-                {
-                    if (permissionService != null)
-                    {
-                        isGranted = permissionService.IsGranted;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "NotificationEnabled setter (iOS): Exception checking permission - assuming not granted");
-                    isGranted = false;
-                }
-                
-                if (isGranted)
-                {
-                    // Permission already granted - allow toggle ON
-                    logger.Debug("iOS notification permission already granted - allowing toggle ON");
-                    if (SetProperty(ref notificationEnabled, true))
-                    {
-                        DispatchScheduleUpdate(s => s.NotificationEnabled = true);
-                    }
-                }
-                else
-                {
-                    // Permission not granted - toggle OFF immediately and request permission
-                    logger.Debug("iOS notification permission not granted - setting toggle to OFF and requesting permission");
-                    isWaitingForPermissionResponse = true;
-                    
-                    // Always set toggle to OFF immediately when permission is not granted
-                    // Force update even if value is already false to ensure UI reflects the state
-                    notificationEnabled = false;
-                    OnPropertyChanged(nameof(NotificationEnabled));
-                    DispatchScheduleUpdate(s => s.NotificationEnabled = false);
-                    logger.Debug("Set NotificationEnabled to false - permission not granted");
-                    
-                    // Request permission - will fire PermissionGranted or PermissionDenied event
-                    var requestInitiated = permissionService?.RequestPermissionIfNeeded() ?? false;
-                    
-                    if (!requestInitiated)
-                    {
-                        // Permission request was initiated - wait for event
-                        // Toggle stays OFF until PermissionGranted event fires
-                        logger.Debug("Permission request initiated - waiting for user response");
-                    }
-                    else
-                    {
-                        // Permission already granted (shouldn't happen due to check above, but handle it)
-                        logger.Debug("Permission already granted after check - allowing toggle ON");
-                        isWaitingForPermissionResponse = false;
-                        notificationEnabled = true;
-                        OnPropertyChanged(nameof(NotificationEnabled));
-                        DispatchScheduleUpdate(s => s.NotificationEnabled = true);
-                    }
-                }
-                return;
-            }
-            
-            // For all other cases (toggling OFF, or internal updates), update immediately
-            if (SetProperty(ref notificationEnabled, value))
-            {
-                DispatchScheduleUpdate(s => s.NotificationEnabled = value);
-            }
-
-            // Reset waiting flag if user toggles OFF
-            if (isUserAction && !value)
-            {
-                logger.Debug("User toggled OFF - resetting permission wait flag");
                 isWaitingForPermissionResponse = false;
             }
 #else
