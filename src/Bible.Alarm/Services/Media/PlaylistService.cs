@@ -47,6 +47,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
     private readonly TrackNavigator trackNavigator;
     private readonly ScheduleUpdater scheduleUpdater;
     private readonly PlaylistScheduleDisplayRefresher? scheduleDisplayRefresher;
+    private readonly PlaylistBiblePlayItemBuilder biblePlayItemBuilder;
 
     private readonly IMediaUrlRefreshService urlRefreshService;
     private readonly IUrlConstructionService urlConstructionService;
@@ -88,6 +89,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         scheduleDisplayRefresher = scheduleDisplayNameService != null && alarmScheduleService != null
             ? new PlaylistScheduleDisplayRefresher(alarmScheduleService, scheduleDisplayNameService, dispatcher, logger)
             : null;
+        biblePlayItemBuilder = new PlaylistBiblePlayItemBuilder(urlConstructionService, urlRefreshService);
     }
 
     public async Task<int> GetRelevantScheduleToPlay()
@@ -138,7 +140,7 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             return null;
         }
 
-        var next = await NextMusicUrlToPlay(schedule, true);
+        var next = await musicTrackBuilder.NextMusicUrlToPlay(schedule, true);
         return next.Metadata.TrackCode;
     }
 
@@ -382,188 +384,6 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         return await trackNavigator.GetNextBiblePublicationSection(languageCode, publicationCode, sectionCode);
     }
 
-    private async Task<PlayItem> NextMusicUrlToPlay(AlarmSchedule schedule, bool next = false)
-    {
-        if (schedule.Music == null)
-        {
-            throw new InvalidOperationException($"Music is null for schedule {schedule.Id}");
-        }
-
-        // Music type is inferred from LanguageCode: null/empty = melody (instrumental), otherwise = vocal
-        var isMelodyMusic = string.IsNullOrEmpty(schedule.Music.LanguageCode);
-        return isMelodyMusic
-            ? await GetNextMusicTrackAsync(schedule, next)
-            : await GetNextVocalMusicTrackAsync(schedule, next);
-    }
-
-    private async Task<PlayItem> GetNextMusicTrackAsync(AlarmSchedule schedule, bool next)
-    {
-        var music = schedule.Music;
-        if (music == null)
-        {
-            throw new InvalidOperationException("Schedule music is null");
-        }
-
-        // IMPORTANT: Sectioned melody publications (e.g., "iam") have duplicate track numbers across discs.
-        // Always select tracks from the schedule's selected disc (SectionCode) when sectioned.
-        SortedDictionary<int, MusicTrack> musicTracks;
-        if (PublicationTypeHelper.HasSectionStructure(music.PublicationCode))
-        {
-            if (string.IsNullOrWhiteSpace(music.SectionCode))
-            {
-                musicTracks = new SortedDictionary<int, MusicTrack>();
-            }
-            else
-            {
-                musicTracks = await mediaService.GetMelodyMusicTracksBySection(music.PublicationCode, music.SectionCode);
-            }
-        }
-        else
-        {
-            musicTracks = await mediaService.GetMelodyMusicTracks(music.PublicationCode);
-        }
-        if (musicTracks.Count == 0)
-        {
-            throw new InvalidOperationException($"No music tracks found for publication {music.PublicationCode}");
-        }
-
-        var musicTrackKey = GetNextTrackKey(musicTracks, music.TrackCode, next);
-        var musicTrack = musicTracks[musicTrackKey];
-
-        return await CreateMusicPlayItem(schedule, music, musicTrack);
-    }
-
-    private static int GetNextTrackKey(SortedDictionary<int, MusicTrack> tracks, string? currentTrackCode, bool next)
-    {
-        if (tracks.Count == 0)
-        {
-            throw new InvalidOperationException("No tracks available");
-        }
-
-        if (!int.TryParse(currentTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var currentTrackNum))
-        {
-            return tracks.Keys.First();
-        }
-
-        // Keep current track if present; otherwise use first key.
-        if (!next)
-        {
-            return tracks.ContainsKey(currentTrackNum) ? currentTrackNum : tracks.Keys.First();
-        }
-
-        // Advance to next available key (handles gaps). Wrap to first.
-        var keys = tracks.Keys.ToList();
-        var currentIndex = keys.IndexOf(currentTrackNum);
-        if (currentIndex < 0)
-        {
-            return keys[0];
-        }
-        return keys[(currentIndex + 1) % keys.Count];
-    }
-
-    private async Task<PlayItem> GetNextVocalMusicTrackAsync(AlarmSchedule schedule, bool next)
-    {
-        var vocalMusic = schedule.Music;
-        if (vocalMusic == null)
-        {
-            throw new InvalidOperationException("Schedule music is null");
-        }
-        if (vocalMusic.LanguageCode == null)
-        {
-            throw new InvalidOperationException("LanguageCode is null for vocal music");
-        }
-        var vocalTracks = await mediaService.GetVocalMusicTracks(vocalMusic.LanguageCode, vocalMusic.PublicationCode);
-        if (vocalTracks.Count == 0)
-        {
-            throw new InvalidOperationException($"No vocal tracks found for language {vocalMusic.LanguageCode}, publication {vocalMusic.PublicationCode}");
-        }
-
-        var vocalTrackIndex = CalculateTrackIndex(vocalMusic.TrackCode, vocalTracks.Count, next);
-        var vocalTrack = vocalTracks[vocalTrackIndex];
-
-        return await CreateVocalMusicPlayItem(schedule, vocalMusic, vocalTrack);
-    }
-
-    private static int CalculateTrackIndex(string? currentTrackCode, int totalTracks, bool next)
-    {
-        if (!int.TryParse(currentTrackCode, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var currentTrackNum))
-        {
-            return next ? 1 : 1;
-        }
-
-        var trackIndex = next ? currentTrackNum % totalTracks + 1 : currentTrackNum;
-        if (trackIndex < 1 || trackIndex > totalTracks)
-        {
-            throw new InvalidOperationException($"Invalid track index {trackIndex} for {totalTracks} tracks");
-        }
-        return trackIndex;
-    }
-
-    private async Task<PlayItem> CreateMusicPlayItem(AlarmSchedule schedule, AlarmMusic music, MusicTrack musicTrack)
-    {
-        var trackMetadata = new TrackMetadata
-        {
-            ScheduleId = schedule.Id,
-            PublicationCode = music.PublicationCode,
-            TrackCode = musicTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            DownloadCode = musicTrack.DownloadCode,
-            OriginalTrackCode = musicTrack.OriginalTrackCode
-        };
-
-        var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
-            music.PublicationCode,
-            null, // Melody has no language
-            musicTrack.DownloadCode, // Section/disc code (e.g. "iam-1")
-            musicTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        if (string.IsNullOrEmpty(lookUpPath))
-        {
-            throw new InvalidOperationException(
-                $"Track not found in media index: pub={music.PublicationCode}, section={musicTrack.DownloadCode}, track={musicTrack.Number}. Only harvested tracks can be played.");
-        }
-        trackMetadata.LookUpPath = lookUpPath;
-
-        var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
-        if (string.IsNullOrEmpty(url))
-        {
-            throw new InvalidOperationException($"Failed to get URL for music track {musicTrack.Number}");
-        }
-
-        return new PlayItem(trackMetadata, url);
-    }
-
-    private async Task<PlayItem> CreateVocalMusicPlayItem(AlarmSchedule schedule, AlarmMusic vocalMusic, MusicTrack vocalTrack)
-    {
-        var trackMetadata = new TrackMetadata
-        {
-            ScheduleId = schedule.Id,
-            PublicationCode = vocalMusic.PublicationCode,
-            LanguageCode = vocalMusic.LanguageCode ?? string.Empty,
-            TrackCode = vocalTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            DownloadCode = vocalTrack.DownloadCode,
-            OriginalTrackCode = vocalTrack.OriginalTrackCode
-        };
-
-        var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
-            vocalMusic.PublicationCode,
-            vocalMusic.LanguageCode,
-            null, // No section for vocal music
-            vocalTrack.Number.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        if (string.IsNullOrEmpty(lookUpPath))
-        {
-            throw new InvalidOperationException(
-                $"Track not found in media index: pub={vocalMusic.PublicationCode}, lang={vocalMusic.LanguageCode}, track={vocalTrack.Number}. Only harvested tracks can be played.");
-        }
-        trackMetadata.LookUpPath = lookUpPath;
-
-        var url = await urlRefreshService.RefreshUrlAsync(trackMetadata);
-        if (string.IsNullOrEmpty(url))
-        {
-            throw new InvalidOperationException($"Failed to get URL for vocal track {vocalTrack.Number}");
-        }
-
-        return new PlayItem(trackMetadata, url);
-    }
-
     public async Task<bool> ShouldResumeFromLastPositionAsync(int scheduleId)
     {
         var schedule = await alarmScheduleService.GetScheduleByIdAsync(
@@ -623,44 +443,18 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
         var nextTrackCode = TrackCodeHelper.GetFromTrack(next.Value);
         var nextSectionCode = next.Key?.SectionCode;
 
-        // Check if section changed - if so, refresh schedule display names
         var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, nextSectionCode, StringComparison.OrdinalIgnoreCase);
         if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayRefresher != null)
         {
             await scheduleDisplayRefresher.RefreshAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, currentTrackMetadata.PublicationCode, nextSectionCode, cancellationTokenSource.Token);
         }
 
-        var metadata = new TrackMetadata
-        {
-            ScheduleId = currentTrackMetadata.ScheduleId,
-            IsBibleContent = true,
-            LanguageCode = currentTrackMetadata.LanguageCode,
-            PublicationCode = currentTrackMetadata.PublicationCode,
-            SectionCode = nextSectionCode,
-            TrackCode = nextTrackCode,
-            IsLastTrack = false
-        };
-        PlaylistMetadataHelper.TryApplyDiscStyleDownloadCode(metadata);
-
-        var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
-            metadata.PublicationCode,
-            metadata.LanguageCode,
-            metadata.SectionCode,
-            metadata.TrackCode);
-        if (string.IsNullOrEmpty(lookUpPath))
-        {
-            throw new InvalidOperationException(
-                $"Track not found in media index: pub={metadata.PublicationCode}, lang={metadata.LanguageCode}, section={metadata.SectionCode ?? "(none)"}, track={metadata.TrackCode}. Only harvested tracks can be played.");
-        }
-        metadata.LookUpPath = lookUpPath;
-
-        var url = await urlRefreshService.RefreshUrlAsync(metadata);
-        if (string.IsNullOrEmpty(url))
-        {
-            throw new InvalidOperationException("Failed to refresh URL for next play item");
-        }
-
-        return new PlayItem(metadata, url);
+        return await biblePlayItemBuilder.BuildPlayItemAsync(
+            currentTrackMetadata.ScheduleId,
+            currentTrackMetadata.LanguageCode,
+            currentTrackMetadata.PublicationCode,
+            nextSectionCode,
+            nextTrackCode);
     }
 
     public async Task<PlayItem> GetPreviousPlayItemAsync(TrackMetadata currentTrackMetadata, IFetchProgress? sectionFetchProgress = null)
@@ -711,47 +505,21 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
             throw new InvalidOperationException("Previous track Value is null");
         }
 
-        var prevTrackCode = Bible.Alarm.Shared.Helpers.TrackCodeHelper.GetFromTrack(previous.Value);
+        var prevTrackCode = TrackCodeHelper.GetFromTrack(previous.Value);
         var prevSectionCode = previous.Key?.SectionCode;
 
-        // Check if section changed - if so, refresh schedule display names
         var sectionChanged = !string.Equals(currentTrackMetadata.SectionCode, prevSectionCode, StringComparison.OrdinalIgnoreCase);
         if (sectionChanged && currentTrackMetadata.ScheduleId > 0 && scheduleDisplayRefresher != null)
         {
             await scheduleDisplayRefresher.RefreshAsync((int)currentTrackMetadata.ScheduleId, currentTrackMetadata.LanguageCode, currentTrackMetadata.PublicationCode, prevSectionCode, cancellationTokenSource.Token);
         }
 
-        var metadata = new TrackMetadata
-        {
-            ScheduleId = currentTrackMetadata.ScheduleId,
-            IsBibleContent = true,
-            LanguageCode = currentTrackMetadata.LanguageCode,
-            PublicationCode = currentTrackMetadata.PublicationCode,
-            SectionCode = prevSectionCode,
-            TrackCode = prevTrackCode,
-            IsLastTrack = false
-        };
-        PlaylistMetadataHelper.TryApplyDiscStyleDownloadCode(metadata);
-
-        var lookUpPath = await urlConstructionService.ConstructTrackLookUpPathAsync(
-            metadata.PublicationCode,
-            metadata.LanguageCode,
-            metadata.SectionCode,
-            metadata.TrackCode);
-        if (string.IsNullOrEmpty(lookUpPath))
-        {
-            throw new InvalidOperationException(
-                $"Track not found in media index: pub={metadata.PublicationCode}, lang={metadata.LanguageCode}, section={metadata.SectionCode ?? "(none)"}, track={metadata.TrackCode}. Only harvested tracks can be played.");
-        }
-        metadata.LookUpPath = lookUpPath;
-
-        var url = await urlRefreshService.RefreshUrlAsync(metadata);
-        if (string.IsNullOrEmpty(url))
-        {
-            throw new InvalidOperationException("Failed to refresh URL for previous play item");
-        }
-
-        return new PlayItem(metadata, url);
+        return await biblePlayItemBuilder.BuildPlayItemAsync(
+            currentTrackMetadata.ScheduleId,
+            currentTrackMetadata.LanguageCode,
+            currentTrackMetadata.PublicationCode,
+            prevSectionCode,
+            prevTrackCode);
     }
 
     public void Dispose()
