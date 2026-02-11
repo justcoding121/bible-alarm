@@ -10,7 +10,14 @@ alwaysApply: true
 
 Every **non-static** class that is registered in DI must have a corresponding **interface**. This facilitates unit testing (mocking and substitution).
 
-- **Exemption**: Static classes do not need an interface (they are not instantiated or injected).
+- **Exemptions** (no interface required; still unit-testable by constructing the type and injecting mocks):
+  - **Static classes** – not instantiated or injected.
+  - **Fluxor Effect classes** – framework discovers/invokes by concrete type; test by instantiating the effect with mocked dependencies.
+  - **Fluxor Reducer classes** – pure state-in/state-out; test by invoking the reducer with state and action; not injected as dependencies.
+  - **ViewModels** – unit under test; test by constructing the ViewModel with mocked services (INavigationService, IAlarmService, etc.); no need to mock the ViewModel itself.
+  - **Pages / ContentPage / Views** – UI layer; tested via ViewModel or UI tests; not injected as dependencies elsewhere.
+  - **Message or command handlers** (e.g. MediatR handlers) – handler is the unit under test; test by instantiating with mocked dependencies.
+  - **DTOs, entities, records** – data-only or minimal behavior; tested indirectly (mapping, serialization); not injected as dependencies.
 - Name the interface after the implementation, e.g. `IFooService` for `FooService`.
 
 ## Interface location
@@ -53,5 +60,5 @@ Registration: `builder.Services.AddSingleton<IReportGenerator, ReportGenerator>(
 
 ## Summary
 
-- Non-static classes → define an interface in an `Interfaces` subfolder next to the implementation; register and inject via that interface.
-- Static classes → no interface required.
+- **Require interface**: Services, helpers, and any class that is **injected as a dependency** elsewhere – define an interface in an `Interfaces` subfolder; register and inject via that interface.
+- **No interface required**: Static classes; Fluxor Effect and Reducer classes; ViewModels; Pages/Views; message/command handlers; DTOs, entities, records. These are either the unit under test (test by constructing with mocks) or data/framework types.
