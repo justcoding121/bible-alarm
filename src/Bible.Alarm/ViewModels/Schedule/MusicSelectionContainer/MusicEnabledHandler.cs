@@ -11,7 +11,7 @@ using Serilog;
 using System.Net;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
 
 /// <summary>
 /// Handles MusicEnabled property logic for MusicSelectionContainerViewModel.
@@ -50,62 +50,46 @@ public class MusicEnabledHandler
             return false;
         }
 
-        // Check if the value is actually different from the current state
         if (currentValue == value)
         {
-            // Value hasn't changed, don't dispatch
             return false;
         }
 
-        // Prevent dispatching if this update is coming from state (not user interaction)
         if (isUpdatingFromState)
         {
-            // Clear pending when updating from state
             setPendingMusicEnabled(false);
             onPropertyChanged();
             return false;
         }
 
-        // Set optimistic update value immediately
         setPendingMusicEnabled(value);
 
-        // Trigger PropertyChanged immediately to update UI
         MainThread.BeginInvokeOnMainThread(() =>
         {
             onPropertyChanged();
         });
 
-        // Signal to scroll to bottom when user enables music
         if (value && !currentValue)
         {
             setShouldScrollToBottom(true);
         }
 
-        // Update state (will clear pendingMusicEnabled when state updates)
-        // Run DeepClone and mapping on background thread to avoid blocking UI
         _ = Task.Run(() =>
         {
             var clonedSchedule = currentSchedule.DeepClone();
-            // DeepClone already returns ScheduleStateItem, no need to map again
             clonedSchedule.MusicEnabled = value;
 
-            // When re-enabling music, if there's already a music selection but section name might be missing,
-            // dispatch with musicUpdated=true so PopulateMusicSectionNameForStateAsync can populate it
-            var shouldTriggerMusicCascade = value && 
+            var shouldTriggerMusicCascade = value &&
                                            !string.IsNullOrWhiteSpace(clonedSchedule.MusicPublicationCode) &&
                                            !string.IsNullOrWhiteSpace(clonedSchedule.MusicTrackCode);
 
             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(
-                clonedSchedule, 
-                musicUpdated: shouldTriggerMusicCascade, 
-                biblePublicationUpdated: false, 
+                clonedSchedule,
+                musicUpdated: shouldTriggerMusicCascade,
+                biblePublicationUpdated: false,
                 shouldSave: false));
         });
 
-        // If enabling music, only reset to default music if:
-        // 1. Music was disabled when schedule page was first opened (initialMusicEnabledOnPageLoad == false)
-        // 2. This is the first time enabling it on this page load (value && !currentValue)
-        // On subsequent enable/disable cycles, preserve whatever music was selected
         if (value && !currentValue)
         {
             var shouldResetToDefault = initialMusicEnabledOnPageLoad.HasValue &&
@@ -113,7 +97,6 @@ public class MusicEnabledHandler
 
             if (shouldResetToDefault)
             {
-                // Only set default music (iam) when state has no publication code. Otherwise retain current selection (e.g. osg).
                 Task.Run(async () =>
                 {
                     try
@@ -125,13 +108,11 @@ public class MusicEnabledHandler
                         }
                         if (!string.IsNullOrEmpty(schedule.MusicPublicationCode))
                         {
-                            // Schedule already has a music publication (e.g. osg) – retain it, do not reset to iam
                             return;
                         }
 
                         var melodyMusicService = serviceProvider.GetRequiredService<IMelodyMusicService>();
 
-                        // Prefer "iam" (Kingdom Melodies) as default, else first available (same as sample schedule)
                         const string PreferredMelodyPublicationCode = "iam";
                         var melodyReleases = await melodyMusicService.GetAllAsync();
                         if (melodyReleases == null || melodyReleases.Count == 0)
@@ -158,13 +139,10 @@ public class MusicEnabledHandler
                             defaultPublicationName = firstMelody.Value.Name;
                         }
 
-                        // Get default music from DB (same as sample schedule)
                         var melodyMusic = await melodyMusicService.GetByCodeWithTracksAsync(defaultPublicationCode);
 
                         if (melodyMusic != null && melodyMusic.Tracks != null && melodyMusic.Tracks.Count > 0)
                         {
-                            // For sectioned melody publications (e.g., "iam"), pick a random disc/section first,
-                            // then pick a random track within that section.
                             BiblePublicationSection? chosenSection = null;
                             BiblePublicationTrack? chosenTrack = null;
 
@@ -181,20 +159,14 @@ public class MusicEnabledHandler
                                 }
                             }
 
-                            // Fallback: if no section could be selected (non-sectioned melody or partial harvest),
-                            // select a random track from the publication-level list.
                             chosenTrack ??= melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
 
-                            // Get the latest state to ensure MusicEnabled is preserved
                             var latestSchedule = state.Value.CurrentSchedule;
                             if (latestSchedule == null)
                             {
                                 return;
                             }
 
-                            // Check if music properties are already set to what we want to set
-                            // This prevents redundant dispatches if the state was already updated
-                            // For melody music, LanguageCode is null
                             if (latestSchedule.MusicLanguageCode == null &&
                                 latestSchedule.MusicPublicationCode == defaultPublicationCode &&
                                 latestSchedule.MusicSectionCode == chosenSection?.SectionCode &&
@@ -204,26 +176,17 @@ public class MusicEnabledHandler
                                 return;
                             }
 
-                            // Update state with default music properties (reset to default)
-                            // IMPORTANT: Preserve MusicEnabled from the latest state (should already be true from first dispatch)
-                            // DeepClone already returns ScheduleStateItem, no need to map again
                             var clonedSchedule = latestSchedule.DeepClone();
-                            // MusicEnabled should already be true from the first dispatch, but ensure it's set
                             clonedSchedule.MusicEnabled = true;
                             clonedSchedule.MusicPublicationCode = defaultPublicationCode;
                             clonedSchedule.MusicPublicationName = defaultPublicationName;
-                            clonedSchedule.MusicLanguageCode = null; // Melody music has no language
+                            clonedSchedule.MusicLanguageCode = null;
                             clonedSchedule.MusicSectionCode = chosenSection?.SectionCode;
                             clonedSchedule.MusicSectionName = chosenSection?.Name;
                             clonedSchedule.MusicTrackCode = TrackCodeHelper.GetFromTrack(chosenTrack);
                             clonedSchedule.MusicRepeat = false;
-                            // Titles for melody tracks should come from harvested track titles as-is.
                             clonedSchedule.MusicTrackName = WebUtility.HtmlDecode(chosenTrack.Title).Replace('\u00A0', ' ');
 
-                            // Update state with music properties (MusicEnabled should already be true from first dispatch)
-                            // Mark as music-updated so:
-                            // - music cascade can validate/normalize (it should be a no-op when track is already set)
-                            // - modal expected-counts are refreshed so section-row arrow can show immediately (e.g., "iam")
                             dispatcher.Dispatch(new UpdateScheduleFromViewModelAction(clonedSchedule, musicUpdated: true, biblePublicationUpdated: false, shouldSave: false));
                         }
                     }
@@ -232,12 +195,6 @@ public class MusicEnabledHandler
                         logger.Error(ex, "MusicEnabled: Error loading default music from DB");
                     }
                 });
-            }
-            else
-            {
-                // Subsequent enable or music was already enabled on page load
-                // Preserve existing music selection
-                // Note: The first dispatch above already handles musicUpdated=true when re-enabling with existing selection
             }
         }
 

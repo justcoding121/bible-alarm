@@ -1,7 +1,7 @@
 #nullable enable
 using Bible.Alarm.Stores.Models;
 
-namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelpers;
+namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainer;
 
 /// <summary>
 /// Tracks last values from CurrentSchedule to detect changes.
@@ -10,7 +10,6 @@ namespace Bible.Alarm.ViewModels.Schedule.MusicSelectionContainerViewModelHelper
 /// </summary>
 public sealed class MusicStateTracker
 {
-    // Track last values from CurrentSchedule to detect changes
     private string? lastScheduleMusicTrackCode;
     private string? lastScheduleMusicSectionCode;
     private string? lastScheduleMusicPublicationCode;
@@ -32,9 +31,6 @@ public sealed class MusicStateTracker
     public string? LastBibleLanguageDirection => lastBibleLanguageDirection;
     public string? LastMusicLanguageDirection => lastMusicLanguageDirection;
 
-    /// <summary>
-    /// Initializes tracking values from CurrentSchedule.
-    /// </summary>
     public void InitializeFromSchedule(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule == null)
@@ -52,9 +48,6 @@ public sealed class MusicStateTracker
         lastMusicLanguageDirection = currentSchedule.MusicLanguageDirection;
     }
 
-    /// <summary>
-    /// Updates tracking values from CurrentSchedule.
-    /// </summary>
     public void UpdateFromSchedule(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule == null)
@@ -74,9 +67,6 @@ public sealed class MusicStateTracker
         lastMusicSectionName = currentSchedule.MusicSectionName;
     }
 
-    /// <summary>
-    /// Checks if MusicPublicationName changed (display name, not code).
-    /// </summary>
     public bool HasMusicPublicationNameChanged(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule == null)
@@ -87,9 +77,6 @@ public sealed class MusicStateTracker
         return lastMusicPublicationName != currentSchedule.MusicPublicationName;
     }
 
-    /// <summary>
-    /// Checks if MusicSectionName changed (display name, not code).
-    /// </summary>
     public bool HasMusicSectionNameChanged(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule == null)
@@ -100,10 +87,6 @@ public sealed class MusicStateTracker
         return lastMusicSectionName != currentSchedule.MusicSectionName;
     }
 
-    /// <summary>
-    /// Detects changes in music properties from CurrentSchedule.
-    /// Returns tuple without musicTypeChanged (no longer used).
-    /// </summary>
     public (bool languageCodeChanged, bool publicationCodeChanged, bool sectionCodeChanged, bool trackCodeChanged, bool repeatChanged) DetectChanges(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule == null)
@@ -120,9 +103,6 @@ public sealed class MusicStateTracker
         return (languageCodeChanged, publicationCodeChanged, sectionCodeChanged, trackCodeChanged, repeatChanged);
     }
 
-    /// <summary>
-    /// Checks if MusicEnabled changed.
-    /// </summary>
     public bool HasMusicEnabledChanged(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule == null)
@@ -133,17 +113,11 @@ public sealed class MusicStateTracker
         return lastMusicEnabled != currentSchedule.MusicEnabled;
     }
 
-    /// <summary>
-    /// Updates only the MusicEnabled tracking value.
-    /// </summary>
     public void UpdateMusicEnabled(bool? value)
     {
         lastMusicEnabled = value;
     }
 
-    /// <summary>
-    /// Checks if Bible language direction changed (affects RTL/LTR layout).
-    /// </summary>
     public bool HasBibleLanguageDirectionChanged(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule == null)
@@ -154,17 +128,11 @@ public sealed class MusicStateTracker
         return lastBibleLanguageDirection != currentSchedule.BiblePublicationLanguageDirection;
     }
 
-    /// <summary>
-    /// Updates only the Bible language direction tracking value.
-    /// </summary>
     public void UpdateBibleLanguageDirection(string? value)
     {
         lastBibleLanguageDirection = value;
     }
 
-    /// <summary>
-    /// Checks if Music language direction changed (affects RTL/LTR layout for music rows).
-    /// </summary>
     public bool HasMusicLanguageDirectionChanged(ScheduleStateItem? currentSchedule)
     {
         if (currentSchedule == null)
@@ -175,28 +143,19 @@ public sealed class MusicStateTracker
         return lastMusicLanguageDirection != currentSchedule.MusicLanguageDirection;
     }
 
-    /// <summary>
-    /// Updates only the Music language direction tracking value.
-    /// </summary>
     public void UpdateMusicLanguageDirection(string? value)
     {
         lastMusicLanguageDirection = value;
     }
 
-    /// <summary>
-    /// Returns true if we have not yet triggered default music (iam) for this schedule when publication code was null.
-    /// Used when user toggles open music container and state has no music publication code.
-    /// </summary>
     public bool ShouldTriggerDefaultMusicForNullPublication(int scheduleId)
     {
         return defaultMusicTriggeredForScheduleId != scheduleId;
     }
 
-    /// <summary>
-    /// Record that we triggered default music for this schedule so we don't trigger again.
-    /// </summary>
     public void RecordDefaultMusicTriggered(int scheduleId)
     {
         defaultMusicTriggeredForScheduleId = scheduleId;
     }
+
 }
