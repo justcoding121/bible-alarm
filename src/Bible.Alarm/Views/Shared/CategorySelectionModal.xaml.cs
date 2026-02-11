@@ -77,13 +77,8 @@ public partial class CategorySelectionModal : BaseContentPage, IDisposable
             {
                 if (ViewModel is CategorySelectionViewModel categoryViewModel)
                 {
-                    // Mark as selected
-                    foreach (var category in categoryViewModel.Categories)
-                    {
-                        category.IsSelected = category.Id == categoryItem.Id;
-                    }
-                    categoryViewModel.SelectedCategory = categoryItem;
-                    
+                    // Do NOT mark as selected here - selection only changes on fetch success.
+                    // If fetch fails, the tapped item must not appear selected.
                     // Execute select command which dispatches action and closes modal
                     if (categoryViewModel.SelectCategoryCommand is IAsyncRelayCommand<CategoryListViewItemModel> asyncCommand)
                     {

@@ -285,30 +285,10 @@ public static class ApplicationReducer
     [ReducerMethod]
     public static ApplicationState OnCategorySelection(ApplicationState state, CategorySelectionAction action)
     {
-        // Category selection updates CurrentSchedule
-        var currentSchedule = state.CurrentSchedule;
-        if (currentSchedule == null)
-        {
-            return state;
-        }
-
-        var updatedSchedule = currentSchedule.DeepClone();
-        updatedSchedule.BiblePublicationCategoryId = action.CategoryId;
-        updatedSchedule.BiblePublicationCategoryName = action.CategoryName;
-        
-        // Cascade: Clear language, publication, section, and track when category changes
-        updatedSchedule.BiblePublicationLanguageCode = null;
-        updatedSchedule.BiblePublicationLanguageName = null;
-        updatedSchedule.BiblePublicationLanguageDirection = null;
-        updatedSchedule.BiblePublicationCode = null;
-        updatedSchedule.BiblePublicationName = null;
-        updatedSchedule.BiblePublicationSectionCode = null;
-        updatedSchedule.BiblePublicationSectionName = null;
-        updatedSchedule.BiblePublicationTrackCode = null;
-        updatedSchedule.BiblePublicationTrackTitle = null;
-        // Do NOT reset progress here. Progress reset is applied only on Save.
-
-        return StateFactory.CreateUpdatedState(state, updatedSchedule);
+        // Do NOT update state here. Category selection triggers async fetch (effect).
+        // State is updated only on success via UpdateScheduleFromViewModelAction.
+        // On fetch failure, selection must remain unchanged so the UI shows the previous selection.
+        return state;
     }
 
     [ReducerMethod]
