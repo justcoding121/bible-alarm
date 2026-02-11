@@ -38,7 +38,7 @@ internal sealed class IosMediaManagerObserverCoordinator
     {
         if (existing is not null)
         {
-            Dispose(existing);
+            ReleaseTokens(existing);
         }
 
         var tokens = new Tokens();
@@ -116,7 +116,7 @@ internal sealed class IosMediaManagerObserverCoordinator
         return tokens;
     }
 
-    internal static void Dispose(Tokens tokens)
+    internal static void ReleaseTokens(Tokens tokens)
     {
         tokens.RateObserver?.Dispose();
         tokens.RateObserver = null;

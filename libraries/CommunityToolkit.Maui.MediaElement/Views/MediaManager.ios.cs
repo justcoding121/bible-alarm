@@ -421,7 +421,7 @@ public partial class MediaManager : IDisposable
 
                 if (observerTokens is not null)
                 {
-                    IosMediaManagerObserverCoordinator.Dispose(observerTokens);
+                    IosMediaManagerObserverCoordinator.ReleaseTokens(observerTokens);
                     observerTokens = null;
                 }
 

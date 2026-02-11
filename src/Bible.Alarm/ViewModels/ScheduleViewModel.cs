@@ -371,8 +371,8 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         set
         {
             // Music updates are handled by MusicSelectionContainerViewModel via actions
-            // This setter is kept for backward compatibility but doesn't need to do anything
-            // as the container view model dispatches actions directly
+            // This setter is kept for backward compatibility; value is intentionally not used
+            _ = value;
         }
     }
 
@@ -390,8 +390,8 @@ public sealed class ScheduleViewModel : ObservableObject, IDisposable
         set
         {
             // Bible reading updates are handled by BibleSelectionContainerViewModel via actions
-            // This setter is kept for backward compatibility but doesn't need to do anything
-            // as the container view model dispatches actions directly
+            // This setter is kept for backward compatibility; value is intentionally not used
+            _ = value;
         }
     }
 

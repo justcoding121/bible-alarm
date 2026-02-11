@@ -13,7 +13,7 @@ namespace Bible.Alarm.Services.Media.Playback;
 /// Handles progress tracking and saving for Bible tracks and music tracks.
 /// Separated from PlaybackService for better modularity.
 /// </summary>
-public sealed class ProgressTracker
+public sealed class ProgressTracker : IDisposable
 {
     private readonly IPlaylistService playlistService;
     private readonly IAudioPlayer audioPlayer;

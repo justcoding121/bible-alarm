@@ -7,7 +7,7 @@ namespace Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 /// <summary>
 /// Handles overlay management for ScheduleViewModel.
 /// </summary>
-public sealed class ScheduleOverlayManager(IDispatcher dispatcher)
+public sealed class ScheduleOverlayManager(IDispatcher dispatcher) : IDisposable
 {
     /// <summary>
     /// Hides the Home page overlay.
