@@ -31,24 +31,25 @@ public class AndroidVersionPatcherTests
     [Fact]
     public async Task PatchVersionAsync_WithValidManifest_ShouldUpdateVersion()
     {
-        // Arrange
-        var filePath = testPathService.GetAndroidManifestPath();
+        // Arrange - Android patcher uses csproj (ApplicationVersion / ApplicationDisplayVersion), not AndroidManifest.xml
+        var csprojPath = testPathService.GetCsprojPath();
         var oldVersionCode = "1";
         var oldVersionName = "1.2";
         var newVersionCode = "2";
         var newVersionName = "1.3";
 
-        var manifestXml = $@"<?xml version=""1.0"" encoding=""utf-8""?>
-<manifest xmlns:android=""http://schemas.android.com/apk/res/android""
-    android:versionCode=""{oldVersionCode}""
-    android:versionName=""{oldVersionName}"">
-</manifest>";
+        var csprojXml = $@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <ApplicationVersion>{oldVersionCode}</ApplicationVersion>
+    <ApplicationDisplayVersion>{oldVersionName}</ApplicationDisplayVersion>
+  </PropertyGroup>
+</Project>";
 
-        fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
-        fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(manifestXml);
+        fileServiceMock.Setup(x => x.FileExists(csprojPath)).Returns(true);
+        fileServiceMock.Setup(x => x.ReadFileAsync(csprojPath)).ReturnsAsync(csprojXml);
         versionServiceMock.Setup(x => x.IncrementVersionCode(oldVersionCode)).Returns(newVersionCode);
         versionServiceMock.Setup(x => x.IncrementVersion(oldVersionName)).Returns(newVersionName);
-        fileServiceMock.Setup(x => x.WriteFileAsync(filePath, It.IsAny<string>())).Returns(Task.CompletedTask);
+        fileServiceMock.Setup(x => x.WriteFileAsync(csprojPath, It.IsAny<string>())).Returns(Task.CompletedTask);
 
         // Act
         await patcher.PatchVersionAsync();
@@ -56,7 +57,7 @@ public class AndroidVersionPatcherTests
         // Assert
         versionServiceMock.Verify(x => x.IncrementVersionCode(oldVersionCode), Times.Once);
         versionServiceMock.Verify(x => x.IncrementVersion(oldVersionName), Times.Once);
-        fileServiceMock.Verify(x => x.WriteFileAsync(filePath, It.Is<string>(s => s.Contains(newVersionCode) && s.Contains(newVersionName))), Times.Once);
+        fileServiceMock.Verify(x => x.WriteFileAsync(csprojPath, It.Is<string>(s => s.Contains(newVersionCode) && s.Contains(newVersionName))), Times.Once);
     }
 
     [Fact]

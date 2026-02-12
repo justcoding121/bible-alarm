@@ -436,11 +436,10 @@ public sealed class iOSNowPlayingInfoManager : IiOSNowPlayingInfoManager
             var scale = Math.Min(requestedSize.Width / image.Size.Width, requestedSize.Height / image.Size.Height);
             var width = (nfloat)(image.Size.Width * scale);
             var height = (nfloat)(image.Size.Height * scale);
+            var size = new CGSize(width, height);
 
-            UIGraphics.BeginImageContextWithOptions(new CGSize(width, height), false, 0);
-            image.Draw(new CGRect(0, 0, width, height));
-            var scaledImage = UIGraphics.GetImageFromCurrentImageContext();
-            UIGraphics.EndImageContext();
+            var renderer = new UIGraphicsImageRenderer(size);
+            var scaledImage = renderer.CreateImage(_ => image.Draw(new CGRect(0, 0, width, height)));
 
             return scaledImage ?? image;
         }

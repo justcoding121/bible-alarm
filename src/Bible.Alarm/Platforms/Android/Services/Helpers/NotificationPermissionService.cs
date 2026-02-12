@@ -238,7 +238,8 @@ public sealed class NotificationPermissionService : IDisposable
                     try
                     {
                         var activity = global::Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
-                        if (activity != null && !ActivityCompat.ShouldShowRequestPermissionRationale(activity, Manifest.Permission.PostNotifications))
+                        if (activity != null && (int)Build.VERSION.SdkInt >= 33 &&
+                            !ActivityCompat.ShouldShowRequestPermissionRationale(activity, "android.permission.POST_NOTIFICATIONS"))
                         {
                             promptExhausted = true;
                             logger.Information("NotificationPermissionService: System prompt exhausted (user permanently denied or don't ask again)");
