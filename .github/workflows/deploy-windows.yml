@@ -126,15 +126,19 @@ jobs:
         AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
         STORE_APP_ID: ${{ secrets.MICROSOFT_STORE_APP_ID }}
       run: |
-        # Find the MSIX package
-        $msixPath = Get-ChildItem -Path "./artifacts/windows" -Filter "*.msix" -Recurse | Select-Object -First 1
-        
-        if (-not $msixPath) {
-            $msixPath = Get-ChildItem -Path "./artifacts/windows" -Filter "*.msixbundle" -Recurse | Select-Object -First 1
+        # Find the MSIX package (SDK may put it under artifacts/windows or under bin/Release/.../AppPackages)
+        $searchRoots = @("./artifacts/windows", "src/Bible.Alarm/bin/Release")
+        $msixPath = $null
+        foreach ($root in $searchRoots) {
+          if (Test-Path $root) {
+            $msixPath = Get-ChildItem -Path $root -Filter "*.msix" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($msixPath) { break }
+            $msixPath = Get-ChildItem -Path $root -Filter "*.msixbundle" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($msixPath) { break }
+          }
         }
-        
         if (-not $msixPath) {
-            Write-Error "No MSIX package found!"
+            Write-Error "No MSIX package found under artifacts/windows or src/Bible.Alarm/bin/Release!"
             exit 1
         }
         
