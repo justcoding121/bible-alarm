@@ -49,60 +49,9 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore src/Bible.Alarm.sln
       
-    # Patch version
-    - name: Patch Windows Version
-      shell: powershell
-      run: |
-        # Run version patcher
-        dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release
-        
-        # Also increment ApplicationVersion in csproj for MAUI
-        $csprojFile = "src/Bible.Alarm/Bible.Alarm.csproj"
-        $content = Get-Content $csprojFile -Raw
-        
-        # Update ApplicationVersion
-        if ($content -match '<ApplicationVersion>(\d+)</ApplicationVersion>') {
-            $currentVersion = [int]$Matches[1]
-            $newVersion = $currentVersion + 1
-            $content = $content -replace "<ApplicationVersion>$currentVersion</ApplicationVersion>", "<ApplicationVersion>$newVersion</ApplicationVersion>"
-            Write-Host "Updated ApplicationVersion: $currentVersion -> $newVersion"
-        }
-        
-        # Update ApplicationDisplayVersion
-        if ($content -match '<ApplicationDisplayVersion>(\d+)\.(\d+)</ApplicationDisplayVersion>') {
-            $major = [int]$Matches[1]
-            $minor = [int]$Matches[2]
-            $newMinor = $minor + 1
-            if ($newMinor -gt 99) {
-                $newMinor = 0
-                $major = $major + 1
-            }
-            $oldDisplay = "$($Matches[1]).$($Matches[2])"
-            $newDisplay = "$major.$newMinor"
-            $content = $content -replace "<ApplicationDisplayVersion>$oldDisplay</ApplicationDisplayVersion>", "<ApplicationDisplayVersion>$newDisplay</ApplicationDisplayVersion>"
-            Write-Host "Updated ApplicationDisplayVersion: $oldDisplay -> $newDisplay"
-        }
-        
-        Set-Content $csprojFile $content -NoNewline
-        
-        # Also update Package.appxmanifest version
-        $manifestFile = "src/Bible.Alarm/Platforms/Windows/Package.appxmanifest"
-        $manifestContent = Get-Content $manifestFile -Raw
-        
-        if ($manifestContent -match 'Version="(\d+)\.(\d+)\.(\d+)\.(\d+)"') {
-            $major = [int]$Matches[1]
-            $minor = [int]$Matches[2]
-            $newMinor = $minor + 1
-            if ($newMinor -gt 99) {
-                $newMinor = 0
-                $major = $major + 1
-            }
-            $oldVersion = "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
-            $newVersion = "$major.$newMinor.0.0"
-            $manifestContent = $manifestContent -replace "Version=`"$oldVersion`"", "Version=`"$newVersion`""
-            Set-Content $manifestFile $manifestContent -NoNewline
-            Write-Host "Updated Package.appxmanifest Version: $oldVersion -> $newVersion"
-        }
+    # Patch version before build (updates Package.appxmanifest, csproj ApplicationVersion/ApplicationDisplayVersion, iOS Info.plist)
+    - name: Patch version
+      run: dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release
 
     - name: Get Windows version
       id: get_version
@@ -135,8 +84,73 @@ jobs:
           -p:PackageCertificateThumbprint="$env:WINDOWS_CERTIFICATE_THUMBPRINT" `
           --output ./artifacts/windows
 
-    # Upload to Microsoft Store using Partner Center API
+    # Create .msixbundle for Store (Store requires bundle if previously released as bundle)
+    - name: Create MSIX bundle
+      env:
+        WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
+      shell: powershell
+      run: |
+        $version = "${{ steps.get_version.outputs.version }}"
+        $baseOut = "src/Bible.Alarm/bin/Release/net10.0-windows10.0.19041.0"
+        $appPackagesPath = "$baseOut/win-x64/AppPackages"
+        $all = Get-ChildItem -Path $appPackagesPath -Filter "*.msix" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch "\\Dependencies\\" }
+        $msix = $all | ForEach-Object {
+          if ($_.Name -match "_(\d+)\.(\d+)\.(\d+)\.(\d+)_") {
+            [PSCustomObject]@{ File = $_; Major = [int]$Matches[1]; Minor = [int]$Matches[2]; Build = [int]$Matches[3]; Rev = [int]$Matches[4] }
+          }
+        } | Sort-Object -Property Major, Minor, Build, Rev -Descending | Select-Object -First 1 -ExpandProperty File
+        if (-not $msix) {
+          Write-Error "No .msix found under $appPackagesPath"
+          exit 1
+        }
+        if (-not $version -and $msix.Name -match "_(\d+\.\d+\.\d+\.\d+)_") {
+          $version = $Matches[1]
+          Write-Host "Using version from .msix name: $version"
+        }
+        if (-not $version) {
+          Write-Error "Version is empty. Ensure Get Windows version step ran and Package.appxmanifest has Version attribute."
+          exit 1
+        }
+        $bundleDir = Join-Path $env:RUNNER_TEMP "BibleAlarmBundle"
+        if (Test-Path $bundleDir) { Remove-Item $bundleDir -Recurse -Force }
+        New-Item -ItemType Directory -Path $bundleDir | Out-Null
+        Copy-Item $msix.FullName -Destination $bundleDir -Force
+        Write-Host "Copied $($msix.Name) to bundle dir"
+
+        $makeAppx = $null
+        if (Test-Path "C:\Program Files (x86)\Windows Kits\10\bin") {
+          $makeAppx = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "MakeAppx.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        }
+        if (-not $makeAppx) {
+          $candidates = Get-ChildItem -Path "C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\microsoft.windows.sdk.buildtools" -Recurse -Filter "MakeAppx.exe" -ErrorAction SilentlyContinue
+          $makeAppx = $candidates | Where-Object { $_.FullName -match "\\x64\\MakeAppx" } | Select-Object -First 1
+          if (-not $makeAppx) { $makeAppx = $candidates | Select-Object -First 1 }
+        }
+        if (-not $makeAppx) { Write-Error "MakeAppx.exe not found"; exit 1 }
+
+        $bundleName = "Bible.Alarm_${version}_x86_x64_arm64.msixbundle"
+        $artifactsDir = Join-Path (Get-Location) "artifacts"
+        $bundlePath = Join-Path $artifactsDir $bundleName
+        & $makeAppx.FullName bundle /d $bundleDir /p $bundlePath /o
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Write-Host "Created bundle: $bundlePath"
+
+        $signTool = $null
+        if (Test-Path "C:\Program Files (x86)\Windows Kits\10\bin") {
+          $signTool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "SignTool.exe" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match "x64\\SignTool" } | Select-Object -First 1
+        }
+        if (-not $signTool) {
+          $signTool = Get-ChildItem -Path "C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\microsoft.windows.sdk.buildtools" -Recurse -Filter "SignTool.exe" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match "\\x64\\SignTool" } | Select-Object -First 1
+        }
+        if ($signTool) {
+          & $signTool.FullName sign /fd SHA256 /sha1 $env:WINDOWS_CERTIFICATE_THUMBPRINT /tr "http://timestamp.digicert.com" /td SHA256 $bundlePath
+          if ($LASTEXITCODE -ne 0) { Write-Warning "Signing bundle failed" }
+        }
+        Write-Host "Bundle ready: $bundlePath"
+
+    # Upload to Microsoft Store using Partner Center API (continue on failure so release is still created)
     - name: Upload to Microsoft Store
+      continue-on-error: true
       shell: powershell
       env:
         AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
@@ -144,23 +158,13 @@ jobs:
         AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
         STORE_APP_ID: ${{ secrets.MICROSOFT_STORE_APP_ID }}
       run: |
-        # Find the MSIX package (SDK may put it under artifacts/windows or under bin/Release/.../AppPackages)
-        $searchRoots = @("./artifacts/windows", "src/Bible.Alarm/bin/Release")
-        $msixPath = $null
-        foreach ($root in $searchRoots) {
-          if (Test-Path $root) {
-            $msixPath = Get-ChildItem -Path $root -Filter "*.msix" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($msixPath) { break }
-            $msixPath = Get-ChildItem -Path $root -Filter "*.msixbundle" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($msixPath) { break }
-          }
-        }
+        # Upload the .msixbundle (Store requires bundle); it is created in artifacts by the Create MSIX bundle step
+        $msixPath = Get-ChildItem -Path "./artifacts" -Filter "*.msixbundle" -ErrorAction SilentlyContinue | Select-Object -First 1
         if (-not $msixPath) {
-            Write-Error "No MSIX package found under artifacts/windows or src/Bible.Alarm/bin/Release!"
+            Write-Error "No .msixbundle found under artifacts. Ensure Create MSIX bundle step succeeded."
             exit 1
         }
-        
-        Write-Host "Found package: $($msixPath.FullName)"
+        Write-Host "Uploading bundle: $($msixPath.FullName)"
         
         # Get access token from Azure AD
         $tokenUrl = "https://login.microsoftonline.com/$env:AZURE_AD_TENANT_ID/oauth2/token"
@@ -229,8 +233,9 @@ jobs:
         }
         Write-Host "✓ No secret files found in working directory"
 
-    # Commit version changes (only specific version files)
+    # Commit version changes (only specific version files); continue on failure so release is still created
     - name: Commit version changes
+      continue-on-error: true
       uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
       with:
         author_name: github-actions[bot]
@@ -243,3 +248,44 @@ jobs:
         default_author: github_actions
         skip_dirty_check: false
         push: true
+
+    # Publish installable bundle to GitHub Release so it can be downloaded (e.g. for manual Store upload)
+    - name: Find MSIX bundle for release
+      id: find_package
+      shell: powershell
+      run: |
+        $msixPath = Get-ChildItem -Path "./artifacts" -Filter "*.msixbundle" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $msixPath) {
+          Write-Error "No .msixbundle found under artifacts for release"
+          exit 1
+        }
+        $relativePath = $msixPath.FullName.Replace((Get-Location).Path + [IO.Path]::DirectorySeparatorChar, "").Replace("\", "/")
+        Write-Host "package_path=$relativePath" >> $env:GITHUB_OUTPUT
+        Write-Host "Found: $relativePath"
+
+    - name: Create release tag and push
+      id: release_tag
+      shell: powershell
+      run: |
+        git fetch origin stable
+        $version = "${{ steps.get_version.outputs.version }}"
+        $runNumber = "${{ github.run_number }}"
+        $tag = "windows-v$version-$runNumber"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a $tag origin/stable -m "Windows release $version (build $runNumber)"
+        git push origin $tag
+        Write-Host "tag=$tag" >> $env:GITHUB_OUTPUT
+
+    - name: Create GitHub Release and upload package
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.release_tag.outputs.tag }}
+        name: Bible Alarm Windows ${{ steps.get_version.outputs.version }}
+        body: |
+          Installable package for Microsoft Store or sideloading.
+          **Version:** ${{ steps.get_version.outputs.version }}
+          If Store upload from the action failed, download the `.msixbundle` here and upload it manually in Partner Center.
+        generate_release_notes: true
+        files: ${{ steps.find_package.outputs.package_path }}
+        fail_on_unmatched_files: true

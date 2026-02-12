@@ -67,23 +67,27 @@ The application has been refactored to use dependency injection and follows a cl
 
 ## Usage
 
+Run **before** building the app (e.g. in CI before `dotnet publish`, or locally before release builds):
+
 ```bash
-dotnet run
+dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release
 ```
 
 The application will:
 1. Initialize the dependency injection container
 2. Load all platform-specific patchers
-3. Execute version patching for each platform in parallel
+3. Execute version patching for each platform in parallel (manifests and csproj)
 4. Report success/failure for each platform
 5. Exit with appropriate status code
 
+All version-sensitive manifests and project files are updated so a single run is sufficient before build; no extra version bump steps should be run in the pipeline.
+
 ## Supported Platforms
 
-### Android
-- **File**: `src/Bible.Alarm/Platforms/Android/Properties/AndroidManifest.xml`
-- **Attributes**: `android:versionCode` and `android:versionName`
-- **Logic**: Increments version code and version name
+### Android (MAUI uses csproj for version)
+- **File**: `src/Bible.Alarm/Bible.Alarm.csproj`
+- **Attributes**: `ApplicationVersion` (version code), `ApplicationDisplayVersion` (version name)
+- **Logic**: Increments both; shared with other platforms for display
 
 ### iOS
 - **File**: `src/Bible.Alarm/Platforms/iOS/Info.plist`
@@ -93,7 +97,7 @@ The application will:
 ### Windows
 - **File**: `src/Bible.Alarm/Platforms/Windows/Package.appxmanifest`
 - **Attribute**: `Version`
-- **Logic**: Increments major.minor version (sets build and revision to 0)
+- **Logic**: Increments major.minor version (sets build and revision to 0). Microsoft Store requires the revision (4th component) to be 0 (e.g. `2.1.1.0` is valid; `2.1.0.1` is rejected).
 
 ## Version Increment Logic
 

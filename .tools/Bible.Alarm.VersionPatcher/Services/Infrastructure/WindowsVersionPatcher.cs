@@ -58,6 +58,7 @@ public class WindowsVersionPatcher(IVersionService versionService, IFileService 
         }
 
         // Extract major.minor from the version (e.g., "1.2.3.4" -> "1.2")
+        // Store requirement: manifest Version must have revision (4th component) = 0 (e.g. 2.1.1.0, not 2.1.0.1)
         var versionParts = versionName.Split('.');
         if (versionParts.Length < 2)
         {
@@ -68,6 +69,11 @@ public class WindowsVersionPatcher(IVersionService versionService, IFileService 
         var majorMinorVersion = $"{versionParts[0]}.{versionParts[1]}";
         var newMajorMinorVersion = versionService.IncrementVersion(majorMinorVersion);
         var newVersionName = $"{newMajorMinorVersion}.0.0";
+
+        if (!newVersionName.EndsWith(".0", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Windows Store requires manifest Version revision (4th component) to be 0. Got: {newVersionName}");
+        }
 
         attrs["Version"].Value = newVersionName;
 
