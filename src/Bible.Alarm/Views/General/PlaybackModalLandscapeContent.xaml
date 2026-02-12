@@ -518,6 +518,7 @@
                     </Border>
 
                     <Label Grid.Column="5"
+                           MinimumWidthRequest="48"
                            FontSize="{DynamicResource StandardFontSize}"
                            FontAttributes="Bold"
                            VerticalOptions="Center"
@@ -545,6 +546,7 @@
                         Margin="0" />
 
                     <Label Grid.Column="7"
+                           MinimumWidthRequest="48"
                            FontSize="{DynamicResource StandardFontSize}"
                            FontAttributes="Bold"
                            VerticalOptions="Center"

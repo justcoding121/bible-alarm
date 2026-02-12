@@ -435,6 +435,7 @@
                         </Grid.ColumnDefinitions>
                         <Label
                             Grid.Column="0"
+                            MinimumWidthRequest="48"
                             FontSize="{DynamicResource StandardFontSize}"
                             FontAttributes="Bold"
                             HorizontalOptions="Start"
@@ -467,6 +468,7 @@
                             Margin="0" />
                         <Label
                             Grid.Column="2"
+                            MinimumWidthRequest="48"
                             FontSize="{DynamicResource StandardFontSize}"
                             FontAttributes="Bold"
                             HorizontalOptions="End"
