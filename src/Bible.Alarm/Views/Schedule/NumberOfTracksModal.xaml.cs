@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.ViewHelpers;
+using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Schedule;
 using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
@@ -14,6 +15,7 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
     public NumberOfTrackContainerViewModel? ViewModel => BindingContext as NumberOfTrackContainerViewModel;
+    public IListViewModel? ListViewModel => ViewModel;
 
     public NumberOfTracksModal()
     {
@@ -85,22 +87,12 @@ public partial class NumberOfTracksModal : BaseContentPage, IDisposable
         Appearing -= OnAppearing;
 
         await ModalScrollHelper.HandleModalAppearingAsync(
-            isBusyGetter: () => ViewModel?.IsBusy ?? false,
-            busyOverlay: BusyOverlay,
-            collectionView: TracksCollectionView,
+            ListViewModel,
+            BusyOverlay,
+            TracksCollectionView,
             getSelectedItem: () => ViewModel?.CurrentNumberOfTracks,
             refreshAction: ViewModel != null
-                ? async () =>
-                {
-                    await ViewModel.PopulateNumberOfTracksListViewAsync();
-                    
-                    // Set IsBusy to false after data is loaded (helper will wait for this)
-                    await MainThread.InvokeOnMainThreadAsync(() =>
-                    {
-                        if (ViewModel != null)
-                            ViewModel.IsBusy = false;
-                    });
-                }
+                ? () => ViewModel.PopulateNumberOfTracksListViewAsync()
                 : null,
             onFetchFailed: null,
             cancellationToken: cancellationTokenSource.Token);

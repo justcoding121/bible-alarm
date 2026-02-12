@@ -10,6 +10,7 @@ using Bible.Alarm.ViewModels.General;
 using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer;
+using Bible.Alarm.ViewModels.Interfaces;
 using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer.ListPopulation;
 using Bible.Alarm.ViewModels.Schedule.NumberOfTrackContainer.StateInitialization;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -26,7 +27,7 @@ using Bible.Alarm.Platforms.iOS.Services.Helpers;
 
 namespace Bible.Alarm.ViewModels.Schedule;
 
-public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposable
+public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListViewModel, IDisposable
 {
     private readonly ILogger logger;
     private readonly INavigationService navigationService;
@@ -72,6 +73,8 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IDisposa
         get => isBusy;
         set => SetProperty(ref isBusy, value);
     }
+
+    public object? SelectedItem => CurrentNumberOfTracks;
 
     public NumberOfTrackContainerViewModel(
         ILogger logger,
