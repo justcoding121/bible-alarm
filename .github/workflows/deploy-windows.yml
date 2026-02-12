@@ -5,6 +5,9 @@ on:
     branches:
       - stable
 
+permissions:
+  contents: write
+
 jobs:
   deploy-windows:
     runs-on: windows-latest
@@ -99,6 +102,21 @@ jobs:
             $manifestContent = $manifestContent -replace "Version=`"$oldVersion`"", "Version=`"$newVersion`""
             Set-Content $manifestFile $manifestContent -NoNewline
             Write-Host "Updated Package.appxmanifest Version: $oldVersion -> $newVersion"
+        }
+
+    - name: Get Windows version
+      id: get_version
+      shell: powershell
+      run: |
+        $manifestFile = "src/Bible.Alarm/Platforms/Windows/Package.appxmanifest"
+        $content = Get-Content $manifestFile -Raw
+        if ($content -match 'Version="(\d+\.\d+\.\d+\.\d+)"') {
+          $version = $Matches[1]
+          Write-Host "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Version for release: $version"
+        } else {
+          Write-Error "Could not parse version from Package.appxmanifest"
+          exit 1
         }
 
     # Build Windows release (thumbprint via env to avoid expanding secret in run - S7636)

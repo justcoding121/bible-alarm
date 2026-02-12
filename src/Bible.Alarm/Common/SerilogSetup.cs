@@ -5,6 +5,9 @@ using Serilog;
 #if ANDROID
 using Bible.Alarm.Platforms.Android.Logging;
 #endif
+#if WINDOWS
+using Windows.Storage;
+#endif
 namespace Bible.Alarm.Common;
 
 public class SerilogSetup
@@ -224,10 +227,12 @@ public class SerilogSetup
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // Windows: Use cache subfolder in LocalApplicationData
-                // This location can be cleared by disk cleanup tools
+#if WINDOWS
+                cacheBasePath = ApplicationData.Current.LocalCacheFolder.Path;
+#else
                 var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 cacheBasePath = Path.Combine(localAppData, "Bible.Alarm", "Cache");
+#endif
             }
             else if (CurrentDevice.RuntimePlatform == "Android")
             {

@@ -71,6 +71,7 @@
 		<WindowsPackageType Condition="'$(Configuration)' == 'Release'">MSIX</WindowsPackageType>
 		<!-- Use CoreCLR runtime for Windows (not Mono) -->
 		<UseMonoRuntime Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</UseMonoRuntime>
+		<DefineConstants Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">$(DefineConstants);WINDOWS</DefineConstants>
 		<!-- Disable Windows App SDK auto-initialization (Release mode only) -->
 		<!-- Auto-initialization can fail in debug scenarios, so we'll handle initialization manually if needed -->
 		<!-- For packaged MSIX apps, the runtime is included in the package, so auto-initialization isn't needed -->
