@@ -10,11 +10,24 @@ public class VersionPatchingService(IEnumerable<IPlatformVersionPatcher> platfor
 {
     private readonly IEnumerable<IPlatformVersionPatcher> platformPatchers = platformPatchers ?? throw new ArgumentNullException(nameof(platformPatchers));
 
-    public async Task PatchAllPlatformsAsync()
+    public async Task PatchAsync(string? platformName = null)
     {
-        Console.WriteLine("Starting version patching for all platforms...");
+        var toRun = string.IsNullOrWhiteSpace(platformName)
+            ? platformPatchers.ToList()
+            : platformPatchers.Where(p => string.Equals(p.PlatformName, platformName.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
 
-        var tasks = platformPatchers.Select(async patcher =>
+        if (toRun.Count == 0)
+        {
+            if (!string.IsNullOrWhiteSpace(platformName))
+                throw new ArgumentException($"Unknown platform: '{platformName}'. Use Windows, Android, or iOS.", nameof(platformName));
+            return;
+        }
+
+        Console.WriteLine(toRun.Count == platformPatchers.Count()
+            ? "Starting version patching for all platforms..."
+            : $"Starting version patching for {platformName} only...");
+
+        var tasks = toRun.Select(async patcher =>
         {
             try
             {
@@ -30,6 +43,6 @@ public class VersionPatchingService(IEnumerable<IPlatformVersionPatcher> platfor
         });
 
         await Task.WhenAll(tasks);
-        Console.WriteLine("All platform version patching completed successfully!");
+        Console.WriteLine("Version patching completed successfully!");
     }
 }

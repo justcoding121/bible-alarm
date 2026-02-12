@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.VersionPatcher.Services.Contracts;
 using Bible.Alarm.VersionPatcher.Services.Infrastructure;
@@ -12,16 +13,17 @@ internal class Program
     {
         try
         {
-            // Create service collection and register services
+            var platform = GetPlatformFilter(args);
+            if (!string.IsNullOrEmpty(platform))
+                Console.WriteLine($"Platform filter: {platform}");
+
             var services = new ServiceCollection();
             services.AddVersionPatchingServices();
 
-            // Build service provider
             await using var serviceProvider = services.BuildServiceProvider();
 
-            // Get the version patching service and execute patching
             var versionPatchingService = serviceProvider.GetRequiredService<IVersionPatchingService>();
-            await versionPatchingService.PatchAllPlatformsAsync();
+            await versionPatchingService.PatchAsync(platform);
 
             Console.WriteLine("Version patching completed successfully!");
         }
@@ -31,5 +33,14 @@ internal class Program
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
             Environment.Exit(1);
         }
+    }
+
+    private static string? GetPlatformFilter(string[] args)
+    {
+        var platformArg = args.FirstOrDefault(a => a.StartsWith("--platform=", StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrEmpty(platformArg))
+            return platformArg.Substring("--platform=".Length).Trim();
+
+        return Environment.GetEnvironmentVariable("VERSION_PATCH_PLATFORM")?.Trim();
     }
 }

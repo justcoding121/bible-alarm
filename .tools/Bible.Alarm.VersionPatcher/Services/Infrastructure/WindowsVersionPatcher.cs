@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.XPath;
@@ -9,6 +10,8 @@ namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 public class WindowsVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
     : IPlatformVersionPatcher
 {
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+
     public string PlatformName => "Windows";
 
     public async Task PatchVersionAsync()
@@ -34,14 +37,12 @@ public class WindowsVersionPatcher(IVersionService versionService, IFileService 
             return;
         }
 
-        // Create namespace manager for XPath queries
         var namespaceManager = new XmlNamespaceManager(doc.NameTable);
         namespaceManager.AddNamespace("appx", "http://schemas.microsoft.com/appx/manifest/foundation/windows10");
 
-        // Try namespace-aware XPath first, then fallback to simple XPath
-        var identityNode = doc.SelectSingleNode("//appx:Identity", namespaceManager) 
+        var identityNode = doc.SelectSingleNode("//appx:Identity", namespaceManager)
                           ?? doc.SelectSingleNode("//Identity");
-        
+
         if (identityNode?.Attributes == null)
         {
             Console.WriteLine("Could not find Identity node in Windows manifest");
@@ -57,7 +58,6 @@ public class WindowsVersionPatcher(IVersionService versionService, IFileService 
             return;
         }
 
-        // Extract major.minor from the version (e.g., "1.2.3.4" -> "1.2")
         // Store requirement: manifest Version must have revision (4th component) = 0 (e.g. 2.1.1.0, not 2.1.0.1)
         var versionParts = versionName.Split('.');
         if (versionParts.Length < 2)
@@ -81,5 +81,36 @@ public class WindowsVersionPatcher(IVersionService versionService, IFileService 
         await fileService.WriteFileAsync(manifestFile, updatedContent);
 
         Console.WriteLine($"Windows version updated: {versionName} -> {newVersionName}");
+
+        await PatchCsprojForWindowsAsync(newMajorMinorVersion);
+    }
+
+    private async Task PatchCsprojForWindowsAsync(string newDisplayVersion)
+    {
+        var csprojFile = pathService.GetCsprojPath();
+        if (!fileService.FileExists(csprojFile))
+            return;
+
+        var content = await fileService.ReadFileAsync(csprojFile);
+
+        var versionCodeMatch = Regex.Match(content, @"<ApplicationVersion>(\d+)</ApplicationVersion>", RegexOptions.None, RegexTimeout);
+        if (versionCodeMatch.Success)
+        {
+            var currentVersionCode = versionCodeMatch.Groups[1].Value;
+            var newVersionCode = versionService.IncrementVersionCode(currentVersionCode);
+            content = Regex.Replace(content,
+                @"<ApplicationVersion>\d+</ApplicationVersion>",
+                $"<ApplicationVersion>{newVersionCode}</ApplicationVersion>",
+                RegexOptions.None, RegexTimeout);
+            Console.WriteLine($"ApplicationVersion updated: {currentVersionCode} -> {newVersionCode}");
+        }
+
+        content = Regex.Replace(content,
+            @"<ApplicationDisplayVersion>[\d.]+</ApplicationDisplayVersion>",
+            $"<ApplicationDisplayVersion>{newDisplayVersion}</ApplicationDisplayVersion>",
+            RegexOptions.None, RegexTimeout);
+        Console.WriteLine($"ApplicationDisplayVersion updated -> {newDisplayVersion}");
+
+        await fileService.WriteFileAsync(csprojFile, content);
     }
 }

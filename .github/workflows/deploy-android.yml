@@ -48,32 +48,9 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore src/Bible.Alarm.sln
       
-    # Patch version using the version patcher tool
+    # Patch version for Android only (csproj ApplicationVersion / ApplicationDisplayVersion)
     - name: Patch Android Version
-      run: |
-        # Run version patcher for Android
-        dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release
-        
-        # Also increment ApplicationVersion in csproj for MAUI
-        CSPROJ_FILE="src/Bible.Alarm/Bible.Alarm.csproj"
-        CURRENT_VERSION=$(grep -oP '(?<=<ApplicationVersion>)\d+(?=</ApplicationVersion>)' "$CSPROJ_FILE")
-        NEW_VERSION=$((CURRENT_VERSION + 1))
-        sed -i "s/<ApplicationVersion>$CURRENT_VERSION<\/ApplicationVersion>/<ApplicationVersion>$NEW_VERSION<\/ApplicationVersion>/" "$CSPROJ_FILE"
-        
-        # Increment ApplicationDisplayVersion (minor version)
-        CURRENT_DISPLAY=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+(?=</ApplicationDisplayVersion>)' "$CSPROJ_FILE")
-        MAJOR=$(echo $CURRENT_DISPLAY | cut -d. -f1)
-        MINOR=$(echo $CURRENT_DISPLAY | cut -d. -f2)
-        NEW_MINOR=$((MINOR + 1))
-        if [ $NEW_MINOR -gt 99 ]; then
-          NEW_MINOR=0
-          MAJOR=$((MAJOR + 1))
-        fi
-        NEW_DISPLAY="$MAJOR.$NEW_MINOR"
-        sed -i "s/<ApplicationDisplayVersion>$CURRENT_DISPLAY<\/ApplicationDisplayVersion>/<ApplicationDisplayVersion>$NEW_DISPLAY<\/ApplicationDisplayVersion>/" "$CSPROJ_FILE"
-        
-        echo "Updated ApplicationVersion: $CURRENT_VERSION -> $NEW_VERSION"
-        echo "Updated ApplicationDisplayVersion: $CURRENT_DISPLAY -> $NEW_DISPLAY"
+      run: dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release -- --platform=Android
 
     # Build Android release (signing secrets via env to avoid expanding in run - S7636)
     - name: Build Android Release

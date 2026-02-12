@@ -67,33 +67,9 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore src/Bible.Alarm.sln
       
-    # Patch version
+    # Patch version for iOS only (Info.plist CFBundleVersion + csproj ApplicationVersion/ApplicationDisplayVersion)
     - name: Patch iOS Version
-      run: |
-        # Run version patcher
-        dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release
-        
-        # Also increment ApplicationVersion in csproj for MAUI
-        CSPROJ_FILE="src/Bible.Alarm/Bible.Alarm.csproj"
-        CURRENT_VERSION=$(grep -oE '<ApplicationVersion>[0-9]+</ApplicationVersion>' "$CSPROJ_FILE" | grep -oE '[0-9]+')
-        NEW_VERSION=$((CURRENT_VERSION + 1))
-        sed -i '' "s/<ApplicationVersion>$CURRENT_VERSION<\/ApplicationVersion>/<ApplicationVersion>$NEW_VERSION<\/ApplicationVersion>/" "$CSPROJ_FILE"
-        
-        # Increment CFBundleVersion in Info.plist
-        PLIST_FILE="src/Bible.Alarm/Platforms/iOS/Info.plist"
-        CURRENT_BUNDLE_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST_FILE")
-        MAJOR=$(echo $CURRENT_BUNDLE_VERSION | cut -d. -f1)
-        MINOR=$(echo $CURRENT_BUNDLE_VERSION | cut -d. -f2)
-        NEW_MINOR=$((MINOR + 1))
-        if [ $NEW_MINOR -gt 99 ]; then
-          NEW_MINOR=0
-          MAJOR=$((MAJOR + 1))
-        fi
-        NEW_BUNDLE_VERSION="$MAJOR.$NEW_MINOR"
-        /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_BUNDLE_VERSION" "$PLIST_FILE"
-        
-        echo "Updated ApplicationVersion: $CURRENT_VERSION -> $NEW_VERSION"
-        echo "Updated CFBundleVersion: $CURRENT_BUNDLE_VERSION -> $NEW_BUNDLE_VERSION"
+      run: dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release -- --platform=iOS
 
     # Build iOS release (secrets via env to avoid expanding in run - S7636)
     - name: Build iOS Release

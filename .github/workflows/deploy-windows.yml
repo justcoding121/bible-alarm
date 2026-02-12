@@ -49,9 +49,9 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore src/Bible.Alarm.sln
       
-    # Patch version before build (updates Package.appxmanifest, csproj ApplicationVersion/ApplicationDisplayVersion, iOS Info.plist)
+    # Patch version for Windows only (Package.appxmanifest + csproj)
     - name: Patch version
-      run: dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release
+      run: dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release -- --platform=Windows
 
     - name: Get Windows version
       id: get_version

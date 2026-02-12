@@ -9,6 +9,8 @@ namespace Bible.Alarm.VersionPatcher.Services.Infrastructure;
 public partial class IosVersionPatcher(IVersionService versionService, IFileService fileService, IPathService pathService)
     : IPlatformVersionPatcher
 {
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+
     public string PlatformName => "iOS";
 
     public async Task PatchVersionAsync()
@@ -25,6 +27,7 @@ public partial class IosVersionPatcher(IVersionService versionService, IFileServ
         var lines = content.Split('\n');
         var output = new StringBuilder();
         var versionFound = false;
+        string? newVersion = null;
 
         for (var i = 0; i < lines.Length; i++)
         {
@@ -41,11 +44,11 @@ public partial class IosVersionPatcher(IVersionService versionService, IFileServ
 
                     if (!string.IsNullOrEmpty(oldVersion))
                     {
-                        var newVersion = versionService.IncrementVersion(oldVersion);
+                        newVersion = versionService.IncrementVersion(oldVersion);
                         var matchRegex = MatchRegexGenerated();
                         var newLine = matchRegex.Replace(nextLine, $"<string>{newVersion}</string>");
                         output.AppendLine(newLine);
-                        i++; // Skip the next line since we processed it
+                        i++;
                         versionFound = true;
 
                         Console.WriteLine($"iOS version updated: {oldVersion} -> {newVersion}");
@@ -70,7 +73,38 @@ public partial class IosVersionPatcher(IVersionService versionService, IFileServ
         if (versionFound)
         {
             await fileService.WriteFileAsync(manifestFile, output.ToString());
+            if (!string.IsNullOrEmpty(newVersion))
+                await PatchCsprojForIosAsync(newVersion);
         }
+    }
+
+    private async Task PatchCsprojForIosAsync(string newDisplayVersion)
+    {
+        var csprojFile = pathService.GetCsprojPath();
+        if (!fileService.FileExists(csprojFile))
+            return;
+
+        var content = await fileService.ReadFileAsync(csprojFile);
+
+        var versionCodeMatch = Regex.Match(content, @"<ApplicationVersion>(\d+)</ApplicationVersion>", RegexOptions.None, RegexTimeout);
+        if (versionCodeMatch.Success)
+        {
+            var currentVersionCode = versionCodeMatch.Groups[1].Value;
+            var newVersionCode = versionService.IncrementVersionCode(currentVersionCode);
+            content = Regex.Replace(content,
+                @"<ApplicationVersion>\d+</ApplicationVersion>",
+                $"<ApplicationVersion>{newVersionCode}</ApplicationVersion>",
+                RegexOptions.None, RegexTimeout);
+            Console.WriteLine($"ApplicationVersion updated: {currentVersionCode} -> {newVersionCode}");
+        }
+
+        content = Regex.Replace(content,
+            @"<ApplicationDisplayVersion>[\d.]+</ApplicationDisplayVersion>",
+            $"<ApplicationDisplayVersion>{newDisplayVersion}</ApplicationDisplayVersion>",
+            RegexOptions.None, RegexTimeout);
+        Console.WriteLine($"ApplicationDisplayVersion updated -> {newDisplayVersion}");
+
+        await fileService.WriteFileAsync(csprojFile, content);
     }
 
     private static string ExtractVersionFromLine(string line)
