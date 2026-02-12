@@ -233,6 +233,10 @@ _index*/
 
 BundleArtifacts*/
 
+# SonarCloud / sonar-scan.ps1 artifacts
+.sonar/
+.sonarqube/
+
 # macOS system files
 .DS_Store
 .DS_Store?
