@@ -8,6 +8,7 @@
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
+    xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
     x:DataType="shared:PlaybackViewModel"
     IsVisible="{Binding ShowLandscapeLayout}"
     HorizontalOptions="Fill"
@@ -523,6 +524,7 @@
                            Text="{Binding CurrentTime}"
                            Style="{StaticResource ControlLabelTextColorStyle}" />
 
+                    <!-- Slider (hidden when buffering) -->
                     <Slider Grid.Column="6"
                             x:Name="LandscapeProgressSlider"
                             HorizontalOptions="Fill"
@@ -530,9 +532,17 @@
                             Minimum="0"
                             Maximum="1"
                             IsEnabled="{Binding AreControlsEnabled}"
+                            IsVisible="{Binding IsBuffering, Converter={StaticResource negateBooleanConverter}}"
                             Value="{Binding Progress}"
                             Style="{StaticResource ControlSliderStyle}"
                             MaximumTrackColor="{DynamicResource ProgressBarBackgroundColor}" />
+                    <!-- Animated progress bar shown during buffering -->
+                    <sharedViews:AnimatedProgressBar
+                        Grid.Column="6"
+                        IsVisible="{Binding IsBuffering}"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Center"
+                        Margin="0" />
 
                     <Label Grid.Column="7"
                            FontSize="{DynamicResource StandardFontSize}"

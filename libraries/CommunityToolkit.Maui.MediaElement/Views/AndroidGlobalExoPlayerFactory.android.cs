@@ -46,7 +46,12 @@ internal static class AndroidGlobalExoPlayerFactory
 
         Serilog.Log.Information("MediaManager", $"MediaManager: Creating ExoPlayer directly via ExoPlayerBuilder. Context: {context.GetType().FullName}");
 
-        var exoPlayer = new ExoPlayerBuilder(context).Build();
+        var exoPlayerBuilder = new ExoPlayerBuilder(context);
+        // Disable the default 3-second threshold that causes seekToPrevious() to restart
+        // the current track instead of transitioning to the previous media item.
+        // With long.MaxValue, seekToPrevious() always goes to the previous item.
+        exoPlayerBuilder.SetMaxSeekToPreviousPositionMs(long.MaxValue);
+        var exoPlayer = exoPlayerBuilder.Build();
         var player = exoPlayer ?? throw new InvalidOperationException("Failed to create ExoPlayer");
         player.AddListener(listener);
 

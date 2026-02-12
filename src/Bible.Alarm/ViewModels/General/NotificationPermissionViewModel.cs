@@ -33,6 +33,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 #endif
 
     private bool isNotificationPermissionGranted;
+    private bool canShowSystemPrompt = true;
     private System.Timers.Timer? permissionCheckTimer;
     private readonly Action<bool>? onModalDismissed;
     private bool isDismissing;
@@ -174,14 +175,13 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
             if (DeviceInfo.Platform == DevicePlatform.Android && permissionService != null)
             {
                 IsNotificationPermissionGranted = permissionService.IsGranted;
+                CanShowSystemPrompt = permissionService.CanShowSystemPrompt;
             }
 #elif IOS
             if (DeviceInfo.Platform == DevicePlatform.iOS && permissionService != null)
             {
-                // For iOS, use synchronous check which uses cache
-                // Cache is updated when PermissionGranted/PermissionDenied events fire
-                // This matches Android's behavior where IsGranted always checks actual status
                 IsNotificationPermissionGranted = permissionService.IsGranted;
+                _ = RefreshCanShowSystemPromptAsync();
             }
 #endif
 
@@ -222,8 +222,31 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         permissionCheckTimer.Elapsed += OnPermissionCheckTimerElapsed;
         permissionCheckTimer.AutoReset = true;
         permissionCheckTimer.Start();
+#if IOS
+        _ = RefreshCanShowSystemPromptAsync();
+#endif
         logger.Debug("Permission check timer started successfully");
     }
+
+#if IOS
+    private async Task RefreshCanShowSystemPromptAsync()
+    {
+        if (permissionService == null)
+            return;
+        try
+        {
+            var canShow = await permissionService.CanShowSystemPromptAsync();
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                CanShowSystemPrompt = canShow;
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error refreshing CanShowSystemPrompt (iOS)");
+        }
+    }
+#endif
 
     private void OnPermissionCheckTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
@@ -238,19 +261,19 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
 #if IOS
         if (permissionService != null)
         {
-            // iOS: Use async check to get fresh status (e.g., when user returns from Settings)
             _ = Task.Run(async () =>
             {
                 try
                 {
                     permissionService.InvalidateCache();
                     var result = await permissionService.IsGrantedAsync();
+                    var canShow = await permissionService.CanShowSystemPromptAsync();
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
                         IsNotificationPermissionGranted = result;
-                        logger.Debug("Permission check (async) completed - Granted: {IsGranted} (was {WasGranted})",
-                            IsNotificationPermissionGranted, wasGranted);
-                        
+                        CanShowSystemPrompt = canShow;
+                        logger.Debug("Permission check (async) completed - Granted: {IsGranted}, CanShowPrompt: {CanShow} (was {WasGranted})",
+                            IsNotificationPermissionGranted, canShow, wasGranted);
                         if (!wasGranted && IsNotificationPermissionGranted)
                         {
                             ScheduleAutoDismissOnMainThread();
@@ -274,7 +297,7 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         }
 #endif
 
-        // Android and other platforms: use synchronous check on main thread
+        // Android: use synchronous check on main thread (also refreshes CanShowSystemPrompt)
         MainThread.BeginInvokeOnMainThread(() =>
         {
             CheckPermissionStatus();
@@ -413,6 +436,22 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
         }
     }
 
+    /// <summary>
+    /// True if the OS may still show the system permission prompt (iOS: not yet denied; Android: not permanently denied).
+    /// When false, the "Request permission" button is hidden and the user must use "Open Settings".
+    /// </summary>
+    public bool CanShowSystemPrompt
+    {
+        get => canShowSystemPrompt;
+        private set
+        {
+            if (SetProperty(ref canShowSystemPrompt, value))
+            {
+                OnPropertyChanged(nameof(IsRequestButtonVisible));
+            }
+        }
+    }
+
     public string RequestButtonText => "REQUEST NOTIFICATION PERMISSION";
 
     public string OpenSettingsButtonText
@@ -458,9 +497,10 @@ public sealed class NotificationPermissionViewModel : ObservableObject, IDisposa
     }
 
     /// <summary>
-    /// Shows the request button only if notification permission is not granted and can be requested.
+    /// Shows the request button only if permission is not granted and the OS can still show the system prompt.
+    /// When the user has denied (iOS once, Android permanently), the button is hidden; use "Open Settings" instead.
     /// </summary>
-    public bool IsRequestButtonVisible => !IsNotificationPermissionGranted;
+    public bool IsRequestButtonVisible => !IsNotificationPermissionGranted && CanShowSystemPrompt;
 
     /// <summary>
     /// Shows the open settings button if permission is not granted (user may have denied it previously).

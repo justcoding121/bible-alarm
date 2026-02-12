@@ -91,7 +91,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             (p) => PauseVisible = p,
             (d) => currentDuration = d,
             (url, force) => UpdateArtwork(url, force),
-            () => OnPropertyChanged(nameof(AreControlsEnabled)),
+            () => { OnPropertyChanged(nameof(AreControlsEnabled)); OnPropertyChanged(nameof(IsBuffering)); },
             () => OnPropertyChanged(nameof(ProgressText)),
             () => OnPropertyChanged(nameof(PreparationProgress)),
             () => OnPropertyChanged(nameof(HasError)));
@@ -227,6 +227,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             OnPropertyChanged(nameof(ShowPlaybackControls));
             OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
             OnPropertyChanged(nameof(AreControlsEnabled));
+            OnPropertyChanged(nameof(IsBuffering));
             OnPropertyChanged(nameof(IsStopButtonEnabled));
         }
     }
@@ -411,6 +412,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             if (SetProperty(ref isBusy, value))
             {
                 OnPropertyChanged(nameof(AreControlsEnabled));
+                OnPropertyChanged(nameof(IsBuffering));
             }
         }
     }
@@ -429,6 +431,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             if (SetProperty(ref isPreparing, value))
             {
                 OnPropertyChanged(nameof(AreControlsEnabled));
+                OnPropertyChanged(nameof(IsBuffering));
                 OnPropertyChanged(nameof(ShowPreparingProgress));
                 OnPropertyChanged(nameof(ShowMainPlayerContent));
                 OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
@@ -443,6 +446,13 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     public bool ShowMainPlayerContent => !IsPreparing && !HasError;
 
     public bool ShowPlaybackControls => true;
+
+    /// <summary>True when media is buffering mid-playback (not during initial track preparation).</summary>
+    public bool IsBuffering =>
+        !IsPreparing &&
+        !HasError &&
+        !IsStopping &&
+        playbackState.Value.Status == PlayStatus.Loading;
 
     /// <summary>Controls enabled when state received, not preparing, no error, not busy.</summary>
     public bool AreControlsEnabled =>
@@ -471,6 +481,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
             {
                 OnPropertyChanged(nameof(HasError));
                 OnPropertyChanged(nameof(AreControlsEnabled));
+                OnPropertyChanged(nameof(IsBuffering));
                 OnPropertyChanged(nameof(ShowPreparingProgress));
                 OnPropertyChanged(nameof(ShowMainPlayerContent));
                 if (RetryCommand is CommunityToolkit.Mvvm.Input.AsyncRelayCommand asyncCommand)

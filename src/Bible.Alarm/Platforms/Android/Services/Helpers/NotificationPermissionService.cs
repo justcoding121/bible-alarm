@@ -4,6 +4,7 @@ using System;
 using Android;
 using Android.Content.PM;
 using Android.OS;
+using AndroidX.Core.App;
 using AndroidX.Core.Content;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
@@ -20,6 +21,7 @@ public sealed class NotificationPermissionService : IDisposable
     private static readonly ILogger logger = Log.ForContext<NotificationPermissionService>();
     private static NotificationPermissionService? instance;
     private static readonly object instanceLock = new();
+    private bool promptExhausted;
 
     /// <summary>
     /// Gets the singleton instance of the notification permission service.
@@ -172,6 +174,12 @@ public sealed class NotificationPermissionService : IDisposable
     }
 
     /// <summary>
+    /// Returns true if the OS may still show the system permission prompt.
+    /// After the user selects "Don't ask again" or denies repeatedly, this returns false.
+    /// </summary>
+    public bool CanShowSystemPrompt => !IsGranted && !promptExhausted;
+
+    /// <summary>
     /// Request code used for notification permission requests.
     /// Must match the code used in MainActivity.OnRequestPermissionsResult.
     /// </summary>
@@ -210,7 +218,7 @@ public sealed class NotificationPermissionService : IDisposable
         {
             if (granted)
             {
-                // Invoke on main thread to ensure UI updates happen on correct thread
+                promptExhausted = false;
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     try
@@ -225,11 +233,16 @@ public sealed class NotificationPermissionService : IDisposable
             }
             else
             {
-                // Invoke on main thread to ensure UI updates happen on correct thread
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     try
                     {
+                        var activity = global::Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
+                        if (activity != null && !ActivityCompat.ShouldShowRequestPermissionRationale(activity, Manifest.Permission.PostNotifications))
+                        {
+                            promptExhausted = true;
+                            logger.Information("NotificationPermissionService: System prompt exhausted (user permanently denied or don't ask again)");
+                        }
                         PermissionDenied?.Invoke(this, EventArgs.Empty);
                     }
                     catch (Exception ex)

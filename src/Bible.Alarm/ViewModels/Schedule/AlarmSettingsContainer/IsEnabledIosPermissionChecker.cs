@@ -3,8 +3,6 @@
 #if IOS
 
 using Bible.Alarm.Platforms.iOS.Services.Helpers;
-using Bible.Alarm.Services.UI.Interfaces;
-using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
@@ -22,8 +20,6 @@ public static class IsEnabledIosPermissionChecker
         bool isSyncingFromState,
         Func<bool> getIsEnabled,
         IOSNotificationPermissionService? permissionService,
-        INavigationService navigationService,
-        IServiceProvider serviceProvider,
         ILogger logger,
         Action setOnAndNotify,
         Action setOffAndNotify,
@@ -78,28 +74,10 @@ public static class IsEnabledIosPermissionChecker
 
         if (!isGranted)
         {
-            logger.Debug("Cannot enable reminder on iOS - notification permission not granted");
+            logger.Debug("Cannot enable reminder on iOS - notification permission not granted; requesting OS prompt");
             setIsWaitingForPermissionResponse(true);
             setOffAndNotify();
             permissionService?.RequestPermissionIfNeeded();
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                await NotificationPermissionDeniedModalHelper.ShowAsync(
-                    logger, navigationService, serviceProvider,
-                    onPermissionGranted: () =>
-                    {
-                        setIsUpdatingFromPermissionCheck(true);
-                        try
-                        {
-                            setOnAndNotify();
-                            logger.Information("Set IsEnabled to true after permission granted from modal");
-                        }
-                        finally
-                        {
-                            setIsUpdatingFromPermissionCheck(false);
-                        }
-                    });
-            });
             return true;
         }
 

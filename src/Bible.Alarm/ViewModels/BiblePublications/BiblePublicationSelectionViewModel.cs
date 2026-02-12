@@ -218,10 +218,9 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
         fetchCts?.CancelAsync();
         fetchCts = new CancellationTokenSource();
         propertyManager.CanCancelFetch = true;
-        propertyManager.ShowProgress = true;
-        propertyManager.ProgressText = "0%";
-        propertyManager.ProgressPercent = 0;
-        
+        // Do not set ShowProgress here - let the progress reporter control it only when a fetch is actually decided
+        // (e.g. English pre-packaged pubs skip fetch and never show overlay)
+
         // Keep screen on during download to prevent Android from restricting network access
         DeviceDisplay.Current.KeepScreenOn = true;
 

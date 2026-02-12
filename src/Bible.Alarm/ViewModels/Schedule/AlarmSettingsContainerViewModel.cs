@@ -316,8 +316,7 @@ public sealed class AlarmSettingsContainerViewModel : ObservableObject, IDisposa
 #if IOS
             if (IsEnabledIosPermissionChecker.TryHandleToggleOnWhenNotGranted(
                 value, isUpdatingFromPermissionCheck, isSyncingFromState,
-                () => isEnabled, permissionService,
-                navigationService, serviceProvider, logger,
+                () => isEnabled, permissionService, logger,
                 () =>
                 {
                     isEnabled = true;

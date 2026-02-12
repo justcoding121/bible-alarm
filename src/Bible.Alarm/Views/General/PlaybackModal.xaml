@@ -13,6 +13,7 @@
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:services="clr-namespace:Bible.Alarm.Services.UI;assembly=Bible.Alarm"
     xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
+    xmlns:sharedViews="clr-namespace:Bible.Alarm.Views.Shared"
     x:DataType="shared:PlaybackViewModel">
     <ContentPage.Resources>
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
@@ -216,7 +217,7 @@
                     <Grid Grid.Row="2"
                         AutomationId="PlaybackModal"
                         IsVisible="{Binding ShowMainPlayerContent}"
-                        RowSpacing="16"
+                        RowSpacing="{DynamicResource SpacingXLarge}"
                         HorizontalOptions="Fill"
                         VerticalOptions="Fill">
                         <Grid.RowDefinitions>
@@ -287,13 +288,14 @@
                             </Border>
                         </Grid>
                         
-                        <!-- Track Metadata - truncated text with enough height to avoid clipping on iOS -->
+                        <!-- Track Metadata - truncated text with enough height to avoid clipping on iOS (e.g. iPhone 13 Pro) -->
                         <Grid x:Name="MetadataGrid"
                             Grid.Row="1"
+                            Margin="{DynamicResource MarginThickness0_8_0_0}"
                             RowSpacing="{DynamicResource SpacingSmall}"
                             Padding="{DynamicResource PaddingThickness16_8_16_0}"
                             HorizontalOptions="Fill"
-                            MinimumHeightRequest="72">
+                            MinimumHeightRequest="100">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -319,7 +321,7 @@
                                 TextColor="{DynamicResource TextSecondaryColor}"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="2"
-                                MinimumHeightRequest="28" />
+                                MinimumHeightRequest="32" />
                             <Label Grid.Row="2"
                                 FontSize="{DynamicResource MediumFontSize}"
                                 HorizontalOptions="Fill"
@@ -328,7 +330,7 @@
                                 TextColor="{DynamicResource TextSecondaryColor}"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="1"
-                                MinimumHeightRequest="16" />
+                                MinimumHeightRequest="24" />
                         </Grid>
                     </Grid>
             </Grid>
@@ -440,6 +442,7 @@
                             Text="{Binding CurrentTime}"
                             Style="{StaticResource ControlLabelTextColorStyle}"
                             VerticalOptions="Center" />
+                        <!-- Slider (hidden when buffering) -->
                         <Slider
                             Grid.Column="1"
                             x:Name="ProgressSlider"
@@ -448,12 +451,20 @@
                             Minimum="0"
                             Maximum="1"
                             IsEnabled="{Binding AreControlsEnabled}"
+                            IsVisible="{Binding IsBuffering, Converter={StaticResource negateBooleanConverter}}"
                             Value="{Binding Progress}"
                             ValueChanged="OnSliderValueChanged"
                             DragStarted="OnSliderDragStarted"
                             DragCompleted="OnSliderDragCompleted"
                             Style="{StaticResource ControlSliderStyle}"
                             MaximumTrackColor="{DynamicResource ProgressBarBackgroundColor}" />
+                        <!-- Animated progress bar shown during buffering -->
+                        <sharedViews:AnimatedProgressBar
+                            Grid.Column="1"
+                            IsVisible="{Binding IsBuffering}"
+                            HorizontalOptions="Fill"
+                            VerticalOptions="Center"
+                            Margin="0" />
                         <Label
                             Grid.Column="2"
                             FontSize="{DynamicResource StandardFontSize}"

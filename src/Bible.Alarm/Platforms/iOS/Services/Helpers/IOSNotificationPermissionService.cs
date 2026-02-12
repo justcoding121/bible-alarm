@@ -227,6 +227,35 @@ public sealed class IOSNotificationPermissionService : IDisposable
     }
     
     /// <summary>
+    /// Returns true if the OS can still show the system permission prompt (user has not denied yet).
+    /// On iOS the system prompt is shown only once; after the user taps "Don't Allow" this returns false.
+    /// </summary>
+    public async Task<bool> CanShowSystemPromptAsync()
+    {
+        try
+        {
+            var result = await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                var tcs = new TaskCompletionSource<bool>();
+                UNUserNotificationCenter.Current.GetNotificationSettings(settings =>
+                {
+                    var status = settings.AuthorizationStatus;
+                    var canShow = status == UNAuthorizationStatus.NotDetermined;
+                    logger.Debug("[NOTIFICATION-PERMISSION] CanShowSystemPromptAsync: AuthorizationStatus={Status}, CanShow={CanShow}", status, canShow);
+                    tcs.SetResult(canShow);
+                });
+                return tcs.Task;
+            });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "[NOTIFICATION-PERMISSION] CanShowSystemPromptAsync: Exception");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Invalidates the permission cache timeout, forcing a fresh async check on next access.
     /// Preserves the previous cached result so IsGranted can return it as a fallback
     /// (avoids returning false when permission is actually granted).
