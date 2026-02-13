@@ -1,4 +1,4 @@
-# Beta: no Store publish, artifacts only. Stable: Store publish + artifacts only when publish succeeds.
+# Beta: publish to Beta Test flight (MICROSOFT_STORE_BETA_FLIGHT_ID). Stable: publish to production. Artifacts/release only when publish succeeds.
 name: Deploy Windows to Microsoft Store
 
 on:
@@ -38,7 +38,8 @@ jobs:
         WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
         WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
       run: |
-        $certBytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64)
+        $b64 = $env:WINDOWS_CERTIFICATE_BASE64 -replace '[\r\n\t]','' -replace ' ','+'
+        $certBytes = [Convert]::FromBase64String($b64)
         $certPath = Join-Path $env:RUNNER_TEMP "certificate.pfx"
         [IO.File]::WriteAllBytes($certPath, $certBytes)
         
@@ -156,24 +157,31 @@ jobs:
         }
         Write-Host "Bundle ready: $bundlePath"
 
-    # Upload to Microsoft Store (stable only). Beta: no publish → artifacts only.
+    # Upload to Microsoft Store: stable → production; beta → Beta Test flight (requires MICROSOFT_STORE_BETA_FLIGHT_ID secret).
     - name: Upload to Microsoft Store
       id: store_upload
-      if: github.ref == 'refs/heads/stable'
       shell: powershell
       env:
         AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
         AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
         AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
         STORE_APP_ID: ${{ secrets.MICROSOFT_STORE_APP_ID }}
+        MICROSOFT_STORE_BETA_FLIGHT_ID: ${{ secrets.MICROSOFT_STORE_BETA_FLIGHT_ID }}
       run: |
+        $ErrorActionPreference = 'Stop'
+        $branch = "${{ github.ref_name }}"
+        $isBeta = ($branch -eq "beta")
+        if ($isBeta -and -not $env:MICROSOFT_STORE_BETA_FLIGHT_ID) {
+            Write-Error "On beta branch, MICROSOFT_STORE_BETA_FLIGHT_ID secret is required to publish to Beta Test flight."
+            exit 1
+        }
         # Upload the .msixbundle (Store requires bundle); it is created in artifacts by the Create MSIX bundle step
         $msixPath = Get-ChildItem -Path "./artifacts" -Filter "*.msixbundle" -ErrorAction SilentlyContinue | Select-Object -First 1
         if (-not $msixPath) {
             Write-Error "No .msixbundle found under artifacts. Ensure Create MSIX bundle step succeeded."
             exit 1
         }
-        Write-Host "Uploading bundle: $($msixPath.FullName)"
+        Write-Host "Uploading bundle: $($msixPath.FullName) (target: $(if ($isBeta) { 'Beta Test flight' } else { 'Production' }))"
         
         # Get access token from Azure AD
         $tokenUrl = "https://login.microsoftonline.com/$env:AZURE_AD_TENANT_ID/oauth2/token"
@@ -192,14 +200,18 @@ jobs:
             "Content-Type" = "application/json"
         }
         
-        # Create a new submission
-        $submissionUrl = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:STORE_APP_ID/submissions"
+        if ($isBeta) {
+            $submissionUrl = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:STORE_APP_ID/flights/$env:MICROSOFT_STORE_BETA_FLIGHT_ID/submissions"
+        } else {
+            $submissionUrl = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:STORE_APP_ID/submissions"
+        }
         
         # Delete any pending submissions first
         try {
             $pendingSubmission = Invoke-RestMethod -Uri $submissionUrl -Method Get -Headers $headers -ErrorAction SilentlyContinue
             if ($pendingSubmission.id) {
                 Invoke-RestMethod -Uri "$submissionUrl/$($pendingSubmission.id)" -Method Delete -Headers $headers
+                Write-Host "Deleted pending submission: $($pendingSubmission.id)"
             }
         } catch {
             # No pending submission, continue
@@ -229,22 +241,9 @@ jobs:
         
         Write-Host "Submission committed successfully"
 
-    # Verify no secrets are staged before committing
-    - name: Verify no secrets in working directory
-      shell: powershell
-      run: |
-        # Check for common secret file patterns
-        $secretFiles = Get-ChildItem -Path . -Recurse -Include *.jks,*.keystore,*.pfx,*.p12,*.p8,*.mobileprovision -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notlike "*\.git\*" }
-        if ($secretFiles) {
-          Write-Error "ERROR: Secret files found in working directory!"
-          $secretFiles | ForEach-Object { Write-Host $_.FullName }
-          exit 1
-        }
-        Write-Host "OK: No secret files found in working directory"
-
-    # Commit version changes (only specific version files); continue on failure so release is still created
+    # Commit version changes only when publish succeeded (no commit when publish fails).
     - name: Commit version changes
-      continue-on-error: true
+      if: steps.store_upload.outcome == 'success'
       uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
       with:
         author_name: github-actions[bot]
@@ -257,9 +256,22 @@ jobs:
         skip_dirty_check: false
         push: true
 
-    # GitHub Release + tag only on stable (beta builds are artifact-only)
+    # Verify no secrets are staged before committing (exclude build output obj/bin/artifacts).
+    - name: Verify no secrets in working directory
+      shell: powershell
+      run: |
+        # Check for common secret file patterns
+        $secretFiles = Get-ChildItem -Path . -Recurse -Include *.jks,*.keystore,*.pfx,*.p12,*.p8,*.mobileprovision -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notlike "*\.git\*" }
+        if ($secretFiles) {
+          Write-Error "ERROR: Secret files found in working directory!"
+          $secretFiles | ForEach-Object { Write-Host $_.FullName }
+          exit 1
+        }
+        Write-Host "OK: No secret files found in working directory"
+
+    # GitHub Release + tag only when publish succeeded (beta → flight; stable → production).
     - name: Find MSIX bundle for release
-      if: github.ref == 'refs/heads/stable'
+      if: github.ref == 'refs/heads/beta' || steps.store_upload.outcome == 'success'
       id: find_package
       shell: powershell
       run: |
@@ -273,35 +285,40 @@ jobs:
         Write-Host "Found: $relativePath"
 
     - name: Create release tag and push
-      if: github.ref == 'refs/heads/stable'
+      if: github.ref == 'refs/heads/beta' || steps.store_upload.outcome == 'success'
       id: release_tag
       shell: powershell
       run: |
-        git fetch origin stable
         $version = "${{ steps.get_version.outputs.version }}"
+        $branch = "${{ github.ref_name }}"
         $runNumber = "${{ github.run_number }}"
-        $tag = "windows-v$version-$runNumber"
+        if ($branch -eq "beta") {
+          $tag = "v$version-windows-beta"
+        } else {
+          git fetch origin stable
+          $tag = "v$version-windows-$runNumber"
+        }
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        git tag -a $tag origin/stable -m "Windows release $version (build $runNumber)"
+        git tag -a $tag HEAD -m "Windows $branch release $version"
         git push origin $tag
         Write-Host "tag=$tag" >> $env:GITHUB_OUTPUT
 
     - name: Create GitHub Release and upload package
-      if: github.ref == 'refs/heads/stable'
+      if: github.ref == 'refs/heads/beta' || steps.store_upload.outcome == 'success'
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.release_tag.outputs.tag }}
-        name: Bible Alarm Windows ${{ steps.get_version.outputs.version }}
+        name: Bible Alarm Windows ${{ steps.get_version.outputs.version }}${{ github.ref == 'refs/heads/beta' && ' (beta)' || '' }}
         body: |
-          Installable package for Microsoft Store or sideloading.
           **Version:** ${{ steps.get_version.outputs.version }}
-          If Store upload from the action failed, download the `.msixbundle` here and upload it manually in Partner Center.
+          **Branch:** ${{ github.ref_name }}
+          Installable .msixbundle for Microsoft Store or sideloading.
         generate_release_notes: true
         files: ${{ steps.find_package.outputs.package_path }}
         fail_on_unmatched_files: true
 
-    # Beta: no publish, so always artifacts. Stable: artifacts only when Store publish succeeded.
+    # Artifacts only when Store publish succeeded (beta → flight; stable → production).
     - name: Upload Build Artifacts
       if: github.ref == 'refs/heads/beta' || steps.store_upload.outcome == 'success'
       uses: actions/upload-artifact@v4
