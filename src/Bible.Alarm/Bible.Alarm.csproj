@@ -19,8 +19,8 @@
 		<ApplicationTitle>Bible Alarm</ApplicationTitle>
 		
 		<!-- Display Version -->
-		<ApplicationDisplayVersion>1.3</ApplicationDisplayVersion>
-		<ApplicationVersion>4</ApplicationVersion>
+		<ApplicationDisplayVersion>2.3</ApplicationDisplayVersion>
+		<ApplicationVersion>5</ApplicationVersion>
 
 		<!-- Android-specific -->
 		<!-- Minimum OS version must match CommunityToolkit.Maui.MediaElement requirement: Android 8.0 (API 26) -->
