@@ -1,9 +1,11 @@
+# Beta: Play beta + artifacts only when publish succeeds. Stable: Play production + artifacts when publish succeeds.
 name: Deploy Android to Google Play
 
 on:
   push:
     branches:
       - stable
+      - beta
 
 jobs:
   deploy-android:
@@ -16,7 +18,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        ref: stable
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Setup .NET
@@ -52,8 +53,8 @@ jobs:
     - name: Patch Android Version
       run: dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release -- --platform=Android
 
-    # Build Android release (signing secrets via env to avoid expanding in run - S7636)
-    - name: Build Android Release
+    # Build Android AAB for Play Store (production on stable, beta track on beta)
+    - name: Build Android AAB
       env:
         ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -70,14 +71,33 @@ jobs:
           -p:AndroidPackageFormat=aab \
           --output ./artifacts/android
 
-    # Upload to Google Play Store
+    # Build Android APK for artifact (easy install for testers)
+    - name: Build Android APK
+      env:
+        ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      run: |
+        dotnet publish src/Bible.Alarm/Bible.Alarm.csproj \
+          --configuration Release \
+          --framework net10.0-android \
+          -p:AndroidKeyStore=true \
+          -p:AndroidSigningKeyStore=${{ runner.temp }}/android-keystore.jks \
+          -p:AndroidSigningKeyAlias="$ANDROID_KEY_ALIAS" \
+          -p:AndroidSigningKeyPass="$ANDROID_KEY_PASSWORD" \
+          -p:AndroidSigningStorePass="$ANDROID_KEYSTORE_PASSWORD" \
+          -p:AndroidPackageFormat=apk \
+          --output ./artifacts/android-apk
+
+    # Upload to Google Play (production on stable, beta track on beta). If this fails, no artifacts.
     - name: Upload to Google Play
+      id: store_upload
       uses: r0adkll/upload-google-play@935ef9c68bb393a8e6116b1575626a7f5be3a7fb
       with:
         serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         packageName: com.jthomas.info.Bible.Alarm
         releaseFiles: ./artifacts/android/*.aab
-        track: production
+        track: ${{ github.ref == 'refs/heads/stable' && 'production' || 'beta' }}
         status: completed
         
     # Clean up keystore
@@ -94,7 +114,7 @@ jobs:
           find . -name "*.jks" -o -name "*.keystore" -o -name "*.pfx" -o -name "*.p12" -o -name "*.p8" -o -name "*.mobileprovision" | grep -v ".git"
           exit 1
         fi
-        echo "✓ No secret files found in working directory"
+        echo "OK: No secret files found in working directory"
 
     # Commit version changes (only specific version files)
     - name: Commit version changes
@@ -106,7 +126,17 @@ jobs:
         add: |
           src/Bible.Alarm/Bible.Alarm.csproj
           src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
-        # Explicitly ignore all other files to prevent accidental commits
         default_author: github_actions
         skip_dirty_check: false
         push: true
+
+    # Artifacts only when store publish succeeded.
+    - name: Upload Build Artifacts
+      if: steps.store_upload.outcome == 'success'
+      uses: actions/upload-artifact@v4
+      with:
+        name: BibleAlarm-${{ github.ref_name }}-android
+        path: |
+          artifacts/**/*.aab
+          artifacts/**/*.apk
+        retention-days: 14

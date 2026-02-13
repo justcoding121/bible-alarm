@@ -1,9 +1,11 @@
+# Beta: no Store publish, artifacts only. Stable: Store publish + artifacts only when publish succeeds.
 name: Deploy Windows to Microsoft Store
 
 on:
   push:
     branches:
       - stable
+      - beta
 
 permissions:
   contents: write
@@ -19,7 +21,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        ref: stable
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Setup .NET
@@ -117,16 +118,23 @@ jobs:
         Copy-Item $msix.FullName -Destination $bundleDir -Force
         Write-Host "Copied $($msix.Name) to bundle dir"
 
+        # Must use x64 MakeAppx (runner is x64); ARM exe fails with "not a valid application for this OS platform"
+        # Use -like to match path containing \x64\ (regex \x64 is interpreted as char 0x64)
         $makeAppx = $null
-        if (Test-Path "C:\Program Files (x86)\Windows Kits\10\bin") {
-          $makeAppx = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "MakeAppx.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $kitsBin = "C:\Program Files (x86)\Windows Kits\10\bin"
+        if (Test-Path $kitsBin) {
+          $candidates = Get-ChildItem -Path $kitsBin -Recurse -Filter "MakeAppx.exe" -ErrorAction SilentlyContinue
+          $makeAppx = $candidates | Where-Object { $_.FullName -like "*\x64\*" } | Select-Object -First 1
+          if (-not $makeAppx) { $makeAppx = $candidates | Where-Object { $_.FullName -like "*\x86\*" } | Select-Object -First 1 }
         }
         if (-not $makeAppx) {
-          $candidates = Get-ChildItem -Path "C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\microsoft.windows.sdk.buildtools" -Recurse -Filter "MakeAppx.exe" -ErrorAction SilentlyContinue
-          $makeAppx = $candidates | Where-Object { $_.FullName -match "\\x64\\MakeAppx" } | Select-Object -First 1
-          if (-not $makeAppx) { $makeAppx = $candidates | Select-Object -First 1 }
+          $nugetPath = "C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\microsoft.windows.sdk.buildtools"
+          $candidates = Get-ChildItem -Path $nugetPath -Recurse -Filter "MakeAppx.exe" -ErrorAction SilentlyContinue
+          $makeAppx = $candidates | Where-Object { $_.FullName -like "*\x64\*" } | Select-Object -First 1
+          if (-not $makeAppx) { $makeAppx = $candidates | Where-Object { $_.FullName -like "*\x86\*" } | Select-Object -First 1 }
         }
         if (-not $makeAppx) { Write-Error "MakeAppx.exe not found"; exit 1 }
+        Write-Host "Using MakeAppx: $($makeAppx.FullName)"
 
         $bundleName = "Bible.Alarm_${version}_x86_x64_arm64.msixbundle"
         $artifactsDir = Join-Path (Get-Location) "artifacts"
@@ -148,9 +156,10 @@ jobs:
         }
         Write-Host "Bundle ready: $bundlePath"
 
-    # Upload to Microsoft Store using Partner Center API (continue on failure so release is still created)
+    # Upload to Microsoft Store (stable only). Beta: no publish → artifacts only.
     - name: Upload to Microsoft Store
-      continue-on-error: true
+      id: store_upload
+      if: github.ref == 'refs/heads/stable'
       shell: powershell
       env:
         AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
@@ -231,7 +240,7 @@ jobs:
           $secretFiles | ForEach-Object { Write-Host $_.FullName }
           exit 1
         }
-        Write-Host "✓ No secret files found in working directory"
+        Write-Host "OK: No secret files found in working directory"
 
     # Commit version changes (only specific version files); continue on failure so release is still created
     - name: Commit version changes
@@ -244,13 +253,13 @@ jobs:
         add: |
           src/Bible.Alarm/Bible.Alarm.csproj
           src/Bible.Alarm/Platforms/Windows/Package.appxmanifest
-        # Explicitly ignore all other files to prevent accidental commits
         default_author: github_actions
         skip_dirty_check: false
         push: true
 
-    # Publish installable bundle to GitHub Release so it can be downloaded (e.g. for manual Store upload)
+    # GitHub Release + tag only on stable (beta builds are artifact-only)
     - name: Find MSIX bundle for release
+      if: github.ref == 'refs/heads/stable'
       id: find_package
       shell: powershell
       run: |
@@ -264,6 +273,7 @@ jobs:
         Write-Host "Found: $relativePath"
 
     - name: Create release tag and push
+      if: github.ref == 'refs/heads/stable'
       id: release_tag
       shell: powershell
       run: |
@@ -278,6 +288,7 @@ jobs:
         Write-Host "tag=$tag" >> $env:GITHUB_OUTPUT
 
     - name: Create GitHub Release and upload package
+      if: github.ref == 'refs/heads/stable'
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.release_tag.outputs.tag }}
@@ -289,3 +300,13 @@ jobs:
         generate_release_notes: true
         files: ${{ steps.find_package.outputs.package_path }}
         fail_on_unmatched_files: true
+
+    # Beta: no publish, so always artifacts. Stable: artifacts only when Store publish succeeded.
+    - name: Upload Build Artifacts
+      if: github.ref == 'refs/heads/beta' || steps.store_upload.outcome == 'success'
+      uses: actions/upload-artifact@v4
+      with:
+        name: BibleAlarm-${{ github.ref_name }}-windows
+        path: |
+          artifacts/**/*.msixbundle
+        retention-days: 14
