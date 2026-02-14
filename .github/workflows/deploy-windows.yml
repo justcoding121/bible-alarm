@@ -158,13 +158,17 @@ jobs:
         Write-Host "Bundle ready: $bundlePath"
 
     # Upload to Microsoft Store: stable → production; beta → Beta Test flight (requires MICROSOFT_STORE_BETA_FLIGHT_ID secret).
+    # Uses Service Principal (client_credentials) with resource=manage.devcenter.microsoft.com and Partner Center Manager role; Admin Consent not required.
+    # If you get "Identity cannot be authorized": add Azure AD app as Manager in Partner Center; use Store ID (App identity) in MICROSOFT_STORE_APP_ID, not Client ID; use devcenter token resource, not graph. See Microsoft docs on managing Azure AD apps in Partner Center.
     - name: Upload to Microsoft Store
       id: store_upload
+      continue-on-error: true
       shell: powershell
       env:
         AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
         AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
         AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+        # Store ID from Partner Center App identity, not Azure AD Client ID
         STORE_APP_ID: ${{ secrets.MICROSOFT_STORE_APP_ID }}
         MICROSOFT_STORE_BETA_FLIGHT_ID: ${{ secrets.MICROSOFT_STORE_BETA_FLIGHT_ID }}
       run: |
@@ -183,7 +187,7 @@ jobs:
         }
         Write-Host "Uploading bundle: $($msixPath.FullName) (target: $(if ($isBeta) { 'Beta Test flight' } else { 'Production' }))"
         
-        # Get access token from Azure AD
+        # 1. Token resource must be Dev Center, not Graph, or Store API returns Unauthorized
         $tokenUrl = "https://login.microsoftonline.com/$env:AZURE_AD_TENANT_ID/oauth2/token"
         $body = @{
             grant_type    = "client_credentials"
@@ -195,11 +199,13 @@ jobs:
         $tokenResponse = Invoke-RestMethod -Uri $tokenUrl -Method Post -Body $body
         $accessToken = $tokenResponse.access_token
         
+        # 3. POST to create submission requires Authorization and Content-Type
         $headers = @{
             Authorization = "Bearer $accessToken"
             "Content-Type" = "application/json"
         }
         
+        # 2. Submission URL must use Store ID (Partner Center App identity), not Client ID
         if ($isBeta) {
             $submissionUrl = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:STORE_APP_ID/flights/$env:MICROSOFT_STORE_BETA_FLIGHT_ID/submissions"
         } else {
@@ -241,9 +247,9 @@ jobs:
         
         Write-Host "Submission committed successfully"
 
-    # Commit version changes only when publish succeeded (no commit when publish fails).
+    # Commit version changes when build+bundle succeeded (run even if upload fails).
     - name: Commit version changes
-      if: steps.store_upload.outcome == 'success'
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
       uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
       with:
         author_name: github-actions[bot]
@@ -269,9 +275,9 @@ jobs:
         }
         Write-Host "OK: No secret files found in working directory"
 
-    # GitHub Release + tag only when publish succeeded (beta → flight; stable → production).
+    # GitHub Release + tag when build+bundle succeeded (run even if upload fails).
     - name: Find MSIX bundle for release
-      if: github.ref == 'refs/heads/beta' || steps.store_upload.outcome == 'success'
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
       id: find_package
       shell: powershell
       run: |
@@ -285,7 +291,7 @@ jobs:
         Write-Host "Found: $relativePath"
 
     - name: Create release tag and push
-      if: github.ref == 'refs/heads/beta' || steps.store_upload.outcome == 'success'
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
       id: release_tag
       shell: powershell
       run: |
@@ -305,7 +311,7 @@ jobs:
         Write-Host "tag=$tag" >> $env:GITHUB_OUTPUT
 
     - name: Create GitHub Release and upload package
-      if: github.ref == 'refs/heads/beta' || steps.store_upload.outcome == 'success'
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.release_tag.outputs.tag }}
@@ -318,9 +324,9 @@ jobs:
         files: ${{ steps.find_package.outputs.package_path }}
         fail_on_unmatched_files: true
 
-    # Artifacts only when Store publish succeeded (beta → flight; stable → production).
+    # Artifacts when build+bundle succeeded (run even if upload fails).
     - name: Upload Build Artifacts
-      if: github.ref == 'refs/heads/beta' || steps.store_upload.outcome == 'success'
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
       uses: actions/upload-artifact@v4
       with:
         name: BibleAlarm-${{ github.ref_name }}-windows
