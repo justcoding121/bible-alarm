@@ -1,9 +1,11 @@
+# Beta: publish to Beta Test flight (MICROSOFT_STORE_BETA_FLIGHT_ID). Stable: publish to production. Artifacts/release only when publish succeeds.
 name: Deploy Windows to Microsoft Store
 
 on:
   push:
     branches:
       - stable
+      - beta
 
 permissions:
   contents: write
@@ -19,7 +21,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        ref: stable
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Setup .NET
@@ -37,7 +38,8 @@ jobs:
         WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
         WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
       run: |
-        $certBytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64)
+        $b64 = $env:WINDOWS_CERTIFICATE_BASE64 -replace '[\r\n\t]','' -replace ' ','+'
+        $certBytes = [Convert]::FromBase64String($b64)
         $certPath = Join-Path $env:RUNNER_TEMP "certificate.pfx"
         [IO.File]::WriteAllBytes($certPath, $certBytes)
         
@@ -117,16 +119,23 @@ jobs:
         Copy-Item $msix.FullName -Destination $bundleDir -Force
         Write-Host "Copied $($msix.Name) to bundle dir"
 
+        # Must use x64 MakeAppx (runner is x64); ARM exe fails with "not a valid application for this OS platform"
+        # Use -like to match path containing \x64\ (regex \x64 is interpreted as char 0x64)
         $makeAppx = $null
-        if (Test-Path "C:\Program Files (x86)\Windows Kits\10\bin") {
-          $makeAppx = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "MakeAppx.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $kitsBin = "C:\Program Files (x86)\Windows Kits\10\bin"
+        if (Test-Path $kitsBin) {
+          $candidates = Get-ChildItem -Path $kitsBin -Recurse -Filter "MakeAppx.exe" -ErrorAction SilentlyContinue
+          $makeAppx = $candidates | Where-Object { $_.FullName -like "*\x64\*" } | Select-Object -First 1
+          if (-not $makeAppx) { $makeAppx = $candidates | Where-Object { $_.FullName -like "*\x86\*" } | Select-Object -First 1 }
         }
         if (-not $makeAppx) {
-          $candidates = Get-ChildItem -Path "C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\microsoft.windows.sdk.buildtools" -Recurse -Filter "MakeAppx.exe" -ErrorAction SilentlyContinue
-          $makeAppx = $candidates | Where-Object { $_.FullName -match "\\x64\\MakeAppx" } | Select-Object -First 1
-          if (-not $makeAppx) { $makeAppx = $candidates | Select-Object -First 1 }
+          $nugetPath = "C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\microsoft.windows.sdk.buildtools"
+          $candidates = Get-ChildItem -Path $nugetPath -Recurse -Filter "MakeAppx.exe" -ErrorAction SilentlyContinue
+          $makeAppx = $candidates | Where-Object { $_.FullName -like "*\x64\*" } | Select-Object -First 1
+          if (-not $makeAppx) { $makeAppx = $candidates | Where-Object { $_.FullName -like "*\x86\*" } | Select-Object -First 1 }
         }
         if (-not $makeAppx) { Write-Error "MakeAppx.exe not found"; exit 1 }
+        Write-Host "Using MakeAppx: $($makeAppx.FullName)"
 
         $bundleName = "Bible.Alarm_${version}_x86_x64_arm64.msixbundle"
         $artifactsDir = Join-Path (Get-Location) "artifacts"
@@ -148,25 +157,37 @@ jobs:
         }
         Write-Host "Bundle ready: $bundlePath"
 
-    # Upload to Microsoft Store using Partner Center API (continue on failure so release is still created)
+    # Upload to Microsoft Store: stable → production; beta → Beta Test flight (requires MICROSOFT_STORE_BETA_FLIGHT_ID secret).
+    # Uses Service Principal (client_credentials) with resource=manage.devcenter.microsoft.com and Partner Center Manager role; Admin Consent not required.
+    # If you get "Identity cannot be authorized": add Azure AD app as Manager in Partner Center; use Store ID (App identity) in MICROSOFT_STORE_APP_ID, not Client ID; use devcenter token resource, not graph. See Microsoft docs on managing Azure AD apps in Partner Center.
     - name: Upload to Microsoft Store
+      id: store_upload
       continue-on-error: true
       shell: powershell
       env:
         AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
         AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
         AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+        # Store ID from Partner Center App identity, not Azure AD Client ID
         STORE_APP_ID: ${{ secrets.MICROSOFT_STORE_APP_ID }}
+        MICROSOFT_STORE_BETA_FLIGHT_ID: ${{ secrets.MICROSOFT_STORE_BETA_FLIGHT_ID }}
       run: |
+        $ErrorActionPreference = 'Stop'
+        $branch = "${{ github.ref_name }}"
+        $isBeta = ($branch -eq "beta")
+        if ($isBeta -and -not $env:MICROSOFT_STORE_BETA_FLIGHT_ID) {
+            Write-Error "On beta branch, MICROSOFT_STORE_BETA_FLIGHT_ID secret is required to publish to Beta Test flight."
+            exit 1
+        }
         # Upload the .msixbundle (Store requires bundle); it is created in artifacts by the Create MSIX bundle step
         $msixPath = Get-ChildItem -Path "./artifacts" -Filter "*.msixbundle" -ErrorAction SilentlyContinue | Select-Object -First 1
         if (-not $msixPath) {
             Write-Error "No .msixbundle found under artifacts. Ensure Create MSIX bundle step succeeded."
             exit 1
         }
-        Write-Host "Uploading bundle: $($msixPath.FullName)"
+        Write-Host "Uploading bundle: $($msixPath.FullName) (target: $(if ($isBeta) { 'Beta Test flight' } else { 'Production' }))"
         
-        # Get access token from Azure AD
+        # 1. Token resource must be Dev Center, not Graph, or Store API returns Unauthorized
         $tokenUrl = "https://login.microsoftonline.com/$env:AZURE_AD_TENANT_ID/oauth2/token"
         $body = @{
             grant_type    = "client_credentials"
@@ -178,19 +199,25 @@ jobs:
         $tokenResponse = Invoke-RestMethod -Uri $tokenUrl -Method Post -Body $body
         $accessToken = $tokenResponse.access_token
         
+        # 3. POST to create submission requires Authorization and Content-Type
         $headers = @{
             Authorization = "Bearer $accessToken"
             "Content-Type" = "application/json"
         }
         
-        # Create a new submission
-        $submissionUrl = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:STORE_APP_ID/submissions"
+        # 2. Submission URL must use Store ID (Partner Center App identity), not Client ID
+        if ($isBeta) {
+            $submissionUrl = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:STORE_APP_ID/flights/$env:MICROSOFT_STORE_BETA_FLIGHT_ID/submissions"
+        } else {
+            $submissionUrl = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:STORE_APP_ID/submissions"
+        }
         
         # Delete any pending submissions first
         try {
             $pendingSubmission = Invoke-RestMethod -Uri $submissionUrl -Method Get -Headers $headers -ErrorAction SilentlyContinue
             if ($pendingSubmission.id) {
                 Invoke-RestMethod -Uri "$submissionUrl/$($pendingSubmission.id)" -Method Delete -Headers $headers
+                Write-Host "Deleted pending submission: $($pendingSubmission.id)"
             }
         } catch {
             # No pending submission, continue
@@ -220,7 +247,22 @@ jobs:
         
         Write-Host "Submission committed successfully"
 
-    # Verify no secrets are staged before committing
+    # Commit version changes when build+bundle succeeded (run even if upload fails).
+    - name: Commit version changes
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
+      uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
+      with:
+        author_name: github-actions[bot]
+        author_email: github-actions[bot]@users.noreply.github.com
+        message: '[Windows] Update app version for Microsoft Store release'
+        add: |
+          src/Bible.Alarm/Bible.Alarm.csproj
+          src/Bible.Alarm/Platforms/Windows/Package.appxmanifest
+        default_author: github_actions
+        skip_dirty_check: false
+        push: true
+
+    # Verify no secrets are staged before committing (exclude build output obj/bin/artifacts).
     - name: Verify no secrets in working directory
       shell: powershell
       run: |
@@ -231,26 +273,11 @@ jobs:
           $secretFiles | ForEach-Object { Write-Host $_.FullName }
           exit 1
         }
-        Write-Host "✓ No secret files found in working directory"
+        Write-Host "OK: No secret files found in working directory"
 
-    # Commit version changes (only specific version files); continue on failure so release is still created
-    - name: Commit version changes
-      continue-on-error: true
-      uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
-      with:
-        author_name: github-actions[bot]
-        author_email: github-actions[bot]@users.noreply.github.com
-        message: '[Windows] Update app version for Microsoft Store release'
-        add: |
-          src/Bible.Alarm/Bible.Alarm.csproj
-          src/Bible.Alarm/Platforms/Windows/Package.appxmanifest
-        # Explicitly ignore all other files to prevent accidental commits
-        default_author: github_actions
-        skip_dirty_check: false
-        push: true
-
-    # Publish installable bundle to GitHub Release so it can be downloaded (e.g. for manual Store upload)
+    # GitHub Release + tag when build+bundle succeeded (run even if upload fails).
     - name: Find MSIX bundle for release
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
       id: find_package
       shell: powershell
       run: |
@@ -264,28 +291,45 @@ jobs:
         Write-Host "Found: $relativePath"
 
     - name: Create release tag and push
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
       id: release_tag
       shell: powershell
       run: |
-        git fetch origin stable
         $version = "${{ steps.get_version.outputs.version }}"
+        $branch = "${{ github.ref_name }}"
         $runNumber = "${{ github.run_number }}"
-        $tag = "windows-v$version-$runNumber"
+        if ($branch -eq "beta") {
+          $tag = "v$version-windows-beta"
+        } else {
+          git fetch origin stable
+          $tag = "v$version-windows-$runNumber"
+        }
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        git tag -a $tag origin/stable -m "Windows release $version (build $runNumber)"
+        git tag -a $tag HEAD -m "Windows $branch release $version"
         git push origin $tag
         Write-Host "tag=$tag" >> $env:GITHUB_OUTPUT
 
     - name: Create GitHub Release and upload package
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.release_tag.outputs.tag }}
-        name: Bible Alarm Windows ${{ steps.get_version.outputs.version }}
+        name: Bible Alarm Windows ${{ steps.get_version.outputs.version }}${{ github.ref == 'refs/heads/beta' && ' (beta)' || '' }}
         body: |
-          Installable package for Microsoft Store or sideloading.
           **Version:** ${{ steps.get_version.outputs.version }}
-          If Store upload from the action failed, download the `.msixbundle` here and upload it manually in Partner Center.
+          **Branch:** ${{ github.ref_name }}
+          Installable .msixbundle for Microsoft Store or sideloading.
         generate_release_notes: true
         files: ${{ steps.find_package.outputs.package_path }}
         fail_on_unmatched_files: true
+
+    # Artifacts when build+bundle succeeded (run even if upload fails).
+    - name: Upload Build Artifacts
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
+      uses: actions/upload-artifact@v4
+      with:
+        name: BibleAlarm-${{ github.ref_name }}-windows
+        path: |
+          artifacts/**/*.msixbundle
+        retention-days: 14

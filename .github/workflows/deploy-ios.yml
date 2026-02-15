@@ -1,13 +1,19 @@
+# Beta: TestFlight + artifacts only when publish succeeds. Stable: App Store + artifacts when publish succeeds.
 name: Deploy iOS to App Store
 
 on:
   push:
     branches:
       - stable
+      - beta
+
+permissions:
+  contents: write
 
 jobs:
   deploy-ios:
-    runs-on: macos-latest
+    # .NET iOS SDK 26.x requires Xcode 26; macos-26 has Xcode 26.2 (macos-latest has 16.x).
+    runs-on: macos-26
     
     env:
       SYNCFUSION_LICENSE_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
@@ -16,19 +22,21 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        ref: stable
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '10.0.x'
+        dotnet-version: '10.0.101'
         
-    - name: Restore workloads
-      run: dotnet workload restore --project src/Bible.Alarm/Bible.Alarm.csproj
+    # Install MAUI workload so restore/build get all required workloads (ios, tizen manifest, etc.) without project-based workload restore.
+    - name: Install workloads
+      run: dotnet workload install maui --skip-manifest-update
         
     - name: Select Xcode version
-      run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '26.0'
 
     # Decode and install Apple certificates and provisioning profiles
     - name: Install Apple Certificate
@@ -41,8 +49,9 @@ jobs:
         CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
         KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
 
-        # Decode certificate
-        echo -n "$APPLE_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+        # Normalise base64 (CR/LF, + as space) then decode certificate
+        B64="$(echo "$APPLE_CERTIFICATE_BASE64" | tr -d '\r\n\t' | sed 's/ /+/g')"
+        echo "$B64" | base64 --decode -o $CERTIFICATE_PATH
 
         # Create temporary keychain
         security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
@@ -61,11 +70,12 @@ jobs:
         # Create Provisioning Profiles directory
         mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
         
-        # Decode and install provisioning profile
-        echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+        # Normalise base64 (CR/LF, + as space) then decode and install provisioning profile
+        B64="$(echo "$PROVISIONING_PROFILE_BASE64" | tr -d '\r\n\t' | sed 's/ /+/g')"
+        echo "$B64" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
         
     - name: Restore dependencies
-      run: dotnet restore src/Bible.Alarm.sln
+      run: dotnet restore src/Bible.Alarm.sln -p:TargetFramework=net10.0-ios
       
     # Patch version for iOS only (Info.plist CFBundleVersion + csproj ApplicationVersion/ApplicationDisplayVersion)
     - name: Patch iOS Version
@@ -85,16 +95,19 @@ jobs:
           -p:CodesignProvision="$IOS_PROVISIONING_PROFILE_NAME" \
           --output ./artifacts/ios
 
-    # Upload to App Store Connect using Transporter
+    # Upload to App Store Connect (TestFlight/App Store). If this fails, no artifacts.
     - name: Upload to App Store Connect
+      id: store_upload
       env:
         APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
         APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
         APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
       run: |
-        # Decode API key
+        set -e
+        # Normalise base64 (CR/LF, + as space) then decode API key
         mkdir -p ~/private_keys
-        echo -n "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode -o ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
+        B64="$(echo "$APP_STORE_CONNECT_API_KEY_BASE64" | tr -d '\r\n\t' | sed 's/ /+/g')"
+        echo "$B64" | base64 --decode -o ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
         
         # Find the .ipa file
         IPA_PATH=$(find ./artifacts/ios -name "*.ipa" | head -1)
@@ -112,12 +125,27 @@ jobs:
           fi
         fi
         
-        # Upload using xcrun altool
+        # Upload using xcrun altool (set -e above ensures non-zero exit fails the step)
         xcrun altool --upload-app \
           --type ios \
           --file "$IPA_PATH" \
           --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
-          --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID"
+          --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID" || exit 1
+
+    # Commit version changes as soon as publish succeeded (so later step failures do not prevent version bump).
+    - name: Commit version changes
+      if: steps.store_upload.outcome == 'success'
+      uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
+      with:
+        author_name: github-actions[bot]
+        author_email: github-actions[bot]@users.noreply.github.com
+        message: '[iOS] Update app version for App Store release'
+        add: |
+          src/Bible.Alarm/Bible.Alarm.csproj
+          src/Bible.Alarm/Platforms/iOS/Info.plist
+        default_author: github_actions
+        skip_dirty_check: false
+        push: true
 
     # Clean up keychain and provisioning profile
     - name: Cleanup
@@ -127,28 +155,44 @@ jobs:
         rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision || true
         rm -rf ~/private_keys || true
 
-    # Verify no secrets are staged before committing
+    # Verify no secrets are staged before committing (exclude build output obj/bin/artifacts).
     - name: Verify no secrets in working directory
       run: |
-        # Check for common secret file patterns
-        if find . -name "*.jks" -o -name "*.keystore" -o -name "*.pfx" -o -name "*.p12" -o -name "*.p8" -o -name "*.mobileprovision" | grep -v ".git"; then
+        FOUND=$(find . -type d \( -name .git -o -name obj -o -name bin -o -name artifacts \) -prune -o -type f \( -name "*.jks" -o -name "*.keystore" -o -name "*.pfx" -o -name "*.p12" -o -name "*.p8" -o -name "*.mobileprovision" \) -print 2>/dev/null)
+        if [ -n "$FOUND" ]; then
           echo "ERROR: Secret files found in working directory!"
-          find . -name "*.jks" -o -name "*.keystore" -o -name "*.pfx" -o -name "*.p12" -o -name "*.p8" -o -name "*.mobileprovision" | grep -v ".git"
+          echo "$FOUND"
           exit 1
         fi
-        echo "✓ No secret files found in working directory"
+        echo "OK: No secret files found in working directory"
 
-    # Commit version changes (only specific version files)
-    - name: Commit version changes
-      uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
+    # Artifacts only when store publish succeeded.
+    - name: Upload Build Artifacts
+      if: steps.store_upload.outcome == 'success'
+      uses: actions/upload-artifact@v4
       with:
-        author_name: github-actions[bot]
-        author_email: github-actions[bot]@users.noreply.github.com
-        message: '[iOS] Update app version for App Store release'
-        add: |
-          src/Bible.Alarm/Bible.Alarm.csproj
-          src/Bible.Alarm/Platforms/iOS/Info.plist
-        # Explicitly ignore all other files to prevent accidental commits
-        default_author: github_actions
-        skip_dirty_check: false
-        push: true
+        name: BibleAlarm-${{ github.ref_name }}-ios
+        path: |
+          artifacts/**/*.ipa
+        retention-days: 14
+
+    - name: Get version for tag
+      if: steps.store_upload.outcome == 'success'
+      id: version
+      run: |
+        VERSION=$(sed -n 's/.*<ApplicationDisplayVersion>\([^<]*\)<\/ApplicationDisplayVersion>.*/\1/p' src/Bible.Alarm/Bible.Alarm.csproj | tr -d ' \r')
+        echo "version=${VERSION:-0.0.0}" >> $GITHUB_OUTPUT
+
+    - name: Create release tag and GitHub Release (beta suffix on beta branch)
+      if: steps.store_upload.outcome == 'success'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.version.outputs.version }}-ios${{ github.ref == 'refs/heads/beta' && '-beta' || '' }}
+        name: Bible Alarm iOS ${{ steps.version.outputs.version }}${{ github.ref == 'refs/heads/beta' && ' (beta)' || '' }}
+        body: |
+          **Version:** ${{ steps.version.outputs.version }}
+          **Branch:** ${{ github.ref_name }}
+          IPA from this workflow run.
+        generate_release_notes: true
+        files: artifacts/ios/*.ipa
+        fail_on_unmatched_files: false

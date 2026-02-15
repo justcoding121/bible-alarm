@@ -1,0 +1,77 @@
+# Runs after any deploy workflow completes. When all three deploy jobs (Windows, Android, iOS) have
+# completed for the same push (success or failure), merges beta→develop or stable→beta and stable→develop.
+# Version and artifacts may already be updated even if e.g. Store upload failed; merge still syncs version.
+name: Sync versions after deploy
+
+on:
+  workflow_run:
+    workflows:
+      - Deploy Windows to Microsoft Store
+      - Deploy Android to Google Play
+      - Deploy iOS to App Store
+    types:
+      - completed
+    branches:
+      - beta
+      - stable
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  sync-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if all three deploy workflows completed for this push
+        id: check
+        env:
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # List workflow runs for this branch and head_sha
+          resp=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?branch=${BRANCH}&head_sha=${HEAD_SHA}&per_page=100")
+          # Required workflow display names (must match name: in each deploy workflow)
+          w1="Deploy Windows to Microsoft Store"
+          w2="Deploy Android to Google Play"
+          w3="Deploy iOS to App Store"
+          # Check we have at least one completed run (any conclusion) for each of the three
+          has_w1=$(echo "$resp" | jq -r --arg n "$w1" '[.workflow_runs[] | select(.name == $n and .status == "completed")] | length')
+          has_w2=$(echo "$resp" | jq -r --arg n "$w2" '[.workflow_runs[] | select(.name == $n and .status == "completed")] | length')
+          has_w3=$(echo "$resp" | jq -r --arg n "$w3" '[.workflow_runs[] | select(.name == $n and .status == "completed")] | length')
+          if [ "$has_w1" -ge 1 ] && [ "$has_w2" -ge 1 ] && [ "$has_w3" -ge 1 ]; then
+            echo "all_ready=true" >> $GITHUB_OUTPUT
+            echo "All three deploy workflows completed for ${HEAD_SHA}; will merge."
+          else
+            echo "all_ready=false" >> $GITHUB_OUTPUT
+            echo "Not all three completed (Windows=$has_w1 Android=$has_w2 iOS=$has_w3); skipping merge."
+          fi
+
+      - name: Checkout repo
+        if: steps.check.outputs.all_ready == 'true'
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge to sync version
+        if: steps.check.outputs.all_ready == 'true'
+        env:
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          remote="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin
+          if [ "$BRANCH" = "beta" ]; then
+            git checkout develop
+            git merge origin/beta -m "[Version sync] Merge beta into develop"
+            git push "$remote" develop
+          elif [ "$BRANCH" = "stable" ]; then
+            git checkout beta
+            git merge origin/stable -m "[Version sync] Merge stable into beta"
+            git push "$remote" beta
+            git checkout develop
+            git merge origin/stable -m "[Version sync] Merge stable into develop"
+            git push "$remote" develop
+          fi

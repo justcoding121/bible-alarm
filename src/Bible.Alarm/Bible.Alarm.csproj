@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041.0</TargetFrameworks>
+		<!-- CI: restrict to Android only on Linux so iOS workload is not required (Shared stays net10.0). -->
+		<TargetFrameworks Condition="'$(BUILD_ANDROID_ONLY)'=='true'">net10.0-android</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>Bible.Alarm</RootNamespace>
 		<UseMaui>true</UseMaui>
@@ -19,10 +21,11 @@
 		<ApplicationTitle>Bible Alarm</ApplicationTitle>
 		
 		<!-- Display Version -->
-		<ApplicationDisplayVersion>1.3</ApplicationDisplayVersion>
-		<ApplicationVersion>4</ApplicationVersion>
+		<ApplicationDisplayVersion>2.4</ApplicationDisplayVersion>
+		<ApplicationVersion>360</ApplicationVersion>
 
 		<!-- Android-specific -->
+		<ApplicationId Condition="'$(TargetFramework)' == 'net10.0-android'">com.jthomas.info.Bible.Alarm</ApplicationId>
 		<!-- Minimum OS version must match CommunityToolkit.Maui.MediaElement requirement: Android 8.0 (API 26) -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">26.0</SupportedOSPlatformVersion>
 		<AndroidMinSdkVersion Condition="'$(TargetFramework)' == 'net10.0-android'">26</AndroidMinSdkVersion>

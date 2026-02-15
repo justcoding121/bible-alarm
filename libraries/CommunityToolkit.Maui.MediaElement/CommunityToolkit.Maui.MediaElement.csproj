@@ -1,8 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks>
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+    <!-- All three TFMs always declared so app reference resolves on any OS (e.g. iOS pipeline on macOS). -->
+    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041.0</TargetFrameworks>
+    <!-- CI: restrict to Android only when BUILD_ANDROID_ONLY is set (e.g. Linux runner). -->
+    <TargetFrameworks Condition="'$(BUILD_ANDROID_ONLY)'=='true'">net10.0-android</TargetFrameworks>
     <SingleProject>true</SingleProject>
     <UseMaui>true</UseMaui>
     <ImplicitUsings>enable</ImplicitUsings>
