@@ -26,9 +26,24 @@ public sealed class DisplayMetadataService(
 {
     private readonly IVocalMusicService? vocalMusicService = vocalMusicService;
     private readonly DisplayMetadataServiceMusicHelper musicHelper = new(logger, mediaService, vocalMusicService);
-    private readonly RemoteId3ArtworkExtractor remoteArtworkExtractor = new(httpHandler, logger);
+    private readonly RemoteId3ArtworkExtractor remoteId3ArtworkExtractor = new(httpHandler, logger);
+    private readonly RemoteMp4ArtworkExtractor remoteMp4ArtworkExtractor = new(httpHandler, logger);
+    private readonly SemaphoreSlim metadataFetchLock = new(1, 1);
 
     public async Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
+    {
+        await metadataFetchLock.WaitAsync();
+        try
+        {
+            return await GetDisplayMetadataCoreAsync(track);
+        }
+        finally
+        {
+            metadataFetchLock.Release();
+        }
+    }
+
+    private async Task<MetaData> GetDisplayMetadataCoreAsync(AudioPlayerTrack track)
     {
         var trackMetadata = track.PlayItem.Metadata;
         var meta = new MetaData();
@@ -326,11 +341,15 @@ public sealed class DisplayMetadataService(
         }
 
         // Fallback: for HTTPS streaming URLs with no local file, use HTTP Range requests
-        // to fetch only the ID3v2 tag block (artwork + basic metadata) without downloading
-        // the entire audio file.
+        // to fetch tag/metadata (ID3v2 for MP3, moov for MP4) without downloading the full file.
         if (uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
-            var remoteMeta = await remoteArtworkExtractor.TryExtractMetadataAsync(uri);
+            var remoteMeta = await remoteId3ArtworkExtractor.TryExtractMetadataAsync(uri);
+            if (remoteMeta == null)
+            {
+                remoteMeta = await remoteMp4ArtworkExtractor.TryExtractMetadataAsync(uri);
+            }
+
             if (remoteMeta != null)
             {
                 return remoteMeta;
@@ -367,16 +386,22 @@ public sealed class DisplayMetadataService(
                 }
                 catch (Exception ex) when (filePath.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Cached file may have .mp4 extension but contain MP3 (e.g. when API returned MP3 for video publication).
-                    logger.Debug(ex, "TagLib failed for .mp4 path, trying as audio/mpeg: {FilePath}", filePath);
+                    logger.Debug(ex, "TagLib auto-detect failed for .mp4 path, trying video/mp4 then audio/mpeg: {FilePath}", filePath);
                     try
                     {
-                        file = File.Create(filePath, "audio/mpeg", ReadStyle.None);
+                        file = File.Create(filePath, "video/mp4", ReadStyle.None);
                     }
                     catch
                     {
-                        logger.Warning(ex, "Failed to extract metadata from {Uri}", uri);
-                        return null;
+                        try
+                        {
+                            file = File.Create(filePath, "audio/mpeg", ReadStyle.None);
+                        }
+                        catch
+                        {
+                            logger.Warning(ex, "Failed to extract metadata from {Uri}", uri);
+                            return null;
+                        }
                     }
                 }
 

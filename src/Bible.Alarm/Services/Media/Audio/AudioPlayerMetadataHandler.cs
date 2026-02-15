@@ -1,4 +1,5 @@
 #nullable enable
+using System.Text.RegularExpressions;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.Models;
@@ -36,7 +37,7 @@ public class AudioPlayerMetadataHandler
         {
             var metadata = await displayMetadataService.GetDisplayMetadataAsync(currentTrack);
             await ApplyMetadataToMediaElement(metadata, mediaElement);
-            await SendMetadataMessageAsync(metadata);
+            await SendMetadataMessageAsync(metadata, currentTrack);
         }
         catch (Exception ex)
         {
@@ -47,7 +48,7 @@ public class AudioPlayerMetadataHandler
                 Artist = "Unknown Artist"
             };
             await ApplyMetadataToMediaElement(fallbackMeta, mediaElement);
-            await SendMetadataMessageAsync(fallbackMeta);
+            await SendMetadataMessageAsync(fallbackMeta, null);
         }
     }
 
@@ -60,7 +61,7 @@ public class AudioPlayerMetadataHandler
         try
         {
             var metadata = await displayMetadataService.GetDisplayMetadataAsync(track);
-            await SendMetadataMessageAsync(metadata);
+            await SendMetadataMessageAsync(metadata, track);
         }
         catch (Exception ex)
         {
@@ -70,7 +71,7 @@ public class AudioPlayerMetadataHandler
                 Title = "Unknown Title",
                 Artist = "Unknown Artist"
             };
-            await SendMetadataMessageAsync(fallbackMeta);
+            await SendMetadataMessageAsync(fallbackMeta, null);
         }
     }
 
@@ -137,7 +138,18 @@ public class AudioPlayerMetadataHandler
         }
     }
 
-    private async Task SendMetadataMessageAsync(MetaData meta)
+    /// <summary>
+    /// Builds a stable filename-safe key for the track so Sync and HandleMediaOpened both use the same artwork path (avoids modal blink).
+    /// </summary>
+    private static string? GetStableArtworkKey(AudioPlayerTrack? track)
+    {
+        var m = track?.PlayItem?.Metadata;
+        if (m == null) return null;
+        var raw = $"{m.ScheduleId}_{m.LanguageCode}_{m.PublicationCode}_{m.SectionCode ?? "n"}_{m.TrackCode}";
+        return Regex.Replace(raw, @"[\<\>\:\""\/\\\|\?\*]", "_");
+    }
+
+    private async Task SendMetadataMessageAsync(MetaData meta, AudioPlayerTrack? track)
     {
         string? artworkUrl = meta.ArtworkUrl;
 
@@ -148,19 +160,17 @@ public class AudioPlayerMetadataHandler
         {
             try
             {
-                // Use AppDataDirectory instead of CacheDirectory for artwork
-                // CacheDirectory can be cleared by iOS when storage is low, which would break lock screen artwork
-                // AppDataDirectory is more persistent and won't be cleared by the OS
                 var artworkDir = Path.Combine(FileSystem.AppDataDirectory, "Artwork");
-                // Use a unique filename with timestamp to ensure iOS lock screen detects the change
-                // The iOSNowPlayingInfoManager caches by URL, so same URL = same cached artwork
-                var artworkPath = Path.Combine(artworkDir, $"playing_track_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg");
+                var key = GetStableArtworkKey(track);
+                var fileName = key != null
+                    ? $"playing_track_artwork_{key}.jpg"
+                    : $"playing_track_artwork_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.jpg";
+                var artworkPath = Path.Combine(artworkDir, fileName);
 
                 // Use concurrency helper to prevent concurrent access to artwork directory operations
                 await ConcurrencyHelper.ExecuteAsync(ArtworkHelper.ArtworkLock, async () =>
                 {
                     Directory.CreateDirectory(artworkDir); // Ensure directory exists
-                    // Clean up old artwork files to prevent accumulation
                     CleanupOldArtworkFiles(artworkDir);
                     await File.WriteAllBytesAsync(artworkPath, meta.ArtworkBytes);
                 });

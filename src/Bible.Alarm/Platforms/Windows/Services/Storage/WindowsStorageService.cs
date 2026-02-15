@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Reflection;
 using Bible.Alarm.Services.Storage;
 using Windows.Storage;
@@ -8,14 +10,38 @@ public class WindowsStorageService : StorageService, IDisposable
 {
     private bool isDisposed;
 
-    private static string GetStorageRoot() => ApplicationData.Current.LocalFolder.Path;
-    private static string GetCacheRoot() => ApplicationData.Current.LocalCacheFolder.Path;
+    private static string GetStorageRoot()
+    {
+        try
+        {
+            return ApplicationData.Current.LocalFolder.Path;
+        }
+        catch (InvalidOperationException)
+        {
+            return GetFallbackRoot();
+        }
+    }
 
-    private static readonly string storageRoot = GetStorageRoot();
-    public override string StorageRoot => storageRoot;
+    private static string GetCacheRoot()
+    {
+        try
+        {
+            return ApplicationData.Current.LocalCacheFolder.Path;
+        }
+        catch (InvalidOperationException)
+        {
+            return Path.Combine(GetFallbackRoot(), "Cache");
+        }
+    }
 
-    private static readonly string cacheRoot = GetCacheRoot();
-    public override string CacheRoot => cacheRoot;
+    private static string GetFallbackRoot() =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BibleAlarm");
+
+    private static readonly Lazy<string> StorageRootLazy = new(GetStorageRoot);
+    public override string StorageRoot => StorageRootLazy.Value;
+
+    private static readonly Lazy<string> CacheRootLazy = new(GetCacheRoot);
+    public override string CacheRoot => CacheRootLazy.Value;
     public override Assembly MainAssembly => typeof(WindowsStorageService).Assembly;
 
     public override void Dispose()

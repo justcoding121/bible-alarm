@@ -478,7 +478,19 @@ public partial class MediaManager : Object, IPlayerListener
     public void OnLoadingChanged(bool isLoading) { }
     public void OnMaxSeekToPreviousPositionChanged(long maxSeekToPreviousPositionMs) { }
     public void OnMediaItemTransition(MediaItem? mediaItem, int reason) { }
-    public void OnMediaMetadataChanged(MediaMetadata? mediaMetadata) { }
+
+    public void OnMediaMetadataChanged(MediaMetadata? mediaMetadata)
+    {
+        if (mediaMetadata is null)
+        {
+            return;
+        }
+
+        Dispatcher.DispatchAsync(() =>
+        {
+            UpdateNotifications();
+        });
+    }
     public void OnMetadata(Metadata? metadata) { }
     public void OnPlayWhenReadyChanged(bool playWhenReady, int reason) { }
     public void OnPositionDiscontinuity(PlayerPositionInfo? oldPosition, PlayerPositionInfo? newPosition, int reason) { }

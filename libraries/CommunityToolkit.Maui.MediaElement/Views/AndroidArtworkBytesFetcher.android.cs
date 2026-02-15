@@ -35,15 +35,19 @@ internal static class AndroidArtworkBytesFetcher
                 var response = await client.GetAsync(url, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
                 stream = response.IsSuccessStatusCode ? await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false) : null;
             }
-            // Absolute File Path
-            else if (uri is not null && uri.Scheme == Uri.UriSchemeFile)
+            // file:// URI or absolute filesystem path (e.g. app data path on Android)
+            else if ((uri is not null && uri.Scheme == Uri.UriSchemeFile) || IsAbsoluteFilePath(url))
             {
-                var normalizedFilePath = NormalizeFilePath(url);
+                var normalizedFilePath = NormalizeFilePath(
+                    uri is not null && uri.Scheme == Uri.UriSchemeFile ? uri.LocalPath : url);
 
-                stream = File.Open(normalizedFilePath, FileMode.Create);
-                contentLength = await GetByteCountFromStream(stream, cancellationToken);
+                if (File.Exists(normalizedFilePath))
+                {
+                    stream = File.OpenRead(normalizedFilePath);
+                    contentLength = await GetByteCountFromStream(stream, cancellationToken);
+                }
             }
-            // Relative File Path
+            // Relative File Path (asset)
             else if (Uri.TryCreate(url, UriKind.Relative, out _))
             {
                 var normalizedFilePath = NormalizeFilePath(url);
@@ -89,6 +93,17 @@ internal static class AndroidArtworkBytesFetcher
         }
 
         static string NormalizeFilePath(string filePath) => filePath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+
+        static bool IsAbsoluteFilePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+
+            var normalized = NormalizeFilePath(path);
+            return Path.IsPathRooted(normalized) && File.Exists(normalized);
+        }
 
         static async ValueTask<long> GetByteCountFromStream(Stream stream, CancellationToken token)
         {
