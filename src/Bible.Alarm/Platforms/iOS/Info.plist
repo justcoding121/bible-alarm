@@ -186,6 +186,14 @@
 
 
 
+	<key>ITSAppUsesNonExemptEncryption</key>
+
+
+
+	<false/>
+
+
+
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 
 
