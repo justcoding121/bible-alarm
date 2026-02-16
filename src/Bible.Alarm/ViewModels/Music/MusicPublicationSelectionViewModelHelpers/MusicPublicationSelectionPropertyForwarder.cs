@@ -15,6 +15,7 @@ public static class MusicPublicationSelectionPropertyForwarder
             if (e.PropertyName == nameof(MusicPublicationSelectionPropertyManager.IsBusy))
             {
                 onPropertyChanged("IsBusy");
+                onPropertyChanged("ShowCancelButton");
                 return;
             }
 

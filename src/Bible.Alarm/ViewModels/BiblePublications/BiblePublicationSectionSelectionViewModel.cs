@@ -362,7 +362,11 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
     public bool IsBusy
     {
         get => isBusy;
-        set => SetProperty(ref isBusy, value);
+        set
+        {
+            if (SetProperty(ref isBusy, value))
+                OnPropertyChanged(nameof(ShowCancelButton));
+        }
     }
 
     public bool ShowProgress
@@ -409,8 +413,8 @@ public sealed class BiblePublicationSectionSelectionViewModel : ObservableObject
         set => SetProperty(ref isCancelBusy, value);
     }
 
-    /// <summary>Show cancel button in overlay during fetch.</summary>
-    public bool ShowCancelButton => ShowProgress;
+    /// <summary>Show cancel button in overlay during fetch or when busy loading.</summary>
+    public bool ShowCancelButton => ShowProgress || IsBusy;
 
     private ObservableCollection<BiblePublicationSectionListViewItemModel> sections = [];
 

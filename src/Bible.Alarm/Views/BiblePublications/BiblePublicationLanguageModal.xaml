@@ -306,6 +306,8 @@
                                      Grid.Row="0"
                                      Grid.RowSpan="4"
                                      HardTimeoutMs="0"
+                                     ShowCancelButton="True"
+                                     CancelCommand="{Binding CloseModalCommand}"
                                      IsVisible="{Binding IsBusy}" />
         </Grid>
     </ContentPage.Content>

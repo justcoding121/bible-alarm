@@ -307,8 +307,8 @@ public sealed class MusicPublicationSelectionViewModel : ObservableObject, IList
         set => propertyManager.IsCancelBusy = value;
     }
 
-    /// <summary>Show cancel button in overlay during fetch.</summary>
-    public bool ShowCancelButton => ShowProgress;
+    /// <summary>Show cancel button in overlay during fetch or when busy loading.</summary>
+    public bool ShowCancelButton => ShowProgress || IsBusy;
 
     /// <summary>
     /// Initialize is called via Task.Run from HandleMusicInitialized.

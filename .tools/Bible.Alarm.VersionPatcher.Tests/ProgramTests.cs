@@ -17,7 +17,7 @@ public class ProgramTests
         var services = new ServiceCollection();
         var versionPatchingServiceMock = new Mock<IVersionPatchingService>();
 
-        versionPatchingServiceMock.Setup(x => x.PatchAllPlatformsAsync())
+        versionPatchingServiceMock.Setup(x => x.PatchAsync(null))
             .Returns(Task.CompletedTask);
 
         services.AddSingleton(versionPatchingServiceMock.Object);
@@ -27,7 +27,7 @@ public class ProgramTests
         var action = async () =>
         {
             var versionPatchingService = serviceProvider.GetRequiredService<IVersionPatchingService>();
-            await versionPatchingService.PatchAllPlatformsAsync();
+            await versionPatchingService.PatchAsync(null);
         };
 
         action.Should().NotThrowAsync();
@@ -40,7 +40,7 @@ public class ProgramTests
         var services = new ServiceCollection();
         var versionPatchingServiceMock = new Mock<IVersionPatchingService>();
 
-        versionPatchingServiceMock.Setup(x => x.PatchAllPlatformsAsync())
+        versionPatchingServiceMock.Setup(x => x.PatchAsync(null))
             .ThrowsAsync(new Exception("Patching failed"));
 
         services.AddSingleton(versionPatchingServiceMock.Object);
@@ -50,7 +50,7 @@ public class ProgramTests
         var action = async () =>
         {
             var versionPatchingService = serviceProvider.GetRequiredService<IVersionPatchingService>();
-            await versionPatchingService.PatchAllPlatformsAsync();
+            await versionPatchingService.PatchAsync(null);
         };
 
         action.Should().ThrowAsync<Exception>().WithMessage("Patching failed");

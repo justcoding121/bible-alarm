@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -103,7 +104,7 @@ public class ReleaseVersionPatcher(IVersionService versionService, IFileService 
         var identity = doc.SelectSingleNode("//appx:Identity", nsmgr) ?? doc.SelectSingleNode("//Identity");
         if (identity?.Attributes?["Version"] != null)
         {
-            identity.Attributes["Version"].Value = fourPart;
+            identity!.Attributes!["Version"]!.Value = fourPart;
             await fileService.WriteFileAsync(manifestPath, doc.OuterXml);
             Console.WriteLine($"Release Windows Package.appxmanifest synced -> {fourPart}");
         }

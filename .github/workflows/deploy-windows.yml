@@ -48,6 +48,19 @@ jobs:
         Import-PfxCertificate -FilePath $certPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
         
         Remove-Item $certPath -Force
+
+    # Export the public certificate (.cer) so sideloaders can trust it
+    - name: Export public certificate
+      env:
+        WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
+      shell: powershell
+      run: |
+        $cert = Get-ChildItem -Path "Cert:\CurrentUser\My\$env:WINDOWS_CERTIFICATE_THUMBPRINT"
+        $cerPath = Join-Path (Get-Location) "artifacts"
+        if (-not (Test-Path $cerPath)) { New-Item -ItemType Directory -Path $cerPath | Out-Null }
+        $cerFile = Join-Path $cerPath "Bible.Alarm.cer"
+        Export-Certificate -Cert $cert -FilePath $cerFile -Type CERT | Out-Null
+        Write-Host "Exported public certificate: $cerFile"
         
     - name: Restore dependencies
       run: dotnet restore src/Bible.Alarm.sln
@@ -349,9 +362,21 @@ jobs:
         body: |
           **Version:** ${{ steps.get_version.outputs.version }}
           **Branch:** ${{ github.ref_name }}
-          Installable .msixbundle for Microsoft Store or sideloading.
+
+          ### Install from Microsoft Store
+          The package is uploaded to the Microsoft Store automatically.
+
+          ### Sideload (manual install)
+          1. Download both **Bible.Alarm.cer** and the **.msixbundle** from the assets below.
+          2. Install the certificate:
+             - Double-click **Bible.Alarm.cer** → **Install Certificate…**
+             - Choose **Local Machine** → **Next**
+             - Select **Place all certificates in the following store** → **Browse…** → **Trusted People** → **OK** → **Next** → **Finish**
+          3. Double-click the **.msixbundle** to install the app.
         generate_release_notes: true
-        files: artifacts/*.msixbundle
+        files: |
+          artifacts/*.msixbundle
+          artifacts/*.cer
         fail_on_unmatched_files: true
 
     # Artifacts when build+bundle succeeded (run even if upload fails).
@@ -362,4 +387,5 @@ jobs:
         name: BibleAlarm-${{ github.ref_name }}-windows
         path: |
           artifacts/**/*.msixbundle
+          artifacts/**/*.cer
         retention-days: 14

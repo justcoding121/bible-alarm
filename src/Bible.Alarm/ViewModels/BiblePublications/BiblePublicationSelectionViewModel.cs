@@ -295,8 +295,8 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
     public bool HasFetchError { get => propertyManager.HasFetchError; set => propertyManager.HasFetchError = value; }
     public bool IsCancelBusy { get => propertyManager.IsCancelBusy; set => propertyManager.IsCancelBusy = value; }
 
-    /// <summary>Show cancel button in overlay during fetch.</summary>
-    public bool ShowCancelButton => ShowProgress;
+    /// <summary>Show cancel button in overlay during fetch or when busy loading.</summary>
+    public bool ShowCancelButton => ShowProgress || IsBusy;
 
     /// <summary>
     /// Gets the FlowDirection for content based on the selected language direction.
@@ -381,6 +381,7 @@ public sealed class BiblePublicationSelectionViewModel : ObservableObject, IList
             if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.IsBusy))
             {
                 OnPropertyChanged(nameof(IsBusy));
+                OnPropertyChanged(nameof(ShowCancelButton));
                 return;
             }
 
