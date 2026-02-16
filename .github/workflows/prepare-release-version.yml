@@ -1,7 +1,5 @@
 # Runs on every push to beta/stable. If the push was by a human (not the bot), bumps version
-# once (csproj + iOS + Windows manifests) and pushes. That push must use a PAT (not
-# GITHUB_TOKEN) so it triggers the three deploy workflows; they only run when the push
-# is from the bot. Add secret REPO_TOKEN (PAT with repo scope) for this to work.
+# once and pushes. Requires secret REPO_TOKEN (PAT) so that push triggers the three deploy workflows.
 name: Prepare release version
 
 on:
