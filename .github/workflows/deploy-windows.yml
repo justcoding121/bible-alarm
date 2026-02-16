@@ -336,9 +336,9 @@ jobs:
         }
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
+        "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         git tag -a $tag HEAD -m "Windows $branch release $version"
         git push origin $tag
-        Write-Host "tag=$tag" >> $env:GITHUB_OUTPUT
 
     - name: Create GitHub Release and upload package
       if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure') && steps.release_tag.outputs.tag != ''
