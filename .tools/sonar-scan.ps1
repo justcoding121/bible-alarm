@@ -10,9 +10,10 @@ param(
 $ErrorActionPreference = "Stop"
 $ProjectKey = "justcoding121_bible-alarm"
 $Organization = "justcoding121"
-$SolutionDir = Join-Path $PSScriptRoot "src"
+$RepoRoot = Split-Path $PSScriptRoot -Parent
+$SolutionDir = Join-Path $RepoRoot "src"
 $SolutionPath = Join-Path $SolutionDir "Bible.Alarm.sln"
-$TestProjectPath = Join-Path $PSScriptRoot ".tools\Bible.Alarm.VersionPatcher.Tests\Bible.Alarm.VersionPatcher.Tests.csproj"
+$TestProjectPath = Join-Path $PSScriptRoot "Bible.Alarm.VersionPatcher.Tests\Bible.Alarm.VersionPatcher.Tests.csproj"
 
 $Exclusions = "**/bin/**/*,**/obj/**/*,**/*.Tests/**," +
     "**/Database/Migrations/**,**/*.pem"
@@ -22,7 +23,7 @@ if (-not $SonarToken) {
     exit 1
 }
 
-Push-Location $PSScriptRoot
+Push-Location $RepoRoot
 
 try {
     Write-Host "SonarScanner: begin (project: $ProjectKey, org: $Organization)" -ForegroundColor Cyan
