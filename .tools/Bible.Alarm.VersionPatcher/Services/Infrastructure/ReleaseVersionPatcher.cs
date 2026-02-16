@@ -74,7 +74,7 @@ public class ReleaseVersionPatcher(IVersionService versionService, IFileService 
         var content = await fileService.ReadFileAsync(plistPath);
         content = Regex.Replace(content,
             @"(<key>CFBundleVersion</key>\s*<string>)[^<]+(</string>)",
-            $"$1{displayVersion}$2",
+            m => m.Groups[1].Value + displayVersion + m.Groups[2].Value,
             RegexOptions.None, RegexTimeout);
         await fileService.WriteFileAsync(plistPath, content);
         Console.WriteLine($"Release iOS Info.plist synced -> {displayVersion}");
