@@ -341,7 +341,7 @@ jobs:
         Write-Host "tag=$tag" >> $env:GITHUB_OUTPUT
 
     - name: Create GitHub Release and upload package
-      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure') && steps.release_tag.outcome == 'success' && steps.release_tag.outputs.tag != ''
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure') && steps.release_tag.outputs.tag != ''
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.release_tag.outputs.tag }}
