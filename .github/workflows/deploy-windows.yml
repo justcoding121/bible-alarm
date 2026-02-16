@@ -351,7 +351,7 @@ jobs:
           **Branch:** ${{ github.ref_name }}
           Installable .msixbundle for Microsoft Store or sideloading.
         generate_release_notes: true
-        files: ${{ steps.find_package.outputs.package_path }}
+        files: artifacts/*.msixbundle
         fail_on_unmatched_files: true
 
     # Artifacts when build+bundle succeeded (run even if upload fails).
