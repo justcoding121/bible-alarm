@@ -65,6 +65,12 @@ public class PlaybackPreparationProgressMessage
     /// Total bytes expected across all tracks (if known, for overall progress calculation).
     /// </summary>
     public long? TotalBytesExpected { get; init; }
+
+    /// <summary>
+    /// When true, playback modal shows progress percent and progress bar (e.g. section API fetch).
+    /// When false, only the spinner is shown (stream/cache resolve, no percent).
+    /// </summary>
+    public bool ShowPercent { get; init; }
 }
 
 /// <summary>

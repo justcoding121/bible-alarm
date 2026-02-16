@@ -64,9 +64,9 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Progress indicator when preparing tracks (landscape) -->
+            <!-- Progress indicator when preparing tracks (only when API fetch, e.g. section change) -->
             <Border Grid.Row="0"
-                    IsVisible="{Binding ShowPreparingProgress}"
+                    IsVisible="{Binding ShowPreparingCard}"
                     BackgroundColor="{DynamicResource CardBackgroundColor}"
                     Opacity="0.95"
                     StrokeThickness="0"
@@ -85,20 +85,27 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <Label Grid.Row="0"
-                           FontSize="{DynamicResource LargeFontSize}"
-                           FontAttributes="Bold"
-                           HorizontalOptions="Fill"
-                           HorizontalTextAlignment="Center"
-                           Text="{Binding ProgressText}"
-                           TextColor="{DynamicResource TextPrimaryColor}"
-                           MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
-                    <ProgressBar Grid.Row="1"
-                                 Margin="{DynamicResource MarginThickness10_5}"
-                                 WidthRequest="{DynamicResource ContentWidthSmall}"
-                                 HorizontalOptions="Center"
-                                 Progress="{Binding PreparationProgress}"
-                                 ProgressColor="{StaticResource PrimaryColor}" />
+                    <!-- Percent + progress bar: only visible when API fetch (section change); hidden for stream/cache -->
+                    <Grid Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding ShowPreparationPercent, FallbackValue=False}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Label Grid.Row="0"
+                               FontSize="{DynamicResource LargeFontSize}"
+                               FontAttributes="Bold"
+                               HorizontalOptions="Fill"
+                               HorizontalTextAlignment="Center"
+                               Text="{Binding ProgressText}"
+                               TextColor="{DynamicResource TextPrimaryColor}"
+                               MinimumHeightRequest="{DynamicResource IconStandardContainerSize}" />
+                        <ProgressBar Grid.Row="1"
+                                     Margin="{DynamicResource MarginThickness10_5}"
+                                     WidthRequest="{DynamicResource ContentWidthSmall}"
+                                     HorizontalOptions="Center"
+                                     Progress="{Binding PreparationProgress}"
+                                     ProgressColor="{StaticResource PrimaryColor}" />
+                    </Grid>
                     <Grid Grid.Row="2"
                           HorizontalOptions="Center"
                           VerticalOptions="Center"

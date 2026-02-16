@@ -463,33 +463,25 @@ public sealed class PlaylistService : IPlaylistService, IDisposable
 
         if (currentTrackMetadata.PlayType == PlayType.Music)
         {
-            sectionFetchProgress?.UpdateProgress(0.0);
-            try
+            if (currentTrackMetadata.ScheduleId <= 0)
             {
-                if (currentTrackMetadata.ScheduleId <= 0)
-                {
-                    throw new InvalidOperationException("Invalid schedule ID in current track metadata");
-                }
-
-                var scheduleId = (int)currentTrackMetadata.ScheduleId;
-                var schedule = await alarmScheduleService.GetScheduleByIdAsync(
-                    scheduleId,
-                    includeMusic: true,
-                    includeBiblePublication: false,
-                    cancellationTokenSource.Token) ?? throw new InvalidOperationException($"Schedule not found: {scheduleId}");
-
-                if (schedule.Music == null)
-                {
-                    throw new InvalidOperationException($"Schedule {scheduleId} has no music configured");
-                }
-
-                schedule.Music.TrackCode = currentTrackMetadata.TrackCode;
-                return await musicTrackBuilder.PreviousMusicUrlToPlay(schedule);
+                throw new InvalidOperationException("Invalid schedule ID in current track metadata");
             }
-            finally
+
+            var scheduleId = (int)currentTrackMetadata.ScheduleId;
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(
+                scheduleId,
+                includeMusic: true,
+                includeBiblePublication: false,
+                cancellationTokenSource.Token) ?? throw new InvalidOperationException($"Schedule not found: {scheduleId}");
+
+            if (schedule.Music == null)
             {
-                sectionFetchProgress?.UpdateProgress(1.0);
+                throw new InvalidOperationException($"Schedule {scheduleId} has no music configured");
             }
+
+            schedule.Music.TrackCode = currentTrackMetadata.TrackCode;
+            return await musicTrackBuilder.PreviousMusicUrlToPlay(schedule);
         }
 
         // Bible content

@@ -29,7 +29,8 @@ public sealed class SectionFetchProgressReporter : IFetchProgress
             BytesDownloaded = 0,
             TotalBytes = null,
             TotalBytesDownloaded = 0,
-            TotalBytesExpected = null
+            TotalBytesExpected = null,
+            ShowPercent = true
         });
     }
 

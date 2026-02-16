@@ -392,7 +392,7 @@ public partial class BusyOverlay : ContentView
     /// </summary>
     public void StartSpinnerImmediately()
     {
-        // Access the SfBusyIndicator directly and set IsRunning immediately
+        // Access the ActivityIndicator directly and set IsRunning immediately
         // This bypasses the binding evaluation delay
         if (busyIndicator != null)
         {

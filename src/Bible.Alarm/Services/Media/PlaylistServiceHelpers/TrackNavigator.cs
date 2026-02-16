@@ -116,56 +116,48 @@ public sealed class TrackNavigator
         string trackCode,
         IFetchProgress? sectionFetchProgress = null)
     {
-        sectionFetchProgress?.UpdateProgress(0.0);
-        try
+        if (string.IsNullOrWhiteSpace(sectionCode))
         {
-            if (string.IsNullOrWhiteSpace(sectionCode))
-            {
-                return await NonSectionedHelper.GetNextAsync(languageCode, publicationCode, trackCode);
-            }
-
-            // Sectioned publication: circle within the whole publication (all sections), not within a section.
-            var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
-            if (string.IsNullOrEmpty(normalizedSectionCode))
-            {
-                return await NonSectionedHelper.GetNextAsync(languageCode, publicationCode, trackCode);
-            }
-
-            var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
-            if (!sections.TryGetValue(normalizedSectionCode, out var currentSection) || currentSection == null)
-            {
-                throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
-            }
-
-            var tracks = await GetTracksCachedAsync(languageCode, publicationCode, normalizedSectionCode);
-            var currentKey = ResolveTrackCodeToKey(tracks, trackCode);
-            // Use TrackCodeComparer to find next track (tracks dictionary is already sorted correctly)
-            var nextTrack = tracks.SkipWhile(kvp => TrackCodeComparer.Comparer.Compare(kvp.Key, currentKey) <= 0).FirstOrDefault();
-
-            if (!nextTrack.Equals(default(KeyValuePair<string, BiblePublicationTrack>)))
-            {
-                return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, nextTrack.Value);
-            }
-
-            // No next track in this section: go to next section (wraps to first section at end of publication).
-            var nextSection = await GetNextBiblePublicationSection(languageCode, publicationCode, normalizedSectionCode, sectionFetchProgress);
-            if (nextSection.Value == null)
-            {
-                throw new InvalidOperationException($"Next bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
-            }
-
-            tracks = await GetTracksCachedAsync(languageCode, publicationCode, nextSection.Key);
-            if (tracks.Count == 0)
-            {
-                throw new InvalidOperationException($"No tracks in next section: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={nextSection.Key}");
-            }
-
-            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(nextSection.Value, tracks.ElementAt(0).Value);
+            return await NonSectionedHelper.GetNextAsync(languageCode, publicationCode, trackCode);
         }
-        finally
+
+        // Sectioned publication: circle within the whole publication (all sections), not within a section.
+        var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
+        if (string.IsNullOrEmpty(normalizedSectionCode))
         {
-            sectionFetchProgress?.UpdateProgress(1.0);
+            return await NonSectionedHelper.GetNextAsync(languageCode, publicationCode, trackCode);
         }
+
+        var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+        if (!sections.TryGetValue(normalizedSectionCode, out var currentSection) || currentSection == null)
+        {
+            throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
+        }
+
+        var tracks = await GetTracksCachedAsync(languageCode, publicationCode, normalizedSectionCode);
+        var currentKey = ResolveTrackCodeToKey(tracks, trackCode);
+        // Use TrackCodeComparer to find next track (tracks dictionary is already sorted correctly)
+        var nextTrack = tracks.SkipWhile(kvp => TrackCodeComparer.Comparer.Compare(kvp.Key, currentKey) <= 0).FirstOrDefault();
+
+        if (!nextTrack.Equals(default(KeyValuePair<string, BiblePublicationTrack>)))
+        {
+            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, nextTrack.Value);
+        }
+
+        // No next track in this section: go to next section (wraps to first section at end of publication).
+        var nextSection = await GetNextBiblePublicationSection(languageCode, publicationCode, normalizedSectionCode, sectionFetchProgress);
+        if (nextSection.Value == null)
+        {
+            throw new InvalidOperationException($"Next bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
+        }
+
+        tracks = await GetTracksCachedAsync(languageCode, publicationCode, nextSection.Key);
+        if (tracks.Count == 0)
+        {
+            throw new InvalidOperationException($"No tracks in next section: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={nextSection.Key}");
+        }
+
+        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(nextSection.Value, tracks.ElementAt(0).Value);
     }
 
     private static string ResolveTrackCodeToKey(SortedDictionary<string, BiblePublicationTrack> tracks, string trackCode)
@@ -197,58 +189,51 @@ public sealed class TrackNavigator
         string trackCode,
         IFetchProgress? sectionFetchProgress = null)
     {
-        sectionFetchProgress?.UpdateProgress(0.0);
-        try
+        if (string.IsNullOrWhiteSpace(sectionCode))
         {
-            if (string.IsNullOrWhiteSpace(sectionCode))
-            {
-                return await NonSectionedHelper.GetPreviousAsync(languageCode, publicationCode, trackCode);
-            }
-
-            // Sectioned publication: circle within the whole publication (all sections), not within a section.
-            var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
-            if (string.IsNullOrEmpty(normalizedSectionCode))
-            {
-                return await NonSectionedHelper.GetPreviousAsync(languageCode, publicationCode, trackCode);
-            }
-
-            var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
-            if (!sections.TryGetValue(normalizedSectionCode, out var currentSection) || currentSection == null)
-            {
-                throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
-            }
-
-            var tracks = await GetTracksCachedAsync(languageCode, publicationCode, normalizedSectionCode);
-            var currentKey = ResolveTrackCodeToKey(tracks, trackCode);
-            
-            // Use TrackCodeComparer to find previous track (tracks dictionary is already sorted correctly)
-            var previousTrack = tracks.Reverse().SkipWhile(kvp => TrackCodeComparer.Comparer.Compare(kvp.Key, currentKey) >= 0).FirstOrDefault();
-
-            if (!previousTrack.Equals(default(KeyValuePair<string, BiblePublicationTrack>)))
-            {
-                return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, previousTrack.Value);
-            }
-
-            // No previous track in this section: go to previous section (wraps to last section at start of publication).
-            var previousSection = await GetPreviousBiblePublicationSection(languageCode, publicationCode, normalizedSectionCode, sectionFetchProgress);
-            if (previousSection.Value == null)
-            {
-                throw new InvalidOperationException($"Previous bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
-            }
-
-            tracks = await GetTracksCachedAsync(languageCode, publicationCode, previousSection.Key);
-            if (tracks.Count == 0)
-            {
-                throw new InvalidOperationException($"No tracks in previous section: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={previousSection.Key}");
-            }
-
-            // Use Last() directly since tracks dictionary is already sorted correctly with TrackCodeComparer
-            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(previousSection.Value, tracks.Last().Value);
+            return await NonSectionedHelper.GetPreviousAsync(languageCode, publicationCode, trackCode);
         }
-        finally
+
+        // Sectioned publication: circle within the whole publication (all sections), not within a section.
+        var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
+        if (string.IsNullOrEmpty(normalizedSectionCode))
         {
-            sectionFetchProgress?.UpdateProgress(1.0);
+            return await NonSectionedHelper.GetPreviousAsync(languageCode, publicationCode, trackCode);
         }
+
+        var sections = await GetSectionsCachedAsync(languageCode, publicationCode);
+        if (!sections.TryGetValue(normalizedSectionCode, out var currentSection) || currentSection == null)
+        {
+            throw new InvalidOperationException($"Bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
+        }
+
+        var tracks = await GetTracksCachedAsync(languageCode, publicationCode, normalizedSectionCode);
+        var currentKey = ResolveTrackCodeToKey(tracks, trackCode);
+
+        // Use TrackCodeComparer to find previous track (tracks dictionary is already sorted correctly)
+        var previousTrack = tracks.Reverse().SkipWhile(kvp => TrackCodeComparer.Comparer.Compare(kvp.Key, currentKey) >= 0).FirstOrDefault();
+
+        if (!previousTrack.Equals(default(KeyValuePair<string, BiblePublicationTrack>)))
+        {
+            return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(currentSection, previousTrack.Value);
+        }
+
+        // No previous track in this section: go to previous section (wraps to last section at start of publication).
+        // Only report progress when we may perform section API fetch.
+        var previousSection = await GetPreviousBiblePublicationSection(languageCode, publicationCode, normalizedSectionCode, sectionFetchProgress);
+        if (previousSection.Value == null)
+        {
+            throw new InvalidOperationException($"Previous bible section not found: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={normalizedSectionCode}");
+        }
+
+        tracks = await GetTracksCachedAsync(languageCode, publicationCode, previousSection.Key);
+        if (tracks.Count == 0)
+        {
+            throw new InvalidOperationException($"No tracks in previous section: languageCode={languageCode}, publicationCode={publicationCode}, sectionCode={previousSection.Key}");
+        }
+
+        // Use Last() directly since tracks dictionary is already sorted correctly with TrackCodeComparer
+        return new KeyValuePair<BiblePublicationSection?, BiblePublicationTrack>(previousSection.Value, tracks.Last().Value);
     }
 
     /// <summary>

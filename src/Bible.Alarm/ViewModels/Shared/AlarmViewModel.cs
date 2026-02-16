@@ -224,6 +224,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
         if (SetProperty(ref isStopping, true, nameof(IsStopping)))
         {
             OnPropertyChanged(nameof(ShowPreparingProgress));
+            OnPropertyChanged(nameof(ShowPreparingCard));
             OnPropertyChanged(nameof(ShowPlaybackControls));
             OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
             OnPropertyChanged(nameof(AreControlsEnabled));
@@ -418,6 +419,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     }
 
     private bool isPreparing;
+    private bool showPreparationPercent;
     private int loadedTracks;
     private int totalTracks;
     private long totalBytesDownloaded;
@@ -433,6 +435,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
                 OnPropertyChanged(nameof(AreControlsEnabled));
                 OnPropertyChanged(nameof(IsBuffering));
                 OnPropertyChanged(nameof(ShowPreparingProgress));
+                OnPropertyChanged(nameof(ShowPreparingCard));
                 OnPropertyChanged(nameof(ShowMainPlayerContent));
                 OnPropertyChanged(nameof(ShowLandscapeOverlayControls));
             }
@@ -441,6 +444,12 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
     /// <summary>Show preparing progress when preparing tracks.</summary>
     public bool ShowPreparingProgress => IsPreparing && !HasError;
+
+    /// <summary>Show progress percent and bar only when API fetch is involved (e.g. section change). False for stream/cache.</summary>
+    public bool ShowPreparationPercent => showPreparationPercent;
+
+    /// <summary>Show the preparing card only when API fetch is involved (section change). Hidden for stream/cache to avoid momentary flash.</summary>
+    public bool ShowPreparingCard => ShowPreparingProgress && ShowPreparationPercent;
 
     /// <summary>Show main player content when not preparing and no error.</summary>
     public bool ShowMainPlayerContent => !IsPreparing && !HasError;
@@ -483,6 +492,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
                 OnPropertyChanged(nameof(AreControlsEnabled));
                 OnPropertyChanged(nameof(IsBuffering));
                 OnPropertyChanged(nameof(ShowPreparingProgress));
+                OnPropertyChanged(nameof(ShowPreparingCard));
                 OnPropertyChanged(nameof(ShowMainPlayerContent));
                 if (RetryCommand is CommunityToolkit.Mvvm.Input.AsyncRelayCommand asyncCommand)
                 {
@@ -534,8 +544,28 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
 
     public void Receive(PlaybackPreparationProgressMessage message)
     {
+        var showPercentForThisMessage = message.ShowPercent;
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            if (showPercentForThisMessage)
+            {
+                if (!showPreparationPercent)
+                {
+                    showPreparationPercent = true;
+                    OnPropertyChanged(nameof(ShowPreparationPercent));
+                    OnPropertyChanged(nameof(ShowPreparingCard));
+                }
+            }
+            else
+            {
+                if (showPreparationPercent)
+                {
+                    showPreparationPercent = false;
+                    OnPropertyChanged(nameof(ShowPreparationPercent));
+                    OnPropertyChanged(nameof(ShowPreparingCard));
+                }
+            }
+
             totalBytesDownloaded = message.TotalBytesDownloaded;
             totalBytesExpected = message.TotalBytesExpected;
 
@@ -550,7 +580,20 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
                     {
                         IsArtworkLoading = true;
                     }
-                    
+
+                    if (preparing && !isPreparing && !showPercentForThisMessage)
+                    {
+                        showPreparationPercent = false;
+                        OnPropertyChanged(nameof(ShowPreparationPercent));
+                        OnPropertyChanged(nameof(ShowPreparingCard));
+                    }
+                    else if (!preparing && showPreparationPercent)
+                    {
+                        showPreparationPercent = false;
+                        OnPropertyChanged(nameof(ShowPreparationPercent));
+                        OnPropertyChanged(nameof(ShowPreparingCard));
+                    }
+
                     IsPreparing = preparing;
                 },
                 () =>

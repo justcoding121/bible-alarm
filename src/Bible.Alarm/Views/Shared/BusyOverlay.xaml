@@ -5,7 +5,6 @@
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:Bible.Alarm.Views.Shared"
-             xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
              xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
              xmlns:fn="clr-namespace:Bible.Alarm.Views"
              BackgroundColor="Transparent"
@@ -72,18 +71,17 @@
                     VerticalOptions="Center"
                     Progress="{Binding Source={x:Reference busyOverlay}, Path=ProgressPercent}"
                     ProgressColor="{StaticResource PrimaryColor}" />
-                <core:SfBusyIndicator
+                <ActivityIndicator
                     Grid.Row="2"
                     x:Name="busyIndicator"
                     IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsSpinnerRunning}"
                     IsVisible="True"
                     Opacity="{Binding Source={x:Reference busyOverlay}, Path=IsVisible, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
-                    AnimationType="DoubleCircle"
+                    Color="{DynamicResource TextSecondaryColor}"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     HeightRequest="{DynamicResource IconStandardContainerSize}"
-                    WidthRequest="{DynamicResource IconStandardContainerSize}"
-                    IndicatorColor="{StaticResource PrimaryColor}" />
+                    WidthRequest="{DynamicResource IconStandardContainerSize}" />
 
                 <!-- Row 3: Cancel (when ShowProgress) -->
                 <HorizontalStackLayout

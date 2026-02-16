@@ -4,7 +4,6 @@
     x:Class="Bible.Alarm.Views.Shared.ProgressIndicator"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
     xmlns:converters="clr-namespace:Bible.Alarm.Common.ViewHelpers.Converters"
     ZIndex="1000">
@@ -83,20 +82,19 @@
                             <Binding Path="IsBusy" FallbackValue="False" />
                         </MultiBinding>
                     </Grid.IsVisible>
-                    <core:SfBusyIndicator
-                        AnimationType="DoubleCircle"
-                        HorizontalOptions="Fill"
-                        VerticalOptions="Fill"
+                    <ActivityIndicator
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
                         HeightRequest="{DynamicResource IconStandardContainerSize}"
                         WidthRequest="{DynamicResource IconStandardContainerSize}"
-                        IndicatorColor="{StaticResource PrimaryColor}">
-                        <core:SfBusyIndicator.IsRunning>
+                        Color="{DynamicResource TextSecondaryColor}">
+                        <ActivityIndicator.IsRunning>
                             <MultiBinding Converter="{StaticResource multiBoolOrConverter}" Mode="OneWay">
                                 <Binding Path="ShowProgress" FallbackValue="False" />
                                 <Binding Path="IsBusy" FallbackValue="False" />
                             </MultiBinding>
-                        </core:SfBusyIndicator.IsRunning>
-                    </core:SfBusyIndicator>
+                        </ActivityIndicator.IsRunning>
+                    </ActivityIndicator>
                 </Grid>
                 <!-- Row 3: Cancel (when progress) -->
                 <HorizontalStackLayout Grid.Row="3"
