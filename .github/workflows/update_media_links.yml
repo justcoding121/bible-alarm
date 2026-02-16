@@ -1,21 +1,24 @@
+# Runs monthly. Commits updated media index to develop only. Does not update app version
+# (version is updated automatically by deploy workflows when publishing to beta/stable).
 name: Update media links
 
 on:
   schedule:
-    - cron:  '0 2 14 * *'
-    
+    - cron: '0 2 14 * *'
+
 jobs:
   build:
     env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         ref: develop
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -24,11 +27,12 @@ jobs:
 
     - name: Run Link Harvestor
       run: dotnet run --project .tools/Bible.Alarm.AudioLinksHarvestor/Bible.Alarm.AudioLinksHarvestor.csproj --configuration Release
-     
+
     - name: Commit changes
       uses: EndBug/add-and-commit@8c12ff729a98cfbcd3fe38b49f55eceb98a5ec02
       with:
-          author_name: buildbot171
-          author_email: buildbot171@gmail.com
-          message: 'Update media links database'
-          add: '.tools/_index/index.zip'
+        author_name: buildbot171
+        author_email: buildbot171@gmail.com
+        message: 'Update media links database'
+        add: '.tools/_index/index.zip'
+        push: true

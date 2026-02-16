@@ -1,6 +1,6 @@
-# Runs after any deploy workflow completes. When all three deploy jobs (Windows, Android, iOS) have
-# completed for the same push (success or failure), merges beta→develop or stable→beta and stable→develop.
-# Version and artifacts may already be updated even if e.g. Store upload failed; merge still syncs version.
+# Runs when any deploy workflow completes. When all three (Windows, Android, iOS) have completed
+# for the same push (success or failure), merges: beta→develop, or stable→beta then beta→develop.
+# Pushes only when the merge produced a new commit (there were changes to merge).
 name: Sync versions after deploy
 
 on:
@@ -29,14 +29,11 @@ jobs:
           BRANCH: ${{ github.event.workflow_run.head_branch }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          # List workflow runs for this branch and head_sha
           resp=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/actions/runs?branch=${BRANCH}&head_sha=${HEAD_SHA}&per_page=100")
-          # Required workflow display names (must match name: in each deploy workflow)
           w1="Deploy Windows to Microsoft Store"
           w2="Deploy Android to Google Play"
           w3="Deploy iOS to App Store"
-          # Check we have at least one completed run (any conclusion) for each of the three
           has_w1=$(echo "$resp" | jq -r --arg n "$w1" '[.workflow_runs[] | select(.name == $n and .status == "completed")] | length')
           has_w2=$(echo "$resp" | jq -r --arg n "$w2" '[.workflow_runs[] | select(.name == $n and .status == "completed")] | length')
           has_w3=$(echo "$resp" | jq -r --arg n "$w3" '[.workflow_runs[] | select(.name == $n and .status == "completed")] | length')
@@ -53,6 +50,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Merge to sync version
         if: steps.check.outputs.all_ready == 'true'
@@ -63,15 +61,32 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin
+
           if [ "$BRANCH" = "beta" ]; then
             git checkout develop
+            before=$(git rev-parse HEAD)
             git merge origin/beta -m "[Version sync] Merge beta into develop"
-            git push "$remote" develop
+            if [ "$(git rev-parse HEAD)" != "$before" ]; then
+              git push "$remote" develop
+            else
+              echo "beta already up to date in develop; nothing to push."
+            fi
           elif [ "$BRANCH" = "stable" ]; then
             git checkout beta
+            before_beta=$(git rev-parse HEAD)
             git merge origin/stable -m "[Version sync] Merge stable into beta"
-            git push "$remote" beta
+            if [ "$(git rev-parse HEAD)" != "$before_beta" ]; then
+              git push "$remote" beta
+              git fetch origin
+            else
+              echo "stable already up to date in beta; skipping beta push."
+            fi
             git checkout develop
-            git merge origin/stable -m "[Version sync] Merge stable into develop"
-            git push "$remote" develop
+            before_dev=$(git rev-parse HEAD)
+            git merge origin/beta -m "[Version sync] Merge beta into develop"
+            if [ "$(git rev-parse HEAD)" != "$before_dev" ]; then
+              git push "$remote" develop
+            else
+              echo "beta already up to date in develop; nothing to push."
+            fi
           fi

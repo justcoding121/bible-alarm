@@ -85,24 +85,27 @@ public partial class AnimatedProgressBar : ContentView
         {
             while (!cancellationToken.IsCancellationRequested && isAnimating)
             {
-                // Calculate the max publication (from left edge to right edge)
-                var containerWidth = Width > 0 ? Width - 32 : 300; // Account for margins, use fallback
-                var maxPublication = containerWidth - SegmentWidth;
-
-                if (maxPublication <= 0)
+                var containerWidth = await GetTrackWidthAsync();
+                if (containerWidth <= 0)
                 {
-                    maxPublication = 200; // Fallback if container width not available
+                    await Task.Delay(50, cancellationToken);
+                    continue;
                 }
 
-                // Animate from left to right
-                await AnimatedSegment.TranslateToAsync(maxPublication, 0, AnimationDurationMs, Easing.SinInOut);
+                var maxTranslation = containerWidth - SegmentWidth;
+                if (maxTranslation <= 0)
+                {
+                    await Task.Delay(50, cancellationToken);
+                    continue;
+                }
+
+                await AnimatedSegment.TranslateToAsync(maxTranslation, 0, AnimationDurationMs, Easing.SinInOut);
 
                 if (cancellationToken.IsCancellationRequested || !isAnimating)
                 {
                     break;
                 }
 
-                // Animate from right to left
                 await AnimatedSegment.TranslateToAsync(0, 0, AnimationDurationMs, Easing.SinInOut);
             }
         }
@@ -114,6 +117,22 @@ public partial class AnimatedProgressBar : ContentView
         {
             // Animation errors are non-critical
         }
+    }
+
+    private Task<double> GetTrackWidthAsync()
+    {
+        return MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (TrackGrid.Width > 0)
+            {
+                return TrackGrid.Width;
+            }
+            if (Width > 32)
+            {
+                return Width - 32;
+            }
+            return 0;
+        });
     }
 }
 

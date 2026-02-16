@@ -111,15 +111,23 @@ jobs:
         track: ${{ github.ref == 'refs/heads/stable' && 'production' || 'beta' }}
         status: completed
 
-    # Pull latest so push does not fail when remote is ahead (e.g. previous run or parallel commit).
+    # Pull latest (Android/iOS/Windows all run on beta|stable; pull may bring in other platforms' version-bump commits). Only when publish succeeded.
     - name: Pull latest before commit
       if: steps.store_upload.outcome == 'success'
       run: |
-        git stash push -m "version-bump" -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
+        git stash push -m "version-bump" -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml || true
         git pull --rebase origin ${{ github.ref_name }}
-        git stash pop
+        git stash pop || true
+        unmerged=$(git diff --name-only --diff-filter=U)
+        if echo "$unmerged" | grep -qE "Bible\.Alarm\.csproj|AndroidManifest\.xml"; then
+          git checkout --theirs -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
+          git add src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
+        elif grep -q '^<<<<<<<' src/Bible.Alarm/Bible.Alarm.csproj 2>/dev/null; then
+          git checkout --theirs -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
+          git add src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
+        fi
 
-    # Commit version changes as soon as publish succeeded (so later step failures do not prevent version bump).
+    # Commit version changes only when publish succeeded.
     - name: Commit version changes
       if: steps.store_upload.outcome == 'success'
       uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
