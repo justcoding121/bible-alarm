@@ -52,7 +52,10 @@ All progress tracking uses WeakReferenceMessenger. Implementations send messages
 
 Publication and Section modals (Bible Publication, Music Publication, Bible Section, Music Section) use **close + toast** on fetch error. **No retry button** in these modals.
 
-### Cancel Button Pattern
+### Cancel / Close Button Pattern
+- **All busy overlays** (BusyOverlay and ProgressIndicator) in schedule page modals show a close button whenever the overlay is visible — not just during fetch. This prevents the user from getting trapped if the overlay gets stuck.
+- **BusyOverlay** (track modals, language modals, category modal, schedule page): Set `ShowCancelButton="True"` and bind `CancelCommand` to the modal's `CloseModalCommand` (or `CancelCommand` on the schedule page). Tapping closes the modal / pops the page.
+- **ProgressIndicator** (publication/section modals): `ShowCancelButton => ShowProgress || IsBusy`. `CancelFetchCommand` handles both fetch and non-fetch cases (cancels CTS, resets state, pops modal).
 - `CancelFetchCommand` cancels `CancellationTokenSource` (`fetchCts?.Cancel()`), resets `CanCancelFetch = false`, `ShowProgress = false`, `IsBusy = false`, and closes modal via `navigationService.PopModalAsync()`.
 
 ### Progress Initialization
@@ -115,8 +118,10 @@ finally
 3. Retry loops check `cancellationToken.ThrowIfCancellationRequested()` before each attempt; all `Task.Delay` use `await Task.Delay(delay, cancellationToken)`.
 
 ### UI Components
-- **Publication/Section modals**: Use `ProgressIndicator` for overlay (spinner + progress bar + Cancel only). No Retry, no error message in overlay.
-- **ShowCancelButton** in these ViewModels is `ShowProgress` only (Cancel visible during fetch).
+- **Publication/Section modals**: Use `ProgressIndicator` for overlay (spinner + progress bar + Cancel). No Retry, no error message in overlay.
+- **ShowCancelButton** in these ViewModels is `ShowProgress || IsBusy` (Cancel visible during fetch **and** during loading).
+- **Track/Language/Category/NumberOfTracks modals**: Use `BusyOverlay` with `ShowCancelButton="True"` and `CancelCommand="{Binding CloseModalCommand}"`.
+- **Schedule page**: Uses `BusyOverlay` without a close button (overlay is for brief operations like view/save/delete where a close button doesn't make sense).
 
 ### Notes
 - Music sections are currently pre-harvested; retry logic is in place for future support. Bible sections for English are pre-harvested; retry logic only runs for non-English. All retry logic validates harvested state before considering success.

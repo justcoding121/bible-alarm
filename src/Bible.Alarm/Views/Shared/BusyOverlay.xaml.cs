@@ -342,6 +342,17 @@ public partial class BusyOverlay : ContentView
                 }
             }
 
+            // Start spinner synchronously before dispatch to prevent card-without-spinner on iOS.
+            // The XAML binding on overlayGrid.Opacity fires immediately (card visible),
+            // but Apply() is dispatched asynchronously. Without this, the spinner may never start
+            // if the dispatch is delayed.
+            if (newBoolValue && !overlay.HasFetchError)
+            {
+                overlay.IsSpinnerRunning = true;
+                if (overlay.busyIndicator != null)
+                    overlay.busyIndicator.IsRunning = true;
+            }
+
             try
             {
                 // WinUI can throw if the dispatcher is not ready/disposed. Be defensive to avoid crashes.
