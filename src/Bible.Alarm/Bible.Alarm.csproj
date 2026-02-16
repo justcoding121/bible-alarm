@@ -271,12 +271,13 @@
 		</Compile>
 	</ItemGroup>
 	
-	<!-- Pre-build task: Replace license key placeholder in AppSettings.cs -->
+	<!-- Pre-build task: Replace license key placeholder in AppSettings.cs (Windows: PowerShell; macOS/Linux: bash for iOS/Android CI) -->
 	<PropertyGroup>
-		<!-- Use PowerShell script only on Windows (Windows image used for deployment builds) -->
-		<PreBuildEvent Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy Bypass -File "$(MSBuildProjectDirectory)/replace-license-key.ps1"</PreBuildEvent>
+		<PreBuildEvent Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy Bypass -File "$(MSBuildProjectDirectory)/.scripts/replace-license-key.ps1"</PreBuildEvent>
+		<PreBuildEvent Condition="'$(OS)' != 'Windows_NT'">bash "$(MSBuildProjectDirectory)/.scripts/replace-license-key.sh"</PreBuildEvent>
 		<!-- Post-build task: Restore license key placeholder to prevent accidental commits -->
-		<PostBuildEvent Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy Bypass -File "$(MSBuildProjectDirectory)/restore-license-key-placeholder.ps1"</PostBuildEvent>
+		<PostBuildEvent Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy Bypass -File "$(MSBuildProjectDirectory)/.scripts/restore-license-key-placeholder.ps1"</PostBuildEvent>
+		<PostBuildEvent Condition="'$(OS)' != 'Windows_NT'">bash "$(MSBuildProjectDirectory)/.scripts/restore-license-key-placeholder.sh"</PostBuildEvent>
 		<!-- MSIX packaging properties (Release mode only) -->
 		<GenerateAppInstallerFile Condition="'$(Configuration)' == 'Release'">True</GenerateAppInstallerFile>
 		<AppxPackageSigningEnabled Condition="'$(Configuration)' == 'Release'">True</AppxPackageSigningEnabled>

@@ -1,6 +1,7 @@
 # Replace license key placeholder in AppSettings.cs with actual key from environment variable
 
-$SourceFile = Join-Path $PSScriptRoot "AppSettings.cs"
+$ProjectRoot = Split-Path $PSScriptRoot -Parent
+$SourceFile = Join-Path $ProjectRoot "AppSettings.cs"
 $LicenseKey = $env:SYNCFUSION_LICENSE_KEY
 
 if ([string]::IsNullOrEmpty($LicenseKey)) {
@@ -32,4 +33,3 @@ Set-Content -Path $SourceFile -Value $Content -NoNewline
 Write-Host "License key replaced in AppSettings.cs"
 
 exit 0
-

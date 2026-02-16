@@ -1,6 +1,7 @@
 # Restore license key placeholder in AppSettings.cs after build
 
-$SourceFile = Join-Path $PSScriptRoot "AppSettings.cs"
+$ProjectRoot = Split-Path $PSScriptRoot -Parent
+$SourceFile = Join-Path $ProjectRoot "AppSettings.cs"
 
 if (-not (Test-Path $SourceFile)) {
     Write-Host "AppSettings.cs not found at $SourceFile. Skipping restore."
