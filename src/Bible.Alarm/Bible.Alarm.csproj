@@ -21,8 +21,8 @@
 		<ApplicationTitle>Bible Alarm</ApplicationTitle>
 		
 		<!-- Display Version -->
-		<ApplicationDisplayVersion>1.70</ApplicationDisplayVersion>
-		<ApplicationVersion>362</ApplicationVersion>
+		<ApplicationDisplayVersion>2.6</ApplicationDisplayVersion>
+		<ApplicationVersion>363</ApplicationVersion>
 
 		<!-- Android-specific -->
 		<ApplicationId Condition="'$(TargetFramework)' == 'net10.0-android'">com.jthomas.info.Bible.Alarm</ApplicationId>
