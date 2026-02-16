@@ -1,6 +1,7 @@
-# Runs when any deploy workflow completes. When all three (Windows, Android, iOS) have completed
-# for the same push (success or failure), merges: beta→develop, or stable→beta then beta→develop.
-# Pushes only when the merge produced a new commit (there were changes to merge).
+# Triggered when *any* deploy workflow completes (so it starts up to 3 times per push). Uses concurrency
+# so only one run per commit proceeds; the run that executes after all three deploys have completed
+# will pass the check and merge (beta→develop or stable→beta then beta→develop). Pushes only when
+# the merge produced a new commit.
 name: Sync versions after deploy
 
 on:
@@ -14,6 +15,10 @@ on:
     branches:
       - beta
       - stable
+
+concurrency:
+  group: sync-after-deploy-${{ github.event.workflow_run.head_branch }}-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
 
 permissions:
   contents: write

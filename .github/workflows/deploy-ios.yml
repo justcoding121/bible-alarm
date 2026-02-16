@@ -12,9 +12,9 @@ permissions:
 
 jobs:
   deploy-ios:
-    # .NET iOS SDK 26.x requires Xcode 26; macos-26 has Xcode 26.2 (macos-latest has 16.x).
+    if: github.event.head_commit.author.name == 'github-actions[bot]'
     runs-on: macos-26
-    
+
     env:
       SYNCFUSION_LICENSE_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
     
@@ -76,10 +76,6 @@ jobs:
         
     - name: Restore dependencies
       run: dotnet restore src/Bible.Alarm.sln -p:TargetFramework=net10.0-ios
-      
-    # Patch version for iOS only (Info.plist CFBundleVersion + csproj ApplicationVersion/ApplicationDisplayVersion)
-    - name: Patch iOS Version
-      run: dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release -- --platform=iOS
 
     # Build iOS release (secrets via env to avoid expanding in run - S7636)
     - name: Build iOS Release
@@ -131,36 +127,6 @@ jobs:
           --file "$IPA_PATH" \
           --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
           --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID" || exit 1
-
-    # Pull latest (Android/iOS/Windows all run on beta|stable; pull may bring in other platforms' version-bump commits). Only when publish succeeded.
-    - name: Pull latest before commit
-      if: steps.store_upload.outcome == 'success'
-      run: |
-        git stash push -m "version-bump" -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/iOS/Info.plist || true
-        git pull --rebase origin ${{ github.ref_name }}
-        git stash pop || true
-        unmerged=$(git diff --name-only --diff-filter=U)
-        if echo "$unmerged" | grep -qE "Bible\.Alarm\.csproj|Info\.plist"; then
-          git checkout --theirs -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/iOS/Info.plist
-          git add src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/iOS/Info.plist
-        elif grep -q '^<<<<<<<' src/Bible.Alarm/Bible.Alarm.csproj 2>/dev/null; then
-          git checkout --theirs -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/iOS/Info.plist
-          git add src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/iOS/Info.plist
-        fi
-
-    # Commit version changes only when publish succeeded.
-    - name: Commit version changes
-      if: steps.store_upload.outcome == 'success'
-      uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
-      with:
-        author_name: github-actions[bot]
-        author_email: github-actions[bot]@users.noreply.github.com
-        message: '[iOS] Update app version for App Store release'
-        add: |
-          src/Bible.Alarm/Bible.Alarm.csproj
-          src/Bible.Alarm/Platforms/iOS/Info.plist
-        default_author: github_actions
-        push: true
 
     # Clean up keychain and provisioning profile
     - name: Cleanup

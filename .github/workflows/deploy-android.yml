@@ -12,8 +12,9 @@ permissions:
 
 jobs:
   deploy-android:
+    if: github.event.head_commit.author.name == 'github-actions[bot]'
     runs-on: ubuntu-latest
-    
+
     env:
       SYNCFUSION_LICENSE_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
     
@@ -52,12 +53,6 @@ jobs:
         echo "$B64" | base64 --decode > "$KEYSTORE_PATH"
         echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> $GITHUB_ENV
       
-    # Restore and run VersionPatcher first (net10.0 only; no iOS workload). Then restore main app for Android.
-    - name: Restore VersionPatcher and patch version
-      run: |
-        dotnet restore .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj
-        dotnet run --project .tools/Bible.Alarm.VersionPatcher/Bible.Alarm.VersionPatcher.csproj --configuration Release -- --platform=Android
-
     - name: Restore dependencies
       run: dotnet restore src/Bible.Alarm/Bible.Alarm.csproj -p:TargetFramework=net10.0-android -p:BUILD_ANDROID_ONLY=true
 
@@ -110,36 +105,6 @@ jobs:
         releaseFiles: ./artifacts/android/*-Signed.aab
         track: ${{ github.ref == 'refs/heads/stable' && 'production' || 'beta' }}
         status: completed
-
-    # Pull latest (Android/iOS/Windows all run on beta|stable; pull may bring in other platforms' version-bump commits). Only when publish succeeded.
-    - name: Pull latest before commit
-      if: steps.store_upload.outcome == 'success'
-      run: |
-        git stash push -m "version-bump" -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml || true
-        git pull --rebase origin ${{ github.ref_name }}
-        git stash pop || true
-        unmerged=$(git diff --name-only --diff-filter=U)
-        if echo "$unmerged" | grep -qE "Bible\.Alarm\.csproj|AndroidManifest\.xml"; then
-          git checkout --theirs -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
-          git add src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
-        elif grep -q '^<<<<<<<' src/Bible.Alarm/Bible.Alarm.csproj 2>/dev/null; then
-          git checkout --theirs -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
-          git add src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
-        fi
-
-    # Commit version changes only when publish succeeded.
-    - name: Commit version changes
-      if: steps.store_upload.outcome == 'success'
-      uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
-      with:
-        author_name: github-actions[bot]
-        author_email: github-actions[bot]@users.noreply.github.com
-        message: '[Android] Update app version for Play Store release'
-        add: |
-          src/Bible.Alarm/Bible.Alarm.csproj
-          src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
-        default_author: github_actions
-        push: true
 
     # Clean up keystore
     - name: Clean up keystore

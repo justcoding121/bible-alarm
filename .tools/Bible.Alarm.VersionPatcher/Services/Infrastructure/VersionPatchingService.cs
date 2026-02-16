@@ -19,7 +19,7 @@ public class VersionPatchingService(IEnumerable<IPlatformVersionPatcher> platfor
         if (toRun.Count == 0)
         {
             if (!string.IsNullOrWhiteSpace(platformName))
-                throw new ArgumentException($"Unknown platform: '{platformName}'. Use Windows, Android, or iOS.", nameof(platformName));
+                throw new ArgumentException($"Unknown platform: '{platformName}'. Use Windows, Android, iOS, or Release.", nameof(platformName));
             return;
         }
 

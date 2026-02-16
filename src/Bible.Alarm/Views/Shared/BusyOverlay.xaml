@@ -30,7 +30,7 @@
             VerticalOptions="Center"
             BackgroundColor="{DynamicResource CardBackgroundColor}"
             StrokeThickness="0"
-            Padding="24,20"
+            Padding="{DynamicResource PaddingThickness24_20}"
             MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
             <Border.StrokeShape>
                 <RoundRectangle CornerRadius="16" />
@@ -41,11 +41,11 @@
                         Opacity="0.15"
                         Radius="12" />
             </Border.Shadow>
-            <Grid HorizontalOptions="Center" VerticalOptions="Center" RowSpacing="16">
+            <Grid HorizontalOptions="Center" VerticalOptions="Center" RowSpacing="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="30" />
                     <RowDefinition Height="8" />
-                    <RowDefinition Height="{DynamicResource IconLargeContainerSize}" />
+                    <RowDefinition Height="{DynamicResource IconStandardContainerSize}" />
                     <RowDefinition Height="{DynamicResource IconStandardContainerSize}" />
                 </Grid.RowDefinitions>
 

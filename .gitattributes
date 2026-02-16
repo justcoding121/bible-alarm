@@ -1,6 +1,7 @@
 ###############################################################################
-# Set default behavior to automatically normalize line endings.
-############################################################################### 
+# Line endings: repo stores LF; on Windows checkout most text gets CRLF.
+# Types listed below use LF everywhere (no ^M on GitHub). Commit normalizes to LF.
+###############################################################################
 * text=auto eol=crlf
 
 ############################################################################### 
@@ -68,3 +69,20 @@
 
 # Force the docs to always use lf line endings
 docs/**/*.xml text eol=lf
+
+# Use LF for files often viewed on GitHub / cross-platform (avoids ^M on GitHub)
+*.plist text eol=lf
+*.entitlements text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.mdc text eol=lf
+.editorconfig text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+*.json text eol=lf
+*.xml text eol=lf
+*.xaml text eol=lf
+*.ps1 text eol=lf
+*.props text eol=lf
+*.targets text eol=lf
