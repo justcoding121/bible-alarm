@@ -69,6 +69,7 @@ public static class MauiProgram
 #elif IOS
             .ConfigureMauiHandlers(handlers =>
             {
+                handlers.AddHandler<Entry, EntryHandler>();
                 handlers.AddHandler<SearchBar, SearchBarHandler>();
             })
 #elif WINDOWS

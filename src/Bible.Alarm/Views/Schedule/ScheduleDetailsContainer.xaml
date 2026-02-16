@@ -24,24 +24,31 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Grid Grid.Row="0"
-              HorizontalOptions="Center"
+        <Border Grid.Row="0"
+              BackgroundColor="{DynamicResource BackgroundColor}"
+              StrokeThickness="0"
+              HorizontalOptions="Fill"
               VerticalOptions="Center"
-              Padding="0">
-            <!-- Single TimePicker with platform-specific properties applied via attached properties -->
-            <!-- ios:TimePicker.UpdateMode is ignored on other platforms -->
-            <TimePicker AutomationId="AlarmTimePicker"
-                        BackgroundColor="Transparent"
-                        TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter={StaticResource PrimaryColor}}"
-                        FontSize="{DynamicResource AlarmTimeFontSize}"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center"
-                        Margin="0"
-                        Time="{Binding Time, Mode=TwoWay}"
-                        ios:TimePicker.UpdateMode="WhenFinished">
-                <TimePicker.Format>hh:mm tt</TimePicker.Format>
-            </TimePicker>
-        </Grid>
+              Padding="{DynamicResource PaddingStandard}">
+            <Grid HorizontalOptions="Center"
+                  VerticalOptions="Center"
+                  Padding="0">
+                <!-- Single TimePicker with platform-specific properties applied via attached properties -->
+                <!-- iOS: Use TitleFontSize to avoid UIDatePicker AM/PM triangle bug (custom/large fonts can show triangle instead of AM/PM) -->
+                <!-- ios:TimePicker.UpdateMode is ignored on other platforms -->
+                <TimePicker AutomationId="AlarmTimePicker"
+                            BackgroundColor="Transparent"
+                            TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter='PrimaryTextColor'}"
+                            FontSize="{OnPlatform iOS={DynamicResource TitleFontSize}, Default={DynamicResource AlarmTimeFontSize}}"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                            Margin="0"
+                            Time="{Binding Time, Mode=TwoWay}"
+                            ios:TimePicker.UpdateMode="WhenFinished">
+                    <TimePicker.Format>hh:mm tt</TimePicker.Format>
+                </TimePicker>
+            </Grid>
+        </Border>
         <FlexLayout Grid.Row="1"
               Margin="0"
               HorizontalOptions="Center"
@@ -303,15 +310,15 @@
                     BackgroundColor="{DynamicResource CardBackgroundColor}"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    Padding="12,4"
+                    Padding="{DynamicResource PaddingStandard}"
                     MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
                 </Border.StrokeShape>
                 <Border.Shadow>
-                    <Shadow Brush="#20000000" 
-                            Offset="0,2" 
-                            Radius="4" 
+                    <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
+                            Offset="0,2"
+                            Radius="4"
                             Opacity="0.1" />
                 </Border.Shadow>
                 <Entry x:Name="ScheduleNameEntry"
@@ -323,7 +330,7 @@
                        Text="{Binding Name, Mode=TwoWay}"
                        BackgroundColor="Transparent"
                        FontSize="{DynamicResource LargeFontSize}"
-                       TextColor="{StaticResource PrimaryColor}"
+                       TextColor="{DynamicResource PrimaryTextColor}"
                        VerticalOptions="Center" />
             </Border>
         </Grid>

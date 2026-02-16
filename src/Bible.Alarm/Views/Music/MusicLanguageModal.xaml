@@ -68,14 +68,14 @@
             </Border>
             
             <!-- Enhanced Search Bar -->
-            <!-- iOS: SearchBar without Border wrapper to avoid double-border effect -->
+            <!-- iOS: SearchBar without Border wrapper; CardBackgroundColor avoids black rectangle (Transparent shows black on iOS) -->
             <SearchBar
                 x:Name="LanguageSearchBarIOS"
                 AutomationId="LanguageSearchBar"
                 Grid.Row="1"
                 Margin="16,8,16,0"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
-                MinimumHeightRequest="50"
+                HeightRequest="{DynamicResource IconStandardContainerSize}"
                 HorizontalOptions="Fill"
                 HorizontalTextAlignment="Start"
                 Placeholder="Search languages"
@@ -94,7 +94,7 @@
                 Padding="0"
                 IsVisible="{OnPlatform iOS='False', Default='True'}">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="12" />
+                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusLarge}" />
                 </Border.StrokeShape>
                 <Border.Shadow>
                     <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
@@ -107,7 +107,7 @@
                     AutomationId="LanguageSearchBar"
                     Margin="8"
                     BackgroundColor="Transparent"
-                    MinimumHeightRequest="50"
+                    HeightRequest="{DynamicResource IconStandardContainerSize}"
                     HorizontalOptions="Fill"
                     HorizontalTextAlignment="Start"
                     Placeholder="Search languages"

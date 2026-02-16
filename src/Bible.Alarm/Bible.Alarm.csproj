@@ -37,6 +37,8 @@
 		<AndroidCreatePackagePerAbi Condition="'$(TargetFramework)' == 'net10.0-android'">false</AndroidCreatePackagePerAbi>
 
 		<!-- iOS-specific -->
+		<!-- Use interpreter for iOS to avoid EF Core (and other reflection-heavy code) crashes in Release AOT builds -->
+		<UseInterpreter Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">true</UseInterpreter>
 		<!-- Minimum OS version set to iOS 16.0 to support modern UNUserNotificationCenter.SetBadgeCount API -->
 		<!-- CommunityToolkit.Maui.MediaElement supports iOS 15.0+, but we require 16.0 for modern notification APIs -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">16.0</SupportedOSPlatformVersion>
@@ -285,6 +287,10 @@
 		<GenerateTestArtifacts Condition="'$(Configuration)' == 'Release'">True</GenerateTestArtifacts>
 		<AppInstallerUri Condition="'$(Configuration)' == 'Release'">C:\Users\YourUsername\Desktop\BibleAlarmPackage</AppInstallerUri>
 		<HoursBetweenUpdateChecks Condition="'$(Configuration)' == 'Release'">0</HoursBetweenUpdateChecks>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(TargetFramework)'=='net10.0-ios' AND '$(Configuration)'=='Debug'">
+	  <CodesignKey>Apple Development: Created via API (65WTR3TZ7L)</CodesignKey>
+	  <CodesignProvision>VS: com.jthomas.info.Bible.Alarm Development</CodesignProvision>
 	</PropertyGroup>
 
 	<!-- Platform-specific resources -->
