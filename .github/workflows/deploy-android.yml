@@ -111,6 +111,14 @@ jobs:
         track: ${{ github.ref == 'refs/heads/stable' && 'production' || 'beta' }}
         status: completed
 
+    # Pull latest so push does not fail when remote is ahead (e.g. previous run or parallel commit).
+    - name: Pull latest before commit
+      if: steps.store_upload.outcome == 'success'
+      run: |
+        git stash push -m "version-bump" -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
+        git pull --rebase origin ${{ github.ref_name }}
+        git stash pop
+
     # Commit version changes as soon as publish succeeded (so later step failures do not prevent version bump).
     - name: Commit version changes
       if: steps.store_upload.outcome == 'success'
@@ -123,7 +131,6 @@ jobs:
           src/Bible.Alarm/Bible.Alarm.csproj
           src/Bible.Alarm/Platforms/Android/AndroidManifest.xml
         default_author: github_actions
-        skip_dirty_check: false
         push: true
 
     # Clean up keystore
@@ -161,7 +168,7 @@ jobs:
         echo "version=${VERSION:-0.0.0}" >> $GITHUB_OUTPUT
 
     - name: Create release tag and GitHub Release (beta suffix on beta branch)
-      if: steps.store_upload.outcome == 'success'
+      if: steps.store_upload.outcome == 'success' && steps.version.outcome == 'success' && steps.version.outputs.version != ''
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ steps.version.outputs.version }}-android${{ github.ref == 'refs/heads/beta' && '-beta' || '' }}

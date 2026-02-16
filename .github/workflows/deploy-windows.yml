@@ -247,6 +247,14 @@ jobs:
         
         Write-Host "Submission committed successfully"
 
+    # Pull latest so push does not fail when remote is ahead (e.g. previous run or parallel commit).
+    - name: Pull latest before commit
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
+      run: |
+        git stash push -m "version-bump" -- src/Bible.Alarm/Bible.Alarm.csproj src/Bible.Alarm/Platforms/Windows/Package.appxmanifest
+        git pull --rebase origin ${{ github.ref_name }}
+        git stash pop
+
     # Commit version changes when build+bundle succeeded (run even if upload fails).
     - name: Commit version changes
       if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
@@ -259,7 +267,6 @@ jobs:
           src/Bible.Alarm/Bible.Alarm.csproj
           src/Bible.Alarm/Platforms/Windows/Package.appxmanifest
         default_author: github_actions
-        skip_dirty_check: false
         push: true
 
     # Verify no secrets are staged before committing (exclude build output obj/bin/artifacts).
@@ -296,6 +303,10 @@ jobs:
       shell: powershell
       run: |
         $version = "${{ steps.get_version.outputs.version }}"
+        if ([string]::IsNullOrWhiteSpace($version)) {
+          Write-Error "Version is empty; ensure Get Windows version step ran and parsed Package.appxmanifest."
+          exit 1
+        }
         $branch = "${{ github.ref_name }}"
         $runNumber = "${{ github.run_number }}"
         if ($branch -eq "beta") {
@@ -311,7 +322,7 @@ jobs:
         Write-Host "tag=$tag" >> $env:GITHUB_OUTPUT
 
     - name: Create GitHub Release and upload package
-      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
+      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure') && steps.release_tag.outcome == 'success' && steps.release_tag.outputs.tag != ''
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.release_tag.outputs.tag }}
