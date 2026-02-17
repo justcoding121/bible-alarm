@@ -152,6 +152,11 @@ jobs:
           **Version:** ${{ steps.version.outputs.version }}
           **Branch:** ${{ github.ref_name }}
           AAB and APK artifacts from this workflow run.
+
+          ### Install APK (sideload)
+          1. Download the **.apk** from the assets below.
+          2. On your Android device, allow installation from your browser or file manager: **Settings** → **Apps** → **Chrome** (or the app you use to download) → **Install unknown apps** → allow.
+          3. Open the downloaded APK and tap **Install**.
         generate_release_notes: true
         files: |
           artifacts/android/*.aab

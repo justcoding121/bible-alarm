@@ -175,6 +175,18 @@ jobs:
           **Version:** ${{ steps.version.outputs.version }}
           **Branch:** ${{ github.ref_name }}
           IPA from this workflow run.
+
+          ### Install IPA (sideload)
+          **Option A – TestFlight (easiest)**  
+          If you have a TestFlight invite, install from the TestFlight app; the build will appear there after processing.
+
+          **Option B – Mac with Xcode**  
+          1. Download the **.ipa** from the assets below.  
+          2. Connect your iPhone and open **Xcode** → **Window** → **Devices and Simulators**.  
+          3. Select your device, then drag the IPA onto the **Installed Apps** list (or use the **+** button to add it). The app will install if your Apple ID is allowed for development.
+
+          **Option C – AltStore / other sideload tools**  
+          Use [AltStore](https://altstore.io) or another sideload tool that supports IPA installation (often requires a free or paid Apple Developer account for signing).
         generate_release_notes: true
         files: artifacts/ios/*.ipa
         fail_on_unmatched_files: false
