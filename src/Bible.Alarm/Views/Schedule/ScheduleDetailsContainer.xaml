@@ -24,31 +24,24 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Border Grid.Row="0"
-              BackgroundColor="{DynamicResource BackgroundColor}"
-              StrokeThickness="0"
-              HorizontalOptions="Fill"
+        <!-- Time picker row: transparent background so it blends seamlessly with the page -->
+        <Grid Grid.Row="0"
+              HorizontalOptions="Center"
               VerticalOptions="Center"
               Padding="{DynamicResource PaddingStandard}">
-            <Grid HorizontalOptions="Center"
-                  VerticalOptions="Center"
-                  Padding="0">
-                <!-- Single TimePicker with platform-specific properties applied via attached properties -->
-                <!-- iOS: Use TitleFontSize to avoid UIDatePicker AM/PM triangle bug (custom/large fonts can show triangle instead of AM/PM) -->
-                <!-- ios:TimePicker.UpdateMode is ignored on other platforms -->
-                <TimePicker AutomationId="AlarmTimePicker"
-                            BackgroundColor="Transparent"
-                            TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter='PrimaryTextColor'}"
-                            FontSize="{OnPlatform iOS={DynamicResource TitleFontSize}, Default={DynamicResource AlarmTimeFontSize}}"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center"
-                            Margin="0"
-                            Time="{Binding Time, Mode=TwoWay}"
-                            ios:TimePicker.UpdateMode="WhenFinished">
-                    <TimePicker.Format>hh:mm tt</TimePicker.Format>
-                </TimePicker>
-            </Grid>
-        </Border>
+            <!-- iOS: Use TitleFontSize to avoid UIDatePicker AM/PM triangle bug (custom/large fonts can show triangle instead of AM/PM) -->
+            <TimePicker AutomationId="AlarmTimePicker"
+                        BackgroundColor="Transparent"
+                        TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter='PrimaryTextColor'}"
+                        FontSize="{OnPlatform iOS={DynamicResource TitleFontSize}, Default={DynamicResource AlarmTimeFontSize}}"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        Margin="0"
+                        Time="{Binding Time, Mode=TwoWay}"
+                        ios:TimePicker.UpdateMode="WhenFinished">
+                <TimePicker.Format>hh:mm tt</TimePicker.Format>
+            </TimePicker>
+        </Grid>
         <FlexLayout Grid.Row="1"
               Margin="0"
               HorizontalOptions="Center"

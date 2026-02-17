@@ -6,6 +6,10 @@ using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Serilog;
 
+#if ANDROID
+using Microsoft.Maui.Platform;
+#endif
+
 namespace Bible.Alarm.Services.UI;
 
 public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlaybackModalService playbackModalService, INavigationService navigationService) : IWindowSetupService, IDisposable
@@ -75,7 +79,7 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
     private static void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e) => UpdateNavigationBarColors();
 
     /// <summary>
-    /// Updates NavigationPage bar colors from theme-aware resources.
+    /// Updates NavigationPage bar colors and status bar appearance from theme-aware resources.
     /// </summary>
     public static void UpdateNavigationBarColors()
     {
@@ -107,6 +111,8 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
                 var theme = ThemeColors.GetCurrentTheme();
                 mainNavPage.BarTextColor = ThemeColors.PrimaryText.Get(theme);
             }
+
+            UpdateStatusBarAppearance();
         }
         catch (Exception ex)
         {
@@ -114,6 +120,53 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
             var theme = ThemeColors.GetCurrentTheme();
             mainNavPage.BarBackgroundColor = ThemeColors.CardBackground.Get(theme);
             mainNavPage.BarTextColor = ThemeColors.PrimaryText.Get(theme);
+        }
+    }
+
+    /// <summary>
+    /// Sets the status bar icon/text color to match the current theme.
+    /// Light mode: dark icons. Dark mode: light icons.
+    /// </summary>
+    private static void UpdateStatusBarAppearance()
+    {
+        try
+        {
+            var isLightTheme = ThemeColors.GetCurrentTheme() == AppTheme.Light;
+
+#if ANDROID
+            var activity = Platform.CurrentActivity;
+            var window = activity?.Window;
+            if (window != null)
+            {
+                // Set status bar background to match page background
+                var statusBarColor = isLightTheme
+                    ? ThemeColors.Background.Light
+                    : ThemeColors.Background.Dark;
+                window.SetStatusBarColor(statusBarColor.ToPlatform());
+
+                // Use WindowInsetsControllerCompat for reliable status bar icon appearance
+                var decorView = window.DecorView;
+                if (decorView != null)
+                {
+                    var controller = AndroidX.Core.View.WindowCompat.GetInsetsController(window, decorView);
+                    if (controller != null)
+                    {
+                        // AppearanceLightStatusBars = true means dark icons (for light backgrounds)
+                        controller.AppearanceLightStatusBars = isLightTheme;
+                    }
+                }
+            }
+#elif IOS
+            // UIViewControllerBasedStatusBarAppearance is set to false in Info.plist,
+            // so UIApplication controls the status bar style globally.
+            UIKit.UIApplication.SharedApplication.SetStatusBarStyle(
+                isLightTheme ? UIKit.UIStatusBarStyle.DarkContent : UIKit.UIStatusBarStyle.LightContent,
+                animated: true);
+#endif
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Error updating status bar appearance");
         }
     }
 

@@ -38,6 +38,14 @@
 
 
 
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+
+
+
+	<false/>
+
+
+
 	<key>UIDeviceFamily</key>
 
 
