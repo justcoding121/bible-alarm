@@ -15,6 +15,7 @@
     <ContentView.Resources>
         <converters:BoolToOpacityConverter x:Key="boolToOpacityConverter" />
         <converters:DefaultTextConverter x:Key="defaultTextConverter" />
+        <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
     </ContentView.Resources>
     <Grid x:Name="overlayGrid"
           IsVisible="True"
@@ -83,34 +84,49 @@
                     HeightRequest="{DynamicResource IconStandardContainerSize}"
                     WidthRequest="{DynamicResource IconStandardContainerSize}" />
 
-                <!-- Row 3: Cancel (when ShowProgress) -->
+                <!-- Row 3: Cancel (when ShowProgress); shows spinner when IsCancelBusy -->
                 <HorizontalStackLayout
                     Grid.Row="3"
                     HorizontalOptions="Center"
                     Spacing="24">
-                    <!-- Cancel Button -->
-                    <Border
+                    <Grid
                         Opacity="{Binding Source={x:Reference busyOverlay}, Path=ShowCancelButton, Converter={StaticResource boolToOpacityConverter}, Mode=OneWay}"
-                        BackgroundColor="{DynamicResource ControlBackgroundColor}"
                         HeightRequest="{DynamicResource IconStandardContainerSize}"
                         WidthRequest="{DynamicResource IconStandardContainerSize}"
-                        StrokeThickness="0"
                         HorizontalOptions="Center"
                         VerticalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="100" />
-                        </Border.StrokeShape>
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={x:Reference busyOverlay}, Path=CancelCommand}" />
-                        </Border.GestureRecognizers>
-                        <Label
-                            Text="{x:Static fn:GlyphNames.Xmark}"
-                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                            FontSize="{DynamicResource IconStandardFontSize}"
-                            TextColor="{DynamicResource TextSecondaryColor}"
+                        <Border
+                            BackgroundColor="{DynamicResource ControlBackgroundColor}"
+                            HeightRequest="{DynamicResource IconStandardContainerSize}"
+                            WidthRequest="{DynamicResource IconStandardContainerSize}"
+                            StrokeThickness="0"
                             HorizontalOptions="Center"
-                            VerticalOptions="Center" />
-                    </Border>
+                            VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="100" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={x:Reference busyOverlay}, Path=CancelCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label
+                                Text="{x:Static fn:GlyphNames.Xmark}"
+                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                                FontSize="{DynamicResource IconStandardFontSize}"
+                                TextColor="{DynamicResource TextSecondaryColor}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                IsVisible="{Binding Source={x:Reference busyOverlay}, Path=IsCancelBusy, Converter={StaticResource negateBooleanConverter}, Mode=OneWay}" />
+                        </Border>
+                        <ActivityIndicator
+                            IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsCancelBusy, Mode=OneWay}"
+                            IsVisible="{Binding Source={x:Reference busyOverlay}, Path=IsCancelBusy, Mode=OneWay}"
+                            Color="{DynamicResource TextSecondaryColor}"
+                            WidthRequest="{DynamicResource IconStandardFontSize}"
+                            HeightRequest="{DynamicResource IconStandardFontSize}"
+                            VerticalOptions="Center"
+                            HorizontalOptions="Center"
+                            Opacity="0.95" />
+                    </Grid>
                 </HorizontalStackLayout>
             </Grid>
         </Border>

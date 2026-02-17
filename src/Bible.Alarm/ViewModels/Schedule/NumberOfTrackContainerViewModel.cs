@@ -67,6 +67,7 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
     private ObservableCollection<NumberOfTracksListViewItemModel> numberOfTracksList = new();
     private NumberOfTracksListViewItemModel? currentNumberOfTracks;
     private bool isBusy = true;
+    private bool isCancelBusy;
 
     public bool IsBusy
     {
@@ -166,6 +167,21 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
         TogglePlayIndefinitelyCommand = new RelayCommand(() => PlayIndefinitely = !PlayIndefinitely);
         NotificationEnabledCommand = new RelayCommand(() => { NotificationEnabled = !NotificationEnabled; });
         CloseModalCommand = new AsyncRelayCommand(async () => await navigationService.PopModalAsync());
+        OverlayCancelCommand = new AsyncRelayCommand(OverlayCancelAsync);
+    }
+
+    private async Task OverlayCancelAsync()
+    {
+        IsCancelBusy = true;
+        await Task.Delay(50);
+        try
+        {
+            await navigationService.PopModalAsync();
+        }
+        finally
+        {
+            IsCancelBusy = false;
+        }
     }
 
     private async Task OnSelectNumberOfTracksAsync(NumberOfTracksListViewItemModel? x)
@@ -297,6 +313,13 @@ public sealed class NumberOfTrackContainerViewModel : ObservableObject, IListVie
     public ICommand TogglePlayIndefinitelyCommand { get; private set; } = null!;
     public ICommand NotificationEnabledCommand { get; private set; } = null!;
     public ICommand CloseModalCommand { get; private set; } = null!;
+    public ICommand OverlayCancelCommand { get; private set; } = null!;
+
+    public bool IsCancelBusy
+    {
+        get => isCancelBusy;
+        set => SetProperty(ref isCancelBusy, value);
+    }
 
     public ObservableCollection<NumberOfTracksListViewItemModel> NumberOfTracksList
     {

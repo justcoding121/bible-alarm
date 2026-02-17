@@ -26,6 +26,8 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
     private readonly MusicTrackListManager listManager;
     private readonly MusicTrackPropertyManager propertyManager;
     private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
+    private readonly INavigationService navigationService;
+    private bool isCancelBusy;
 
     public MusicTrackSelectionViewModel(
         ILogger logger,
@@ -40,6 +42,7 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
         this.logger = logger;
         this.state = state;
         this.dispatcher = dispatcher;
+        this.navigationService = navigationService;
 
         stateManager = new MusicTrackStateManager();
         selectionHandler = new MusicTrackSelectionHandler(dispatcher, state, navigationService);
@@ -51,6 +54,7 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
 
         BackCommand = new AsyncRelayCommand(async () => await navigationService.PopAsync());
         CloseModalCommand = new AsyncRelayCommand(async () => await navigationService.PopModalAsync());
+        OverlayCancelCommand = new AsyncRelayCommand(OverlayCancelAsync);
 
         SetTrackCommand = new AsyncRelayCommand<MusicTrackListViewItemModel>(async x =>
         {
@@ -150,7 +154,29 @@ public sealed class MusicTrackSelectionViewModel : ObservableObject, IListViewMo
 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
+    public ICommand OverlayCancelCommand { get; set; }
+
+    public bool IsCancelBusy
+    {
+        get => isCancelBusy;
+        set => SetProperty(ref isCancelBusy, value);
+    }
+
     public ICommand SetTrackCommand { get; set; }
+
+    private async Task OverlayCancelAsync()
+    {
+        IsCancelBusy = true;
+        await Task.Delay(50);
+        try
+        {
+            await navigationService.PopModalAsync();
+        }
+        finally
+        {
+            IsCancelBusy = false;
+        }
+    }
 
     public FlowDirection ContentFlowDirection
     {

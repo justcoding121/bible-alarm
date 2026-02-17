@@ -22,8 +22,9 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
     protected override MauiTimePicker CreatePlatformView()
     {
         var view = base.CreatePlatformView();
-        // Remove the underline on Android
+        // Remove the underline and native background so the MAUI Border background shows through
         view.BackgroundTintList = ColorStateList.ValueOf(Color.Transparent);
+        view.SetBackgroundColor(Color.Transparent);
         return view;
     }
 
@@ -35,8 +36,9 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
         
         base.ConnectHandler(platformView);
         
-        // Ensure underline is removed
+        // Ensure underline and native background are removed
         platformView.BackgroundTintList = ColorStateList.ValueOf(Color.Transparent);
+        platformView.SetBackgroundColor(Color.Transparent);
         
         // Get FontService to listen for font size changes
         var fontService = MauiContext?.Services?.GetService<IFontService>();

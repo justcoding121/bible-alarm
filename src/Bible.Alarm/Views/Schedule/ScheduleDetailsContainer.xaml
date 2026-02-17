@@ -310,7 +310,7 @@
                     BackgroundColor="{DynamicResource CardBackgroundColor}"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    Padding="{DynamicResource PaddingStandard}"
+                    Padding="12,4"
                     MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />

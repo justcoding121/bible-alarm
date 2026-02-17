@@ -69,6 +69,25 @@ public partial class BusyOverlay : ContentView
     }
 
     /// <summary>
+    /// When true, the cancel button shows a progress indicator instead of the X icon (e.g. while close is in progress).
+    /// </summary>
+    public static readonly BindableProperty IsCancelBusyProperty = BindableProperty.Create(
+        nameof(IsCancelBusy),
+        typeof(bool),
+        typeof(BusyOverlay),
+        false,
+        BindingMode.OneWay);
+
+    /// <summary>
+    /// When true, the cancel button shows a progress indicator instead of the X icon.
+    /// </summary>
+    public bool IsCancelBusy
+    {
+        get => (bool)GetValue(IsCancelBusyProperty);
+        set => SetValue(IsCancelBusyProperty, value);
+    }
+
+    /// <summary>
     /// Whether a fetch error occurred; shows retry button to the left of cancel.
     /// </summary>
     public static readonly BindableProperty HasFetchErrorProperty = BindableProperty.Create(

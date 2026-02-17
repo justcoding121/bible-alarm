@@ -243,7 +243,8 @@
                                      Grid.RowSpan="3"
                                      HardTimeoutMs="0"
                                      ShowCancelButton="True"
-                                     CancelCommand="{Binding CloseModalCommand}"
+                                     CancelCommand="{Binding OverlayCancelCommand}"
+                                     IsCancelBusy="{Binding IsCancelBusy}"
                                      IsVisible="{Binding IsBusy}" />
         </Grid>
     </ContentPage.Content>

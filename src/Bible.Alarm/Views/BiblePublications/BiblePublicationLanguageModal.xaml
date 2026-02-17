@@ -67,32 +67,13 @@
                     VerticalTextAlignment="Center" />
             </Border>
             
-            <!-- Enhanced Search Bar -->
-            <!-- iOS: SearchBar without Border wrapper; CardBackgroundColor avoids black rectangle (Transparent shows black on iOS) -->
-            <SearchBar
-                x:Name="LanguageSearchBarIOS"
-                AutomationId="LanguageSearchBar"
-                Grid.Row="1"
-                Margin="16,8,16,0"
-                BackgroundColor="{DynamicResource CardBackgroundColor}"
-                HeightRequest="{DynamicResource IconStandardContainerSize}"
-                HorizontalOptions="Fill"
-                HorizontalTextAlignment="Start"
-                Placeholder="Search languages"
-                PlaceholderColor="{DynamicResource TextSecondaryColor}"
-                Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
-                TextColor="{DynamicResource TextPrimaryColor}"
-                FontSize="{DynamicResource LargeFontSize}"
-                CancelButtonColor="Transparent"
-                IsVisible="{OnPlatform iOS='True', Default='False'}" />
-            <!-- Non-iOS: SearchBar with Border wrapper for styling -->
+            <!-- Search Entry -->
             <Border
                 Grid.Row="1"
                 Margin="16,8,16,0"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
                 StrokeThickness="0"
-                Padding="0"
-                IsVisible="{OnPlatform iOS='False', Default='True'}">
+                Padding="12,4">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="{DynamicResource CornerRadiusLarge}" />
                 </Border.StrokeShape>
@@ -102,20 +83,30 @@
                             Opacity="0.08"
                             Radius="4" />
                 </Border.Shadow>
-                <SearchBar
-                    x:Name="LanguageSearchBarNonIOS"
-                    AutomationId="LanguageSearchBar"
-                    Margin="8"
-                    BackgroundColor="Transparent"
-                    HeightRequest="{DynamicResource IconStandardContainerSize}"
-                    HorizontalOptions="Fill"
-                    HorizontalTextAlignment="Start"
-                    Placeholder="Search languages"
-                    PlaceholderColor="{DynamicResource TextSecondaryColor}"
-                    Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
-                    TextColor="{DynamicResource TextPrimaryColor}"
-                    FontSize="{DynamicResource LargeFontSize}"
-                    CancelButtonColor="{DynamicResource TextPrimaryColor}" />
+                <Grid ColumnSpacing="{DynamicResource SpacingMedium}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0"
+                           Text="{x:Static fn:GlyphNames.Search}"
+                           FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
+                           FontSize="{DynamicResource IconSmallFontSize}"
+                           TextColor="{DynamicResource TextSecondaryColor}"
+                           VerticalOptions="Center" />
+                    <Entry x:Name="LanguageSearchEntry"
+                           AutomationId="LanguageSearchBar"
+                           Grid.Column="1"
+                           Margin="0"
+                           BackgroundColor="Transparent"
+                           HorizontalOptions="FillAndExpand"
+                           Placeholder="Search languages"
+                           PlaceholderColor="{DynamicResource TextSecondaryColor}"
+                           Text="{Binding LanguageSearchTerm, Mode=TwoWay}"
+                           TextColor="{DynamicResource TextPrimaryColor}"
+                           FontSize="{DynamicResource LargeFontSize}"
+                           VerticalOptions="Center" />
+                </Grid>
             </Border>
             
             <!-- Enhanced Collection View - hidden on Android until helper reveals after list is rendered (avoids empty-list flash) -->
@@ -307,7 +298,8 @@
                                      Grid.RowSpan="4"
                                      HardTimeoutMs="0"
                                      ShowCancelButton="True"
-                                     CancelCommand="{Binding CloseModalCommand}"
+                                     CancelCommand="{Binding CancelFetchCommand}"
+                                     IsCancelBusy="{Binding IsCancelBusy}"
                                      IsVisible="{Binding IsBusy}" />
         </Grid>
     </ContentPage.Content>

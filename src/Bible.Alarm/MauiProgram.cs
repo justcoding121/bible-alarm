@@ -70,7 +70,7 @@ public static class MauiProgram
             .ConfigureMauiHandlers(handlers =>
             {
                 handlers.AddHandler<Entry, EntryHandler>();
-                handlers.AddHandler<SearchBar, SearchBarHandler>();
+                handlers.AddHandler<TimePicker, TimePickerHandler>();
             })
 #elif WINDOWS
             .ConfigureMauiHandlers(handlers =>

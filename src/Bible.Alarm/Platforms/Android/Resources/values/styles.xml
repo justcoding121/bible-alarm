@@ -5,6 +5,9 @@
         <item name="android:windowBackground">@android:color/white</item>
         <item name="android:statusBarColor">@android:color/white</item>
         <item name="android:navigationBarColor">@android:color/white</item>
+        <!-- Dark status bar icons (time, battery, signal) so they are visible on light background -->
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
         <item name="colorPrimary">#483D8B</item>
         <item name="colorPrimaryDark">#362d68</item>
         <item name="colorAccent">#483D8B</item>

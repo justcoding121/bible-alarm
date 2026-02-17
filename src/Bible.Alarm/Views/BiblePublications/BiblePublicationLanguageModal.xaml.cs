@@ -9,7 +9,6 @@ using Bible.Alarm.ViewModels.Shared;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Devices;
 
 namespace Bible.Alarm.Views.Bible;
 
@@ -31,7 +30,7 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         navigationService = services.GetRequiredService<INavigationService>();
         toastService = services.GetRequiredService<IToastService>();
         Appearing += OnAppearing;
-        WireUpSearchBarHandlers();
+        WireUpSearchEntryHandlers();
     }
 
     protected override void OnHandlerChanged()
@@ -43,31 +42,25 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         {
             Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), () =>
             {
-                WireUpSearchBarHandlers();
+                WireUpSearchEntryHandlers();
             });
         }
     }
 
-    private void WireUpSearchBarHandlers()
+    private void WireUpSearchEntryHandlers()
     {
-        if (LanguageSearchBarIOS != null)
+        if (LanguageSearchEntry != null)
         {
-            LanguageSearchBarIOS.Unfocused -= OnSearchBarUnfocused;
-            LanguageSearchBarIOS.Unfocused += OnSearchBarUnfocused;
-        }
-        
-        if (LanguageSearchBarNonIOS != null)
-        {
-            LanguageSearchBarNonIOS.Unfocused -= OnSearchBarUnfocused;
-            LanguageSearchBarNonIOS.Unfocused += OnSearchBarUnfocused;
+            LanguageSearchEntry.Unfocused -= OnSearchEntryUnfocused;
+            LanguageSearchEntry.Unfocused += OnSearchEntryUnfocused;
         }
     }
 
-    private void OnSearchBarUnfocused(object? sender, FocusEventArgs e)
+    private void OnSearchEntryUnfocused(object? sender, FocusEventArgs e)
     {
-        if (sender is SearchBar searchBar && !searchBar.IsFocused)
+        if (sender is Entry entry && !entry.IsFocused)
         {
-            KeyboardHelper.HideKeyboard(searchBar);
+            KeyboardHelper.HideKeyboard(entry);
         }
     }
 
@@ -122,42 +115,31 @@ public partial class BiblePublicationLanguageModal : BaseContentPage, IDisposabl
         }
     }
 
-    private void FocusSearchBar()
+    private void FocusSearchEntry()
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            var searchBar = DeviceInfo.Platform == DevicePlatform.iOS
-                ? LanguageSearchBarIOS
-                : LanguageSearchBarNonIOS;
-
-            if (searchBar != null)
-            {
-                searchBar.Focus();
-            }
+            LanguageSearchEntry?.Focus();
         });
     }
 
     private void OnGridTapped(object? sender, TappedEventArgs e)
     {
-        UnfocusAnyFocusedSearchBar();
+        UnfocusSearchEntry();
     }
 
-    private void UnfocusAnyFocusedSearchBar()
+    private void UnfocusSearchEntry()
     {
-        if (LanguageSearchBarIOS?.IsFocused == true)
+        if (LanguageSearchEntry?.IsFocused == true)
         {
-            KeyboardHelper.HideKeyboard(LanguageSearchBarIOS);
-        }
-        else if (LanguageSearchBarNonIOS?.IsFocused == true)
-        {
-            KeyboardHelper.HideKeyboard(LanguageSearchBarNonIOS);
+            KeyboardHelper.HideKeyboard(LanguageSearchEntry);
         }
     }
 
     private async void OnLanguageItemTapped(object? sender, TappedEventArgs e)
     {
         // Hide keyboard when list item is tapped
-        UnfocusAnyFocusedSearchBar();
+        UnfocusSearchEntry();
 
         // Cancel any ongoing scroll operation to prevent race conditions
         try { await cancellationTokenSource.CancelAsync(); } catch { }

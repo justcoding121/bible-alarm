@@ -34,6 +34,8 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
     private readonly TrackSelectionCommandHandler commandHandler;
     private readonly TrackSelectionPropertyManager propertyManager;
     private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
+    private readonly INavigationService navigationService;
+    private bool isCancelBusy;
 
     private readonly SemaphoreSlim @lock = new(1);
 
@@ -54,6 +56,7 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
         this.state = state;
         this.dispatcher = dispatcher;
         this.mapper = mapper;
+        this.navigationService = navigationService;
 
         // Initialize helper classes
         stateManager = new TrackSelectionStateManager();
@@ -71,6 +74,7 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
         {
             await navigationService.PopModalAsync();
         });
+        OverlayCancelCommand = new AsyncRelayCommand(OverlayCancelAsync);
 
         SetTrackCommand = new AsyncRelayCommand<BiblePublicationTrackListViewItemModel>(async x =>
         {
@@ -169,7 +173,29 @@ public sealed class BiblePublicationTrackSelectionViewModel : ObservableObject, 
 
     public ICommand BackCommand { get; set; }
     public ICommand CloseModalCommand { get; set; }
+    public ICommand OverlayCancelCommand { get; set; }
+
+    public bool IsCancelBusy
+    {
+        get => isCancelBusy;
+        set => SetProperty(ref isCancelBusy, value);
+    }
+
     public ICommand SetTrackCommand { get; set; }
+
+    private async Task OverlayCancelAsync()
+    {
+        IsCancelBusy = true;
+        await Task.Delay(50);
+        try
+        {
+            await navigationService.PopModalAsync();
+        }
+        finally
+        {
+            IsCancelBusy = false;
+        }
+    }
 
     public object? SelectedItem => propertyManager.SelectedTrack;
 

@@ -47,6 +47,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         this.state = state;
         CloseModalCommand = new AsyncRelayCommand(CloseModalAsync);
         CancelFetchCommand = new AsyncRelayCommand(CloseModalAsync);
+        OverlayCancelCommand = new AsyncRelayCommand(OverlayCancelAsync);
 
         // Subscribe to progress messages from the effect handler
         WeakReferenceMessenger.Default.Register(this);
@@ -262,9 +263,25 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
 
     public ICommand CancelFetchCommand { get; private set; } = null!;
 
+    public ICommand OverlayCancelCommand { get; private set; } = null!;
+
     private async Task CloseModalAsync()
     {
         await navigationService.PopModalAsync();
+    }
+
+    private async Task OverlayCancelAsync()
+    {
+        IsCancelBusy = true;
+        await Task.Delay(50);
+        try
+        {
+            await navigationService.PopModalAsync();
+        }
+        finally
+        {
+            IsCancelBusy = false;
+        }
     }
 
     public void Dispose()
