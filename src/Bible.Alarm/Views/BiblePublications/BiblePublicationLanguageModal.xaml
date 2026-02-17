@@ -73,7 +73,7 @@
                 Margin="16,8,16,0"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
                 StrokeThickness="0"
-                Padding="12,4">
+                Padding="{OnPlatform iOS='12,8', Default='12,3'}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="{DynamicResource CornerRadiusLarge}" />
                 </Border.StrokeShape>

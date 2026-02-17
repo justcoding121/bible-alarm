@@ -303,7 +303,7 @@
                     BackgroundColor="{DynamicResource CardBackgroundColor}"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    Padding="12,4"
+                    Padding="{OnPlatform iOS='12,8', Default='12,3'}"
                     MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />

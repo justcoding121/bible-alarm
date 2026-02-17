@@ -49,10 +49,11 @@ internal sealed class SectionListLoader
             var actualSectionCount = initialSections?.Values.Count ?? 0;
             
             // Check if we have ALL expected sections AND they're all harvested (not placeholders)
+            // A section is harvested if it has a non-empty name and a persisted Id.
+            // Note: Name == SectionCode is valid for some publications (e.g. disc numbers).
             var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
             var allSectionsHarvested = hasAllExpectedSections && initialSections != null && initialSections.Values.Count > 0 && initialSections.Values.All(s =>
                 !string.IsNullOrEmpty(s.Name) &&
-                s.Name != s.SectionCode &&
                 s.Id > 0);
 
             if (allSectionsHarvested)
@@ -181,11 +182,11 @@ internal sealed class SectionListLoader
                     var actualSectionCount = reQueriedData?.Values.Count ?? 0;
                     
                     // Check if we have ALL expected sections AND they're all harvested (not placeholders)
-                    // A section is harvested if it has a name that's different from its code and has an ID > 0
+                    // A section is harvested if it has a non-empty name and a persisted Id.
+                    // Note: Name == SectionCode is valid for some publications (e.g. disc numbers).
                     var hasAllExpectedSections = actualSectionCount >= expectedSectionCount;
                     var allSectionsHarvested = hasAllExpectedSections && reQueriedData != null && reQueriedData.Values.Count > 0 && reQueriedData.Values.All(s =>
                         !string.IsNullOrEmpty(s.Name) &&
-                        s.Name != s.SectionCode &&
                         s.Id > 0);
 
                     if (allSectionsHarvested)
@@ -202,7 +203,6 @@ internal sealed class SectionListLoader
                         {
                             var placeholders = reQueriedData.Values.Where(s =>
                                 string.IsNullOrEmpty(s.Name) ||
-                                s.Name == s.SectionCode ||
                                 s.Id == 0).Select(s => s.SectionCode).ToList();
 
                             if (placeholders.Count > 0)
