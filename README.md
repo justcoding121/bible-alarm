@@ -2,8 +2,6 @@
 
 @justcoding121. All rights reserved.
 
-![alt tag](https://github.com/justcoding121/bible-alarm/blob/develop/screenshots/all.jpg)
-
 ## CI/CD Status
 
 ### Build
@@ -34,15 +32,21 @@
 - **Android Store**: [Get it on Google Play](https://play.google.com/store/apps/details?id=com.jthomas.info.Bible.Alarm)
 - **Windows Store**: [Get it from Microsoft Store](https://apps.microsoft.com/detail/9nhzhb85v6r4)
 
-## Development Setup
+## Screenshots
 
-After cloning the repository, configure Git to use the project's hooks:
+**Android (phone)** — Home · Schedule · Playback
 
-```bash
-git config core.hooksPath .githooks
-```
+<img src="docs/screenshots/Android/phone/home-two-schedules.png" width="220" alt="Home"/> <img src="docs/screenshots/Android/phone/schedule.png" width="220" alt="Schedule"/> <img src="docs/screenshots/Android/phone/playback-modal.png" width="220" alt="Playback"/>
 
-This enables a pre-commit hook that prevents accidentally committing the Syncfusion license key.
+**Android Auto** — Listing · Playback
+
+<img src="docs/screenshots/Android/android-auto/android-auto-listing.jpg" width="320" alt="Android Auto listing"/> <img src="docs/screenshots/Android/android-auto/android-auto-playback.jpg" width="320" alt="Android Auto playback"/>
+
+**Android (phone, dark)** — Home · Schedule · Playback
+
+<img src="docs/screenshots/Android/phone/home-two-schedules-dark.png" width="220" alt="Home dark"/> <img src="docs/screenshots/Android/phone/schedule-dark.png" width="220" alt="Schedule dark"/> <img src="docs/screenshots/Android/phone/playback-modal-dark.png" width="220" alt="Playback dark"/>
+
+*(All Android assets: phone, tablet-7, tablet-10, and android-auto, are under [`docs/screenshots/Android/`](docs/screenshots/Android).)*
 
 ## License
 

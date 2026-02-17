@@ -1,5 +1,0 @@
-xcrun simctl status_bar "iPhone 11 Pro Max" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
-
-xcrun simctl status_bar "iPad Pro (12.9-inch) (2nd generation)" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
-
-xcrun simctl status_bar "iPad Pro (12.9-inch) (3rd generation)" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
