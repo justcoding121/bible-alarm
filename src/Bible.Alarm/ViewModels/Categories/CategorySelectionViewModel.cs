@@ -29,6 +29,7 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
     private bool showProgress = false;
     private double progressPercent = 0.0;
     private string progressText = "0%";
+    private bool isCancelBusy;
     private CategoryListViewItemModel? selectedCategory;
     private CategoryListViewItemModel? currentFetchingCategory;
     private volatile bool fetchErrorReceived;
@@ -44,8 +45,9 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         this.navigationService = navigationService;
         this.dispatcher = dispatcher;
         this.state = state;
-        CloseModalCommand = new AsyncRelayCommand(async () => await navigationService.PopModalAsync());
-        
+        CloseModalCommand = new AsyncRelayCommand(CloseModalAsync);
+        CancelFetchCommand = new AsyncRelayCommand(CloseModalAsync);
+
         // Subscribe to progress messages from the effect handler
         WeakReferenceMessenger.Default.Register(this);
         
@@ -223,7 +225,11 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
     public bool IsBusy
     {
         get => isBusy;
-        set => SetProperty(ref isBusy, value);
+        set
+        {
+            if (SetProperty(ref isBusy, value))
+                OnPropertyChanged(nameof(ShowCancelButton));
+        }
     }
 
     public bool ShowProgress
@@ -244,7 +250,22 @@ public sealed class CategorySelectionViewModel : ObservableObject, IListViewMode
         set => SetProperty(ref progressText, value);
     }
 
+    public bool IsCancelBusy
+    {
+        get => isCancelBusy;
+        set => SetProperty(ref isCancelBusy, value);
+    }
+
+    public bool ShowCancelButton => IsBusy;
+
     public ICommand CloseModalCommand { get; private set; } = null!;
+
+    public ICommand CancelFetchCommand { get; private set; } = null!;
+
+    private async Task CloseModalAsync()
+    {
+        await navigationService.PopModalAsync();
+    }
 
     public void Dispose()
     {
