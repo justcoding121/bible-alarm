@@ -255,9 +255,6 @@ public static class ServiceRegistrationHelper
         services.AddSingleton(sp => Platforms.Android.Services.Media.MediaSessionHelper.Create());
         // MediaSessionCallback is created lazily by MediaSessionManager to avoid startup dependency issues
         services.AddSingleton<IMediaSessionManager, MediaSessionManager>();
-        services.AddTransient(sp =>
-            new ModernMediaSession(
-                sp.GetRequiredService<IMediaSessionManager>()));
         // Register MediaSession effect for Android Auto
         services.AddSingleton<MediaSessionEffect>();
         // Register global audio focus effect that manages audio focus based on playback state

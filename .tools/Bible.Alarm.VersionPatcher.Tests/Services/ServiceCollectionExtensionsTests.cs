@@ -26,10 +26,11 @@ public class ServiceCollectionExtensionsTests
         serviceProvider.GetService<IVersionPatchingService>().Should().NotBeNull();
 
         var platformPatchers = serviceProvider.GetServices<IPlatformVersionPatcher>();
-        platformPatchers.Should().HaveCount(3);
+        platformPatchers.Should().HaveCount(4);
         platformPatchers.Should().Contain(p => p.PlatformName == "Android");
         platformPatchers.Should().Contain(p => p.PlatformName == "iOS");
         platformPatchers.Should().Contain(p => p.PlatformName == "Windows");
+        platformPatchers.Should().Contain(p => p.PlatformName == "Release");
     }
 
     [Fact]

@@ -202,15 +202,17 @@ Key behaviors:
 
 ---
 
-## Android Auto (two implementations)
+## Android Auto
 
-Bible Alarm supports both:
-- **Modern "Car App"** (AndroidX Car App Library)
-  - `src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/CarAppService.cs`
-- **Legacy MediaBrowserServiceCompat** (phone projection older stacks)
-  - `src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/LegacyMediaBrowserService.cs`
+Bible Alarm uses a single `MediaBrowserServiceCompat` for all Android Auto versions:
+- `src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/LegacyMediaBrowserService.cs`
 
-Both rely on:
+**Why no CarAppService:** Google Play does not allow an app to declare both
+`android.media.browse.MediaBrowserService` and `androidx.car.app.CarAppService` simultaneously.
+For media apps, the required approach is `MediaBrowserServiceCompat` (declared in
+`automotive_app_desc.xml` with `<uses name="media" />`).
+
+Relies on:
 - the shared `MediaSessionCompat`
 - schedule data sourced from Fluxor state (helpers live in `AndroidAutoScheduleHelper.cs`)
 

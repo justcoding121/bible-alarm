@@ -18,19 +18,10 @@ using Serilog;
 namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 
 /// <summary>
-/// MediaBrowserService for Android Auto - Mandatory backend for all Android Auto versions.
-/// 
-/// Purpose:
-/// - Primary interface for older Android Auto versions (phone projection, old DHU, 2016–2024 cars)
-/// - Backend for voice commands, recommendations, and playback controls in newer versions
-/// - Works alongside CarAppService: CarAppService handles UI, this handles playback/voice
-/// 
-/// Strategy: Dual Support
-/// - CarAppService: Handles templated UI for browsing and playback screens (CAL API 8+)
-/// - MediaBrowserService: Mandatory backend for voice commands, recommendations, and playback controls
-/// 
-/// Uses the shared MediaSessionCompat from MediaSessionManager to ensure seamless playback continuity
-/// across both services.
+/// MediaBrowserService for Android Auto - the sole Android Auto service.
+/// Provides media browsing tree, voice commands, recommendations, and playback controls
+/// for all Android Auto versions (phone projection + AAOS).
+/// Uses the shared MediaSessionCompat from MediaSessionManager.
 /// </summary>
 [Service(Exported = true, ForegroundServiceType = ForegroundService.TypeMediaPlayback)]
 [IntentFilter(["android.media.browse.MediaBrowserService"])]

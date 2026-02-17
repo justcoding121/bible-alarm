@@ -34,8 +34,7 @@ public sealed class ForegroundServiceCoordinator
     }
 
     /// <summary>
-    /// Called when Android Auto connects (OnCreate, OnGetRoot or OnBind for LegacyMediaBrowserService, 
-    /// or OnCreate/OnCreateSession for CarAppService).
+    /// Called when Android Auto connects (OnCreate, OnGetRoot or OnBind for MediaBrowserService).
     /// Only starts foreground service if MediaElement is not active.
     /// 
     /// IMPORTANT: This method is idempotent and safe to call multiple times.
