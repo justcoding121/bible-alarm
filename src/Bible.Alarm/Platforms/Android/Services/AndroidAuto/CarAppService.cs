@@ -31,10 +31,7 @@ namespace Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 /// - Older systems: Fall back to MediaBrowserService for everything
 /// </summary>
 [Service(Exported = true, Name = "bible.alarm.platforms.android.services.androidauto.CarAppService")]
-// CRITICAL: MEDIA category removed to prevent phone projection Android Auto from discovering this service
-// Phone projection Android Auto should only discover LegacyMediaBrowserService
-// Modern AAOS will discover this via androidx.car.app.host.description metadata
-[IntentFilter(["androidx.car.app.CarAppService"])]
+[IntentFilter(["androidx.car.app.CarAppService"], Categories = ["androidx.car.app.category.MEDIA"])]
 // Links the CarAppService to the description file for modern Android Auto/AAOS discovery
 [MetaData("androidx.car.app.host.description", Resource = "@xml/car_app_desc")]
 // Declare minimum Car App Library API level (using integer resource)
