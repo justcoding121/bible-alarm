@@ -2,6 +2,7 @@
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
@@ -44,6 +45,9 @@ class Program
                 case "apply-and-update-resources":
                     await ApplyMigrationsAndUpdateResources(contextName);
                     break;
+                case "list-bible-languages":
+                    await ListBibleLanguages(args.Length > 1 ? args[1] : null);
+                    break;
                 default:
                     Console.WriteLine($"Unknown command: {command}");
                     PrintUsage();
@@ -67,6 +71,7 @@ class Program
         Console.WriteLine("  dotnet run -- status [Schedule|Media]    - Show migration status (checks Resources database for Schedule)");
         Console.WriteLine("  dotnet run -- generate-empty-schedule-db [outputPath] - Generate empty Schedule database with all migrations applied");
         Console.WriteLine("  dotnet run -- apply-and-update-resources [Schedule|Media] - Apply migrations and update Resources database");
+        Console.WriteLine("  dotnet run -- list-bible-languages [path] - List Bible category language names from media index (path: index.zip or mediaIndex.db, default: .tools/_index)");
         Console.WriteLine();
         Console.WriteLine("To create migrations, use EF Core tools:");
         Console.WriteLine("  dotnet ef migrations add <MigrationName> --project .tools/Bible.Alarm.DbMigration --context ScheduleDbContext");
@@ -381,6 +386,106 @@ class Program
         {
             Console.WriteLine($"Unknown context: {contextName}");
             Console.WriteLine("Supported contexts: Schedule, Media");
+        }
+    }
+
+    static async Task ListBibleLanguages(string? path)
+    {
+        var repoRoot = Directory.GetCurrentDirectory();
+        var searchDir = string.IsNullOrEmpty(path) ? Path.Combine(repoRoot, ".tools", "_index") : Path.GetFullPath(path);
+        string dbPath;
+        if (File.Exists(searchDir) && searchDir.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), $"bible_alarm_media_{Guid.NewGuid():N}");
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                ZipFile.ExtractToDirectory(searchDir, tempDir);
+                dbPath = Path.Combine(tempDir, AppConstants.Database.MediaIndexDatabaseFileName);
+                if (!File.Exists(dbPath))
+                {
+                    Console.WriteLine("Error: index.zip does not contain mediaIndex.db");
+                    return;
+                }
+                await QueryBibleLanguages(dbPath);
+            }
+            finally
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
+            return;
+        }
+        if (Directory.Exists(searchDir))
+        {
+            dbPath = Path.Combine(searchDir, AppConstants.Database.MediaIndexDatabaseFileName);
+            if (!File.Exists(dbPath))
+            {
+                var zipPath = Path.Combine(searchDir, "index.zip");
+                if (File.Exists(zipPath))
+                {
+                    path = zipPath;
+                    goto extractZip;
+                }
+                Console.WriteLine($"Error: mediaIndex.db not found in {searchDir}");
+                return;
+            }
+        }
+        else if (File.Exists(searchDir) && searchDir.EndsWith(".db", StringComparison.OrdinalIgnoreCase))
+        {
+            dbPath = searchDir;
+        }
+        else
+        {
+            Console.WriteLine($"Error: path not found or not a media index: {searchDir}");
+            return;
+        }
+        await QueryBibleLanguages(dbPath);
+        return;
+extractZip:
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), $"bible_alarm_media_{Guid.NewGuid():N}");
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                ZipFile.ExtractToDirectory(path!, tempDir);
+                dbPath = Path.Combine(tempDir, AppConstants.Database.MediaIndexDatabaseFileName);
+                if (!File.Exists(dbPath))
+                {
+                    Console.WriteLine("Error: index.zip does not contain mediaIndex.db");
+                    return;
+                }
+                await QueryBibleLanguages(dbPath);
+            }
+            finally
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
+        }
+    }
+
+    static async Task QueryBibleLanguages(string dbPath)
+    {
+        var connectionString = string.Format(
+            AppConstants.Database.MediaIndexDatabaseConnectionStringFormat,
+            dbPath);
+        var optionsBuilder = new DbContextOptionsBuilder<MediaDbContext>();
+        optionsBuilder.UseSqlite(connectionString, b => b.MigrationsAssembly("Bible.Alarm.Shared"));
+
+        using var context = new MediaDbContext(optionsBuilder.Options);
+        var languages = await context.PublicationLanguages
+            .AsNoTracking()
+            .Include(x => x.Language)
+            .Include(x => x.Category)
+            .Where(x => x.Category != null && x.Category.CategoryName == "Bible" && x.LanguageId != null && x.Language != null)
+            .Select(x => x.Language!.Name)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        Console.WriteLine($"Bible category languages ({languages.Count}):");
+        foreach (var name in languages)
+        {
+            Console.WriteLine($"  {name}");
         }
     }
 }
