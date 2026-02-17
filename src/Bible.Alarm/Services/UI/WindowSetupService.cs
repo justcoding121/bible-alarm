@@ -138,11 +138,14 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
             var window = activity?.Window;
             if (window != null)
             {
-                // Set status bar background to match page background
-                var statusBarColor = isLightTheme
-                    ? ThemeColors.Background.Light
-                    : ThemeColors.Background.Dark;
-                window.SetStatusBarColor(statusBarColor.ToPlatform());
+                // Set status bar background to match page background (obsolete on API 35+; skip there)
+                if ((int)Android.OS.Build.VERSION.SdkInt < 35)
+                {
+                    var statusBarColor = isLightTheme
+                        ? ThemeColors.Background.Light
+                        : ThemeColors.Background.Dark;
+                    window.SetStatusBarColor(statusBarColor.ToPlatform());
+                }
 
                 // Use WindowInsetsControllerCompat for reliable status bar icon appearance
                 var decorView = window.DecorView;
@@ -158,10 +161,12 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
             }
 #elif IOS
             // UIViewControllerBasedStatusBarAppearance is set to false in Info.plist,
-            // so UIApplication controls the status bar style globally.
+            // so we use the app-level API; PreferredStatusBarStyle would require per–view-controller setup.
+#pragma warning disable CA1422
             UIKit.UIApplication.SharedApplication.SetStatusBarStyle(
                 isLightTheme ? UIKit.UIStatusBarStyle.DarkContent : UIKit.UIStatusBarStyle.LightContent,
                 animated: true);
+#pragma warning restore CA1422
 #endif
         }
         catch (Exception ex)
