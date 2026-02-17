@@ -184,7 +184,7 @@ jobs:
         }
         Write-Host "Bundle ready: $bundlePath"
 
-    # Upload to Microsoft Store: stable → production (upload only; you commit from Partner Center). Beta → Beta Test flight, commit automatically (requires MICROSOFT_STORE_BETA_FLIGHT_ID secret).
+    # Upload to Microsoft Store: stable → production; beta → Beta Test flight (requires MICROSOFT_STORE_BETA_FLIGHT_ID secret). Upload only; you commit from Partner Center when ready (both tracks).
     # Uses Service Principal (client_credentials) with resource=manage.devcenter.microsoft.com and Partner Center Manager role; Admin Consent not required.
     # If you get "Identity cannot be authorized": add Azure AD app as Manager in Partner Center; use Store ID (App identity) in MICROSOFT_STORE_APP_ID, not Client ID; use devcenter token resource, not graph. See Microsoft docs on managing Azure AD apps in Partner Center.
     - name: Upload to Microsoft Store
@@ -268,14 +268,8 @@ jobs:
         
         Write-Host "Package uploaded successfully"
         
-        # Commit the submission (sends for certification). Beta: commit automatically. Stable: you commit from Partner Center when ready.
-        if (-not $isBeta) {
-            Write-Host "Stable branch: submission uploaded but not committed. Commit from Partner Center when ready to send for certification."
-        } else {
-            $commitUrl = "$submissionUrl/$submissionId/commit"
-            Invoke-RestMethod -Uri $commitUrl -Method Post -Headers $headers
-            Write-Host "Submission committed successfully"
-        }
+        # Do not commit the submission (sends for certification). You commit from Partner Center when ready (both stable and beta).
+        Write-Host "Submission uploaded but not committed. Commit from Partner Center when ready to send for certification."
 
     # Verify no secrets are staged before committing (exclude build output obj/bin/artifacts).
     - name: Verify no secrets in working directory

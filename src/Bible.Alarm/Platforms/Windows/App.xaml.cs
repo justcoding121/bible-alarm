@@ -1,7 +1,9 @@
 #nullable enable
 
+using System.Diagnostics;
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Messenger;
+using Bible.Alarm.Platforms.Windows.Helpers;
 using Bible.Alarm.Platforms.Windows.Services.Handlers.Interfaces;
 using Bible.Alarm.Platforms.Windows.Services.UI.WindowsToastServiceHelpers;
 using Bible.Alarm.Services.Scheduler.Interfaces;
@@ -20,7 +22,7 @@ namespace Bible.Alarm.WinUI;
 [XamlCompilation(XamlCompilationOptions.Compile)]
 public partial class App : MauiWinUIApplication
 {
-    private static readonly ILogger logger = Log.ForContext<App>();
+    private static ILogger Logger => Log.ForContext<App>();
 
     /// <summary>
     /// Initializes the singleton application object.  This is the first line of authored code
@@ -28,25 +30,25 @@ public partial class App : MauiWinUIApplication
     /// </summary>
     public App()
     {
-        InitializeComponent();
-
-        // Set up global exception handlers
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
         TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
+        InitializeComponent();
     }
 
-    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e) => logger.Error(e.Exception, "Unobserved task exception.");
+    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e) => Logger.Error(e.Exception, "Unobserved task exception.");
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
         var exception = e.ExceptionObject as Exception;
         if (exception != null)
         {
-            logger.Fatal(exception, "Unhandled exception occurred. IsTerminating: {IsTerminating}", e.IsTerminating);
+            WindowsBootstrapLogger.WriteException(exception);
+            Logger.Fatal(exception, "Unhandled exception occurred. IsTerminating: {IsTerminating}", e.IsTerminating);
         }
         else
         {
-            logger.Fatal("Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}",
+            WindowsBootstrapLogger.WriteLine($"Unhandled non-Exception: {e.ExceptionObject}. IsTerminating: {e.IsTerminating}");
+            Logger.Fatal("Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}",
                 e.ExceptionObject, e.IsTerminating);
         }
 
@@ -72,16 +74,23 @@ public partial class App : MauiWinUIApplication
         var instance = AppInstance.FindOrRegisterForKey(key);
 
         // If this is not the main instance, redirect activation and exit WITHOUT creating window
+        // Unless the "main" instance is no longer running (stale key from a crash) - then we become main
         if (!instance.IsCurrent)
         {
-            logger.Information("App already running - redirecting activation to existing instance. Arguments: {Arguments}", args.Arguments);
-
-            // Redirect activation to the existing instance
-            instance.RedirectActivationToAsync(activatedEventArgs).AsTask().Wait();
-
-            // Exit this new instance WITHOUT calling base.OnLaunched (prevents window flash)
-            Environment.Exit(0);
-            return;
+            var others = Process.GetProcessesByName("Bible.Alarm")
+                .Where(p => p.Id != Environment.ProcessId)
+                .ToList();
+            if (others.Count == 0)
+            {
+                Logger.Information("Single-instance key was held by a process that is no longer running; proceeding as main instance.");
+            }
+            else
+            {
+                Logger.Information("App already running - redirecting activation to existing instance. Arguments: {Arguments}", args.Arguments);
+                instance.RedirectActivationToAsync(activatedEventArgs).AsTask().Wait();
+                Environment.Exit(0);
+                return;
+            }
         }
 
         // This is the main instance - now safe to create window
@@ -127,7 +136,7 @@ public partial class App : MauiWinUIApplication
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error handling app instance activation");
+            Logger.Error(ex, "Error handling app instance activation");
         }
     }
 
@@ -153,7 +162,7 @@ public partial class App : MauiWinUIApplication
                 var toastArgs = e.Data as ToastNotificationActivatedEventArgs;
                 if (toastArgs?.Argument != null)
                 {
-                    logger.Information("Toast activation received: {Arguments}", toastArgs.Argument);
+                    Logger.Information("Toast activation received: {Arguments}", toastArgs.Argument);
                     HandleActivation(toastArgs.Argument);
                 }
             }
@@ -163,14 +172,14 @@ public partial class App : MauiWinUIApplication
                 var launchArgs = e.Data as LaunchActivatedEventArgs;
                 if (launchArgs?.Arguments != null)
                 {
-                    logger.Information("Launch activation received: {Arguments}", launchArgs.Arguments);
+                    Logger.Information("Launch activation received: {Arguments}", launchArgs.Arguments);
                     HandleActivation(launchArgs.Arguments);
                 }
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error handling app instance activation arguments");
+            Logger.Error(ex, "Error handling app instance activation arguments");
         }
     }
 
@@ -185,7 +194,7 @@ public partial class App : MauiWinUIApplication
             var window = ToastWindowManager.GetNativeWindow();
             if (window == null)
             {
-                logger.Debug("Window not available when trying to bring to foreground");
+                Logger.Debug("Window not available when trying to bring to foreground");
                 return;
             }
 
@@ -193,7 +202,7 @@ public partial class App : MauiWinUIApplication
             var dispatcherQueue = window.DispatcherQueue;
             if (dispatcherQueue == null)
             {
-                logger.Debug("DispatcherQueue not available when trying to bring to foreground");
+                Logger.Debug("DispatcherQueue not available when trying to bring to foreground");
                 return;
             }
 
@@ -206,7 +215,7 @@ public partial class App : MauiWinUIApplication
                     var appWindow = window.AppWindow;
                     if (appWindow == null)
                     {
-                        logger.Debug("AppWindow not available when trying to bring to foreground");
+                        Logger.Debug("AppWindow not available when trying to bring to foreground");
                         return;
                     }
 
@@ -215,24 +224,24 @@ public partial class App : MauiWinUIApplication
                     if (presenter != null && presenter.State == OverlappedPresenterState.Minimized)
                     {
                         presenter.Restore();
-                        logger.Debug("Window restored from minimized state");
+                        Logger.Debug("Window restored from minimized state");
                     }
 
                     // Show the window (brings to foreground)
                     // This ensures the window is visible when activated from a notification
                     appWindow.Show();
 
-                    logger.Debug("Window brought to foreground from notification activation");
+                    Logger.Debug("Window brought to foreground from notification activation");
                 }
                 catch (Exception ex)
                 {
-                    logger.Warning(ex, "Failed to bring window to foreground on UI thread, but continuing with activation");
+                    Logger.Warning(ex, "Failed to bring window to foreground on UI thread, but continuing with activation");
                 }
             });
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to bring window to foreground, but continuing with activation");
+            Logger.Warning(ex, "Failed to bring window to foreground, but continuing with activation");
         }
     }
 
@@ -273,14 +282,14 @@ public partial class App : MauiWinUIApplication
                     }
                     catch (Exception e)
                     {
-                        logger.Error(e, $"Error handling alarm activation for schedule {scheduleId}");
+                        Logger.Error(e, $"Error handling alarm activation for schedule {scheduleId}");
                     }
                 });
             }
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error parsing activation arguments");
+            Logger.Error(e, "Error parsing activation arguments");
         }
     }
 
@@ -300,34 +309,34 @@ public partial class App : MauiWinUIApplication
 
                     if (arguments.Contains("action=next", StringComparison.OrdinalIgnoreCase))
                     {
-                        logger.Information("Toast notification: Next button pressed");
+                        Logger.Information("Toast notification: Next button pressed");
                         WeakReferenceMessenger.Default.Send(new NextButtonPressedMessage());
                     }
                     else if (arguments.Contains("action=previous", StringComparison.OrdinalIgnoreCase))
                     {
-                        logger.Information("Toast notification: Previous button pressed");
+                        Logger.Information("Toast notification: Previous button pressed");
                         WeakReferenceMessenger.Default.Send(new PreviousButtonPressedMessage());
                     }
                     else if (arguments.Contains("action=play", StringComparison.OrdinalIgnoreCase))
                     {
-                        logger.Information("Toast notification: Play button pressed");
+                        Logger.Information("Toast notification: Play button pressed");
                         WeakReferenceMessenger.Default.Send(new PlayButtonPressedMessage());
                     }
                     else if (arguments.Contains("action=pause", StringComparison.OrdinalIgnoreCase))
                     {
-                        logger.Information("Toast notification: Pause button pressed");
+                        Logger.Information("Toast notification: Pause button pressed");
                         WeakReferenceMessenger.Default.Send(new PauseButtonPressedMessage());
                     }
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "Error handling media control action");
+                    Logger.Error(e, "Error handling media control action");
                 }
             });
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error parsing media control action");
+            Logger.Error(e, "Error parsing media control action");
         }
     }
 

@@ -40,7 +40,8 @@ jobs:
     - name: Build solution
       # No --no-restore: the build's implicit restore handles per-TFM RID resolution correctly
       # (UseMonoRuntime=false + RuntimeIdentifier=win-x64 only for the Windows TFM).
-      run: dotnet build src/Bible.Alarm.sln --configuration Release
+      # -m 1: serialize project builds to avoid file lock when CommunityToolkit.Maui.MediaElement is built for multiple TFMs concurrently.
+      run: dotnet build src/Bible.Alarm.sln --configuration Release -m:1
       
     - name: Run tests
       run: dotnet test src/Bible.Alarm.sln --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"

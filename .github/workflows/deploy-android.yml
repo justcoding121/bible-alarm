@@ -96,7 +96,7 @@ jobs:
           --output ./artifacts/android-apk
 
     # Upload to Google Play (production on stable, beta track on beta). If this fails, no artifacts.
-    # Stable: commit edit only; you send for review from Play Console. Beta: send for review automatically.
+    # Commit edit only; you send for review from Play Console (both stable and beta).
     - name: Upload to Google Play
       id: store_upload
       uses: r0adkll/upload-google-play@935ef9c68bb393a8e6116b1575626a7f5be3a7fb
@@ -106,7 +106,7 @@ jobs:
         releaseFiles: ./artifacts/android/*-Signed.aab
         track: ${{ github.ref == 'refs/heads/stable' && 'production' || 'beta' }}
         status: completed
-        changesNotSentForReview: ${{ github.ref == 'refs/heads/stable' && 'true' || 'false' }}
+        changesNotSentForReview: true
 
     # Clean up keystore
     - name: Clean up keystore
