@@ -1,7 +1,8 @@
 # Triggered when *any* deploy workflow completes (so it starts up to 3 times per push). Uses concurrency
 # so only one run per commit proceeds; the run that executes after all three deploys have completed
 # will pass the check and merge (beta→develop or stable→beta then beta→develop). Pushes only when
-# the merge produced a new commit.
+# the merge produced a new commit. Uses origin (credentials from checkout token) for push. If push
+# fails with permission errors, use a PAT: set secret REPO_TOKEN and pass it as the checkout token.
 name: Sync versions after deploy
 
 on:
@@ -54,7 +55,7 @@ jobs:
         if: steps.check.outputs.all_ready == 'true'
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.REPO_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Merge to sync version
@@ -62,7 +63,6 @@ jobs:
         env:
           BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
-          remote="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin
@@ -72,7 +72,7 @@ jobs:
             before=$(git rev-parse HEAD)
             git merge origin/beta -m "[Version sync] Merge beta into develop"
             if [ "$(git rev-parse HEAD)" != "$before" ]; then
-              git push "$remote" develop
+              git push origin develop
             else
               echo "beta already up to date in develop; nothing to push."
             fi
@@ -81,7 +81,7 @@ jobs:
             before_beta=$(git rev-parse HEAD)
             git merge origin/stable -m "[Version sync] Merge stable into beta"
             if [ "$(git rev-parse HEAD)" != "$before_beta" ]; then
-              git push "$remote" beta
+              git push origin beta
               git fetch origin
             else
               echo "stable already up to date in beta; skipping beta push."
@@ -90,7 +90,7 @@ jobs:
             before_dev=$(git rev-parse HEAD)
             git merge origin/beta -m "[Version sync] Merge beta into develop"
             if [ "$(git rev-parse HEAD)" != "$before_dev" ]; then
-              git push "$remote" develop
+              git push origin develop
             else
               echo "beta already up to date in develop; nothing to push."
             fi

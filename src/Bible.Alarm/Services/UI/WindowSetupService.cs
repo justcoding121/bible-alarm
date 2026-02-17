@@ -138,7 +138,8 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
             var window = activity?.Window;
             if (window != null)
             {
-                // Set status bar background to match page background (obsolete on API 35+; skip there)
+                // Set status bar background to match page background (obsolete on API 35+; we skip via runtime check).
+#pragma warning disable CA1422
                 if ((int)Android.OS.Build.VERSION.SdkInt < 35)
                 {
                     var statusBarColor = isLightTheme
@@ -146,6 +147,7 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
                         : ThemeColors.Background.Dark;
                     window.SetStatusBarColor(statusBarColor.ToPlatform());
                 }
+#pragma warning restore CA1422
 
                 // Use WindowInsetsControllerCompat for reliable status bar icon appearance
                 var decorView = window.DecorView;
