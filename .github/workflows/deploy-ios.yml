@@ -92,6 +92,7 @@ jobs:
           --output ./artifacts/ios
 
     # Upload to App Store Connect (TestFlight/App Store). If this fails, no artifacts.
+    # This only uploads the build; it does not submit for review. For stable, create/select the version in App Store Connect, add this build, then submit for review from the UI.
     - name: Upload to App Store Connect
       id: store_upload
       env:
