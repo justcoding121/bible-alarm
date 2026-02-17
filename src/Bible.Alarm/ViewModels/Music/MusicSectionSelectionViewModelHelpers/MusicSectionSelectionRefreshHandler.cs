@@ -36,9 +36,6 @@ public sealed class MusicSectionSelectionRefreshHandler
                 if (!ctx.IsDisposed() && !ctx.IsSelectingSection())
                 {
                     ctx.SetCanCancelFetch(true);
-                    ctx.SetShowProgress(true);
-                    ctx.SetProgressText("0%");
-                    ctx.SetProgressPercent(0);
                 }
             });
 
