@@ -1,27 +1,30 @@
 # Beta: Play beta + artifacts only when publish succeeds. Stable: Play production + artifacts when publish succeeds.
+# Triggered after Prepare release version bumps and pushes, so we always build the bumped version (e.g. 382).
 name: Deploy Android to Google Play
 
 on:
-  push:
-    branches:
-      - stable
-      - beta
+  workflow_run:
+    workflows: [Prepare release version]
+    types: [completed]
+    branches: [stable, beta]
 
 permissions:
   contents: write
 
 jobs:
   deploy-android:
-    if: github.event.head_commit.author.name == 'github-actions[bot]'
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     env:
       SYNCFUSION_LICENSE_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
+      DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch }}
     
     steps:
-    - name: Checkout code
+    - name: Checkout code (bumped version from Prepare release version)
       uses: actions/checkout@v4
       with:
+        ref: ${{ env.DEPLOY_BRANCH }}
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Setup .NET
@@ -104,7 +107,7 @@ jobs:
         serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         packageName: com.jthomas.info.Bible.Alarm
         releaseFiles: ./artifacts/android/*-Signed.aab
-        track: ${{ github.ref == 'refs/heads/stable' && 'production' || 'beta' }}
+        track: ${{ env.DEPLOY_BRANCH == 'stable' && 'production' || 'beta' }}
         status: completed
 
     # Clean up keystore
@@ -128,7 +131,7 @@ jobs:
       if: steps.store_upload.outcome == 'success'
       uses: actions/upload-artifact@v4
       with:
-        name: BibleAlarm-${{ github.ref_name }}-android
+        name: BibleAlarm-${{ env.DEPLOY_BRANCH }}-android
         path: |
           artifacts/**/*.aab
           artifacts/**/*.apk
@@ -145,11 +148,11 @@ jobs:
       if: steps.store_upload.outcome == 'success' && steps.version.outcome == 'success' && steps.version.outputs.version != ''
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v${{ steps.version.outputs.version }}-android${{ github.ref == 'refs/heads/beta' && '-beta' || '' }}
-        name: Bible Alarm Android ${{ steps.version.outputs.version }}${{ github.ref == 'refs/heads/beta' && ' (beta)' || '' }}
+        tag_name: v${{ steps.version.outputs.version }}-android${{ env.DEPLOY_BRANCH == 'beta' && '-beta' || '' }}
+        name: Bible Alarm Android ${{ steps.version.outputs.version }}${{ env.DEPLOY_BRANCH == 'beta' && ' (beta)' || '' }}
         body: |
           **Version:** ${{ steps.version.outputs.version }}
-          **Branch:** ${{ github.ref_name }}
+          **Branch:** ${{ env.DEPLOY_BRANCH }}
           AAB and APK artifacts from this workflow run.
 
           ### Install APK (sideload)

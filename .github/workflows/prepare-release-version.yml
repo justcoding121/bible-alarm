@@ -1,5 +1,7 @@
-# Runs on every push to beta/stable. If the push was by a human (not the bot), bumps version
-# once and pushes. Requires secret REPO_TOKEN (PAT) so that push triggers the three deploy workflows.
+# Runs on every push to beta/stable (e.g. merge develop→beta or beta→stable). If the push was by a
+# human (not the bot), bumps version once (ApplicationVersion + ApplicationDisplayVersion + iOS/Windows
+# manifests) and pushes. Deploy workflows run after this completes (workflow_run), so they always build the bumped version.
+# Requires secret REPO_TOKEN (PAT) for the version-bump push.
 name: Prepare release version
 
 on:

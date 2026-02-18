@@ -1,27 +1,30 @@
 # Beta: TestFlight + artifacts only when publish succeeds. Stable: App Store + artifacts when publish succeeds.
+# Triggered after Prepare release version bumps and pushes, so we always build the bumped version.
 name: Deploy iOS to App Store
 
 on:
-  push:
-    branches:
-      - stable
-      - beta
+  workflow_run:
+    workflows: [Prepare release version]
+    types: [completed]
+    branches: [stable, beta]
 
 permissions:
   contents: write
 
 jobs:
   deploy-ios:
-    if: github.event.head_commit.author.name == 'github-actions[bot]'
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: macos-26
 
     env:
       SYNCFUSION_LICENSE_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
+      DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch }}
     
     steps:
-    - name: Checkout code
+    - name: Checkout code (bumped version from Prepare release version)
       uses: actions/checkout@v4
       with:
+        ref: ${{ env.DEPLOY_BRANCH }}
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Setup .NET
@@ -122,12 +125,24 @@ jobs:
           fi
         fi
         
-        # Upload using xcrun altool (set -e above ensures non-zero exit fails the step)
-        xcrun altool --upload-app \
+        # Upload using xcrun altool. Fail the step (and job) on any upload failure, like Android.
+        set +e
+        altool_output=$(xcrun altool --upload-app \
           --type ios \
           --file "$IPA_PATH" \
           --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
-          --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID" || exit 1
+          --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID" 2>&1)
+        altool_exit=$?
+        set -e
+        echo "$altool_output"
+        if [ $altool_exit -ne 0 ]; then
+          echo "::error::Upload to App Store Connect failed (exit $altool_exit)."
+          exit 1
+        fi
+        if echo "$altool_output" | grep -q "ERROR:\|Failed to upload\|ENTITY_ERROR\|status : 409"; then
+          echo "::error::Upload to App Store Connect failed (error in output)."
+          exit 1
+        fi
 
     # Clean up keychain and provisioning profile
     - name: Cleanup
@@ -153,7 +168,7 @@ jobs:
       if: steps.store_upload.outcome == 'success'
       uses: actions/upload-artifact@v4
       with:
-        name: BibleAlarm-${{ github.ref_name }}-ios
+        name: BibleAlarm-${{ env.DEPLOY_BRANCH }}-ios
         path: |
           artifacts/**/*.ipa
         retention-days: 14
@@ -169,11 +184,11 @@ jobs:
       if: steps.store_upload.outcome == 'success' && steps.version.outcome == 'success' && steps.version.outputs.version != ''
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v${{ steps.version.outputs.version }}-ios${{ github.ref == 'refs/heads/beta' && '-beta' || '' }}
-        name: Bible Alarm iOS ${{ steps.version.outputs.version }}${{ github.ref == 'refs/heads/beta' && ' (beta)' || '' }}
+        tag_name: v${{ steps.version.outputs.version }}-ios${{ env.DEPLOY_BRANCH == 'beta' && '-beta' || '' }}
+        name: Bible Alarm iOS ${{ steps.version.outputs.version }}${{ env.DEPLOY_BRANCH == 'beta' && ' (beta)' || '' }}
         body: |
           **Version:** ${{ steps.version.outputs.version }}
-          **Branch:** ${{ github.ref_name }}
+          **Branch:** ${{ env.DEPLOY_BRANCH }}
           IPA from this workflow run.
 
           ### Install IPA (sideload)
