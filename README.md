@@ -50,6 +50,16 @@
 
 *(Windows assets are under [`docs/screenshots/Windows/`](docs/screenshots/Windows).)*
 
+**iOS (phone)** — Home · Schedule · Playback *(light)*
+
+<img src="docs/screenshots/iOS/phone/home-light.jpg" width="220" alt="Home"/> <img src="docs/screenshots/iOS/phone/schedule-light.jpg" width="220" alt="Schedule"/> <img src="docs/screenshots/iOS/phone/playback-light.jpg" width="220" alt="Playback"/>
+
+**Apple CarPlay** — Listing · Playback
+
+<img src="docs/screenshots/iOS/carplay/carplay-listing.jpg" width="320" alt="CarPlay listing"/> <img src="docs/screenshots/iOS/carplay/carplay-playback.jpg" width="320" alt="CarPlay playback"/>
+
+*(iOS assets: phone, tablet, and carplay are under [`docs/screenshots/iOS/`](docs/screenshots/iOS).)*
+
 ## License
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
