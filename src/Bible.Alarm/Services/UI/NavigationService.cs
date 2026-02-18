@@ -6,6 +6,9 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Views;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
+#if WINDOWS
+using Bible.Alarm.Platforms.Windows.Helpers;
+#endif
 
 namespace Bible.Alarm.Services.UI;
 
@@ -29,6 +32,31 @@ public sealed class NavigationService(
     private bool isDisposed;
 
     private INavigation GetNavigation(bool shouldRetry = true) => navigationManager.GetNavigation(shouldRetry);
+
+    /// <summary>
+    /// Runs the given async work on the UI thread. On Windows use the current window's root page Dispatcher so WinUI uses the correct thread; otherwise MainThread.
+    /// When already on the UI thread we run work directly to avoid deadlock (dispatch-then-await would wait for our own queued work).
+    /// </summary>
+    private async Task InvokeOnUiThreadAsync(Func<Task> work)
+    {
+#if WINDOWS
+        var app = Application.Current;
+        Microsoft.Maui.Dispatching.IDispatcher? winDispatcher = null;
+        if (app?.Windows.Count > 0 && app.Windows[0].Page is NavigationPage navPage)
+            winDispatcher = navPage.Dispatcher;
+        else if (app?.Dispatcher != null)
+            winDispatcher = app.Dispatcher;
+        if (winDispatcher != null)
+        {
+            if (winDispatcher.IsDispatchRequired)
+                await winDispatcher.DispatchAsync(work);
+            else
+                await work();
+            return;
+        }
+#endif
+        await MainThread.InvokeOnMainThreadAsync(work);
+    }
 
     /// <summary>
     /// Clears the cached navigation. Call this when the app is disposed or navigation becomes invalid.
@@ -91,18 +119,27 @@ public sealed class NavigationService(
 
     public async Task NavigateToScheduleAsync()
     {
-        // Use lock to prevent race conditions with concurrent navigation (e.g., Cancel then Add quickly)
-        await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
+        try
         {
-            var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
-            var navigation = GetNavigation();
-
-            // Set navigation bar setting
-            NavigationPage.SetHasNavigationBar(page, false);
-
-            // Push the page without animation for instant navigation
-            await navigation.PushAsync(page, animated: false);
-        });
+            await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
+            {
+                await InvokeOnUiThreadAsync(async () =>
+                {
+                    var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
+                    var navigation = GetNavigation();
+                    NavigationPage.SetHasNavigationBar(page, false);
+                    await navigation.PushAsync(page, animated: false);
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+#if WINDOWS
+            WindowsBootstrapLogger.WriteException(ex);
+#endif
+            logger.Error(ex, "NavigateToScheduleAsync failed");
+            throw;
+        }
     }
 
     public async Task NavigateToScheduleAsync(int scheduleId, bool isEnabled)
@@ -112,56 +149,62 @@ public sealed class NavigationService(
         logger.Information("[PERF] NavigateToScheduleAsync: Start at {StartTime}", overallStartTime);
 #endif
 
-        // Use lock to prevent race conditions with concurrent navigation
-        await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
+        try
         {
+            await ConcurrencyHelper.ExecuteAsync(navigationLock, async () =>
+            {
 #if DEBUG
-            var lockAcquiredTime = DateTime.UtcNow;
-            logger.Information("[PERF] NavigateToScheduleAsync: Lock acquired in {ElapsedMs}ms",
-                (lockAcquiredTime - overallStartTime).TotalMilliseconds);
+                var lockAcquiredTime = DateTime.UtcNow;
+                logger.Information("[PERF] NavigateToScheduleAsync: Lock acquired in {ElapsedMs}ms",
+                    (lockAcquiredTime - overallStartTime).TotalMilliseconds);
 #endif
 
-            // Set navigation context BEFORE creating page - ScheduleStateManager will read this
-            // This is simpler than Fluxor state which can be cleared by ResetScheduleStateAction
-            ScheduleNavigationContext.ScheduleIdToLoad = scheduleId;
-            ScheduleNavigationContext.IsEnabledToLoad = isEnabled;
+                ScheduleNavigationContext.ScheduleIdToLoad = scheduleId;
+                ScheduleNavigationContext.IsEnabledToLoad = isEnabled;
+                dispatcher.Dispatch(new ResetContainerReadinessAction());
 
-            // Reset container readiness
-            dispatcher.Dispatch(new ResetContainerReadinessAction());
-
+                await InvokeOnUiThreadAsync(async () =>
+                {
 #if DEBUG
-            var beforeResolveTime = DateTime.UtcNow;
-            logger.Information("[PERF] NavigateToScheduleAsync: Before page resolve at {Time}", beforeResolveTime);
+                    var beforeResolveTime = DateTime.UtcNow;
+                    logger.Information("[PERF] NavigateToScheduleAsync: Before page resolve at {Time}", beforeResolveTime);
 #endif
 
-            var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
+                    var page = serviceProvider.GetRequiredService<Views.Schedule.Schedule>();
 
 #if DEBUG
-            var afterResolveTime = DateTime.UtcNow;
-            logger.Information("[PERF] NavigateToScheduleAsync: Page resolved in {ElapsedMs}ms",
-                (afterResolveTime - beforeResolveTime).TotalMilliseconds);
+                    var afterResolveTime = DateTime.UtcNow;
+                    logger.Information("[PERF] NavigateToScheduleAsync: Page resolved in {ElapsedMs}ms",
+                        (afterResolveTime - beforeResolveTime).TotalMilliseconds);
 #endif
 
-            var navigation = GetNavigation();
-
-            // Set navigation bar setting
-            NavigationPage.SetHasNavigationBar(page, false);
+                    var navigation = GetNavigation();
+                    NavigationPage.SetHasNavigationBar(page, false);
 
 #if DEBUG
-            var beforePushTime = DateTime.UtcNow;
-            logger.Information("[PERF] NavigateToScheduleAsync: Before push at {Time}", beforePushTime);
+                    var beforePushTime = DateTime.UtcNow;
+                    logger.Information("[PERF] NavigateToScheduleAsync: Before push at {Time}", beforePushTime);
 #endif
 
-            // Push the page without animation for instant navigation
-            await navigation.PushAsync(page, animated: false);
+                    await navigation.PushAsync(page, animated: false);
 
 #if DEBUG
-            var afterPushTime = DateTime.UtcNow;
-            logger.Information("[PERF] NavigateToScheduleAsync: Push completed in {ElapsedMs}ms, total: {TotalMs}ms",
-                (afterPushTime - beforePushTime).TotalMilliseconds,
-                (afterPushTime - overallStartTime).TotalMilliseconds);
+                    var afterPushTime = DateTime.UtcNow;
+                    logger.Information("[PERF] NavigateToScheduleAsync: Push completed in {ElapsedMs}ms, total: {TotalMs}ms",
+                        (afterPushTime - beforePushTime).TotalMilliseconds,
+                        (afterPushTime - overallStartTime).TotalMilliseconds);
 #endif
-        });
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+#if WINDOWS
+            WindowsBootstrapLogger.WriteException(ex);
+#endif
+            logger.Error(ex, "NavigateToScheduleAsync(scheduleId, isEnabled) failed");
+            throw;
+        }
     }
 
     public async Task OpenSongPublicationSelectionModalAsync(object bindingContext)

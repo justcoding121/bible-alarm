@@ -10,6 +10,10 @@
     <ContentView.Resources>
         <converters:NegateBooleanConverter x:Key="negateBooleanConverter" />
         <converters:SelectableTextColorConverter x:Key="selectableTextColorConverter" />
+        <x:Double x:Key="LargeFontSize">22.0</x:Double>
+        <x:Double x:Key="IconStandardFontSize">20.0</x:Double>
+        <x:Double x:Key="IconSmallFontSize">14.0</x:Double>
+        <x:Double x:Key="IconSmallContainerSize">32.0</x:Double>
     </ContentView.Resources>
     <Border Margin="0"
             Padding="0"
@@ -66,7 +70,7 @@
                 
                 <!-- Category Name -->
                 <Label Grid.Column="0"
-                       FontSize="{DynamicResource LargeFontSize}"
+                       FontSize="{StaticResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -79,18 +83,18 @@
                 <!-- Category Icon -->
                 <Border Grid.Column="1"
                         BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                        HeightRequest="{DynamicResource IconSmallContainerSize}"
+                        HeightRequest="{StaticResource IconSmallContainerSize}"
                         HorizontalOptions="End"
                         Margin="12,0,0,0"
                         StrokeThickness="0"
                         VerticalOptions="Center"
-                        WidthRequest="{DynamicResource IconSmallContainerSize}">
+                        WidthRequest="{StaticResource IconSmallContainerSize}">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="16" />
                     </Border.StrokeShape>
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{DynamicResource IconStandardFontSize}"
+                        FontSize="{StaticResource IconStandardFontSize}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
@@ -135,7 +139,7 @@
                 
                 <!-- Language Name -->
                 <Label Grid.Column="0"
-                       FontSize="{DynamicResource LargeFontSize}"
+                       FontSize="{StaticResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -148,18 +152,18 @@
                 <!-- Language Icon -->
                 <Border Grid.Column="1"
                         BackgroundColor="{DynamicResource ControlBackgroundColor}"
-                        HeightRequest="{DynamicResource IconSmallContainerSize}"
+                        HeightRequest="{StaticResource IconSmallContainerSize}"
                         HorizontalOptions="End"
                         Margin="12,0,0,0"
                         StrokeThickness="0"
                         VerticalOptions="Center"
-                        WidthRequest="{DynamicResource IconSmallContainerSize}">
+                        WidthRequest="{StaticResource IconSmallContainerSize}">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="16" />
                     </Border.StrokeShape>
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{DynamicResource IconStandardFontSize}"
+                        FontSize="{StaticResource IconStandardFontSize}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
@@ -201,7 +205,7 @@
                 </Grid.ColumnDefinitions>
                 
                 <Label Grid.Column="0"
-                       FontSize="{DynamicResource LargeFontSize}"
+                       FontSize="{StaticResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -222,7 +226,7 @@
                         IsVisible="{Binding IsPublicationSelectable}">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{DynamicResource IconSmallFontSize}"
+                        FontSize="{StaticResource IconSmallFontSize}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
@@ -266,7 +270,7 @@
                 </Grid.ColumnDefinitions>
                 
                 <Label Grid.Column="0"
-                       FontSize="{DynamicResource LargeFontSize}"
+                       FontSize="{StaticResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -287,7 +291,7 @@
                         IsVisible="{Binding IsSectionSelectable}">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{DynamicResource IconSmallFontSize}"
+                        FontSize="{StaticResource IconSmallFontSize}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"
@@ -329,7 +333,7 @@
                 </Grid.ColumnDefinitions>
                 
                 <Label Grid.Column="0"
-                       FontSize="{DynamicResource LargeFontSize}"
+                       FontSize="{StaticResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
@@ -350,7 +354,7 @@
                         IsVisible="{Binding IsTrackSelectable}">
                     <Label
                         FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
-                        FontSize="{DynamicResource IconSmallFontSize}"
+                        FontSize="{StaticResource IconSmallFontSize}"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"
                         InputTransparent="True"

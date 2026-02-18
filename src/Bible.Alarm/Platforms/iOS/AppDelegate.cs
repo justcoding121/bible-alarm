@@ -32,13 +32,29 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         TaskScheduler.UnobservedTaskException += UnobserverdTaskException;
     }
 
-    private void UnobserverdTaskException(object? sender, UnobservedTaskExceptionEventArgs e) =>
+    private void UnobserverdTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        IOsBootstrapLogger.WriteException(e.Exception);
         logger.Error(e.Exception, "Unobserved task exception.");
+        Log.CloseAndFlush();
+    }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
-        logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
-            e.IsTerminating);
+        var exception = e.ExceptionObject as Exception;
+        if (exception != null)
+        {
+            IOsBootstrapLogger.WriteException(exception);
+            logger.Error(exception, "Unhandled exception. IsTerminating: {IsTerminating}", e.IsTerminating);
+        }
+        else
+        {
+            IOsBootstrapLogger.WriteLine($"Unhandled non-Exception: {e.ExceptionObject}. IsTerminating: {e.IsTerminating}");
+            logger.Error("Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}",
+                e.ExceptionObject, e.IsTerminating);
+        }
+
+        Log.CloseAndFlush();
     }
 
     protected override MauiApp CreateMauiApp()

@@ -10,6 +10,16 @@
         <converters:DayColorConverter x:Key="dayColorConverter" />
         <converters:DayBackgroundColorConverter x:Key="dayBackgroundColorConverter" />
         <converters:IsEnabledColorConverter x:Key="isEnabledColorConverter" />
+        <!-- Local double resources: avoid Release InvalidCastException (generated code casts DynamicResource to double) -->
+        <x:Double x:Key="SpacingStandard">12.0</x:Double>
+        <x:Double x:Key="PaddingStandard">12.0</x:Double>
+        <x:Double x:Key="PaddingSmall">4.0</x:Double>
+        <x:Double x:Key="IconSmallContainerSize">32.0</x:Double>
+        <x:Double x:Key="CornerRadiusMedium">6.0</x:Double>
+        <x:Double x:Key="LargeFontSize">22.0</x:Double>
+        <x:Double x:Key="AlarmTimeFontSize">36.0</x:Double>
+        <x:Double x:Key="ContentWidthLarge">280.0</x:Double>
+        <x:Double x:Key="CornerRadiusStandard">8.0</x:Double>
         <x:String x:Key="Sunday">Sunday</x:String>
         <x:String x:Key="Monday">Monday</x:String>
         <x:String x:Key="Tuesday">Tuesday</x:String>
@@ -18,7 +28,7 @@
         <x:String x:Key="Friday">Friday</x:String>
         <x:String x:Key="Saturday">Saturday</x:String>
     </ContentView.Resources>
-    <Grid RowSpacing="{DynamicResource SpacingStandard}">
+    <Grid RowSpacing="{StaticResource SpacingStandard}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -28,12 +38,12 @@
         <Grid Grid.Row="0"
               HorizontalOptions="Center"
               VerticalOptions="Center"
-              Padding="{DynamicResource PaddingStandard}">
+              Padding="{StaticResource PaddingStandard}">
             <!-- iOS: Use TitleFontSize to avoid UIDatePicker AM/PM triangle bug (custom/large fonts can show triangle instead of AM/PM) -->
             <TimePicker AutomationId="AlarmTimePicker"
                         BackgroundColor="Transparent"
                         TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}, ConverterParameter='PrimaryTextColor'}"
-                        FontSize="{OnPlatform iOS={DynamicResource TitleFontSize}, Default={DynamicResource AlarmTimeFontSize}}"
+                        FontSize="{StaticResource AlarmTimeFontSize}"
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
                         Margin="0"
@@ -51,14 +61,14 @@
               AlignItems="Center"
               AlignContent="Center">
             <Border Margin="1"
-                    Padding="{DynamicResource PaddingSmall}"
+                    Padding="{StaticResource PaddingSmall}"
                     StrokeThickness="0"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                    MinimumWidthRequest="{StaticResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{StaticResource IconSmallContainerSize}">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                    <RoundRectangle CornerRadius="{StaticResource CornerRadiusMedium}" />
                 </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Sunday}">
@@ -74,7 +84,7 @@
                         Command="{Binding ToggleDayCommand}"
                         CommandParameter="{StaticResource Sunday}"
                         FontAttributes="Bold"
-                        FontSize="{DynamicResource LargeFontSize}"
+                        FontSize="{StaticResource LargeFontSize}"
                         Text="S">
                     <Button.TextColor>
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Sunday}">
@@ -85,14 +95,14 @@
                 </Button>
             </Border>
             <Border Margin="1"
-                    Padding="{DynamicResource PaddingSmall}"
+                    Padding="{StaticResource PaddingSmall}"
                     StrokeThickness="0"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                    MinimumWidthRequest="{StaticResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{StaticResource IconSmallContainerSize}">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                    <RoundRectangle CornerRadius="{StaticResource CornerRadiusMedium}" />
                 </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Monday}">
@@ -108,7 +118,7 @@
                         Command="{Binding ToggleDayCommand}"
                         CommandParameter="{StaticResource Monday}"
                         FontAttributes="Bold"
-                        FontSize="{DynamicResource LargeFontSize}"
+                        FontSize="{StaticResource LargeFontSize}"
                         Text="M">
                     <Button.TextColor>
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Monday}">
@@ -119,14 +129,14 @@
                 </Button>
             </Border>
             <Border Margin="1"
-                    Padding="{DynamicResource PaddingSmall}"
+                    Padding="{StaticResource PaddingSmall}"
                     StrokeThickness="0"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                    MinimumWidthRequest="{StaticResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{StaticResource IconSmallContainerSize}">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                    <RoundRectangle CornerRadius="{StaticResource CornerRadiusMedium}" />
                 </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Tuesday}">
@@ -142,7 +152,7 @@
                         Command="{Binding ToggleDayCommand}"
                         CommandParameter="{StaticResource Tuesday}"
                         FontAttributes="Bold"
-                        FontSize="{DynamicResource LargeFontSize}"
+                        FontSize="{StaticResource LargeFontSize}"
                         Text="T">
                     <Button.TextColor>
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Tuesday}">
@@ -153,14 +163,14 @@
                 </Button>
             </Border>
             <Border Margin="1"
-                    Padding="{DynamicResource PaddingSmall}"
+                    Padding="{StaticResource PaddingSmall}"
                     StrokeThickness="0"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                    MinimumWidthRequest="{StaticResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{StaticResource IconSmallContainerSize}">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                    <RoundRectangle CornerRadius="{StaticResource CornerRadiusMedium}" />
                 </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Wednesday}">
@@ -176,7 +186,7 @@
                         Command="{Binding ToggleDayCommand}"
                         CommandParameter="{StaticResource Wednesday}"
                         FontAttributes="Bold"
-                        FontSize="{DynamicResource LargeFontSize}"
+                        FontSize="{StaticResource LargeFontSize}"
                         Text="W">
                     <Button.TextColor>
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Wednesday}">
@@ -187,14 +197,14 @@
                 </Button>
             </Border>
             <Border Margin="1"
-                    Padding="{DynamicResource PaddingSmall}"
+                    Padding="{StaticResource PaddingSmall}"
                     StrokeThickness="0"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                    MinimumWidthRequest="{StaticResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{StaticResource IconSmallContainerSize}">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                    <RoundRectangle CornerRadius="{StaticResource CornerRadiusMedium}" />
                 </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Thursday}">
@@ -210,7 +220,7 @@
                         Command="{Binding ToggleDayCommand}"
                         CommandParameter="{StaticResource Thursday}"
                         FontAttributes="Bold"
-                        FontSize="{DynamicResource LargeFontSize}"
+                        FontSize="{StaticResource LargeFontSize}"
                         Text="T">
                     <Button.TextColor>
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Thursday}">
@@ -221,14 +231,14 @@
                 </Button>
             </Border>
             <Border Margin="1"
-                    Padding="{DynamicResource PaddingSmall}"
+                    Padding="{StaticResource PaddingSmall}"
                     StrokeThickness="0"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                    MinimumWidthRequest="{StaticResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{StaticResource IconSmallContainerSize}">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                    <RoundRectangle CornerRadius="{StaticResource CornerRadiusMedium}" />
                 </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Friday}">
@@ -244,7 +254,7 @@
                         Command="{Binding ToggleDayCommand}"
                         CommandParameter="{StaticResource Friday}"
                         FontAttributes="Bold"
-                        FontSize="{DynamicResource LargeFontSize}"
+                        FontSize="{StaticResource LargeFontSize}"
                         Text="F">
                     <Button.TextColor>
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Friday}">
@@ -255,14 +265,14 @@
                 </Button>
             </Border>
             <Border Margin="1"
-                    Padding="{DynamicResource PaddingSmall}"
+                    Padding="{StaticResource PaddingSmall}"
                     StrokeThickness="0"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    MinimumWidthRequest="{DynamicResource IconSmallContainerSize}"
-                    MinimumHeightRequest="{DynamicResource IconSmallContainerSize}">
+                    MinimumWidthRequest="{StaticResource IconSmallContainerSize}"
+                    MinimumHeightRequest="{StaticResource IconSmallContainerSize}">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusMedium}" />
+                    <RoundRectangle CornerRadius="{StaticResource CornerRadiusMedium}" />
                 </Border.StrokeShape>
                 <Border.BackgroundColor>
                     <MultiBinding Converter="{StaticResource dayBackgroundColorConverter}" ConverterParameter="{StaticResource Saturday}">
@@ -278,7 +288,7 @@
                         Command="{Binding ToggleDayCommand}"
                         CommandParameter="{StaticResource Saturday}"
                         FontAttributes="Bold"
-                        FontSize="{DynamicResource LargeFontSize}"
+                        FontSize="{StaticResource LargeFontSize}"
                         Text="S">
                     <Button.TextColor>
                         <MultiBinding Converter="{StaticResource dayColorConverter}" ConverterParameter="{StaticResource Saturday}">
@@ -304,9 +314,9 @@
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     Padding="{OnPlatform iOS='12,8', Default='12,3'}"
-                    MinimumWidthRequest="{DynamicResource ContentWidthLarge}">
+                    MinimumWidthRequest="{StaticResource ContentWidthLarge}">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
+                    <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                 </Border.StrokeShape>
                 <Border.Shadow>
                     <Shadow Brush="{AppThemeBinding Light=#E0E0E0, Dark=#000000}"
@@ -322,7 +332,7 @@
                        PlaceholderColor="{DynamicResource TextSecondaryColor}"
                        Text="{Binding Name, Mode=TwoWay}"
                        BackgroundColor="Transparent"
-                       FontSize="{DynamicResource LargeFontSize}"
+                       FontSize="{StaticResource LargeFontSize}"
                        TextColor="{DynamicResource PrimaryTextColor}"
                        VerticalOptions="Center" />
             </Border>

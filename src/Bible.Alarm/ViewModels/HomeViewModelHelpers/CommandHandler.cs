@@ -47,10 +47,10 @@ public class CommandHandler
         {
             // Set IsAddBusy immediately to show loading indicator
             setIsAddBusy?.Invoke(true);
-            
-            // Wait 50ms to ensure UI thread renders the update before doing backend work
-            await Task.Delay(50);
 
+            // Do not await Task.Delay here: on Windows the continuation can run on a thread-pool thread,
+            // and WinUI requires page creation and PushAsync on the UI thread. Keeping this entire block
+            // synchronous (no await before navigation) ensures we stay on the UI thread and avoid 0xc000027b.
             // Reset all schedule-related state first to ensure clean state
             dispatcher.Dispatch(new ResetScheduleStateAction());
 
@@ -98,39 +98,38 @@ public class CommandHandler
             // Wait 50ms to ensure UI thread renders the update before doing backend work
             await Task.Delay(50);
 
+            // Run the rest on the UI thread so overlay, navigation, and Schedule page creation (Syncfusion/WinUI) run on the correct thread.
+            // After Task.Delay the continuation can run on a thread-pool thread; WinUI/Release can throw InvalidCastException otherwise.
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
 #if DEBUG
-            Log.Information("[PERF] ViewScheduleCommand: After 50ms delay, checking if should skip");
+                Log.Information("[PERF] ViewScheduleCommand: After 50ms delay, checking if should skip");
 #endif
 
-            if (shouldSkipNavigation(x))
-            {
-                // Reset IsNavigating and hide progress bar if navigation is skipped
+                if (shouldSkipNavigation(x))
+                {
+                    x.IsNavigating = false;
+                    if (hideProgressBar != null)
+                        await hideProgressBar();
+                    return;
+                }
+
+#if DEBUG
+                Log.Information("[PERF] ViewScheduleCommand: About to call showOverlayAndNavigateAsync");
+#endif
+
+                await showOverlayAndNavigateAsync(x);
+
+#if DEBUG
+                var commandEndTime = DateTime.UtcNow;
+                Log.Information("[PERF] ViewScheduleCommand: Navigation completed, total time: {ElapsedMs}ms",
+                    (commandEndTime - commandStartTime).TotalMilliseconds);
+#endif
+
                 x.IsNavigating = false;
                 if (hideProgressBar != null)
-                {
                     await hideProgressBar();
-                }
-                return;
-            }
-
-#if DEBUG
-            Log.Information("[PERF] ViewScheduleCommand: About to call showOverlayAndNavigateAsync");
-#endif
-
-            await showOverlayAndNavigateAsync(x);
-
-#if DEBUG
-            var commandEndTime = DateTime.UtcNow;
-            Log.Information("[PERF] ViewScheduleCommand: Navigation completed, total time: {ElapsedMs}ms",
-                (commandEndTime - commandStartTime).TotalMilliseconds);
-#endif
-            
-            // Reset IsNavigating and hide progress bar after navigation completes
-            x.IsNavigating = false;
-            if (hideProgressBar != null)
-            {
-                await hideProgressBar();
-            }
+            });
         });
     }
 

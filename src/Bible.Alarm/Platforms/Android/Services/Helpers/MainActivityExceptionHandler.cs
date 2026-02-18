@@ -20,6 +20,31 @@ public static class MainActivityExceptionHandler
         TaskScheduler.UnobservedTaskException += UnobservedTaskExceptionHandler;
     }
 
+    private static void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        AndroidBootstrapLogger.WriteException(e.Exception);
+        logger.Error(e.Exception, "Unobserved task exception.");
+        Log.CloseAndFlush();
+    }
+
+    private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+    {
+        var exception = e.ExceptionObject as Exception;
+        if (exception != null)
+        {
+            AndroidBootstrapLogger.WriteException(exception);
+            logger.Error(exception, "Unhandled exception. IsTerminating: {IsTerminating}", e.IsTerminating);
+        }
+        else
+        {
+            AndroidBootstrapLogger.WriteLine($"Unhandled non-Exception: {e.ExceptionObject}. IsTerminating: {e.IsTerminating}");
+            logger.Error("Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}",
+                e.ExceptionObject, e.IsTerminating);
+        }
+
+        Log.CloseAndFlush();
+    }
+
     /// <summary>
     /// Handles exceptions that occur during OnCreate.
     /// </summary>
@@ -41,14 +66,5 @@ public static class MainActivityExceptionHandler
         {
             // Serilog not available, already logged with AndroidLog
         }
-    }
-
-    private static void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
-        => logger.Error(e.Exception, "Unobserved task exception.");
-
-    private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
-    {
-        logger.Error(e.ExceptionObject as Exception, "Unhandled exception. IsTerminating: {IsTerminating}",
-            e.IsTerminating);
     }
 }

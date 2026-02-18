@@ -7,6 +7,10 @@
              xmlns:core="clr-namespace:Syncfusion.Maui.Core;assembly=Syncfusion.Maui.Core"
              x:DataType="vm:NumberOfTrackContainerViewModel"
              IsVisible="True">
+    <ContentView.Resources>
+        <x:Double x:Key="LargeFontSize">22.0</x:Double>
+        <x:Double x:Key="HeaderFontSize">22.0</x:Double>
+    </ContentView.Resources>
     <Border Margin="0"
             Padding="0"
             StrokeThickness="0"
@@ -58,7 +62,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Label Grid.Column="0"
-                           FontSize="{DynamicResource LargeFontSize}"
+                           FontSize="{StaticResource LargeFontSize}"
                            FontAttributes="None"
                            HorizontalOptions="Fill"
                            HorizontalTextAlignment="Start"
@@ -116,7 +120,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Label Grid.Column="0"
-                       FontSize="{DynamicResource LargeFontSize}"
+                       FontSize="{StaticResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Start"
                        HorizontalTextAlignment="Start"
@@ -127,7 +131,7 @@
                        IsVisible="True" />
                     <Label Grid.Column="1"
                        Margin="16,0,0,0"
-                       FontSize="{DynamicResource HeaderFontSize}"
+                       FontSize="{StaticResource HeaderFontSize}"
                        FontAttributes="Bold"
                        HorizontalOptions="End"
                        HorizontalTextAlignment="End"
@@ -170,7 +174,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Label Grid.Column="0"
-                       FontSize="{DynamicResource LargeFontSize}"
+                       FontSize="{StaticResource LargeFontSize}"
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"

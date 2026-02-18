@@ -98,11 +98,16 @@ public partial class PlatformSwitch : ContentView
             winUISwitch.Toggled += (_, e) => IsToggled = e.Value;
 
 #if WINDOWS
-            // For WinUI, ensure the native ToggleSwitch MinWidth is set to 0
-            // This must be done after the handler is connected to access the native view
-            if (Handler?.PlatformView is Microsoft.UI.Xaml.Controls.ToggleSwitch toggleSwitch)
+            // For WinUI, ensure the native ToggleSwitch MinWidth is set to 0.
+            // Guard the cast: in Release, PlatformView can throw InvalidCastException/InvalidOperationException if accessed off UI thread or wrong context.
+            try
             {
-                toggleSwitch.MinWidth = 0;
+                if (Handler?.PlatformView is Microsoft.UI.Xaml.Controls.ToggleSwitch toggleSwitch)
+                    toggleSwitch.MinWidth = 0;
+            }
+            catch (Exception)
+            {
+                // MinWidth is cosmetic; skip if WinRT cast fails (e.g. wrong thread in Release)
             }
 #endif
         }

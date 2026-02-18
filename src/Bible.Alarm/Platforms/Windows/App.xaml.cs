@@ -35,7 +35,13 @@ public partial class App : MauiWinUIApplication
         InitializeComponent();
     }
 
-    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e) => Logger.Error(e.Exception, "Unobserved task exception.");
+    private void UnobservedTaskExceptionHandler(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        // Write to bootstrap.txt so we get a log even when process exits before Serilog async sink flushes (Release builds).
+        WindowsBootstrapLogger.WriteException(e.Exception);
+        Logger.Error(e.Exception, "Unobserved task exception.");
+        Log.CloseAndFlush();
+    }
 
     private void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs e)
     {
@@ -51,6 +57,9 @@ public partial class App : MauiWinUIApplication
             Logger.Fatal("Unhandled exception (non-Exception object): {ExceptionObject}. IsTerminating: {IsTerminating}",
                 e.ExceptionObject, e.IsTerminating);
         }
+
+        // Flush Serilog so bible-alarm-*.txt is written before process exits (async file sink has 2s flush interval).
+        Log.CloseAndFlush();
 
         // Note: In WinUI 3, we cannot prevent app termination for unhandled exceptions.
         // The app will restart when you click "Continue" in Visual Studio debugger

@@ -257,8 +257,13 @@ public class SerilogSetup
         }
         catch
         {
-            // Fallback to current directory if platform-specific path fails
+            // Fallback when ApplicationData fails (e.g. unpackaged exe from bin\Release\...\win-x64)
+#if WINDOWS
+            var baseDir = AppContext.BaseDirectory ?? Directory.GetCurrentDirectory();
+            return Path.Combine(baseDir, AppConstants.FilePaths.LogsDirectoryName);
+#else
             return Path.Combine(Directory.GetCurrentDirectory(), AppConstants.FilePaths.LogsDirectoryName);
+#endif
         }
     }
 

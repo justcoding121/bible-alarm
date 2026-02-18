@@ -14,6 +14,13 @@
              x:DataType="vm:ScheduleViewModel"
              HorizontalOptions="Fill"
              VerticalOptions="Fill">
+    <ContentView.Resources>
+        <!-- Local double resources: avoid Release InvalidCastException (generated code casts DynamicResource to double) -->
+        <x:Double x:Key="IconStandardContainerSize">48.0</x:Double>
+        <x:Double x:Key="IconStandardFontSize">20.0</x:Double>
+        <x:Double x:Key="CornerRadiusStandard">8.0</x:Double>
+        <x:Double x:Key="SpacingStandard">12.0</x:Double>
+    </ContentView.Resources>
     <!-- Converters moved to App.xaml for better performance - shared across all pages -->
     <!-- Theme-aware colors are inherited from BaseContentPage -->
     <Grid x:Name="MainGrid"
@@ -40,7 +47,7 @@
                   Margin="0"
                   HorizontalOptions="FillAndExpand"
                   VerticalOptions="Start"
-                  HeightRequest="{DynamicResource IconStandardContainerSize}">
+                  HeightRequest="{StaticResource IconStandardContainerSize}">
                 <core:SfEffectsView Margin="0"
                                      TouchDownEffects="Ripple"
                                      TouchUpEffects="None"
@@ -65,7 +72,7 @@
                             InputTransparent="True"
                             IsEnabled="False">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
+                            <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                         </Border.StrokeShape>
                         <Border.Shadow>
                             <Shadow Brush="#20000000" 
@@ -75,7 +82,7 @@
                         </Border.Shadow>
                         <Label Text="{x:Static fn:GlyphNames.ArrowLeft}" 
                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
-                               FontSize="{DynamicResource IconStandardFontSize}"
+                               FontSize="{StaticResource IconStandardFontSize}"
                                TextColor="{DynamicResource TextSecondaryColor}"
                                HorizontalOptions="Center"
                                VerticalOptions="Center"
@@ -87,8 +94,8 @@
                         IsRunning="{Binding IsCancelBusy}"
                         IsVisible="{Binding IsCancelBusy}"
                         Color="{DynamicResource TextSecondaryColor}"
-                        WidthRequest="{DynamicResource IconStandardFontSize}"
-                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                        WidthRequest="{StaticResource IconStandardFontSize}"
+                        HeightRequest="{StaticResource IconStandardFontSize}"
                         VerticalOptions="Center"
                         HorizontalOptions="Center"
                         Opacity="0.95" />
@@ -96,7 +103,7 @@
             <Grid Grid.Column="0"
                   Margin="0"
                   HorizontalOptions="FillAndExpand"
-                  HeightRequest="{DynamicResource IconStandardContainerSize}"
+                  HeightRequest="{StaticResource IconStandardContainerSize}"
                   IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
                 <Border x:Name="CancelButtonNoEffects"
                         Margin="0"
@@ -108,7 +115,7 @@
                         <TapGestureRecognizer Command="{Binding CancelCommand}" />
                     </Border.GestureRecognizers>
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
+                        <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                     </Border.StrokeShape>
                     <Border.Shadow>
                         <Shadow Brush="#20000000" 
@@ -118,7 +125,7 @@
                     </Border.Shadow>
                     <Label Text="{x:Static fn:GlyphNames.Xmark}" 
                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
-                           FontSize="{DynamicResource IconStandardFontSize}"
+                           FontSize="{StaticResource IconStandardFontSize}"
                            TextColor="{DynamicResource TextSecondaryColor}"
                            HorizontalOptions="Center"
                            VerticalOptions="Center"
@@ -129,8 +136,8 @@
                         IsRunning="{Binding IsCancelBusy}"
                         IsVisible="{Binding IsCancelBusy}"
                         Color="{DynamicResource TextSecondaryColor}"
-                        WidthRequest="{DynamicResource IconStandardFontSize}"
-                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                        WidthRequest="{StaticResource IconStandardFontSize}"
+                        HeightRequest="{StaticResource IconStandardFontSize}"
                         VerticalOptions="Center"
                         HorizontalOptions="Center"
                         Opacity="0.95" />
@@ -140,7 +147,7 @@
                   Margin="0"
                   HorizontalOptions="FillAndExpand"
                   VerticalOptions="Start"
-                  HeightRequest="{DynamicResource IconStandardContainerSize}">
+                  HeightRequest="{StaticResource IconStandardContainerSize}">
                 <core:SfEffectsView Margin="0"
                                      TouchDownEffects="Ripple"
                                      TouchUpEffects="None"
@@ -165,7 +172,7 @@
                             InputTransparent="True"
                             IsEnabled="False">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
+                            <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                         </Border.StrokeShape>
                         <Border.Shadow>
                             <Shadow Brush="#40000000" 
@@ -175,7 +182,7 @@
                         </Border.Shadow>
                         <Label Text="{x:Static fn:GlyphNames.FloppyDisk}" 
                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
-                               FontSize="{DynamicResource IconStandardFontSize}"
+                               FontSize="{StaticResource IconStandardFontSize}"
                                TextColor="White"
                                HorizontalOptions="Center"
                                VerticalOptions="Center"
@@ -187,8 +194,8 @@
                         IsRunning="{Binding IsSaveBusy}"
                         IsVisible="{Binding IsSaveBusy}"
                         Color="White"
-                        WidthRequest="{DynamicResource IconStandardFontSize}"
-                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                        WidthRequest="{StaticResource IconStandardFontSize}"
+                        HeightRequest="{StaticResource IconStandardFontSize}"
                         VerticalOptions="Center"
                         HorizontalOptions="Center"
                         Opacity="0.95" />
@@ -196,7 +203,7 @@
             <Grid Grid.Column="1"
                   Margin="0"
                   HorizontalOptions="FillAndExpand"
-                  HeightRequest="{DynamicResource IconStandardContainerSize}"
+                  HeightRequest="{StaticResource IconStandardContainerSize}"
                   IsVisible="{OnPlatform Android=True, iOS=True, WinUI=False}">
                 <Border x:Name="SaveButtonNoEffects"
                         Margin="0"
@@ -208,7 +215,7 @@
                         <TapGestureRecognizer Command="{Binding SaveCommand}" />
                     </Border.GestureRecognizers>
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
+                        <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                     </Border.StrokeShape>
                     <Border.Shadow>
                         <Shadow Brush="#40000000" 
@@ -218,7 +225,7 @@
                     </Border.Shadow>
                     <Label Text="{x:Static fn:GlyphNames.FloppyDisk}" 
                            FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
-                           FontSize="{DynamicResource IconStandardFontSize}"
+                           FontSize="{StaticResource IconStandardFontSize}"
                            TextColor="White"
                            HorizontalOptions="Center"
                            VerticalOptions="Center"
@@ -229,8 +236,8 @@
                         IsRunning="{Binding IsSaveBusy}"
                         IsVisible="{Binding IsSaveBusy}"
                         Color="White"
-                        WidthRequest="{DynamicResource IconStandardFontSize}"
-                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                        WidthRequest="{StaticResource IconStandardFontSize}"
+                        HeightRequest="{StaticResource IconStandardFontSize}"
                         VerticalOptions="Center"
                         HorizontalOptions="Center"
                         Opacity="0.95" />
@@ -241,7 +248,7 @@
                     Margin="0,0,0,0">
             <Grid x:Name="ScrollContentGrid"
                   HorizontalOptions="Fill"
-                  RowSpacing="{DynamicResource SpacingStandard}">
+                  RowSpacing="{StaticResource SpacingStandard}">
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnScrollContentTapped" />
                 </Grid.GestureRecognizers>
@@ -266,7 +273,7 @@
                       Margin="0"
                       VerticalOptions="End"
                       HorizontalOptions="Fill"
-                      HeightRequest="{DynamicResource IconStandardContainerSize}">
+                      HeightRequest="{StaticResource IconStandardContainerSize}">
                     <core:SfEffectsView Margin="0"
                                         TouchDownEffects="Ripple"
                                         TouchUpEffects="None"
@@ -291,7 +298,7 @@
                                 InputTransparent="True"
                                 IsEnabled="False">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
+                                <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                             </Border.StrokeShape>
                             <Border.Shadow>
                                 <Shadow Brush="#40000000" 
@@ -301,7 +308,7 @@
                             </Border.Shadow>
                             <Label Text="{x:Static fn:GlyphNames.Trash}" 
                                    FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
-                                   FontSize="{DynamicResource IconStandardFontSize}"
+                                   FontSize="{StaticResource IconStandardFontSize}"
                                    TextColor="White"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center"
@@ -313,8 +320,8 @@
                             IsRunning="{Binding IsDeleteBusy}"
                             IsVisible="{Binding IsDeleteBusy}"
                             Color="White"
-                            WidthRequest="{DynamicResource IconStandardFontSize}"
-                            HeightRequest="{DynamicResource IconStandardFontSize}"
+                            WidthRequest="{StaticResource IconStandardFontSize}"
+                            HeightRequest="{StaticResource IconStandardFontSize}"
                             VerticalOptions="Center"
                             HorizontalOptions="Center"
                             Opacity="0.95" />
@@ -325,7 +332,7 @@
                       IsVisible="{Binding IsExistingSchedule}"
                       VerticalOptions="End"
                       HorizontalOptions="Fill"
-                      HeightRequest="{DynamicResource IconStandardContainerSize}">
+                      HeightRequest="{StaticResource IconStandardContainerSize}">
                     <Border x:Name="DeleteButtonNoEffectsBorder"
                             Margin="0"
                             BackgroundColor="{StaticResource ErrorColor}"
@@ -335,7 +342,7 @@
                             <TapGestureRecognizer Command="{Binding DeleteCommand}" />
                         </Border.GestureRecognizers>
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="{DynamicResource CornerRadiusStandard}" />
+                            <RoundRectangle CornerRadius="{StaticResource CornerRadiusStandard}" />
                         </Border.StrokeShape>
                         <Border.Shadow>
                             <Shadow Brush="#40000000" 
@@ -345,7 +352,7 @@
                         </Border.Shadow>
                         <Label Text="{x:Static fn:GlyphNames.Trash}" 
                                FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}" 
-                               FontSize="{DynamicResource IconStandardFontSize}"
+                               FontSize="{StaticResource IconStandardFontSize}"
                                TextColor="White"
                                HorizontalOptions="Center"
                                VerticalOptions="Center"
@@ -356,8 +363,8 @@
                             IsRunning="{Binding IsDeleteBusy}"
                             IsVisible="{Binding IsDeleteBusy}"
                             Color="White"
-                            WidthRequest="{DynamicResource IconStandardFontSize}"
-                            HeightRequest="{DynamicResource IconStandardFontSize}"
+                            WidthRequest="{StaticResource IconStandardFontSize}"
+                            HeightRequest="{StaticResource IconStandardFontSize}"
                             VerticalOptions="Center"
                             HorizontalOptions="Center"
                             Opacity="0.95" />

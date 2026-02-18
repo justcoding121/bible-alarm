@@ -77,12 +77,10 @@
 		<!-- Use CoreCLR runtime for Windows (not Mono) -->
 		<UseMonoRuntime Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</UseMonoRuntime>
 		<DefineConstants Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">$(DefineConstants);WINDOWS</DefineConstants>
-		<!-- Disable Windows App SDK auto-initialization (Release mode only) -->
-		<!-- Auto-initialization can fail in debug scenarios, so we'll handle initialization manually if needed -->
-		<!-- For packaged MSIX apps, the runtime is included in the package, so auto-initialization isn't needed -->
-		<WindowsAppSDKDeploymentManagerAutoInitialize Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</WindowsAppSDKDeploymentManagerAutoInitialize>
-		<WindowsAppSDKDeploymentManagerInitializeWithOptions Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</WindowsAppSDKDeploymentManagerInitializeWithOptions>
-		<WindowsAppSDKDeploymentManagerAutoInitializeOptions Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</WindowsAppSDKDeploymentManagerAutoInitializeOptions>
+		<!-- Disable Windows App SDK Deployment Manager auto-initializer on Windows (Debug and Release). -->
+		<!-- Property name must be WindowsAppSdkDeploymentManagerInitialize (lowercase 'dk') - this is what the SDK targets check. -->
+		<!-- When true, SDK compiles DeploymentManagerAutoInitializer.cs which uses DeploymentInitializeOptions COM - not registered when exe runs outside MSIX (e.g. F5 from bin\Release). -->
+		<WindowsAppSdkDeploymentManagerInitialize Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</WindowsAppSdkDeploymentManagerInitialize>
 		<!-- Use RuntimeIdentifierOverride to avoid PRI conflicts with referenced library projects (Release mode only) -->
 		<!-- RuntimeIdentifierOverride prevents the build system from aggressively propagating RID-specific asset resolution to library projects -->
 		<!-- Note: Use win-x64 format directly - RuntimeIdentifierOverride handles the conversion internally -->
@@ -257,16 +255,21 @@
 		<!-- Post-build task: Restore license key placeholder to prevent accidental commits -->
 		<PostBuildEvent Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy Bypass -File "$(MSBuildProjectDirectory)/.scripts/restore-license-key-placeholder.ps1"</PostBuildEvent>
 		<PostBuildEvent Condition="'$(OS)' != 'Windows_NT'">bash "$(MSBuildProjectDirectory)/.scripts/restore-license-key-placeholder.sh"</PostBuildEvent>
-		<!-- MSIX packaging properties (Release mode only) -->
+		<!-- MSIX packaging properties (Release mode only). Use same cert for each build so installs update in place. -->
 		<GenerateAppInstallerFile Condition="'$(Configuration)' == 'Release'">True</GenerateAppInstallerFile>
 		<AppxPackageSigningEnabled Condition="'$(Configuration)' == 'Release'">True</AppxPackageSigningEnabled>
-		<PackageCertificateKeyFile Condition="'$(Configuration)' == 'Release'">Bible.Alarm_TemporaryKey.pfx</PackageCertificateKeyFile>
+		<!-- Override with -p:PackageCertificateKeyFile=path or set env PACKAGE_CERTIFICATE_KEY_FILE for a persistent cert. -->
+		<PackageCertificateKeyFile Condition="'$(Configuration)' == 'Release' AND '$(PackageCertificateKeyFile)' == ''">Bible.Alarm_TemporaryKey.pfx</PackageCertificateKeyFile>
 		<AppxPackageSigningTimestampDigestAlgorithm Condition="'$(Configuration)' == 'Release'">SHA256</AppxPackageSigningTimestampDigestAlgorithm>
 		<AppxAutoIncrementPackageRevision Condition="'$(Configuration)' == 'Release'">True</AppxAutoIncrementPackageRevision>
 		<AppxSymbolPackageEnabled Condition="'$(Configuration)' == 'Release'">True</AppxSymbolPackageEnabled>
 		<GenerateTestArtifacts Condition="'$(Configuration)' == 'Release'">True</GenerateTestArtifacts>
 		<AppInstallerUri Condition="'$(Configuration)' == 'Release'">C:\Users\YourUsername\Desktop\BibleAlarmPackage</AppInstallerUri>
 		<HoursBetweenUpdateChecks Condition="'$(Configuration)' == 'Release'">0</HoursBetweenUpdateChecks>
+	</PropertyGroup>
+	<!-- Disable IL trimming for Windows Release: WinUI/XAML needs reflection metadata; trimming causes 0xc000027b in Microsoft.UI.Xaml.dll when navigating (e.g. Add schedule). -->
+	<PropertyGroup Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+		<PublishTrimmed>false</PublishTrimmed>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(TargetFramework)'=='net10.0-ios' AND '$(Configuration)'=='Debug'">
 	  <CodesignKey>Apple Development: Created via API (65WTR3TZ7L)</CodesignKey>
