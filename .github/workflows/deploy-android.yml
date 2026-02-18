@@ -106,7 +106,6 @@ jobs:
         releaseFiles: ./artifacts/android/*-Signed.aab
         track: ${{ github.ref == 'refs/heads/stable' && 'production' || 'beta' }}
         status: completed
-        changesNotSentForReview: true
 
     # Clean up keystore
     - name: Clean up keystore

@@ -1,10 +1,9 @@
 <Project>
   <!-- Windows App SDK: set before SDK targets load. -->
   <!-- DeploymentManager=false: avoids REGDB_E_CLASSNOTREG from DeploymentInitializeOptions when exe runs outside MSIX. -->
-  <!-- Bootstrap=true: Release builds with MSIX don't get bootstrap by default; enable it so exe runs when launched from VS (standalone). -->
+  <!-- Do NOT set BootstrapInitialize=true: the SDK then sets PublishAppxPackage=false and no .msix is produced (breaks CI publish). -->
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Bible.Alarm' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
     <WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
-    <WindowsAppSdkBootstrapInitialize>true</WindowsAppSdkBootstrapInitialize>
   </PropertyGroup>
 
   <!-- Enable Windows targeting evaluation (required even on macOS to evaluate project structure) -->
