@@ -1,8 +1,11 @@
 # Beta: Play beta + artifacts only when publish succeeds. Stable: Play production + artifacts when publish succeeds.
-# Triggered after Prepare release version bumps and pushes, so we always build the bumped version (e.g. 382).
+# Triggered (1) when Prepare release version completes [workflow_run; needs this file on default branch] or
+# (2) when the bot pushes the version bump to stable/beta [push]. So deploy always builds the bumped version.
 name: Deploy Android to Google Play
 
 on:
+  push:
+    branches: [stable, beta]
   workflow_run:
     workflows: [Prepare release version]
     types: [completed]
@@ -13,12 +16,12 @@ permissions:
 
 jobs:
   deploy-android:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || (github.event_name == 'push' && github.event.head_commit.author.name == 'github-actions[bot]')
     runs-on: ubuntu-latest
 
     env:
       SYNCFUSION_LICENSE_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
-      DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch }}
+      DEPLOY_BRANCH: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
     
     steps:
     - name: Checkout code (bumped version from Prepare release version)

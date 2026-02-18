@@ -1,8 +1,10 @@
 # Beta: publish to Beta Test flight (MICROSOFT_STORE_BETA_FLIGHT_ID). Stable: publish to production. Artifacts/release only when publish succeeds.
-# Triggered after Prepare release version bumps and pushes, so we always build the bumped version.
+# Triggered (1) when Prepare release version completes [workflow_run] or (2) when the bot pushes the version bump [push].
 name: Deploy Windows to Microsoft Store
 
 on:
+  push:
+    branches: [stable, beta]
   workflow_run:
     workflows: [Prepare release version]
     types: [completed]
@@ -13,12 +15,12 @@ permissions:
 
 jobs:
   deploy-windows:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || (github.event_name == 'push' && github.event.head_commit.author.name == 'github-actions[bot]')
     runs-on: windows-latest
 
     env:
       SYNCFUSION_LICENSE_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
-      DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch }}
+      DEPLOY_BRANCH: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
     
     steps:
     - name: Checkout code (bumped version from Prepare release version)
