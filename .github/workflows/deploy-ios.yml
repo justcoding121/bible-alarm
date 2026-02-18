@@ -1,13 +1,9 @@
 # Beta: TestFlight + artifacts only when publish succeeds. Stable: App Store + artifacts when publish succeeds.
-# Triggered (1) when Prepare release version completes [workflow_run] or (2) when the bot pushes the version bump [push].
+# Runs when the bot pushes a [Release] version-bump commit. Ignores [Version sync] merges to prevent cycles.
 name: Deploy iOS to App Store
 
 on:
   push:
-    branches: [stable, beta]
-  workflow_run:
-    workflows: [Prepare release version]
-    types: [completed]
     branches: [stable, beta]
 
 permissions:
@@ -15,18 +11,16 @@ permissions:
 
 jobs:
   deploy-ios:
-    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || (github.event_name == 'push' && github.event.head_commit.author.name == 'github-actions[bot]')
+    if: github.event.head_commit.author.name == 'github-actions[bot]' && startsWith(github.event.head_commit.message, '[Release]')
     runs-on: macos-26
 
     env:
       SYNCFUSION_LICENSE_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
-      DEPLOY_BRANCH: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
     
     steps:
-    - name: Checkout code (bumped version from Prepare release version)
+    - name: Checkout code
       uses: actions/checkout@v4
       with:
-        ref: ${{ env.DEPLOY_BRANCH }}
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Setup .NET
@@ -170,7 +164,7 @@ jobs:
       if: steps.store_upload.outcome == 'success'
       uses: actions/upload-artifact@v4
       with:
-        name: BibleAlarm-${{ env.DEPLOY_BRANCH }}-ios
+        name: BibleAlarm-${{ github.ref_name }}-ios
         path: |
           artifacts/**/*.ipa
         retention-days: 14
@@ -186,11 +180,11 @@ jobs:
       if: steps.store_upload.outcome == 'success' && steps.version.outcome == 'success' && steps.version.outputs.version != ''
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v${{ steps.version.outputs.version }}-ios${{ env.DEPLOY_BRANCH == 'beta' && '-beta' || '' }}
-        name: Bible Alarm iOS ${{ steps.version.outputs.version }}${{ env.DEPLOY_BRANCH == 'beta' && ' (beta)' || '' }}
+        tag_name: v${{ steps.version.outputs.version }}-ios${{ github.ref == 'refs/heads/beta' && '-beta' || '' }}
+        name: Bible Alarm iOS ${{ steps.version.outputs.version }}${{ github.ref == 'refs/heads/beta' && ' (beta)' || '' }}
         body: |
           **Version:** ${{ steps.version.outputs.version }}
-          **Branch:** ${{ env.DEPLOY_BRANCH }}
+          **Branch:** ${{ github.ref_name }}
           IPA from this workflow run.
 
           ### Install IPA (sideload)
