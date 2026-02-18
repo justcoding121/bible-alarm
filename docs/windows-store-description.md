@@ -4,6 +4,18 @@ Use these in **Partner Center** (or the Store submission flow) for the Windows a
 
 ---
 
+## Restricted capability: runFullTrust (approval justification)
+
+When Partner Center asks why the app uses the **runFullTrust** capability, use the text below in the justification field.
+
+**Why do you need the runFullTrust capability, and how will it be used in your product?**
+
+```
+Desktop alarm app (WinUI 3/MAUI). runFullTrust is required for: (1) Local SQLite databases and cached audio files for offline playback—needs full file access. (2) Recurring alarm scheduling and a background task that keeps notifications scheduled and pre-downloads media. (3) Background audio playback when the window is minimized. No sensitive OS access or extra data collection; used only for local storage, scheduling, and playback.
+```
+
+---
+
 ## Short description (270 characters or fewer)
 
 Used at the top of your product's Store listing. Keep it catchy and concise.

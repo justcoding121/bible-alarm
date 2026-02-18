@@ -6,16 +6,28 @@ Language list source: media index DB (Bible category). To refresh: `dotnet run -
 
 ---
 
-## Promotional Text (170 characters max)
+## Promotional Text (170 characters max) — *optional*
 
-Appears at the top of the description. You can change it without submitting a new version.
+Appears at the top of the description. You can change it without submitting a new version. **You can leave this blank**; Apple does not require it.
+
+**Recommended (benefit-led):**
+
+```
+Wake up to the Bible—set your alarm, pick your language, and start the day with JW.org audio. CarPlay, 240+ languages, optional music. Free, no ads.
+```
+(128 characters)
+
+```
+Start your day with Bible listening. Set a recurring alarm, stream or download, and play in the car with CarPlay. 240+ languages. Free, no ads.
+```
+(118 characters)
+
+**Shorter options:**
 
 ```
 JW.org Bible & music alarms. CarPlay support. Stream or download. Free, no ads.
 ```
 (68 characters)
-
-Alternative:
 
 ```
 Make your Bible listening an alarm. CarPlay, 240+ languages, optional music. Free, no ads.
