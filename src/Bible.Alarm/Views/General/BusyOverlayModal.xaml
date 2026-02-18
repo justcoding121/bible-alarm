@@ -17,8 +17,8 @@
                     Color="{DynamicResource TextSecondaryColor}"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    HeightRequest="{DynamicResource IconLargeContainerSize}"
-                    WidthRequest="{DynamicResource IconLargeContainerSize}" />
+                    HeightRequest="{DynamicResource SpinnerContainerSize}"
+                    WidthRequest="{DynamicResource SpinnerContainerSize}" />
             </Frame>
         </Grid>
     </Grid>

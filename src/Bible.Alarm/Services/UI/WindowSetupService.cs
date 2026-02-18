@@ -35,6 +35,7 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
         var navigationPage = serviceProvider.GetRequiredService<NavigationPage>();
         Initialize(navigationPage);
         var window = new Window(navigationPage);
+        window.Activated += OnWindowFirstActivated;
 
 #if WINDOWS
         var (width, height, minWidth, minHeight) = CalculateWindowSize();
@@ -77,6 +78,15 @@ public sealed class WindowSetupService(IServiceProvider serviceProvider, IPlayba
     }
 
     private static void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e) => UpdateNavigationBarColors();
+
+    private void OnWindowFirstActivated(object? sender, EventArgs e)
+    {
+        if (sender is Window w)
+        {
+            w.Activated -= OnWindowFirstActivated;
+            UpdateNavigationBarColors();
+        }
+    }
 
     /// <summary>
     /// Updates NavigationPage bar colors and status bar appearance from theme-aware resources.

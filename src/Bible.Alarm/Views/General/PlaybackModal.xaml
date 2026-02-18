@@ -131,8 +131,8 @@
                             <Grid Grid.Row="2"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center"
-                                HeightRequest="{DynamicResource IconStandardContainerSize}"
-                                WidthRequest="{DynamicResource IconStandardContainerSize}"
+                                HeightRequest="{DynamicResource SpinnerContainerSize}"
+                                WidthRequest="{DynamicResource SpinnerContainerSize}"
                                 Margin="0,8,0,0">
                                 <core:SfBusyIndicator
                                     IsRunning="{Binding ShowPreparingProgress}"
@@ -211,8 +211,8 @@
                                     IsRunning="{Binding IsRetryBusy}"
                                     IsVisible="{Binding IsRetryBusy}"
                                     Color="White"
-                                    WidthRequest="{DynamicResource IconStandardFontSize}"
-                                    HeightRequest="{DynamicResource IconStandardFontSize}"
+                                    WidthRequest="{DynamicResource SpinnerFontSize}"
+                                    HeightRequest="{DynamicResource SpinnerFontSize}"
                                     VerticalOptions="Center"
                                     HorizontalOptions="Center"
                                     Opacity="0.95" />

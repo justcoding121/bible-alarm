@@ -31,6 +31,10 @@
     <x:Double x:Key="IconSmallContainerSize">32.0</x:Double>
     <x:Double x:Key="IconStandardContainerSize">48.0</x:Double>
     <x:Double x:Key="IconLargeContainerSize">56.0</x:Double>
+
+    <!-- Spinner (ActivityIndicator) sizes - larger on iOS for visibility -->
+    <x:Double x:Key="SpinnerContainerSize">48.0</x:Double>
+    <x:Double x:Key="SpinnerFontSize">20.0</x:Double>
     
     <!-- Content width resources - for modal and content widths -->
     <!-- These scale with OS accessibility settings for better layout at larger font sizes -->

@@ -144,14 +144,14 @@
                                                   Margin="12,0,0,0"
                                                   VerticalOptions="Center"
                                                   HorizontalOptions="End"
-                                                  HeightRequest="{DynamicResource IconStandardFontSize}"
-                                                  WidthRequest="{DynamicResource IconStandardFontSize}">
+HeightRequest="{DynamicResource SpinnerFontSize}"
+                                                  WidthRequest="{DynamicResource SpinnerFontSize}">
                                                 <ActivityIndicator
-                                                        IsRunning="{Binding IsNavigating}"
-                                                        IsVisible="{Binding IsNavigating}"
-                                                        Color="{DynamicResource TextPrimaryColor}"
-                                                        WidthRequest="{DynamicResource IconStandardFontSize}"
-                                                        HeightRequest="{DynamicResource IconStandardFontSize}"
+                                                    IsRunning="{Binding IsNavigating}"
+                                                    IsVisible="{Binding IsNavigating}"
+                                                    Color="{DynamicResource TextPrimaryColor}"
+                                                        WidthRequest="{DynamicResource SpinnerFontSize}"
+                                                        HeightRequest="{DynamicResource SpinnerFontSize}"
                                                         VerticalOptions="Center"
                                                         HorizontalOptions="Center"
                                                         Opacity="0.95" />

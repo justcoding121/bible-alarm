@@ -86,6 +86,10 @@ public partial class Styles : ResourceDictionary
         this["IconStandardContainerSize"] = service.IconStandardContainerSize;
         this["IconLargeContainerSize"] = service.IconLargeContainerSize;
 
+        // Spinner sizes (larger on iOS)
+        this["SpinnerContainerSize"] = service.SpinnerContainerSize;
+        this["SpinnerFontSize"] = service.SpinnerFontSize;
+
         // Content widths (for modal and content widths)
         this["ContentWidthSmall"] = service.ContentWidthSmall;
         this["ContentWidthMedium"] = service.ContentWidthMedium;

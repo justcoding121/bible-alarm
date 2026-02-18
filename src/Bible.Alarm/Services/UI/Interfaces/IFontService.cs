@@ -106,6 +106,16 @@ public interface IFontService : IDisposable
     double ContentWidthLarge { get; }
 
     /// <summary>
+    /// Spinner (ActivityIndicator) container size. Larger on iOS for visibility; same as IconStandardContainerSize elsewhere.
+    /// </summary>
+    double SpinnerContainerSize { get; }
+
+    /// <summary>
+    /// Spinner (ActivityIndicator) size for small spinners. Larger on iOS; same as IconStandardFontSize elsewhere.
+    /// </summary>
+    double SpinnerFontSize { get; }
+
+    /// <summary>
     /// Gets a scaled font size based on a base size in points
     /// </summary>
     double GetScaledFontSize(double baseSizeInPoints);

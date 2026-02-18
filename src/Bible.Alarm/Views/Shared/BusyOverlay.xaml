@@ -42,11 +42,12 @@
                         Opacity="0.15"
                         Radius="12" />
             </Border.Shadow>
+            <!-- Spinner row uses SpinnerContainerSize (larger on iOS); fixed min so it never collapses on iPad -->
             <Grid HorizontalOptions="Center" VerticalOptions="Center" RowSpacing="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="30" />
                     <RowDefinition Height="8" />
-                    <RowDefinition Height="{DynamicResource IconStandardContainerSize}" />
+                    <RowDefinition Height="{DynamicResource SpinnerContainerSize}" />
                     <RowDefinition Height="{DynamicResource IconStandardContainerSize}" />
                 </Grid.RowDefinitions>
 
@@ -81,8 +82,10 @@
                     Color="{DynamicResource TextSecondaryColor}"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
-                    HeightRequest="{DynamicResource IconStandardContainerSize}"
-                    WidthRequest="{DynamicResource IconStandardContainerSize}" />
+                    MinimumHeightRequest="48"
+                    MinimumWidthRequest="48"
+                    HeightRequest="{DynamicResource SpinnerContainerSize}"
+                    WidthRequest="{DynamicResource SpinnerContainerSize}" />
 
                 <!-- Row 3: Cancel (when ShowProgress); shows spinner when IsCancelBusy -->
                 <HorizontalStackLayout
@@ -121,8 +124,8 @@
                             IsRunning="{Binding Source={x:Reference busyOverlay}, Path=IsCancelBusy, Mode=OneWay}"
                             IsVisible="{Binding Source={x:Reference busyOverlay}, Path=IsCancelBusy, Mode=OneWay}"
                             Color="{DynamicResource TextSecondaryColor}"
-                            WidthRequest="{DynamicResource IconStandardFontSize}"
-                            HeightRequest="{DynamicResource IconStandardFontSize}"
+                            WidthRequest="{DynamicResource SpinnerFontSize}"
+                            HeightRequest="{DynamicResource SpinnerFontSize}"
                             VerticalOptions="Center"
                             HorizontalOptions="Center"
                             Opacity="0.95" />

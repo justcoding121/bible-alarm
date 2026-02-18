@@ -110,8 +110,8 @@
                             IsRunning="{Binding IsAddBusy}"
                             IsVisible="{Binding IsAddBusy}"
                             Color="White"
-                            WidthRequest="{StaticResource IconStandardFontSize}"
-                            HeightRequest="{StaticResource IconStandardFontSize}"
+                            WidthRequest="{DynamicResource SpinnerFontSize}"
+                            HeightRequest="{DynamicResource SpinnerFontSize}"
                             VerticalOptions="Center"
                             HorizontalOptions="Center"
                             Opacity="0.95" />
@@ -165,8 +165,8 @@
                             IsRunning="{Binding IsAddBusy}"
                             IsVisible="{Binding IsAddBusy}"
                             Color="White"
-                            WidthRequest="{StaticResource IconStandardFontSize}"
-                            HeightRequest="{StaticResource IconStandardFontSize}"
+                            WidthRequest="{DynamicResource SpinnerFontSize}"
+                            HeightRequest="{DynamicResource SpinnerFontSize}"
                             VerticalOptions="Center"
                             HorizontalOptions="Center"
                             Opacity="0.95" />
@@ -303,8 +303,8 @@
                                                     IsRunning="{Binding IsBusy}"
                                                     IsVisible="{Binding IsBusy}"
                                                     Color="White"
-                                                    WidthRequest="{StaticResource IconStandardFontSize}"
-                                                    HeightRequest="{StaticResource IconStandardFontSize}"
+                                                    WidthRequest="{DynamicResource SpinnerFontSize}"
+                                                    HeightRequest="{DynamicResource SpinnerFontSize}"
                                                     VerticalOptions="Center"
                                                     HorizontalOptions="Center"
                                                     Opacity="0.95" />
@@ -348,6 +348,7 @@
                                                 <Label Grid.Column="1"
                                                        Margin="{DynamicResource MarginThickness0}"
                                                        Padding="{DynamicResource PaddingThickness0}"
+                                                       MinimumWidthRequest="{OnPlatform iOS=40, Default=0}"
                                                        FontSize="{DynamicResource AlarmMeridianFontSize}"
                                                        Text="{Binding MeridianText}"
                                                        VerticalOptions="Center"
@@ -510,14 +511,14 @@
                                                   Margin="{DynamicResource MarginThicknessPaddingLarge}"
                                                   VerticalOptions="Center"
                                                   HorizontalOptions="End"
-                                                  HeightRequest="{StaticResource IconStandardFontSize}"
-                                                  WidthRequest="{StaticResource IconStandardFontSize}">
+                                                  HeightRequest="{DynamicResource SpinnerFontSize}"
+                                                  WidthRequest="{DynamicResource SpinnerFontSize}">
                                                 <ActivityIndicator
                                                         IsRunning="{Binding IsNavigating}"
                                                         IsVisible="{Binding IsNavigating}"
                                                         Color="{DynamicResource TextPrimaryColor}"
-                                                        WidthRequest="{StaticResource IconStandardFontSize}"
-                                                        HeightRequest="{StaticResource IconStandardFontSize}"
+                                                        WidthRequest="{DynamicResource SpinnerFontSize}"
+                                                        HeightRequest="{DynamicResource SpinnerFontSize}"
                                                         VerticalOptions="Center"
                                                         HorizontalOptions="Center"
                                                         Opacity="0.95" />

@@ -117,8 +117,8 @@
                                                     IsRunning="{Binding IsNavigating}"
                                                     IsVisible="{Binding IsNavigating}"
                                                     Color="{DynamicResource TextPrimaryColor}"
-                                                    WidthRequest="{DynamicResource IconStandardFontSize}"
-                                                    HeightRequest="{DynamicResource IconStandardFontSize}"
+                                                    WidthRequest="{DynamicResource SpinnerFontSize}"
+                                                    HeightRequest="{DynamicResource SpinnerFontSize}"
                                                     VerticalOptions="Center"
                                                     HorizontalOptions="End"
                                                     Opacity="0.95" />

@@ -41,8 +41,24 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
     private double contentWidthSmall;
     private double contentWidthMedium;
     private double contentWidthLarge;
+    private double spinnerContainerSize;
+    private double spinnerFontSize;
 
     private readonly IAccessibilityFontScaleService accessibilityFontScaleService;
+
+    private void SetSpinnerSizes()
+    {
+        if (DeviceInfo.Platform == DevicePlatform.iOS)
+        {
+            spinnerContainerSize = Math.Max(56.0, iconStandardContainerSize);
+            spinnerFontSize = Math.Max(24.0, iconStandardFontSize);
+        }
+        else
+        {
+            spinnerContainerSize = iconStandardContainerSize;
+            spinnerFontSize = iconStandardFontSize;
+        }
+    }
 
     public FontService(IAccessibilityFontScaleService accessibilityFontScaleService)
     {
@@ -81,6 +97,7 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
         }
 
         buttonFontSize = headerFontSize - 1.0;
+        SetSpinnerSizes();
         RaiseAllPropertiesChanged();
     }
 
@@ -486,6 +503,8 @@ public sealed class FontService : IFontService, INotifyPropertyChanged, IDisposa
     public double ContentWidthSmall => contentWidthSmall;
     public double ContentWidthMedium => contentWidthMedium;
     public double ContentWidthLarge => contentWidthLarge;
+    public double SpinnerContainerSize => spinnerContainerSize;
+    public double SpinnerFontSize => spinnerFontSize;
 
     public double GetScaledFontSize(double baseSizeInPoints)
     {
