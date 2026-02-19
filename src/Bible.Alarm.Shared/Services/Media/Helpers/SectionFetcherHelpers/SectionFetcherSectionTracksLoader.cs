@@ -109,10 +109,10 @@ internal sealed class SectionFetcherSectionTracksLoader
             return false;
         }
 
-        var baseUrl = await db.BaseUrls.Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS").FirstOrDefaultAsync(cancellationToken);
-        if (baseUrl == null)
+        var apiUrl = await db.ApiUrls.Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS").FirstOrDefaultAsync(cancellationToken);
+        if (apiUrl == null)
         {
-            logger.Warning("No BaseUrl found");
+            logger.Warning("No ApiUrl found");
             return false;
         }
 
@@ -175,18 +175,18 @@ internal sealed class SectionFetcherSectionTracksLoader
 
             if (isBible)
             {
-                track.UrlParams.Add(new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true, BaseUrl = baseUrl, BaseUrlId = baseUrl.Id });
-                track.UrlParams.Add(new UrlParam { Key = "booknum", Value = normalizedSectionCode, IsQueryParam = true, BaseUrl = baseUrl, BaseUrlId = baseUrl.Id });
+                track.UrlParams.Add(new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
+                track.UrlParams.Add(new UrlParam { Key = "booknum", Value = normalizedSectionCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
             }
             else
             {
-                track.UrlParams.Add(new UrlParam { Key = "pub", Value = normalizedSectionCode, IsQueryParam = true, BaseUrl = baseUrl, BaseUrlId = baseUrl.Id });
+                track.UrlParams.Add(new UrlParam { Key = "pub", Value = normalizedSectionCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
                 track.TrackCode = normalizedSectionCode;
             }
-            track.UrlParams.Add(new UrlParam { Key = "track", Value = trackCode.ToString(), IsQueryParam = true, BaseUrl = baseUrl, BaseUrlId = baseUrl.Id });
-            track.UrlParams.Add(new UrlParam { Key = "fileformat", Value = "mp3", IsQueryParam = true, BaseUrl = baseUrl, BaseUrlId = baseUrl.Id });
-            track.UrlParams.Add(new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true, BaseUrl = baseUrl, BaseUrlId = baseUrl.Id });
-            track.UrlParams.Add(new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true, BaseUrl = baseUrl, BaseUrlId = baseUrl.Id });
+            track.UrlParams.Add(new UrlParam { Key = "track", Value = trackCode.ToString(), IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
+            track.UrlParams.Add(new UrlParam { Key = "fileformat", Value = "mp3", IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
+            track.UrlParams.Add(new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
+            track.UrlParams.Add(new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
 
             tracks.Add(track);
             trackCode++;

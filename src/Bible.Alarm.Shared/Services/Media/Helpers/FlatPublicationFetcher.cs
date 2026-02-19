@@ -131,14 +131,14 @@ internal sealed class FlatPublicationFetcher
                     localizedPubName = extractedName;
                 }
 
-                // Get BaseUrl for tracks
-                var baseUrl = await db.BaseUrls
+                // Get ApiUrl for tracks
+                var apiUrl = await db.ApiUrls
                     .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
                     .FirstOrDefaultAsync(cancellationToken);
 
-                if (baseUrl == null)
+                if (apiUrl == null)
                 {
-                    logger.Warning("No BaseUrl found for publication tracks");
+                    logger.Warning("No ApiUrl found for publication tracks");
                     return false;
                 }
 
@@ -184,40 +184,40 @@ internal sealed class FlatPublicationFetcher
                                         Key = "pub",
                                         Value = normalizedPublicationCode,
                                         IsQueryParam = true,
-                                        BaseUrl = baseUrl,
-                                        BaseUrlId = baseUrl.Id
+                                        ApiUrl = apiUrl,
+                                        ApiUrlId = apiUrl.Id
                                     },
                                     new UrlParam
                                     {
                                         Key = "track",
                                         Value = trackCode.ToString(),
                                         IsQueryParam = true,
-                                        BaseUrl = baseUrl,
-                                        BaseUrlId = baseUrl.Id
+                                        ApiUrl = apiUrl,
+                                        ApiUrlId = apiUrl.Id
                                     },
                                     new UrlParam
                                     {
                                         Key = "fileformat",
                                         Value = fileFormat.ToLowerInvariant(),
                                         IsQueryParam = true,
-                                        BaseUrl = baseUrl,
-                                        BaseUrlId = baseUrl.Id
+                                        ApiUrl = apiUrl,
+                                        ApiUrlId = apiUrl.Id
                                     },
                                     new UrlParam
                                     {
                                         Key = "alllangs",
                                         Value = "0",
                                         IsQueryParam = true,
-                                        BaseUrl = baseUrl,
-                                        BaseUrlId = baseUrl.Id
+                                        ApiUrl = apiUrl,
+                                        ApiUrlId = apiUrl.Id
                                     },
                                     new UrlParam
                                     {
                                         Key = "langwritten",
                                         Value = normalizedLanguageCode,
                                         IsQueryParam = true,
-                                        BaseUrl = baseUrl,
-                                        BaseUrlId = baseUrl.Id
+                                        ApiUrl = apiUrl,
+                                        ApiUrlId = apiUrl.Id
                                     }
                                 };
 
@@ -281,40 +281,40 @@ internal sealed class FlatPublicationFetcher
                                 Key = "pub",
                                 Value = normalizedPublicationCode,
                                 IsQueryParam = true,
-                                BaseUrl = baseUrl,
-                                BaseUrlId = baseUrl.Id
+                                ApiUrl = apiUrl,
+                                ApiUrlId = apiUrl.Id
                             },
                             new UrlParam
                             {
                                 Key = "track",
                                 Value = apiTrackCode.ToString(),
                                 IsQueryParam = true,
-                                BaseUrl = baseUrl,
-                                BaseUrlId = baseUrl.Id
+                                ApiUrl = apiUrl,
+                                ApiUrlId = apiUrl.Id
                             },
                             new UrlParam
                             {
                                 Key = "fileformat",
                                 Value = fileFormat.ToLowerInvariant(),
                                 IsQueryParam = true,
-                                BaseUrl = baseUrl,
-                                BaseUrlId = baseUrl.Id
+                                ApiUrl = apiUrl,
+                                ApiUrlId = apiUrl.Id
                             },
                             new UrlParam
                             {
                                 Key = "alllangs",
                                 Value = "0",
                                 IsQueryParam = true,
-                                BaseUrl = baseUrl,
-                                BaseUrlId = baseUrl.Id
+                                ApiUrl = apiUrl,
+                                ApiUrlId = apiUrl.Id
                             },
                             new UrlParam
                             {
                                 Key = "langwritten",
                                 Value = normalizedLanguageCode,
                                 IsQueryParam = true,
-                                BaseUrl = baseUrl,
-                                BaseUrlId = baseUrl.Id
+                                ApiUrl = apiUrl,
+                                ApiUrlId = apiUrl.Id
                             }
                         };
 
@@ -442,7 +442,7 @@ internal sealed class FlatPublicationFetcher
             track.Publication = publication;
         }
 
-        // Add BaseUrl reference to tracks via UrlParams (already set above)
+        // Add ApiUrl reference to tracks via UrlParams (already set above)
         db.BiblePublications.Add(publication);
         await db.SaveChangesAsync(cancellationToken);
 

@@ -371,7 +371,7 @@ Helpers: `src/Bible.Alarm/Services/Media/MediaIndexServiceHelpers/`
      - `BiblePublication` row (mapped by `CategoryName` and `LanguageCode`, not by integer IDs)
      - For sectioned pubs: the specific `BiblePublicationSection` row(s) referenced by schedules + their tracks
      - For flat pubs: all tracks (where `BiblePublicationSectionId IS NULL`)
-     - `UrlParams` for each track (with `BaseUrl` ID remapping via `Url` value)
+     - `UrlParams` for each track (with `ApiUrl` ID remapping via `Url` value)
    - Uses raw SQL with `ATTACH DATABASE` (not EF Core) — safe across schema/migration version mismatches.
    - Each publication is migrated in its own transaction; failures are logged and skipped.
 3. `OrphanedScheduleCleanup` verifies all non-English schedule references exist in the new media index:
@@ -384,7 +384,7 @@ This runs in `BootstrapOrchestrator` after `Task.WhenAll(database, resources, fl
 
 ### Key design decisions
 
-- **Maps by codes, not IDs**: PKs/FKs differ between old and new DBs. All cross-DB mapping uses stable identifiers (`PublicationCode`, `LanguageCode`, `SectionCode`, `TrackCode`, `CategoryName`, `BaseUrl.Url`).
+- **Maps by codes, not IDs**: PKs/FKs differ between old and new DBs. All cross-DB mapping uses stable identifiers (`PublicationCode`, `LanguageCode`, `SectionCode`, `TrackCode`, `CategoryName`, `ApiUrl.Url`).
 - **Deduplication**: References are grouped by `(PublicationCode, LanguageCode)` with section codes deduplicated via `.Distinct()`. An existence check prevents re-inserting publications already in the new index.
 - **Graceful degradation**: Migration failures are non-fatal per publication. The orphaned schedule cleanup acts as a safety net, deleting any schedules that can't resolve their media data.
 

@@ -40,14 +40,14 @@ internal sealed class EnglishSectionFetcher
         List<string> sectionCodes,
         CancellationToken cancellationToken)
     {
-        // Get BaseUrl
-        var baseUrl = await db.BaseUrls
+        // Get ApiUrl
+        var apiUrl = await db.ApiUrls
             .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (baseUrl == null)
+        if (apiUrl == null)
         {
-            logger.Warning("No BaseUrl found");
+            logger.Warning("No ApiUrl found");
             return (new List<BiblePublicationSection>(), null);
         }
 
@@ -74,7 +74,7 @@ internal sealed class EnglishSectionFetcher
             {
                 var section = await FetchSingleSectionAsync(
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode,
-                    isBible, publicationWithoutLanguage, baseUrl, cancellationToken);
+                    isBible, publicationWithoutLanguage, apiUrl, cancellationToken);
 
                 if (section == null)
                 {
@@ -114,7 +114,7 @@ internal sealed class EnglishSectionFetcher
         string normalizedLanguageCode,
         bool isBible,
         bool publicationWithoutLanguage,
-        BaseUrl baseUrl,
+        ApiUrl apiUrl,
         CancellationToken cancellationToken)
     {
         // For Bible, use booknum parameter; for publications without language, use pub=sectionCode with langwritten=E
@@ -161,13 +161,13 @@ internal sealed class EnglishSectionFetcher
         // Publications without language use the same parsing as "iam" (melody music pattern)
         if (publicationWithoutLanguage)
         {
-            var tracks = trackParser.ParseIamTracks(filesElement, sectionCode, baseUrl);
+            var tracks = trackParser.ParseIamTracks(filesElement, sectionCode, apiUrl);
             section.Tracks.AddRange(tracks);
         }
         else if (isBible)
         {
             var tracks = trackParser.ParseBibleTracks(
-                filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode, baseUrl);
+                filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode, apiUrl);
             section.Tracks.AddRange(tracks);
         }
 

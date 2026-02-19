@@ -187,9 +187,9 @@ internal class DbSeeder : IDataPersister
     }
 
 
-    private async Task<List<BaseUrl>> GetAllBaseUrls(MediaDbContext db)
+    private async Task<List<ApiUrl>> GetAllApiUrls(MediaDbContext db)
     {
-        return await db.BaseUrls
+        return await db.ApiUrls
             .Where(x => x.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
             .ToListAsync();
     }

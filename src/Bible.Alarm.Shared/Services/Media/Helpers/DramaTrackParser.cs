@@ -26,7 +26,7 @@ internal sealed class DramaTrackParser
         JsonElement sectionFilesElement,
         string normalizedLanguageCode,
         string sectionCode,
-        BaseUrl baseUrl)
+        ApiUrl apiUrl)
     {
         var tracks = new List<BiblePublicationTrack>();
 
@@ -38,7 +38,7 @@ internal sealed class DramaTrackParser
 
         foreach (var trackFile in mp3Files.EnumerateArray())
         {
-            var track = ParseSingleTrack(trackFile, sectionCode, baseUrl, normalizedLanguageCode);
+            var track = ParseSingleTrack(trackFile, sectionCode, apiUrl, normalizedLanguageCode);
             if (track != null)
             {
                 tracks.Add(track);
@@ -51,7 +51,7 @@ internal sealed class DramaTrackParser
     private BiblePublicationTrack? ParseSingleTrack(
         JsonElement trackFile,
         string sectionCode,
-        BaseUrl baseUrl,
+        ApiUrl apiUrl,
         string normalizedLanguageCode)
     {
         // Handle both cases: file can be a string (direct URL) or an object with a "url" property
@@ -106,32 +106,32 @@ internal sealed class DramaTrackParser
                 Key = "pub",
                 Value = sectionCode,
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             },
             new UrlParam
             {
                 Key = "fileformat",
                 Value = "mp3",
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             },
             new UrlParam
             {
                 Key = "alllangs",
                 Value = "0",
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             },
             new UrlParam
             {
                 Key = "langwritten",
                 Value = normalizedLanguageCode,
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             }
         };
 

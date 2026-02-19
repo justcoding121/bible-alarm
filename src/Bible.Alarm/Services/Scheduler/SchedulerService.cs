@@ -20,8 +20,9 @@ public sealed class SchedulerService(
 
     private static readonly SemaphoreSlim @lock = new(1);
 
-    // Increased timeout from 1000ms to 10000ms to allow for bootstrap operations
-    private const int LockTimeoutMs = 10000;
+    // Short timeout: if another run is in progress, skip this invocation instead of waiting.
+    // The next periodic run will do the work. Prevents long blocks and spurious "timeout" warnings.
+    private const int LockTimeoutMs = 1500;
 
     public async Task ProcessScheduledTasksAsync() => await HandleAsync();
 
@@ -44,7 +45,7 @@ public sealed class SchedulerService(
                 }
             }
 
-            var downloaded = await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
+            var result = await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
                 try
                 {
@@ -70,16 +71,16 @@ public sealed class SchedulerService(
                     }
                 }
 
-                return downloaded;
+                return (Ran: true, Downloaded: downloaded);
             }, timeoutMs: LockTimeoutMs);
 
-            if (!downloaded)
+            if (!result.HasValue)
             {
-                logger.Warning("Failed to acquire lock for scheduler task (timeout after {TimeoutMs}ms). Db directory: {CacheRoot}", LockTimeoutMs, storageService.CacheRoot);
+                logger.Debug("Scheduler run skipped (previous run still in progress)");
                 return false;
             }
 
-            return downloaded;
+            return result.Value.Downloaded;
         }
         catch (Exception e)
         {

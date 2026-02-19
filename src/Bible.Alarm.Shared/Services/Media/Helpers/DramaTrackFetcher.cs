@@ -39,14 +39,14 @@ internal sealed class DramaTrackFetcher
         string normalizedLanguageCode,
         CancellationToken cancellationToken)
     {
-        // Get BaseUrl
-        var baseUrl = await db.BaseUrls
+        // Get ApiUrl
+        var apiUrl = await db.ApiUrls
             .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (baseUrl == null)
+        if (apiUrl == null)
         {
-            logger.Warning("No BaseUrl found");
+            logger.Warning("No ApiUrl found");
             return new List<BiblePublicationTrack>();
         }
 
@@ -62,7 +62,7 @@ internal sealed class DramaTrackFetcher
             try
             {
                 var tracks = await FetchTracksForSectionAsync(
-                    sectionCode, normalizedPublicationCode, normalizedLanguageCode, baseUrl, 
+                    sectionCode, normalizedPublicationCode, normalizedLanguageCode, apiUrl, 
                     cancellationToken);
                 
                 if (tracks.Count > 0)
@@ -110,7 +110,7 @@ internal sealed class DramaTrackFetcher
         string sectionCode,
         string normalizedPublicationCode,
         string normalizedLanguageCode,
-        BaseUrl baseUrl,
+        ApiUrl apiUrl,
         CancellationToken cancellationToken)
     {
         var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
@@ -131,7 +131,7 @@ internal sealed class DramaTrackFetcher
         }
 
         var tracks = trackParser.ParseTracksFromJson(
-            sectionFilesElement, normalizedLanguageCode, sectionCode, baseUrl);
+            sectionFilesElement, normalizedLanguageCode, sectionCode, apiUrl);
         
         return tracks;
     }

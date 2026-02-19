@@ -28,7 +28,7 @@ internal sealed class EnglishTrackParser
     public List<BiblePublicationTrack> ParseIamTracks(
         JsonElement filesElement,
         string sectionCode,
-        BaseUrl baseUrl)
+        ApiUrl apiUrl)
     {
         var tracks = new List<BiblePublicationTrack>();
         
@@ -39,7 +39,7 @@ internal sealed class EnglishTrackParser
             var trackNumber = 1;
             foreach (var trackFile in mp3Files.EnumerateArray())
             {
-                var track = ParseTrackFromJson(trackFile, trackNumber, baseUrl, sectionCode, isIam: true);
+                var track = ParseTrackFromJson(trackFile, trackNumber, apiUrl, sectionCode, isIam: true);
                 if (track != null)
                 {
                     tracks.Add(track);
@@ -59,7 +59,7 @@ internal sealed class EnglishTrackParser
         string normalizedLanguageCode,
         string normalizedPublicationCode,
         string sectionCode,
-        BaseUrl baseUrl)
+        ApiUrl apiUrl)
     {
         var tracks = new List<BiblePublicationTrack>();
         
@@ -70,7 +70,7 @@ internal sealed class EnglishTrackParser
             var trackNumber = 1;
             foreach (var trackFile in mp3Files.EnumerateArray())
             {
-                var track = ParseTrackFromJson(trackFile, trackNumber, baseUrl, sectionCode,
+                var track = ParseTrackFromJson(trackFile, trackNumber, apiUrl, sectionCode,
                     normalizedPublicationCode, normalizedLanguageCode, isBible: true);
                 if (track != null)
                 {
@@ -86,7 +86,7 @@ internal sealed class EnglishTrackParser
     private BiblePublicationTrack? ParseTrackFromJson(
         JsonElement trackFile,
         int trackNumber,
-        BaseUrl baseUrl,
+        ApiUrl apiUrl,
         string sectionCode,
         string? normalizedPublicationCode = null,
         string? normalizedLanguageCode = null,
@@ -141,24 +141,24 @@ internal sealed class EnglishTrackParser
                 Key = "pub",
                 Value = sectionCode,
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             });
             trackUrlParams.Add(new UrlParam
             {
                 Key = "fileformat",
                 Value = "mp3",
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             });
             trackUrlParams.Add(new UrlParam
             {
                 Key = "track",
                 Value = originalTrackCode.ToString(),
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             });
         }
         else if (isBible && normalizedPublicationCode != null && normalizedLanguageCode != null)
@@ -168,48 +168,48 @@ internal sealed class EnglishTrackParser
                 Key = "pub",
                 Value = normalizedPublicationCode,
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             });
             trackUrlParams.Add(new UrlParam
             {
                 Key = "booknum",
                 Value = sectionCode,
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             });
             trackUrlParams.Add(new UrlParam
             {
                 Key = "track",
                 Value = originalTrackCode.ToString(),
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             });
             trackUrlParams.Add(new UrlParam
             {
                 Key = "fileformat",
                 Value = "mp3",
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             });
             trackUrlParams.Add(new UrlParam
             {
                 Key = "alllangs",
                 Value = "0",
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             });
             trackUrlParams.Add(new UrlParam
             {
                 Key = "langwritten",
                 Value = normalizedLanguageCode,
                 IsQueryParam = true,
-                BaseUrl = baseUrl,
-                BaseUrlId = baseUrl.Id
+                ApiUrl = apiUrl,
+                ApiUrlId = apiUrl.Id
             });
         }
 

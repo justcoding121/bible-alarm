@@ -57,13 +57,13 @@ internal sealed class MelodyMusicSeeder
             return;
         }
 
-        // Get BaseUrl for creating UrlParams
-        var baseUrl = await db.BaseUrls
+        // Get ApiUrl for creating UrlParams
+        var apiUrl = await db.ApiUrls
             .FirstOrDefaultAsync(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS");
 
-        if (baseUrl == null)
+        if (apiUrl == null)
         {
-            logger.Error("BaseUrl not found for GETPUBMEDIALINKS");
+            logger.Error("ApiUrl not found for GETPUBMEDIALINKS");
             return;
         }
 
@@ -159,32 +159,32 @@ internal sealed class MelodyMusicSeeder
                             Key = "pub",
                             Value = discCode.ToLowerInvariant(), // Use disc code (e.g., "iam-1") as pub parameter
                             IsQueryParam = true,
-                            BaseUrl = baseUrl,
-                            BaseUrlId = baseUrl.Id
+                            ApiUrl = apiUrl,
+                            ApiUrlId = apiUrl.Id
                         },
                         new SharedUrlParam
                         {
                             Key = "fileformat",
                             Value = "mp3",
                             IsQueryParam = true,
-                            BaseUrl = baseUrl,
-                            BaseUrlId = baseUrl.Id
+                            ApiUrl = apiUrl,
+                            ApiUrlId = apiUrl.Id
                         },
                         new SharedUrlParam
                         {
                             Key = "langwritten",
                             Value = "E",
                             IsQueryParam = true,
-                            BaseUrl = baseUrl,
-                            BaseUrlId = baseUrl.Id
+                            ApiUrl = apiUrl,
+                            ApiUrlId = apiUrl.Id
                         },
                         new SharedUrlParam
                         {
                             Key = "track",
                             Value = (musicTrack.OriginalTrackCode ?? musicTrack.Number).ToString(),
                             IsQueryParam = true,
-                            BaseUrl = baseUrl,
-                            BaseUrlId = baseUrl.Id
+                            ApiUrl = apiUrl,
+                            ApiUrlId = apiUrl.Id
                         }
                     };
 

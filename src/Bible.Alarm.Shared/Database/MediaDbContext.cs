@@ -16,7 +16,7 @@ public class MediaDbContext : DbContext
 
     public DbSet<Language> Languages { get; set; }
     public DbSet<Category> Categories { get; set; }
-    public DbSet<BaseUrl> BaseUrls { get; set; }
+    public DbSet<ApiUrl> ApiUrls { get; set; }
 
     public DbSet<BiblePublication> BiblePublications { get; set; }
     public DbSet<BiblePublicationSection> BiblePublicationSections { get; set; }
@@ -52,9 +52,9 @@ public class MediaDbContext : DbContext
             .IsRequired(false);
 
         modelBuilder.Entity<UrlParam>()
-            .HasOne(up => up.BaseUrl)
-            .WithMany(bu => bu.UrlParams)
-            .HasForeignKey(up => up.BaseUrlId)
+            .HasOne(up => up.ApiUrl)
+            .WithMany(au => au.UrlParams)
+            .HasForeignKey(up => up.ApiUrlId)
             .IsRequired(false);
 
         // Language relationship is already optional (LanguageId is nullable)

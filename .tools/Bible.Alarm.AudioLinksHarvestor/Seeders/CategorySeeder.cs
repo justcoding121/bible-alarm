@@ -55,12 +55,12 @@ internal sealed class CategorySeeder
         // Seed ApiUrls
         var apiUrls = new[]
         {
-            new BaseUrl
+            new ApiUrl
             {
                 Url = "https://b.jw-cdn.org",
                 PathPrefix = "apis/pub-media/GETPUBMEDIALINKS"
             },
-            new BaseUrl
+            new ApiUrl
             {
                 Url = "https://app.jw-cdn.org",
                 PathPrefix = "apis/pub-media/GETPUBMEDIALINKS"
@@ -70,41 +70,41 @@ internal sealed class CategorySeeder
         foreach (var apiUrl in apiUrls)
         {
             // Check if this specific URL and PathPrefix combination already exists
-            var existingApiUrl = await db.BaseUrls.FirstOrDefaultAsync(a => 
+            var existingApiUrl = await db.ApiUrls.FirstOrDefaultAsync(a => 
                 a.Url == apiUrl.Url && a.PathPrefix == apiUrl.PathPrefix);
             if (existingApiUrl == null)
             {
-                db.BaseUrls.Add(apiUrl);
+                db.ApiUrls.Add(apiUrl);
                 await db.SaveChangesAsync(); // Save to get the ID
                 
                 // Seed UrlParam with output=json for this base URL
                 var urlParam = new UrlParam
                 {
-                    BaseUrlId = apiUrl.Id,
+                    ApiUrlId = apiUrl.Id,
                     Key = "output",
                     Value = "json",
                     IsQueryParam = true
                 };
                 db.UrlParams.Add(urlParam);
                 
-                logger.Information("Seeding ApiUrl: {BaseUrl} / {PathPrefix} with output=json", apiUrl.Url, apiUrl.PathPrefix);
+                logger.Information("Seeding ApiUrl: {ApiUrl} / {PathPrefix} with output=json", apiUrl.Url, apiUrl.PathPrefix);
             }
             else
             {
                 // Check if output=json param already exists for this base URL
                 var existingParam = await db.UrlParams.FirstOrDefaultAsync(p => 
-                    p.BaseUrlId == existingApiUrl.Id && p.Key == "output" && p.Value == "json");
+                    p.ApiUrlId == existingApiUrl.Id && p.Key == "output" && p.Value == "json");
                 if (existingParam == null)
                 {
                     var urlParam = new UrlParam
                     {
-                        BaseUrlId = existingApiUrl.Id,
+                        ApiUrlId = existingApiUrl.Id,
                         Key = "output",
                         Value = "json",
                         IsQueryParam = true
                     };
                     db.UrlParams.Add(urlParam);
-                    logger.Information("Adding output=json param to existing ApiUrl: {BaseUrl} / {PathPrefix}", existingApiUrl.Url, existingApiUrl.PathPrefix);
+                    logger.Information("Adding output=json param to existing ApiUrl: {ApiUrl} / {PathPrefix}", existingApiUrl.Url, existingApiUrl.PathPrefix);
                 }
             }
         }

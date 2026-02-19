@@ -307,10 +307,10 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
         using var cmd = connection.CreateCommand();
         cmd.Transaction = transaction;
         cmd.CommandText = $"""
-            INSERT OR IGNORE INTO BaseUrls (Url, PathPrefix)
+            INSERT OR IGNORE INTO ApiUrls (Url, PathPrefix)
             SELECT DISTINCT old_bu.Url, old_bu.PathPrefix
             FROM old_db.UrlParams old_up
-            JOIN old_db.BaseUrls old_bu ON old_up.BaseUrlId = old_bu.Id
+            JOIN old_db.ApiUrls old_bu ON old_up.BaseUrlId = old_bu.Id
             WHERE old_up.BiblePublicationTrackId IN ({idList})
             AND old_up.BaseUrlId IS NOT NULL
             """;
@@ -324,7 +324,7 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
         int oldTrackId,
         int newTrackId)
     {
-        var urlParams = new List<(string? BaseUrl, string Key, string Value, bool IsQueryParam)>();
+        var urlParams = new List<(string? ApiUrl, string Key, string Value, bool IsQueryParam)>();
 
         using (var readCmd = connection.CreateCommand())
         {
@@ -332,7 +332,7 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
             readCmd.CommandText = """
                 SELECT old_bu.Url, old_up.Key, old_up.Value, old_up.IsQueryParam
                 FROM old_db.UrlParams old_up
-                LEFT JOIN old_db.BaseUrls old_bu ON old_up.BaseUrlId = old_bu.Id
+                LEFT JOIN old_db.ApiUrls old_bu ON old_up.BaseUrlId = old_bu.Id
                 WHERE old_up.BiblePublicationTrackId = @oldTrackId
                 """;
             readCmd.Parameters.AddWithValue("@oldTrackId", oldTrackId);
@@ -348,13 +348,13 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
             }
         }
 
-        foreach (var (baseUrl, key, value, isQueryParam) in urlParams)
+        foreach (var (apiUrl, key, value, isQueryParam) in urlParams)
         {
-            int? newBaseUrlId = null;
-            if (baseUrl != null)
+            int? newApiUrlId = null;
+            if (apiUrl != null)
             {
-                newBaseUrlId = await GetIdAsync(
-                    connection, "SELECT Id FROM BaseUrls WHERE Url = @val", baseUrl, transaction);
+                newApiUrlId = await GetIdAsync(
+                    connection, "SELECT Id FROM ApiUrls WHERE Url = @val", apiUrl, transaction);
             }
 
             using var insertCmd = connection.CreateCommand();
@@ -364,7 +364,7 @@ internal sealed class NonEnglishMediaDataMigrator(ILogger logger)
                 VALUES (@p0, @p1, @p2, @p3, @p4)
                 """;
             insertCmd.Parameters.AddWithValue("@p0", newTrackId);
-            insertCmd.Parameters.AddWithValue("@p1", (object?)newBaseUrlId ?? DBNull.Value);
+            insertCmd.Parameters.AddWithValue("@p1", (object?)newApiUrlId ?? DBNull.Value);
             insertCmd.Parameters.AddWithValue("@p2", key);
             insertCmd.Parameters.AddWithValue("@p3", value);
             insertCmd.Parameters.AddWithValue("@p4", isQueryParam);

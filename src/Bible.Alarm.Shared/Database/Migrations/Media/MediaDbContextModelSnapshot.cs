@@ -16,7 +16,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.2");
 
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BaseUrl", b =>
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.ApiUrl", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -210,8 +210,9 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("BaseUrlId")
-                        .HasColumnType("INTEGER");
+                    b.Property<int?>("ApiUrlId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("BaseUrlId");
 
                     b.Property<int?>("BiblePublicationTrackId")
                         .HasColumnType("INTEGER");
@@ -231,7 +232,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BaseUrlId");
+                    b.HasIndex("ApiUrlId");
 
                     b.HasIndex("BiblePublicationTrackId");
 
@@ -367,20 +368,20 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.UrlParam", b =>
                 {
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.BaseUrl", "BaseUrl")
+                    b.HasOne("Bible.Alarm.Shared.Models.Media.ApiUrl", "ApiUrl")
                         .WithMany("UrlParams")
-                        .HasForeignKey("BaseUrlId");
+                        .HasForeignKey("ApiUrlId");
 
                     b.HasOne("Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack", "BiblePublicationTrack")
                         .WithMany("UrlParams")
                         .HasForeignKey("BiblePublicationTrackId");
 
-                    b.Navigation("BaseUrl");
+                    b.Navigation("ApiUrl");
 
                     b.Navigation("BiblePublicationTrack");
                 });
 
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BaseUrl", b =>
+            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.ApiUrl", b =>
                 {
                     b.Navigation("UrlParams");
                 });

@@ -11,7 +11,7 @@ public interface IUrlConstructionService
 {
     /// <summary>
     /// Constructs download URLs for a Bible publication track.
-    /// Returns both primary and backup URLs (one for each BaseUrl linked to the publication).
+    /// Returns both primary and backup URLs (one for each ApiUrl linked to the publication).
     /// </summary>
     /// <param name="trackId">The ID of the BiblePublicationTrack</param>
     /// <returns>List of constructed URLs (primary and backup)</returns>
@@ -29,7 +29,7 @@ public interface IUrlConstructionService
     /// <summary>
     /// Constructs the lookup path (query string) for a track by publication code, language code, section code, and track number.
     /// Returns the query string part (e.g., "?output=json&pub=nwt&booknum=1&fileformat=MP3&langwritten=E&track=1").
-    /// Uses the first BaseUrl linked to the publication.
+    /// Uses the first ApiUrl linked to the publication.
     /// </summary>
     Task<string?> ConstructTrackLookUpPathAsync(
         string publicationCode,

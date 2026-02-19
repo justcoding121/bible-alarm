@@ -10,7 +10,7 @@ namespace Bible.Alarm.Shared.Models.Media;
     [Table("ApiUrls")]
     [Index(nameof(Url), IsUnique = true)]
     [Index(nameof(PathPrefix))]
-    public sealed class BaseUrl : IComparable
+    public sealed class ApiUrl : IComparable
 {
     [Key]
     public int Id { get; set; }
@@ -25,9 +25,9 @@ namespace Bible.Alarm.Shared.Models.Media;
 
     /// <summary>
     /// Navigation property to UrlParams (one-to-many, optional).
-    /// Contains URL parameters as key-value pairs for this base URL.
+    /// Contains URL parameters as key-value pairs for this API URL.
     /// </summary>
     public List<BiblePublications.UrlParam> UrlParams { get; set; } = [];
 
-    public int CompareTo(object? obj) => obj is not BaseUrl other ? 1 : Url.CompareTo(other.Url);
+    public int CompareTo(object? obj) => obj is not ApiUrl other ? 1 : Url.CompareTo(other.Url);
 }

@@ -64,11 +64,11 @@ internal sealed class SectionFetcher
             return false;
         }
 
-        var baseUrl = await db.BaseUrls.Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS").FirstOrDefaultAsync(effectiveToken);
+        var apiUrl = await db.ApiUrls.Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS").FirstOrDefaultAsync(effectiveToken);
 
-        if (baseUrl == null)
+        if (apiUrl == null)
         {
-            logger.Warning("No BaseUrl found");
+            logger.Warning("No ApiUrl found");
             return false;
         }
 
@@ -205,12 +205,12 @@ internal sealed class SectionFetcher
                 if (isBible)
                 {
                     tracks = trackParser.ParseBibleTracks(
-                        filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode, baseUrl);
+                        filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode, apiUrl);
                 }
                 else
                 {
                     tracks = dramaTrackParser.ParseTracksFromJson(
-                        filesElement, normalizedLanguageCode, sectionCode, baseUrl);
+                        filesElement, normalizedLanguageCode, sectionCode, apiUrl);
                 }
 
                 // Create and save section immediately (incremental save)
