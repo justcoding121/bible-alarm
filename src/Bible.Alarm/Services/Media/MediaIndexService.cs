@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.MediaIndexServiceHelpers;
 using Bible.Alarm.Services.Storage.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
@@ -19,6 +20,8 @@ public sealed class MediaIndexService(
     IServiceProvider serviceProvider)
     : IMediaIndexService
 {
+    private const string OldMediaIndexSuffix = "_old";
+
     private readonly Lazy<string> indexRoot = new(() => storageService.StorageRoot);
 
     public string IndexRoot => indexRoot.Value;
@@ -103,45 +106,110 @@ public sealed class MediaIndexService(
 
         await storageService.CopyResourceFile(IndexResourceFile, IndexRoot, IndexResourceFile);
 
-        var mediaIndexDbPath = Path.Combine(IndexRoot, "mediaIndex.db");
+        var mediaIndexDbPath = Path.Combine(IndexRoot, AppConstants.Database.MediaIndexDatabaseFileName);
+        var oldMediaIndexDbPath = GetOldMediaIndexPath();
+
         if (await storageService.FileExists(mediaIndexDbPath))
         {
-            // Close MediaDbContext connections specifically to avoid affecting ScheduleDbContext
-            // This prevents "file is being used by another process" errors
             CloseMediaDbContextConnections();
 
-            // Delete SQLite auxiliary files (WAL mode files) first - these can be safely deleted
-            // even if the database is in use, as they'll be recreated if needed
-            var walPath = mediaIndexDbPath + "-wal";
-            var shmPath = mediaIndexDbPath + "-shm";
-            var journalPath = mediaIndexDbPath + "-journal";
-
-            if (await storageService.FileExists(walPath))
-            {
-                await storageService.DeleteFile(walPath);
-            }
-
-            if (await storageService.FileExists(shmPath))
-            {
-                await storageService.DeleteFile(shmPath);
-            }
-
-            if (await storageService.FileExists(journalPath))
-            {
-                await storageService.DeleteFile(journalPath);
-            }
-
-            // Use retry policy to handle cases where database connections haven't fully closed yet
+            // Rename old DB so we can migrate non-English data from it after extraction.
+            // Auxiliary files are renamed alongside the main DB so SQLite can recover WAL data.
             await fileOperationRetryPolicy.ExecuteAsync(async () =>
             {
-                await storageService.DeleteFile(mediaIndexDbPath);
+                File.Move(mediaIndexDbPath, oldMediaIndexDbPath, overwrite: true);
+                await Task.CompletedTask;
             });
+
+            RenameAuxiliaryFiles(mediaIndexDbPath, oldMediaIndexDbPath);
         }
 
         await SafeExtractZipAsync(tmpIndexFilePath, IndexRoot);
 
         await storageService.DeleteFile(tmpIndexFilePath);
         await versionService.SaveCurrentVersionAsync();
+    }
+
+    public async Task MigrateNonEnglishDataIfNeededAsync()
+    {
+        var oldMediaIndexDbPath = GetOldMediaIndexPath();
+        if (!File.Exists(oldMediaIndexDbPath))
+        {
+            return;
+        }
+
+        var newMediaIndexDbPath = Path.Combine(IndexRoot, AppConstants.Database.MediaIndexDatabaseFileName);
+        var scheduleDbPath = Path.Combine(IndexRoot, AppConstants.Database.ScheduleDatabaseFileName);
+
+        try
+        {
+            var migrator = new NonEnglishMediaDataMigrator(logger);
+            await migrator.MigrateAsync(oldMediaIndexDbPath, newMediaIndexDbPath, scheduleDbPath);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Non-English media data migration failed (partially or fully)");
+        }
+
+        CleanupOldMediaIndex();
+
+        // Always verify after migration: delete schedules whose non-English publication
+        // can't be found in the new media index (prevents home page display failures)
+        try
+        {
+            var cleanup = new OrphanedScheduleCleanup(logger);
+            await cleanup.CleanupAsync(newMediaIndexDbPath, scheduleDbPath);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to verify/cleanup orphaned non-English schedules");
+        }
+    }
+
+    private string GetOldMediaIndexPath()
+    {
+        return Path.Combine(IndexRoot,
+            Path.GetFileNameWithoutExtension(AppConstants.Database.MediaIndexDatabaseFileName)
+            + OldMediaIndexSuffix
+            + Path.GetExtension(AppConstants.Database.MediaIndexDatabaseFileName));
+    }
+
+    private void CleanupOldMediaIndex()
+    {
+        var oldDbPath = GetOldMediaIndexPath();
+        try
+        {
+            DeleteFileIfExists(oldDbPath);
+            DeleteFileIfExists(oldDbPath + "-wal");
+            DeleteFileIfExists(oldDbPath + "-shm");
+            DeleteFileIfExists(oldDbPath + "-journal");
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to clean up old media index files");
+        }
+    }
+
+    private static void DeleteFileIfExists(string path)
+    {
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static void RenameAuxiliaryFiles(string sourcePath, string destPath)
+    {
+        string[] suffixes = ["-wal", "-shm", "-journal"];
+        foreach (var suffix in suffixes)
+        {
+            var sourceAux = sourcePath + suffix;
+            if (File.Exists(sourceAux))
+            {
+                var destAux = destPath + suffix;
+                File.Move(sourceAux, destAux, overwrite: true);
+            }
+        }
     }
 
     /// <summary>

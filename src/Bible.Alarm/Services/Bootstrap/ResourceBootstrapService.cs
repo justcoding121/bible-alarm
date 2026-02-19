@@ -25,16 +25,14 @@ public class ResourceBootstrapService : IResourceBootstrapService
 
     public async Task CopyResourcesAsync()
     {
-        // Verify media index service
-        await VerifyMediaLookUpServiceAsync();
+        await mediaIndexService.Verify();
 
-        // Copy silent.mp3 for Android Auto
         await CopySilentMp3ToStorageAsync();
     }
 
-    private async Task VerifyMediaLookUpServiceAsync()
+    public async Task MigrateNonEnglishMediaDataAsync()
     {
-        await mediaIndexService.Verify();
+        await mediaIndexService.MigrateNonEnglishDataIfNeededAsync();
     }
 
     /// <summary>

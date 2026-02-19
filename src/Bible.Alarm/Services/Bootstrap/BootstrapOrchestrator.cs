@@ -101,6 +101,10 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                     Log.Logger.Information("[BOOTSTRAP] Media index verification/copy completed in {ElapsedMs:F2}ms", verifyMediaElapsed);
 #endif
 
+                    // After both database and resource bootstrap complete, migrate non-English media
+                    // data from old media index to new packaged index (only runs on version change)
+                    await resourceBootstrapService.MigrateNonEnglishMediaDataAsync();
+
                     // Send InitializedMessage early (after database/Fluxor are ready) to show UI with loading state
                     // This improves perceived performance - user sees the home page while schedules are being populated
                     if (shouldSendEarlyNav)
