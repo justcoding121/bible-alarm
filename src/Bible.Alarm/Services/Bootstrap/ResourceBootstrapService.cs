@@ -3,6 +3,7 @@
 using Bible.Alarm.Services.Bootstrap.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Storage.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Services.Bootstrap;
@@ -36,30 +37,36 @@ public class ResourceBootstrapService : IResourceBootstrapService
     }
 
     /// <summary>
-    /// Copies silent.mp3 from embedded resources to storage directory (same as schedule database).
-    /// This ensures the file is available for Android Auto dummy tracks.
-    /// Only runs on Android platform. Fast exits if file already exists.
+    /// Copies the silent MP3 from embedded resources to storage (same directory as schedule database).
+    /// Uses a versioned filename (e.g. silent_preparing.mp3); when the file is updated, use a new name
+    /// so existing installs get the copy. Only runs on Android. Skips copy if file already exists.
+    /// Deletes the legacy silent.mp3 from storage if present.
     /// </summary>
     private async Task CopySilentMp3ToStorageAsync()
     {
 #if ANDROID
         try
         {
-            const string ResourceFileName = "silent.mp3";
-            // Copy to StorageRoot (same directory as schedule database) instead of CacheRoot
-            // because cache can get deleted by the system
             var storageDir = storageService.StorageRoot;
-            var filePath = System.IO.Path.Combine(storageDir, ResourceFileName);
 
-            // Fast exit: Check if file already exists synchronously first
+            const string LegacySilentMp3FileName = "silent.mp3";
+            var legacyPath = System.IO.Path.Combine(storageDir, LegacySilentMp3FileName);
+            if (await storageService.FileExists(legacyPath))
+            {
+                await storageService.DeleteFile(legacyPath);
+                Log.Logger.Debug("Deleted legacy silent MP3 from storage: {FilePath}", legacyPath);
+            }
+
+            var resourceFileName = AppConstants.FilePaths.SilentMp3FileName;
+            var filePath = System.IO.Path.Combine(storageDir, resourceFileName);
+
             if (System.IO.File.Exists(filePath))
             {
                 Log.Logger.Debug("Silent MP3 already exists in storage: {FilePath}", filePath);
                 return;
             }
 
-            // Copy from embedded resource to storage directory
-            await storageService.CopyResourceFile(ResourceFileName, storageDir, ResourceFileName);
+            await storageService.CopyResourceFile(resourceFileName, storageDir, resourceFileName);
             Log.Logger.Information("Silent MP3 copied to storage: {FilePath}", filePath);
         }
         catch (Exception ex)

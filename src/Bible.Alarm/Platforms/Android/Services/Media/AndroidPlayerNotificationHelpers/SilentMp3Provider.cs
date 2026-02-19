@@ -1,6 +1,7 @@
 #nullable enable
 using Bible.Alarm.Common;
 using Bible.Alarm.Services.Storage.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media.AndroidPlayerNotificationHelpers;
@@ -58,11 +59,11 @@ public sealed class SilentMp3Provider(ILogger logger)
     /// </summary>
     private string GetSilentMp3FilePath(IStorageService storageService)
     {
-        const string ResourceFileName = "silent.mp3";
+        var resourceFileName = AppConstants.FilePaths.SilentMp3FileName;
         // Use StorageRoot (same directory as schedule database) instead of CacheRoot
         // because cache can get deleted by the system
         var storageDir = storageService.StorageRoot;
-        return Path.Combine(storageDir, ResourceFileName);
+        return Path.Combine(storageDir, resourceFileName);
     }
 
     /// <summary>

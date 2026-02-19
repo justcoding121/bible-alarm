@@ -84,6 +84,12 @@ public static class AppConstants
         /// Temporary extraction directory name
         /// </summary>
         public const string TempExtractionDirectoryName = "tmp";
+
+        /// <summary>
+        /// Silent MP3 filename for Android dummy queue (ID3 e.g. title "Bible Alarm", artist "Preparing...").
+        /// Change this when updating the file so bootstrap copies the new file on existing installs.
+        /// </summary>
+        public const string SilentMp3FileName = "silent_preparing.mp3";
     }
 
     /// <summary>
