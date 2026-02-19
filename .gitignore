@@ -223,7 +223,7 @@ FakesAssemblies/
 *.opt
 
 # Docfx
-docs/manifest.json
+.docs/manifest.json
 # Exclude .tools/_index directory contents, but track index.zip
 .tools/_index/*
 !.tools/_index/index.zip

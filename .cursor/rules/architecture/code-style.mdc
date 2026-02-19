@@ -1,12 +1,12 @@
 ---
-description: "Bible Alarm: code style rules (mirrors docs/CODE_STYLE.md)"
+description: "Bible Alarm: code style rules (mirrors .docs/CODE_STYLE.md)"
 globs: "**"
 alwaysApply: true
 ---
 
 ## Canonical source
 
-The canonical style guide is `docs/CODE_STYLE.md`. Follow it. This rule mirrors it so the agent applies it consistently.
+The canonical style guide is `.docs/CODE_STYLE.md`. Follow it. This rule mirrors it so the agent applies it consistently.
 
 ---
 

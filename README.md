@@ -36,29 +36,29 @@
 
 **Android (phone)** — Home · Schedule · Playback
 
-<img src="docs/screenshots/Android/phone/home-two-schedules.png" width="220" alt="Home"/> <img src="docs/screenshots/Android/phone/schedule.png" width="220" alt="Schedule"/> <img src="docs/screenshots/Android/phone/playback-modal.png" width="220" alt="Playback"/>
+<img src=".docs/screenshots/Android/phone/home-two-schedules.png" width="220" alt="Home"/> <img src=".docs/screenshots/Android/phone/schedule.png" width="220" alt="Schedule"/> <img src=".docs/screenshots/Android/phone/playback-modal.png" width="220" alt="Playback"/>
 
 **Android Auto** — Listing · Playback
 
-<img src="docs/screenshots/Android/android-auto/android-auto-listing.jpg" width="320" alt="Android Auto listing"/> <img src="docs/screenshots/Android/android-auto/android-auto-playback.jpg" width="320" alt="Android Auto playback"/>
+<img src=".docs/screenshots/Android/android-auto/android-auto-listing.jpg" width="320" alt="Android Auto listing"/> <img src=".docs/screenshots/Android/android-auto/android-auto-playback.jpg" width="320" alt="Android Auto playback"/>
 
-*(All Android assets: phone, tablet-7, tablet-10, and android-auto, are under [`docs/screenshots/Android/`](docs/screenshots/Android).)*
+*(All Android assets: phone, tablet-7, tablet-10, and android-auto, are under [`.docs/screenshots/Android/`](.docs/screenshots/Android).)*
 
 **Windows dark** — Home · Schedule · Playback
 
-<img src="docs/screenshots/Windows/home-dark.png" width="220" alt="Home dark"/> <img src="docs/screenshots/Windows/schedule-dark.png" width="220" alt="Schedule dark"/> <img src="docs/screenshots/Windows/playback-dark.png" width="220" alt="Playback dark"/>
+<img src=".docs/screenshots/Windows/home-dark.png" width="220" alt="Home dark"/> <img src=".docs/screenshots/Windows/schedule-dark.png" width="220" alt="Schedule dark"/> <img src=".docs/screenshots/Windows/playback-dark.png" width="220" alt="Playback dark"/>
 
-*(Windows assets are under [`docs/screenshots/Windows/`](docs/screenshots/Windows).)*
+*(Windows assets are under [`.docs/screenshots/Windows/`](.docs/screenshots/Windows).)*
 
 **iOS (phone)** — Home · Schedule · Playback *(light)*
 
-<img src="docs/screenshots/iOS/phone/home-light.jpg" width="220" alt="Home"/> <img src="docs/screenshots/iOS/phone/schedule-light.jpg" width="220" alt="Schedule"/> <img src="docs/screenshots/iOS/phone/playback-light.jpg" width="220" alt="Playback"/>
+<img src=".docs/screenshots/iOS/phone/home-light.jpg" width="220" alt="Home"/> <img src=".docs/screenshots/iOS/phone/schedule-light.jpg" width="220" alt="Schedule"/> <img src=".docs/screenshots/iOS/phone/playback-light.jpg" width="220" alt="Playback"/>
 
 **Apple CarPlay** — Listing · Playback
 
-<img src="docs/screenshots/iOS/carplay/carplay-listing.jpg" width="320" alt="CarPlay listing"/> <img src="docs/screenshots/iOS/carplay/carplay-playback.jpg" width="320" alt="CarPlay playback"/>
+<img src=".docs/screenshots/iOS/carplay/carplay-listing.jpg" width="320" alt="CarPlay listing"/> <img src=".docs/screenshots/iOS/carplay/carplay-playback.jpg" width="320" alt="CarPlay playback"/>
 
-*(iOS assets: phone, tablet, and carplay are under [`docs/screenshots/iOS/`](docs/screenshots/iOS).)*
+*(iOS assets: phone, tablet, and carplay are under [`.docs/screenshots/iOS/`](.docs/screenshots/iOS).)*
 
 ## License
 

@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Processing;
 namespace Bible.Alarm.IosScreenshotResizer;
 
 /// <summary>
-/// Resizes images under docs/screenshots/iOS to Apple App Store required dimensions.
+/// Resizes images under .docs/screenshots/iOS to Apple App Store required dimensions.
 /// </summary>
 class Program
 {

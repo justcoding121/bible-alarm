@@ -68,7 +68,7 @@
 *.sh text eol=lf
 
 # Force the docs to always use lf line endings
-docs/**/*.xml text eol=lf
+.docs/**/*.xml text eol=lf
 
 # Use LF for files often viewed on GitHub / cross-platform (avoids ^M on GitHub)
 *.plist text eol=lf
