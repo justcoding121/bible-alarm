@@ -23,12 +23,23 @@ internal sealed class CategorySeeder
 
     public async Task SeedDefaultCategoriesAndApiUrls(MediaDbContext db)
     {
-        // Seed Categories
+        // Seed Categories (Bible first so display order is stable; app orders Bible first then alphabetical)
         var categories = new[]
         {
             new Category { CategoryName = "Bible" },
             new Category { CategoryName = "Dramas" },
-            new Category { CategoryName = "Music" }
+            new Category { CategoryName = "Music" },
+            new Category { CategoryName = "Article Series" },
+            new Category { CategoryName = "Books" },
+            new Category { CategoryName = "Broadcasting" },
+            new Category { CategoryName = "Brochures and Booklets" },
+            new Category { CategoryName = "Children" },
+            new Category { CategoryName = "Family" },
+            new Category { CategoryName = "Interviews and Experiences" },
+            new Category { CategoryName = "Our Meetings and Ministry" },
+            new Category { CategoryName = "Programs and Events" },
+            new Category { CategoryName = "Series" },
+            new Category { CategoryName = "Teenagers" }
         };
 
         foreach (var category in categories)

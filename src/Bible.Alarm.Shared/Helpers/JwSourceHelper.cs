@@ -58,6 +58,61 @@ public static class JwSourceHelper
     };
 
     /// <summary>
+    /// Publication codes for categories that have no harvesters yet. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> ArticleSeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Publication codes for Books category. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> BooksPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Publication codes for Broadcasting category. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> BroadcastingPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Publication codes for Brochures and Booklets category. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> BrochuresAndBookletsPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Publication codes for Children category. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> ChildrenPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Publication codes for Family category. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> FamilyPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Publication codes for Interviews and Experiences category. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> InterviewsAndExperiencesPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Publication codes for Our Meetings and Ministry category. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> OurMeetingsAndMinistryPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Publication codes for Programs and Events category. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> ProgramsAndEventsPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Publication codes for Series category. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> SeriesPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Publication codes for Teenagers category. Empty until JW API codes are added.
+    /// </summary>
+    public static HashSet<string> TeenagersPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Centralized mapping of category names to their publication codes.
     /// </summary>
     public static Dictionary<string, HashSet<string>> CategoryToPublicationCodes
@@ -88,7 +143,18 @@ public static class JwSourceHelper
             {
                 ["Bible"] = BiblePublicationCodes,
                 ["Music"] = musicCodes,
-                ["Dramas"] = dramaCodes
+                ["Dramas"] = dramaCodes,
+                ["Article Series"] = ArticleSeriesPublicationCodes,
+                ["Books"] = BooksPublicationCodes,
+                ["Broadcasting"] = BroadcastingPublicationCodes,
+                ["Brochures and Booklets"] = BrochuresAndBookletsPublicationCodes,
+                ["Children"] = ChildrenPublicationCodes,
+                ["Family"] = FamilyPublicationCodes,
+                ["Interviews and Experiences"] = InterviewsAndExperiencesPublicationCodes,
+                ["Our Meetings and Ministry"] = OurMeetingsAndMinistryPublicationCodes,
+                ["Programs and Events"] = ProgramsAndEventsPublicationCodes,
+                ["Series"] = SeriesPublicationCodes,
+                ["Teenagers"] = TeenagersPublicationCodes
             };
         }
     }

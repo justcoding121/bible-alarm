@@ -22,6 +22,35 @@ At runtime, the app:
 
 ## Media DB “shape matrix” (publication / optional language / optional sections)
 
+## Categories seeded in harvester
+
+Canonical list: **CategorySeeder** (`.tools/Bible.Alarm.AudioLinksHarvestor/Seeders/CategorySeeder.cs`) seeds the category names; **JwSourceHelper** (`src/Bible.Alarm.Shared/Helpers/JwSourceHelper.cs`) maps category → publication codes; **PublicationTypeHelper** (`src/Bible.Alarm.Shared/Helpers/PublicationTypeHelper.cs`) drives harvest type and section structure.
+
+| Category | Publication codes | Harvest type | Language-bound |
+|----------|-------------------|--------------|----------------|
+| Bible | nwt, bi12 | Sectioned | Yes |
+| Music | osg, sjjc, sjji, snv, pksjj (vocal); iam (melody) | Flat (vocal); Sectioned (iam) | Yes (vocal); No (iam) |
+| Dramas | Dramas, DramaticBibleReadings, gnj | MediatorSectioned (Dramas, DramaticBibleReadings); Flat (gnj) | Yes |
+| Article Series | — | — | — |
+| Books | — | — | — |
+| Broadcasting | — | — | — |
+| Brochures and Booklets | — | — | — |
+| Children | — | — | — |
+| Family | — | — | — |
+| Interviews and Experiences | — | — | — |
+| Our Meetings and Ministry | — | — | — |
+| Programs and Events | — | — | — |
+| Series | — | — | — |
+| Teenagers | — | — | — |
+
+Notes:
+- **Language-bound**: Yes = `BiblePublications.LanguageId != null` (per-language content); No = no-language (e.g. instrumental iam).
+- **Harvest type**: Flat = Publication → Tracks (GETPUBMEDIALINKS); Sectioned = Publication → Sections → Tracks (booknum or pub=sectionCode); MediatorSectioned = Mediator API discovery then GETPUBMEDIALINKS.
+- Categories with "—" have no publication codes or harvesters yet; add codes in JwSourceHelper and implement discovery/harvest when ready.
+- **Category modal order**: Bible is always shown first (CategoryService orders with Bible first, then rest alphabetically by CategoryName).
+
+---
+
 When reasoning about lookups, the index supports multiple shapes:
 
 - **publication code (always)**:
