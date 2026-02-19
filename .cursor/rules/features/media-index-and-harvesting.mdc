@@ -324,3 +324,38 @@ On first run (or if missing), the app extracts the embedded resource:
 Notes:
 - The code currently assumes the media index is updated by **app updates**, not by downloading a new index from the network (see comments in `MediaIndexService`).
 
+---
+
+## Non-English media data migration on version change
+
+The packaged `mediaIndex.db` only contains English ("E") and no-language publications. Non-English content is fetched ad-hoc at runtime when users select other languages. On app version change, the media index is replaced with the new packaged version, which would lose that ad-hoc data.
+
+### Migration flow (runs during bootstrap, before schedule population)
+
+Location: `src/Bible.Alarm/Services/Media/MediaIndexService.cs` → `MigrateNonEnglishDataIfNeededAsync()`
+Helpers: `src/Bible.Alarm/Services/Media/MediaIndexServiceHelpers/`
+
+1. `MediaIndexService.ClearCopyIndexFromResource()` **renames** the old `mediaIndex.db` to `mediaIndex_old.db` (instead of deleting it), then extracts the new packaged index.
+2. After both database and resource bootstrap complete, `MigrateNonEnglishDataIfNeededAsync()` runs:
+   - `NonEnglishMediaDataMigrator` reads all non-English `(PublicationCode, LanguageCode, SectionCode)` references from `BiblePublicationSchedules` and `AlarmMusic` in the Schedule DB.
+   - For each unique `(PublicationCode, LanguageCode)`, copies from old → new media index:
+     - `BiblePublication` row (mapped by `CategoryName` and `LanguageCode`, not by integer IDs)
+     - For sectioned pubs: the specific `BiblePublicationSection` row(s) referenced by schedules + their tracks
+     - For flat pubs: all tracks (where `BiblePublicationSectionId IS NULL`)
+     - `UrlParams` for each track (with `BaseUrl` ID remapping via `Url` value)
+   - Uses raw SQL with `ATTACH DATABASE` (not EF Core) — safe across schema/migration version mismatches.
+   - Each publication is migrated in its own transaction; failures are logged and skipped.
+3. `OrphanedScheduleCleanup` verifies all non-English schedule references exist in the new media index:
+   - If a `BiblePublicationSchedule`'s publication can't be found → **deletes the entire alarm schedule** (prevents home page display failures).
+   - If an `AlarmMusic` publication can't be found → **resets music** (disables `MusicEnabled`, deletes `AlarmMusic` row; schedule is preserved).
+
+### Ordering guarantee
+
+This runs in `BootstrapOrchestrator` after `Task.WhenAll(database, resources, fluxor)` completes but **before** `scheduleBootstrapService.InitializeAsync()` (home page population) and before Android Auto can process play clicks.
+
+### Key design decisions
+
+- **Maps by codes, not IDs**: PKs/FKs differ between old and new DBs. All cross-DB mapping uses stable identifiers (`PublicationCode`, `LanguageCode`, `SectionCode`, `TrackCode`, `CategoryName`, `BaseUrl.Url`).
+- **Deduplication**: References are grouped by `(PublicationCode, LanguageCode)` with section codes deduplicated via `.Distinct()`. An existence check prevents re-inserting publications already in the new index.
+- **Graceful degradation**: Migration failures are non-fatal per publication. The orphaned schedule cleanup acts as a safety net, deleting any schedules that can't resolve their media data.
+

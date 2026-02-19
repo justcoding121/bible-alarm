@@ -475,7 +475,7 @@ public sealed class PlaybackViewModel : ObservableObject, IDisposable, IRecipien
     /// <summary>Stop button always enabled so users can cancel downloads.</summary>
     public bool IsStopButtonEnabled => !IsStopping;
 
-    public string ProgressText => PlaybackViewModelProgressTextHelper.GetProgressText(loadedTracks, totalTracks, totalBytesDownloaded, totalBytesExpected);
+    public string ProgressText => PlaybackViewModelProgressTextHelper.GetProgressText(loadedTracks, totalTracks, totalBytesDownloaded, totalBytesExpected, PreparationProgress);
 
     public double PreparationProgress { get; private set; }
 
