@@ -67,6 +67,7 @@ internal static class ForegroundNotificationHelper
     /// Creates a minimal notification for immediate foreground service start.
     /// No MediaSession, no PendingIntents, no artwork — just enough to satisfy Android's
     /// startForeground() requirement and keep the process alive.
+    /// Uses app launcher icon so the small icon always shows (avoids "no icon" duplicate on lock screen).
     /// </summary>
     public static Notification CreateMinimalNotification(Service service)
     {
@@ -74,7 +75,7 @@ internal static class ForegroundNotificationHelper
             ?? throw new InvalidOperationException("Context cannot be null");
 
         var builder = new NotificationCompat.Builder(context, ForegroundChannelId);
-        builder.SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play);
+        builder.SetSmallIcon(ResourceConstant.Drawable.ic_launcher_round);
         builder.SetContentTitle("Bible Alarm");
         builder.SetContentText("Starting...");
         builder.SetOngoing(true);

@@ -45,7 +45,7 @@ public sealed class SchedulerService(
                 }
             }
 
-            var result = await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
+            (bool Ran, bool Downloaded)? result = await ConcurrencyHelper.ExecuteAsync(@lock, async () =>
             {
                 try
                 {
@@ -74,7 +74,7 @@ public sealed class SchedulerService(
                 return (Ran: true, Downloaded: downloaded);
             }, timeoutMs: LockTimeoutMs);
 
-            if (!result.HasValue)
+            if (result is null)
             {
                 logger.Debug("Scheduler run skipped (previous run still in progress)");
                 return false;

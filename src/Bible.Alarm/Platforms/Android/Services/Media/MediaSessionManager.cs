@@ -280,7 +280,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
     }
 
 
-    internal void SetActive(bool active)
+    public void SetActive(bool active)
     {
         if (mediaSession == null)
         {

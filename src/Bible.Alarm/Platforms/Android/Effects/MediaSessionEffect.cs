@@ -118,6 +118,16 @@ public class MediaSessionEffect(
                 // MediaElement stopped playing - release foreground service ownership
                 ForegroundServiceCoordinator.OnPlaybackStopped();
             }
+
+            // On Android 13+, every active MediaSession gets a system-generated notification.
+            // Deactivate the legacy MediaSessionCompat when MediaElement handles playback
+            // and Android Auto is not connected to prevent a duplicate notification.
+            // The Media3 MediaSession from ExoPlayer handles all system controls on its own.
+            if (!ForegroundServiceCoordinator.IsAndroidAutoConnected
+                && ForegroundServiceCoordinator.CurrentOwner == ForegroundServiceCoordinator.ForegroundServiceOwner.MediaElement)
+            {
+                mediaSessionManager.SetActive(false);
+            }
         }
         catch (Exception ex)
         {

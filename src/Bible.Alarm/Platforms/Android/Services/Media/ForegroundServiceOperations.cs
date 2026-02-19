@@ -1,10 +1,12 @@
 #nullable enable
 
 using Android.App;
+using Android.Content;
 using Android.Content.PM;
 using Android.Support.V4.Media.Session;
 using AndroidX.Core.App;
 using Serilog;
+using Application = Android.App.Application;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
 
@@ -125,6 +127,33 @@ internal static class ForegroundServiceOperations
         catch (Exception ex)
         {
             logger.Error(ex, "Error stopping Android Auto foreground service");
+        }
+    }
+
+    /// <summary>
+    /// Cancels our foreground notification (ID 2) using application context.
+    /// Call when MediaElement takes over so no "Bible Alarm" notification remains during playback.
+    /// Ensures a clean lock screen with only the MediaElement media notification.
+    /// </summary>
+    public static void CancelForegroundNotificationFromAppContext()
+    {
+        try
+        {
+            var context = Application.Context;
+            if (context == null)
+            {
+                logger.Debug("Application.Context is null - cannot cancel foreground notification from app context");
+                return;
+            }
+
+            var notificationManager = NotificationManagerCompat.From(context);
+            notificationManager.Cancel(ForegroundNotificationHelper.NotificationId);
+            logger.Debug("Cancelled foreground notification (ID: {NotificationId}) from application context",
+                ForegroundNotificationHelper.NotificationId);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error cancelling foreground notification from application context");
         }
     }
 }

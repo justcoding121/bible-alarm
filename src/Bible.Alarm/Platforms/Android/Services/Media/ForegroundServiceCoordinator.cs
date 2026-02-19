@@ -162,6 +162,13 @@ public sealed class ForegroundServiceCoordinator
                 var serviceToStop = state.AndroidAutoService ?? state.AlarmService;
                 ForegroundServiceOperations.StopForeground(serviceToStop);
 
+                // Stop the other service too if both were running (e.g. alarm then AA connected)
+                if (state.AndroidAutoService != null && state.AlarmService != null)
+                {
+                    var other = state.AndroidAutoService == serviceToStop ? state.AlarmService : state.AndroidAutoService;
+                    ForegroundServiceOperations.StopForeground(other);
+                }
+
                 // Clean up alarm service if it was used
                 if (state.AlarmService != null)
                 {
@@ -171,6 +178,10 @@ public sealed class ForegroundServiceCoordinator
 
                 needsDelay = true;
             }
+
+            // Ensure our notification (ID 2) is always gone when MediaElement owns playback.
+            // Prevents duplicate "Bible Alarm" notifications (e.g. one without icon, one with pause).
+            ForegroundServiceOperations.CancelForegroundNotificationFromAppContext();
 
             // MediaElement's MediaControlsService will start itself via MediaManager.StartService()
             state.SetOwner(ForegroundServiceOwner.MediaElement);
@@ -212,6 +223,9 @@ public sealed class ForegroundServiceCoordinator
                 logger.Debug("Cleaning up alarm service reference");
                 state.ClearAlarmService();
             }
+
+            // Cancel our notification (ID 2) to prevent it from lingering on the lock screen
+            ForegroundServiceOperations.CancelForegroundNotificationFromAppContext();
         }
     }
 
