@@ -15,10 +15,12 @@ internal static class DramaTrackParser
         string jsonString,
         string sectionCode,
         string languageCode,
-        ILogger logger)
+        ILogger logger,
+        bool isVideo = false)
     {
         var tracks = new List<DramaTrack>();
         string? sectionName = null;
+        var formatKey = isVideo ? "MP4" : "MP3";
 
         try
         {
@@ -39,12 +41,12 @@ internal static class DramaTrackParser
             }
 
             if (!filesElement.TryGetProperty(languageCode, out var languageFiles) ||
-                !languageFiles.TryGetProperty("MP3", out var mp3Files))
+                !languageFiles.TryGetProperty(formatKey, out var formatFiles))
             {
                 return (null, sectionName);
             }
 
-            foreach (var trackFile in mp3Files.EnumerateArray())
+            foreach (var trackFile in formatFiles.EnumerateArray())
             {
                 if (!trackFile.TryGetProperty("file", out var fileElement))
                 {
@@ -85,7 +87,8 @@ internal static class DramaTrackParser
                 }
 
                 // Build lookup path using GETPUBMEDIALINKS format (no track param for drama sections)
-                var lookUpPath = $"?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}";
+                var fileFormat = isVideo ? "MP4" : "MP3";
+                var lookUpPath = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
 
                 // For dramas, TrackCode is the sectionCode (pub param value), not sequential number
                 tracks.Add(new DramaTrack

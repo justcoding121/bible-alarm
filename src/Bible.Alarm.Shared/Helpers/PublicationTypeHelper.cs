@@ -18,12 +18,20 @@ public static class PublicationTypeHelper
     private static readonly HashSet<string> DramaPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
         "Dramas",
-        "DramaticBibleReadings"
+        "DramaticBibleReadings",
+        "VODMoviesBibleTimes",
+        "VODMoviesModernDay",
+        "VODMoviesAnimated",
+        "VODMoviesExtras"
     };
 
     private static readonly HashSet<string> VideoPublicationCodes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "gnj" // Good News According to Jesus (video)
+        "gnj", // Good News According to Jesus (video)
+        "VODMoviesBibleTimes", // Bible Times (video, Mediator API)
+        "VODMoviesModernDay", // Modern-Day (video, Mediator API)
+        "VODMoviesAnimated", // Animated (video, Mediator API)
+        "VODMoviesExtras" // Extras (video, Mediator API)
     };
 
     /// <summary>

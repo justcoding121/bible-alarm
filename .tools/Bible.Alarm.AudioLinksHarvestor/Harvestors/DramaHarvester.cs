@@ -31,34 +31,24 @@ internal class DramaHarvester : BaseHarvester
     }
 
     /// <summary>
-    /// Drama publication code to name mappings (for logging/fallback).
-    /// Codes come from centralized JwSourceHelper.DramaCategoryCodes.
-    /// </summary>
-    private static readonly Dictionary<string, string> DramaPubCodeToNameMapping = new([
-        new KeyValuePair<string, string>("Dramas", "Bible Dramas"),
-        new KeyValuePair<string, string>("DramaticBibleReadings", "Dramatic Bible Readings")
-    ]);
-
-    /// <summary>
-    /// Localized category names: (languageCode, categoryKey) -> localizedName
+    /// Localized category names: (languageCode, categoryKey) -> localizedName (from API response per language).
     /// </summary>
     private readonly ConcurrentDictionary<(string LanguageCode, string CategoryKey), string> localizedCategoryNames = new();
-
 
     internal async Task HarvestDramaLinks(bool isTestRun = false)
     {
         // Track publications per language: languageCode -> set of publication codes
         var languageCodeToPublications = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
-        // Harvest each drama publication from the "Dramas" category (codes from centralized JwSourceHelper)
+        // Harvest each drama publication (codes from JwSourceHelper.DramaCategoryCodes).
+        // Publication name for each language comes from the category API response (category.name), not from code.
         foreach (var publicationCode in JwSourceHelper.DramaCategoryCodes)
         {
-            var publicationName = DramaPubCodeToNameMapping.GetValueOrDefault(publicationCode, publicationCode);
-            Logger.Information("Harvesting Drama publication: {PublicationName} ({PublicationCode})", publicationName, publicationCode);
+            Logger.Information("Harvesting Drama publication: {PublicationCode}", publicationCode);
 
             await HarvestDramaPublication(
                 publicationCode,
-                publicationName,
+                publicationCode,
                 languageCodeToPublications,
                 isTestRun);
         }
@@ -199,7 +189,7 @@ internal class DramaHarvester : BaseHarvester
             await semaphore.WaitAsync();
             try
             {
-                var (tracks, sectionName) = await HarvestSectionTracks(sectionCode, normalizedLanguageCode);
+                var (tracks, sectionName) = await HarvestSectionTracks(sectionCode, normalizedLanguageCode, publicationCode);
                 if (tracks != null && tracks.Count > 0)
                 {
                     lock (tracksBySection)
@@ -240,15 +230,16 @@ internal class DramaHarvester : BaseHarvester
         Logger.Information("Saved {Count} sections for publication {PublicationCode} ({LanguageCode})", tracksBySection.Count, publicationCode, normalizedLanguageCode);
     }
 
-    private async Task<(List<DramaTrack>? Tracks, string? SectionName)> HarvestSectionTracks(string sectionCode, string languageCode)
+    private async Task<(List<DramaTrack>? Tracks, string? SectionName)> HarvestSectionTracks(string sectionCode, string languageCode, string publicationCode)
     {
         try
         {
-            // Use GETPUBMEDIALINKS to get tracks for this section
-            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={languageCode}";
+            var isVideo = PublicationTypeHelper.IsVideo(publicationCode);
+            var fileFormat = isVideo ? "MP4" : "MP3";
+            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
             var jsonString = await DownloadUtility.GetAsync(harvestLink);
 
-            return DramaTrackParser.ParseTracksFromGetPubMediaLinks(jsonString, sectionCode, languageCode, Logger);
+            return DramaTrackParser.ParseTracksFromGetPubMediaLinks(jsonString, sectionCode, languageCode, Logger, isVideo);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404") || ex.Message.Contains("Response status code"))
         {

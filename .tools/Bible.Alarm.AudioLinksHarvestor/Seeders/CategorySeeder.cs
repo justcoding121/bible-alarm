@@ -36,7 +36,7 @@ internal sealed class CategorySeeder
             new Category { CategoryName = "Children" },
             new Category { CategoryName = "Family" },
             new Category { CategoryName = "Interviews and Experiences" },
-            new Category { CategoryName = "Our Meetings and Ministry" },
+            new Category { CategoryName = "Meetings and Ministry" },
             new Category { CategoryName = "Programs and Events" },
             new Category { CategoryName = "Series" },
             new Category { CategoryName = "Teenagers" }

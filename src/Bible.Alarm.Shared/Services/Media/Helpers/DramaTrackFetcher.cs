@@ -113,7 +113,9 @@ internal sealed class DramaTrackFetcher
         ApiUrl apiUrl,
         CancellationToken cancellationToken)
     {
-        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+        var isVideo = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
+        var fileFormat = isVideo ? "MP4" : "MP3";
+        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
         var sectionResponse = await httpClient.GetAsync(harvestLink, cancellationToken);
         
         if (!sectionResponse.IsSuccessStatusCode)
@@ -131,7 +133,7 @@ internal sealed class DramaTrackFetcher
         }
 
         var tracks = trackParser.ParseTracksFromJson(
-            sectionFilesElement, normalizedLanguageCode, sectionCode, apiUrl);
+            sectionFilesElement, normalizedLanguageCode, sectionCode, apiUrl, isVideo);
         
         return tracks;
     }

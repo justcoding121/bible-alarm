@@ -110,7 +110,7 @@ internal sealed class SectionFetcher
         }
         else
         {
-            // Create a new publication with empty sections
+            var isVideoDrama = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
             publication = new BiblePublication
             {
                 PublicationCode = normalizedPublicationCode,
@@ -119,7 +119,7 @@ internal sealed class SectionFetcher
                 Category = category,
                 CategoryId = category.Id,
                 LanguageId = language.Id,
-                IsVideo = false,
+                IsVideo = isVideoDrama,
                 Tracks = new List<BiblePublicationTrack>(),
                 Sections = new List<BiblePublicationSection>()
             };
@@ -138,9 +138,10 @@ internal sealed class SectionFetcher
 
             try
             {
+                var dramaFileFormat = !isBible && PublicationTypeHelper.IsVideo(normalizedPublicationCode) ? "MP4" : "MP3";
                 var harvestLink = isBible
                     ? $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
-                    : $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+                    : $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
 
                 var response = await httpClient.GetAsync(harvestLink, effectiveToken);
                 
@@ -209,8 +210,9 @@ internal sealed class SectionFetcher
                 }
                 else
                 {
+                    var isVideoDrama = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
                     tracks = dramaTrackParser.ParseTracksFromJson(
-                        filesElement, normalizedLanguageCode, sectionCode, apiUrl);
+                        filesElement, normalizedLanguageCode, sectionCode, apiUrl, isVideoDrama);
                 }
 
                 // Create and save section immediately (incremental save)

@@ -31,18 +31,9 @@ internal sealed class DramaMediatorApiClient
         string normalizedLanguageCode,
         CancellationToken cancellationToken)
     {
-        // Use Mediator API to get the category (case-sensitive: "Dramas" or "DramaticBibleReadings")
-        // Note: normalizedPublicationCode is lowercase, but API requires exact case
-        string categoryKey;
-        if (normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase))
-        {
-            categoryKey = "Dramas";
-        }
-        else if (normalizedPublicationCode.Equals("dramaticbiblereadings", StringComparison.OrdinalIgnoreCase))
-        {
-            categoryKey = "DramaticBibleReadings";
-        }
-        else
+        // Mediator API requires exact-case category key (e.g. Dramas, DramaticBibleReadings, VODMoviesBibleTimes)
+        var categoryKey = Bible.Alarm.Shared.Helpers.JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode);
+        if (categoryKey == null)
         {
             logger.Warning("Unknown drama publication code: {PublicationCode}", normalizedPublicationCode);
             return (null, new HashSet<string>(StringComparer.OrdinalIgnoreCase));

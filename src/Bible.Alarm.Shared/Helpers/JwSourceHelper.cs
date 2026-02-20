@@ -45,17 +45,62 @@ public static class JwSourceHelper
     /// </summary>
     public static HashSet<string> VideoPublicationCodes => new(StringComparer.OrdinalIgnoreCase)
     {
-        "gnj"
+        "gnj",
+        "VODMoviesBibleTimes",
+        "VODMoviesModernDay",
+        "VODMoviesAnimated",
+        "VODMoviesExtras"
     };
 
     /// <summary>
-    /// Drama category codes used for seeding.
+    /// Drama category codes used for seeding (exact casing for API/DB).
     /// </summary>
     public static HashSet<string> DramaCategoryCodes => new(StringComparer.OrdinalIgnoreCase)
     {
         "Dramas",
-        "DramaticBibleReadings"
+        "DramaticBibleReadings",
+        "VODMoviesBibleTimes",
+        "VODMoviesModernDay",
+        "VODMoviesAnimated",
+        "VODMoviesExtras"
     };
+
+    /// <summary>
+    /// Canonical drama publication codes in exact casing for DB and Mediator API.
+    /// Used to resolve normalized (lowercase) code to the form required by the API and database.
+    /// </summary>
+    private static readonly string[] CanonicalDramaPublicationCodes =
+    {
+        "Dramas",
+        "DramaticBibleReadings",
+        "VODMoviesBibleTimes",
+        "VODMoviesModernDay",
+        "VODMoviesAnimated",
+        "VODMoviesExtras"
+    };
+
+    /// <summary>
+    /// Returns the canonical (exact-case) publication code for a drama, or null if not a drama.
+    /// Use for DB queries and Mediator API category key.
+    /// </summary>
+    public static string? GetCanonicalDramaPublicationCode(string? normalizedPublicationCode)
+    {
+        if (string.IsNullOrEmpty(normalizedPublicationCode))
+        {
+            return null;
+        }
+
+        var normalized = normalizedPublicationCode.ToLowerInvariant();
+        foreach (var code in CanonicalDramaPublicationCodes)
+        {
+            if (code.Equals(normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                return code;
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Publication codes for categories that have no harvesters yet. Empty until JW API codes are added.
@@ -93,9 +138,9 @@ public static class JwSourceHelper
     public static HashSet<string> InterviewsAndExperiencesPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Publication codes for Our Meetings and Ministry category. Empty until JW API codes are added.
+    /// Publication codes for Meetings and Ministry category. Empty until JW API codes are added.
     /// </summary>
-    public static HashSet<string> OurMeetingsAndMinistryPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> MeetingsAndMinistryPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Publication codes for Programs and Events category. Empty until JW API codes are added.
@@ -151,7 +196,7 @@ public static class JwSourceHelper
                 ["Children"] = ChildrenPublicationCodes,
                 ["Family"] = FamilyPublicationCodes,
                 ["Interviews and Experiences"] = InterviewsAndExperiencesPublicationCodes,
-                ["Our Meetings and Ministry"] = OurMeetingsAndMinistryPublicationCodes,
+                ["Meetings and Ministry"] = MeetingsAndMinistryPublicationCodes,
                 ["Programs and Events"] = ProgramsAndEventsPublicationCodes,
                 ["Series"] = SeriesPublicationCodes,
                 ["Teenagers"] = TeenagersPublicationCodes

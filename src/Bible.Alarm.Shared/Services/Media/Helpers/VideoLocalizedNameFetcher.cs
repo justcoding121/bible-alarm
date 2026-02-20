@@ -36,6 +36,10 @@ internal sealed class VideoLocalizedNameFetcher
         string? categoryKey = normalizedPublicationCode.ToLowerInvariant() switch
         {
             "gnj" => "DramasGoodNews",
+            "vodmoviesbibletimes" => "VODMoviesBibleTimes",
+            "vodmoviesmodernday" => "VODMoviesModernDay",
+            "vodmoviesanimated" => "VODMoviesAnimated",
+            "vodmoviesextras" => "VODMoviesExtras",
             _ => null
         };
 

@@ -40,6 +40,7 @@ internal sealed class DramaPublicationBuilder
         }
 
         var finalPublicationName = publicationName ?? publicationCodeForDb;
+        var isVideo = Bible.Alarm.Shared.Helpers.PublicationTypeHelper.IsVideo(publicationCodeForDb);
         var publication = new BiblePublication
         {
             PublicationCode = publicationCodeForDb,
@@ -48,7 +49,7 @@ internal sealed class DramaPublicationBuilder
             Category = category,
             CategoryId = category.Id,
             LanguageId = language.Id,
-            IsVideo = false,
+            IsVideo = isVideo,
             Tracks = tracks,
             Sections = new List<BiblePublicationSection>()
         };
@@ -71,19 +72,13 @@ internal sealed class DramaPublicationBuilder
 
     public string GetPublicationCodeForDb(string normalizedPublicationCode)
     {
-        // Use case-sensitive publication codes: "Dramas" or "DramaticBibleReadings"
-        if (normalizedPublicationCode.Equals("dramas", StringComparison.OrdinalIgnoreCase))
+        var canonical = Bible.Alarm.Shared.Helpers.JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode);
+        if (canonical != null)
         {
-            return "Dramas";
+            return canonical;
         }
-        else if (normalizedPublicationCode.Equals("dramaticbiblereadings", StringComparison.OrdinalIgnoreCase))
-        {
-            return "DramaticBibleReadings";
-        }
-        else
-        {
-            logger.Warning("Unknown drama publication code: {PublicationCode}", normalizedPublicationCode);
-            return normalizedPublicationCode;
-        }
+
+        logger.Warning("Unknown drama publication code: {PublicationCode}", normalizedPublicationCode);
+        return normalizedPublicationCode;
     }
 }

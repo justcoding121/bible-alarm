@@ -55,10 +55,12 @@ internal sealed class SectionFetcherSectionTracksLoader
 
         var categoryName = publication.Category?.CategoryName ?? "";
         var isBible = categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
+        var isVideoDrama = !isBible && publication.IsVideo;
+        var dramaFileFormat = isVideoDrama ? "MP4" : "MP3";
 
         var harvestLink = isBible
             ? $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
-            : $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedSectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+            : $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedSectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
 
         var response = await httpClient.GetAsync(harvestLink, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -102,10 +104,11 @@ internal sealed class SectionFetcherSectionTracksLoader
             logger.Warning("pubName not found in API response for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}. Available properties: {Properties}",
                 normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode, string.Join(", ", root.EnumerateObject().Select(p => p.Name)));
 
-        if (!filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) || !languageFiles.TryGetProperty("MP3", out var mp3Files))
+        var formatKey = isVideoDrama ? "MP4" : "MP3";
+        if (!filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) || !languageFiles.TryGetProperty(formatKey, out var formatFiles))
         {
-            logger.Warning("No MP3 files found for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
-                normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
+            logger.Warning("No {Format} files found for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
+                formatKey, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
             return false;
         }
 
@@ -119,7 +122,7 @@ internal sealed class SectionFetcherSectionTracksLoader
         var tracks = new List<BiblePublicationTrack>();
         var trackCode = 1;
 
-        foreach (var trackFile in mp3Files.EnumerateArray())
+        foreach (var trackFile in formatFiles.EnumerateArray())
         {
             if (!trackFile.TryGetProperty("file", out var fileElement))
                 continue;
@@ -184,7 +187,7 @@ internal sealed class SectionFetcherSectionTracksLoader
                 track.TrackCode = normalizedSectionCode;
             }
             track.UrlParams.Add(new UrlParam { Key = "track", Value = trackCode.ToString(), IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
-            track.UrlParams.Add(new UrlParam { Key = "fileformat", Value = "mp3", IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
+            track.UrlParams.Add(new UrlParam { Key = "fileformat", Value = isVideoDrama ? "mp4" : "mp3", IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
             track.UrlParams.Add(new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
             track.UrlParams.Add(new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
 

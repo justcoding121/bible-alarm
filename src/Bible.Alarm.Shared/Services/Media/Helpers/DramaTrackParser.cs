@@ -26,19 +26,21 @@ internal sealed class DramaTrackParser
         JsonElement sectionFilesElement,
         string normalizedLanguageCode,
         string sectionCode,
-        ApiUrl apiUrl)
+        ApiUrl apiUrl,
+        bool isVideo = false)
     {
         var tracks = new List<BiblePublicationTrack>();
+        var formatKey = isVideo ? "MP4" : "MP3";
 
         if (!sectionFilesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) ||
-            !languageFiles.TryGetProperty("MP3", out var mp3Files))
+            !languageFiles.TryGetProperty(formatKey, out var formatFiles))
         {
             return tracks;
         }
 
-        foreach (var trackFile in mp3Files.EnumerateArray())
+        foreach (var trackFile in formatFiles.EnumerateArray())
         {
-            var track = ParseSingleTrack(trackFile, sectionCode, apiUrl, normalizedLanguageCode);
+            var track = ParseSingleTrack(trackFile, sectionCode, apiUrl, normalizedLanguageCode, isVideo);
             if (track != null)
             {
                 tracks.Add(track);
@@ -52,7 +54,8 @@ internal sealed class DramaTrackParser
         JsonElement trackFile,
         string sectionCode,
         ApiUrl apiUrl,
-        string normalizedLanguageCode)
+        string normalizedLanguageCode,
+        bool isVideo = false)
     {
         // Handle both cases: file can be a string (direct URL) or an object with a "url" property
         if (!trackFile.TryGetProperty("file", out var fileElement))
@@ -112,7 +115,7 @@ internal sealed class DramaTrackParser
             new UrlParam
             {
                 Key = "fileformat",
-                Value = "mp3",
+                Value = isVideo ? "mp4" : "mp3",
                 IsQueryParam = true,
                 ApiUrl = apiUrl,
                 ApiUrlId = apiUrl.Id
