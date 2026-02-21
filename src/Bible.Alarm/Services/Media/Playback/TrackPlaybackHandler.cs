@@ -62,11 +62,18 @@ public sealed class TrackPlaybackHandler
         setIsPreparingTrack(true);
         try
         {
+            // Sync metadata (including artwork) before opening the file for playback.
+            // When the track is cached, the same file is used for playback and for TagLib artwork extraction.
+            // If we extract after PrepareAsync, the media player may have the file open and extraction can fail
+            // on some platforms (first track shows spinner; dismiss and play again then works). Doing it first
+            // ensures artwork is in state before the modal displays and avoids file contention.
+            await audioPlayer.SyncMetadataForTrackAsync(track);
+
             await audioPlayer.PrepareAsync(track);
 
-            // On Android with queue (SetSourceWithDummyQueue), MediaOpened may not fire when changing tracks,
-            // so MediaSession/Android Auto keeps the previous track's title. Sync metadata now so Now Playing shows the correct track.
-            await audioPlayer.SyncMetadataForTrackAsync(track);
+            // On Android with queue (SetSourceWithDummyQueue), MediaOpened may not fire when changing tracks.
+            // We already synced metadata above; HandleMediaOpenedAsync will run when MediaOpened fires and can
+            // refresh if needed (e.g. duration). No need to call SyncMetadataForTrackAsync again here.
 
             // On iOS, MediaElement may need a brief moment after PrepareAsync before it can play
             // Wait for the media to be in a ready state (not None or Failed)
