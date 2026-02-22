@@ -362,6 +362,7 @@ internal sealed class FlatPublicationFetcher
             existingPublication.Tracks.Clear();
             existingPublication.Name = localizedPubName ?? englishPublication.Name;
             existingPublication.IsVideo = isVideo;
+            existingPublication.IsMusic = isMusic || categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase));
             SyncPublicationCategories(existingPublication, categories);
             foreach (var track in tracks)
             {
@@ -374,6 +375,7 @@ internal sealed class FlatPublicationFetcher
         else
         {
             var publicationName = localizedPubName ?? englishPublication.Name;
+            var isMusicCategory = categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase));
             var publication = new BiblePublication
             {
                 PublicationCode = normalizedPublicationCode,
@@ -384,6 +386,7 @@ internal sealed class FlatPublicationFetcher
                     .ToList(),
                 LanguageId = resolvedLanguage?.Id,
                 IsVideo = isVideo,
+                IsMusic = isMusic || isMusicCategory,
                 Tracks = tracks,
                 Sections = new List<BiblePublicationSection>()
             };

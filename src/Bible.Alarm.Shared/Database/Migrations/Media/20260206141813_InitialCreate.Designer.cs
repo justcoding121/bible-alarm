@@ -25,6 +25,9 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsMusic")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsVideo")
                         .HasColumnType("INTEGER");
 

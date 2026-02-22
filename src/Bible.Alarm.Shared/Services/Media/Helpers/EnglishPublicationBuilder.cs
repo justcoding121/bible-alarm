@@ -79,6 +79,7 @@ internal sealed class EnglishPublicationBuilder
             existingPublication.Sections.Clear();
             existingPublication.Name = finalPublicationName;
             existingPublication.IsVideo = isVideo;
+            existingPublication.IsMusic = categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase));
             SyncPublicationCategories(existingPublication, categories);
 
             foreach (var section in sections)
@@ -126,6 +127,7 @@ internal sealed class EnglishPublicationBuilder
             }
         }
 
+        var isMusicPub = categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase));
         var publication = new BiblePublication
         {
             PublicationCode = normalizedPublicationCode,
@@ -136,6 +138,7 @@ internal sealed class EnglishPublicationBuilder
                 .ToList(),
             LanguageId = languageId,
             IsVideo = isVideo,
+            IsMusic = isMusicPub,
             Tracks = new List<BiblePublicationTrack>(),
             Sections = sections
         };

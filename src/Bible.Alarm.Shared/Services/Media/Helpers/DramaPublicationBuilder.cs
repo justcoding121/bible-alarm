@@ -78,6 +78,7 @@ internal sealed class DramaPublicationBuilder
             existingPublication.Tracks.Clear();
             existingPublication.Name = finalPublicationName;
             existingPublication.IsVideo = isVideo;
+            existingPublication.IsMusic = categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase));
 
             SyncPublicationCategories(existingPublication, categories);
 
@@ -95,6 +96,7 @@ internal sealed class DramaPublicationBuilder
             return true;
         }
 
+        var isMusicPub = categories.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase));
         var publication = new BiblePublication
         {
             PublicationCode = publicationCodeForDb,
@@ -105,6 +107,7 @@ internal sealed class DramaPublicationBuilder
                 .ToList(),
             LanguageId = language.Id,
             IsVideo = isVideo,
+            IsMusic = isMusicPub,
             Tracks = tracks,
             Sections = new List<BiblePublicationSection>()
         };

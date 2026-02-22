@@ -96,7 +96,8 @@ public static class MediaServiceVocalMusicHelper
                     Language = plInfo.Language,
                     Sections = new List<BiblePublicationSection>(),
                     Tracks = new List<BiblePublicationTrack>(),
-                    IsVideo = false
+                    IsVideo = false,
+                    IsMusic = true
                 };
                 var placeholder = new VocalMusic { Publication = placeholderPublication };
                 result[placeholder.Code] = placeholder;

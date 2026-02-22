@@ -209,13 +209,15 @@ internal class DbSeeder : IDataPersister
         bool isVideo = false)
     {
         var normalizedCode = publication.Code.ToLowerInvariant();
+        var isMusic = category.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase);
         var biblePublication = new BiblePublication
         {
             Name = publication.Name,
             PublicationCode = normalizedCode,
             Language = newLanguage,
             BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { CategoryId = category.Id, Category = category } },
-            IsVideo = isVideo
+            IsVideo = isVideo,
+            IsMusic = isMusic
         };
         return biblePublication;
     }

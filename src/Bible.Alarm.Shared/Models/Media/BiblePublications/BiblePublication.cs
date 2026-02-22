@@ -65,4 +65,11 @@ public sealed class BiblePublication : TranslatedPublication
     /// </summary>
     [Required]
     public bool IsVideo { get; set; }
+
+    /// <summary>
+    /// Indicates if this publication is a music publication (vocal or melody).
+    /// Used on the schedule page to show/hide the music (begin-with-music) container.
+    /// </summary>
+    [Required]
+    public bool IsMusic { get; set; }
 }

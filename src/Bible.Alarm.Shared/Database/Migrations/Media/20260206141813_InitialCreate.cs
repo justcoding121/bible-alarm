@@ -87,6 +87,7 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .Annotation("Sqlite:Autoincrement", true),
                     LanguageId = table.Column<int>(type: "INTEGER", nullable: true),
                     IsVideo = table.Column<bool>(type: "INTEGER", nullable: false),
+                    IsMusic = table.Column<bool>(type: "INTEGER", nullable: false),
                     Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
                     PublicationCode = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false)
                 },

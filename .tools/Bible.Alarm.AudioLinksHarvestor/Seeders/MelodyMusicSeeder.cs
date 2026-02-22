@@ -108,6 +108,7 @@ internal sealed class MelodyMusicSeeder
                 LanguageId = null,
                 BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { CategoryId = musicCategory.Id, Category = musicCategory } },
                 IsVideo = false,
+                IsMusic = true,
                 Sections = new List<SharedBiblePublicationSection>(),
                 Tracks = new List<SharedBiblePublicationTrack>()
             };

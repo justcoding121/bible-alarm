@@ -123,8 +123,6 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         if (currentSchedule != null)
         {
             // Disable music when Music category is selected (Music category publications don't use the music selection container)
-            var isMusicCategory = !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName) &&
-                                  string.Equals(currentSchedule.BiblePublicationCategoryName, "Music", StringComparison.OrdinalIgnoreCase);
             if (isMusicCategory)
             {
                 // When Music category is selected, disable music and clear music data

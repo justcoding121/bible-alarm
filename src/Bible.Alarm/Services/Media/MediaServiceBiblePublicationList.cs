@@ -140,6 +140,7 @@ internal static class MediaServiceBiblePublicationList
                 }
 
                 seenCodes.Add(codeForKey);
+                var isMusic = plInfo.Category?.CategoryCode?.Equals("Music", StringComparison.OrdinalIgnoreCase) == true;
                 var placeholder = new BiblePublication
                 {
                     Id = 0,
@@ -150,7 +151,8 @@ internal static class MediaServiceBiblePublicationList
                     Language = plInfo.Language,
                     Sections = new List<BiblePublicationSection>(),
                     Tracks = new List<BiblePublicationTrack>(),
-                    IsVideo = false
+                    IsVideo = false,
+                    IsMusic = isMusic
                 };
                 result[placeholder.PublicationCode] = placeholder;
             }
@@ -209,6 +211,7 @@ internal static class MediaServiceBiblePublicationList
             // Only add if not already in result (avoid duplicates)
             if (!result.ContainsKey(codeForKey) && plInfo.Category != null)
             {
+                var isMusic = plInfo.Category.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase);
                 var placeholder = new BiblePublication
                 {
                     Id = 0, // Not saved yet
@@ -219,7 +222,8 @@ internal static class MediaServiceBiblePublicationList
                     Language = null,
                     Sections = new List<BiblePublicationSection>(),
                     Tracks = new List<BiblePublicationTrack>(),
-                    IsVideo = false
+                    IsVideo = false,
+                    IsMusic = isMusic
                 };
 
                 result[placeholder.PublicationCode] = placeholder;

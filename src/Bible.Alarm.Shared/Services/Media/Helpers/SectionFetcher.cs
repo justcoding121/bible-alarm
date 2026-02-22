@@ -104,10 +104,12 @@ internal sealed class SectionFetcher
         var isBible = category.CategoryCode.Equals("Bible", StringComparison.OrdinalIgnoreCase);
         string? localizedPubName = null;
 
+        var isMusicPub = categoriesForPub.Any(c => c.CategoryCode.Equals("Music", StringComparison.OrdinalIgnoreCase));
         BiblePublication publication;
         if (existingPublication != null)
         {
             publication = existingPublication;
+            publication.IsMusic = isMusicPub;
             SyncPublicationCategories(publication, categoriesForPub);
         }
         else
@@ -123,6 +125,7 @@ internal sealed class SectionFetcher
                     .ToList(),
                 LanguageId = language.Id,
                 IsVideo = isVideoDrama,
+                IsMusic = isMusicPub,
                 Tracks = new List<BiblePublicationTrack>(),
                 Sections = new List<BiblePublicationSection>()
             };
