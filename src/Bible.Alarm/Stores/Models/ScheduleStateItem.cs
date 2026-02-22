@@ -149,6 +149,13 @@ public sealed class ScheduleStateItem : IComparable
     public int? BiblePublicationSectionModalItemCount { get; set; }
 
     /// <summary>
+    /// Count of tracks for the current Bible publication/section (discovered + downloaded).
+    /// Used for showing/hiding the right-arrow on the track row without extra DB queries.
+    /// Not persisted to database.
+    /// </summary>
+    public int? BiblePublicationTrackModalItemCount { get; set; }
+
+    /// <summary>
     /// Count of items expected inside the Music Publication selection modal (discovered + downloaded).
     /// Used for showing/hiding the right-arrow on the song publication row without extra DB queries.
     /// Not persisted to database.

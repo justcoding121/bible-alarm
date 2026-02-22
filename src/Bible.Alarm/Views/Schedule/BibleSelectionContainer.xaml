@@ -209,7 +209,7 @@
                        FontAttributes="None"
                        HorizontalOptions="Fill"
                        HorizontalTextAlignment="Start"
-                       LineBreakMode="WordWrap"
+                       LineBreakMode="TailTruncation"
                        Text="{Binding PublicationDisplayText}"
                        TextColor="{Binding IsPublicationSelectable, Converter={StaticResource selectableTextColorConverter}}"
                        VerticalOptions="Center"

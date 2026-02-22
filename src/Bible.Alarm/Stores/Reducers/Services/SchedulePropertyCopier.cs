@@ -64,6 +64,7 @@ public static class SchedulePropertyCopier
         target.MusicTrackName = source.MusicTrackName;
         target.BiblePublicationModalItemCount = source.BiblePublicationModalItemCount;
         target.BiblePublicationSectionModalItemCount = source.BiblePublicationSectionModalItemCount;
+        target.BiblePublicationTrackModalItemCount = source.BiblePublicationTrackModalItemCount;
         target.MusicPublicationModalItemCount = source.MusicPublicationModalItemCount;
         target.MusicSectionModalItemCount = source.MusicSectionModalItemCount;
     }

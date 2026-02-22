@@ -26,7 +26,8 @@ internal sealed class DramaTrackParser
         JsonElement sectionFilesElement,
         string normalizedLanguageCode,
         string sectionCode,
-        bool isVideo = false)
+        bool isVideo = false,
+        int? trackNumber = null)
     {
         var tracks = new List<BiblePublicationTrack>();
         var formatKey = isVideo ? "MP4" : "MP3";
@@ -39,7 +40,7 @@ internal sealed class DramaTrackParser
 
         foreach (var trackFile in formatFiles.EnumerateArray())
         {
-            var track = ParseSingleTrack(trackFile, sectionCode, normalizedLanguageCode, isVideo);
+            var track = ParseSingleTrack(trackFile, sectionCode, normalizedLanguageCode, isVideo, trackNumber);
             if (track != null)
             {
                 tracks.Add(track);
@@ -53,9 +54,9 @@ internal sealed class DramaTrackParser
         JsonElement trackFile,
         string sectionCode,
         string normalizedLanguageCode,
-        bool isVideo = false)
+        bool isVideo = false,
+        int? trackNumber = null)
     {
-        // Handle both cases: file can be a string (direct URL) or an object with a "url" property
         if (!trackFile.TryGetProperty("file", out var fileElement))
         {
             return null;
@@ -76,7 +77,6 @@ internal sealed class DramaTrackParser
             return null;
         }
 
-        // Get title - handle both string and object formats
         string title = "Unknown";
         if (trackFile.TryGetProperty("title", out var titleElement))
         {
@@ -92,13 +92,11 @@ internal sealed class DramaTrackParser
             }
         }
 
-        // Skip audio descriptions
         if (title.Contains("audio descriptions", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
 
-        // GETPUBMEDIALINKS for drama sections returns a single file per section (pub=sectionCode); no track param.
         var trackUrlParams = new List<UrlParam>
         {
             new UrlParam { Key = "pub", Value = sectionCode, IsQueryParam = true },
@@ -107,10 +105,15 @@ internal sealed class DramaTrackParser
             new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true }
         };
 
-        // For dramas, TrackCode is the sectionCode (pub param value), not the sequential number
+        if (trackNumber.HasValue)
+        {
+            trackUrlParams.Add(new UrlParam { Key = "track", Value = trackNumber.Value.ToString(), IsQueryParam = true });
+        }
+
+        var trackCode = trackNumber.HasValue ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
         return new BiblePublicationTrack
         {
-            TrackCode = sectionCode,
+            TrackCode = trackCode,
             Title = title,
             UrlParams = trackUrlParams
         };

@@ -316,40 +316,18 @@ public sealed class BiblePublicationDisplayTextProvider
     /// <summary>
     /// Checks if there are multiple tracks available for the current section/publication.
     /// Returns true if there are 2 or more tracks, false if only 1 or 0.
+    /// Uses discovery-based expected count from state (set on cascade + populator) to avoid per-row DB queries.
     /// </summary>
-    public async Task<bool> GetIsTrackSelectableAsync()
+    public Task<bool> GetIsTrackSelectableAsync()
     {
         var currentSchedule = state.Value.CurrentSchedule;
         if (currentSchedule == null || string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
         {
-            return false;
+            return Task.FromResult(false);
         }
 
-        var languageCode = currentSchedule.BiblePublicationLanguageCode ?? string.Empty;
-        var publicationCode = currentSchedule.BiblePublicationCode;
-        var sectionCode = currentSchedule.BiblePublicationSectionCode;
-        var normalizedSectionCode = SectionCodeHelper.Normalize(sectionCode);
-
-        try
-        {
-            // Avoid duplicate queries when languageCode is empty.
-            var tracks = string.IsNullOrWhiteSpace(languageCode)
-                ? await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, normalizedSectionCode)
-                : await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, normalizedSectionCode);
-            
-            // If no tracks found with language, try without language
-            if (tracks.Count == 0 && !string.IsNullOrWhiteSpace(languageCode))
-            {
-                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, normalizedSectionCode);
-            }
-
-            return tracks.Count > 1;
-        }
-        catch
-        {
-            // On error, default to not selectable
-            return false;
-        }
+        var expectedCount = currentSchedule.BiblePublicationTrackModalItemCount;
+        return Task.FromResult(expectedCount.HasValue && expectedCount.Value > 1);
     }
 }
 

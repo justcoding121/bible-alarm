@@ -217,6 +217,13 @@ public class Program
                 return 1;
             }
 
+            using (var validateScope = serviceProvider.CreateScope())
+            {
+                var validateDb = validateScope.ServiceProvider.GetRequiredService<MediaDbContext>();
+                var httpClient = serviceProvider.GetRequiredService<System.Net.Http.HttpClient>();
+                await Utility.HarvestValidator.ValidateAsync(validateDb, httpClient, logger);
+            }
+
             SqliteConnection.ClearAllPools();
             logger.Information("All SQLite connections closed. Safe to zip database.");
 

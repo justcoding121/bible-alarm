@@ -164,51 +164,39 @@ internal class DramaHarvester : BaseHarvester
             return;
         }
 
-        // Extract section codes from Mediator API response
-        var (sectionCodes, localizedPublicationName) = DramaSectionCodeExtractor.ExtractSectionCodesFromCategory(
+        var (mediaItems, localizedPublicationName) = DramaSectionCodeExtractor.ExtractMediaItemsFromCategory(
             jsonString,
             publicationCode,
             normalizedLanguageCode,
             Logger);
-        if (sectionCodes.Count == 0)
+        if (mediaItems.Count == 0)
         {
-            Logger.Warning("No sections found for publication {PublicationCode} in language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
+            Logger.Warning("No media items found for publication {PublicationCode} in language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
             return;
         }
 
-        // Store localized publication name if available
         if (!string.IsNullOrEmpty(localizedPublicationName))
         {
             localizedCategoryNames[(normalizedLanguageCode, publicationCode)] = localizedPublicationName;
         }
 
-        // Get or create publications dictionary for this language
         var publicationsForLanguage = languageCodeToPublications.GetOrAdd(normalizedLanguageCode, _ => new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase));
-
-        // Track this publication for this language
         var finalPublicationName = localizedPublicationName ?? publicationName;
         publicationsForLanguage[publicationCode] = finalPublicationName;
 
-        // Harvest tracks for each section using GETPUBMEDIALINKS
-        var tracksBySection = new Dictionary<string, List<DramaTrack>>(StringComparer.OrdinalIgnoreCase);
-        var sectionNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        
+        var allTracks = new List<DramaTrack>();
         using var semaphore = new SemaphoreSlim(MaxConcurrentSectionDownloads, MaxConcurrentSectionDownloads);
-        var sectionTasks = sectionCodes.Select(async sectionCode =>
+        var mediaTasks = mediaItems.Select(async item =>
         {
             await semaphore.WaitAsync();
             try
             {
-                var (tracks, sectionName) = await HarvestSectionTracks(sectionCode, normalizedLanguageCode, publicationCode);
+                var (tracks, _) = await HarvestSingleTrack(item.SectionCode, item.TrackNumber, normalizedLanguageCode, publicationCode);
                 if (tracks != null && tracks.Count > 0)
                 {
-                    lock (tracksBySection)
+                    lock (allTracks)
                     {
-                        tracksBySection[sectionCode] = tracks;
-                        if (!string.IsNullOrEmpty(sectionName))
-                        {
-                            sectionNames[sectionCode] = sectionName;
-                        }
+                        allTracks.AddRange(tracks);
                     }
                 }
             }
@@ -218,16 +206,20 @@ internal class DramaHarvester : BaseHarvester
             }
         });
 
-        await Task.WhenAll(sectionTasks);
+        await Task.WhenAll(mediaTasks);
 
-        if (tracksBySection.Count == 0)
+        if (allTracks.Count == 0)
         {
-            Logger.Warning("No tracks found for any sections in publication {PublicationCode} ({LanguageCode}). Skipping.", publicationCode, normalizedLanguageCode);
+            Logger.Warning("No tracks found for publication {PublicationCode} ({LanguageCode}). Skipping.", publicationCode, normalizedLanguageCode);
             return;
         }
 
-        // Save sections and tracks (similar to Bible publications structure)
-        // Save to database via persister if available, otherwise save to files
+        var tracksBySection = new Dictionary<string, List<DramaTrack>>(StringComparer.OrdinalIgnoreCase)
+        {
+            [publicationCode] = allTracks
+        };
+        var sectionNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         if (dataPersister != null)
         {
             await dataPersister.SaveDramaPublication(normalizedLanguageCode, publicationCode, finalPublicationName, tracksBySection, sectionNames);
@@ -237,28 +229,28 @@ internal class DramaHarvester : BaseHarvester
             DramaFilePersistence.SaveDramaSectionsAndTracks(publicationCode, normalizedLanguageCode, tracksBySection, sectionNames);
         }
 
-        Logger.Information("Saved {Count} sections for publication {PublicationCode} ({LanguageCode})", tracksBySection.Count, publicationCode, normalizedLanguageCode);
+        Logger.Information("Saved {Count} tracks for publication {PublicationCode} ({LanguageCode})", allTracks.Count, publicationCode, normalizedLanguageCode);
     }
 
-    private async Task<(List<DramaTrack>? Tracks, string? SectionName)> HarvestSectionTracks(string sectionCode, string languageCode, string publicationCode)
+    private async Task<(List<DramaTrack>? Tracks, string? SectionName)> HarvestSingleTrack(string sectionCode, int trackNumber, string languageCode, string publicationCode)
     {
         try
         {
             var isVideo = PublicationTypeHelper.IsVideo(publicationCode);
             var fileFormat = isVideo ? "MP4" : "MP3";
-            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+            var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&track={trackNumber}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
             var jsonString = await DownloadUtility.GetAsync(harvestLink);
 
-            return DramaTrackParser.ParseTracksFromGetPubMediaLinks(jsonString, sectionCode, languageCode, Logger, isVideo);
+            return DramaTrackParser.ParseTracksFromGetPubMediaLinks(jsonString, sectionCode, languageCode, Logger, isVideo, trackNumber);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404") || ex.Message.Contains("Response status code"))
         {
-            Logger.Warning("Section {SectionCode} not available for language {LanguageCode}. Skipping.", sectionCode, languageCode);
+            Logger.Warning("Track {SectionCode}-{TrackNumber} not available for language {LanguageCode}. Skipping.", sectionCode, trackNumber, languageCode);
             return (null, null);
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Failed to fetch tracks for section {SectionCode} in language {LanguageCode}. Skipping.", sectionCode, languageCode);
+            Logger.Error(ex, "Failed to fetch track {SectionCode}-{TrackNumber} in language {LanguageCode}. Skipping.", sectionCode, trackNumber, languageCode);
             return (null, null);
         }
     }

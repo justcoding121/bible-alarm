@@ -52,6 +52,7 @@ public static class ScheduleStateHelper
             MusicTrackName = source.MusicTrackName,
             BiblePublicationModalItemCount = source.BiblePublicationModalItemCount,
             BiblePublicationSectionModalItemCount = source.BiblePublicationSectionModalItemCount,
+            BiblePublicationTrackModalItemCount = source.BiblePublicationTrackModalItemCount,
             MusicPublicationModalItemCount = source.MusicPublicationModalItemCount,
             MusicSectionModalItemCount = source.MusicSectionModalItemCount
         };

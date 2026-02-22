@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
@@ -13,6 +14,11 @@ namespace Bible.Alarm.AudioLinksHarvestor.Seeders;
 /// </summary>
 internal sealed class CategorySeeder
 {
+    private const string EnglishLanguageCode = "E";
+
+    private static string DisplayNameForCategoryCode(string categoryCode) =>
+        categoryCode == "FaithAndBible" ? "Faith & Bible" : categoryCode;
+
     private readonly ILogger logger;
 
     public CategorySeeder(ILogger logger)
@@ -22,32 +28,65 @@ internal sealed class CategorySeeder
 
     public async Task SeedDefaultCategoriesAndApiUrls(MediaDbContext db)
     {
-        var categories = new[]
+        var categoryCodes = new[]
         {
-            new Category { CategoryCode = "Bible" },
-            new Category { CategoryCode = "Dramas" },
-            new Category { CategoryCode = "Music" },
-            new Category { CategoryCode = "FaithAndBible" },
-            new Category { CategoryCode = "Books" },
-            new Category { CategoryCode = "Broadcasting" },
-            new Category { CategoryCode = "Brochures and Booklets" },
-            new Category { CategoryCode = "Children" },
-            new Category { CategoryCode = "Family" },
-            new Category { CategoryCode = "Interviews and Experiences" },
-            new Category { CategoryCode = "Meetings and Ministry" },
-            new Category { CategoryCode = "Programs and Events" },
-            new Category { CategoryCode = "Series" },
-            new Category { CategoryCode = "Teenagers" }
+            "Bible",
+            "Dramas",
+            "Music",
+            "FaithAndBible",
+            "Books",
+            "Broadcasting",
+            "Brochures and Booklets",
+            "Children",
+            "Family",
+            "Interviews and Experiences",
+            "Meetings and Ministry",
+            "Programs and Events",
+            "Series",
+            "Teenagers"
         };
 
-        foreach (var category in categories)
+        foreach (var code in categoryCodes)
         {
-            var existing = await db.Categories.FirstOrDefaultAsync(c => c.CategoryCode == category.CategoryCode);
+            var existing = await db.Categories.FirstOrDefaultAsync(c => c.CategoryCode == code);
             if (existing == null)
             {
-                db.Categories.Add(category);
-                logger.Information("Seeding category: {CategoryCode}", category.CategoryCode);
+                db.Categories.Add(new Category { CategoryCode = code });
+                logger.Information("Seeding category: {CategoryCode}", code);
             }
+        }
+
+        await db.SaveChangesAsync();
+
+        await SeedCategoryDisplayNamesAsync(db, categoryCodes);
+    }
+
+    private async Task SeedCategoryDisplayNamesAsync(MediaDbContext db, IReadOnlyList<string> categoryCodes)
+    {
+        foreach (var categoryCode in categoryCodes)
+        {
+            var category = await db.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.CategoryCode == categoryCode);
+            if (category == null)
+            {
+                continue;
+            }
+
+            var hasName = await db.CategoryNamesByLanguage
+                .AnyAsync(cnl => cnl.CategoryId == category.Id && cnl.LanguageCode == EnglishLanguageCode);
+            if (hasName)
+            {
+                continue;
+            }
+
+            var displayName = DisplayNameForCategoryCode(categoryCode);
+            db.CategoryNamesByLanguage.Add(new CategoryNameByLanguage
+            {
+                CategoryId = category.Id,
+                LanguageCode = EnglishLanguageCode,
+                Name = displayName
+            });
+            logger.Information("Seeding category display name: {CategoryCode} -> {DisplayName} (language={Lang})",
+                categoryCode, displayName, EnglishLanguageCode);
         }
 
         await db.SaveChangesAsync();

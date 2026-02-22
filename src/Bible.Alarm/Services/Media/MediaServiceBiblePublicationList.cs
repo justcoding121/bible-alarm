@@ -141,11 +141,12 @@ internal static class MediaServiceBiblePublicationList
 
                 seenCodes.Add(codeForKey);
                 var isMusic = plInfo.Category?.CategoryCode?.Equals("Music", StringComparison.OrdinalIgnoreCase) == true;
+                var placeholderName = JwSourceHelper.GetPublicationDisplayNameFallback(codeForKey) ?? codeForKey;
                 var placeholder = new BiblePublication
                 {
                     Id = 0,
                     PublicationCode = codeForKey,
-                    Name = codeForKey,
+                    Name = placeholderName,
                     BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = plInfo.CategoryId, Category = plInfo.Category } },
                     LanguageId = plInfo.LanguageId,
                     Language = plInfo.Language,

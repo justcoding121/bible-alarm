@@ -155,6 +155,8 @@ public sealed class BiblePublicationCascadeHandler
                         {
                             var existingPublicationName = currentSchedule.BiblePublicationName ?? existingPublicationCode;
                             var sectionModalItemCount = await GetBiblePublicationSectionModalItemCountAsync(verifyDb, existingPublicationCode, languageCode);
+                            var existingTracks = await mediaService.GetBiblePublicationTracks(languageCode, existingPublicationCode, SectionCodeHelper.Normalize(resultSectionCode));
+                            var existingTrackCount = existingTracks?.Count;
         BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
@@ -166,6 +168,7 @@ public sealed class BiblePublicationCascadeHandler
             resultTrackTitle,
             publicationModalItemCount,
             sectionModalItemCount,
+            existingTrackCount,
             dispatcher);
             return;
                         }
@@ -350,6 +353,8 @@ public sealed class BiblePublicationCascadeHandler
         }
 
         var sectionModalCount = await GetBiblePublicationSectionModalItemCountAsync(db, publicationCode, languageCode);
+        var tracksForCount = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, SectionCodeHelper.Normalize(sectionCode));
+        var trackModalItemCount = tracksForCount?.Count;
         BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
@@ -361,6 +366,7 @@ public sealed class BiblePublicationCascadeHandler
             trackTitle,
             publicationModalItemCount,
             sectionModalCount,
+            trackModalItemCount,
             dispatcher,
             publicationWithoutLanguage);
     }
@@ -403,6 +409,8 @@ public sealed class BiblePublicationCascadeHandler
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
         var sectionModalItemCount = await GetBiblePublicationSectionModalItemCountAsync(db, publicationCode, languageCode);
+        var tracksForCount = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, SectionCodeHelper.Normalize(selectedSectionCode));
+        var trackModalItemCount = tracksForCount?.Count;
         BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
@@ -414,6 +422,7 @@ public sealed class BiblePublicationCascadeHandler
             trackTitle,
             publicationModalItemCount,
             sectionModalItemCount,
+            trackModalItemCount,
             dispatcher);
     }
 
@@ -441,6 +450,7 @@ public sealed class BiblePublicationCascadeHandler
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
         var sectionModalItemCount = await GetBiblePublicationSectionModalItemCountAsync(db, publicationCode, languageCode);
+        var trackModalItemCount = tracks.Count;
         BiblePublicationCascadeScheduleUpdater.UpdateSchedule(
             logger,
             currentSchedule,
@@ -452,6 +462,7 @@ public sealed class BiblePublicationCascadeHandler
             firstTrack.Title ?? string.Empty,
             publicationModalItemCount,
             sectionModalItemCount,
+            trackModalItemCount,
             dispatcher);
     }
 

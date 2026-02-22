@@ -64,8 +64,20 @@ public sealed class PublicationListViewItemModel(Publication publication) : Obse
 
     /// <summary>
     /// Gets the publication name with HTML entities decoded (e.g., &#160; → space) and non-breaking spaces replaced with regular spaces.
+    /// Uses a fallback display name when the stored name is empty or equals the publication code (e.g. VODLFFVideosAD).
     /// </summary>
-    public string Name => WebUtility.HtmlDecode(publication.Name).Replace('\u00A0', ' ');
+    public string Name
+    {
+        get
+        {
+            var rawName = publication.Name;
+            var effectiveName = string.IsNullOrWhiteSpace(rawName) ||
+                               string.Equals(rawName.Trim(), publication.PublicationCode, StringComparison.OrdinalIgnoreCase)
+                ? (JwSourceHelper.GetPublicationDisplayNameFallback(publication.PublicationCode) ?? rawName ?? publication.PublicationCode)
+                : rawName;
+            return WebUtility.HtmlDecode(effectiveName).Replace('\u00A0', ' ');
+        }
+    }
     public string Code => publication.PublicationCode;
 
     /// <summary>

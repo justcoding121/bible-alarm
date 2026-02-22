@@ -26,28 +26,57 @@ At runtime, the app:
 
 Canonical list: **CategorySeeder** (`.tools/Bible.Alarm.AudioLinksHarvestor/Seeders/CategorySeeder.cs`) seeds the category names; **JwSourceHelper** (`src/Bible.Alarm.Shared/Helpers/JwSourceHelper.cs`) maps category → publication codes; **PublicationTypeHelper** (`src/Bible.Alarm.Shared/Helpers/PublicationTypeHelper.cs`) drives harvest type and section structure.
 
+### All 19 publications we fetch
+
+Base URL for API fetch: `https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS`. Full URL = base + query below.
+
+| # | Publication code | Category | Harvest type | Format | Language-bound | Notes | API fetch URL (E) |
+|---|------------------|----------|--------------|--------|----------------|-------|-------------------|
+| 1 | nwt | Bible | Sectioned | MP3 | Yes | Books (booknum) | `?output=json&pub=nwt&booknum=1&track=1&fileformat=MP3&alllangs=0&langwritten=E` |
+| 2 | bi12 | Bible | Sectioned | MP3 | Yes | Books (booknum) | `?output=json&pub=bi12&booknum=1&track=1&fileformat=MP3&alllangs=0&langwritten=E` |
+| 3 | osg | Music | Flat | MP3 | Yes | Vocal | `?output=json&pub=osg&track=1&fileformat=MP3&alllangs=0&langwritten=E` |
+| 4 | sjjc | Music | Flat | MP3 | Yes | Vocal | `?output=json&pub=sjjc&track=1&fileformat=MP3&alllangs=0&langwritten=E` |
+| 5 | sjji | Music | Flat | MP3 | Yes | Vocal | `?output=json&pub=sjji&track=1&fileformat=MP3&alllangs=0&langwritten=E` |
+| 6 | snv | Music | Flat | MP3 | Yes | Vocal | `?output=json&pub=snv&track=1&fileformat=MP3&alllangs=0&langwritten=E` |
+| 7 | pksjj | Music | Flat | MP3 | Yes | Vocal | `?output=json&pub=pksjj&track=1&fileformat=MP3&alllangs=0&langwritten=E` |
+| 8 | iam | Music | Sectioned | MP3 | No | Melody discs (pub=sectionCode) | `?output=json&pub=iam-1&track=1&fileformat=MP3&alllangs=0&langwritten=E` |
+| 9 | gnj | Dramas | Flat | MP4 | Yes | Good News According to Jesus | `?output=json&pub=gnj&track=1&fileformat=MP4&alllangs=0&langwritten=E` |
+| 10 | Dramas | Dramas | MediatorSectioned | MP3 | Yes | Audio dramas (media items → pub+track) | `?output=json&pub=iaey&fileformat=MP3&alllangs=0&langwritten=E` (example single-file) |
+| 11 | DramaticBibleReadings | Dramas | MediatorSectioned | MP3 | Yes | (media items → pub+track) | `?output=json&pub={sectionCode}&track={trackNumber}&fileformat=MP3&alllangs=0&langwritten=E` |
+| 12 | VODMoviesBibleTimes | Dramas | MediatorSectioned | MP4 | Yes | (media items → pub+track) | `?output=json&pub=mwbv&track=1&fileformat=MP4&alllangs=0&langwritten=E` (example) |
+| 13 | VODMoviesModernDay | Dramas | MediatorSectioned | MP4 | Yes | (media items → pub+track) | `?output=json&pub={sectionCode}&track=1&fileformat=MP4&alllangs=0&langwritten=E` |
+| 14 | VODMoviesAnimated | Dramas | MediatorSectioned | MP4 | Yes | (media items → pub+track) | `?output=json&pub={sectionCode}&track=1&fileformat=MP4&alllangs=0&langwritten=E` |
+| 15 | VODMoviesExtras | Dramas | MediatorSectioned | MP4 | Yes | (media items → pub+track) | `?output=json&pub=jwb&track=1&fileformat=MP4&alllangs=0&langwritten=E` (example) |
+| 16 | SeriesBJFLessons | Children | MediatorSectioned | MP4 | Yes | Bible Stories for Little Ones | `?output=json&pub=jwb-129&track=1&fileformat=MP4&alllangs=0&langwritten=E` (example) |
+| 17 | thv | Series | Flat | MP4 | Yes | Apply Yourself to Reading and Teaching | `?output=json&pub=thv&track=1&fileformat=MP4&alllangs=0&langwritten=E` |
+| 18 | VODLFFVideosAD | Series | MediatorSectioned | MP4 | Yes | Enjoy Life Forever!—Videos | `?output=json&pub=lffv&track=1&fileformat=MP4&alllangs=0&langwritten=E` (example; harvest may fail) |
+| 19 | SeriesDigForTreasures | Series | MediatorSectioned | MP4 | Yes | **Flat in DB**: 4 tracks only, no sections; TrackCode = sectionCode-trackNumber | `?output=json&pub=jwb-129&track=3&fileformat=MP4&alllangs=0&langwritten=E` |
+
+### Category summary table
+
 | Category | Publication codes | Harvest type | Language-bound |
 |----------|-------------------|--------------|----------------|
 | Bible | nwt, bi12 | Sectioned | Yes |
 | Music | osg, sjjc, sjji, snv, pksjj (vocal); iam (melody) | Flat (vocal); Sectioned (iam) | Yes (vocal); No (iam) |
-| Dramas | Dramas, DramaticBibleReadings, gnj, VODMoviesBibleTimes, VODMoviesModernDay, VODMoviesAnimated, VODMoviesExtras | MediatorSectioned (Dramas, DramaticBibleReadings, VOD*); Flat (gnj). VOD* are video (MP4). | Yes |
+| Dramas | Dramas, DramaticBibleReadings, gnj, VODMoviesBibleTimes, VODMoviesModernDay, VODMoviesAnimated, VODMoviesExtras | MediatorSectioned (Dramas, DramaticBibleReadings, VOD*); Flat (gnj). VOD* + gnj = MP4. | Yes |
 | Books | — | — | — |
 | Broadcasting | — | — | — |
 | Brochures and Booklets | — | — | — |
-| Children | SeriesBJFLessons | MediatorSectioned (video) | Yes |
+| Children | SeriesBJFLessons | MediatorSectioned (video MP4) | Yes |
 | Family | — | — | — |
 | Interviews and Experiences | — | — | — |
 | Meetings and Ministry | — | — | — |
 | Programs and Events | — | — | — |
-| Series | thv, VODLFFVideosAD, SeriesDigForTreasures | Flat (thv); MediatorSectioned (VODLFFVideosAD, SeriesDigForTreasures, video) | Yes |
+| Series | thv, VODLFFVideosAD, SeriesDigForTreasures | Flat (thv); MediatorSectioned (VODLFFVideosAD); MediatorSectioned, flat storage (SeriesDigForTreasures: 4 tracks, no sections) | Yes |
 | Teenagers | — | — | — |
 
 Notes:
-- **Language-bound**: Yes = `BiblePublications.LanguageId != null` (per-language content); No = no-language (e.g. instrumental iam).
-- **Harvest type**: Flat = Publication → Tracks (GETPUBMEDIALINKS); Sectioned = Publication → Sections → Tracks (booknum or pub=sectionCode); MediatorSectioned = Mediator API discovery then GETPUBMEDIALINKS.
-- Categories with "—" have no publication codes or harvesters yet; add codes in JwSourceHelper and implement discovery/harvest when ready.
-- **Pre-harvested English (E)**: Any publication you add to the relevant sets in **JwSourceHelper** (BiblePublicationCodes, VocalMusicPublicationCodes, DramaCategoryCodes, VideoPublicationCodes, ChildrenPublicationCodes, SeriesPublicationCodes) is **automatically** included in the pre-harvested index for "E". **EnglishSeeder** uses **JwSourceHelper.AllPublicationCodesForEnglishSeeding** (union of those sets, excluding melody-only). No separate list to update.
-- **Category modal order**: Bible is always shown first (CategoryService orders with Bible first, then rest alphabetically by category display name).
+- **Language-bound**: Yes = `BiblePublications.LanguageId != null`; No = no-language (e.g. iam).
+- **Harvest type**: **Flat** = Publication → Tracks (GETPUBMEDIALINKS, optional `track=`). **Sectioned** = Publication → Sections → Tracks (Bible: `booknum=`; iam: `pub=sectionCode`). **MediatorSectioned** = Mediator API returns media items `(sectionCode, trackNumber)`; each track fetched with GETPUBMEDIALINKS `pub={sectionCode}&track={trackNumber}`; TrackCode = `sectionCode-trackNumber`. For most Mediator pubs this yields one track per “section”; **SeriesDigForTreasures** is stored as a single publication with 4 tracks and no section rows.
+- **Drama harvester** iterates `JwSourceHelper.DramaCategoryCodes` ∪ `SeriesMediatorPublicationCodes` ∪ `ChildrenMediatorPublicationCodes` (all Mediator + gnj via VideoPublicationCodes in Dramas category).
+- Categories with "—" have no publication codes or harvesters yet.
+- **Pre-harvested English (E)**: **JwSourceHelper.AllPublicationCodesForEnglishSeeding** = BiblePublicationCodes ∪ VocalMusicPublicationCodes ∪ DramaCategoryCodes ∪ VideoPublicationCodes ∪ ChildrenPublicationCodes ∪ SeriesPublicationCodes (excludes melody-only iam). **EnglishSeeder** uses that set; no separate list to update.
+- **Category modal order**: Bible first, then rest alphabetically by category display name.
 
 ---
 
@@ -158,11 +187,11 @@ Enum:
 
 ### 3) MediatorSectioned
 
-- publications: **dramas**
-- shape: Publication → Sections (discovered dynamically) → Tracks
+- publications: **dramas** (Dramas, DramaticBibleReadings, VOD*), **Series** (VODLFFVideosAD, SeriesDigForTreasures), **Children** (SeriesBJFLessons)
+- shape: Mediator API returns **media items** `(sectionCode, trackNumber)` per category; each item fetched with GETPUBMEDIALINKS `pub={sectionCode}&track={trackNumber}`. TrackCode = `sectionCode-trackNumber`. Most pubs store as Publication → Tracks (sections optional); **SeriesDigForTreasures** is 4 tracks only, no section rows.
 - APIs:
-  - Mediator API for discovery: `https://app.jw-cdn.org/apis/mediator/v1/...`
-  - then `GETPUBMEDIALINKS` for the actual track links for each discovered section code
+  - Mediator API for discovery: `https://app.jw-cdn.org/apis/mediator/v1/categories/{lang}/{categoryKey}?detailed=1` → parse `media[].naturalKey` for (sectionCode, trackNumber)
+  - then GETPUBMEDIALINKS for each media item with `pub=` and `track=`
 
 ---
 
@@ -283,19 +312,17 @@ Examples:
 
 **TrackCode Source**: `trackFile["track"]` property from JSON response (per disc, e.g., `"1"`, `"2"`)
 
-### Dramas (Dramas, DramaticBibleReadings)
+### Dramas (Mediator-discovered: Dramas, DramaticBibleReadings, VOD*, SeriesDigForTreasures, etc.)
 
-**Format**: `?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={langCode}`
+**Discovery**: Mediator API returns media items with `naturalKey` like `pub-{sectionCode}_{lang}_{trackNumber}_AUDIO`. We parse to `(sectionCode, trackNumber)` and fetch each track with GETPUBMEDIALINKS using both.
 
-**Note**: No `track` parameter - each section (drama) is a single file.
+**Format** (per track): `?output=json&pub={sectionCode}&track={trackNumber}&fileformat=MP3|MP4&alllangs=0&langwritten={langCode}`
 
 Examples:
-- "Keep Your Eye Simple" (iaey): `?output=json&pub=iaey&fileformat=MP3&alllangs=0&langwritten=E`
-- Another drama (iaeb): `?output=json&pub=iaeb&fileformat=MP3&alllangs=0&langwritten=E`
+- Single-file drama (legacy shape): `?output=json&pub=iaey&fileformat=MP3&alllangs=0&langwritten=E`
+- Mediator media item (e.g. Dig for Treasures): `?output=json&pub=jwb-129&track=3&fileformat=MP4&alllangs=0&langwritten=E`
 
-**TrackCode Source**: The `sectionCode` (pub parameter value) itself, e.g., `"iaey"`, `"iaeb"`
-
-**Why**: Dramas don't have multiple tracks per section. Each section is a single audio file identified by its pub code.
+**TrackCode**: `sectionCode-trackNumber` (e.g. `jwb-129-3`) so each track is unique. Legacy single-file sections use TrackCode = sectionCode only.
 
 ### Music Publications (sjjc, sjji, snv)
 
@@ -318,6 +345,14 @@ Example:
 **Note**: Uses `MP4` format instead of `MP3`
 
 **TrackCode Source**: Sequential counter (1, 2, 3...) since videos don't have a `track` property in JSON
+
+### Harvest validation (sample vs API)
+
+After seeding, the harvester runs **HarvestValidator** (`.tools/Bible.Alarm.AudioLinksHarvestor/Utility/HarvestValidator.cs`): it loads sample tracks from the DB (nwt, bi12, sjjc, osg, iam, gnj, thv, Dramas, SeriesDigForTreasures, VODMoviesBibleTimes), builds the GETPUBMEDIALINKS URL from each track’s **UrlParams**, fetches the API, and compares:
+- **Publication name**: API `pubName` vs DB `BiblePublication.Name`. For **sectioned/mediator** publications the API often returns the **section or episode title** (e.g. "Genesis", "Kingdom Melodies, Volume 1", "JW Broadcasting") rather than the publication name; the validator treats title match as pass for these.
+- **Track title**: API first track `title` vs DB `BiblePublicationTrack.Title`.
+
+So a “pass” means the stored URL params and track title align with the live API; pubName differences for sectioned/mediator are expected and not treated as failure.
 
 ### Response Format
 

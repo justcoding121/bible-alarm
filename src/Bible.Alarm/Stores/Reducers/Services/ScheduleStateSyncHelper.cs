@@ -71,6 +71,7 @@ public static class ScheduleStateSyncHelper
                current.BiblePublicationTrackCode == action.BiblePublicationTrackCode &&
                current.BiblePublicationModalItemCount == action.BiblePublicationModalItemCount &&
                current.BiblePublicationSectionModalItemCount == action.BiblePublicationSectionModalItemCount &&
+               current.BiblePublicationTrackModalItemCount == action.BiblePublicationTrackModalItemCount &&
                current.MusicPublicationModalItemCount == action.MusicPublicationModalItemCount &&
                current.MusicSectionModalItemCount == action.MusicSectionModalItemCount &&
                current.Name == action.Name &&

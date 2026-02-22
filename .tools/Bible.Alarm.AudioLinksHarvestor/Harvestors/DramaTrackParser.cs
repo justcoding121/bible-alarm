@@ -16,7 +16,8 @@ internal static class DramaTrackParser
         string sectionCode,
         string languageCode,
         ILogger logger,
-        bool isVideo = false)
+        bool isVideo = false,
+        int? trackNumber = null)
     {
         var tracks = new List<DramaTrack>();
         string? sectionName = null;
@@ -32,11 +33,9 @@ internal static class DramaTrackParser
                 return (null, null);
             }
 
-            // Extract section name from pubName field
             if (root.TryGetProperty("pubName", out var pubNameElement))
             {
                 var rawName = pubNameElement.GetString();
-                // Decode HTML entities like &nbsp; to proper characters and replace non-breaking spaces with regular spaces
                 sectionName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
             }
 
@@ -46,6 +45,9 @@ internal static class DramaTrackParser
                 return (null, sectionName);
             }
 
+            var fileFormat = isVideo ? "MP4" : "MP3";
+            var lookUpPathBase = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+
             foreach (var trackFile in formatFiles.EnumerateArray())
             {
                 if (!trackFile.TryGetProperty("file", out var fileElement))
@@ -53,7 +55,6 @@ internal static class DramaTrackParser
                     continue;
                 }
 
-                // Handle both cases: file can be a string (direct URL) or an object with a "url" property
                 string? url = null;
                 if (fileElement.ValueKind == JsonValueKind.String)
                 {
@@ -69,11 +70,9 @@ internal static class DramaTrackParser
                     continue;
                 }
 
-                // Get track title
                 string title = "Unknown";
                 if (trackFile.TryGetProperty("title", out var titleElement))
                 {
-                    // Handle both cases: title can be a string or an object
                     if (titleElement.ValueKind == JsonValueKind.String)
                     {
                         var rawTitle = titleElement.GetString();
@@ -86,14 +85,14 @@ internal static class DramaTrackParser
                     }
                 }
 
-                // Build lookup path using GETPUBMEDIALINKS format (no track param for drama sections)
-                var fileFormat = isVideo ? "MP4" : "MP3";
-                var lookUpPath = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={languageCode}";
+                var lookUpPath = trackNumber.HasValue
+                    ? $"{lookUpPathBase}&track={trackNumber.Value}"
+                    : lookUpPathBase;
+                var trackCode = trackNumber.HasValue ? $"{sectionCode}-{trackNumber.Value}" : sectionCode;
 
-                // For dramas, TrackCode is the sectionCode (pub param value), not sequential number
                 tracks.Add(new DramaTrack
                 {
-                    TrackCode = sectionCode,
+                    TrackCode = trackCode,
                     Title = title,
                     Url = url,
                     LookUpPath = lookUpPath

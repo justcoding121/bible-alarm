@@ -70,6 +70,11 @@ public static class DisplayNamePreservationHelper
             actionSchedule.BiblePublicationSectionModalItemCount = existingScheduleItem.BiblePublicationSectionModalItemCount;
         }
 
+        if (!actionSchedule.BiblePublicationTrackModalItemCount.HasValue && existingScheduleItem.BiblePublicationTrackModalItemCount.HasValue)
+        {
+            actionSchedule.BiblePublicationTrackModalItemCount = existingScheduleItem.BiblePublicationTrackModalItemCount;
+        }
+
         // Check if publication type changed (sectioned <-> non-sectioned)
         var actionHasSectionStructure = !string.IsNullOrWhiteSpace(actionSchedule.BiblePublicationCode) &&
             PublicationTypeHelper.HasSectionStructure(actionSchedule.BiblePublicationCode);

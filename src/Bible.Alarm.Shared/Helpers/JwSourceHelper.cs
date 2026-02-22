@@ -350,6 +350,26 @@ public static class JwSourceHelper
         return result;
     }
 
+    /// <summary>
+    /// Returns a display name for known publication codes when the API/DB has no name or only the code.
+    /// Used for placeholders and when publication.Name is empty or equals PublicationCode.
+    /// </summary>
+    public static string? GetPublicationDisplayNameFallback(string? publicationCode)
+    {
+        if (string.IsNullOrEmpty(publicationCode))
+        {
+            return null;
+        }
+
+        return publicationCode.ToLowerInvariant() switch
+        {
+            "vodlffvideosad" or "bodlffvideosad" => "Enjoy Life Forever!—Videos",
+            "seriesdigfortreasures" => "Dig for Treasures in God's Word",
+            "seriesbjflessons" => "Bible Stories for Little Ones",
+            _ => null
+        };
+    }
+
     // Publication names are extracted from API responses:
     // - Bible: parentPubName field
     // - Music: pubName field

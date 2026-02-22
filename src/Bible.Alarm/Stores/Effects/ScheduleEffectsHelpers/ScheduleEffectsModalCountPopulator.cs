@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Common.Extensions;
+using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
@@ -29,6 +30,7 @@ public static class ScheduleEffectsModalCountPopulator
 
             updated.BiblePublicationModalItemCount = await GetBiblePublicationModalItemCountAsync(db, updated);
             updated.BiblePublicationSectionModalItemCount = await GetBiblePublicationSectionModalItemCountAsync(db, updated);
+            updated.BiblePublicationTrackModalItemCount = await GetBiblePublicationTrackModalItemCountAsync(scope.ServiceProvider, updated);
 
             if (updated.MusicEnabled && HasMusicConfigured(updated))
             {
@@ -53,11 +55,42 @@ public static class ScheduleEffectsModalCountPopulator
     public static bool AreModalCountsEquivalent(ScheduleStateItem a, ScheduleStateItem b) =>
         a.BiblePublicationModalItemCount == b.BiblePublicationModalItemCount &&
         a.BiblePublicationSectionModalItemCount == b.BiblePublicationSectionModalItemCount &&
+        a.BiblePublicationTrackModalItemCount == b.BiblePublicationTrackModalItemCount &&
         a.MusicPublicationModalItemCount == b.MusicPublicationModalItemCount &&
         a.MusicSectionModalItemCount == b.MusicSectionModalItemCount;
 
     private static bool HasMusicConfigured(ScheduleStateItem schedule) =>
         !string.IsNullOrWhiteSpace(schedule.MusicPublicationCode);
+
+    private static async Task<int?> GetBiblePublicationTrackModalItemCountAsync(IServiceProvider serviceProvider, ScheduleStateItem schedule)
+    {
+        if (string.IsNullOrWhiteSpace(schedule.BiblePublicationCode))
+        {
+            return null;
+        }
+
+        var mediaService = serviceProvider.GetRequiredService<IMediaService>();
+        var languageCode = schedule.BiblePublicationLanguageCode ?? string.Empty;
+        var publicationCode = schedule.BiblePublicationCode;
+        var normalizedSectionCode = SectionCodeHelper.Normalize(schedule.BiblePublicationSectionCode);
+
+        try
+        {
+            var tracks = string.IsNullOrWhiteSpace(languageCode)
+                ? await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, normalizedSectionCode)
+                : await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, normalizedSectionCode);
+            if (tracks.Count == 0 && !string.IsNullOrWhiteSpace(languageCode))
+            {
+                tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, normalizedSectionCode);
+            }
+
+            return tracks.Count;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     private static async Task<int?> GetBiblePublicationModalItemCountAsync(MediaDbContext db, ScheduleStateItem schedule)
     {

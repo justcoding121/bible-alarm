@@ -26,6 +26,7 @@ public static class BiblePublicationCascadeScheduleUpdater
         string trackTitle,
         int? publicationModalItemCount,
         int? sectionModalItemCount,
+        int? trackModalItemCount,
         IDispatcher dispatcher,
         bool publicationWithoutLanguage = false)
     {
@@ -39,13 +40,15 @@ public static class BiblePublicationCascadeScheduleUpdater
         var trackChanged = currentTrackCode != trackCode;
         var publicationModalCountChanged = currentSchedule.BiblePublicationModalItemCount != publicationModalItemCount;
         var sectionModalCountChanged = currentSchedule.BiblePublicationSectionModalItemCount != sectionModalItemCount;
+        var trackModalCountChanged = currentSchedule.BiblePublicationTrackModalItemCount != trackModalItemCount;
 
         if (currentSchedule.BiblePublicationCode == publicationCode &&
             string.Equals(currentSectionCode, normalizedSectionCode, StringComparison.OrdinalIgnoreCase) &&
             currentTrackCode == trackCode &&
             currentTrackTitle == trackTitle &&
             !publicationModalCountChanged &&
-            !sectionModalCountChanged)
+            !sectionModalCountChanged &&
+            !trackModalCountChanged)
         {
             logger.Debug("BiblePublicationCascadeHandler: Values unchanged, skipping dispatch. publication={PublicationCode}, sectionCode={SectionCode}, track={TrackCode}",
                 publicationCode, normalizedSectionCode ?? "(none)", trackCode);
@@ -82,6 +85,7 @@ public static class BiblePublicationCascadeScheduleUpdater
         }
         updatedSchedule.BiblePublicationModalItemCount = publicationModalItemCount;
         updatedSchedule.BiblePublicationSectionModalItemCount = sectionModalItemCount;
+        updatedSchedule.BiblePublicationTrackModalItemCount = trackModalItemCount;
 
         if (string.IsNullOrWhiteSpace(updatedSchedule.BiblePublicationCategoryName) && !string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCategoryName))
         {

@@ -27,17 +27,16 @@ internal sealed class DramaMediatorApiClient
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<(string? LocalizedPubName, HashSet<string> SectionCodes)> FetchCategoryAndSectionsAsync(
+    public async Task<(string? LocalizedPubName, List<(string SectionCode, int TrackNumber)> MediaItems)> FetchCategoryAndSectionsAsync(
         string normalizedPublicationCode,
         string normalizedLanguageCode,
         CancellationToken cancellationToken)
     {
-        // Mediator API requires exact-case category key (e.g. Dramas, DramaticBibleReadings, VODMoviesBibleTimes)
         var categoryKey = Bible.Alarm.Shared.Helpers.JwSourceHelper.GetCanonicalDramaPublicationCode(normalizedPublicationCode);
         if (categoryKey == null)
         {
             logger.Warning("Unknown drama publication code: {PublicationCode}", normalizedPublicationCode);
-            return (null, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return (null, new List<(string SectionCode, int TrackNumber)>());
         }
 
         var pathAndQuery = $"/categories/{normalizedLanguageCode}/{categoryKey}?detailed=1";
@@ -47,7 +46,7 @@ internal sealed class DramaMediatorApiClient
         {
             logger.Warning("Failed to fetch drama category {CategoryKey} for language {LanguageCode}",
                 categoryKey, normalizedLanguageCode);
-            return (null, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return (null, new List<(string SectionCode, int TrackNumber)>());
         }
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
@@ -55,7 +54,7 @@ internal sealed class DramaMediatorApiClient
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("category", out var categoryElement))
         {
             logger.Warning("Invalid response structure for drama category {CategoryKey}", categoryKey);
-            return (null, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return (null, new List<(string SectionCode, int TrackNumber)>());
         }
 
         // Extract localized publication name.
@@ -91,35 +90,46 @@ internal sealed class DramaMediatorApiClient
             }
         }
 
-        // Extract section codes from category.media array
         if (!categoryElement.TryGetProperty("media", out var mediaArray) || mediaArray.ValueKind != JsonValueKind.Array)
         {
             logger.Warning("No media items found in drama category {CategoryKey}", categoryKey);
-            return (localizedPubName, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            return (localizedPubName, new List<(string SectionCode, int TrackNumber)>());
         }
 
-        var sectionCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var mediaItems = new List<(string SectionCode, int TrackNumber)>();
         foreach (var mediaItem in mediaArray.EnumerateArray())
         {
-            // Extract section code from naturalKey: "pub-{sectionCode}_{lang}_{number}_AUDIO"
-            if (mediaItem.TryGetProperty("naturalKey", out var naturalKeyElement))
+            if (!mediaItem.TryGetProperty("naturalKey", out var naturalKeyElement))
             {
-                var naturalKey = naturalKeyElement.GetString() ?? "";
-                if (naturalKey.StartsWith("pub-", StringComparison.OrdinalIgnoreCase))
-                {
-                    var parts = naturalKey.Split('_');
-                    if (parts.Length > 0)
-                    {
-                        var sectionCode = parts[0].Substring(4); // Remove "pub-" prefix
-                        if (!string.IsNullOrEmpty(sectionCode))
-                        {
-                            sectionCodes.Add(sectionCode);
-                        }
-                    }
-                }
+                continue;
             }
+
+            var naturalKey = naturalKeyElement.GetString() ?? "";
+            if (!naturalKey.StartsWith("pub-", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var parts = naturalKey.Split('_');
+            if (parts.Length < 3)
+            {
+                continue;
+            }
+
+            var sectionCode = parts[0].Substring(4);
+            if (string.IsNullOrEmpty(sectionCode))
+            {
+                continue;
+            }
+
+            if (!int.TryParse(parts[2], out var trackNumber) || trackNumber < 1)
+            {
+                continue;
+            }
+
+            mediaItems.Add((sectionCode, trackNumber));
         }
 
-        return (localizedPubName, sectionCodes);
+        return (localizedPubName, mediaItems);
     }
 }

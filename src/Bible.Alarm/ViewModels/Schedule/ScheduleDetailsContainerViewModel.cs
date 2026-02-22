@@ -324,6 +324,7 @@ public sealed class ScheduleDetailsContainerViewModel : ObservableObject, IDispo
             MusicTrackName = source.MusicTrackName,
             BiblePublicationModalItemCount = source.BiblePublicationModalItemCount,
             BiblePublicationSectionModalItemCount = source.BiblePublicationSectionModalItemCount,
+            BiblePublicationTrackModalItemCount = source.BiblePublicationTrackModalItemCount,
             MusicPublicationModalItemCount = source.MusicPublicationModalItemCount,
             MusicSectionModalItemCount = source.MusicSectionModalItemCount
         };
