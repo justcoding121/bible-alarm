@@ -181,6 +181,26 @@ public static class JwSourceHelper
     public static HashSet<string> TeenagersPublicationCodes => new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    /// All language-bound publication codes that should be harvested for English (E) in the harvester.
+    /// Matches the cursor rules table: Bible, Music (vocal only), Dramas, Children, Series.
+    /// Excludes melody (iam) which has no language. Used by EnglishSeeder to ensure every listed publication gets E.
+    /// </summary>
+    public static HashSet<string> AllPublicationCodesForEnglishSeeding
+    {
+        get
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var code in BiblePublicationCodes) set.Add(code);
+            foreach (var code in VocalMusicPublicationCodes) set.Add(code);
+            foreach (var code in DramaCategoryCodes) set.Add(code);
+            foreach (var code in VideoPublicationCodes) set.Add(code);
+            foreach (var code in ChildrenPublicationCodes) set.Add(code);
+            foreach (var code in SeriesPublicationCodes) set.Add(code);
+            return set;
+        }
+    }
+
+    /// <summary>
     /// Centralized mapping of category names to their publication codes.
     /// </summary>
     public static Dictionary<string, HashSet<string>> CategoryToPublicationCodes

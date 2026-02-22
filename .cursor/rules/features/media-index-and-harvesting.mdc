@@ -46,6 +46,7 @@ Notes:
 - **Language-bound**: Yes = `BiblePublications.LanguageId != null` (per-language content); No = no-language (e.g. instrumental iam).
 - **Harvest type**: Flat = Publication → Tracks (GETPUBMEDIALINKS); Sectioned = Publication → Sections → Tracks (booknum or pub=sectionCode); MediatorSectioned = Mediator API discovery then GETPUBMEDIALINKS.
 - Categories with "—" have no publication codes or harvesters yet; add codes in JwSourceHelper and implement discovery/harvest when ready.
+- **Pre-harvested English (E)**: Any publication you add to the relevant sets in **JwSourceHelper** (BiblePublicationCodes, VocalMusicPublicationCodes, DramaCategoryCodes, VideoPublicationCodes, ChildrenPublicationCodes, SeriesPublicationCodes) is **automatically** included in the pre-harvested index for "E". **EnglishSeeder** uses **JwSourceHelper.AllPublicationCodesForEnglishSeeding** (union of those sets, excluding melody-only). No separate list to update.
 - **Category modal order**: Bible is always shown first (CategoryService orders with Bible first, then rest alphabetically by category display name).
 
 ---

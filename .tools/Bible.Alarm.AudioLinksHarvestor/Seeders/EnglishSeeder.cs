@@ -40,36 +40,10 @@ internal sealed class EnglishSeeder
         using var dbScope = scopeFactory.CreateScope();
         var db = dbScope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        // Data-driven approach: Get all publications that need English seeding
-        // This includes:
-        // 1. Publications from discovery phase (dataStore.PublicationLanguages) that haven't been harvested yet
-        // 2. Publications that have been harvested but don't have English yet (excluding those with LanguageId == null)
+        // Use canonical list from JwSourceHelper so every listed publication (and any future one added there) is harvested for E
+        var allPublicationCodes = JwSourceHelper.AllPublicationCodesForEnglishSeeding;
 
-        // Step 1: Get all distinct publication codes from discovery phase
-        var discoveredPublicationCodes = dataStore.PublicationLanguages.Keys.ToList();
-
-        // Step 2: Get all distinct publication codes from BiblePublications (excluding those with LanguageId == null)
-        // Publications with LanguageId == null don't have English content, so skip them
-        var harvestedPublicationCodes = await db.BiblePublications
-            .AsNoTracking()
-            .Where(bp => bp.LanguageId != null) // Exclude publications without language (they don't have English content)
-            .Select(bp => bp.PublicationCode)
-            .Distinct()
-            .ToListAsync();
-
-        // Step 3: Combine both lists and get unique publication codes
-        var allPublicationCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var code in discoveredPublicationCodes)
-        {
-            allPublicationCodes.Add(code);
-        }
-
-        foreach (var code in harvestedPublicationCodes)
-        {
-            allPublicationCodes.Add(code);
-        }
-
-        // Step 4: Filter out publications that already have English or have LanguageId == null
+        // Filter out publications that already have English or have LanguageId == null (e.g. iam)
         var publicationsNeedingEnglish = new List<string>();
         foreach (var publicationCode in allPublicationCodes)
         {
