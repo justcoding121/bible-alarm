@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,8 @@ using Serilog;
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
 /// <summary>
-/// Helper class for building and saving English publications.
+/// Helper class for building and saving English publications (Bible, etc.).
+/// One publication row per (PublicationCode, LanguageId); categories are for UX filtering only.
 /// </summary>
 internal sealed class EnglishPublicationBuilder
 {
@@ -43,10 +45,74 @@ internal sealed class EnglishPublicationBuilder
         }
 
         var finalPublicationName = publicationName ?? normalizedPublicationCode;
-        
-        // For Bible publications, temporarily remove tracks from sections before saving
-        // We'll add them back after sections have IDs to avoid foreign key constraint errors
-        // Publications without language (like instrumental music) also have tracks in sections already
+        var categoryCodes = JwSourceHelper.GetCategoryCodesForPublication(normalizedPublicationCode);
+        var categories = await db.Categories
+            .Where(c => categoryCodes.Contains(c.CategoryCode))
+            .ToListAsync(cancellationToken);
+
+        var languageId = language?.Id;
+        var existingPublication = await db.BiblePublications
+            .Include(bp => bp.Sections)
+            .ThenInclude(s => s.Tracks)
+            .ThenInclude(t => t.UrlParams)
+            .Include(bp => bp.BiblePublicationCategories)
+            .ThenInclude(bpc => bpc.Category)
+            .FirstOrDefaultAsync(
+                bp => bp.PublicationCode == normalizedPublicationCode && bp.LanguageId == languageId,
+                cancellationToken);
+
+        if (existingPublication != null)
+        {
+            foreach (var section in existingPublication.Sections)
+            {
+                foreach (var track in section.Tracks)
+                {
+                    if (track.UrlParams.Count > 0)
+                    {
+                        db.UrlParams.RemoveRange(track.UrlParams);
+                    }
+                }
+            }
+
+            db.BiblePublicationTracks.RemoveRange(existingPublication.Sections.SelectMany(s => s.Tracks));
+            db.BiblePublicationSections.RemoveRange(existingPublication.Sections);
+            existingPublication.Sections.Clear();
+            existingPublication.Name = finalPublicationName;
+            existingPublication.IsVideo = isVideo;
+            SyncPublicationCategories(existingPublication, categories);
+
+            foreach (var section in sections)
+            {
+                section.BiblePublication = existingPublication;
+                section.BiblePublicationId = existingPublication.Id;
+                foreach (var track in section.Tracks)
+                {
+                    track.Publication = existingPublication;
+                    track.Section = section;
+                }
+                existingPublication.Sections.Add(section);
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+
+            if (isBible && !publicationWithoutLanguage)
+            {
+                foreach (var section in sections)
+                {
+                    foreach (var track in section.Tracks)
+                    {
+                        track.BiblePublicationId = existingPublication.Id;
+                        track.BiblePublicationSectionId = section.Id;
+                    }
+                }
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
+            logger.Information("Updated existing publication {PublicationCode} with {Count} sections",
+                normalizedPublicationCode, sections.Count);
+            return true;
+        }
+
         var tracksBySection = new Dictionary<BiblePublicationSection, List<BiblePublicationTrack>>();
         if (isBible && !publicationWithoutLanguage)
         {
@@ -59,27 +125,24 @@ internal sealed class EnglishPublicationBuilder
                 }
             }
         }
-        
+
         var publication = new BiblePublication
         {
             PublicationCode = normalizedPublicationCode,
             Name = finalPublicationName,
-            Language = language, // null for publications without language
-            BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = category.Id, Category = category } },
-            LanguageId = language?.Id, // null for publications without language
+            Language = language,
+            BiblePublicationCategories = categories
+                .Select(cat => new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = cat.Id, Category = cat })
+                .ToList(),
+            LanguageId = languageId,
             IsVideo = isVideo,
             Tracks = new List<BiblePublicationTrack>(),
             Sections = sections
         };
 
-        // Set publication reference on sections and tracks
-        // For publications without language and non-Bible publications, tracks are already in sections
         foreach (var section in sections)
         {
             section.BiblePublication = publication;
-            
-            // For publications without language and other non-Bible publications, set references on tracks now
-            // (Bible publications will set references after sections have IDs)
             if (!isBible || publicationWithoutLanguage)
             {
                 foreach (var track in section.Tracks)
@@ -90,18 +153,15 @@ internal sealed class EnglishPublicationBuilder
             }
         }
 
-        // Save publication and sections first so they get IDs
         db.BiblePublications.Add(publication);
         await db.SaveChangesAsync(cancellationToken);
-        
-        // For Bible publications, now add tracks back with proper foreign key IDs
+
         if (isBible && !publicationWithoutLanguage && tracksBySection.Count > 0)
         {
             foreach (var kvp in tracksBySection)
             {
                 var section = kvp.Key;
                 var tracks = kvp.Value;
-                
                 foreach (var track in tracks)
                 {
                     track.Publication = publication;
@@ -109,16 +169,12 @@ internal sealed class EnglishPublicationBuilder
                     track.BiblePublicationId = publication.Id;
                     track.BiblePublicationSectionId = section.Id;
                 }
-                
-                // Add tracks to section and to DbContext
                 foreach (var track in tracks)
                 {
                     section.Tracks.Add(track);
                 }
                 db.BiblePublicationTracks.AddRange(tracks);
             }
-            
-            // Save tracks
             await db.SaveChangesAsync(cancellationToken);
         }
 
@@ -126,5 +182,20 @@ internal sealed class EnglishPublicationBuilder
             sections.Count, normalizedPublicationCode);
 
         return true;
+    }
+
+    private static void SyncPublicationCategories(BiblePublication publication, List<Category> categories)
+    {
+        var existingCategoryIds = publication.BiblePublicationCategories
+            .Select(bpc => bpc.CategoryId)
+            .ToHashSet();
+        foreach (var cat in categories)
+        {
+            if (existingCategoryIds.Add(cat.Id))
+            {
+                publication.BiblePublicationCategories.Add(
+                    new BiblePublicationCategory { BiblePublicationId = publication.Id, CategoryId = cat.Id, Category = cat });
+            }
+        }
     }
 }

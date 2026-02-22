@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
@@ -39,17 +38,7 @@ internal sealed class DramaTrackFetcher
         string normalizedLanguageCode,
         CancellationToken cancellationToken)
     {
-        // Get ApiUrl
-        var apiUrl = await db.ApiUrls
-            .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (apiUrl == null)
-        {
-            logger.Warning("No ApiUrl found");
-            return new List<BiblePublicationTrack>();
-        }
-
+        var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
         var allTracks = new List<BiblePublicationTrack>();
         var successfulSections = 0;
         var failedSections = 0;
@@ -62,7 +51,7 @@ internal sealed class DramaTrackFetcher
             try
             {
                 var tracks = await FetchTracksForSectionAsync(
-                    sectionCode, normalizedPublicationCode, normalizedLanguageCode, apiUrl, 
+                    sectionCode, normalizedPublicationCode, normalizedLanguageCode, baseUrls,
                     cancellationToken);
                 
                 if (tracks.Count > 0)
@@ -110,20 +99,18 @@ internal sealed class DramaTrackFetcher
         string sectionCode,
         string normalizedPublicationCode,
         string normalizedLanguageCode,
-        ApiUrl apiUrl,
+        IReadOnlyList<string> baseUrls,
         CancellationToken cancellationToken)
     {
         var isVideo = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
         var fileFormat = isVideo ? "MP4" : "MP3";
-        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
-        var sectionResponse = await httpClient.GetAsync(harvestLink, cancellationToken);
-        
-        if (!sectionResponse.IsSuccessStatusCode)
+        var queryString = $"?output=json&pub={sectionCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        var sectionJsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
+        if (sectionJsonString == null)
         {
             return new List<BiblePublicationTrack>();
         }
 
-        var sectionJsonString = await sectionResponse.Content.ReadAsStringAsync(cancellationToken);
         using var sectionDoc = JsonDocument.Parse(sectionJsonString);
         var sectionRoot = sectionDoc.RootElement;
 
@@ -133,8 +120,7 @@ internal sealed class DramaTrackFetcher
         }
 
         var tracks = trackParser.ParseTracksFromJson(
-            sectionFilesElement, normalizedLanguageCode, sectionCode, apiUrl, isVideo);
-        
+            sectionFilesElement, normalizedLanguageCode, sectionCode, isVideo);
         return tracks;
     }
 }

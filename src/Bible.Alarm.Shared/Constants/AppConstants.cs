@@ -13,14 +13,32 @@ public static class AppConstants
     public static class ApiEndpoints
     {
         /// <summary>
-        /// Primary JW.org index service base URL
+        /// Primary JW.org index service base URL for GETPUBMEDIALINKS (flat video/music, drama track lookup).
         /// </summary>
         public const string JwOrgIndexServiceBaseUrl = "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS";
 
         /// <summary>
-        /// JW.org Mediator API base URL for category-based content (dramas, etc.)
+        /// Redundant base URLs for GETPUBMEDIALINKS (app. and b. are equivalent). Use for retry when a fetch fails.
+        /// </summary>
+        public static readonly string[] JwOrgIndexServiceBaseUrls =
+        {
+            "https://b.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS",
+            "https://app.jw-cdn.org/apis/pub-media/GETPUBMEDIALINKS"
+        };
+
+        /// <summary>
+        /// Primary JW.org Mediator API base URL for category-based content (dramas, etc.).
         /// </summary>
         public const string JwOrgMediatorApiBaseUrl = "https://app.jw-cdn.org/apis/mediator/v1";
+
+        /// <summary>
+        /// Redundant base URLs for Mediator API (b. and app. are equivalent). Use for random pick or retry.
+        /// </summary>
+        public static readonly string[] JwOrgMediatorApiBaseUrls =
+        {
+            "https://b.jw-cdn.org/apis/mediator/v1",
+            "https://app.jw-cdn.org/apis/mediator/v1"
+        };
 
         /// <summary>
         /// Media index file name prefix for new format (v2+)

@@ -1,4 +1,5 @@
 #nullable enable
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -10,7 +11,10 @@ using Serilog;
 
 namespace Bible.Alarm.Services.Media;
 
-public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService downloadService) : IMediaUrlRefreshService
+public sealed class MediaUrlRefreshService(
+    ILogger logger,
+    IDownloadService downloadService,
+    HttpClient httpClient) : IMediaUrlRefreshService
 {
     public async Task<string?> RefreshUrlAsync(TrackMetadata trackMetadata)
     {
@@ -318,11 +322,14 @@ public sealed class MediaUrlRefreshService(ILogger logger, IDownloadService down
     {
         try
         {
-            // Use Mediator API for dramas
-            var mediatorUrl = $"{AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl}/categories/{languageCode}/{categoryKey}?detailed=1";
-            
-            var responseBytes = await downloadService.DownloadAsync(mediatorUrl);
-            var jsonString = Encoding.Default.GetString(responseBytes);
+            var pathAndQuery = $"/categories/{languageCode}/{categoryKey}?detailed=1";
+            var baseUrls = AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls;
+            var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, pathAndQuery);
+            if (string.IsNullOrEmpty(jsonString))
+            {
+                return null;
+            }
+
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 

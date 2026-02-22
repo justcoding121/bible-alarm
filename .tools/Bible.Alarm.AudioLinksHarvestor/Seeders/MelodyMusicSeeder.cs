@@ -58,16 +58,6 @@ internal sealed class MelodyMusicSeeder
             return;
         }
 
-        // Get ApiUrl for creating UrlParams
-        var apiUrl = await db.ApiUrls
-            .FirstOrDefaultAsync(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS");
-
-        if (apiUrl == null)
-        {
-            logger.Error("ApiUrl not found for GETPUBMEDIALINKS");
-            return;
-        }
-
         foreach (var kvp in dataStore.MelodyMusic)
         {
             var publicationCode = kvp.Key;
@@ -154,38 +144,10 @@ internal sealed class MelodyMusicSeeder
                     // Create UrlParams for the track (similar to ParseIamTracks)
                     var trackUrlParams = new List<SharedUrlParam>
                     {
-                        new SharedUrlParam
-                        {
-                            Key = "pub",
-                            Value = discCode.ToLowerInvariant(), // Use disc code (e.g., "iam-1") as pub parameter
-                            IsQueryParam = true,
-                            ApiUrl = apiUrl,
-                            ApiUrlId = apiUrl.Id
-                        },
-                        new SharedUrlParam
-                        {
-                            Key = "fileformat",
-                            Value = "mp3",
-                            IsQueryParam = true,
-                            ApiUrl = apiUrl,
-                            ApiUrlId = apiUrl.Id
-                        },
-                        new SharedUrlParam
-                        {
-                            Key = "langwritten",
-                            Value = "E",
-                            IsQueryParam = true,
-                            ApiUrl = apiUrl,
-                            ApiUrlId = apiUrl.Id
-                        },
-                        new SharedUrlParam
-                        {
-                            Key = "track",
-                            Value = (musicTrack.OriginalTrackCode ?? musicTrack.Number).ToString(),
-                            IsQueryParam = true,
-                            ApiUrl = apiUrl,
-                            ApiUrlId = apiUrl.Id
-                        }
+                        new SharedUrlParam { Key = "pub", Value = discCode.ToLowerInvariant(), IsQueryParam = true },
+                        new SharedUrlParam { Key = "fileformat", Value = "mp3", IsQueryParam = true },
+                        new SharedUrlParam { Key = "langwritten", Value = "E", IsQueryParam = true },
+                        new SharedUrlParam { Key = "track", Value = (musicTrack.OriginalTrackCode ?? musicTrack.Number).ToString(), IsQueryParam = true }
                     };
 
                     // For Kingdom Melodies (iam), prefix track title with "Melody Number(s) "

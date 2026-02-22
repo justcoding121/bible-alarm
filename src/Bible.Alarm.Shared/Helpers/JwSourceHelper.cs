@@ -320,6 +320,30 @@ public static class JwSourceHelper
             : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Gets all category codes (DB form) that this publication belongs to.
+    /// Used so a single BiblePublication row can be linked to multiple categories (UX filtering only).
+    /// </summary>
+    public static List<string> GetCategoryCodesForPublication(string publicationCode)
+    {
+        if (string.IsNullOrEmpty(publicationCode))
+        {
+            return new List<string>();
+        }
+
+        var result = new List<string>();
+        var normalized = publicationCode.ToLowerInvariant();
+        foreach (var (categoryName, codes) in CategoryToPublicationCodes)
+        {
+            if (codes.Contains(normalized) || codes.Contains(publicationCode))
+            {
+                result.Add(CategoryNameToCode(categoryName));
+            }
+        }
+
+        return result;
+    }
+
     // Publication names are extracted from API responses:
     // - Bible: parentPubName field
     // - Music: pubName field

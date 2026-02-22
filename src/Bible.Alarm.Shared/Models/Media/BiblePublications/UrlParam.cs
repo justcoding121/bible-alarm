@@ -29,18 +29,6 @@ public sealed class UrlParam
     public BiblePublicationTrack? BiblePublicationTrack { get; set; }
 
     /// <summary>
-    /// Optional foreign key to ApiUrl.
-    /// </summary>
-    [ForeignKey(nameof(ApiUrl))]
-    [Column("BaseUrlId")]
-    public int? ApiUrlId { get; set; }
-
-    /// <summary>
-    /// Optional navigation property to ApiUrl.
-    /// </summary>
-    public Media.ApiUrl? ApiUrl { get; set; }
-
-    /// <summary>
     /// Parameter key (e.g., "pub", "booknum", "track", "fileformat").
     /// </summary>
     [Required]

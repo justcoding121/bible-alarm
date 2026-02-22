@@ -65,11 +65,13 @@ internal sealed class FlatPublicationFetcher
         const int MaxConsecutiveFailures = 3;
         var fetchedAllVideoTracks = false;
 
+        var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants().ToList();
+
         // Some video publications (e.g. thv) return all tracks in one response when no track param is used
         if (isVideo && !string.IsNullOrEmpty(trackParam))
         {
             var (allTracksResult, fetchedPubName) = await TryFetchAllVideoTracksInOneRequestAsync(
-                db, normalizedPublicationCode, normalizedLanguageCode, fileFormat, cancellationToken);
+                baseUrls, normalizedPublicationCode, normalizedLanguageCode, fileFormat, cancellationToken);
             if (allTracksResult.Count > 0)
             {
                 tracks.AddRange(allTracksResult);
@@ -85,17 +87,14 @@ internal sealed class FlatPublicationFetcher
         {
             try
             {
-                var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&fileformat={fileFormat}&alllangs=0{trackParam}{trackCode}&langwritten={normalizedLanguageCode}";
-                var response = await httpClient.GetAsync(harvestLink, cancellationToken);
-                
-                if (!response.IsSuccessStatusCode)
+                var queryString = $"?output=json&pub={normalizedPublicationCode}&fileformat={fileFormat}&alllangs=0{trackParam}{trackCode}&langwritten={normalizedLanguageCode}";
+                var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
+                if (jsonString == null)
                 {
                     consecutiveFailures++;
                     trackCode++;
                     continue;
                 }
-
-                var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
                 using var doc = JsonDocument.Parse(jsonString);
                 var root = doc.RootElement;
 
@@ -148,17 +147,6 @@ internal sealed class FlatPublicationFetcher
                     localizedPubName = extractedName;
                 }
 
-                // Get ApiUrl for tracks
-                var apiUrl = await db.ApiUrls
-                    .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                if (apiUrl == null)
-                {
-                    logger.Warning("No ApiUrl found for publication tracks");
-                    return false;
-                }
-
                 // Process files based on type
                 if (isVideo)
                 {
@@ -196,46 +184,11 @@ internal sealed class FlatPublicationFetcher
 
                                 var trackUrlParams = new List<UrlParam>
                                 {
-                                    new UrlParam
-                                    {
-                                        Key = "pub",
-                                        Value = normalizedPublicationCode,
-                                        IsQueryParam = true,
-                                        ApiUrl = apiUrl,
-                                        ApiUrlId = apiUrl.Id
-                                    },
-                                    new UrlParam
-                                    {
-                                        Key = "track",
-                                        Value = trackCode.ToString(),
-                                        IsQueryParam = true,
-                                        ApiUrl = apiUrl,
-                                        ApiUrlId = apiUrl.Id
-                                    },
-                                    new UrlParam
-                                    {
-                                        Key = "fileformat",
-                                        Value = fileFormat.ToLowerInvariant(),
-                                        IsQueryParam = true,
-                                        ApiUrl = apiUrl,
-                                        ApiUrlId = apiUrl.Id
-                                    },
-                                    new UrlParam
-                                    {
-                                        Key = "alllangs",
-                                        Value = "0",
-                                        IsQueryParam = true,
-                                        ApiUrl = apiUrl,
-                                        ApiUrlId = apiUrl.Id
-                                    },
-                                    new UrlParam
-                                    {
-                                        Key = "langwritten",
-                                        Value = normalizedLanguageCode,
-                                        IsQueryParam = true,
-                                        ApiUrl = apiUrl,
-                                        ApiUrlId = apiUrl.Id
-                                    }
+                                    new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true },
+                                    new UrlParam { Key = "track", Value = trackCode.ToString(), IsQueryParam = true },
+                                    new UrlParam { Key = "fileformat", Value = fileFormat.ToLowerInvariant(), IsQueryParam = true },
+                                    new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true },
+                                    new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true }
                                 };
 
                                 // TrackCode is the track param value from URL params
@@ -293,46 +246,11 @@ internal sealed class FlatPublicationFetcher
 
                         var trackUrlParams = new List<UrlParam>
                         {
-                            new UrlParam
-                            {
-                                Key = "pub",
-                                Value = normalizedPublicationCode,
-                                IsQueryParam = true,
-                                ApiUrl = apiUrl,
-                                ApiUrlId = apiUrl.Id
-                            },
-                            new UrlParam
-                            {
-                                Key = "track",
-                                Value = apiTrackCode.ToString(),
-                                IsQueryParam = true,
-                                ApiUrl = apiUrl,
-                                ApiUrlId = apiUrl.Id
-                            },
-                            new UrlParam
-                            {
-                                Key = "fileformat",
-                                Value = fileFormat.ToLowerInvariant(),
-                                IsQueryParam = true,
-                                ApiUrl = apiUrl,
-                                ApiUrlId = apiUrl.Id
-                            },
-                            new UrlParam
-                            {
-                                Key = "alllangs",
-                                Value = "0",
-                                IsQueryParam = true,
-                                ApiUrl = apiUrl,
-                                ApiUrlId = apiUrl.Id
-                            },
-                            new UrlParam
-                            {
-                                Key = "langwritten",
-                                Value = normalizedLanguageCode,
-                                IsQueryParam = true,
-                                ApiUrl = apiUrl,
-                                ApiUrlId = apiUrl.Id
-                            }
+                            new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true },
+                            new UrlParam { Key = "track", Value = apiTrackCode.ToString(), IsQueryParam = true },
+                            new UrlParam { Key = "fileformat", Value = fileFormat.ToLowerInvariant(), IsQueryParam = true },
+                            new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true },
+                            new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true }
                         };
 
                         // TrackCode is the apiTrackCode from the API response (track param value)
@@ -393,20 +311,24 @@ internal sealed class FlatPublicationFetcher
             }
         }
 
-        var category = englishPublication.PrimaryCategory;
-        if (category == null)
+        var categoryCodes = JwSourceHelper.GetCategoryCodesForPublication(normalizedPublicationCode);
+        var categories = await db.Categories
+            .Where(c => categoryCodes.Contains(c.CategoryCode))
+            .ToListAsync(cancellationToken);
+        if (categories.Count == 0)
         {
-            logger.Warning("Category not found for English publication {PublicationCode}", normalizedPublicationCode);
+            logger.Warning("No categories found for publication {PublicationCode}", normalizedPublicationCode);
             return false;
         }
 
-        // Check if publication already exists
-        // Handle null language case separately since EF Core can't translate null propagating operator
         BiblePublication? existingPublication;
         if (resolvedLanguage != null)
         {
             existingPublication = await db.BiblePublications
                 .Include(bp => bp.Tracks)
+                .ThenInclude(t => t.UrlParams)
+                .Include(bp => bp.BiblePublicationCategories)
+                .ThenInclude(bpc => bpc.Category)
                 .FirstOrDefaultAsync(
                     bp => bp.PublicationCode == normalizedPublicationCode &&
                           bp.LanguageId == resolvedLanguage.Id,
@@ -416,6 +338,9 @@ internal sealed class FlatPublicationFetcher
         {
             existingPublication = await db.BiblePublications
                 .Include(bp => bp.Tracks)
+                .ThenInclude(t => t.UrlParams)
+                .Include(bp => bp.BiblePublicationCategories)
+                .ThenInclude(bpc => bpc.Category)
                 .FirstOrDefaultAsync(
                     bp => bp.PublicationCode == normalizedPublicationCode &&
                           bp.LanguageId == null,
@@ -424,48 +349,71 @@ internal sealed class FlatPublicationFetcher
 
         if (existingPublication != null)
         {
-            // Publication exists - delete it and its tracks to avoid duplicates
-            // We'll replace it with the new one that has all tracks
-            logger.Information("Publication {PublicationCode} already exists for language {LanguageCode}, replacing with updated tracks",
+            logger.Information("Publication {PublicationCode} already exists for language {LanguageCode}, updating tracks and categories",
                 normalizedPublicationCode, normalizedLanguageCode ?? "(null)");
-            
-            // Remove existing tracks (cascade delete will handle sections if any)
+            foreach (var track in existingPublication.Tracks)
+            {
+                if (track.UrlParams.Count > 0)
+                {
+                    db.UrlParams.RemoveRange(track.UrlParams);
+                }
+            }
             db.BiblePublicationTracks.RemoveRange(existingPublication.Tracks);
-            await db.SaveChangesAsync(cancellationToken);
-            
-            // Remove the publication
-            db.BiblePublications.Remove(existingPublication);
+            existingPublication.Tracks.Clear();
+            existingPublication.Name = localizedPubName ?? englishPublication.Name;
+            existingPublication.IsVideo = isVideo;
+            SyncPublicationCategories(existingPublication, categories);
+            foreach (var track in tracks)
+            {
+                track.Publication = existingPublication;
+                track.BiblePublicationId = existingPublication.Id;
+                existingPublication.Tracks.Add(track);
+            }
             await db.SaveChangesAsync(cancellationToken);
         }
-
-        // Create publication
-        var publicationName = localizedPubName ?? englishPublication.Name;
-        var publication = new BiblePublication
+        else
         {
-            PublicationCode = normalizedPublicationCode,
-            Name = publicationName,
-            Language = resolvedLanguage,
-            BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = category.Id, Category = category } },
-            LanguageId = resolvedLanguage?.Id,
-            IsVideo = isVideo,
-            Tracks = tracks,
-            Sections = new List<BiblePublicationSection>()
-        };
-
-        // Set publication reference on tracks
-        foreach (var track in tracks)
-        {
-            track.Publication = publication;
+            var publicationName = localizedPubName ?? englishPublication.Name;
+            var publication = new BiblePublication
+            {
+                PublicationCode = normalizedPublicationCode,
+                Name = publicationName,
+                Language = resolvedLanguage,
+                BiblePublicationCategories = categories
+                    .Select(cat => new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = cat.Id, Category = cat })
+                    .ToList(),
+                LanguageId = resolvedLanguage?.Id,
+                IsVideo = isVideo,
+                Tracks = tracks,
+                Sections = new List<BiblePublicationSection>()
+            };
+            foreach (var track in tracks)
+            {
+                track.Publication = publication;
+            }
+            db.BiblePublications.Add(publication);
+            await db.SaveChangesAsync(cancellationToken);
         }
-
-        // Add ApiUrl reference to tracks via UrlParams (already set above)
-        db.BiblePublications.Add(publication);
-        await db.SaveChangesAsync(cancellationToken);
 
         logger.Information("Successfully fetched {Count} tracks for publication {PublicationCode} in language {LanguageCode}",
             tracks.Count, normalizedPublicationCode, normalizedLanguageCode);
 
         return true;
+    }
+
+    private static void SyncPublicationCategories(BiblePublication publication, List<Category> categories)
+    {
+        var existingCategoryIds = publication.BiblePublicationCategories
+            .Select(bpc => bpc.CategoryId)
+            .ToHashSet();
+        foreach (var cat in categories)
+        {
+            if (existingCategoryIds.Add(cat.Id))
+            {
+                publication.BiblePublicationCategories.Add(
+                    new BiblePublicationCategory { BiblePublicationId = publication.Id, CategoryId = cat.Id, Category = cat });
+            }
+        }
     }
 
     /// <summary>
@@ -474,22 +422,20 @@ internal sealed class FlatPublicationFetcher
     /// (track=1, track=2, …); we try fetch-all first for efficiency (one request vs many).
     /// </summary>
     private async Task<(List<BiblePublicationTrack> Tracks, string? LocalizedPubName)> TryFetchAllVideoTracksInOneRequestAsync(
-        MediaDbContext db,
+        List<string> baseUrls,
         string normalizedPublicationCode,
         string normalizedLanguageCode,
         string fileFormat,
         CancellationToken cancellationToken)
     {
-        var harvestLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        var queryString = $"?output=json&pub={normalizedPublicationCode}&fileformat={fileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
         try
         {
-            var response = await httpClient.GetAsync(harvestLink, cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
+            if (jsonString == null)
             {
                 return (new List<BiblePublicationTrack>(), null);
             }
-
-            var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
@@ -506,14 +452,6 @@ internal sealed class FlatPublicationFetcher
             {
                 var rawName = pubNameElement.GetString();
                 fetchedPubName = rawName != null ? WebUtility.HtmlDecode(rawName).Replace('\u00A0', ' ') : null;
-            }
-
-            var apiUrl = await db.ApiUrls
-                .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
-                .FirstOrDefaultAsync(cancellationToken);
-            if (apiUrl == null)
-            {
-                return (new List<BiblePublicationTrack>(), null);
             }
 
             var byTrack = new Dictionary<int, JsonElement>();
@@ -568,11 +506,11 @@ internal sealed class FlatPublicationFetcher
 
                 var trackUrlParams = new List<UrlParam>
                 {
-                    new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id },
-                    new UrlParam { Key = "track", Value = kv.Key.ToString(), IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id },
-                    new UrlParam { Key = "fileformat", Value = fileFormat.ToLowerInvariant(), IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id },
-                    new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id },
-                    new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id }
+                    new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true },
+                    new UrlParam { Key = "track", Value = kv.Key.ToString(), IsQueryParam = true },
+                    new UrlParam { Key = "fileformat", Value = fileFormat.ToLowerInvariant(), IsQueryParam = true },
+                    new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true },
+                    new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true }
                 };
 
                 result.Add(new BiblePublicationTrack

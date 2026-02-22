@@ -109,7 +109,7 @@ internal class DbSeeder : IDataPersister
             }
         }
 
-        // Seed default Categories and ApiUrls first
+        // Seed default Categories first
         using (var scope = scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
@@ -194,13 +194,6 @@ internal class DbSeeder : IDataPersister
         }
     }
 
-
-    private async Task<List<ApiUrl>> GetAllApiUrls(MediaDbContext db)
-    {
-        return await db.ApiUrls
-            .Where(x => x.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
-            .ToListAsync();
-    }
 
     private async Task<Category> GetCategory(MediaDbContext db, string categoryCode)
     {

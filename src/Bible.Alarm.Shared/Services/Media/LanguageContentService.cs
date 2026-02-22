@@ -62,6 +62,17 @@ public sealed class LanguageContentService : ILanguageContentService
         this.firstSectionFetcher = new LanguageContentFirstSectionFetcher(scopeFactory, logger, this, sectionFetcher, internetConnectivityChecker);
     }
 
+    public Task<string?> GetVideoPublicationDisplayNameAsync(
+        string publicationCode,
+        string languageCode,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedPublicationCode = publicationCode.ToUpperInvariant();
+        var normalizedLanguageCode = languageCode.ToUpperInvariant();
+        return videoLocalizedNameFetcher.FetchVideoLocalizedNameFromMediatorAsync(
+            normalizedPublicationCode, normalizedLanguageCode, cancellationToken);
+    }
+
     public async Task<bool> FetchPublicationTracksAsync(
         string publicationCode,
         string languageCode,
@@ -69,8 +80,6 @@ public sealed class LanguageContentService : ILanguageContentService
     {
         return await publicationTracksFetcher.FetchPublicationTracksAsync(publicationCode, languageCode, cancellationToken);
     }
-
-    // Method moved to FlatPublicationFetcher helper class
 
     public async Task<bool> FetchPublicationSectionsAsync(
         string publicationCode,

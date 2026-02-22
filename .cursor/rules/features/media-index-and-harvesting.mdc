@@ -243,8 +243,11 @@ Common query params (varies by harvest type):
 
 ### Mediator API (category discovery)
 
-Constant:
-- `AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl = "https://app.jw-cdn.org/apis/mediator/v1"`
+Constants:
+- `AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl` – primary (app.jw-cdn.org)
+- `AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls` – `["https://b.jw-cdn.org/apis/mediator/v1", "https://app.jw-cdn.org/apis/mediator/v1"]` for random pick / retry
+
+Use `GetPubMediaLinksRetry.GetStringAsync(httpClient, JwOrgMediatorApiBaseUrls, pathAndQuery)` (or harvester `DownloadUtility.GetMediatorAsync(pathAndQuery)`) so requests try each base in random order.
 
 Used mainly for:
 - drama section discovery (and in some cases localized metadata)

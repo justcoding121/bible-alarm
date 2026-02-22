@@ -163,8 +163,7 @@ internal sealed class EnglishContentSeeder
             }
 
             var categoryName = category.CategoryCode;
-            // Determine if this is a video (videos are in Dramas category but have IsVideo=true)
-            var isVideo = JwSourceHelper.VideoPublicationCodes.Contains(normalizedPublicationCode);
+            var isVideo = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
 
             // Check if publication already exists for English
             // Use case-sensitive code for dramas

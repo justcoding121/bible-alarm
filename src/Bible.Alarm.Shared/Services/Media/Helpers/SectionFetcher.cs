@@ -64,17 +64,20 @@ internal sealed class SectionFetcher
             return false;
         }
 
-        var apiUrl = await db.ApiUrls.Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS").FirstOrDefaultAsync(effectiveToken);
-
-        if (apiUrl == null)
+        var categoryCodes = JwSourceHelper.GetCategoryCodesForPublication(normalizedPublicationCode);
+        var categoriesForPub = await db.Categories
+            .Where(c => categoryCodes.Contains(c.CategoryCode))
+            .ToListAsync(effectiveToken);
+        if (categoriesForPub.Count == 0)
         {
-            logger.Warning("No ApiUrl found");
+            logger.Warning("No categories found for publication {PublicationCode}", normalizedPublicationCode);
             return false;
         }
 
-        // Check for existing publication and determine which sections already exist
         var existingPublication = await db.BiblePublications
             .Include(bp => bp.Sections)
+            .Include(bp => bp.BiblePublicationCategories)
+            .ThenInclude(bpc => bpc.Category)
             .FirstOrDefaultAsync(
                 bp => bp.PublicationCode == normalizedPublicationCode &&
                       bp.LanguageId == language.Id,
@@ -84,14 +87,14 @@ internal sealed class SectionFetcher
             .Select(s => s.SectionCode.ToLowerInvariant())
             .ToHashSet() ?? new HashSet<string>();
 
-        // Filter to only missing sections (for resume support)
         var missingSectionCodes = sectionCodes
             .Where(sc => !existingSectionCodes.Contains(sc.ToLowerInvariant()))
             .ToList();
 
-        // If all sections exist, we're done
         if (missingSectionCodes.Count == 0 && existingPublication != null)
         {
+            SyncPublicationCategories(existingPublication, categoriesForPub);
+            await db.SaveChangesAsync(effectiveToken);
             logger.Debug("All sections already exist for publication {PublicationCode} in language {LanguageCode}",
                 normalizedPublicationCode, normalizedLanguageCode);
             progress?.UpdateProgress(1.0);
@@ -101,12 +104,11 @@ internal sealed class SectionFetcher
         var isBible = category.CategoryCode.Equals("Bible", StringComparison.OrdinalIgnoreCase);
         string? localizedPubName = null;
 
-        // Create or get the publication first (so we can add sections incrementally)
         BiblePublication publication;
         if (existingPublication != null)
         {
             publication = existingPublication;
-            // Update publication name if we get a localized one later
+            SyncPublicationCategories(publication, categoriesForPub);
         }
         else
         {
@@ -114,9 +116,11 @@ internal sealed class SectionFetcher
             publication = new BiblePublication
             {
                 PublicationCode = normalizedPublicationCode,
-                Name = englishPublication.Name, // Will update if we get localized name
+                Name = englishPublication.Name,
                 Language = language,
-                BiblePublicationCategories = new List<BiblePublicationCategory> { new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = category.Id, Category = category } },
+                BiblePublicationCategories = categoriesForPub
+                    .Select(cat => new BiblePublicationCategory { BiblePublicationId = 0, CategoryId = cat.Id, Category = cat })
+                    .ToList(),
                 LanguageId = language.Id,
                 IsVideo = isVideoDrama,
                 Tracks = new List<BiblePublicationTrack>(),
@@ -138,21 +142,19 @@ internal sealed class SectionFetcher
             try
             {
                 var dramaFileFormat = !isBible && PublicationTypeHelper.IsVideo(normalizedPublicationCode) ? "MP4" : "MP3";
-                var harvestLink = isBible
-                    ? $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
-                    : $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+                var queryString = isBible
+                    ? $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
+                    : $"?output=json&pub={sectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
 
-                var response = await httpClient.GetAsync(harvestLink, effectiveToken);
-                
-                if (!response.IsSuccessStatusCode)
+                var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
+                var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, effectiveToken);
+                if (jsonString == null)
                 {
                     logger.Debug("Section {SectionCode} not available for publication {PublicationCode} in language {LanguageCode}",
                         sectionCode, normalizedPublicationCode, normalizedLanguageCode);
                     completedSections++;
                     continue;
                 }
-
-                var jsonString = await response.Content.ReadAsStringAsync(effectiveToken);
                 using var doc = JsonDocument.Parse(jsonString);
                 var root = doc.RootElement;
 
@@ -205,13 +207,13 @@ internal sealed class SectionFetcher
                 if (isBible)
                 {
                     tracks = trackParser.ParseBibleTracks(
-                        filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode, apiUrl);
+                        filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode);
                 }
                 else
                 {
                     var isVideoDrama = PublicationTypeHelper.IsVideo(normalizedPublicationCode);
                     tracks = dramaTrackParser.ParseTracksFromJson(
-                        filesElement, normalizedLanguageCode, sectionCode, apiUrl, isVideoDrama);
+                        filesElement, normalizedLanguageCode, sectionCode, isVideoDrama);
                 }
 
                 // Create and save section immediately (incremental save)
@@ -299,5 +301,20 @@ internal sealed class SectionFetcher
         CancellationToken cancellationToken)
     {
         return sectionTracksLoader.FetchSectionTracksAsync(db, normalizedPublicationCode, normalizedSectionCode, normalizedLanguageCode, publicationCodeForDb, publication, section, cancellationToken);
+    }
+
+    private static void SyncPublicationCategories(BiblePublication publication, List<Category> categories)
+    {
+        var existingCategoryIds = publication.BiblePublicationCategories
+            .Select(bpc => bpc.CategoryId)
+            .ToHashSet();
+        foreach (var cat in categories)
+        {
+            if (existingCategoryIds.Add(cat.Id))
+            {
+                publication.BiblePublicationCategories.Add(
+                    new BiblePublicationCategory { BiblePublicationId = publication.Id, CategoryId = cat.Id, Category = cat });
+            }
+        }
     }
 }

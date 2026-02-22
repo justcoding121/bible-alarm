@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
@@ -53,17 +54,15 @@ internal sealed class VideoLocalizedNameFetcher
 
         try
         {
-            var categoryUrl = $"{AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl}/categories/{normalizedLanguageCode}/{categoryKey}?detailed=1";
-            var response = await httpClient.GetAsync(categoryUrl, cancellationToken);
-            
-            if (!response.IsSuccessStatusCode)
+            var pathAndQuery = $"/categories/{normalizedLanguageCode}/{categoryKey}?detailed=1";
+            var baseUrls = AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls;
+            var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, pathAndQuery, cancellationToken);
+            if (jsonString == null)
             {
-                logger.Debug("Failed to fetch video category {CategoryKey} for language {LanguageCode}: {StatusCode}",
-                    categoryKey, normalizedLanguageCode, response.StatusCode);
+                logger.Debug("Failed to fetch video category {CategoryKey} for language {LanguageCode}",
+                    categoryKey, normalizedLanguageCode);
                 return null;
             }
-
-            var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 

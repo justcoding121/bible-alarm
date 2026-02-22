@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
@@ -39,18 +40,15 @@ internal sealed class DramaMediatorApiClient
             return (null, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
         }
 
-        var mediatorUrl = $"{AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl}/categories/{normalizedLanguageCode}/{categoryKey}?detailed=1";
-        
-        var response = await httpClient.GetAsync(mediatorUrl, cancellationToken);
-        
-        if (!response.IsSuccessStatusCode)
+        var pathAndQuery = $"/categories/{normalizedLanguageCode}/{categoryKey}?detailed=1";
+        var baseUrls = AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls;
+        var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, pathAndQuery, cancellationToken);
+        if (jsonString == null)
         {
-            logger.Warning("Failed to fetch drama category {CategoryKey} for language {LanguageCode}: {StatusCode}",
-                categoryKey, normalizedLanguageCode, response.StatusCode);
+            logger.Warning("Failed to fetch drama category {CategoryKey} for language {LanguageCode}",
+                categoryKey, normalizedLanguageCode);
             return (null, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
         }
-
-        var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 

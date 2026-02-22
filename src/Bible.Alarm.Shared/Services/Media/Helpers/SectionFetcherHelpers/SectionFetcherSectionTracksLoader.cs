@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
@@ -58,19 +59,18 @@ internal sealed class SectionFetcherSectionTracksLoader
         var isVideoDrama = !isBible && publication.IsVideo;
         var dramaFileFormat = isVideoDrama ? "MP4" : "MP3";
 
-        var harvestLink = isBible
-            ? $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
-            : $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedSectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
+        var queryString = isBible
+            ? $"?output=json&pub={normalizedPublicationCode}&booknum={normalizedSectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
+            : $"?output=json&pub={normalizedSectionCode}&fileformat={dramaFileFormat}&alllangs=0&langwritten={normalizedLanguageCode}";
 
-        var response = await httpClient.GetAsync(harvestLink, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
+        var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
+        if (jsonString == null)
         {
             logger.Warning("Failed to fetch tracks for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
                 normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
             return false;
         }
-
-        var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
@@ -109,13 +109,6 @@ internal sealed class SectionFetcherSectionTracksLoader
         {
             logger.Warning("No {Format} files found for section {SectionCode} in publication {PublicationCode} for language {LanguageCode}",
                 formatKey, normalizedSectionCode, normalizedPublicationCode, normalizedLanguageCode);
-            return false;
-        }
-
-        var apiUrl = await db.ApiUrls.Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS").FirstOrDefaultAsync(cancellationToken);
-        if (apiUrl == null)
-        {
-            logger.Warning("No ApiUrl found");
             return false;
         }
 
@@ -178,18 +171,18 @@ internal sealed class SectionFetcherSectionTracksLoader
 
             if (isBible)
             {
-                track.UrlParams.Add(new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
-                track.UrlParams.Add(new UrlParam { Key = "booknum", Value = normalizedSectionCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
+                track.UrlParams.Add(new UrlParam { Key = "pub", Value = normalizedPublicationCode, IsQueryParam = true });
+                track.UrlParams.Add(new UrlParam { Key = "booknum", Value = normalizedSectionCode, IsQueryParam = true });
             }
             else
             {
-                track.UrlParams.Add(new UrlParam { Key = "pub", Value = normalizedSectionCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
+                track.UrlParams.Add(new UrlParam { Key = "pub", Value = normalizedSectionCode, IsQueryParam = true });
                 track.TrackCode = normalizedSectionCode;
             }
-            track.UrlParams.Add(new UrlParam { Key = "track", Value = trackCode.ToString(), IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
-            track.UrlParams.Add(new UrlParam { Key = "fileformat", Value = isVideoDrama ? "mp4" : "mp3", IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
-            track.UrlParams.Add(new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
-            track.UrlParams.Add(new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true, ApiUrl = apiUrl, ApiUrlId = apiUrl.Id });
+            track.UrlParams.Add(new UrlParam { Key = "track", Value = trackCode.ToString(), IsQueryParam = true });
+            track.UrlParams.Add(new UrlParam { Key = "fileformat", Value = isVideoDrama ? "mp4" : "mp3", IsQueryParam = true });
+            track.UrlParams.Add(new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true });
+            track.UrlParams.Add(new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true });
 
             tracks.Add(track);
             trackCode++;

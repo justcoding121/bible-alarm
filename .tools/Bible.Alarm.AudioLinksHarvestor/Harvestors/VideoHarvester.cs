@@ -278,8 +278,12 @@ internal class VideoHarvester : BaseHarvester
 
         try
         {
-            var categoryUrl = $"{AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl}/categories/{languageCode}/{categoryKey}?detailed=1";
-            var jsonString = await DownloadUtility.GetAsync(categoryUrl);
+            var pathAndQuery = $"/categories/{languageCode}/{categoryKey}?detailed=1";
+            var jsonString = await DownloadUtility.GetMediatorAsync(pathAndQuery);
+            if (string.IsNullOrEmpty(jsonString))
+            {
+                return;
+            }
 
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;

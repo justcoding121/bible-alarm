@@ -26,7 +26,6 @@ internal sealed class DramaTrackParser
         JsonElement sectionFilesElement,
         string normalizedLanguageCode,
         string sectionCode,
-        ApiUrl apiUrl,
         bool isVideo = false)
     {
         var tracks = new List<BiblePublicationTrack>();
@@ -40,7 +39,7 @@ internal sealed class DramaTrackParser
 
         foreach (var trackFile in formatFiles.EnumerateArray())
         {
-            var track = ParseSingleTrack(trackFile, sectionCode, apiUrl, normalizedLanguageCode, isVideo);
+            var track = ParseSingleTrack(trackFile, sectionCode, normalizedLanguageCode, isVideo);
             if (track != null)
             {
                 tracks.Add(track);
@@ -53,7 +52,6 @@ internal sealed class DramaTrackParser
     private BiblePublicationTrack? ParseSingleTrack(
         JsonElement trackFile,
         string sectionCode,
-        ApiUrl apiUrl,
         string normalizedLanguageCode,
         bool isVideo = false)
     {
@@ -100,42 +98,13 @@ internal sealed class DramaTrackParser
             return null;
         }
 
-        // Create track with URL params.
         // GETPUBMEDIALINKS for drama sections returns a single file per section (pub=sectionCode); no track param.
         var trackUrlParams = new List<UrlParam>
         {
-            new UrlParam
-            {
-                Key = "pub",
-                Value = sectionCode,
-                IsQueryParam = true,
-                ApiUrl = apiUrl,
-                ApiUrlId = apiUrl.Id
-            },
-            new UrlParam
-            {
-                Key = "fileformat",
-                Value = isVideo ? "mp4" : "mp3",
-                IsQueryParam = true,
-                ApiUrl = apiUrl,
-                ApiUrlId = apiUrl.Id
-            },
-            new UrlParam
-            {
-                Key = "alllangs",
-                Value = "0",
-                IsQueryParam = true,
-                ApiUrl = apiUrl,
-                ApiUrlId = apiUrl.Id
-            },
-            new UrlParam
-            {
-                Key = "langwritten",
-                Value = normalizedLanguageCode,
-                IsQueryParam = true,
-                ApiUrl = apiUrl,
-                ApiUrlId = apiUrl.Id
-            }
+            new UrlParam { Key = "pub", Value = sectionCode, IsQueryParam = true },
+            new UrlParam { Key = "fileformat", Value = isVideo ? "mp4" : "mp3", IsQueryParam = true },
+            new UrlParam { Key = "alllangs", Value = "0", IsQueryParam = true },
+            new UrlParam { Key = "langwritten", Value = normalizedLanguageCode, IsQueryParam = true }
         };
 
         // For dramas, TrackCode is the sectionCode (pub param value), not the sequential number

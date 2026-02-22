@@ -11,20 +11,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "ApiUrls",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Url = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
-                    PathPrefix = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ApiUrls", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Categories",
                 columns: table => new
                 {
@@ -250,7 +236,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     BiblePublicationTrackId = table.Column<int>(type: "INTEGER", nullable: true),
-                    BaseUrlId = table.Column<int>(type: "INTEGER", nullable: true),
                     Key = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
                     Value = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
                     IsQueryParam = table.Column<bool>(type: "INTEGER", nullable: false)
@@ -259,27 +244,11 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 {
                     table.PrimaryKey("PK_UrlParams", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_UrlParams_ApiUrls_BaseUrlId",
-                        column: x => x.BaseUrlId,
-                        principalTable: "ApiUrls",
-                        principalColumn: "Id");
-                    table.ForeignKey(
                         name: "FK_UrlParams_BiblePublicationTracks_BiblePublicationTrackId",
                         column: x => x.BiblePublicationTrackId,
                         principalTable: "BiblePublicationTracks",
                         principalColumn: "Id");
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ApiUrls_PathPrefix",
-                table: "ApiUrls",
-                column: "PathPrefix");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ApiUrls_Url",
-                table: "ApiUrls",
-                column: "Url",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_BiblePublicationCategories_CategoryId",
@@ -364,11 +333,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                 column: "PublicationLanguageId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_UrlParams_BaseUrlId",
-                table: "UrlParams",
-                column: "BaseUrlId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_UrlParams_BiblePublicationTrackId",
                 table: "UrlParams",
                 column: "BiblePublicationTrackId");
@@ -394,9 +358,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 
             migrationBuilder.DropTable(
                 name: "LanguageNamesByLanguage");
-
-            migrationBuilder.DropTable(
-                name: "ApiUrls");
 
             migrationBuilder.DropTable(
                 name: "BiblePublicationTracks");

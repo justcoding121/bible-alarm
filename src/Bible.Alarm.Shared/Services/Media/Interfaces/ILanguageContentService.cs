@@ -13,6 +13,15 @@ namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 public interface ILanguageContentService
 {
     /// <summary>
+    /// Gets the display name (pubName) for a video publication from GETPUBMEDIALINKS.
+    /// Used for placeholders so flat video pubs (e.g. thv) show "Apply Yourself to Reading and Teaching—Videos" instead of the code.
+    /// </summary>
+    Task<string?> GetVideoPublicationDisplayNameAsync(
+        string publicationCode,
+        string languageCode,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Fetches all tracks for a flat-track publication (Music/Video - both use same GETPUBMEDIALINKS pattern).
     /// Deletes any existing data before inserting new.
     /// </summary>

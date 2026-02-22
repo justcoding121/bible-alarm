@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
+using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Microsoft.EntityFrameworkCore;
@@ -40,17 +41,6 @@ internal sealed class EnglishSectionFetcher
         List<string> sectionCodes,
         CancellationToken cancellationToken)
     {
-        // Get ApiUrl
-        var apiUrl = await db.ApiUrls
-            .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (apiUrl == null)
-        {
-            logger.Warning("No ApiUrl found");
-            return (new List<BiblePublicationSection>(), null);
-        }
-
         // Data-driven: Check if publication has LanguageId == null (determines API parameter pattern)
         var isBible = categoryName.Equals("Bible", StringComparison.OrdinalIgnoreCase);
         var publicationWithoutLanguage = await db.BiblePublications
@@ -74,7 +64,7 @@ internal sealed class EnglishSectionFetcher
             {
                 var section = await FetchSingleSectionAsync(
                     sectionCode, normalizedPublicationCode, normalizedLanguageCode,
-                    isBible, publicationWithoutLanguage, apiUrl, cancellationToken);
+                    isBible, publicationWithoutLanguage, cancellationToken);
 
                 if (section == null)
                 {
@@ -114,25 +104,20 @@ internal sealed class EnglishSectionFetcher
         string normalizedLanguageCode,
         bool isBible,
         bool publicationWithoutLanguage,
-        ApiUrl apiUrl,
         CancellationToken cancellationToken)
     {
-        // For Bible, use booknum parameter; for publications without language, use pub=sectionCode with langwritten=E
-        // Note: Publications without language use langwritten=E even though they have no language (melody music)
-        var harvestLink = isBible
-            ? $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
+        var queryString = isBible
+            ? $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
             : publicationWithoutLanguage
-                ? $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten=E"
-                : $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+                ? $"?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten=E"
+                : $"?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
 
-        var response = await httpClient.GetAsync(harvestLink, cancellationToken);
-        
-        if (!response.IsSuccessStatusCode)
+        var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
+        var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
+        if (jsonString == null)
         {
             return null;
         }
-
-        var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
         using var doc = JsonDocument.Parse(jsonString);
         var root = doc.RootElement;
 
@@ -161,13 +146,13 @@ internal sealed class EnglishSectionFetcher
         // Publications without language use the same parsing as "iam" (melody music pattern)
         if (publicationWithoutLanguage)
         {
-            var tracks = trackParser.ParseIamTracks(filesElement, sectionCode, apiUrl);
+            var tracks = trackParser.ParseIamTracks(filesElement, sectionCode);
             section.Tracks.AddRange(tracks);
         }
         else if (isBible)
         {
             var tracks = trackParser.ParseBibleTracks(
-                filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode, apiUrl);
+                filesElement, normalizedLanguageCode, normalizedPublicationCode, sectionCode);
             section.Tracks.AddRange(tracks);
         }
 
@@ -191,20 +176,18 @@ internal sealed class EnglishSectionFetcher
             // For now, continue to API extraction for consistency
         }
 
-        // For Bible, fetch one section to get the publication name
-        var harvestLink = isBible
-            ? $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
-            : $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
+        var queryString = isBible
+            ? $"?output=json&pub={normalizedPublicationCode}&booknum={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}"
+            : $"?output=json&pub={sectionCode}&fileformat=MP3&alllangs=0&langwritten={normalizedLanguageCode}";
 
         try
         {
-            var response = await httpClient.GetAsync(harvestLink, cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            var baseUrls = GetPubMediaLinksRetry.GetBaseUrlsFromConstants();
+            var jsonString = await GetPubMediaLinksRetry.GetStringAsync(httpClient, baseUrls, queryString, cancellationToken);
+            if (jsonString == null)
             {
                 return null;
             }
-
-            var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 

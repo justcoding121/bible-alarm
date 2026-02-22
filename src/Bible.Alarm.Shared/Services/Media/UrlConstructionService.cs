@@ -3,10 +3,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -18,13 +18,11 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 namespace Bible.Alarm.Shared.Services.Media;
 
 /// <summary>
-/// Service for constructing download URLs from the database using joins.
+/// Service for constructing download URLs from track UrlParams and fixed base URLs.
 /// </summary>
 public class UrlConstructionService : IUrlConstructionService
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly object apiUrlsLock = new();
-    private Task<List<ApiUrl>>? apiUrlsTask;
 
     private static readonly TimeSpan LookUpPathCacheTtl = TimeSpan.FromMinutes(5);
 
@@ -43,31 +41,9 @@ public class UrlConstructionService : IUrlConstructionService
         _scopeFactory = scopeFactory;
     }
 
-    private Task<List<ApiUrl>> GetApiUrlsAsync()
-    {
-        lock (apiUrlsLock)
-        {
-            apiUrlsTask ??= LoadApiUrlsAsync();
-            return apiUrlsTask;
-        }
-    }
-
-    private async Task<List<ApiUrl>> LoadApiUrlsAsync()
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
-
-        // Only load params that belong to the base URL (not track params that also reference ApiUrlId)
-        return await dbContext.ApiUrls
-            .AsNoTracking()
-            .Where(bu => bu.PathPrefix == "apis/pub-media/GETPUBMEDIALINKS")
-            .Include(bu => bu.UrlParams.Where(p => p.BiblePublicationTrackId == null))
-            .ToListAsync();
-    }
-
     /// <summary>
     /// Constructs download URLs for a Bible publication track.
-    /// Returns both primary and backup URLs (one for each ApiUrl in the database).
+    /// Returns both primary and backup URLs (one per base URL constant).
     /// </summary>
     /// <param name="trackId">The ID of the BiblePublicationTrack</param>
     /// <returns>List of constructed URLs (primary and backup)</returns>
@@ -76,9 +52,8 @@ public class UrlConstructionService : IUrlConstructionService
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        // Single query with all necessary joins to minimize database round trips
         var track = await dbContext.BiblePublicationTracks
-            .AsNoTracking() // Read-only, improves performance
+            .AsNoTracking()
             .Include(t => t.Publication)
                 .ThenInclude(p => p!.Language)
             .Include(t => t.Section)
@@ -90,21 +65,11 @@ public class UrlConstructionService : IUrlConstructionService
             return new List<string>();
         }
 
-        // ApiUrls are static at runtime; cache them to avoid repeated DB queries.
-        var apiUrls = await GetApiUrlsAsync();
-
-        if (apiUrls == null || apiUrls.Count == 0)
-        {
-            // Or throw exception if this should never happen
-            return new List<string>();
-        }
-
+        var baseUrls = AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrls;
         var urls = new List<string>();
-
-        // Get all base URLs from the database
-        foreach (var apiUrl in apiUrls)
+        foreach (var baseUrl in baseUrls)
         {
-            var url = ConstructUrl(apiUrl, track);
+            var url = ConstructUrl(baseUrl, track);
             if (!string.IsNullOrEmpty(url))
             {
                 urls.Add(url);
@@ -115,73 +80,34 @@ public class UrlConstructionService : IUrlConstructionService
     }
 
     /// <summary>
-    /// Constructs a single URL for a track using a specific ApiUrl.
+    /// Constructs a single URL for a track using a base URL string.
     /// </summary>
-    private string ConstructUrl(ApiUrl apiUrl, BiblePublicationTrack track)
+    private static string ConstructUrl(string baseUrl, BiblePublicationTrack track)
     {
-        var publication = track.Publication;
-        if (publication == null)
-        {
-            return string.Empty;
-        }
-
-        // Build base URL: ApiUrl + "/" + PathPrefix
-        var apiUrlString = apiUrl.Url.TrimEnd('/');
-        var pathPrefix = apiUrl.PathPrefix.TrimStart('/');
-        var fullApiUrl = $"{apiUrlString}/{pathPrefix}";
-
-        // Collect all parameters (both query params and path params)
-        var allParams = new Dictionary<string, string>();
         var queryParams = new Dictionary<string, string>();
-
-        // Add parameters from ApiUrl
-        foreach (var param in apiUrl.UrlParams)
+        foreach (var param in track.UrlParams.Where(p => p.IsQueryParam))
         {
-            allParams[param.Key] = param.Value;
-            if (param.IsQueryParam)
-            {
-                queryParams[param.Key] = param.Value;
-            }
+            queryParams[param.Key] = param.Value;
         }
 
-        // Add parameters from BiblePublicationTrack
-        foreach (var param in track.UrlParams)
+        if (!queryParams.ContainsKey("output"))
         {
-            allParams[param.Key] = param.Value;
-            if (param.IsQueryParam)
-            {
-                queryParams[param.Key] = param.Value;
-            }
+            queryParams["output"] = "json";
         }
 
-        // Replace {key} placeholders in the URL path with values from non-query params
-        var urlPath = fullApiUrl;
-        foreach (var param in allParams)
+        if (queryParams.TryGetValue("fileformat", out var ff))
         {
-            if (!queryParams.ContainsKey(param.Key)) // Only replace non-query params in the path
-            {
-                var placeholder = $"{{{param.Key}}}";
-                if (urlPath.Contains(placeholder))
-                {
-                    urlPath = urlPath.Replace(placeholder, Uri.EscapeDataString(param.Value));
-                }
-            }
+            queryParams["fileformat"] = ff.ToUpperInvariant();
         }
 
-        // Convert fileformat to uppercase (API expects MP3/MP4, not mp3/mp4)
-        if (queryParams.ContainsKey("fileformat"))
-        {
-            queryParams["fileformat"] = queryParams["fileformat"].ToUpperInvariant();
-        }
-
-        // Build query string strictly from DB params (base URL + track UrlParams)
         if (queryParams.Count == 0)
         {
-            return urlPath;
+            return baseUrl.TrimEnd('/');
         }
+
         var queryString = string.Join("&", queryParams.Select(kvp =>
             $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
-        return $"{urlPath}?{queryString}";
+        return $"{baseUrl.TrimEnd('/')}?{queryString}";
     }
 
     /// <summary>
@@ -196,14 +122,6 @@ public class UrlConstructionService : IUrlConstructionService
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        var apiUrls = await GetApiUrlsAsync();
-        if (apiUrls.Count == 0)
-        {
-            return new List<string>();
-        }
-
-        // Check if this publication exists without a language (e.g., instrumental music)
-        // This is more generic than hard-coding specific publication codes
         var isNoLanguagePublication = await dbContext.BiblePublications
             .AsNoTracking()
             .AnyAsync(p => p.PublicationCode == publicationCode && p.LanguageId == null);
@@ -249,11 +167,11 @@ public class UrlConstructionService : IUrlConstructionService
             return new List<string>();
         }
 
-        // Avoid re-querying the DB: we already loaded the track (+ params) above.
+        var baseUrls = AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrls;
         var urls = new List<string>();
-        foreach (var apiUrl in apiUrls)
+        foreach (var baseUrl in baseUrls)
         {
-            var url = ConstructUrl(apiUrl, track);
+            var url = ConstructUrl(baseUrl, track);
             if (!string.IsNullOrEmpty(url))
             {
                 urls.Add(url);
@@ -266,7 +184,6 @@ public class UrlConstructionService : IUrlConstructionService
     /// <summary>
     /// Constructs the lookup path (query string) for a track by publication code, language code, section code, and track number.
     /// Returns the query string part (e.g., "?output=json&pub=nwt&booknum=1&fileformat=MP3&langwritten=E&track=1").
-    /// Uses the first ApiUrl from the database.
     /// </summary>
     public async Task<string?> ConstructTrackLookUpPathAsync(
         string publicationCode,
@@ -365,15 +282,8 @@ public class UrlConstructionService : IUrlConstructionService
             return null;
         }
 
-        // ApiUrls are static at runtime; cache them to avoid repeated DB queries.
-        var apiUrl = (await GetApiUrlsAsync()).FirstOrDefault();
-
-        if (apiUrl == null)
-        {
-            return null;
-        }
-
-        var fullUrl = ConstructUrl(apiUrl, track);
+        var baseUrl = AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrls[0];
+        var fullUrl = ConstructUrl(baseUrl, track);
 
         if (string.IsNullOrEmpty(fullUrl))
         {

@@ -67,7 +67,21 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
 
             // Order in memory using the custom comparer (EF Core can't translate custom comparers)
             var orderedTracks = tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList();
-            return new SortedDictionary<string, BiblePublicationTrack>(orderedTracks.ToDictionary(x => x.TrackCode, x => x), TrackCodeComparer.Comparer);
+            // Build dictionary; allow duplicate TrackCodes (keep first) so we don't throw when data has duplicates
+            var dict = new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
+            foreach (var track in orderedTracks)
+            {
+                if (!dict.ContainsKey(track.TrackCode))
+                {
+                    dict[track.TrackCode] = track;
+                }
+                else
+                {
+                    logger.Debug("Duplicate TrackCode {TrackCode} for publication {PublicationCode} language {LanguageCode}, skipping",
+                        track.TrackCode, publicationCode, languageCode);
+                }
+            }
+            return dict;
         }
         catch (Exception ex)
         {

@@ -16,32 +16,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.2");
 
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.ApiUrl", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("PathPrefix")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PathPrefix");
-
-                    b.HasIndex("Url")
-                        .IsUnique();
-
-                    b.ToTable("ApiUrls");
-                });
-
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication", b =>
                 {
                     b.Property<int>("Id")
@@ -220,10 +194,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("ApiUrlId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("BaseUrlId");
-
                     b.Property<int?>("BiblePublicationTrackId")
                         .HasColumnType("INTEGER");
 
@@ -241,8 +211,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ApiUrlId");
 
                     b.HasIndex("BiblePublicationTrackId");
 
@@ -441,15 +409,9 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.UrlParam", b =>
                 {
-                    b.HasOne("Bible.Alarm.Shared.Models.Media.ApiUrl", "ApiUrl")
-                        .WithMany("UrlParams")
-                        .HasForeignKey("ApiUrlId");
-
                     b.HasOne("Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublicationTrack", "BiblePublicationTrack")
                         .WithMany("UrlParams")
                         .HasForeignKey("BiblePublicationTrackId");
-
-                    b.Navigation("ApiUrl");
 
                     b.Navigation("BiblePublicationTrack");
                 });
@@ -474,11 +436,6 @@ namespace Bible.Alarm.Shared.Database.Migrations.Media
                         .IsRequired();
 
                     b.Navigation("Language");
-                });
-
-            modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.ApiUrl", b =>
-                {
-                    b.Navigation("UrlParams");
                 });
 
             modelBuilder.Entity("Bible.Alarm.Shared.Models.Media.BiblePublications.BiblePublication", b =>

@@ -1,8 +1,11 @@
+#nullable enable
 using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Helpers;
 using Polly;
 using Polly.Retry;
 using Serilog;
@@ -73,6 +76,18 @@ internal class DownloadUtility
         }
 
         return url;
+    }
+
+    /// <summary>
+    /// Fetches from Mediator API using redundant base URLs (random pick, retry on failure).
+    /// </summary>
+    /// <param name="pathAndQuery">Path and query including leading slash (e.g. "/categories/E/gnj?detailed=1")</param>
+    /// <returns>Response body or null if all base URLs failed</returns>
+    internal async Task<string?> GetMediatorAsync(string pathAndQuery)
+    {
+        using var client = CreateHttpClient();
+        var baseUrls = AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrls;
+        return await GetPubMediaLinksRetry.GetStringAsync(client, baseUrls, pathAndQuery);
     }
 
     internal async Task<string> GetAsync(string harvestLink)

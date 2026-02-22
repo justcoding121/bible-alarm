@@ -63,17 +63,21 @@ internal class DramaHarvester : BaseHarvester
         ConcurrentDictionary<string, ConcurrentDictionary<string, string>> languageCodeToPublications,
         bool isTestRun)
     {
-        // First, fetch the publication (which is accessed via category API) for English to get all available languages
-        var englishCategoryUrl = $"{AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl}/categories/E/{publicationCode}?detailed=1";
-        string jsonString;
-
+        var pathAndQuery = $"/categories/E/{publicationCode}?detailed=1";
+        string? jsonString;
         try
         {
-            jsonString = await DownloadUtility.GetAsync(englishCategoryUrl);
+            jsonString = await DownloadUtility.GetMediatorAsync(pathAndQuery);
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to fetch publication {PublicationCode} for English. Skipping.", publicationCode);
+            return;
+        }
+
+        if (string.IsNullOrEmpty(jsonString))
+        {
+            Logger.Error("Empty response for publication {PublicationCode} for English. Skipping.", publicationCode);
             return;
         }
 
@@ -137,13 +141,11 @@ internal class DramaHarvester : BaseHarvester
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         Logger.Information("Harvesting {PublicationName} for language {LanguageCode}", publicationName, normalizedLanguageCode);
 
-        // Access publication via category API (publication code is used as category key in Mediator API)
-        var categoryUrl = $"{AppConstants.ApiEndpoints.JwOrgMediatorApiBaseUrl}/categories/{normalizedLanguageCode}/{publicationCode}?detailed=1";
-        string jsonString;
-
+        var pathAndQuery = $"/categories/{normalizedLanguageCode}/{publicationCode}?detailed=1";
+        string? jsonString;
         try
         {
-            jsonString = await DownloadUtility.GetAsync(categoryUrl);
+            jsonString = await DownloadUtility.GetMediatorAsync(pathAndQuery);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404") || ex.Message.Contains("Response status code"))
         {
@@ -153,6 +155,12 @@ internal class DramaHarvester : BaseHarvester
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to fetch publication {PublicationCode} for language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
+            return;
+        }
+
+        if (string.IsNullOrEmpty(jsonString))
+        {
+            Logger.Warning("Empty response for publication {PublicationCode} in language {LanguageCode}. Skipping.", publicationCode, normalizedLanguageCode);
             return;
         }
 
